@@ -21,6 +21,9 @@ node web/serve.mjs
 
 ## Try it
 
+Every feature has a short example note in [`examples/`](examples/README.md);
+open one in Zed or the browser editor and follow the comment at the end.
+
 ```sh
 cargo build
 ./target/debug/jot today

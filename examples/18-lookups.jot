@@ -1,0 +1,18 @@
+# Weather and quotes
+
+External data lives in a cache that only jot refresh or the Refresh lookups
+lens fills; nothing is fetched while you type.
+
+[oaxaca] := forecast("Oaxaca", 2026-11-20)
+[oaxaca_f] := forecast("Oaxaca", 2026-11-20, F)
+[pack_rain_jacket] := oaxaca.rain > 30%
+
+Landing day looks like [oaxaca], or [oaxaca_f] in Fahrenheit.
+
+[12]:shares
+[nvda] := quote(NVDA) * shares
+
+Holding [shares] shares is worth [nvda].
+
+<!-- Forecasts cover about 16 days ahead. Uppercase names such as NVDA or F are
+codes, not references. Hover a value to see each lookup's age and source. -->

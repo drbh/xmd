@@ -390,3 +390,25 @@ test("itinerary stops render one hue per kind with bold markers", async ({ page 
   await expect(token("November 20, 2026")).toHaveCSS("color", "rgb(255, 158, 207)");
   await expect(token("07:04 AM")).toHaveCSS("color", "rgb(145, 220, 232)");
 });
+
+test("the book runs every example as a live block on the shared engine", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/book/?test");
+  await expect(page.locator("#engine")).toHaveText("Rust / WebAssembly · running in this page", { timeout: 45_000 });
+  await page.waitForFunction(() => window.jotBook?.ready);
+  const first = page.locator('.jot-block[data-file="01-values.jot"]');
+  await expect(first.locator(".view")).toContainText("$556");
+  await expect(first.locator(".view .t-jotMoney").first()).toHaveCSS("color", "rgb(180, 217, 138)");
+  // Editing a block re-solves it on the engine.
+  await first.locator("textarea").fill("[$10]:a\n[$4]:b\n[c] := a + b\n");
+  await expect(first.locator(".view")).toContainText("= $14");
+  // Cross-note values resolve because every block shares one workspace.
+  await expect(page.locator('.jot-block[data-file="27-cross-note-values.jot"] .view')).toContainText("$3,040");
+  // Plans solve in the page, and itineraries paint their kinds.
+  await expect(page.locator('.jot-block[data-file="14-plans.jot"] .view')).toContainText("= $94.75");
+  await expect(page.locator('.jot-block[data-file="19-itinerary.jot"] .view .t-jotDepart').first()).toBeVisible();
+  // Unfetched lookups are warnings, listed under the block.
+  await expect(page.locator('.jot-block[data-file="05-currencies.jot"] .problems .warn').first()).toContainText("No cached rate");
+  expect(errors).toEqual([]);
+});

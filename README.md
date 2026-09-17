@@ -23,6 +23,9 @@ node web/serve.mjs
 
 Every feature has a short example note in [`examples/`](examples/README.md);
 open one in Zed or the browser editor and follow the comment at the end.
+[The Jot Book](book/README.md) inlines all of them as live blocks on one page:
+`node book/build.mjs && node web/serve.mjs`, then open
+http://127.0.0.1:4173/book/.
 
 ```sh
 cargo build

@@ -72,7 +72,7 @@ fn style(kind: &str, modifiers: u32) -> Style {
 }
 fn value_kind(value: &Value) -> &'static str {
     match value {
-        Value::Money(_) => "jotMoney",
+        Value::Money(..) => "jotMoney",
         Value::Date(_) | Value::DateTime(_) => "jotDate",
         Value::Duration(_) => "jotDuration",
         Value::Ratio(_) => "jotRatio",

@@ -133,7 +133,7 @@ fn kind(text: &str) -> Option<&'static str> {
         return None;
     }
     match token.kind {
-        Lexeme::Value(Value::Money(_)) => Some("jotMoney"),
+        Lexeme::Value(Value::Money(..)) => Some("jotMoney"),
         Lexeme::Value(Value::Ratio(_)) => Some("jotRatio"),
         Lexeme::Value(Value::Duration(_)) => Some("jotDuration"),
         Lexeme::Value(Value::Number(_)) => Some("number"),

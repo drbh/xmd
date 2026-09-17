@@ -20,6 +20,7 @@ fn note(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn point(ws: &Workspace, row: usize, needle: &str) -> Position {
@@ -62,7 +63,10 @@ Bake [bakery.bagels] bagels for [bakery].
 fn a_plan_solves_reactively_with_note_values_as_constants() {
     let ws = note(BAKERY);
     let solved = plan(&ws, "bakery");
-    assert_eq!(solved.objective, Value::Money(94.75));
+    assert_eq!(
+        solved.objective,
+        Value::Money(94.75, jot::engine::Currency::USD)
+    );
     assert_eq!(
         solved.variables,
         [
@@ -93,7 +97,10 @@ fn a_plan_solves_reactively_with_note_values_as_constants() {
     );
     // Less flour in the note, less profit: the plan re-solves from the edit.
     let less = note(&BAKERY.replace("[400]:flour_stock", "[300]:flour_stock"));
-    assert_eq!(plan(&less, "bakery").objective, Value::Money(69.75));
+    assert_eq!(
+        plan(&less, "bakery").objective,
+        Value::Money(69.75, jot::engine::Currency::USD)
+    );
 }
 
 #[test]
@@ -351,7 +358,7 @@ fn goal_seek_inverts_a_chain_of_calculations() {
     let exact = note("[price] := solve(price * 40 == $1,000)\n");
     assert_eq!(
         Engine::at(&exact, now()).named(path(), "price").unwrap(),
-        Value::Money(25.0)
+        Value::Money(25.0, jot::engine::Currency::USD)
     );
     let unrelated = note("[x] := solve(3 >= 2)\n");
     assert_eq!(
@@ -423,7 +430,10 @@ fn decision_columns_become_per_row_choices_and_counts() {
         ]
     );
     let diet = plan(&ws, "diet");
-    assert_eq!(diet.objective, Value::Money(8.0));
+    assert_eq!(
+        diet.objective,
+        Value::Money(8.0, jot::engine::Currency::USD)
+    );
     assert_eq!(diet.rows[0].1, Value::Number(4.0));
     assert_eq!(diet.rows[1].1, Value::Number(0.0));
     // Decision columns are not data outside a plan, and column names never leak as variables.

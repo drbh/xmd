@@ -23,6 +23,7 @@ fn ws(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn point(ws: &Workspace, row: usize, needle: &str) -> Position {
@@ -338,7 +339,7 @@ fn source_literals_roundtrip_types_and_precision_for_freeze() {
     let ws = ws("");
     for value in [
         Value::Number(1.0 / 3.0),
-        Value::Money(-123.45),
+        Value::Money(-123.45, jot::engine::Currency::USD),
         Value::Ratio(-0.47),
         Value::Duration(73),
         Value::Text("a\"b\n".into()),

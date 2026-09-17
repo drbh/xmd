@@ -37,6 +37,7 @@ impl BrowserWorkspace {
                 roots: vec!["/workspace".into()],
                 documents: BTreeMap::new(),
                 cache: BTreeMap::new(),
+                lookups: Default::default(),
             },
             versions: BTreeMap::new(),
         }

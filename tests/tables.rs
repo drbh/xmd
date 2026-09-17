@@ -20,6 +20,7 @@ fn ws(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
+        lookups: Default::default(),
     }
 }
 fn span(doc: &Document, row: usize, needle: &str) -> Span {
@@ -313,7 +314,10 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     let source = "[$10]:unit\n[3]:qty\n[groceries] := table\n| item  | price        |\n| ----- | ------------ |\n| apple | $3.30        |\n| bulk  | [unit * qty] |\n| one   | [unit]       |\n[total] := sum(groceries, price)\n";
     let notes = ws(source);
     let mut engine = Engine::at(&notes, now());
-    assert_eq!(engine.named(path(), "total").unwrap(), Value::Money(43.3));
+    assert_eq!(
+        engine.named(path(), "total").unwrap(),
+        Value::Money(43.3, jot::engine::Currency::USD)
+    );
     assert_eq!(
         jot::diagnostics::collect(&notes, path(), now().date_naive(), now(), false).len(),
         0

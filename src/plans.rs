@@ -373,7 +373,7 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
         )
     })?;
     let _ = op;
-    Ok(typed(kind, value))
+    Ok(typed_in(kind, difference.currency, value))
 }
 /// Human-readable direction for a goal seek: what the boundary value means.
 pub fn seek_summary(op: &str, coefficient_positive: bool) -> &'static str {
@@ -395,9 +395,9 @@ pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)>
     }
 }
 
-fn typed(kind: &str, n: f64) -> Value {
+fn typed_in(kind: &str, currency: Option<crate::engine::Currency>, n: f64) -> Value {
     match kind {
-        "Money" => Value::Money(n),
+        "Money" => Value::Money(n, currency.unwrap_or(crate::engine::Currency::USD)),
         "Duration" => Value::Duration(n.round() as i64),
         _ => Value::Number(n),
     }
@@ -523,6 +523,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
             } else {
                 lhs.kind
             };
+            let currency = lhs.currency.or(rhs.currency);
             let slack = match op.as_str() {
                 "<=" => r - l,
                 ">=" => l - r,
@@ -531,9 +532,9 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
             ConstraintResult {
                 name: constraint.named.name.clone(),
                 op: op.clone(),
-                lhs: typed(kind, l),
-                rhs: typed(kind, r),
-                slack: typed(kind, tidy(slack)),
+                lhs: typed_in(kind, currency, l),
+                rhs: typed_in(kind, currency, r),
+                slack: typed_in(kind, currency, tidy(slack)),
                 binding: tidy(slack) == 0.0,
             }
         })
@@ -541,7 +542,11 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
     Ok(Value::Plan(std::sync::Arc::new(PlanValue {
         origin: symbol.clone(),
         goal: plan.goal,
-        objective: typed(objective.kind, tidy(evaluate(&objective, &values))),
+        objective: typed_in(
+            objective.kind,
+            objective.currency,
+            tidy(evaluate(&objective, &values)),
+        ),
         variables: names
             .iter()
             .map(|n| (n.clone(), Value::Number(tidy(values[n]))))

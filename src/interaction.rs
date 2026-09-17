@@ -150,6 +150,18 @@ pub fn row_commands(
             });
         }
     }
+    let line = doc.line(row);
+    let wants_lookup = ["rate(", "to(", "forecast(", "quote("]
+        .iter()
+        .any(|call| line.contains(call))
+        || doc.days.iter().any(|d| d.line == row && d.places.is_some());
+    if wants_lookup {
+        result.push(Command {
+            title: "Refresh lookups".into(),
+            command: "jot.refresh".into(),
+            arguments: Some(vec![serde_json::json!(uri)]),
+        });
+    }
     result
 }
 pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {

@@ -20,6 +20,7 @@ fn ws(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn def(i: usize) -> Symbol {
@@ -38,7 +39,12 @@ fn bars_and_sparklines_are_plain_text() {
     assert_eq!(charts::sparkline(&[4.0, 4.0]), "▅▅");
     assert_eq!(charts::sparkline(&[]), "");
     assert_eq!(
-        charts::series(&[Value::Money(3.0), Value::Money(9.0), Value::Money(6.0)]).unwrap(),
+        charts::series(&[
+            Value::Money(3.0, jot::engine::Currency::USD),
+            Value::Money(9.0, jot::engine::Currency::USD),
+            Value::Money(6.0, jot::engine::Currency::USD)
+        ])
+        .unwrap(),
         "`▁█▅` $3 → $9"
     );
     assert_eq!(

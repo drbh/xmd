@@ -321,6 +321,15 @@ pub fn collect(
             ));
         }
     }
+    // Data that has not been fetched yet is a state, not a mistake in the note.
+    for issue in &mut issues {
+        if issue.message.starts_with("No cached")
+            || issue.message.contains("; run jot refresh")
+            || issue.message.contains("no forecast yet")
+        {
+            issue.severity = Some(DiagnosticSeverity::WARNING);
+        }
+    }
     issues.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone(), !matches!(&d.code, Some(NumberOrString::String(c)) if c == "unknown-name" || c == "ambiguous-name")));
     issues.dedup_by(|a, b| a.range == b.range && a.message == b.message);
     // If name resolution already pinpoints a token, don't add a second error for its containing expression.
@@ -340,9 +349,11 @@ fn weekday_name(weekday: chrono::Weekday) -> String {
     }
     .to_string()
 }
+/// Errors only: `jot check` passes on warnings such as unfetched lookups.
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)
         .into_iter()
+        .filter(|d| d.severity != Some(DiagnosticSeverity::WARNING))
         .map(|d| {
             let line = ws.documents[path].line(d.range.start.line as usize);
             Problem {

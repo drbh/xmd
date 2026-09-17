@@ -18,6 +18,7 @@ fn workspace(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
+        lookups: Default::default(),
     }
 }
 fn names(symbols: &[DocumentSymbol]) -> Vec<&str> {

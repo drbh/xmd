@@ -291,12 +291,25 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             -1 => "yesterday".to_string(),
             d => format!("{} days ago", -d),
         };
-        let label = format!("{} stops{span} · {relative}", day.stops.len());
-        push(
-            doc.line_end(day.line),
-            label,
-            format!("{} · {}", date.format("%A, %B %-d, %Y"), date),
-        );
+        let mut label = format!("{} stops{span} · {relative}", day.stops.len());
+        let mut tooltip = format!("{} · {}", date.format("%A, %B %-d, %Y"), date);
+        if let Some((places, _)) = &day.places
+            && let Some(place) = crate::lookups::day_place(places)
+            && let Some(lookup) = workspace
+                .lookups
+                .get(&crate::lookups::forecast_key(&place, *date))
+        {
+            match crate::lookups::forecast_from(&lookup.value, false) {
+                Ok(forecast) => label.push_str(&format!(" · {}", forecast.display())),
+                Err(e) => label.push_str(&format!(" · {e}")),
+            }
+            tooltip.push_str(&format!(
+                "\n\nForecast for {place} · {} · {}",
+                crate::resources::ago(lookup.fetched_at, engine.now.to_utc()),
+                lookup.source
+            ));
+        }
+        push(doc.line_end(day.line), label, tooltip);
         for (i, stop) in day.stops.iter().enumerate() {
             let mut labels = Vec::new();
             if let Some(next) = day.stops.get(i + 1)

@@ -15,6 +15,7 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         roots: vec!["/workspace".into()],
         documents: [(path.into(), jot::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
+        lookups: Default::default(),
     };
     let expected = serde_json::to_value(jot::presentation::document_links(
         &shared,
@@ -104,6 +105,7 @@ fn browser_document_symbols_are_the_standard_shared_lsp_data() {
         roots: vec!["/workspace".into()],
         documents: [(path.into(), jot::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
+        lookups: Default::default(),
     };
     assert_eq!(
         result,

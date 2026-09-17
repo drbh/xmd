@@ -20,6 +20,7 @@ fn note(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {

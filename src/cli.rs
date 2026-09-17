@@ -295,6 +295,7 @@ pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
     if let Err(e) = workspace.save_cache() {
         errors.push(e);
     }
+    errors.extend(crate::lookups::native::refresh(workspace).await);
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {

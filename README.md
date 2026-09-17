@@ -92,6 +92,20 @@ Three features ride on standard LSP requests that most editors already send:
   changes are in caps, and a cache older than a week says `stale`. Without one
   it reads `PR #606 · refresh for status`. Hover for the title, and use the
   Refresh GitHub status lens or `jot refresh` to update.
+- **Currencies, weather, and quotes.** Money carries a currency: `$3`,
+  `€450`, `£12`, `¥1000`, or `700 MXN`. Different currencies never add up
+  silently; convert with `to(hotel, USD)`, or read the rate with
+  `rate(EUR, USD)`. `forecast("Oaxaca", 2026-11-20)` gives a day's weather
+  with `.high`, `.low`, `.summary` and `.rain` (add `F` for Fahrenheit), and
+  itinerary days with a place show theirs in the day inlay. `quote(NVDA)` is
+  the last price as money. Uppercase names such as `USD` or `NVDA` are codes,
+  not references. All of this reads a cache in `.jot/lookups.json` that only
+  `jot refresh` or the Refresh lookups lens fills, through keyless sources
+  (frankfurter.dev for rates, open-meteo.com for weather, and Yahoo's
+  unofficial chart endpoint for quotes) or commands
+  you name in `.jot/providers.json`, such as `{"quote": "my-quote {symbol}"}`
+  printing `{"price": 42.5, "currency": "EUR"}`. Hovers list every lookup a
+  value used with its age and source. See `jots/lookups.jot`.
 - **Linear plans.** `[bakery] := maximize(3 * bagels + 1.25 * doughnuts)`
   followed by a `| constraint | expression |` table declares an optimization.
   Names no note defines are decision variables (never negative); every other

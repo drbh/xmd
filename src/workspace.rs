@@ -26,6 +26,7 @@ pub struct Workspace {
     pub roots: Vec<PathBuf>,
     pub documents: BTreeMap<PathBuf, Document>,
     pub cache: Cache,
+    pub lookups: crate::lookups::Store,
 }
 impl Workspace {
     #[cfg(feature = "native")]
@@ -34,9 +35,11 @@ impl Workspace {
             roots,
             documents: BTreeMap::new(),
             cache: BTreeMap::new(),
+            lookups: BTreeMap::new(),
         };
         for root in &result.roots {
             result.cache.extend(crate::resources::load_cache(root));
+            result.lookups.extend(crate::lookups::native::load(root));
             let walker = ignore::WalkBuilder::new(root)
                 .hidden(true)
                 .follow_links(false)

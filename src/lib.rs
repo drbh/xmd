@@ -14,6 +14,7 @@ pub mod highlighting;
 pub mod intelligence;
 pub mod interaction;
 pub mod itinerary;
+pub mod lookups;
 pub mod paths;
 pub mod plans;
 pub mod presentation;

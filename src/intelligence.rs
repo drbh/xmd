@@ -203,6 +203,34 @@ const FUNCTIONS: &[Function] = &[
         example: "",
     },
     Function {
+        name: "rate",
+        params: &["from: currency code", "to: currency code"],
+        result: "Number",
+        documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with jot refresh or the Refresh lookups lens; hovers show the age.",
+        example: "EUR, USD",
+    },
+    Function {
+        name: "to",
+        params: &["amount: Money", "currency: code"],
+        result: "Money",
+        documentation: "Convert money using the cached rate, e.g. to(hotel, USD). Money in different currencies never adds up silently.",
+        example: "hotel, USD",
+    },
+    Function {
+        name: "forecast",
+        params: &["place: Text", "date: Date", "unit?: F or C"],
+        result: "Forecast",
+        documentation: "The cached forecast for a place and day, with .high, .low, .summary and .rain. Itinerary days with a place get one automatically.",
+        example: "\"Oaxaca\", 2026-11-20",
+    },
+    Function {
+        name: "quote",
+        params: &["symbol: ticker code"],
+        result: "Money",
+        documentation: "The cached last price for a ticker, e.g. quote(NVDA). The built-in source covers US tickers; set a quote provider in .jot/providers.json for others.",
+        example: "NVDA",
+    },
+    Function {
         name: "date",
         params: &["text: Text"],
         result: "Date or DateTime",
@@ -923,6 +951,27 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
                     "\n\nInputs: {}",
                     inputs.into_iter().collect::<Vec<_>>().join(", ")
                 ));
+            }
+        }
+    }
+    if !engine.wanted.is_empty() {
+        let mut keys = engine.wanted.clone();
+        keys.sort();
+        keys.dedup();
+        let now = now.to_utc();
+        out.push_str("\n\nLookups:");
+        for key in keys {
+            match ws.lookups.get(&key) {
+                Some(lookup) => out.push_str(&format!(
+                    "\n- {} · {} · {}",
+                    crate::lookups::describe(&key),
+                    crate::resources::ago(lookup.fetched_at, now),
+                    lookup.source
+                )),
+                None => out.push_str(&format!(
+                    "\n- {} · not fetched yet",
+                    crate::lookups::describe(&key)
+                )),
             }
         }
     }

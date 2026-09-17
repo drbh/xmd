@@ -328,6 +328,7 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
         roots: vec![root],
         documents: [(path.clone(), jot::document::Document::parse(text.into()))].into(),
         cache: Default::default(),
+        lookups: Default::default(),
     };
     let shared = jot::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());

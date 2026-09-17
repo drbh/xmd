@@ -21,6 +21,7 @@ fn ws(source: &str) -> Workspace {
         roots: vec!["/notes".into()],
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn point(ws: &Workspace, row: usize, needle: &str) -> Position {

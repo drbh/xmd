@@ -62,7 +62,7 @@ pub fn sparkline(values: &[f64]) -> String {
 /// A numeric magnitude for charting; text, dates and timers have none.
 pub fn magnitude(value: &Value) -> Option<f64> {
     match value {
-        Value::Number(n) | Value::Money(n) | Value::Ratio(n) => Some(*n),
+        Value::Number(n) | Value::Money(n, _) | Value::Ratio(n) => Some(*n),
         Value::Duration(s) => Some(*s as f64),
         Value::Count(n) => Some(*n as f64),
         Value::Bool(b) => Some(f64::from(u8::from(*b))),

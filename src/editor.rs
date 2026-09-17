@@ -48,6 +48,7 @@ impl Backend {
                     roots: Vec::new(),
                     documents: BTreeMap::new(),
                     cache: BTreeMap::new(),
+                    lookups: BTreeMap::new(),
                 },
                 open: BTreeMap::new(),
                 hint_refresh: false,
@@ -967,7 +968,11 @@ impl LanguageServer for Backend {
             "jot.refresh" => {
                 let mut workspace = self.state.read().await.workspace.clone();
                 let errors = crate::cli::refresh(&mut workspace).await;
-                self.state.write().await.workspace.cache = workspace.cache;
+                {
+                    let mut state = self.state.write().await;
+                    state.workspace.cache = workspace.cache;
+                    state.workspace.lookups = workspace.lookups;
+                }
                 self.notify_changes().await;
                 self.client
                     .show_message(
@@ -977,7 +982,7 @@ impl LanguageServer for Backend {
                             MessageType::WARNING
                         },
                         if errors.is_empty() {
-                            "GitHub resource status refreshed".into()
+                            "GitHub status and lookups refreshed".into()
                         } else {
                             errors.join("\n")
                         },

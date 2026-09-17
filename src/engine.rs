@@ -14,11 +14,94 @@ use std::{
 };
 
 pub type TaskKey = (PathBuf, usize);
+/// An ISO 4217 code such as USD or EUR.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Currency([u8; 3]);
+impl Currency {
+    pub const USD: Currency = Currency(*b"USD");
+    pub fn parse(code: &str) -> Option<Self> {
+        let bytes = code.as_bytes();
+        (bytes.len() == 3 && bytes.iter().all(u8::is_ascii_uppercase))
+            .then(|| Currency([bytes[0], bytes[1], bytes[2]]))
+    }
+    pub fn from_symbol(symbol: char) -> Option<Self> {
+        Some(match symbol {
+            '$' => Self::USD,
+            '€' => Currency(*b"EUR"),
+            '£' => Currency(*b"GBP"),
+            '¥' => Currency(*b"JPY"),
+            _ => return None,
+        })
+    }
+    pub fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.0).unwrap_or("???")
+    }
+    pub fn symbol(&self) -> Option<char> {
+        match self.as_str() {
+            "USD" => Some('$'),
+            "EUR" => Some('€'),
+            "GBP" => Some('£'),
+            "JPY" => Some('¥'),
+            _ => None,
+        }
+    }
+}
+impl std::fmt::Display for Currency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+/// A day's weather from a cached lookup.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Forecast {
+    pub high: f64,
+    pub low: f64,
+    pub summary: String,
+    /// Chance of precipitation, 0 to 1, when the source reports it.
+    pub precipitation: Option<f64>,
+    pub fahrenheit: bool,
+}
+impl Forecast {
+    pub fn display(&self) -> String {
+        let unit = if self.fahrenheit { "°F" } else { "°C" };
+        let mut s = format!(
+            "{}{unit} / {}{unit} · {}",
+            decimal(self.high),
+            decimal(self.low),
+            self.summary
+        );
+        if let Some(p) = self.precipitation
+            && p >= 0.2
+        {
+            s.push_str(&format!(" · {}% rain", (p * 100.0).round()));
+        }
+        s
+    }
+    pub fn property(&self, name: &str) -> Result<Value, String> {
+        match name {
+            "high" => Ok(Value::Number(self.high)),
+            "low" => Ok(Value::Number(self.low)),
+            "summary" => Ok(Value::Text(self.summary.clone())),
+            "rain" => self
+                .precipitation
+                .map(Value::Ratio)
+                .ok_or("This forecast has no precipitation chance".into()),
+            _ => Err(format!("Unknown forecast property '{name}'")),
+        }
+    }
+}
+/// A 3–5 letter uppercase name is a code literal (USD, EUR, NVDA), never a
+/// reference to a note value.
+pub fn is_code(name: &str) -> bool {
+    (name.len() == 1 || (3..=5).contains(&name.len()))
+        && name.bytes().all(|b| b.is_ascii_uppercase())
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Number(f64),
     Count(usize),
-    Money(f64),
+    Money(f64, Currency),
+    Forecast(Forecast),
     Ratio(f64),
     /// Whole seconds, including for estimates and date arithmetic.
     Duration(i64),
@@ -37,7 +120,8 @@ impl Value {
         match self {
             Self::Number(_) => "Number",
             Self::Count(_) => "Count",
-            Self::Money(_) => "Money",
+            Self::Money(..) => "Money",
+            Self::Forecast(_) => "Forecast",
             Self::Ratio(_) => "Ratio",
             Self::Duration(_) => "Duration",
             Self::Date(_) => "Date",
@@ -56,8 +140,11 @@ impl Value {
     pub fn source(&self) -> Option<String> {
         Some(match self {
             Self::Number(n) => n.to_string(),
-            Self::Money(n) if *n < 0.0 => format!("-${}", n.abs()),
-            Self::Money(n) => format!("${n}"),
+            Self::Money(n, c) => match c.symbol() {
+                Some(symbol) if *n < 0.0 => format!("-{symbol}{}", n.abs()),
+                Some(symbol) => format!("{symbol}{n}"),
+                None => format!("{n} {c}"),
+            },
             Self::Ratio(n) if (n * 100.0).is_finite() => format!("{}%", n * 100.0),
             Self::Duration(n) => format!("{n}s"),
             Self::Date(d) => d.to_string(),
@@ -71,7 +158,8 @@ impl Value {
         match self {
             Self::Number(n) => decimal(*n),
             Self::Count(n) => n.to_string(),
-            Self::Money(n) => money(*n),
+            Self::Money(n, c) => money(*n, *c),
+            Self::Forecast(f) => f.display(),
             Self::Ratio(n) => format!("{}%", decimal(n * 100.0)),
             Self::Duration(s) => {
                 if *s == 0 {
@@ -123,7 +211,7 @@ pub fn decimal(n: f64) -> String {
     let s = format!("{n:.4}");
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
-fn money(n: f64) -> String {
+fn money(n: f64, currency: Currency) -> String {
     let s = format!("{:.2}", n.abs());
     let (whole, frac) = s.split_once('.').unwrap();
     let mut grouped = String::new();
@@ -133,15 +221,16 @@ fn money(n: f64) -> String {
         }
         grouped.push(c);
     }
-    format!(
-        "{}${grouped}{}",
-        if n < 0.0 { "-" } else { "" },
-        if frac == "00" {
-            String::new()
-        } else {
-            format!(".{frac}")
-        }
-    )
+    let cents = if frac == "00" {
+        String::new()
+    } else {
+        format!(".{frac}")
+    };
+    let sign = if n < 0.0 { "-" } else { "" };
+    match currency.symbol() {
+        Some(symbol) => format!("{sign}{symbol}{grouped}{cents}"),
+        None => format!("{sign}{grouped}{cents} {currency}"),
+    }
 }
 pub fn duration(s: &str) -> Option<i64> {
     let (n, unit) = s.split_at(s.char_indices().last()?.0);
@@ -216,14 +305,28 @@ pub fn literal(s: &str) -> Result<Value, String> {
     if s == "true" || s == "false" {
         return Ok(Value::Bool(s == "true"));
     }
-    let money = s.starts_with('$') || s.starts_with("-$");
-    let num = s.replace(['$', ',', '%'], "");
+    // Money: a symbol before the number ($3, €450, -£12) or a code after it (700 MXN).
+    let (body, code_after) = match s.rsplit_once(' ') {
+        Some((body, code)) if Currency::parse(code).is_some() => (body, Currency::parse(code)),
+        _ => (s, None),
+    };
+    let (sign, unsigned) = match body.strip_prefix('-') {
+        Some(rest) => ("-", rest),
+        None => ("", body),
+    };
+    let symbol = unsigned.chars().next().and_then(Currency::from_symbol);
+    let currency = symbol.or(code_after);
+    let digits = match symbol {
+        Some(_) => &unsigned[unsigned.chars().next().unwrap().len_utf8()..],
+        None => unsigned,
+    };
+    let num = format!("{sign}{}", digits.replace([',', '%'], ""));
     if let Ok(n) = num.parse::<f64>() {
         if !n.is_finite() {
             return Err("Number must be finite".into());
         }
-        return Ok(if money {
-            Value::Money(n)
+        return Ok(if let Some(currency) = currency {
+            Value::Money(n, currency)
         } else if s.ends_with('%') {
             Value::Ratio(n / 100.0)
         } else {
@@ -296,10 +399,10 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
                     "Invalid date/time (use an explicit offset for ambiguous local times)",
                 )?)
             } else if c.is_ascii_digit()
-                || c == '$'
+                || Currency::from_symbol(c).is_some()
                 || c == '.' && s.as_bytes().get(i + 1).is_some_and(u8::is_ascii_digit)
             {
-                i += 1;
+                i += c.len_utf8();
                 while i < s.len()
                     && (s.as_bytes()[i].is_ascii_digit()
                         || s.as_bytes()[i] == b'.'
@@ -313,6 +416,22 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
                     .is_some_and(|c| matches!(c, b's' | b'm' | b'h' | b'd' | b'w' | b'%'))
                 {
                     i += 1;
+                }
+                // `700 MXN`: a currency code right after a plain number.
+                let rest = &s[i..];
+                let gap = rest.len() - rest.trim_start().len();
+                let code = rest
+                    .get(gap..gap + 3)
+                    .filter(|code| code.bytes().all(|b| b.is_ascii_uppercase()));
+                if gap > 0
+                    && code.is_some_and(|code| Currency::parse(code).is_some())
+                    && rest[gap + 3..]
+                        .chars()
+                        .next()
+                        .is_none_or(|c| !c.is_alphanumeric())
+                    && !s[start..i].ends_with(['s', 'm', 'h', 'd', 'w', '%'])
+                {
+                    i += gap + 3;
                 }
                 let v = literal(&s[start..i])?;
                 if matches!(v, Value::Text(_)) {
@@ -616,6 +735,8 @@ pub struct EvalFailure {
 pub struct Linear {
     pub terms: BTreeMap<String, f64>,
     pub constant: f64,
+    /// Set when `kind` is Money, so euros and dollars never add up silently.
+    pub currency: Option<Currency>,
     /// Unit of the whole form; "Any" while it is only bare variables.
     pub kind: &'static str,
     /// Unit the variables were multiplied by, so a goal seek can tell whether
@@ -627,6 +748,7 @@ impl Linear {
         Self {
             terms: BTreeMap::new(),
             constant: value,
+            currency: None,
             kind,
             scale: "Number",
         }
@@ -635,6 +757,7 @@ impl Linear {
         Self {
             terms: [(name.to_string(), 1.0)].into(),
             constant: 0.0,
+            currency: None,
             kind: "Any",
             scale: "Number",
         }
@@ -645,6 +768,9 @@ impl Linear {
     /// The shared unit of two forms, treating a bare zero as unitless.
     fn combined(a: &Self, b: &Self) -> Option<&'static str> {
         if a.kind == b.kind {
+            if a.kind == "Money" && a.currency != b.currency && !a.is_zero() && !b.is_zero() {
+                return None;
+            }
             Some(a.kind)
         } else if a.is_zero() || a.kind == "Any" {
             Some(b.kind)
@@ -675,10 +801,16 @@ impl Linear {
         self
     }
     fn add(&self, other: &Self, sign: f64) -> Result<Self, String> {
-        let kind = Self::combined(self, other)
-            .ok_or_else(|| format!("Cannot add {} and {}", self.kind, other.kind))?;
+        let kind = Self::combined(self, other).ok_or_else(|| {
+            if let (Some(a), Some(b)) = (self.currency, other.currency) {
+                format!("Cannot add {a} and {b}; convert with to(value, {b})")
+            } else {
+                format!("Cannot add {} and {}", self.kind, other.kind)
+            }
+        })?;
         let mut result = self.clone();
         result.kind = kind;
+        result.currency = self.currency.or(other.currency);
         if !self.terms.is_empty() && !other.terms.is_empty() && self.scale != other.scale {
             return Err(format!(
                 "Cannot add terms scaled by {} and {}",
@@ -709,6 +841,7 @@ impl Linear {
         };
         let mut result = form.clone().scaled(factor.constant);
         result.kind = kind;
+        result.currency = form.currency.or(factor.currency);
         if factor.kind != "Number" && !form.terms.is_empty() {
             if form.scale != "Number" {
                 return Err(format!("Cannot multiply {} by {}", form.scale, factor.kind));
@@ -731,6 +864,9 @@ impl Linear {
         };
         let mut result = self.clone().scaled(1.0 / other.constant);
         result.kind = kind;
+        if kind != "Money" {
+            result.currency = None;
+        }
         if other.kind != "Number" && !self.terms.is_empty() {
             result.scale = if self.scale == other.kind {
                 "Number"
@@ -753,6 +889,8 @@ pub struct Engine<'a> {
     row_values: Vec<RowScope>,
     /// Decision-column variables met while linearizing a plan.
     pub row_variables: Vec<RowVariable>,
+    /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
+    pub wanted: Vec<String>,
     /// Definitions being walked symbolically, separate from the value stack:
     /// a goal seek is legitimately on both at once.
     linear_stack: Vec<Symbol>,
@@ -792,6 +930,7 @@ impl<'a> Engine<'a> {
             stack: Vec::new(),
             row_values: Vec::new(),
             row_variables: Vec::new(),
+            wanted: Vec::new(),
             linear_stack: Vec::new(),
             steps: 0,
         }
@@ -1100,7 +1239,11 @@ impl<'a> Engine<'a> {
             match value {
                 Value::Number(n) | Value::Ratio(n) => Ok(Linear::constant("Number", n)),
                 Value::Count(n) => Ok(Linear::constant("Number", n as f64)),
-                Value::Money(n) => Ok(Linear::constant("Money", n)),
+                Value::Money(n, currency) => {
+                    let mut form = Linear::constant("Money", n);
+                    form.currency = Some(currency);
+                    Ok(form)
+                }
                 Value::Duration(s) => Ok(Linear::constant("Duration", s as f64)),
                 other => Err(format!(
                     "Plans work with numbers, money, and durations, not {}",
@@ -1193,6 +1336,7 @@ impl<'a> Engine<'a> {
             Expr::Name(n) => match n.as_str() {
                 "true" => Ok(Value::Bool(true)),
                 "false" => Ok(Value::Bool(false)),
+                code if is_code(code) => Ok(Value::Text(code.to_string())),
                 _ => {
                     if let Some(scope) = self.row_values.last() {
                         if scope.decisions.contains_key(n) {
@@ -1227,6 +1371,9 @@ impl<'a> Engine<'a> {
                 }
                 if n == "today" && args.is_empty() {
                     return Ok(Value::Date(self.today));
+                }
+                if matches!(n.as_str(), "rate" | "to" | "forecast" | "quote") {
+                    return self.lookup(path, n, args);
                 }
                 if args.len() != 1 {
                     return Err(format!("{n} expects one argument"));
@@ -1273,7 +1420,7 @@ impl<'a> Engine<'a> {
                 match (op.as_str(), v) {
                     ("!", Value::Bool(b)) => Ok(Value::Bool(!b)),
                     ("-", Value::Number(n)) => Ok(Value::Number(-n)),
-                    ("-", Value::Money(n)) => Ok(Value::Money(-n)),
+                    ("-", Value::Money(n, c)) => Ok(Value::Money(-n, c)),
                     ("-", Value::Ratio(n)) => Ok(Value::Ratio(-n)),
                     ("-", Value::Duration(n)) => n
                         .checked_neg()
@@ -1303,6 +1450,7 @@ impl<'a> Engine<'a> {
                 let v = self.expr(path, v)?;
                 match v {
                     Value::Timer(timer) => timer.property(key),
+                    Value::Forecast(forecast) => forecast.property(key),
                     Value::Plan(plan) => plan.property(key),
                     Value::Resource(resource) => {
                         if key == "url" {
@@ -1395,7 +1543,7 @@ impl<'a> Engine<'a> {
             let value = value?;
             if !matches!(
                 value,
-                Value::Number(_) | Value::Money(_) | Value::Ratio(_) | Value::Duration(_)
+                Value::Number(_) | Value::Money(..) | Value::Ratio(_) | Value::Duration(_)
             ) {
                 return Err(format!(
                     "sum requires numeric, money, ratio, or duration results, found {}",
@@ -1485,6 +1633,85 @@ impl<'a> Engine<'a> {
                 rows,
             },
         )))
+    }
+    /// `rate(EUR, USD)`, `to(money, USD)`, `forecast("Oaxaca", 2026-11-20[, F])`
+    /// and `quote(NVDA)`: values from the lookup cache, never fetched here.
+    fn lookup(&mut self, path: &Path, name: &str, args: &[Expr]) -> Result<Value, String> {
+        let code = |value: Value, what: &str| match value {
+            Value::Text(code) => Ok(code),
+            other => Err(format!(
+                "{what} must be a code such as USD, found {}",
+                other.type_name()
+            )),
+        };
+        let currency = |code: &str| {
+            Currency::parse(code)
+                .ok_or_else(|| format!("'{code}' is not a currency code such as USD"))
+        };
+        match name {
+            "rate" => {
+                if args.len() != 2 {
+                    return Err("rate expects two currency codes: rate(EUR, USD)".into());
+                }
+                let from = currency(&code(self.expr(path, &args[0])?, "The first currency")?)?;
+                let to = currency(&code(self.expr(path, &args[1])?, "The second currency")?)?;
+                if from != to {
+                    self.wanted.push(crate::lookups::rate_key(from, to));
+                }
+                crate::lookups::rate(&self.workspace.lookups, from, to).map(Value::Number)
+            }
+            "to" => {
+                if args.len() != 2 {
+                    return Err(
+                        "to expects a money value and a currency code: to(hotel, USD)".into(),
+                    );
+                }
+                let Value::Money(amount, from) = self.expr(path, &args[0])? else {
+                    return Err("to converts money; the first argument is not money".into());
+                };
+                let to = currency(&code(self.expr(path, &args[1])?, "The currency")?)?;
+                if from != to {
+                    self.wanted.push(crate::lookups::rate_key(from, to));
+                }
+                let rate = crate::lookups::rate(&self.workspace.lookups, from, to)?;
+                Ok(Value::Money(amount * rate, to))
+            }
+            "quote" => {
+                if args.len() != 1 {
+                    return Err("quote expects a ticker symbol: quote(NVDA)".into());
+                }
+                let symbol = code(self.expr(path, &args[0])?, "The ticker")?;
+                self.wanted.push(crate::lookups::quote_key(&symbol));
+                crate::lookups::quote(&self.workspace.lookups, &symbol)
+            }
+            _ => {
+                if !(2..=3).contains(&args.len()) {
+                    return Err(
+                        "forecast expects a place and a date: forecast(\"Oaxaca\", 2026-11-20)"
+                            .into(),
+                    );
+                }
+                let Value::Text(place) = self.expr(path, &args[0])? else {
+                    return Err(
+                        "The place must be text, e.g. forecast(\"Oaxaca\", 2026-11-20)".into(),
+                    );
+                };
+                let date = self.expr(path, &args[1])?.date()?;
+                let fahrenheit = match args.get(2) {
+                    Some(unit) => match code(self.expr(path, unit)?, "The unit")?.as_str() {
+                        "F" | "FAHRENHEIT" => true,
+                        "C" | "CELSIUS" => false,
+                        other => {
+                            return Err(format!("Unknown temperature unit '{other}'; use F or C"));
+                        }
+                    },
+                    None => false,
+                };
+                self.wanted.push(crate::lookups::forecast_key(&place, date));
+                crate::lookups::forecast(&self.workspace.lookups, &place, date, fahrenheit)
+                    .map(Value::Forecast)
+            }
+        }
     }
     /// Decision columns of a table value: column name to (index, domain).
     fn decision_columns(
@@ -1659,7 +1886,14 @@ fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
             (Date(a), Date(b)) => a.partial_cmp(b),
             (DateTime(a), DateTime(b)) => a.partial_cmp(b),
             (Duration(a), Duration(b)) => a.partial_cmp(b),
-            (Money(a), Money(b)) => a.partial_cmp(b),
+            (Money(a, ca), Money(b, cb)) => {
+                if ca != cb {
+                    return Err(format!(
+                        "Cannot compare {ca} with {cb}; convert with to(value, {cb})"
+                    ));
+                }
+                a.partial_cmp(b)
+            }
             _ => a
                 .scalar()
                 .zip(b.scalar())
@@ -1720,8 +1954,17 @@ fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
         ("+", Text(a), Text(b)) => return Ok(Text(format!("{a}{b}"))),
         _ => {}
     }
-    let money_a = matches!(a, Money(_));
-    let money_b = matches!(b, Money(_));
+    let currency_a = if let Money(_, c) = &a { Some(*c) } else { None };
+    let currency_b = if let Money(_, c) = &b { Some(*c) } else { None };
+    if let (Some(ca), Some(cb)) = (currency_a, currency_b)
+        && ca != cb
+    {
+        return Err(format!(
+            "Cannot combine {ca} and {cb}; convert with to(value, {cb})"
+        ));
+    }
+    let money_a = currency_a.is_some();
+    let money_b = currency_b.is_some();
     let counts = matches!((&a, &b), (Count(_), Count(_)));
     if matches!(op, "*" | "/") {
         let scaled = match (&a, &b) {
@@ -1742,13 +1985,13 @@ fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
             return Ok(Duration(m as i64));
         }
     }
-    let x = if let Money(n) = a {
+    let x = if let Money(n, _) = a {
         Some(n)
     } else {
         a.scalar()
     }
     .ok_or("Unsupported arithmetic types")?;
-    let y = if let Money(n) = b {
+    let y = if let Money(n, _) = b {
         Some(n)
     } else {
         b.scalar()
@@ -1778,10 +2021,9 @@ fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
     if op == "/" && (money_a && money_b || counts) {
         return Ok(Ratio(n));
     }
-    Ok(if money_a || money_b {
-        Money(n)
-    } else {
-        Number(n)
+    Ok(match currency_a.or(currency_b) {
+        Some(currency) => Money(n, currency),
+        None => Number(n),
     })
 }
 

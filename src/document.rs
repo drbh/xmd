@@ -668,6 +668,7 @@ impl Document {
                     let kind = match &token.kind {
                         crate::engine::Lexeme::Name(name) => {
                             if !line[start + token.end..end].trim_start().starts_with('(')
+                                && !crate::engine::is_code(name)
                                 && (token.start == 0
                                     || !line[start..start + token.start].trim_end().ends_with('.'))
                                 && !matches!(name.as_str(), "true" | "false")

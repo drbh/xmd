@@ -219,7 +219,7 @@ pub fn actions_for(
         {
             let name = unique(
                 ws,
-                if matches!(value, Value::Money(_)) {
+                if matches!(value, Value::Money(..)) {
                     "amount"
                 } else {
                     "value"

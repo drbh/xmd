@@ -25,6 +25,7 @@ fn notes(text: &str) -> Workspace {
         )]
         .into(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn path() -> &'static Path {

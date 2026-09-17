@@ -98,6 +98,25 @@ fn countdowns_and_checklists_show_progress_bars() {
         now(),
         Range::new(Position::new(0, 0), Position::new(20, 0)),
     );
+    let label = |line: u32| {
+        hints
+            .iter()
+            .find(|h| h.position.line == line)
+            .map(|h| match &h.label {
+                InlayHintLabel::String(s) => s.clone(),
+                other => panic!("{other:?}"),
+            })
+            .unwrap()
+    };
+    assert_eq!(label(0), "= ⏳ ███░░░░░ 06:00 remaining · paused");
+    assert_eq!(label(1), "█████░░░ 2/3 complete");
+    assert!(
+        label(3).starts_with("⏳ ███░░░░░ 06:00 remaining · paused · ████░░░░ 1/2 subtasks"),
+        "{}",
+        label(3)
+    );
+    assert_eq!(charts::gauge(0, 0), "░░░░░░░░");
+    assert_eq!(charts::gauge(3, 3), "████████");
     let tooltip = |line: u32| {
         hints
             .iter()

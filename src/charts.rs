@@ -24,6 +24,20 @@ pub fn bar_fraction(fraction: f64) -> String {
     )
 }
 
+/// A compact bar for inline labels: eight cells, no percentage.
+pub fn gauge(done: usize, total: usize) -> String {
+    gauge_fraction(if total == 0 {
+        0.0
+    } else {
+        done as f64 / total as f64
+    })
+}
+pub fn gauge_fraction(fraction: f64) -> String {
+    const WIDTH: usize = 8;
+    let filled = (fraction.clamp(0.0, 1.0) * WIDTH as f64).round() as usize;
+    format!("{}{}", "█".repeat(filled), "░".repeat(WIDTH - filled))
+}
+
 /// One block per value, scaled between the minimum and maximum: `▁▂▃▅▇`.
 pub fn sparkline(values: &[f64]) -> String {
     let finite: Vec<f64> = values.iter().copied().filter(|v| v.is_finite()).collect();

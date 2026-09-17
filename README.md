@@ -70,11 +70,12 @@ use `./target/debug/jot` or `cargo run -- ...`.
 
 Three features ride on standard LSP requests that most editors already send:
 
-- **Plain-text charts.** Hovers and inlay tooltips draw with Unicode blocks, so
-  they render in any editor without image support. Countdowns show a progress
-  bar (`████░░░░░░ 40%`), checklists and parent tasks show completion bars, and
-  numeric table columns and `sum(...)` row contributions show a sparkline with
-  their range (`▁█▅ 2 → 6`).
+- **Plain-text charts.** Inlay hints, hovers and tooltips draw with Unicode
+  blocks, so they render in any editor without image support. Checklist
+  headings, parent tasks and countdowns carry a live gauge in their inlay
+  (`███░░░░░ 2/5 complete`, `⏳ ████░░░░ 12:00 remaining · running`); hovers
+  add the percentage (`████░░░░░░ 40%`). Numeric table columns and `sum(...)`
+  row contributions show a sparkline with their range (`▁█▅ 2 → 6`).
 - **Format on type.** Typing the closing `|` of a table row realigns the whole
   table; the row you are typing is only padded once every column has a cell, and
   only its whitespace changes so the caret stays put. Enter after a checkbox

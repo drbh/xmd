@@ -82,6 +82,20 @@ pub fn live_hints(workspace: &Workspace, path: &Path, now: DateTime<FixedOffset>
     );
     engine.time_dependent
 }
+/// Countdown labels carry a live gauge; stopwatches have no end to measure against.
+fn timer_label(timer: &crate::timers::Timer) -> String {
+    let text = timer.display();
+    match timer.limit {
+        Some(limit) => {
+            let gauge = crate::charts::gauge_fraction(timer.elapsed as f64 / limit as f64);
+            match text.split_once(' ') {
+                Some((icon, rest)) => format!("{icon} {gauge} {rest}"),
+                None => format!("{gauge} {text}"),
+            }
+        }
+        None => text,
+    }
+}
 fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<InlayHint> {
     let workspace = engine.workspace;
     let today = engine.today;
@@ -116,7 +130,10 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             ),
             Ok(value) if def.expression => push(
                 def.end.range(&doc.text).start,
-                format!("= {}", value.display()),
+                match &value {
+                    Value::Timer(timer) => format!("= {}", timer_label(timer)),
+                    value => format!("= {}", value.display()),
+                },
                 crate::intelligence::hover(
                     workspace,
                     &Symbol {
@@ -158,7 +175,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 estimates += 1;
             }
         }
-        let label = format!(
+        let summary = format!(
             "{done}/{} complete{}",
             tasks.len(),
             if estimates > 0 {
@@ -167,7 +184,8 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 String::new()
             }
         );
-        let tooltip = format!("`{}` {label}", crate::charts::bar(done, tasks.len()));
+        let tooltip = format!("`{}` {summary}", crate::charts::bar(done, tasks.len()));
+        let label = format!("{} {summary}", crate::charts::gauge(done, tasks.len()));
         push(doc.line_end(section.line), label, tooltip);
     }
     for (i, task) in doc.tasks.iter().enumerate() {
@@ -175,7 +193,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
         if let Some(attr) = task.attributes.get("timer")
             && let Ok(Value::Timer(timer)) = engine.eval(path, &attr.value)
         {
-            labels.push(timer.display());
+            labels.push(timer_label(&timer));
         }
         if !engine.task_done(path, i) {
             match engine.blocked(path, i) {
@@ -222,7 +240,11 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 .iter()
                 .filter(|(j, _)| engine.task_done(path, *j))
                 .count();
-            labels.push(format!("{done}/{} subtasks", children.len()));
+            labels.push(format!(
+                "{} {done}/{} subtasks",
+                crate::charts::gauge(done, children.len()),
+                children.len()
+            ));
             tooltip = format!(
                 "`{}` {done}/{} subtasks\n\n",
                 crate::charts::bar(done, children.len()),
@@ -256,7 +278,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 ),
                 Value::Timer(timer) => push(
                     after,
-                    timer.display(),
+                    timer_label(&timer),
                     "Use Start, Pause, Resume, or Reset timer in code actions.".into(),
                 ),
                 value if reference.property.is_some() => {

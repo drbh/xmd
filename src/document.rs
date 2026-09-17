@@ -120,9 +120,12 @@ pub struct Link {
 /// `[remaining / budget]` in prose: a calculation shown in place, without a name.
 #[derive(Clone, Debug)]
 pub struct Calculation {
-    /// The expression inside the brackets.
+    /// The expression: inside the brackets, or the whole line for a line of
+    /// math whose variables are bracketed.
     pub span: Span,
     pub source: String,
+    /// True for `[a / b]` in prose; false for a whole-line `[a] / [b]`.
+    pub bracketed: bool,
 }
 #[derive(Clone, Debug)]
 pub struct Highlight {
@@ -288,6 +291,18 @@ impl Document {
                 });
             }
             doc.inline(line, row, content_start, &attrs);
+            // A line that is only math, with its variables in brackets, shows its
+            // result at the end: `[budget] - [spent]`.
+            if is_task.is_none()
+                && attrs.is_empty()
+                && let Some(source) = line_calculation(trimmed)
+            {
+                doc.calculations.push(Calculation {
+                    span: Span::new(row, start, start + trimmed.trim_end().len()),
+                    source,
+                    bracketed: false,
+                });
+            }
             if let Some(index) = doc.definitions.len().checked_sub(1)
                 && doc.definitions[index].named.span.line == row
                 && doc.definitions[index].expression
@@ -667,6 +682,7 @@ impl Document {
                 self.calculations.push(Calculation {
                     span,
                     source: inner.into(),
+                    bracketed: true,
                 });
                 self.mark(row, i, i + 1, "operator");
                 self.mark(row, close, close + 1, "operator");
@@ -735,6 +751,67 @@ fn is_calculation(inner: &str) -> bool {
         matches!(&t.kind, crate::engine::Lexeme::Name(n)
             if !matches!(n.as_str(), "true" | "false") && !crate::engine::is_code(n))
     })
+}
+/// The expression for a line of math such as `[budget] - [spent] * 2` or
+/// `2 + 2`: brackets around names become spaces, so offsets line up with the
+/// line. Prose, list items, lone values, and bare names are not lines of math.
+fn line_calculation(trimmed: &str) -> Option<String> {
+    let trimmed = trimmed.trim_end();
+    if trimmed.is_empty()
+        || trimmed.starts_with(['-', '*', '+', '>', '#', '|', '`', '<', '!'])
+        || trimmed.contains("](")
+    {
+        return None;
+    }
+    let mut masked = String::with_capacity(trimmed.len());
+    let mut names: Vec<(usize, usize)> = Vec::new();
+    let mut rest = trimmed;
+    let mut at = 0;
+    while let Some(open) = rest.find('[') {
+        let close = rest[open..].find(']')? + open;
+        let inner = rest[open + 1..close].trim();
+        let (name, property) = inner
+            .split_once('.')
+            .map(|(n, p)| (n, Some(p)))
+            .unwrap_or((inner, None));
+        if !identifier(name) || !property.is_none_or(identifier) {
+            return None;
+        }
+        masked.push_str(&rest[..open]);
+        masked.push(' ');
+        masked.push_str(&rest[open + 1..close]);
+        masked.push(' ');
+        names.push((at + open + 1, at + close));
+        at += close + 1;
+        rest = &rest[close + 1..];
+    }
+    masked.push_str(rest);
+    let tokens = crate::engine::lex(&masked).ok()?;
+    let mut meaningful = false;
+    for (i, token) in tokens.iter().enumerate() {
+        match &token.kind {
+            crate::engine::Lexeme::Name(n) => {
+                let call = matches!(
+                    tokens.get(i + 1).map(|t| &t.kind),
+                    Some(crate::engine::Lexeme::Left)
+                );
+                if call {
+                    meaningful = true;
+                } else if !names
+                    .iter()
+                    .any(|(s, e)| token.start >= *s && token.end <= *e)
+                    && !crate::engine::is_code(n)
+                    && !matches!(n.as_str(), "true" | "false")
+                {
+                    // A bare word is prose, not a variable.
+                    return None;
+                }
+            }
+            crate::engine::Lexeme::Op(_) => meaningful = true,
+            _ => {}
+        }
+    }
+    (meaningful && crate::engine::Engine::valid_expression(&masked)).then_some(masked)
 }
 fn skip_code(line: &str, start: usize) -> usize {
     let count = line[start..].bytes().take_while(|c| *c == b'`').count();

@@ -1031,7 +1031,9 @@ pub fn calculation_hover(
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let calculation = doc.calculations.iter().find(|c| {
-        c.span.line == position.line as usize && byte + 1 >= c.span.start && byte <= c.span.end
+        c.span.line == position.line as usize
+            && byte + usize::from(c.bracketed) >= c.span.start
+            && byte <= c.span.end
     })?;
     let mut engine = Engine::at(ws, now);
     let value = engine.eval_at(path, &calculation.source, calculation.span);
@@ -1039,14 +1041,16 @@ pub fn calculation_hover(
         Ok(v) => format!("**{} · {}**", v.display(), v.type_name()),
         Err(e) => format!("**Calculation**\n\n{e}"),
     };
+    // Line calculations keep spaces where their brackets were; show them tidy.
+    let tidy = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
     text.push_str(&format!(
         "\n\n```text\n{}\n",
-        calculation.source.replace('`', "\\`")
+        tidy(&calculation.source).replace('`', "\\`")
     ));
     if let Ok(substituted) = engine.substituted(path, &calculation.source)
         && substituted != calculation.source
     {
-        text.push_str(&format!("= {substituted}\n"));
+        text.push_str(&format!("= {}\n", tidy(&substituted)));
     }
     if let Ok(v) = &value {
         text.push_str(&format!("= {}\n", v.display()));
@@ -1057,8 +1061,8 @@ pub fn calculation_hover(
         range: Some(
             Span::new(
                 calculation.span.line,
-                calculation.span.start - 1,
-                calculation.span.end + 1,
+                calculation.span.start - usize::from(calculation.bracketed),
+                calculation.span.end + usize::from(calculation.bracketed),
             )
             .range(&doc.text),
         ),

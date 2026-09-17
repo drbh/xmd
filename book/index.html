@@ -37,7 +37,7 @@ We have [remaining] left, which is [remaining / budget] of the budget.
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><p>A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed.</p><figure class="jot-block" data-file="02-calculations.jot">
+</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><p>A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed. A line that is nothing but math, with each variable in brackets, works too: <code>[subtotal] + [tax]</code> on its own line shows its result at the end, the way a scratchpad would.</p><figure class="jot-block" data-file="02-calculations.jot">
   <figcaption><span>examples/02-calculations.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/02-calculations.jot"># Calculations
 
@@ -50,6 +50,10 @@ We have [remaining] left, which is [remaining / budget] of the budget.
 [total] := subtotal + tax
 
 [total] for [units] units, including [tax] tax.
+
+A line that is only math shows its result at the end:
+[subtotal] + [tax]
+([total] - [subtotal]) / [subtotal]
 
 &lt;!-- Try: hover total for the substituted calculation and its inputs. --&gt;
 </pre></div>

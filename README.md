@@ -127,7 +127,8 @@ Three features ride on standard LSP requests that most editors already send:
 - **Calculations in prose.** Brackets around an expression that reads a name
   or calls a function, such as `[remaining / budget]` or `[today()]`, show the
   result in place without defining anything. Bare literals like `[$25]` stay
-  prose.
+  prose. A line that is only math with its variables in brackets, such as
+  `[budget] - [spent]` or `2 + 2`, shows `= value` at the end of the line.
 - **Calculated cells.** A table cell in brackets is a calculation, just like
   `[cash]` in prose: `| bulk | [unit * qty] |` reads named values from any note
   and shows its result as an inlay. Columns keep one type, and a calculated

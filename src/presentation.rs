@@ -458,15 +458,16 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
     }
     for calculation in &doc.calculations {
         if let Ok(value) = engine.eval_at(path, &calculation.source, calculation.span) {
-            let end = Span::new(
-                calculation.span.line,
-                calculation.span.end + 1,
-                calculation.span.end + 1,
-            );
+            let after = calculation.span.end + usize::from(calculation.bracketed);
+            let end = Span::new(calculation.span.line, after, after);
             push(
                 end.range(&doc.text).start,
-                value.display(),
-                format!("`{}` = {}", calculation.source, value.display()),
+                if calculation.bracketed {
+                    value.display()
+                } else {
+                    format!("= {}", value.display())
+                },
+                format!("`{}` = {}", calculation.source.trim(), value.display()),
             );
         }
     }

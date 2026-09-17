@@ -10,4 +10,8 @@
 
 [total] for [units] units, including [tax] tax.
 
+A line that is only math shows its result at the end:
+[subtotal] + [tax]
+([total] - [subtotal]) / [subtotal]
+
 <!-- Try: hover total for the substituted calculation and its inputs. -->

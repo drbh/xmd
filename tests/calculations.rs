@@ -126,3 +126,51 @@ fn calculations_report_errors_at_the_token_and_hover_with_substitution() {
     .unwrap();
     assert_eq!(ws.named(&symbol).name, "spent");
 }
+
+#[test]
+fn a_line_of_math_with_bracketed_variables_shows_its_result() {
+    let source = "[$3,000]:budget\n[$2,444]:spent\n[budget] - [spent]\n([budget] - [spent]) / [budget]\n2 + 2\n[budget] * 2 dollars\n- [budget] - 1\n[budget]\n$25\n";
+    let ws = note(source);
+    let doc = &ws.documents[path()];
+    let lines: Vec<(usize, &str, bool)> = doc
+        .calculations
+        .iter()
+        .map(|c| (c.span.line, c.source.as_str(), c.bracketed))
+        .collect();
+    assert_eq!(
+        lines,
+        [
+            (2, " budget  -  spent ", false),
+            (3, "( budget  -  spent ) /  budget ", false),
+            (4, "2 + 2", false),
+        ],
+        "prose with words, list items, lone references and lone literals are not lines of math"
+    );
+    let hints = labels(&ws);
+    assert!(hints.contains(&(2, 18, "= $556".into())), "{hints:?}");
+    assert!(hints.contains(&(3, 31, "= 18.5333%".into())), "{hints:?}");
+    assert!(hints.contains(&(4, 5, "= 4".into())), "{hints:?}");
+    // The bracketed references keep their own value hints inside the line.
+    assert!(hints.contains(&(2, 8, "$3,000".into())), "{hints:?}");
+    assert_eq!(
+        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        0
+    );
+    let hover = intelligence::calculation_hover(&ws, path(), Position::new(2, 10), now()).unwrap();
+    let text = match hover.contents {
+        HoverContents::Markup(m) => m.value,
+        other => panic!("{other:?}"),
+    };
+    assert!(text.starts_with("**$556 · Money**"), "{text}");
+    assert!(
+        text.contains("budget - spent\n= $3,000 - $2,444\n= $556"),
+        "{text}"
+    );
+    // Errors point into the line.
+    let bad = note("[$3,000]:budget\n[budget] - [nope]\n");
+    let issues: Vec<_> = diagnostics::collect(&bad, path(), now().date_naive(), now(), false)
+        .into_iter()
+        .map(|d| d.message)
+        .collect();
+    assert_eq!(issues, ["Unknown name 'nope'"]);
+}

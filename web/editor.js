@@ -71,7 +71,7 @@ export function createEditor(element, client) {
   });
   const editor = monaco.editor.create(element, {
     theme: "jot-night", automaticLayout: true, fontSize: 15, lineHeight: 27,
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    fontFamily: '"Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     minimap: { enabled: false }, scrollBeyondLastLine: false, wordWrap: "on",
     padding: { top: 24, bottom: 24 }, renderLineHighlight: "line", lineNumbersMinChars: 3,
     inlayHints: { enabled: "on", fontSize: 13 }, codeLens: true,

@@ -408,6 +408,9 @@ test("the book runs every example as a live block on the shared engine", async (
   // Plans solve in the page, and itineraries paint their kinds.
   await expect(page.locator('.jot-block[data-file="14-plans.jot"] .view')).toContainText("= $94.75");
   await expect(page.locator('.jot-block[data-file="19-itinerary.jot"] .view .t-jotDepart').first()).toBeVisible();
+  // The bundled monospace font is served and applied to blocks.
+  await expect(first.locator(".view")).toHaveCSS("font-family", /Ioskeley Mono/);
+  expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
   // Unfetched lookups are warnings, listed under the block.
   await expect(page.locator('.jot-block[data-file="05-currencies.jot"] .problems .warn').first()).toContainText("No cached rate");
   expect(errors).toEqual([]);

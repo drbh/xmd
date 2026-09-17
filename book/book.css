@@ -1,4 +1,8 @@
-:root { --ink: #d4ded4; --muted: #96a392; --rule: #2b332d; --paper: #121514; --panel: #171b19; --accent: #a3c583; --code-bg: #1c211e; --code-ink: #d4ded4; --code-inline: #232a25; --lead: #b9c7b6; font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; color: var(--ink); background: var(--paper); color-scheme: dark; }
+@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Regular.subset.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Bold.subset.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Italic.subset.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-BoldItalic.subset.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
+:root { --mono: "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --ink: #d4ded4; --muted: #96a392; --rule: #2b332d; --paper: #121514; --panel: #171b19; --accent: #a3c583; --code-bg: #1c211e; --code-ink: #d4ded4; --code-inline: #232a25; --lead: #b9c7b6; font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; color: var(--ink); background: var(--paper); color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
 .toc { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 32px 20px; border-right: 1px solid var(--rule); background: var(--panel); font: 13px/1.6 ui-sans-serif, system-ui, sans-serif; }
@@ -21,7 +25,7 @@ h2 .number { color: var(--muted); font-weight: 400; margin-right: 6px; }
 .part:first-of-type { border-top: 0; }
 p { font-size: 17px; line-height: 1.65; margin: 0 0 16px; }
 .lead { font-size: 19px; color: var(--lead); }
-p code, li code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-inline); color: #c1dea4; padding: 1px 5px; border-radius: 4px; }
+p code, li code { font: 0.9em var(--mono); background: var(--code-inline); color: #c1dea4; padding: 1px 5px; border-radius: 4px; }
 footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px; color: var(--muted); font-size: 13px; }
 
 .jot-block { margin: 24px 0 32px; border-radius: 10px; overflow: hidden; background: var(--code-bg); color: var(--code-ink); border: 1px solid #2b332d; box-shadow: 0 2px 12px rgba(0,0,0,.35); }
@@ -30,7 +34,7 @@ footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px;
 /* The overlay and the textarea share one grid cell, so the cell grows to the
    wider of the two (the overlay, once inlays are added) and the block scrolls
    sideways as a unit instead of clipping. */
-.editor { display: grid; overflow-x: auto; font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.editor { display: grid; overflow-x: auto; font: 14px/1.7 var(--mono); }
 .editor .view, .editor textarea { grid-area: 1 / 1; margin: 0; padding: 14px 18px; white-space: pre; overflow: hidden; font: inherit; tab-size: 4; min-width: 100%; width: max-content; box-sizing: border-box; }
 .editor .view { color: var(--code-ink); min-height: 40px; }
 .editor textarea { height: 100%; resize: none; border: 0; outline: none; background: transparent; color: transparent; caret-color: #c1dea4; display: block; }

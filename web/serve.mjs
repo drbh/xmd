@@ -6,9 +6,9 @@ import { resolve, extname, sep } from "node:path";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 // The book and the example notes live beside web/ and share its worker and Wasm.
-const siblings = { "/book": fileURLToPath(new URL("../book", import.meta.url)), "/examples": fileURLToPath(new URL("../examples", import.meta.url)) };
+const siblings = { "/book": fileURLToPath(new URL("../book", import.meta.url)), "/examples": fileURLToPath(new URL("../examples", import.meta.url)), "/fonts": fileURLToPath(new URL("../fonts", import.meta.url)) };
 const port = Number(process.env.JOT_WEB_PORT || 4173);
-const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".jot": "text/plain", ".svg": "image/svg+xml" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".jot": "text/plain", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 const server = http.createServer(async (request, response) => {
   try {
     if (!["GET", "HEAD"].includes(request.method)) { response.writeHead(405).end(); return; }

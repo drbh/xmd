@@ -1,3 +1,26 @@
 [
-  { "token_type": "heading", "style": ["title"] }
+  { "token_type": "variable", "token_modifiers": ["declaration"], "style": ["variable"], "foreground_color": "#A8C7FA", "font_weight": "bold" },
+  { "token_type": "property", "token_modifiers": ["declaration"], "style": ["property"], "foreground_color": "#83D6CF", "font_weight": "bold" },
+  { "token_type": "comment", "style": ["comment"], "foreground_color": "#889781", "font_style": "italic" },
+  { "token_type": "keyword", "style": ["keyword"], "foreground_color": "#F0A77D" },
+  { "token_type": "number", "style": ["number"], "foreground_color": "#DABD90" },
+  { "token_type": "variable", "style": ["variable"], "foreground_color": "#A8C7FA" },
+  { "token_type": "function", "style": ["function"], "foreground_color": "#C6A0F6" },
+  { "token_type": "property", "style": ["property"], "foreground_color": "#83D6CF" },
+  { "token_type": "decorator", "style": ["attribute"], "foreground_color": "#DEA2B8" },
+  { "token_type": "operator", "style": ["operator"], "foreground_color": "#EDB486" },
+  { "token_type": "string", "style": ["string"], "foreground_color": "#CAD19B" },
+  { "token_type": "heading", "style": ["title"], "foreground_color": "#D6E8C2", "font_weight": "bold" },
+  { "token_type": "jotMoney", "style": ["number"], "foreground_color": "#B4D98A", "font_weight": "bold" },
+  { "token_type": "jotDate", "style": ["constant"], "foreground_color": "#F2B3DA", "font_weight": "bold" },
+  { "token_type": "jotTime", "style": ["constant"], "foreground_color": "#91DCE8", "font_weight": "bold" },
+  { "token_type": "jotDuration", "style": ["number"], "foreground_color": "#F4BA7A" },
+  { "token_type": "jotRatio", "style": ["number"], "foreground_color": "#EAC080" },
+  { "token_type": "jotBoolean", "style": ["boolean"], "foreground_color": "#C6A0F6" },
+  { "token_type": "jotPunctuation", "style": ["punctuation"], "foreground_color": "#85938B" },
+  { "token_type": "jotCode", "style": ["text.literal", "string"], "foreground_color": "#A1AE9B" },
+  { "token_type": "jotLink", "style": ["link_uri", "string"], "foreground_color": "#90BED8", "underline": true },
+  { "token_type": "jotCheckbox", "style": ["punctuation.list_marker"], "foreground_color": "#FFD580", "font_weight": "bold" },
+  { "token_type": "jotCheckboxChecked", "style": ["punctuation.list_marker"], "foreground_color": "#91E6AC", "font_weight": "bold" },
+  { "token_type": "jotTaskDone", "style": ["comment"], "foreground_color": "#87A788", "strikethrough": true }
 ]

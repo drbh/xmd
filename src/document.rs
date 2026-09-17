@@ -1,5 +1,5 @@
+use lsp_types::{Position, Range};
 use std::collections::BTreeMap;
-use tower_lsp::lsp_types::{Position, Range};
 
 /// Source spans are byte offsets within a line. Convert only at the LSP boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,6 +135,7 @@ pub struct Document {
     pub tasks: Vec<Task>,
     pub sections: Vec<Section>,
     pub events: Vec<Event>,
+    pub tables: Vec<crate::tables::Table>,
     pub links: Vec<Link>,
     pub highlights: Vec<Highlight>,
     pub problems: Vec<Problem>,
@@ -149,7 +150,12 @@ impl Document {
         let mut fence: Option<(char, usize)> = None;
         let mut comment = false;
         let mut parents: Vec<usize> = Vec::new();
-        for (row, line) in text.lines().enumerate() {
+        let lines: Vec<_> = text.lines().collect();
+        let mut table_end = 0;
+        for (row, line) in lines.iter().copied().enumerate() {
+            if row < table_end {
+                continue;
+            }
             let start = line.len() - line.trim_start().len();
             let trimmed = &line[start..];
             let marker = trimmed.chars().next().unwrap_or(' ');
@@ -200,6 +206,7 @@ impl Document {
                 if let Some(n) = named {
                     doc.mark(row, n.span.start, n.span.end, "variable");
                 }
+                doc.raw_links(line, row, start + run, title_end);
                 continue;
             }
             let checkbox_start = ["- [", "* [", "+ ["]
@@ -271,6 +278,51 @@ impl Document {
                 });
             }
             doc.inline(line, row, content_start, &attrs);
+            if let Some(index) = doc.definitions.len().checked_sub(1)
+                && doc.definitions[index].named.span.line == row
+                && doc.definitions[index].expression
+                && doc.definitions[index].source == "table"
+            {
+                let table = crate::tables::parse(&doc, index, &lines);
+                table_end = table.end_line;
+                // The declaration keyword isn't a global reference.
+                doc.references
+                    .retain(|r| !(r.span.line == row && r.name == "table"));
+                for column in &table.columns {
+                    doc.mark(
+                        column.span.line,
+                        column.span.start,
+                        column.span.end,
+                        "variable",
+                    );
+                }
+                for cells in &table.rows {
+                    for cell in cells {
+                        if let Ok(crate::engine::Value::Resource(resource)) = &cell.value {
+                            doc.links.push(Link {
+                                span: cell.span,
+                                target: resource.target.clone(),
+                            });
+                        }
+                        doc.mark(
+                            cell.span.line,
+                            cell.span.start,
+                            cell.span.end,
+                            if matches!(
+                                &cell.value,
+                                Ok(crate::engine::Value::Text(_)
+                                    | crate::engine::Value::Resource(_))
+                            ) {
+                                "string"
+                            } else {
+                                "number"
+                            },
+                        );
+                    }
+                }
+                doc.problems.extend(table.problems.clone());
+                doc.tables.push(table);
+            }
         }
         let lines = text.lines().count();
         for section in &mut doc.sections {
@@ -293,12 +345,43 @@ impl Document {
         }
     }
 
+    fn raw_link(&mut self, line: &str, row: usize, start: usize) -> Option<usize> {
+        let end = crate::resources::raw_link_end(line, start)?;
+        self.links.push(Link {
+            span: Span::new(row, start, end),
+            target: line[start..end].into(),
+        });
+        self.mark(row, start, end, "string");
+        Some(end)
+    }
+    fn raw_links(&mut self, line: &str, row: usize, mut start: usize, end: usize) {
+        let line = &line[..end];
+        while start < end {
+            if line[start..].starts_with("<!--") {
+                break;
+            }
+            if line.as_bytes()[start] == b'`' {
+                start = skip_code(line, start);
+                continue;
+            }
+            if let Some(next) = self.raw_link(line, row, start) {
+                start = next;
+            } else {
+                start += line[start..].chars().next().unwrap().len_utf8();
+            }
+        }
+    }
+
     fn attributes(&mut self, line: &str, row: usize, start: usize) -> BTreeMap<String, Attribute> {
         let mut attrs = BTreeMap::new();
         let mut i = start;
         while i < line.len() {
             if line.as_bytes()[i] == b'`' {
                 i = skip_code(line, i);
+                continue;
+            }
+            if let Some(end) = crate::resources::raw_link_end(line, i) {
+                i = end;
                 continue;
             }
             if line.as_bytes()[i] != b'@' {
@@ -406,6 +489,10 @@ impl Document {
                 i = end;
                 continue;
             }
+            if let Some(end) = self.raw_link(line, row, i) {
+                i = end;
+                continue;
+            }
             if line.as_bytes()[i] != b'[' {
                 i += line[i..].chars().next().unwrap().len_utf8();
                 continue;
@@ -506,7 +593,10 @@ impl Document {
                             if !line[start + token.end..end].trim_start().starts_with('(')
                                 && (token.start == 0
                                     || !line[start..start + token.start].trim_end().ends_with('.'))
-                                && !matches!(name.as_str(), "true" | "false" | "tomorrow" | "today")
+                                && !matches!(name.as_str(), "true" | "false")
+                                && (!matches!(name.as_str(), "tomorrow" | "today")
+                                    || crate::engine::sum_scope_at(&line[start..end], token.start)
+                                        .is_some())
                             {
                                 self.references.push(Reference {
                                     name: name.clone(),

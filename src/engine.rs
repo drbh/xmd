@@ -1,4 +1,5 @@
 use crate::{
+    document::Span,
     resources::Resource,
     timers::Timer,
     workspace::{Symbol, SymbolKind, Workspace},
@@ -28,8 +29,42 @@ pub enum Value {
     Resource(Resource),
     Tasks(Vec<TaskKey>),
     Timer(Timer),
+    Table(std::sync::Arc<crate::tables::TableValue>),
 }
 impl Value {
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Self::Number(_) => "Number",
+            Self::Count(_) => "Count",
+            Self::Money(_) => "Money",
+            Self::Ratio(_) => "Ratio",
+            Self::Duration(_) => "Duration",
+            Self::Date(_) => "Date",
+            Self::DateTime(_) => "DateTime",
+            Self::Bool(_) => "Boolean",
+            Self::Text(_) => "Text",
+            Self::Resource(_) => "Resource",
+            Self::Tasks(_) => "Checklist",
+            Self::Timer(t) if t.limit.is_some() => "Countdown",
+            Self::Timer(_) => "Stopwatch",
+            Self::Table(_) => "Table",
+        }
+    }
+    /// A round-trippable expression, unlike the human-readable display label.
+    pub fn source(&self) -> Option<String> {
+        Some(match self {
+            Self::Number(n) => n.to_string(),
+            Self::Money(n) if *n < 0.0 => format!("-${}", n.abs()),
+            Self::Money(n) => format!("${n}"),
+            Self::Ratio(n) if (n * 100.0).is_finite() => format!("{}%", n * 100.0),
+            Self::Duration(n) => format!("{n}s"),
+            Self::Date(d) => d.to_string(),
+            Self::DateTime(d) => d.to_rfc3339(),
+            Self::Bool(b) => b.to_string(),
+            Self::Text(s) => serde_json::to_string(s).ok()?,
+            _ => return None,
+        })
+    }
     pub fn display(&self) -> String {
         match self {
             Self::Number(n) => decimal(*n),
@@ -63,6 +98,7 @@ impl Value {
             Self::Resource(r) => r.target.clone(),
             Self::Tasks(t) => format!("{} tasks", t.len()),
             Self::Timer(t) => t.display(),
+            Self::Table(t) => format!("{} rows · {} columns", t.rows.len(), t.columns.len()),
         }
     }
     pub fn date(&self) -> Result<NaiveDate, String> {
@@ -320,6 +356,7 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
 }
 #[derive(Clone, Debug)]
 enum Expr {
+    Spanned(usize, usize, Box<Expr>),
     Value(Value),
     Name(String),
     Call(String, Vec<Expr>),
@@ -327,10 +364,74 @@ enum Expr {
     Binary(String, Box<Expr>, Box<Expr>),
     Property(Box<Expr>, String),
 }
+impl Expr {
+    fn bare(&self) -> &Self {
+        if let Self::Spanned(_, _, e) = self {
+            e.bare()
+        } else {
+            self
+        }
+    }
+    fn bounds(&self) -> (usize, usize) {
+        if let Self::Spanned(s, e, _) = self {
+            (*s, *e)
+        } else {
+            (0, 0)
+        }
+    }
+}
 struct Parser {
     tokens: Vec<Token>,
     at: usize,
     depth: usize,
+}
+
+pub fn simple_name(source: &str) -> Option<String> {
+    let parsed = Parser::parse(source).ok()?;
+    if let Expr::Name(name) = parsed.bare() {
+        Some(name.clone())
+    } else {
+        None
+    }
+}
+
+/// Tolerant lexical scopes for sum(table, row_expression). The evaluator checks
+/// syntax; this also works before a closing ')' is typed for LSP completion.
+pub fn sum_scope_at(source: &str, position: usize) -> Option<String> {
+    let tokens = lex(source).ok()?;
+    let mut result = None;
+    for (i, token) in tokens.iter().enumerate() {
+        if !matches!(&token.kind, Lexeme::Name(n) if n == "sum")
+            || !matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Left))
+        {
+            continue;
+        }
+        let start = tokens[i + 1].end;
+        let mut depth = 0;
+        let mut comma = None;
+        let mut end = source.len();
+        for token in &tokens[i + 2..] {
+            match token.kind {
+                Lexeme::Left => depth += 1,
+                Lexeme::Right if depth > 0 => depth -= 1,
+                Lexeme::Right => {
+                    end = token.start;
+                    break;
+                }
+                Lexeme::Comma if depth == 0 && comma.is_none() => comma = Some(token),
+                _ => {}
+            }
+        }
+        if let Some(comma) = comma {
+            if position >= start && position < comma.start {
+                return None;
+            }
+            if position >= comma.end && position <= end {
+                result = simple_name(&source[start..comma.start]);
+            }
+        }
+    }
+    result
 }
 impl Parser {
     fn parse(s: &str) -> Result<Expr, String> {
@@ -350,6 +451,7 @@ impl Parser {
         if self.depth > 64 {
             return Err("Expression nesting exceeds 64 levels".into());
         }
+        let start = self.tokens.get(self.at).map(|t| t.start).unwrap_or(0);
         let token = self
             .tokens
             .get(self.at)
@@ -397,6 +499,7 @@ impl Parser {
             }
             _ => return Err("Expected a value, name, or function".into()),
         };
+        lhs = Expr::Spanned(start, self.tokens[self.at - 1].end, Box::new(lhs));
         loop {
             if matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Dot)) {
                 self.at += 1;
@@ -407,7 +510,11 @@ impl Parser {
                 else {
                     return Err("Expected property name".into());
                 };
-                lhs = Expr::Property(Box::new(lhs), n.clone());
+                lhs = Expr::Spanned(
+                    start,
+                    self.tokens[self.at].end,
+                    Box::new(Expr::Property(Box::new(lhs), n.clone())),
+                );
                 self.at += 1;
                 continue;
             }
@@ -433,7 +540,11 @@ impl Parser {
             let op = op.clone();
             self.at += 1;
             let rhs = self.expression(bp + 1)?;
-            lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs));
+            lhs = Expr::Spanned(
+                start,
+                rhs.bounds().1,
+                Box::new(Expr::Binary(op, Box::new(lhs), Box::new(rhs))),
+            );
         }
         self.depth -= 1;
         Ok(lhs)
@@ -452,7 +563,8 @@ impl Parser {
 
 /// Arguments of a direct timer declaration, retaining the original duration expression.
 pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
-    let Expr::Call(name, _) = Parser::parse(source).ok()? else {
+    let parsed = Parser::parse(source).ok()?;
+    let Expr::Call(name, _) = parsed.bare() else {
         return None;
     };
     if !matches!(name.as_str(), "stopwatch" | "countdown") {
@@ -461,7 +573,7 @@ pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
     let tokens = lex(source).ok()?;
     let call = tokens
         .iter()
-        .position(|t| matches!(&t.kind, Lexeme::Name(n) if n == &name))?;
+        .position(|t| matches!(&t.kind, Lexeme::Name(n) if n == name))?;
     if !matches!(tokens.get(call + 1)?.kind, Lexeme::Left) {
         return None;
     }
@@ -488,13 +600,24 @@ pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
     Some(args)
 }
 
+#[derive(Clone, Debug)]
+pub struct EvalFailure {
+    pub path: PathBuf,
+    pub span: Span,
+    pub message: String,
+    pub related: Vec<Symbol>,
+}
 pub struct Engine<'a> {
     pub workspace: &'a Workspace,
     pub today: NaiveDate,
     pub now: DateTime<FixedOffset>,
     pub time_dependent: bool,
+    pub failure: Option<EvalFailure>,
+    contexts: Vec<(PathBuf, Span)>,
     memo: BTreeMap<Symbol, Result<Value, String>>,
     stack: Vec<Symbol>,
+    row_values: Vec<(String, BTreeMap<String, Value>)>,
+    steps: usize,
 }
 impl<'a> Engine<'a> {
     pub fn new(workspace: &'a Workspace, today: NaiveDate) -> Self {
@@ -509,37 +632,180 @@ impl<'a> Engine<'a> {
             today: now.with_timezone(&Local).date_naive(),
             now,
             time_dependent: false,
+            failure: None,
+            contexts: Vec::new(),
             memo: BTreeMap::new(),
             stack: Vec::new(),
+            row_values: Vec::new(),
+            steps: 0,
         }
     }
     pub fn eval(&mut self, path: &Path, expression: &str) -> Result<Value, String> {
-        self.expr(path, &Parser::parse(expression)?)
+        self.eval_at(path, expression, Span::new(0, 0, expression.len()))
+    }
+    pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> Result<Value, String> {
+        if self.contexts.is_empty() && self.stack.is_empty() && self.row_values.is_empty() {
+            self.steps = 0;
+        }
+        self.contexts.push((path.into(), span));
+        let result = match Parser::parse(expression) {
+            Ok(expr) => self.expr(path, &expr),
+            Err(message) => {
+                let tokens = lex(expression).unwrap_or_default();
+                let bounds = tokens
+                    .last()
+                    .map(|t| (t.start, t.end))
+                    .unwrap_or((0, expression.len()));
+                self.fail(bounds, &message);
+                Err(message)
+            }
+        };
+        self.contexts.pop();
+        result
+    }
+    fn fail(&mut self, bounds: (usize, usize), message: &str) {
+        if self.failure.is_none()
+            && let Some((path, base)) = self.contexts.last()
+        {
+            self.failure = Some(EvalFailure {
+                path: path.clone(),
+                span: Span::new(base.line, base.start + bounds.0, base.start + bounds.1),
+                message: message.into(),
+                related: vec![],
+            });
+        }
+    }
+    pub fn valid_expression(source: &str) -> bool {
+        Parser::parse(source).is_ok()
+    }
+    pub fn is_subexpression(source: &str, start: usize, end: usize) -> bool {
+        fn contains(expr: &Expr, start: usize, end: usize) -> bool {
+            if expr.bounds() == (start, end) {
+                return true;
+            }
+            match expr {
+                Expr::Spanned(_, _, inner) => contains(inner, start, end),
+                Expr::Call(_, args) => args.iter().any(|e| contains(e, start, end)),
+                Expr::Unary(_, e) | Expr::Property(e, _) => contains(e, start, end),
+                Expr::Binary(_, a, b) => contains(a, start, end) || contains(b, start, end),
+                _ => false,
+            }
+        }
+        Parser::parse(source).is_ok_and(|e| contains(&e, start, end))
+    }
+    /// Return a substitution trace without re-evaluating side effects (evaluation is pure).
+    pub fn substituted(&mut self, path: &Path, source: &str) -> Result<String, String> {
+        let tokens = lex(source)?;
+        let mut edits = Vec::new();
+        for (i, token) in tokens.iter().enumerate() {
+            if let Lexeme::Name(name) = &token.kind
+                && !matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Left))
+                && (i == 0 || !matches!(tokens[i - 1].kind, Lexeme::Dot))
+                && !matches!(name.as_str(), "true" | "false")
+                && sum_scope_at(source, token.start).is_none()
+                && let Ok(value) = self.named(path, name)
+            {
+                if matches!(value, Value::Table(_)) {
+                    continue;
+                }
+                // For properties substitute the complete access, not a timer's display text.
+                let end = if matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Dot)) {
+                    tokens.get(i + 2).map(|t| t.end).unwrap_or(token.end)
+                } else {
+                    token.end
+                };
+                let value = if end > token.end {
+                    self.eval(path, &source[token.start..end])?
+                } else {
+                    value
+                };
+                edits.push((token.start, end, value.display()));
+            }
+        }
+        let mut result = source.to_string();
+        for (start, end, value) in edits.into_iter().rev() {
+            result.replace_range(start..end, &value);
+        }
+        Ok(result)
     }
     pub fn named(&mut self, path: &Path, name: &str) -> Result<Value, String> {
         let symbol = self.workspace.resolve(path, name)?;
         self.symbol(&symbol)
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> Result<Value, String> {
+        if self.contexts.is_empty() && self.stack.is_empty() && self.row_values.is_empty() {
+            self.steps = 0;
+        }
         if let Some(v) = self.memo.get(symbol) {
             return v.clone();
         }
-        if self.stack.contains(symbol) {
-            return Err(format!(
-                "Dependency cycle involving '{}'",
-                self.workspace.named(symbol).name
-            ));
+        if let Some(start) = self.stack.iter().position(|s| s == symbol) {
+            let mut related = self.stack[start..].to_vec();
+            related.push(symbol.clone());
+            let message = format!(
+                "Dependency cycle: {}",
+                related
+                    .iter()
+                    .map(|s| self.workspace.named(s).name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" → ")
+            );
+            self.failure = Some(EvalFailure {
+                path: symbol.path.clone(),
+                span: self.workspace.named(symbol).span,
+                message: message.clone(),
+                related,
+            });
+            return Err(message);
         }
         if self.stack.len() >= 64 {
             return Err("Dependency chain exceeds 64 levels".into());
         }
         self.stack.push(symbol.clone());
+        // Named definitions never capture a caller's row locals.
+        let caller_rows = std::mem::take(&mut self.row_values);
         let doc = &self.workspace.documents[&symbol.path];
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
                 let def = &doc.definitions[i];
-                if def.expression {
-                    self.eval(&symbol.path, &def.source).map(|v| match v {
+                if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
+                    if let Some(problem) = table.problems.first() {
+                        self.failure = Some(EvalFailure {
+                            path: symbol.path.clone(),
+                            span: problem.span,
+                            message: problem.message.clone(),
+                            related: vec![],
+                        });
+                        Err(problem.message.clone())
+                    } else {
+                        Ok(Value::Table(std::sync::Arc::new(
+                            crate::tables::TableValue {
+                                origin: symbol.clone(),
+                                columns: table.columns.iter().map(|c| c.name.clone()).collect(),
+                                rows: table
+                                    .rows
+                                    .iter()
+                                    .map(|row| {
+                                        row.iter().map(|cell| cell.value.clone().unwrap()).collect()
+                                    })
+                                    .collect(),
+                            },
+                        )))
+                    }
+                } else if def.expression {
+                    let raw =
+                        &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+                    let offset = raw.len() - raw.trim_start().len();
+                    self.eval_at(
+                        &symbol.path,
+                        &def.source,
+                        Span::new(
+                            def.value_span.line,
+                            def.value_span.start + offset,
+                            def.value_span.end,
+                        ),
+                    )
+                    .map(|v| match v {
                         Value::Timer(mut timer)
                             if timer.origin.is_none() && timer_arguments(&def.source).is_some() =>
                         {
@@ -574,20 +840,48 @@ impl<'a> Engine<'a> {
                         .collect(),
                 ))
             }
+            SymbolKind::Column(_, _) => {
+                Err("A column needs a row context, e.g. sum(table, column)".into())
+            }
         };
+        self.row_values = caller_rows;
         self.stack.pop();
         self.memo.insert(symbol.clone(), result.clone());
         result
     }
     fn expr(&mut self, path: &Path, expr: &Expr) -> Result<Value, String> {
+        self.steps += 1;
+        if self.steps > 200_000 {
+            let message = "Evaluation exceeds 200,000 steps; simplify nested row calculations";
+            self.fail(expr.bounds(), message);
+            return Err(message.into());
+        }
         match expr {
+            Expr::Spanned(start, end, expr) => {
+                let result = self.expr(path, expr);
+                if let Err(message) = &result {
+                    self.fail((*start, *end), message);
+                }
+                result
+            }
             Expr::Value(v) => Ok(v.clone()),
             Expr::Name(n) => match n.as_str() {
                 "true" => Ok(Value::Bool(true)),
                 "false" => Ok(Value::Bool(false)),
-                _ => self.named(path, n),
+                _ => {
+                    if let Some((table, row)) = self.row_values.last() {
+                        row.get(n)
+                            .cloned()
+                            .ok_or_else(|| format!("Unknown column '{n}' in table '{table}'"))
+                    } else {
+                        self.named(path, n)
+                    }
+                }
             },
             Expr::Call(n, args) => {
+                if n == "sum" {
+                    return self.sum(path, args).map(|(value, _)| value);
+                }
                 if n == "now" && args.is_empty() {
                     self.time_dependent = true;
                     return Ok(Value::DateTime(self.now));
@@ -650,6 +944,7 @@ impl<'a> Engine<'a> {
                     ("!", Value::Bool(b)) => Ok(Value::Bool(!b)),
                     ("-", Value::Number(n)) => Ok(Value::Number(-n)),
                     ("-", Value::Money(n)) => Ok(Value::Money(-n)),
+                    ("-", Value::Ratio(n)) => Ok(Value::Ratio(-n)),
                     ("-", Value::Duration(n)) => n
                         .checked_neg()
                         .map(Value::Duration)
@@ -666,7 +961,13 @@ impl<'a> Engine<'a> {
                 if op == "||" && a == Value::Bool(true) {
                     return Ok(a);
                 }
-                binary(op, a, self.expr(path, b)?)
+                let right = self.expr(path, b)?;
+                let types = format!("{} {op} {}", a.type_name(), right.type_name());
+                binary(op, a, right).map_err(|message| {
+                    let message = format!("{message} ({types})");
+                    self.fail(b.bounds(), &message);
+                    message
+                })
             }
             Expr::Property(v, key) => {
                 let v = self.expr(path, v)?;
@@ -677,6 +978,9 @@ impl<'a> Engine<'a> {
                             return Ok(Value::Text(resource.target));
                         }
                         if key == "exists" {
+                            #[cfg(target_arch = "wasm32")]
+                            return Err("Local file existence is unavailable in the browser".into());
+                            #[cfg(not(target_arch = "wasm32"))]
                             return Ok(Value::Bool(
                                 resource
                                     .url(path)?
@@ -725,6 +1029,71 @@ impl<'a> Engine<'a> {
             children.into_iter().all(|j| self.task_done(path, j))
         }
     }
+
+    fn sum(&mut self, path: &Path, args: &[Expr]) -> Result<(Value, Vec<Value>), String> {
+        if args.len() != 2 {
+            return Err(
+                "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
+            );
+        }
+        let Expr::Name(name) = args[0].bare() else {
+            return Err("The first argument to sum must be a table name".into());
+        };
+        let Value::Table(table) = self.named(path, name)? else {
+            return Err(format!("'{name}' is not a table"));
+        };
+        let mut total = None;
+        let mut contributions = Vec::new();
+        for row in &table.rows {
+            self.row_values.push((
+                name.clone(),
+                table
+                    .columns
+                    .iter()
+                    .cloned()
+                    .zip(row.iter().cloned())
+                    .collect(),
+            ));
+            let value = self.expr(path, &args[1]);
+            self.row_values.pop();
+            let value = value?;
+            if !matches!(
+                value,
+                Value::Number(_) | Value::Money(_) | Value::Ratio(_) | Value::Duration(_)
+            ) {
+                return Err(format!(
+                    "sum requires numeric, money, ratio, or duration results, found {}",
+                    value.type_name()
+                ));
+            }
+            total = Some(if let Some(previous) = total {
+                let ratios =
+                    matches!(previous, Value::Ratio(_)) && matches!(value, Value::Ratio(_));
+                let added = binary("+", previous, value.clone())?;
+                if ratios && let Value::Number(n) = added {
+                    Value::Ratio(n)
+                } else {
+                    added
+                }
+            } else {
+                value.clone()
+            });
+            contributions.push(value);
+        }
+        total.map(|v| (v, contributions)).ok_or_else(|| {
+            "Cannot sum an empty table: add a row to establish its value type".into()
+        })
+    }
+
+    pub fn sum_contributions(&mut self, path: &Path, source: &str) -> Option<Vec<Value>> {
+        let parsed = Parser::parse(source).ok()?;
+        let Expr::Call(name, args) = parsed.bare() else {
+            return None;
+        };
+        (name == "sum")
+            .then(|| self.sum(path, args).ok().map(|(_, rows)| rows))
+            .flatten()
+    }
     pub fn blocked(&mut self, path: &Path, i: usize) -> Result<Vec<String>, String> {
         self.blocked_inner(path, i, &mut Vec::new())
     }
@@ -735,8 +1104,33 @@ impl<'a> Engine<'a> {
         stack: &mut Vec<TaskKey>,
     ) -> Result<Vec<String>, String> {
         let key = (path.to_path_buf(), i);
-        if stack.contains(&key) {
-            return Err("Task dependency cycle".into());
+        if let Some(start) = stack.iter().position(|k| k == &key) {
+            let related: Vec<_> = stack[start..]
+                .iter()
+                .chain(std::iter::once(&key))
+                .filter(|(p, index)| self.workspace.documents[p].tasks[*index].named.is_some())
+                .map(|(p, index)| Symbol {
+                    path: p.clone(),
+                    kind: SymbolKind::Task(*index),
+                })
+                .collect();
+            let names = related
+                .iter()
+                .map(|s| self.workspace.named(s).name.as_str())
+                .collect::<Vec<_>>();
+            let message = format!("Task dependency cycle: {}", names.join(" → "));
+            let task = &self.workspace.documents[path].tasks[i];
+            self.failure = Some(EvalFailure {
+                path: path.into(),
+                span: task
+                    .attributes
+                    .get("after")
+                    .map(|a| a.value_span)
+                    .unwrap_or(task.checkbox),
+                message: message.clone(),
+                related,
+            });
+            return Err(message);
         }
         if stack.len() > 64 {
             return Err("Task dependency chain is too deep".into());

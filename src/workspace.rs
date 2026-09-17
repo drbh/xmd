@@ -1,6 +1,6 @@
 use crate::{
     document::{Document, Named},
-    resources::{self, Cache},
+    resources::Cache,
 };
 use std::{
     collections::BTreeMap,
@@ -12,6 +12,7 @@ pub enum SymbolKind {
     Definition(usize),
     Task(usize),
     Section(usize),
+    Column(usize, usize),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Symbol {
@@ -25,6 +26,7 @@ pub struct Workspace {
     pub cache: Cache,
 }
 impl Workspace {
+    #[cfg(feature = "native")]
     pub fn load(roots: Vec<PathBuf>) -> Result<Self, String> {
         let mut result = Self {
             roots,
@@ -32,7 +34,7 @@ impl Workspace {
             cache: BTreeMap::new(),
         };
         for root in &result.roots {
-            result.cache.extend(resources::load_cache(root));
+            result.cache.extend(crate::resources::load_cache(root));
             let walker = ignore::WalkBuilder::new(root)
                 .hidden(true)
                 .follow_links(false)
@@ -112,6 +114,7 @@ impl Workspace {
             SymbolKind::Definition(i) => &doc.definitions[i].named,
             SymbolKind::Task(i) => doc.tasks[i].named.as_ref().unwrap(),
             SymbolKind::Section(i) => doc.sections[i].named.as_ref().unwrap(),
+            SymbolKind::Column(table, column) => &doc.tables[table].columns[column],
         }
     }
     pub fn root(&self) -> &Path {
@@ -120,6 +123,7 @@ impl Workspace {
             .map(PathBuf::as_path)
             .unwrap_or(Path::new("."))
     }
+    #[cfg(feature = "native")]
     pub fn save_cache(&self) -> Result<(), String> {
         let dir = self.root().join(".jot");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

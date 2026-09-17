@@ -3,14 +3,34 @@ name = "jot"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "jot"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = ["dep:tokio", "dep:tower-lsp", "dep:clap", "dep:ignore"]
+browser = ["dep:wasm-bindgen"]
+
 [dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
-tower-lsp = "0.20"
+tokio = { version = "1", optional = true, features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+tower-lsp = { version = "0.20", optional = true }
+lsp-types = "0.94.1"
+percent-encoding = "2"
+unicode-width = "0.2.2"
+wasm-bindgen = { version = "0.2", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ignore = "0.4"
+ignore = { version = "0.4", optional = true }
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 [dev-dependencies]
 tempfile = "3"

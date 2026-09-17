@@ -339,6 +339,10 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     {
         p.attribute(name, attr);
     }
+    for calculation in &doc.calculations {
+        p.brackets(calculation.span);
+        p.expression(calculation.span);
+    }
     for reference in doc.references.iter().filter(|r| r.bracket) {
         p.brackets(Span::new(
             reference.span.line,

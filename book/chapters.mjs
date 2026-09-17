@@ -20,6 +20,7 @@ export const parts = [
         prose: [
           "A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.",
           "The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.",
+          "A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed.",
         ],
       },
       {

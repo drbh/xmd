@@ -511,6 +511,11 @@ impl LanguageServer for Backend {
         {
             return Ok(Some(hover));
         }
+        if symbol_at(ws, &path, at.position).is_none()
+            && let Some(hover) = crate::intelligence::calculation_hover(ws, &path, at.position, now)
+        {
+            return Ok(Some(hover));
+        }
         if let Some((symbol, span)) = symbol_at(ws, &path, at.position) {
             let mut value = crate::intelligence::hover(ws, &symbol, now);
             let mut range = span.range(&doc.text);

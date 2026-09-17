@@ -52,6 +52,7 @@ pub fn expression_regions(doc: &Document) -> Vec<Span> {
         .iter()
         .filter(|d| d.expression)
         .map(|d| d.value_span)
+        .chain(doc.calculations.iter().map(|c| c.span))
         .chain(
             doc.plans
                 .iter()

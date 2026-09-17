@@ -117,6 +117,13 @@ pub struct Link {
     pub span: Span,
     pub target: String,
 }
+/// `[remaining / budget]` in prose: a calculation shown in place, without a name.
+#[derive(Clone, Debug)]
+pub struct Calculation {
+    /// The expression inside the brackets.
+    pub span: Span,
+    pub source: String,
+}
 #[derive(Clone, Debug)]
 pub struct Highlight {
     pub span: Span,
@@ -139,6 +146,7 @@ pub struct Document {
     pub plans: Vec<crate::plans::Plan>,
     pub days: Vec<crate::itinerary::Day>,
     pub links: Vec<Link>,
+    pub calculations: Vec<Calculation>,
     pub highlights: Vec<Highlight>,
     pub problems: Vec<Problem>,
 }
@@ -654,6 +662,15 @@ impl Document {
                     property: property.map(str::to_string),
                 });
                 self.mark(row, i, close + 1, "variable");
+            } else if is_calculation(inner) {
+                let span = Span::new(row, inner_start, inner_start + inner.len());
+                self.calculations.push(Calculation {
+                    span,
+                    source: inner.into(),
+                });
+                self.mark(row, i, i + 1, "operator");
+                self.mark(row, close, close + 1, "operator");
+                self.expression(line, row, span.start, span.end);
             }
             i = close + 1;
         }
@@ -704,6 +721,21 @@ impl Document {
     }
 }
 
+/// Brackets hold a calculation when the text is a valid expression that reads
+/// a name or calls a function. Bare literals such as `[$25]` stay prose, so
+/// prices in a sentence are not annotated.
+fn is_calculation(inner: &str) -> bool {
+    if inner.is_empty() || !crate::engine::Engine::valid_expression(inner) {
+        return false;
+    }
+    let Ok(tokens) = crate::engine::lex(inner) else {
+        return false;
+    };
+    tokens.iter().any(|t| {
+        matches!(&t.kind, crate::engine::Lexeme::Name(n)
+            if !matches!(n.as_str(), "true" | "false") && !crate::engine::is_code(n))
+    })
+}
 fn skip_code(line: &str, start: usize) -> usize {
     let count = line[start..].bytes().take_while(|c| *c == b'`').count();
     let marker = "`".repeat(count);

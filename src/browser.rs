@@ -222,6 +222,12 @@ impl BrowserWorkspace {
                 {
                     return serialized(hover);
                 }
+                if intelligence::symbol_at(ws, &path, position()?).is_none()
+                    && let Some(hover) =
+                        intelligence::calculation_hover(ws, &path, position()?, now)
+                {
+                    return serialized(hover);
+                }
                 if let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) {
                     let mut value = intelligence::hover(ws, &symbol, now);
                     let mut range = span.range(&doc.text);

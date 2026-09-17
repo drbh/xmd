@@ -1021,6 +1021,49 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
     out
 }
 
+/// A bracketed calculation in prose: its expression, substitution and value.
+pub fn calculation_hover(
+    ws: &Workspace,
+    path: &Path,
+    position: Position,
+    now: DateTime<FixedOffset>,
+) -> Option<Hover> {
+    let doc = ws.documents.get(path)?;
+    let byte = byte_at(doc.line(position.line as usize), position.character)?;
+    let calculation = doc.calculations.iter().find(|c| {
+        c.span.line == position.line as usize && byte + 1 >= c.span.start && byte <= c.span.end
+    })?;
+    let mut engine = Engine::at(ws, now);
+    let value = engine.eval_at(path, &calculation.source, calculation.span);
+    let mut text = match &value {
+        Ok(v) => format!("**{} · {}**", v.display(), v.type_name()),
+        Err(e) => format!("**Calculation**\n\n{e}"),
+    };
+    text.push_str(&format!(
+        "\n\n```text\n{}\n",
+        calculation.source.replace('`', "\\`")
+    ));
+    if let Ok(substituted) = engine.substituted(path, &calculation.source)
+        && substituted != calculation.source
+    {
+        text.push_str(&format!("= {substituted}\n"));
+    }
+    if let Ok(v) = &value {
+        text.push_str(&format!("= {}\n", v.display()));
+    }
+    text.push_str("```");
+    Some(Hover {
+        contents: HoverContents::Markup(markup(text)),
+        range: Some(
+            Span::new(
+                calculation.span.line,
+                calculation.span.start - 1,
+                calculation.span.end + 1,
+            )
+            .range(&doc.text),
+        ),
+    })
+}
 pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;

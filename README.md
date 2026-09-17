@@ -124,6 +124,10 @@ Three features ride on standard LSP requests that most editors already send:
   [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
   prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
   also runs in the browser. See `jots/plans.jot`.
+- **Calculations in prose.** Brackets around an expression that reads a name
+  or calls a function, such as `[remaining / budget]` or `[today()]`, show the
+  result in place without defining anything. Bare literals like `[$25]` stay
+  prose.
 - **Calculated cells.** A table cell in brackets is a calculation, just like
   `[cash]` in prose: `| bulk | [unit * qty] |` reads named values from any note
   and shows its result as an inlay. Columns keep one type, and a calculated

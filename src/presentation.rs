@@ -456,6 +456,20 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             push(doc.line_end(task.line), labels.join(" · "), tooltip);
         }
     }
+    for calculation in &doc.calculations {
+        if let Ok(value) = engine.eval_at(path, &calculation.source, calculation.span) {
+            let end = Span::new(
+                calculation.span.line,
+                calculation.span.end + 1,
+                calculation.span.end + 1,
+            );
+            push(
+                end.range(&doc.text).start,
+                value.display(),
+                format!("`{}` = {}", calculation.source, value.display()),
+            );
+        }
+    }
     for reference in doc.references.iter().filter(|r| r.bracket) {
         if let Ok(value) = engine.eval(path, &reference.expression()) {
             let target = workspace

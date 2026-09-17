@@ -157,6 +157,18 @@ pub fn collect(
             }
         }
     }
+    for calculation in &doc.calculations {
+        let mut engine = Engine::at(ws, now);
+        engine.today = today;
+        if let Err(message) = engine.eval_at(path, &calculation.source, calculation.span) {
+            let span = engine
+                .failure
+                .filter(|f| f.path == path)
+                .map(|f| f.span)
+                .unwrap_or(calculation.span);
+            issues.push(diagnostic(ws, path, span, message, "evaluation", &[]));
+        }
+    }
     for reference in &doc.references {
         if unfinished(reference.span) {
             continue;

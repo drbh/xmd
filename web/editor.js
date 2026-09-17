@@ -158,6 +158,9 @@ export function createEditor(element, client) {
     range: range(s.range), selectionRange: range(s.selectionRange),
     children: s.children?.map(documentSymbol),
   });
+  monaco.languages.registerFoldingRangeProvider("jot", {
+    provideFoldingRanges: guarded(async model => ((await client.query(model, "folding")) || []).map(r => ({ start: r.startLine + 1, end: r.endLine + 1, kind: r.kind === "comment" ? monaco.languages.FoldingRangeKind.Comment : monaco.languages.FoldingRangeKind.Region }))),
+  });
   monaco.languages.registerDocumentSymbolProvider("jot", {
     displayName: "Jot",
     provideDocumentSymbols: guarded(async model => ((await client.query(model, "documentSymbols")) || []).map(documentSymbol)),

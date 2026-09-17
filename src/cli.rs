@@ -185,6 +185,31 @@ pub fn entries(workspace: &Workspace, today: NaiveDate) -> Vec<Entry> {
                 errors,
             });
         }
+        let dates = crate::itinerary::dates(&doc.days, today);
+        for (day, date) in doc.days.iter().zip(&dates) {
+            for stop in &day.stops {
+                entries.push(Entry {
+                    path: path.clone(),
+                    line: stop.line + 1,
+                    uri: location_uri(path, stop.line + 1),
+                    title: stop.title.clone(),
+                    kind: "stop".into(),
+                    done: false,
+                    due: None,
+                    scheduled: None,
+                    at: Some(match date {
+                        Some(d) => format!("{d} {}", stop.time.format("%H:%M")),
+                        None => stop.time.format("%H:%M").to_string(),
+                    }),
+                    at_date: *date,
+                    tags: Vec::new(),
+                    blocked_by: Vec::new(),
+                    estimate_minutes: None,
+                    estimate_seconds: None,
+                    errors: Vec::new(),
+                });
+            }
+        }
         for event in &doc.events {
             let result = engine.when(path, &event.attributes["at"].value);
             let mut errors = Vec::new();
@@ -233,7 +258,7 @@ pub fn agenda_entry(e: &Entry, today: NaiveDate, end: NaiveDate) -> bool {
     if e.done {
         return false;
     }
-    if e.kind == "event" {
+    if e.kind == "event" || e.kind == "stop" {
         return e.at_date.is_some_and(|d| d >= today && d <= end) || !e.errors.is_empty();
     }
     if e.due.is_some_and(|d| d <= end)
@@ -544,7 +569,7 @@ fn report(
             "{}:{}  {} {}{}",
             e.path.display(),
             e.line,
-            if e.kind == "event" {
+            if e.kind == "event" || e.kind == "stop" {
                 "•"
             } else if e.done {
                 "[x]"

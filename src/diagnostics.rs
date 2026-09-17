@@ -3,7 +3,7 @@ use crate::{
     engine::{Engine, Value},
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset, Local, NaiveDate};
+use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate};
 use lsp_types::*;
 use std::path::Path;
 
@@ -229,6 +229,71 @@ pub fn collect(
             }
         }
     }
+    let dates = crate::itinerary::dates(&doc.days, today);
+    let mut previous_date: Option<NaiveDate> = None;
+    for (day, date) in doc.days.iter().zip(&dates) {
+        let Some(date) = date else {
+            issues.push(diagnostic(
+                ws,
+                path,
+                day.date_span,
+                format!(
+                    "{} {} is not a valid date",
+                    crate::itinerary::month_name(day.month),
+                    day.day
+                ),
+                "itinerary",
+                &[],
+            ));
+            continue;
+        };
+        if let Some((weekday, span)) = &day.weekday
+            && *weekday != date.weekday()
+        {
+            issues.push(diagnostic(
+                ws,
+                path,
+                *span,
+                format!(
+                    "{} is a {}, not a {}",
+                    date.format("%B %-d, %Y"),
+                    date.format("%A"),
+                    weekday_name(*weekday)
+                ),
+                "itinerary",
+                &[],
+            ));
+        }
+        if let Some(prev) = previous_date
+            && *date < prev
+        {
+            issues.push(diagnostic(
+                ws,
+                path,
+                day.date_span,
+                format!("{} comes before the previous day, {prev}", date),
+                "itinerary",
+                &[],
+            ));
+        }
+        previous_date = Some(*date);
+        for pair in day.stops.windows(2) {
+            if pair[1].time < pair[0].time {
+                issues.push(diagnostic(
+                    ws,
+                    path,
+                    pair[1].time_span,
+                    format!(
+                        "{} is earlier than the previous stop at {}",
+                        crate::itinerary::display_time(&pair[1]),
+                        crate::itinerary::display_time(&pair[0])
+                    ),
+                    "itinerary",
+                    &[],
+                ));
+            }
+        }
+    }
     for event in &doc.events {
         let attr = &event.attributes["at"];
         if let Err(message) = engine.when(path, &attr.value) {
@@ -248,6 +313,18 @@ pub fn collect(
     let name_errors = issues.iter().filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "unknown-name" || c == "ambiguous-name")).map(|d| (d.range, d.message.clone())).collect::<Vec<_>>();
     issues.retain(|d| !matches!(&d.code, Some(NumberOrString::String(c)) if c == "evaluation" || c == "attribute" || c == "dependency") || !name_errors.iter().any(|(r, m)| r.start.line == d.range.start.line && (d.message == *m || d.message.contains("requires"))));
     issues
+}
+fn weekday_name(weekday: chrono::Weekday) -> String {
+    match weekday {
+        chrono::Weekday::Mon => "Monday",
+        chrono::Weekday::Tue => "Tuesday",
+        chrono::Weekday::Wed => "Wednesday",
+        chrono::Weekday::Thu => "Thursday",
+        chrono::Weekday::Fri => "Friday",
+        chrono::Weekday::Sat => "Saturday",
+        chrono::Weekday::Sun => "Sunday",
+    }
+    .to_string()
 }
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)

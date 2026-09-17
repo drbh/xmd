@@ -137,6 +137,7 @@ pub struct Document {
     pub events: Vec<Event>,
     pub tables: Vec<crate::tables::Table>,
     pub plans: Vec<crate::plans::Plan>,
+    pub days: Vec<crate::itinerary::Day>,
     pub links: Vec<Link>,
     pub highlights: Vec<Highlight>,
     pub problems: Vec<Problem>,
@@ -385,6 +386,19 @@ impl Document {
                 }
                 doc.problems.extend(table.problems.clone());
                 doc.tables.push(table);
+            }
+        }
+        doc.days = crate::itinerary::parse(&lines);
+        for day in &doc.days {
+            for stop in &day.stops {
+                for detail in &stop.details {
+                    if detail.key.eq_ignore_ascii_case("address") && !detail.value.is_empty() {
+                        doc.links.push(Link {
+                            span: detail.value_span,
+                            target: crate::itinerary::map_url(&detail.value),
+                        });
+                    }
+                }
             }
         }
         let lines = text.lines().count();

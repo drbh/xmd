@@ -50,9 +50,27 @@ pub fn document_symbols(
     };
     let mut engine = Engine::at(ws, now);
     let mut entries = Vec::new();
+    let dates = crate::itinerary::dates(&doc.days, now.date_naive());
+    let day_detail = |day: &crate::itinerary::Day, date: &Option<chrono::NaiveDate>| {
+        format!(
+            "{} stops{}",
+            day.stops.len(),
+            date.map(|d| format!(" · {}", d.format("%A %Y-%m-%d")))
+                .unwrap_or_default()
+        )
+    };
     for section in &doc.sections {
         let selection = line_range(doc, section.line);
-        let mut end = section.end_line.saturating_sub(1);
+        // A day heading ends where the next day starts, even without a heading.
+        let day = doc
+            .days
+            .iter()
+            .zip(&dates)
+            .find(|(d, _)| d.line == section.line);
+        let mut end = day
+            .map(|(d, _)| d.end_line)
+            .unwrap_or(section.end_line)
+            .saturating_sub(1);
         while end > section.line && doc.line(end).trim().is_empty() {
             end -= 1;
         }
@@ -62,11 +80,14 @@ pub fn document_symbols(
             } else {
                 section.title.clone()
             },
-            section
-                .named
-                .as_ref()
-                .map(|n| format!(":{}", n.name))
-                .unwrap_or_default(),
+            match day {
+                Some((day, date)) => day_detail(day, date),
+                None => section
+                    .named
+                    .as_ref()
+                    .map(|n| format!(":{}", n.name))
+                    .unwrap_or_default(),
+            },
             lsp_types::SymbolKind::NAMESPACE,
             Range::new(selection.start, line_range(doc, end).end),
             selection,
@@ -107,6 +128,44 @@ pub fn document_symbols(
             ),
             selection,
         ));
+    }
+    for (day, date) in doc.days.iter().zip(&dates) {
+        let selection = day.date_span.range(&doc.text);
+        let mut end = day.end_line.saturating_sub(1).max(day.line);
+        while end > day.line && doc.line(end).trim().is_empty() {
+            end -= 1;
+        }
+        // A day written as a heading is already a section symbol.
+        if !doc.sections.iter().any(|s| s.line == day.line) {
+            entries.push(symbol(
+                format!(
+                    "{} {}{}",
+                    crate::itinerary::month_name(day.month),
+                    day.day,
+                    day.places
+                        .as_ref()
+                        .map(|(p, _)| format!(" · {p}"))
+                        .unwrap_or_default()
+                ),
+                day_detail(day, date),
+                lsp_types::SymbolKind::NAMESPACE,
+                Range::new(selection.start, line_range(doc, end).end),
+                selection,
+            ));
+        }
+        for stop in &day.stops {
+            let selection = stop.title_span.range(&doc.text);
+            entries.push(symbol(
+                stop.title.clone(),
+                crate::itinerary::display_time(stop),
+                lsp_types::SymbolKind::EVENT,
+                Range::new(
+                    line_range(doc, stop.line).start,
+                    line_range(doc, stop.end_line.saturating_sub(1).max(stop.line)).end,
+                ),
+                selection,
+            ));
+        }
     }
     for event in &doc.events {
         let range = line_range(doc, event.line);
@@ -242,6 +301,66 @@ pub fn document_symbols(
     }
     roots.reverse();
     roots
+}
+
+/// Foldable regions: sections, itinerary days and stops, tables and plans.
+pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
+    let mut ranges: Vec<(usize, usize, Option<lsp_types::FoldingRangeKind>)> = Vec::new();
+    let mut add = |start: usize, end_exclusive: usize| {
+        let mut end = end_exclusive.saturating_sub(1);
+        while end > start && doc.line(end).trim().is_empty() {
+            end -= 1;
+        }
+        if end > start {
+            ranges.push((start, end, Some(lsp_types::FoldingRangeKind::Region)));
+        }
+    };
+    for section in &doc.sections {
+        add(section.line, section.end_line);
+    }
+    for table in &doc.tables {
+        add(
+            doc.definitions[table.definition].named.span.line,
+            table.end_line,
+        );
+    }
+    for plan in &doc.plans {
+        add(
+            doc.definitions[plan.definition].named.span.line,
+            plan.end_line,
+        );
+    }
+    for day in &doc.days {
+        add(day.line, day.end_line);
+        for stop in &day.stops {
+            add(stop.line, stop.end_line);
+        }
+    }
+    let mut comment: Option<usize> = None;
+    for (row, line) in doc.text.lines().enumerate() {
+        let trimmed = line.trim();
+        if comment.is_none() && trimmed.starts_with("<!--") && !trimmed.contains("-->") {
+            comment = Some(row);
+        } else if let Some(start) = comment
+            && trimmed.contains("-->")
+        {
+            ranges.push((start, row, Some(lsp_types::FoldingRangeKind::Comment)));
+            comment = None;
+        }
+    }
+    ranges.sort_by_key(|(start, end, _)| (*start, *end));
+    ranges.dedup_by_key(|(start, end, _)| (*start, *end));
+    ranges
+        .into_iter()
+        .map(|(start, end, kind)| lsp_types::FoldingRange {
+            start_line: start as u32,
+            start_character: None,
+            end_line: end as u32,
+            end_character: None,
+            kind,
+            collapsed_text: None,
+        })
+        .collect()
 }
 
 /// Older clients that do not advertise hierarchicalDocumentSymbolSupport get

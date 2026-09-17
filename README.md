@@ -111,6 +111,18 @@ Three features ride on standard LSP requests that most editors already send:
   inlay with its choice, the plan hover lists what was picked, and a code
   action on the plan line writes the choices into the table. Outside a plan a
   decision column is not data.
+- **Itineraries.** A line such as `Friday, November 20 · New York | Oaxaca`
+  (with or without `##`) starts a day; a line starting with a time such as
+  `07:04 AM` or `14:30` is a stop; `Key: value` lines beneath it are details
+  and other lines are notes. Years carry forward, and a first day without one
+  is the next occurrence. Format Document pads times and indents details.
+  Stops paint their time and title, days show a stop count and how far away
+  they are, each stop shows the time until the next, `Cancel by: 24h before`
+  or a datetime shows the deadline, `Address:` lines open in Maps, the outline
+  lists days and stops, days and stops fold, completion offers stop kinds
+  after a time and detail keys inside a stop, and `jot agenda` includes stops.
+  Diagnostics catch a weekday that does not match the date, days out of order,
+  stops out of order, and impossible dates. See `jots/oaxaca.jot`.
 - **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
   column, task, or checklist as a node. *Incoming calls* list everything that
   reads it (calculations, `@after`, `@estimate`, parent tasks, checklists);

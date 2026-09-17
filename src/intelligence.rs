@@ -529,6 +529,9 @@ pub fn completions(
             });
         }
     }
+    if let Some(items) = itinerary_completions(doc, position, replacement) {
+        return items;
+    }
     let prose = line[..byte]
         .rfind('[')
         .is_some_and(|i| !line[i..byte].contains(']'));
@@ -610,6 +613,121 @@ pub fn completions(
     result
 }
 
+/// After a time on an itinerary line, offer stop kinds; at the start of a
+/// line inside a stop, offer detail keys.
+fn itinerary_completions(
+    doc: &Document,
+    position: Position,
+    replacement: Range,
+) -> Option<Vec<CompletionItem>> {
+    let row = position.line as usize;
+    let line = doc.line(row);
+    let byte = byte_at(line, position.character)?;
+    let day = doc
+        .days
+        .iter()
+        .find(|d| d.line < row && row < d.end_line.max(row + 1) && d.line != row)?;
+    let item =
+        |label: String, insert: String, detail: &str, kind: CompletionItemKind| CompletionItem {
+            label,
+            kind: Some(kind),
+            detail: Some(detail.into()),
+            text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, insert))),
+            ..Default::default()
+        };
+    if let Some((_, _, _, title_start)) = crate::itinerary::clock(line, row)
+        && byte >= title_start
+        && line[title_start..byte]
+            .trim()
+            .chars()
+            .all(|c| c.is_alphabetic())
+    {
+        let typed = line[title_start..byte].trim();
+        return Some(
+            crate::itinerary::KINDS
+                .iter()
+                .filter(|(_, name)| {
+                    typed.is_empty() || name.to_lowercase().starts_with(&typed.to_lowercase())
+                })
+                .map(|(emoji, name)| {
+                    item(
+                        format!("{emoji} {name}"),
+                        format!("{emoji} {name} "),
+                        "itinerary stop",
+                        CompletionItemKind::EVENT,
+                    )
+                })
+                .collect(),
+        );
+    }
+    let in_stop = day
+        .stops
+        .iter()
+        .any(|s| s.line < row && row < s.end_line.max(row + 1));
+    if in_stop
+        && line[..byte].trim().chars().all(|c| c.is_alphabetic())
+        && !line[byte..].contains(':')
+    {
+        let typed = line[..byte].trim().to_lowercase();
+        return Some(
+            crate::itinerary::KEYS
+                .iter()
+                .filter(|k| typed.is_empty() || k.to_lowercase().starts_with(&typed))
+                .map(|k| {
+                    item(
+                        format!("{k}:"),
+                        format!("{k}: "),
+                        "stop detail",
+                        CompletionItemKind::PROPERTY,
+                    )
+                })
+                .collect(),
+        );
+    }
+    None
+}
+/// A stop line: its time, day, details, and the time until the next stop.
+pub fn stop_hover(
+    ws: &Workspace,
+    path: &Path,
+    position: Position,
+    today: chrono::NaiveDate,
+) -> Option<Hover> {
+    let doc = ws.documents.get(path)?;
+    let row = position.line as usize;
+    let dates = crate::itinerary::dates(&doc.days, today);
+    let (day, date) = doc
+        .days
+        .iter()
+        .zip(&dates)
+        .find(|(d, _)| d.stops.iter().any(|s| s.line == row))?;
+    let index = day.stops.iter().position(|s| s.line == row)?;
+    let stop = &day.stops[index];
+    let mut text = format!(
+        "**{}**\n\n{}",
+        stop.title,
+        crate::itinerary::display_time(stop)
+    );
+    if let Some(date) = date {
+        text.push_str(&format!(", {}", date.format("%A, %B %-d, %Y")));
+    }
+    if let Some(next) = day.stops.get(index + 1)
+        && let Some(seconds) = crate::itinerary::gap(stop, next)
+    {
+        text.push_str(&format!(
+            "\n\n{} until {}",
+            crate::itinerary::human(seconds),
+            next.title
+        ));
+    }
+    for detail in &stop.details {
+        text.push_str(&format!("\n\n**{}:** {}", detail.key, detail.value));
+    }
+    Some(Hover {
+        contents: HoverContents::Markup(markup(text)),
+        range: Some(Span::new(row, stop.time_span.start, stop.title_span.end).range(&doc.text)),
+    })
+}
 pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
     let mut engine = Engine::at(ws, now);
     let named = ws.named(symbol);

@@ -386,6 +386,30 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
             }
         }
     }
+    for day in &doc.days {
+        if let Some((_, span)) = &day.weekday {
+            p.mark(*span, "jotDate");
+        }
+        p.mark(day.date_span, "jotDate");
+        if let Some((_, span)) = &day.places {
+            p.paint(*span, style("heading", 0));
+        }
+        for stop in &day.stops {
+            p.mark(stop.time_span, "jotTime");
+            p.paint(stop.title_span, style("heading", 0));
+            for detail in &stop.details {
+                p.paint(detail.key_span, style("property", 0));
+                p.mark(
+                    Span::new(
+                        detail.key_span.line,
+                        detail.key_span.end,
+                        detail.value_span.start,
+                    ),
+                    "jotPunctuation",
+                );
+            }
+        }
+    }
     for link in &doc.links {
         p.mark(link.span, "jotLink");
         let raw = p.source(link.span);

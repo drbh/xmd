@@ -267,6 +267,70 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             }
         }
     }
+    let dates = crate::itinerary::dates(&doc.days, today);
+    for (day, date) in doc.days.iter().zip(&dates) {
+        let Some(date) = date else {
+            continue;
+        };
+        let span = if day.stops.is_empty() {
+            String::new()
+        } else {
+            let first = day.stops.iter().min_by_key(|s| s.time).unwrap();
+            let last = day.stops.iter().max_by_key(|s| s.time).unwrap();
+            format!(
+                " · {} – {}",
+                crate::itinerary::display_time(first),
+                crate::itinerary::display_time(last)
+            )
+        };
+        let delta = (*date - today).num_days();
+        let relative = match delta {
+            0 => "today".to_string(),
+            1 => "tomorrow".to_string(),
+            d if d > 1 => format!("in {d} days"),
+            -1 => "yesterday".to_string(),
+            d => format!("{} days ago", -d),
+        };
+        let label = format!("{} stops{span} · {relative}", day.stops.len());
+        push(
+            doc.line_end(day.line),
+            label,
+            format!("{} · {}", date.format("%A, %B %-d, %Y"), date),
+        );
+        for (i, stop) in day.stops.iter().enumerate() {
+            let mut labels = Vec::new();
+            if let Some(next) = day.stops.get(i + 1)
+                && let Some(seconds) = crate::itinerary::gap(stop, next)
+                && seconds > 0
+            {
+                labels.push(format!(
+                    "{} until {}",
+                    crate::itinerary::human(seconds),
+                    next.title
+                ));
+            }
+            if let Some((deadline, _)) = crate::itinerary::cancel_by(*date, stop) {
+                let passed = deadline.date() < today;
+                labels.push(format!(
+                    "{}cancel by {}",
+                    if passed { "⚠ " } else { "" },
+                    deadline.format("%a %b %-d, %I:%M %p")
+                ));
+            }
+            if !labels.is_empty() {
+                push(
+                    doc.line_end(stop.line),
+                    labels.join(" · "),
+                    format!(
+                        "{} at {} on {}",
+                        stop.title,
+                        crate::itinerary::display_time(stop),
+                        date.format("%A, %B %-d")
+                    ),
+                );
+            }
+        }
+    }
     for section in &doc.sections {
         let tasks: Vec<_> = doc
             .tasks

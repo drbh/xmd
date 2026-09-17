@@ -374,6 +374,7 @@ impl LanguageServer for Backend {
                     ),
                 }),
                 call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
+                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensOptions {
                         legend: SemanticTokensLegend {
@@ -502,6 +503,11 @@ impl LanguageServer for Backend {
             return Ok(Some(hover));
         }
         if let Some(hover) = crate::intelligence::cell_hover(ws, &path, at.position) {
+            return Ok(Some(hover));
+        }
+        if let Some(hover) =
+            crate::intelligence::stop_hover(ws, &path, at.position, now.date_naive())
+        {
             return Ok(Some(hover));
         }
         if let Some((symbol, span)) = symbol_at(ws, &path, at.position) {
@@ -1158,6 +1164,15 @@ impl LanguageServer for Backend {
                 })
                 .collect(),
         ))
+    }
+    async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
+        let path = file(&params.text_document.uri)?;
+        let state = self.state.read().await;
+        Ok(state
+            .workspace
+            .documents
+            .get(&path)
+            .map(crate::symbols::folding_ranges))
     }
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let path = file(&params.text_document.uri)?;

@@ -395,13 +395,16 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
 }
 
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
-    grids(doc)
+    let mut edits: Vec<TextEdit> = grids(doc)
         .iter()
         // Never invent missing cells or repair a malformed table during formatting.
         .filter(|table| table.problems.is_empty())
         .flat_map(|table| aligned(doc, table))
         .map(|(line, text)| line_edit(doc, line, text))
-        .collect()
+        .collect();
+    edits.extend(crate::itinerary::formatting(doc, &doc.days));
+    edits.sort_by_key(|e| (e.range.start, e.range.end));
+    edits
 }
 /// Data tables plus plan constraint tables, which share the same grid shape.
 pub fn grids(doc: &Document) -> Vec<Table> {

@@ -165,6 +165,7 @@ impl BrowserWorkspace {
             "documentLinks" => serialized(presentation::document_links(ws, &path, now)),
             "documentSymbols" => serialized(crate::symbols::document_symbols(ws, &path, now)),
             "formatting" => serialized(crate::tables::formatting(doc)),
+            "folding" => serialized(crate::symbols::folding_ranges(doc)),
             "onTypeFormatting" => serialized(crate::typing::on_type(
                 doc,
                 position()?,
@@ -213,6 +214,11 @@ impl BrowserWorkspace {
                     return serialized(hover);
                 }
                 if let Some(hover) = intelligence::cell_hover(ws, &path, position()?) {
+                    return serialized(hover);
+                }
+                if let Some(hover) =
+                    intelligence::stop_hover(ws, &path, position()?, now.date_naive())
+                {
                     return serialized(hover);
                 }
                 if let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) {

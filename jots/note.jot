@@ -1,0 +1,58 @@
+# 9:38 AM
+
+- determinstic simulation?
+  - `/Users/drbh/Projects/determinist`
+
+
+- a virtual gpu?
+  - `/Users/drbh/Projects/sass-rs`
+
+
+```bash
+500 AMEX points
+1 point == 0.01 cent on average
+500 AMEX ponts == $3
+or
+100 AMEX points == $0.60
+1 == $0.006
+```
+
+
+-------------------------------
+
+
+study
+- fundemental book
+- compiler book
+
+
+--------
+
+Interviewer
+
+09/15/2026 10:00 AM – 10:45 AM - Rajnish Aggarwal
+09/15/2026 11:00 AM – 11:45 AM - Tom Fogal
+09/17/2026 10:00 AM – 10:45 AM - Trent Lo
+09/18/2026 09:00 AM – 09:45 AM - Matthew Brookhart
+09/18/2026 10:00 AM – 10:45 AM - Chris Sullivan
+
+
+Rajnish Aggarwal
+https://github.com/rajnish-aggarwal/high-performance-benchmarks
+
+Tom Fogal
+https://developer.nvidia.com/blog/author/tfogal/
+
+Trent Lo
+https://github.com/trentlo
+
+Matthew Brookhart
+https://2026.cgo.org/profile/matthewbrookhart
+
+Chris Sullivan
+https://github.com/csullivan
+
+------------------
+
+up to SSA
+http://compiler.tailb194a.ts.net/ch17-ssa.html

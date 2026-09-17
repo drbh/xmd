@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc};
+use lsp_types::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
-    time::Duration,
 };
-use tower_lsp::lsp_types::Url;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Resource {
@@ -31,8 +30,10 @@ impl Resource {
             || s.starts_with("geo:")
             || s.starts_with("./")
             || s.starts_with("../")
+            || s.starts_with("~/")
             || s.starts_with('/')
-            || s.starts_with("file://"))
+            || s.starts_with("file://")
+            || bare_file_path(s))
         .then(|| Self {
             target: s.into(),
             origin: None,
@@ -58,17 +59,39 @@ impl Resource {
             ))
             .map_err(|e| e.to_string());
         }
+        if self.target.starts_with("http://")
+            || self.target.starts_with("https://")
+            || self.target.starts_with("file://")
+        {
+            // A malformed URL is an error, never a relative file path.
+            return Url::parse(&self.target).map_err(|e| e.to_string());
+        }
         if let Ok(url) = Url::parse(&self.target) {
             if matches!(url.scheme(), "https" | "http" | "file") {
                 return Ok(url);
             }
             return Err("Unsupported link scheme".into());
         }
+        if let Some(relative) = self.target.strip_prefix("~/") {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let home_dir = std::env::var_os("HOME").ok_or("Home directory is unavailable")?;
+                return resolved_file_url(&PathBuf::from(home_dir).join(relative));
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = relative;
+                return Err(
+                    "Home-directory paths can be opened in the native editor, not the browser"
+                        .into(),
+                );
+            }
+        }
         let path = document
             .parent()
             .unwrap_or(Path::new("."))
             .join(&self.target);
-        Url::from_file_path(&path).map_err(|_| "Cannot resolve file path".into())
+        resolved_file_url(&path)
     }
     pub fn is_image(&self) -> bool {
         let target = self
@@ -81,15 +104,24 @@ impl Resource {
             .iter()
             .any(|e| target.ends_with(e))
     }
-    pub fn label(&self, cache: &Cache) -> String {
+    /// The inline status shown next to a resource: cached GitHub state with
+    /// its age, or what kind of thing the link opens.
+    pub fn label(&self, cache: &Cache, now: DateTime<Utc>) -> String {
         if let Some(m) = cache.get(&self.target) {
-            return m.summary();
+            return m.badge(now);
         }
         if self.target.starts_with("geo:") {
             return "place · open map".into();
         }
-        if github(&self.target).is_some() {
-            return "GitHub · not refreshed".into();
+        if let Some((_, kind, number)) = github(&self.target) {
+            return format!(
+                "{} · refresh for status",
+                match kind.as_str() {
+                    "pull" => format!("PR #{number}"),
+                    "issues" => format!("issue #{number}"),
+                    _ => format!("commit {}", &number[..number.len().min(7)]),
+                }
+            );
         }
         if self.is_image() {
             return "image · open preview".into();
@@ -120,18 +152,196 @@ impl Resource {
         }
         if let Some(m) = cache.get(&self.target) {
             out.push_str(&format!(
-                "\n\n{}\n\n{}\n\nLast refreshed: {}. Use **Refresh GitHub resources** to update.",
+                "\n\n**{}**\n\n{}\n\nLast refreshed: {}. Use **Refresh GitHub status** to update.",
                 m.title,
                 m.summary(),
                 m.fetched_at.to_rfc3339()
             ));
         } else if github(&self.target).is_some() {
-            out.push_str("\n\nNo cached status. Run `jot refresh`, or use the Refresh GitHub resources code action. Requires the GitHub CLI (`gh`).");
+            #[cfg(target_arch = "wasm32")]
+            out.push_str("\n\nGitHub status refresh is available in the native Jot app, not this browser workspace.");
+            #[cfg(not(target_arch = "wasm32"))]
+            out.push_str("\n\nNo cached status. Run `jot refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).");
         }
         out
     }
 }
+
+fn resolved_file_url(path: &Path) -> Result<Url, String> {
+    let url = crate::paths::file_url(path)?;
+    // from_file_path preserves dot segments; parsing normalizes them without IO.
+    // Native and browser links must use the same canonical URI to find open notes.
+    Url::parse(url.as_str()).map_err(|e| e.to_string())
+}
+
+/// Recognize unprefixed paths without turning fractions, domains, or ordinary
+/// prose such as "and/or" into file links. Use ./ for ambiguous extensionless paths.
+fn bare_file_path(s: &str) -> bool {
+    if s.is_empty()
+        || s.chars()
+            .any(|c| c.is_whitespace() || "<>\"`|:?!*".contains(c))
+    {
+        return false;
+    }
+    if matches!(s, "Makefile" | "Dockerfile" | "LICENSE") {
+        return true;
+    }
+    let file = s.rsplit('/').next().unwrap_or(s);
+    if file.starts_with('.')
+        && !file.starts_with("..")
+        && file.chars().any(|c| c.is_alphabetic() || c == '_')
+    {
+        return true;
+    }
+    let Some((stem, extension)) = file.rsplit_once('.') else {
+        return false;
+    };
+    if !stem.chars().any(char::is_alphabetic)
+        || extension.is_empty()
+        || !extension.chars().all(|c| c.is_ascii_alphanumeric())
+    {
+        return false;
+    }
+    s.contains('/')
+        || matches!(
+            extension.to_ascii_lowercase().as_str(),
+            "jot"
+                | "md"
+                | "txt"
+                | "pdf"
+                | "rs"
+                | "js"
+                | "mjs"
+                | "cjs"
+                | "jsx"
+                | "ts"
+                | "tsx"
+                | "json"
+                | "jsonc"
+                | "toml"
+                | "yaml"
+                | "yml"
+                | "lock"
+                | "html"
+                | "css"
+                | "scss"
+                | "py"
+                | "go"
+                | "rb"
+                | "sh"
+                | "zsh"
+                | "c"
+                | "h"
+                | "cpp"
+                | "hpp"
+                | "swift"
+                | "java"
+                | "kt"
+                | "sql"
+                | "csv"
+                | "png"
+                | "jpg"
+                | "jpeg"
+                | "gif"
+                | "webp"
+                | "svg"
+                | "mp4"
+                | "mov"
+                | "mp3"
+                | "wav"
+                | "zip"
+                | "tar"
+                | "gz"
+                | "log"
+                | "wasm"
+                | "env"
+                | "ini"
+        )
+}
+
+/// End byte of a raw resource at a prose boundary. Uses no filesystem/network IO.
+pub(crate) fn raw_link_end(line: &str, start: usize) -> Option<usize> {
+    if start > 0
+        && !line[..start]
+            .chars()
+            .next_back()
+            .is_some_and(|c| c.is_whitespace() || "(<\"'“‘".contains(c))
+    {
+        return None;
+    }
+    let rest = &line[start..];
+    let end = rest
+        .char_indices()
+        .find(|(_, c)| c.is_whitespace() || "<>\"'`“”‘’".contains(*c))
+        .map(|(i, _)| i)
+        .unwrap_or(rest.len());
+    let mut candidate = &rest[..end];
+    // Keep balanced parentheses (common in URLs), but exclude sentence punctuation.
+    loop {
+        let last = candidate.chars().next_back()?;
+        let trim = ".,;:!?".contains(last)
+            || match last {
+                ')' => candidate.matches(')').count() > candidate.matches('(').count(),
+                ']' => candidate.matches(']').count() > candidate.matches('[').count(),
+                '}' => candidate.matches('}').count() > candidate.matches('{').count(),
+                _ => false,
+            };
+        if !trim {
+            break;
+        }
+        candidate = &candidate[..candidate.len() - last.len_utf8()];
+    }
+    if matches!(candidate, "/" | "./" | "../" | "~/") {
+        return None;
+    }
+    let resource = Resource::parse(candidate)?;
+    // A browser has no home directory, but can still recognize and highlight ~/.
+    if !candidate.starts_with("~/") && resource.url(Path::new("/workspace/note.jot")).is_err() {
+        return None;
+    }
+    Some(start + candidate.len())
+}
+/// `just now`, `5m ago`, `2h ago`, `3d ago`, `2w ago`.
+pub fn ago(from: DateTime<Utc>, now: DateTime<Utc>) -> String {
+    let seconds = (now - from).num_seconds().max(0);
+    match seconds {
+        s if s < 60 => "just now".into(),
+        s if s < 3600 => format!("{}m ago", s / 60),
+        s if s < 86_400 => format!("{}h ago", s / 3600),
+        s if s < 14 * 86_400 => format!("{}d ago", s / 86_400),
+        s => format!("{}w ago", s / (7 * 86_400)),
+    }
+}
 impl Metadata {
+    /// A compact, scannable status: `merged · checks ok · approved · 2h ago`.
+    /// Failing checks and requested changes shout in caps; stale caches say so.
+    pub fn badge(&self, now: DateTime<Utc>) -> String {
+        let mut parts = vec![self.state.clone()];
+        if let Some(checks) = &self.checks {
+            parts.push(match checks.as_str() {
+                "passing" => "checks ok".to_string(),
+                "failing" => "checks FAILING".to_string(),
+                other => format!("checks {other}"),
+            });
+        }
+        if let Some(review) = &self.review
+            && !review.is_empty()
+        {
+            parts.push(match review.as_str() {
+                "APPROVED" => "approved".to_string(),
+                "CHANGES_REQUESTED" => "CHANGES REQUESTED".to_string(),
+                "REVIEW_REQUIRED" => "review needed".to_string(),
+                other => other.to_lowercase().replace('_', " "),
+            });
+        }
+        let age = ago(self.fetched_at, now);
+        parts.push(if (now - self.fetched_at).num_days() >= 7 {
+            format!("stale · {age}")
+        } else {
+            age
+        });
+        parts.join(" · ")
+    }
     pub fn summary(&self) -> String {
         let mut s = self.state.clone();
         if let Some(checks) = &self.checks {
@@ -170,12 +380,14 @@ pub fn github(target: &str) -> Option<(String, String, String)> {
     }
     Some((format!("{}/{}", p[0], p[1]), p[2].into(), p[3].into()))
 }
+#[cfg(feature = "native")]
 pub fn load_cache(root: &Path) -> Cache {
     std::fs::read(root.join(".jot/cache.json"))
         .ok()
         .and_then(|b| serde_json::from_slice(&b).ok())
         .unwrap_or_default()
 }
+#[cfg(feature = "native")]
 pub async fn fetch(target: &str) -> Result<Metadata, String> {
     let (repo, kind, id) = github(target).ok_or("Not a supported GitHub link")?;
     let args = match kind.as_str() {
@@ -205,7 +417,7 @@ pub async fn fetch(target: &str) -> Result<Metadata, String> {
         .env("GH_PROMPT_DISABLED", "1")
         .env("GH_NO_UPDATE_NOTIFIER", "1")
         .kill_on_drop(true);
-    let output = tokio::time::timeout(Duration::from_secs(20), command.output())
+    let output = tokio::time::timeout(std::time::Duration::from_secs(20), command.output())
         .await
         .map_err(|_| "GitHub request timed out")?
         .map_err(|e| format!("Cannot run gh: {e}"))?;

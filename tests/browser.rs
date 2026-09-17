@@ -309,3 +309,19 @@ fn browser_on_type_formatting_shares_table_alignment_and_checklist_continuation(
         "[fruit] := table\n|name|qty|\n|---|---|\n|apple|2|\n- [ ] first\n- [ ] \n"
     );
 }
+
+#[test]
+fn browser_plans_solve_in_the_shared_engine() {
+    let mut ws = BrowserWorkspace::new();
+    let text = "[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| --- | --- |\n| flour | 12 * bagels + 6.5 * doughnuts <= 400 |\n| bagel_min | bagels >= 12 |\n| doughnut_min | doughnuts >= 14 |\nBake [bakery.bagels] bagels.\n";
+    set(&mut ws, URI, text, 1);
+    let result = request(&mut ws, "analyze", json!({"uri":URI}));
+    assert_eq!(result["diagnostics"], json!([]));
+    assert_eq!(
+        result["hints"][0]["label"],
+        "= $94.75 · bagels 25.75 · doughnuts 14"
+    );
+    assert_eq!(result["hints"][4]["label"], "25.75");
+    let symbols = request(&mut ws, "documentSymbols", json!({"uri":URI}));
+    assert_eq!(symbols[0]["children"][0]["name"], "bagels");
+}

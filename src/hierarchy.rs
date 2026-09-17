@@ -77,6 +77,7 @@ fn selection(doc: &Document, symbol: &Symbol) -> Span {
         }
         SymbolKind::Definition(i) => doc.definitions[i].named.span,
         SymbolKind::Column(t, c) => doc.tables[t].columns[c].span,
+        SymbolKind::Variable(p, n) => doc.plans[p].names[n].span,
     }
 }
 fn extent(doc: &Document, symbol: &Symbol) -> Range {
@@ -86,16 +87,28 @@ fn extent(doc: &Document, symbol: &Symbol) -> Range {
         SymbolKind::Section(i) => line(doc.sections[i].line),
         SymbolKind::Definition(i) => {
             let def = &doc.definitions[i];
-            if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
+            let end = doc
+                .tables
+                .iter()
+                .find(|t| t.definition == i)
+                .map(|t| t.end_line)
+                .or_else(|| {
+                    doc.plans
+                        .iter()
+                        .find(|p| p.definition == i)
+                        .map(|p| p.end_line)
+                });
+            if let Some(end) = end {
                 Range::new(
                     Position::new(def.named.span.line as u32, 0),
-                    doc.line_end(table.end_line.saturating_sub(1).max(def.named.span.line)),
+                    doc.line_end(end.saturating_sub(1).max(def.named.span.line)),
                 )
             } else {
                 line(def.named.span.line)
             }
         }
         SymbolKind::Column(t, _) => line(doc.tables[t].header),
+        SymbolKind::Variable(p, n) => line(doc.plans[p].names[n].span.line),
     }
 }
 
@@ -140,9 +153,21 @@ pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Call
                 doc.definitions[doc.tables[t].definition].named.name
             ),
         ),
+        SymbolKind::Variable(p, _) => (
+            lsp_types::SymbolKind::VARIABLE,
+            match engine.symbol(symbol) {
+                Ok(v) => format!(
+                    "decision variable of {} · {}",
+                    doc.definitions[doc.plans[p].definition].named.name,
+                    v.display()
+                ),
+                Err(e) => format!("decision variable · {e}"),
+            },
+        ),
         SymbolKind::Definition(i) => {
             let table = doc.tables.iter().any(|t| t.definition == i);
-            let kind = if table {
+            let plan = doc.plans.iter().any(|p| p.definition == i);
+            let kind = if table || plan {
                 lsp_types::SymbolKind::STRUCT
             } else if doc.definitions[i].expression {
                 lsp_types::SymbolKind::VARIABLE
@@ -151,6 +176,12 @@ pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Call
             };
             let detail = match engine.symbol(symbol) {
                 Ok(Value::Table(t)) => format!("table · {} rows", t.rows.len()),
+                Ok(Value::Plan(p)) => format!(
+                    "plan · {} {} · {} variables",
+                    p.goal.keyword(),
+                    p.objective.display(),
+                    p.variables.len()
+                ),
                 Ok(v) => format!("{} · {}", v.type_name(), v.display()),
                 Err(e) => e,
             };
@@ -174,6 +205,7 @@ pub fn encode(symbol: &Symbol) -> serde_json::Value {
         SymbolKind::Task(i) => ("task", i, 0),
         SymbolKind::Section(i) => ("section", i, 0),
         SymbolKind::Column(t, c) => ("column", t, c),
+        SymbolKind::Variable(p, n) => ("variable", p, n),
     };
     serde_json::json!({"path": symbol.path, "kind": kind, "index": a, "column": b})
 }
@@ -188,6 +220,9 @@ pub fn decode(ws: &Workspace, item: &CallHierarchyItem) -> Option<Symbol> {
         "definition" if index < doc.definitions.len() => SymbolKind::Definition(index),
         "task" if index < doc.tasks.len() => SymbolKind::Task(index),
         "section" if index < doc.sections.len() => SymbolKind::Section(index),
+        "variable" if doc.plans.get(index).is_some_and(|p| column < p.names.len()) => {
+            SymbolKind::Variable(index, column)
+        }
         "column"
             if doc
                 .tables
@@ -205,8 +240,9 @@ pub fn decode(ws: &Workspace, item: &CallHierarchyItem) -> Option<Symbol> {
 pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)> {
     let doc = &ws.documents[&symbol.path];
     let mut edges: Vec<(Symbol, Vec<Span>)> = Vec::new();
+    let own_variable = |target: &Symbol| matches!((&symbol.kind, &target.kind), (SymbolKind::Definition(i), SymbolKind::Variable(p, _)) if target.path == symbol.path && doc.plans[*p].definition == *i);
     let mut add = |target: Symbol, span: Span| {
-        if target == *symbol {
+        if target == *symbol || own_variable(&target) {
             return;
         }
         match edges.iter_mut().find(|(t, _)| *t == target) {
@@ -229,10 +265,21 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
     match symbol.kind {
         SymbolKind::Definition(i) => {
             let def = &doc.definitions[i];
-            if def.expression && !doc.tables.iter().any(|t| t.definition == i) {
+            if let Some(plan) = doc.plans.iter().find(|p| p.definition == i) {
+                for region in crate::plans::regions(plan) {
+                    references(region);
+                }
+            } else if def.expression && !doc.tables.iter().any(|t| t.definition == i) {
                 references(def.value_span);
             }
         }
+        SymbolKind::Variable(p, n) => add(
+            Symbol {
+                path: symbol.path.clone(),
+                kind: SymbolKind::Definition(doc.plans[p].definition),
+            },
+            doc.plans[p].names[n].span,
+        ),
         SymbolKind::Task(i) => {
             for attr in doc.tasks[i].attributes.values() {
                 references(attr.value_span);
@@ -293,16 +340,24 @@ fn nodes(ws: &Workspace) -> Vec<Symbol> {
     ws.documents
         .iter()
         .flat_map(|(path, doc)| {
-            let path = path.clone();
-            let kinds = (0..doc.definitions.len())
+            let mut kinds: Vec<SymbolKind> = (0..doc.definitions.len())
                 .map(SymbolKind::Definition)
                 .chain((0..doc.tasks.len()).map(SymbolKind::Task))
                 .chain((0..doc.sections.len()).map(SymbolKind::Section))
                 .chain(doc.tables.iter().enumerate().flat_map(|(t, table)| {
                     (0..table.columns.len()).map(move |c| SymbolKind::Column(t, c))
-                }));
+                }))
+                .collect();
+            for (p, plan) in doc.plans.iter().enumerate() {
+                kinds.extend(
+                    ws.plan_variables(path, plan)
+                        .into_iter()
+                        .map(|(n, _)| SymbolKind::Variable(p, n)),
+                );
+            }
             kinds
-                .map(move |kind| Symbol {
+                .into_iter()
+                .map(|kind| Symbol {
                     path: path.clone(),
                     kind,
                 })

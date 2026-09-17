@@ -262,21 +262,13 @@ impl BrowserWorkspace {
                         json!({"range":span.range(&doc.text),"placeholder":ws.named(&symbol).name}),
                     );
                 }
-                let mut locations = vec![location(&symbol)];
-                for (p, document) in &ws.documents {
-                    for reference in &document.references {
-                        if crate::tables::resolve_reference(ws, p, reference)
-                            .ok()
-                            .as_ref()
-                            == Some(&symbol)
-                        {
-                            locations.push(Location {
-                                uri: paths::file_url(p).unwrap(),
-                                range: reference.span.range(&document.text),
-                            });
-                        }
-                    }
-                }
+                let locations: Vec<Location> = intelligence::occurrences(ws, &symbol)
+                    .into_iter()
+                    .map(|(p, span)| Location {
+                        uri: paths::file_url(&p).unwrap(),
+                        range: span.range(&ws.documents[&p].text),
+                    })
+                    .collect();
                 if method == "references" {
                     return serialized(locations);
                 }

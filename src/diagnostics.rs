@@ -181,6 +181,10 @@ pub fn collect(
             ));
         } else if reference.property.is_some() {
             let mut engine = Engine::at(ws, now);
+            // A failing receiver already carries its own diagnostic.
+            if engine.named(path, &reference.name).is_err() {
+                continue;
+            }
             if let Err(message) = engine.eval_at(path, &reference.expression(), reference.span) {
                 let span = Span::new(reference.span.line, reference.span.end + 1, reference.end());
                 issues.push(diagnostic(ws, path, span, message, "property", &[]));

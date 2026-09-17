@@ -365,3 +365,14 @@ test("Typing a closing pipe or Enter after a task formats on type through the sh
   await page.keyboard.press("Enter");
   await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toMatch(/- \[ \] first\n$/);
 });
+
+test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits", async ({ page }) => {
+  await ready(page);
+  const source = readFileSync(new URL("../../jots/plans.jot", import.meta.url));
+  await page.locator("#file-input").setInputFiles({ name: "plans.jot", mimeType: "text/plain", buffer: source });
+  await expect(page.locator(".view-lines")).toContainText("= $94.75 · bagels 25.75 · doughnuts 14");
+  await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · binding");
+  await expect(page.locator("#problems")).toBeHidden();
+  await replace(page, "[400]:flour_stock", "[300]:flour_stock");
+  await expect(page.locator(".view-lines")).toContainText("= $69.75");
+});

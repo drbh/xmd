@@ -1,0 +1,47 @@
+# Linear plans
+
+A plan is a calculation that chooses values. Names no note defines become
+decision variables; everything else is a constant read from your notes, so the
+plan re-solves as you edit the numbers around it.
+
+## Bakery
+
+[400]:flour_stock
+[200]:milk_stock
+
+[bakery] := maximize($3 * bagels + $1.25 * doughnuts)
+| constraint   | expression                                   |
+| ------------ | -------------------------------------------- |
+| flour        | 12 * bagels + 6.5 * doughnuts <= flour_stock |
+| milk         | bagels + 0.5 * doughnuts <= milk_stock       |
+| sugar        | 2 * bagels + 0.25 * doughnuts <= 200         |
+| bagel_min    | bagels >= 12                                 |
+| doughnut_min | doughnuts >= 14                              |
+
+<!-- The inlay on the plan line shows the objective and every variable. Each
+constraint row shows how much of its limit is used and whether it binds.
+Change flour_stock to 300 and watch the plan re-solve. -->
+
+Bake [bakery.bagels] bagels and [bakery.doughnuts] doughnuts for [bakery].
+Flour to spare: [bakery.flour]. Milk to spare: [bakery.milk].
+
+<!-- Hover bagels for its value, or hover bakery for the full solution with
+usage bars. Rename bagels: the objective, constraints, and prose follow. -->
+
+## Staffing in hours
+
+[weekly_hours] := 40h
+
+[coverage] := minimize(30m * calls + 1h * visits)
+| constraint | expression                  |
+| ---------- | --------------------------- |
+| customers  | calls + 3 * visits >= 60    |
+| capacity   | 30m * calls <= weekly_hours |
+
+Cheapest coverage takes [coverage] with [coverage.visits] visits.
+
+<!-- Units are checked: mixing money and durations in one expression is an
+error, and so is multiplying two variables together. Try either. -->
+
+<!-- On the command line: jot plan bakery, jot plan bakery --export > bakery.json,
+and jot plan --import bakery.json to get the Jot source back. -->

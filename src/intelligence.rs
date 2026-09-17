@@ -63,6 +63,45 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
                 .map(|s| (s, r.span))
         })
 }
+/// Every place a symbol appears: its declaration, references that resolve to
+/// it, and for decision variables the `plan.variable` property accesses.
+/// Sorted by note and position, without duplicates.
+pub fn occurrences(ws: &Workspace, symbol: &Symbol) -> Vec<(std::path::PathBuf, Span)> {
+    let mut found = vec![(symbol.path.clone(), ws.named(symbol).span)];
+    let plan = match symbol.kind {
+        SymbolKind::Variable(p, _) => Some(Symbol {
+            path: symbol.path.clone(),
+            kind: SymbolKind::Definition(ws.documents[&symbol.path].plans[p].definition),
+        }),
+        _ => None,
+    };
+    let name = &ws.named(symbol).name;
+    for (path, doc) in &ws.documents {
+        for r in &doc.references {
+            if r.name == *name
+                && crate::tables::resolve_reference(ws, path, r).ok().as_ref() == Some(symbol)
+            {
+                found.push((path.clone(), r.span));
+            }
+            if let (Some(plan), Some(property)) = (&plan, &r.property)
+                && property == name
+                && ws.resolve(path, &r.name).ok().as_ref() == Some(plan)
+            {
+                found.push((
+                    path.clone(),
+                    Span::new(r.span.line, r.span.end + 1, r.end()),
+                ));
+            }
+        }
+    }
+    found.sort_by_key(|(p, s)| (p.clone(), s.line, s.start, s.end));
+    found.dedup();
+    // The declaration stays first so callers can treat it as the write site.
+    let declaration = (symbol.path.clone(), ws.named(symbol).span);
+    found.retain(|o| *o != declaration);
+    found.insert(0, declaration);
+    found
+}
 pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
     let named = ws.named(symbol);
     let mut uri = crate::paths::file_url(&symbol.path).unwrap();
@@ -127,6 +166,20 @@ const FUNCTIONS: &[Function] = &[
         result: "Stopwatch",
         documentation: "An idle stopwatch. Use Start, Pause, Resume, or Reset timer. Elapsed time includes time while the editor is closed.",
         example: "",
+    },
+    Function {
+        name: "maximize",
+        params: &["objective: linear expression"],
+        result: "Plan",
+        documentation: "Declare a linear plan: the next lines hold a | constraint | expression | table. Names no note defines become decision variables (at least zero); everything else is a constant. Example: maximize(3 * bagels + 1.25 * doughnuts).",
+        example: "3 * bagels + 1.25 * doughnuts",
+    },
+    Function {
+        name: "minimize",
+        params: &["objective: linear expression"],
+        result: "Plan",
+        documentation: "Like maximize, but finds the smallest objective that satisfies every constraint in the table below.",
+        example: "cost",
     },
     Function {
         name: "today",
@@ -330,8 +383,8 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
         _ => true,
     }
 }
-pub fn property_names(value: &Value) -> Vec<&'static str> {
-    match value {
+pub fn property_names(value: &Value) -> Vec<String> {
+    let names: Vec<&str> = match value {
         Value::Timer(t) => {
             let mut names = vec!["elapsed", "running", "done", "state"];
             if t.limit.is_some() {
@@ -351,8 +404,10 @@ pub fn property_names(value: &Value) -> Vec<&'static str> {
             }
             names
         }
+        Value::Plan(p) => return p.property_names(),
         _ => vec![],
-    }
+    };
+    names.into_iter().map(str::to_string).collect()
 }
 pub fn completions(
     ws: &Workspace,
@@ -414,7 +469,7 @@ pub fn completions(
             for name in property_names(&value) {
                 let preview = engine.eval(path, &format!("{receiver}.{name}"));
                 result.push(CompletionItem {
-                    label: name.into(),
+                    label: name.clone(),
                     kind: Some(CompletionItemKind::PROPERTY),
                     detail: Some(
                         preview
@@ -423,7 +478,7 @@ pub fn completions(
                     ),
                     text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
                         replacement,
-                        name.into(),
+                        name.clone(),
                     ))),
                     ..Default::default()
                 });
@@ -590,6 +645,16 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
         Ok(v) => format!("**{} · {}**\n\n{}", named.name, v.type_name(), v.display()),
         Err(e) => format!("**{}**\n\n{e}", named.name),
     };
+    if let SymbolKind::Variable(p, _) = symbol.kind {
+        let plan = Symbol {
+            path: symbol.path.clone(),
+            kind: SymbolKind::Definition(ws.documents[&symbol.path].plans[p].definition),
+        };
+        out.push_str(&format!(
+            "\n\nDecision variable of {}: no note defines this name, so the plan chooses its value.",
+            source_link(ws, &plan)
+        ));
+    }
     if let SymbolKind::Definition(i) = symbol.kind {
         let def = &ws.documents[&symbol.path].definitions[i];
         if def.expression && def.source != "table" {
@@ -607,6 +672,51 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
                 out.push_str(&format!("= {}\n", v.display()));
             }
             out.push_str("```");
+            if let Ok(Value::Plan(plan)) = &value {
+                out.push_str(&format!(
+                    "\n\n{} the objective. Variables: {}",
+                    if plan.goal == crate::plans::Goal::Maximize {
+                        "Maximizes"
+                    } else {
+                        "Minimizes"
+                    },
+                    plan.variables
+                        .iter()
+                        .map(|(n, v)| format!("{n} = {}", v.display()))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+                out.push_str("\n\nConstraints:\n");
+                for c in &plan.constraints {
+                    let symbol = match c.op.as_str() {
+                        "<=" => "≤",
+                        ">=" => "≥",
+                        _ => "=",
+                    };
+                    let usage = match (
+                        c.op.as_str(),
+                        crate::charts::magnitude(&c.rhs),
+                        crate::charts::magnitude(&c.lhs),
+                    ) {
+                        ("<=", Some(rhs), Some(lhs)) if rhs > 0.0 => {
+                            format!("`{}` ", crate::charts::bar_fraction(lhs / rhs))
+                        }
+                        _ => String::new(),
+                    };
+                    out.push_str(&format!(
+                        "\n- {}: {usage}{} {symbol} {} · {}",
+                        c.name,
+                        c.lhs.display(),
+                        c.rhs.display(),
+                        if c.binding {
+                            "binding".to_string()
+                        } else {
+                            format!("slack {}", c.slack.display())
+                        }
+                    ));
+                }
+                out.push_str("\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.");
+            }
             if let Some(contributions) = engine.sum_contributions(&symbol.path, &def.source) {
                 out.push_str("\n\nRow contributions:\n");
                 if let Some(chart) = crate::charts::series(&contributions) {

@@ -282,6 +282,18 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
             p.brackets(def.named.span);
             if def.source == "table" {
                 p.mark(def.value_span, "keyword");
+            } else if let Some((_, start, end)) = crate::plans::goal(&def.source) {
+                let raw = p.source(def.value_span);
+                let offset = def.value_span.start + raw.len() - raw.trim_start().len();
+                p.mark(
+                    Span::new(def.value_span.line, offset, offset + start),
+                    "keyword",
+                );
+                p.expression(Span::new(def.value_span.line, offset + start, offset + end));
+                p.mark(
+                    Span::new(def.value_span.line, offset + end, def.value_span.end),
+                    "keyword",
+                );
             } else {
                 p.expression(def.value_span);
             }
@@ -324,6 +336,26 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
                 Span::new(reference.span.line, reference.span.end + 1, reference.end()),
                 "property",
             );
+        }
+    }
+    for plan in &doc.plans {
+        for row in plan.header..plan.end_line {
+            for (byte, ch) in p.lines[row].char_indices() {
+                if ch == '|' {
+                    p.mark(Span::new(row, byte, byte + 1), "jotPunctuation");
+                }
+            }
+        }
+        if !plan.separators.is_empty() {
+            let row = plan.header + 1;
+            p.mark(Span::new(row, 0, p.lines[row].len()), "jotPunctuation");
+        }
+        for column in &plan.columns {
+            p.mark(column.span, "keyword");
+        }
+        for constraint in &plan.constraints {
+            p.paint(constraint.named.span, style("property", DECLARATION));
+            p.expression(constraint.span);
         }
     }
     for table in &doc.tables {

@@ -75,6 +75,22 @@ pub enum Command {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
+    /// Solve a linear plan, or exchange it with an alps problem file.
+    Plan {
+        /// The plan's name; omit with --import.
+        name: Option<String>,
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+        /// Print the solution as JSON.
+        #[arg(long)]
+        json: bool,
+        /// Print the plan as an alps problem file, with note values substituted.
+        #[arg(long)]
+        export: bool,
+        /// Print Jot source for an alps problem file, named after the file.
+        #[arg(long)]
+        import: Option<PathBuf>,
+    },
     /// Print syntax/evaluation problems, returning nonzero when any exist.
     Check {
         #[arg(long, default_value = ".")]
@@ -372,6 +388,78 @@ pub async fn run(command: Command) -> Result<(), String> {
                 return Err(errors.join("\n"));
             }
             println!("GitHub cache updated ({} resources)", workspace.cache.len());
+            Ok(())
+        }
+        Command::Plan {
+            name,
+            root,
+            json,
+            export,
+            import,
+        } => {
+            if let Some(file) = import {
+                let text = std::fs::read_to_string(&file)
+                    .map_err(|e| format!("{}: {e}", file.display()))?;
+                let problem: serde_json::Value =
+                    serde_json::from_str(&text).map_err(|e| format!("{}: {e}", file.display()))?;
+                let stem = file
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("plan")
+                    .replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+                print!("{}", crate::plans::import(&stem, &problem)?);
+                return Ok(());
+            }
+            let name = name.ok_or("Give a plan name, or --import a problem file")?;
+            let workspace = load(root)?;
+            let root = workspace.root().to_path_buf();
+            let symbol = workspace.resolve(&root, &name)?;
+            let (_, plan) = crate::plans::plan(&workspace, &symbol)
+                .ok_or_else(|| format!("'{name}' is not a plan"))?;
+            let mut engine = Engine::new(&workspace, Local::now().date_naive());
+            if export {
+                let problem = crate::plans::export(&mut engine, &symbol, plan)?;
+                println!("{}", serde_json::to_string_pretty(&problem).unwrap());
+                return Ok(());
+            }
+            let Value::Plan(solved) = engine.symbol(&symbol)? else {
+                return Err(format!("'{name}' is not a plan"));
+            };
+            if json {
+                let out = serde_json::json!({
+                    "goal": solved.goal.keyword(),
+                    "objective": solved.objective.display(),
+                    "variables": solved.variables.iter().map(|(n, v)| (n.clone(), serde_json::json!(v.display()))).collect::<serde_json::Map<_, _>>(),
+                    "constraints": solved.constraints.iter().map(|c| serde_json::json!({
+                        "name": c.name, "lhs": c.lhs.display(), "op": c.op, "rhs": c.rhs.display(),
+                        "slack": c.slack.display(), "binding": c.binding,
+                    })).collect::<Vec<_>>(),
+                });
+                println!("{}", serde_json::to_string_pretty(&out).unwrap());
+                return Ok(());
+            }
+            println!(
+                "{name}: {} {}",
+                solved.goal.keyword(),
+                solved.objective.display()
+            );
+            for (n, v) in &solved.variables {
+                println!("  {n} = {}", v.display());
+            }
+            for c in &solved.constraints {
+                println!(
+                    "  {}: {} {} {} · {}",
+                    c.name,
+                    c.lhs.display(),
+                    c.op,
+                    c.rhs.display(),
+                    if c.binding {
+                        "binding".to_string()
+                    } else {
+                        format!("slack {}", c.slack.display())
+                    }
+                );
+            }
             Ok(())
         }
         Command::Check { root } => {

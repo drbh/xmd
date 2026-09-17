@@ -138,10 +138,11 @@ pub fn document_symbols(
         let first = definition.named.span.start.min(definition.value_span.start);
         let start = doc.line(row)[..first].rfind('[').unwrap_or(first);
         let table = doc.tables.iter().find(|t| t.definition == i);
-        let full_range = if let Some(table) = table {
+        let plan = doc.plans.iter().find(|p| p.definition == i);
+        let full_range = if let Some(end) = table.map(|t| t.end_line).or(plan.map(|p| p.end_line)) {
             Range::new(
                 Span::new(row, start, start).range(&doc.text).start,
-                line_range(doc, table.end_line.saturating_sub(1)).end,
+                line_range(doc, end.saturating_sub(1)).end,
             )
         } else {
             Span::new(
@@ -154,7 +155,7 @@ pub fn document_symbols(
         entries.push(symbol(
             definition.named.name.clone(),
             detail,
-            if table.is_some() {
+            if table.is_some() || plan.is_some() {
                 lsp_types::SymbolKind::STRUCT
             } else if definition.expression {
                 lsp_types::SymbolKind::VARIABLE
@@ -164,6 +165,38 @@ pub fn document_symbols(
             full_range,
             definition.named.span.range(&doc.text),
         ));
+        if let Some(plan) = plan {
+            for (n, named) in ws.plan_variables(path, plan) {
+                let range = named.span.range(&doc.text);
+                let value = engine
+                    .symbol(&Symbol {
+                        path: path.into(),
+                        kind: SymbolKind::Variable(
+                            doc.plans.iter().position(|p| p.definition == i).unwrap(),
+                            n,
+                        ),
+                    })
+                    .map(|v| v.display())
+                    .unwrap_or_else(|e| e);
+                entries.push(symbol(
+                    named.name.clone(),
+                    format!("variable · {value}"),
+                    lsp_types::SymbolKind::VARIABLE,
+                    range,
+                    range,
+                ));
+            }
+            for constraint in &plan.constraints {
+                let range = constraint.named.span.range(&doc.text);
+                entries.push(symbol(
+                    constraint.named.name.clone(),
+                    constraint.source.clone(),
+                    lsp_types::SymbolKind::FIELD,
+                    range,
+                    range,
+                ));
+            }
+        }
         if let Some(table) = table {
             for (column, named) in table.columns.iter().enumerate() {
                 let range = named.span.range(&doc.text);

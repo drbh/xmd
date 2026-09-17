@@ -136,6 +136,7 @@ pub struct Document {
     pub sections: Vec<Section>,
     pub events: Vec<Event>,
     pub tables: Vec<crate::tables::Table>,
+    pub plans: Vec<crate::plans::Plan>,
     pub links: Vec<Link>,
     pub highlights: Vec<Highlight>,
     pub problems: Vec<Problem>,
@@ -278,6 +279,45 @@ impl Document {
                 });
             }
             doc.inline(line, row, content_start, &attrs);
+            if let Some(index) = doc.definitions.len().checked_sub(1)
+                && doc.definitions[index].named.span.line == row
+                && doc.definitions[index].expression
+                && crate::plans::goal(&doc.definitions[index].source).is_some()
+            {
+                let mut plan = crate::plans::parse(&doc, index, &lines);
+                table_end = plan.end_line;
+                for column in &plan.columns {
+                    doc.mark(
+                        column.span.line,
+                        column.span.start,
+                        column.span.end,
+                        "keyword",
+                    );
+                }
+                for constraint in &plan.constraints {
+                    let n = &constraint.named;
+                    doc.mark(n.span.line, n.span.start, n.span.end, "variable");
+                    doc.expression(
+                        lines[constraint.span.line],
+                        constraint.span.line,
+                        constraint.span.start,
+                        constraint.span.end,
+                    );
+                }
+                for reference in &doc.references {
+                    if crate::plans::contains(&plan, reference.span)
+                        && reference.property.is_none()
+                        && !plan.names.iter().any(|n| n.name == reference.name)
+                    {
+                        plan.names.push(Named {
+                            name: reference.name.clone(),
+                            span: reference.span,
+                        });
+                    }
+                }
+                doc.problems.extend(plan.problems.clone());
+                doc.plans.push(plan);
+            }
             if let Some(index) = doc.definitions.len().checked_sub(1)
                 && doc.definitions[index].named.span.line == row
                 && doc.definitions[index].expression

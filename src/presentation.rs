@@ -132,6 +132,14 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 def.end.range(&doc.text).start,
                 match &value {
                     Value::Timer(timer) => format!("= {}", timer_label(timer)),
+                    Value::Plan(plan) => std::iter::once(format!("= {}", plan.objective.display()))
+                        .chain(
+                            plan.variables
+                                .iter()
+                                .map(|(name, v)| format!("{name} {}", v.display())),
+                        )
+                        .collect::<Vec<_>>()
+                        .join(" · "),
                     value => format!("= {}", value.display()),
                 },
                 crate::intelligence::hover(
@@ -144,6 +152,45 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 ),
             ),
             _ => {}
+        }
+    }
+    for plan in &doc.plans {
+        let Ok(Value::Plan(solved)) = engine.symbol(&Symbol {
+            path: path.to_path_buf(),
+            kind: SymbolKind::Definition(plan.definition),
+        }) else {
+            continue;
+        };
+        for (constraint, result) in plan.constraints.iter().zip(&solved.constraints) {
+            let usage = match (result.op.as_str(), crate::charts::magnitude(&result.rhs)) {
+                ("<=", Some(rhs)) if rhs > 0.0 => crate::charts::magnitude(&result.lhs)
+                    .map(|lhs| format!("{} ", crate::charts::gauge_fraction(lhs / rhs)))
+                    .unwrap_or_default(),
+                _ => String::new(),
+            };
+            let status = if result.binding {
+                "binding".to_string()
+            } else {
+                format!("slack {}", result.slack.display())
+            };
+            let symbol = match result.op.as_str() {
+                "<=" => "≤",
+                ">=" => "≥",
+                _ => "=",
+            };
+            let label = format!(
+                "{usage}{} {symbol} {} · {status}",
+                result.lhs.display(),
+                result.rhs.display()
+            );
+            push(
+                doc.line_end(constraint.span.line),
+                label.clone(),
+                format!(
+                    "**{}**\n\n{label}\n\nA binding constraint limits the objective; slack is the unused room.",
+                    constraint.named.name
+                ),
+            );
         }
     }
     for section in &doc.sections {

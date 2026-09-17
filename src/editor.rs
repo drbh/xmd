@@ -628,29 +628,14 @@ impl LanguageServer for Backend {
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
-        let name = &ws.named(&symbol).name;
-        let mut result = Vec::new();
-        if params.context.include_declaration {
-            result.push(Location {
-                uri: Url::from_file_path(&symbol.path).unwrap(),
-                range: ws
-                    .named(&symbol)
-                    .span
-                    .range(&ws.documents[&symbol.path].text),
-            });
-        }
-        for (p, doc) in &ws.documents {
-            for r in &doc.references {
-                if r.name == *name
-                    && crate::tables::resolve_reference(ws, p, r).ok().as_ref() == Some(&symbol)
-                {
-                    result.push(Location {
-                        uri: Url::from_file_path(p).unwrap(),
-                        range: r.span.range(&doc.text),
-                    });
-                }
-            }
-        }
+        let result = crate::intelligence::occurrences(ws, &symbol)
+            .into_iter()
+            .skip(usize::from(!params.context.include_declaration))
+            .map(|(p, span)| Location {
+                uri: Url::from_file_path(&p).unwrap(),
+                range: span.range(&ws.documents[&p].text),
+            })
+            .collect();
         Ok(Some(result))
     }
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
@@ -668,28 +653,12 @@ impl LanguageServer for Backend {
         };
         crate::tables::validate_rename(ws, &symbol, &params.new_name)
             .map_err(Error::invalid_params)?;
-        let name = &ws.named(&symbol).name;
         let mut changes: BTreeMap<PathBuf, Vec<TextEdit>> = BTreeMap::new();
-        changes
-            .entry(symbol.path.clone())
-            .or_default()
-            .push(TextEdit::new(
-                ws.named(&symbol)
-                    .span
-                    .range(&ws.documents[&symbol.path].text),
+        for (p, span) in crate::intelligence::occurrences(ws, &symbol) {
+            changes.entry(p.clone()).or_default().push(TextEdit::new(
+                span.range(&ws.documents[&p].text),
                 params.new_name.clone(),
             ));
-        for (p, doc) in &ws.documents {
-            for r in &doc.references {
-                if r.name == *name
-                    && crate::tables::resolve_reference(ws, p, r).ok().as_ref() == Some(&symbol)
-                {
-                    changes.entry(p.clone()).or_default().push(TextEdit::new(
-                        r.span.range(&doc.text),
-                        params.new_name.clone(),
-                    ));
-                }
-            }
         }
         let edits = changes
             .into_iter()
@@ -751,25 +720,19 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let doc = &ws.documents[&path];
-        let mut result = Vec::new();
-        if symbol.path == path {
-            result.push(DocumentHighlight {
-                range: ws.named(&symbol).span.range(&doc.text),
-                kind: Some(DocumentHighlightKind::WRITE),
-            });
-        }
-        for reference in &doc.references {
-            if crate::tables::resolve_reference(ws, &path, reference)
-                .ok()
-                .as_ref()
-                == Some(&symbol)
-            {
-                result.push(DocumentHighlight {
-                    range: reference.span.range(&doc.text),
-                    kind: Some(DocumentHighlightKind::READ),
-                });
-            }
-        }
+        let result = crate::intelligence::occurrences(ws, &symbol)
+            .into_iter()
+            .enumerate()
+            .filter(|(_, (p, _))| *p == path)
+            .map(|(i, (_, span))| DocumentHighlight {
+                range: span.range(&doc.text),
+                kind: Some(if i == 0 {
+                    DocumentHighlightKind::WRITE
+                } else {
+                    DocumentHighlightKind::READ
+                }),
+            })
+            .collect();
         Ok(Some(result))
     }
     async fn prepare_rename(

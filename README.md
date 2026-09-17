@@ -27,6 +27,7 @@ cargo build
 ./target/debug/jot agenda --week
 ./target/debug/jot tasks --tag errands --json
 ./target/debug/jot check
+./target/debug/jot plan bakery
 ```
 
 Open `jots/interactions.jot`, `jots/daily.jot`, or `jots/timers.jot` in Zed. If you already installed the dev
@@ -84,6 +85,18 @@ Three features ride on standard LSP requests that most editors already send:
   continues the checklist with the same indent, and Enter on an empty checkbox
   ends it. Zed sends these automatically; the browser editor sets
   `formatOnType`.
+- **Linear plans.** `[bakery] := maximize(3 * bagels + 1.25 * doughnuts)`
+  followed by a `| constraint | expression |` table declares an optimization.
+  Names no note defines are decision variables (never negative); every other
+  name is a constant read from your notes, so plans re-solve as you edit. Money
+  and durations are unit-checked. Inlays show the objective, each variable, and
+  per-constraint usage with binding or slack; hovers add usage bars; infeasible
+  or unbounded plans are diagnostics on the objective. `bakery.bagels` reads a
+  variable and `bakery.flour` a constraint's slack. On the command line,
+  `jot plan bakery` prints the solution, `--export` writes an
+  [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
+  prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
+  also runs in the browser. See `jots/plans.jot`.
 - **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
   column, task, or checklist as a node. *Incoming calls* list everything that
   reads it (calculations, `@after`, `@estimate`, parent tasks, checklists);

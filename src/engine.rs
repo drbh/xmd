@@ -9,7 +9,7 @@ use chrono::{
     Weekday,
 };
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
 };
 
@@ -30,6 +30,7 @@ pub enum Value {
     Tasks(Vec<TaskKey>),
     Timer(Timer),
     Table(std::sync::Arc<crate::tables::TableValue>),
+    Plan(std::sync::Arc<crate::plans::PlanValue>),
 }
 impl Value {
     pub fn type_name(&self) -> &'static str {
@@ -48,6 +49,7 @@ impl Value {
             Self::Timer(t) if t.limit.is_some() => "Countdown",
             Self::Timer(_) => "Stopwatch",
             Self::Table(_) => "Table",
+            Self::Plan(_) => "Plan",
         }
     }
     /// A round-trippable expression, unlike the human-readable display label.
@@ -99,6 +101,7 @@ impl Value {
             Self::Tasks(t) => format!("{} tasks", t.len()),
             Self::Timer(t) => t.display(),
             Self::Table(t) => format!("{} rows · {} columns", t.rows.len(), t.columns.len()),
+            Self::Plan(p) => p.objective.display(),
         }
     }
     pub fn date(&self) -> Result<NaiveDate, String> {
@@ -116,7 +119,7 @@ impl Value {
         }
     }
 }
-fn decimal(n: f64) -> String {
+pub fn decimal(n: f64) -> String {
     let s = format!("{n:.4}");
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
@@ -607,6 +610,95 @@ pub struct EvalFailure {
     pub message: String,
     pub related: Vec<Symbol>,
 }
+/// `terms · variables + constant`, carrying a unit so money and durations
+/// never mix silently.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Linear {
+    pub terms: BTreeMap<String, f64>,
+    pub constant: f64,
+    pub kind: &'static str,
+}
+impl Linear {
+    fn constant(kind: &'static str, value: f64) -> Self {
+        Self {
+            terms: BTreeMap::new(),
+            constant: value,
+            kind,
+        }
+    }
+    fn variable(name: &str) -> Self {
+        Self {
+            terms: [(name.to_string(), 1.0)].into(),
+            constant: 0.0,
+            kind: "Number",
+        }
+    }
+    fn is_zero(&self) -> bool {
+        self.constant == 0.0 && self.terms.values().all(|c| *c == 0.0)
+    }
+    /// The shared unit of two forms, treating a bare zero as unitless.
+    fn combined(a: &Self, b: &Self) -> Option<&'static str> {
+        if a.kind == b.kind {
+            Some(a.kind)
+        } else if a.is_zero() {
+            Some(b.kind)
+        } else if b.is_zero() {
+            Some(a.kind)
+        } else {
+            None
+        }
+    }
+    fn scaled(mut self, factor: f64) -> Self {
+        for c in self.terms.values_mut() {
+            *c *= factor;
+        }
+        self.constant *= factor;
+        self
+    }
+    fn add(&self, other: &Self, sign: f64) -> Result<Self, String> {
+        let kind = Self::combined(self, other)
+            .ok_or_else(|| format!("Cannot add {} and {}", self.kind, other.kind))?;
+        let mut result = self.clone();
+        result.kind = kind;
+        for (name, c) in &other.terms {
+            *result.terms.entry(name.clone()).or_insert(0.0) += sign * c;
+        }
+        result.constant += sign * other.constant;
+        Ok(result)
+    }
+    fn multiply(&self, other: &Self) -> Result<Self, String> {
+        let (form, factor) = if other.terms.is_empty() {
+            (self, other)
+        } else if self.terms.is_empty() {
+            (other, self)
+        } else {
+            return Err("Plans must stay linear: multiply variables by constants only".into());
+        };
+        let kind = match (form.kind, factor.kind) {
+            (k, "Number") | ("Number", k) => k,
+            (a, b) => return Err(format!("Cannot multiply {a} by {b}")),
+        };
+        let mut result = form.clone().scaled(factor.constant);
+        result.kind = kind;
+        Ok(result)
+    }
+    fn divide(&self, other: &Self) -> Result<Self, String> {
+        if !other.terms.is_empty() {
+            return Err("Plans must stay linear: divide by constants only".into());
+        }
+        if other.constant == 0.0 {
+            return Err("Division by zero".into());
+        }
+        let kind = match (self.kind, other.kind) {
+            (k, "Number") => k,
+            (a, b) if a == b => "Number",
+            (a, b) => return Err(format!("Cannot divide {a} by {b}")),
+        };
+        let mut result = self.clone().scaled(1.0 / other.constant);
+        result.kind = kind;
+        Ok(result)
+    }
+}
 pub struct Engine<'a> {
     pub workspace: &'a Workspace,
     pub today: NaiveDate,
@@ -768,7 +860,9 @@ impl<'a> Engine<'a> {
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
                 let def = &doc.definitions[i];
-                if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
+                if let Some(plan) = doc.plans.iter().find(|p| p.definition == i) {
+                    crate::plans::solve(self, symbol, plan)
+                } else if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
                     if let Some(problem) = table.problems.first() {
                         self.failure = Some(EvalFailure {
                             path: symbol.path.clone(),
@@ -843,11 +937,126 @@ impl<'a> Engine<'a> {
             SymbolKind::Column(_, _) => {
                 Err("A column needs a row context, e.g. sum(table, column)".into())
             }
+            SymbolKind::Variable(plan, name) => {
+                let name = doc.plans[plan].names[name].name.clone();
+                let definition = Symbol {
+                    path: symbol.path.clone(),
+                    kind: SymbolKind::Definition(doc.plans[plan].definition),
+                };
+                match self.symbol(&definition)? {
+                    Value::Plan(p) => p.property(&name),
+                    _ => Err("Expected a plan".into()),
+                }
+            }
         };
         self.row_values = caller_rows;
         self.stack.pop();
         self.memo.insert(symbol.clone(), result.clone());
         result
+    }
+    /// A linear form over `vars`; every other name is evaluated to a constant.
+    pub fn linear(
+        &mut self,
+        path: &Path,
+        source: &str,
+        span: Span,
+        vars: &BTreeSet<String>,
+    ) -> Result<Linear, String> {
+        self.contexts.push((path.into(), span));
+        let result = match Parser::parse(source) {
+            Ok(expr) => self.linear_expr(path, &expr, vars),
+            Err(message) => {
+                self.fail((0, source.len()), &message);
+                Err(message)
+            }
+        };
+        self.contexts.pop();
+        result
+    }
+    /// `lhs <= rhs`, `lhs >= rhs`, or `lhs == rhs` as two linear forms.
+    pub fn constraint(
+        &mut self,
+        path: &Path,
+        source: &str,
+        span: Span,
+        vars: &BTreeSet<String>,
+    ) -> Result<(Linear, String, Linear), String> {
+        self.contexts.push((path.into(), span));
+        let result = (|| {
+            let expr = Parser::parse(source).inspect_err(|m| self.fail((0, source.len()), m))?;
+            let Expr::Binary(op, lhs, rhs) = expr.bare() else {
+                let message =
+                    "A constraint compares two sides with <=, >=, or ==, e.g. bagels >= 12";
+                self.fail((0, source.len()), message);
+                return Err(message.into());
+            };
+            if !matches!(op.as_str(), "<=" | ">=" | "==") {
+                let message = format!("Constraints use <=, >=, or ==, not {op}");
+                self.fail((0, source.len()), &message);
+                return Err(message);
+            }
+            let lhs = self.linear_expr(path, lhs, vars)?;
+            let rhs = self.linear_expr(path, rhs, vars)?;
+            if Linear::combined(&lhs, &rhs).is_none() {
+                let message = format!("Cannot compare {} with {}", lhs.kind, rhs.kind);
+                self.fail((0, source.len()), &message);
+                return Err(message);
+            }
+            Ok((lhs, op.clone(), rhs))
+        })();
+        self.contexts.pop();
+        result
+    }
+    fn linear_expr(
+        &mut self,
+        path: &Path,
+        expr: &Expr,
+        vars: &BTreeSet<String>,
+    ) -> Result<Linear, String> {
+        let constant = |value: Value| -> Result<Linear, String> {
+            match value {
+                Value::Number(n) | Value::Ratio(n) => Ok(Linear::constant("Number", n)),
+                Value::Count(n) => Ok(Linear::constant("Number", n as f64)),
+                Value::Money(n) => Ok(Linear::constant("Money", n)),
+                Value::Duration(s) => Ok(Linear::constant("Duration", s as f64)),
+                other => Err(format!(
+                    "Plans work with numbers, money, and durations, not {}",
+                    other.type_name()
+                )),
+            }
+        };
+        match expr {
+            Expr::Spanned(start, end, inner) => {
+                let result = self.linear_expr(path, inner, vars);
+                if let Err(message) = &result {
+                    self.fail((*start, *end), message);
+                }
+                result
+            }
+            Expr::Name(n) if vars.contains(n) => Ok(Linear::variable(n)),
+            Expr::Unary(op, inner) => {
+                let form = self.linear_expr(path, inner, vars)?;
+                match op.as_str() {
+                    "-" => Ok(form.scaled(-1.0)),
+                    "+" => Ok(form),
+                    _ => Err("Plans cannot negate booleans".into()),
+                }
+            }
+            Expr::Binary(op, a, b) if matches!(op.as_str(), "+" | "-" | "*" | "/") => {
+                let a = self.linear_expr(path, a, vars)?;
+                let b = self.linear_expr(path, b, vars)?;
+                match op.as_str() {
+                    "+" => a.add(&b, 1.0),
+                    "-" => a.add(&b, -1.0),
+                    "*" => a.multiply(&b),
+                    _ => a.divide(&b),
+                }
+            }
+            Expr::Binary(op, _, _) => Err(format!(
+                "'{op}' belongs at the top of a constraint, not inside an expression"
+            )),
+            other => constant(self.expr(path, other)?),
+        }
     }
     fn expr(&mut self, path: &Path, expr: &Expr) -> Result<Value, String> {
         self.steps += 1;
@@ -973,6 +1182,7 @@ impl<'a> Engine<'a> {
                 let v = self.expr(path, v)?;
                 match v {
                     Value::Timer(timer) => timer.property(key),
+                    Value::Plan(plan) => plan.property(key),
                     Value::Resource(resource) => {
                         if key == "url" {
                             return Ok(Value::Text(resource.target));

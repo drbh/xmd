@@ -1098,3 +1098,69 @@ fn on_type_formatting_and_call_hierarchy_expose_the_dependency_graph() {
     let stale = lsp.request("callHierarchy/incomingCalls", json!({"item":items[0]}));
     assert!(stale.is_null(), "{stale}");
 }
+
+#[test]
+fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let path = root.join("bakery.jot");
+    let uri = Url::from_file_path(&path).unwrap();
+    let text = "[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| ---------- | ---------- |\n| flour | 12 * bagels + 6.5 * doughnuts <= 400 |\n| bagel_min | bagels >= 12 |\n| doughnut_min | doughnuts >= 14 |\nBake [bakery.bagels] bagels.\n";
+    std::fs::write(&path, text).unwrap();
+    let mut lsp = Lsp::start(&root);
+    lsp.notify(
+        "textDocument/didOpen",
+        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+    );
+    assert_eq!(lsp.diagnostics(1), json!([]));
+    let range = json!({"start":{"line":0,"character":0},"end":{"line":20,"character":0}});
+    let hints = lsp.request(
+        "textDocument/inlayHint",
+        json!({"textDocument":{"uri":uri},"range":range}),
+    );
+    assert_eq!(hints[0]["label"], "= $94.75 · bagels 25.75 · doughnuts 14");
+    assert!(hints.to_string().contains("400 ≤ 400 · binding"));
+    let at = json!({"textDocument":{"uri":uri},"position":selected(text,3,"bagels")["start"]});
+    let hover = lsp.request("textDocument/hover", at.clone());
+    assert!(
+        hover["contents"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("Decision variable of")
+    );
+    let edit = lsp.request(
+        "textDocument/rename",
+        json!({"textDocument":{"uri":uri},"position":at["position"],"newName":"rolls"}),
+    );
+    let edits: Vec<TextEdit> =
+        serde_json::from_value(edit["documentChanges"][0]["edits"].clone()).unwrap();
+    // Objective, two constraint rows, one property access: four distinct ranges.
+    assert_eq!(edits.len(), 4, "{edits:?}");
+    let renamed = jot::actions::apply_edits(text, &edits).unwrap();
+    assert_eq!(
+        renamed.matches("bagels").count(),
+        1,
+        "only prose stays: {renamed}"
+    );
+    assert!(
+        renamed.contains("$3 * rolls") && renamed.contains("[bakery.rolls] bagels"),
+        "{renamed}"
+    );
+    // Breaking the plan reports on the objective, not on every variable.
+    let broken = text.replace(
+        "| bagel_min | bagels >= 12 |",
+        "| bagel_min | bagels >= 40 |",
+    );
+    lsp.notify(
+        "textDocument/didChange",
+        json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":broken}]}),
+    );
+    let diagnostics = lsp.diagnostics(2);
+    assert_eq!(diagnostics.as_array().unwrap().len(), 1, "{diagnostics}");
+    assert!(
+        diagnostics[0]["message"]
+            .as_str()
+            .unwrap()
+            .starts_with("No values satisfy")
+    );
+}

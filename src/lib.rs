@@ -14,6 +14,7 @@ pub mod highlighting;
 pub mod intelligence;
 pub mod interaction;
 pub mod paths;
+pub mod plans;
 pub mod presentation;
 pub mod refactor;
 pub mod resources;

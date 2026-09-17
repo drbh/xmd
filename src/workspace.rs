@@ -13,6 +13,8 @@ pub enum SymbolKind {
     Task(usize),
     Section(usize),
     Column(usize, usize),
+    /// A decision variable: (plan index, index into that plan's names).
+    Variable(usize, usize),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Symbol {
@@ -79,6 +81,42 @@ impl Workspace {
         }
     }
     pub fn symbols(&self) -> Vec<Symbol> {
+        let mut symbols = self.declared();
+        for (path, doc) in &self.documents {
+            for (p, plan) in doc.plans.iter().enumerate() {
+                symbols.extend(
+                    self.plan_variables(path, plan)
+                        .into_iter()
+                        .map(|(i, _)| Symbol {
+                            path: path.clone(),
+                            kind: SymbolKind::Variable(p, i),
+                        }),
+                );
+            }
+        }
+        symbols
+    }
+    /// Names a plan reads that no note declares: its decision variables.
+    pub fn plan_variables<'a>(
+        &self,
+        _path: &Path,
+        plan: &'a crate::plans::Plan,
+    ) -> Vec<(usize, &'a Named)> {
+        let declared: std::collections::BTreeSet<&str> = self
+            .declared()
+            .iter()
+            .map(|s| self.named(s).name.as_str())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .collect();
+        plan.names
+            .iter()
+            .enumerate()
+            .filter(|(_, n)| !declared.contains(n.name.as_str()))
+            .collect()
+    }
+    /// Symbols written down by hand: definitions, named tasks and sections.
+    fn declared(&self) -> Vec<Symbol> {
         self.documents
             .iter()
             .flat_map(|(path, doc)| {
@@ -115,6 +153,7 @@ impl Workspace {
             SymbolKind::Task(i) => doc.tasks[i].named.as_ref().unwrap(),
             SymbolKind::Section(i) => doc.sections[i].named.as_ref().unwrap(),
             SymbolKind::Column(table, column) => &doc.tables[table].columns[column],
+            SymbolKind::Variable(plan, name) => &doc.plans[plan].names[name],
         }
     }
     pub fn root(&self) -> &Path {

@@ -20,11 +20,8 @@ pub fn on_type(doc: &Document, position: Position, ch: &str) -> Vec<TextEdit> {
 
 fn pipe(doc: &Document, position: Position) -> Vec<TextEdit> {
     let row = position.line as usize;
-    let Some(table) = doc
-        .tables
-        .iter()
-        .find(|t| t.header <= row && row < t.end_line)
-    else {
+    let grids = tables::grids(doc);
+    let Some(table) = grids.iter().find(|t| t.header <= row && row < t.end_line) else {
         return vec![];
     };
     let line = doc.line(row);

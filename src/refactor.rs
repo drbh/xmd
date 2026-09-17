@@ -244,7 +244,11 @@ pub fn actions_for(
             && let Some(source) = if reference.bracket {
                 (!matches!(
                     value,
-                    Value::Timer(_) | Value::Resource(_) | Value::Tasks(_) | Value::Table(_)
+                    Value::Timer(_)
+                        | Value::Resource(_)
+                        | Value::Tasks(_)
+                        | Value::Table(_)
+                        | Value::Plan(_)
                 ) && !value.display().contains(['[', ']', '\n', '\r']))
                 .then(|| value.display())
             } else {
@@ -276,7 +280,7 @@ pub fn actions_for(
                 || !Engine::valid_expression(&def.source)
                 || matches!(
                     engine.named(path, &reference.name),
-                    Ok(Value::Timer(_) | Value::Resource(_) | Value::Table(_))
+                    Ok(Value::Timer(_) | Value::Resource(_) | Value::Table(_) | Value::Plan(_))
                 )
             {
                 continue;

@@ -115,9 +115,15 @@ Three features ride on standard LSP requests that most editors already send:
   (with or without `##`) starts a day; a line starting with a time such as
   `07:04 AM` or `14:30` is a stop; `Key: value` lines beneath it are details
   and other lines are notes. Years carry forward, and a first day without one
-  is the next occurrence. Format Document pads times and indents details.
-  Stops paint their time and title, days show a stop count and how far away
-  they are, each stop shows the time until the next, `Cancel by: 24h before`
+  is the next occurrence. A stop's kind is one ASCII marker after the time:
+  `>` depart, `<` arrive, `~` transit, `@` stay, `*` meal, `+` visit,
+  `?` explore, as in `07:04 AM  > Depart JFK for MEX on AM 405`. Stops that
+  start with a known word or emoji instead get the marker written by Format
+  Document, and stops with no recognizable kind get a warning. Format
+  Document also pads times and indents details. Stops paint their time,
+  marker and title, days show a stop count and how far away they are, each
+  stop shows the time until the next (or the layover between an arrival and
+  a departure), `Cancel by: 24h before`
   or a datetime shows the deadline, `Address:` lines open in Maps, the outline
   lists days and stops, days and stops fold, completion offers stop kinds
   after a time and detail keys inside a stop, and `jot agenda` includes stops.

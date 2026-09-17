@@ -25,6 +25,7 @@ fn note(source: &str) -> Workspace {
 fn messages(ws: &Workspace) -> Vec<String> {
     diagnostics::collect(ws, path(), today(), now(), false)
         .into_iter()
+        .filter(|d| d.severity != Some(DiagnosticSeverity::WARNING))
         .map(|d| d.message)
         .collect()
 }
@@ -81,7 +82,11 @@ fn days_stops_and_details_parse_from_natural_text() {
     );
     assert_eq!(friday.stops.len(), 5);
     let flight = &friday.stops[0];
-    assert_eq!(flight.title, "🛫 Depart JFK for MEX on AM 405");
+    assert_eq!(flight.title, "Depart JFK for MEX on AM 405");
+    assert_eq!(flight.kind.map(|k| k.marker), Some('>'));
+    assert!(flight.inferred && flight.marker_span.is_none());
+    assert_eq!(friday.stops[3].kind.map(|k| k.name), Some("Stay"));
+    assert_eq!(kinds(&doc.days[1]), ["Explore", "Meal"]);
     assert_eq!(itinerary::display_time(flight), "07:04 AM");
     assert_eq!(
         flight
@@ -123,6 +128,38 @@ fn days_stops_and_details_parse_from_natural_text() {
         "{}",
         map.target
     );
+}
+
+fn kinds(day: &itinerary::Day) -> Vec<&'static str> {
+    day.stops
+        .iter()
+        .map(|s| s.kind.map(|k| k.name).unwrap_or("?"))
+        .collect()
+}
+
+#[test]
+fn markers_are_parsed_and_unknown_kinds_are_warned_about() {
+    let ws = note(
+        "Friday, November 20, 2026\n\n09:00 AM  > JFK to MEX\n10:00 AM  Something vague\n11:00 AM  *Lunch\n",
+    );
+    let stops = &ws.documents[path()].days[0].stops;
+    assert_eq!(stops[0].kind.map(|k| k.name), Some("Depart"));
+    assert!(!stops[0].inferred && stops[0].marker_span.is_some());
+    assert_eq!(stops[0].title, "JFK to MEX");
+    assert_eq!(stops[1].kind, None);
+    // A marker needs a space after it; "*Lunch" is a title starting with an asterisk.
+    assert_eq!(stops[2].kind.map(|k| k.name), None);
+    let warnings: Vec<_> = diagnostics::collect(&ws, path(), today(), now(), false)
+        .into_iter()
+        .filter(|d| d.severity == Some(DiagnosticSeverity::WARNING))
+        .map(|d| d.range.start.line)
+        .collect();
+    assert_eq!(warnings, [3, 4]);
+    assert_eq!(
+        itinerary::canonical_line(&stops[0]),
+        "09:00 AM  > JFK to MEX"
+    );
+    assert_eq!(itinerary::label(&stops[1]), "Something vague");
 }
 
 #[test]
@@ -168,14 +205,13 @@ fn format_document_normalizes_times_and_detail_indentation() {
     let doc = Document::parse(TRIP.into());
     let formatted = actions::apply_edits(TRIP, &tables::formatting(&doc)).unwrap();
     assert!(
-        formatted.contains("02:45 PM    🛫 Depart MEX for OAX on AM 1050\n"),
+        formatted.contains("02:45 PM  > Depart MEX for OAX on AM 1050\n"),
         "{formatted}"
     );
-    assert!(formatted.contains("07:04 AM    🛫 Depart JFK for MEX on AM 405\n    Reservation Number: LPSNKQ\n    Seats: 22B, 22C\n    Note: Flight duration is 5h 51m. 1 free carry on.\n"), "{formatted}");
+    assert!(formatted.contains("07:04 AM  > Depart JFK for MEX on AM 405\n    Reservation Number: LPSNKQ\n    Seats: 22B, 22C\n    Note: Flight duration is 5h 51m. 1 free carry on.\n"), "{formatted}");
     assert!(
-        formatted.contains(
-            "11:30 AM    🔍🗺️ Explore Oaxaca\n    Museum of Cultures of Oaxaca\n    Zocalo\n"
-        ),
+        formatted
+            .contains("11:30 AM  ? Explore Oaxaca\n    Museum of Cultures of Oaxaca\n    Zocalo\n"),
         "{formatted}"
     );
     // Headings and prose are untouched, and formatting is idempotent.
@@ -206,8 +242,8 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
             .unwrap_or_default()
     };
     assert_eq!(label(2), "5 stops · 07:04 AM – 07:20 PM · in 65 days");
-    assert_eq!(label(4), "4h 51m until 🛬 Arrive at MEX");
-    assert_eq!(label(9), "2h 50m until 🛫 Depart MEX for OAX on AM 1050");
+    assert_eq!(label(4), "4h 51m until Arrive at MEX");
+    assert_eq!(label(9), "2h 50m layover");
     assert_eq!(label(18), "cancel by Thu Nov 19, 07:20 PM");
     assert_eq!(label(22), "2 stops · 11:30 AM – 01:00 PM · in 66 days");
     let hover = intelligence::stop_hover(&ws, path(), Position::new(9, 3), today()).unwrap();
@@ -217,7 +253,7 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
     };
     assert!(
         text.starts_with(
-            "**🛬 Arrive at MEX**\n\n11:55 AM, Friday, November 20, 2026\n\n2h 50m until"
+            "**Arrive at MEX**\n\nArrive · 11:55 AM, Friday, November 20, 2026\n\n2h 50m until"
         ),
         "{text}"
     );
@@ -245,7 +281,13 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
         .collect();
     assert_eq!(
         stops,
-        ["07:04 AM", "11:55 AM", "02:45 PM", "06:00 PM", "07:20 PM"]
+        [
+            "07:04 AM · Depart",
+            "11:55 AM · Arrive",
+            "02:45 PM · Depart",
+            "06:00 PM · Stay",
+            "07:20 PM · Meal"
+        ]
     );
     let saturday = trip
         .children
@@ -279,7 +321,7 @@ fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
     let kinds = intelligence::completions(&ws, path(), Position::new(2, 11), now(), false);
     assert_eq!(
         kinds.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(),
-        ["🛫 Depart"]
+        ["> Depart"]
     );
     let keys = intelligence::completions(&ws, path(), Position::new(5, 2), now(), false);
     assert_eq!(

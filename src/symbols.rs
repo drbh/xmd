@@ -157,7 +157,12 @@ pub fn document_symbols(
             let selection = stop.title_span.range(&doc.text);
             entries.push(symbol(
                 stop.title.clone(),
-                crate::itinerary::display_time(stop),
+                match stop.kind {
+                    Some(kind) => {
+                        format!("{} · {}", crate::itinerary::display_time(stop), kind.name)
+                    }
+                    None => crate::itinerary::display_time(stop),
+                },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(
                     line_range(doc, stop.line).start,

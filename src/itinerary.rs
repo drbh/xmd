@@ -16,6 +16,13 @@ pub struct Detail {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stop {
     pub line: usize,
+    /// The stop's kind: written as a marker, or inferred from an emoji or the
+    /// first words so formatting can write the marker.
+    pub kind: Option<&'static Kind>,
+    /// Where the marker sits, when one was written.
+    pub marker_span: Option<Span>,
+    /// True when the title was recognized from words or emoji, not a marker.
+    pub inferred: bool,
     /// One past the last line of the stop's block.
     pub end_line: usize,
     pub time: NaiveTime,
@@ -64,21 +71,131 @@ const MONTHS: [&str; 12] = [
     "november",
     "december",
 ];
-/// Stop kinds offered by completion after a time; the emoji is the convention.
-pub const KINDS: &[(&str, &str)] = &[
-    ("🛫", "Depart"),
-    ("🛬", "Arrive at"),
-    ("🚕", "Transit"),
-    ("🚶", "Walk to"),
-    ("🚆", "Train to"),
-    ("🛏️", "Check in to"),
-    ("🧳", "Check out of"),
-    ("🍽️", "Dinner at"),
-    ("☕", "Breakfast at"),
-    ("🌳", "Visit"),
-    ("🔍", "Explore"),
-    ("🎟️", "Tour"),
+/// A kind of stop, written as a one-character ASCII marker after the time.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Kind {
+    pub marker: char,
+    pub name: &'static str,
+    /// Leading words that imply the kind when no marker is written.
+    pub words: &'static [&'static str],
+    /// Emoji that Format Document converts into the marker.
+    pub emoji: &'static [&'static str],
+}
+pub const KINDS: &[Kind] = &[
+    Kind {
+        marker: '>',
+        name: "Depart",
+        words: &["depart", "departure", "fly", "flight", "leave", "board"],
+        emoji: &["🛫", "✈️", "✈", "🚆", "🚄", "🚢"],
+    },
+    Kind {
+        marker: '<',
+        name: "Arrive",
+        words: &["arrive", "arrival", "land"],
+        emoji: &["🛬"],
+    },
+    Kind {
+        marker: '~',
+        name: "Transit",
+        words: &[
+            "transit", "taxi", "walk", "bus", "drive", "transfer", "uber", "metro", "ferry",
+        ],
+        emoji: &["🚕", "🚶", "🚌", "🚗", "🚇", "🛵", "🚲"],
+    },
+    Kind {
+        marker: '@',
+        name: "Stay",
+        words: &[
+            "check in",
+            "check-in",
+            "checkin",
+            "check out",
+            "check-out",
+            "checkout",
+            "hotel",
+            "stay",
+        ],
+        emoji: &["🛏️", "🛏", "🏨", "🧳"],
+    },
+    Kind {
+        marker: '*',
+        name: "Meal",
+        words: &[
+            "breakfast",
+            "brunch",
+            "lunch",
+            "dinner",
+            "coffee",
+            "drinks",
+            "food",
+            "eat",
+            "grab food",
+            "snack",
+            "tasting",
+        ],
+        emoji: &["🍽️", "🍽", "☕", "🍷", "🍺", "🍸", "🥐", "🌮"],
+    },
+    Kind {
+        marker: '+',
+        name: "Visit",
+        words: &[
+            "visit", "tour", "see", "museum", "show", "concert", "hike", "class",
+        ],
+        emoji: &["🌳", "🎟️", "🎟", "🏛️", "🏛", "🎭", "🎶", "🥾"],
+    },
+    Kind {
+        marker: '?',
+        name: "Explore",
+        words: &["explore", "wander", "free time", "browse", "shop"],
+        emoji: &["🔍", "🗺️", "🗺", "🛍️"],
+    },
 ];
+pub fn kind_for(marker: char) -> Option<&'static Kind> {
+    KINDS.iter().find(|k| k.marker == marker)
+}
+const DECORATIONS: &[&str] = &["🌟", "⭐", "❗", "✨"];
+/// Strip a leading emoji or skin-tone modifier sequence, returning the kind
+/// it implied and the rest of the title.
+fn strip_emoji(title: &str) -> (Option<&'static Kind>, &str) {
+    let mut kind = None;
+    let mut rest = title;
+    loop {
+        let before = rest;
+        for k in KINDS {
+            for e in k.emoji {
+                if let Some(tail) = rest.strip_prefix(e) {
+                    kind = kind.or(Some(k));
+                    rest = tail;
+                }
+            }
+        }
+        for d in DECORATIONS {
+            if let Some(tail) = rest.strip_prefix(d) {
+                rest = tail;
+            }
+        }
+        // Skin tones and variation selectors ride along with the emoji.
+        rest = rest.trim_start_matches(|c: char| {
+            matches!(c as u32, 0x1F3FB..=0x1F3FF | 0xFE0F | 0x200D) || c.is_whitespace()
+        });
+        if rest == before {
+            return (kind, rest);
+        }
+    }
+}
+/// The kind implied by a title's first words.
+fn kind_from_words(title: &str) -> Option<&'static Kind> {
+    let lower = title.to_lowercase();
+    KINDS.iter().find(|k| {
+        k.words.iter().any(|w| {
+            lower.starts_with(w)
+                && lower[w.len()..]
+                    .chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric())
+        })
+    })
+}
 /// Detail keys offered by completion inside a stop.
 pub const KEYS: &[&str] = &[
     "Address",
@@ -328,9 +445,35 @@ pub fn parse(lines: &[&str]) -> Vec<Day> {
             continue;
         }
         if let Some((time, time_span, twelve_hour, title_start)) = clock(line, row) {
-            let title = line[title_start..].trim_end();
+            let raw = line[title_start..].trim_end();
+            let mut marker_span = None;
+            let mut kind = None;
+            let mut inferred = false;
+            let mut title_offset = 0;
+            if let Some(c) = raw.chars().next()
+                && let Some(k) = kind_for(c)
+                && raw[c.len_utf8()..]
+                    .chars()
+                    .next()
+                    .is_none_or(char::is_whitespace)
+            {
+                kind = Some(k);
+                marker_span = Some(Span::new(row, title_start, title_start + c.len_utf8()));
+                let after = &raw[c.len_utf8()..];
+                title_offset = c.len_utf8() + after.len() - after.trim_start().len();
+            }
+            let (from_emoji, stripped) = strip_emoji(&raw[title_offset..]);
+            if kind.is_none() {
+                kind = from_emoji.or_else(|| kind_from_words(stripped));
+                inferred = kind.is_some();
+            }
+            let title_start = title_start + raw.len() - stripped.len();
+            let title = stripped.trim_end();
             day.stops.push(Stop {
                 line: row,
+                kind,
+                marker_span,
+                inferred,
                 end_line: row + 1,
                 time,
                 time_span,
@@ -466,7 +609,21 @@ pub fn cancel_by(day: NaiveDate, stop: &Stop) -> Option<(chrono::NaiveDateTime, 
     Some((date.and_hms_opt(23, 59, 0)?, false))
 }
 
-/// Normalize stop lines to `07:04 AM    Title` and indent details by four.
+/// `07:04 AM  > Title`: time, two spaces, marker when known, title without emoji.
+pub fn canonical_line(stop: &Stop) -> String {
+    match stop.kind {
+        Some(kind) => format!("{}  {} {}", display_time(stop), kind.marker, stop.title),
+        None => format!("{}  {}", display_time(stop), stop.title),
+    }
+}
+/// `> Depart JFK`: the marker and title, for agendas and hovers.
+pub fn label(stop: &Stop) -> String {
+    match stop.kind {
+        Some(kind) => format!("{} {}", kind.marker, stop.title),
+        None => stop.title.clone(),
+    }
+}
+/// Normalize stop lines to `07:04 AM  > Title` and indent details by four.
 pub fn formatting(doc: &Document, days: &[Day]) -> Vec<TextEdit> {
     let mut edits = Vec::new();
     let mut replace = |row: usize, text: String| {
@@ -483,10 +640,7 @@ pub fn formatting(doc: &Document, days: &[Day]) -> Vec<TextEdit> {
     };
     for day in days {
         for stop in &day.stops {
-            replace(
-                stop.line,
-                format!("{}    {}", display_time(stop), stop.title),
-            );
+            replace(stop.line, canonical_line(stop));
             for detail in &stop.details {
                 replace(detail.line, format!("    {}: {}", detail.key, detail.value));
             }

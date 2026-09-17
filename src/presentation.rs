@@ -303,11 +303,13 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 && let Some(seconds) = crate::itinerary::gap(stop, next)
                 && seconds > 0
             {
-                labels.push(format!(
-                    "{} until {}",
-                    crate::itinerary::human(seconds),
-                    next.title
-                ));
+                let arrive_then_depart = stop.kind.is_some_and(|k| k.marker == '<')
+                    && next.kind.is_some_and(|k| k.marker == '>');
+                labels.push(if arrive_then_depart {
+                    format!("{} layover", crate::itinerary::human(seconds))
+                } else {
+                    format!("{} until {}", crate::itinerary::human(seconds), next.title)
+                });
             }
             if let Some((deadline, _)) = crate::itinerary::cancel_by(*date, stop) {
                 let passed = deadline.date() < today;

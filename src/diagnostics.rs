@@ -277,6 +277,20 @@ pub fn collect(
             ));
         }
         previous_date = Some(*date);
+        for stop in &day.stops {
+            if stop.kind.is_none() {
+                let mut hint = diagnostic(
+                    ws,
+                    path,
+                    stop.title_span,
+                    "Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)".into(),
+                    "itinerary-kind",
+                    &[],
+                );
+                hint.severity = Some(DiagnosticSeverity::WARNING);
+                issues.push(hint);
+            }
+        }
         for pair in day.stops.windows(2) {
             if pair[1].time < pair[0].time {
                 issues.push(diagnostic(

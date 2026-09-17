@@ -396,6 +396,9 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         }
         for stop in &day.stops {
             p.mark(stop.time_span, "jotTime");
+            if let Some(marker) = stop.marker_span {
+                p.mark(marker, "keyword");
+            }
             p.paint(stop.title_span, style("heading", 0));
             for detail in &stop.details {
                 p.paint(detail.key_span, style("property", 0));

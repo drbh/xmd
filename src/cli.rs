@@ -192,7 +192,7 @@ pub fn entries(workspace: &Workspace, today: NaiveDate) -> Vec<Entry> {
                     path: path.clone(),
                     line: stop.line + 1,
                     uri: location_uri(path, stop.line + 1),
-                    title: stop.title.clone(),
+                    title: crate::itinerary::label(stop),
                     kind: "stop".into(),
                     done: false,
                     due: None,

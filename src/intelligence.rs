@@ -646,13 +646,13 @@ fn itinerary_completions(
         return Some(
             crate::itinerary::KINDS
                 .iter()
-                .filter(|(_, name)| {
-                    typed.is_empty() || name.to_lowercase().starts_with(&typed.to_lowercase())
+                .filter(|kind| {
+                    typed.is_empty() || kind.name.to_lowercase().starts_with(&typed.to_lowercase())
                 })
-                .map(|(emoji, name)| {
+                .map(|kind| {
                     item(
-                        format!("{emoji} {name}"),
-                        format!("{emoji} {name} "),
+                        format!("{} {}", kind.marker, kind.name),
+                        format!("{} {} ", kind.marker, kind.name),
                         "itinerary stop",
                         CompletionItemKind::EVENT,
                     )
@@ -704,8 +704,11 @@ pub fn stop_hover(
     let index = day.stops.iter().position(|s| s.line == row)?;
     let stop = &day.stops[index];
     let mut text = format!(
-        "**{}**\n\n{}",
+        "**{}**\n\n{}{}",
         stop.title,
+        stop.kind
+            .map(|k| format!("{} · ", k.name))
+            .unwrap_or_default(),
         crate::itinerary::display_time(stop)
     );
     if let Some(date) = date {

@@ -1,0 +1,11 @@
+id = "jot"
+name = "Jot"
+version = "0.0.1"
+schema_version = 1
+authors = ["Jot"]
+description = "Language support for Jot documents."
+repository = "https://github.com/drbh/jot"
+
+[language_servers.jot]
+name = "Jot Language Server"
+languages = ["Jot"]

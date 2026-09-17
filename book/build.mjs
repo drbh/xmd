@@ -13,7 +13,7 @@ const block = (file, label) => {
   const text = readFileSync(resolve(examples, file), "utf8");
   return `<figure class="jot-block" data-file="${file}">
   <figcaption><span>${escape(label)}</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="${escape(label)}" rows="${text.split("\n").length}">${escape(text)}</textarea></div>
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="${escape(label)}">${escape(text)}</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure>`;

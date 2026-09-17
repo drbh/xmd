@@ -31,16 +31,13 @@ footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px;
 .jot-block { margin: 24px 0 32px; border-radius: 0; overflow: hidden; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--rule); }
 .jot-block figcaption { display: flex; justify-content: space-between; padding: 8px 16px; font: 11px var(--mono); color: var(--muted); background: #121212; border-bottom: 1px solid var(--rule); }
 .jot-block .status { color: var(--muted); }
-/* The overlay and the textarea share one grid cell, so the cell grows to the
-   wider of the two (the overlay, once inlays are added) and the block scrolls
-   sideways as a unit instead of clipping. */
-.editor { display: grid; overflow-x: auto; font: 14px/1.7 var(--mono); }
-.editor .view, .editor textarea { grid-area: 1 / 1; margin: 0; padding: 14px 18px; white-space: pre; overflow: hidden; font: inherit; tab-size: 4; min-width: 100%; width: max-content; box-sizing: border-box; }
-.editor .view { color: var(--code-ink); min-height: 40px; }
-.editor textarea { height: 100%; resize: none; border: 0; outline: none; background: transparent; color: transparent; caret-color: #e6e6e6; display: block; }
-.editor textarea::selection { background: rgba(255,255,255,.14); }
-.editor textarea:focus { box-shadow: inset 0 0 0 1px #4a4a4a; }
-.inlay { margin-left: 10px; padding: 0 6px; border-radius: 0; background: #262626; color: #bdbdbd; font-size: 12px; }
+.editor { overflow-x: auto; font: 14px/1.7 var(--mono); }
+.editor .view { margin: 0; padding: 14px 18px; white-space: pre; font: inherit; tab-size: 4; min-height: 40px; color: var(--code-ink); outline: none; caret-color: #e6e6e6; }
+.editor .view:focus { box-shadow: inset 0 0 0 1px #4a4a4a; }
+.editor .view::selection, .editor .view *::selection { background: rgba(255,255,255,.14); }
+/* Inline hints, the way the editor draws them: dimmed text at the anchor,
+   a hair smaller, with a little air on each side. */
+.inlay { display: inline-block; margin: 0 2px 0 5px; padding: 0 5px; background: #242424; color: #9c9c9c; font-size: 0.86em; line-height: 1.45; vertical-align: baseline; user-select: none; white-space: pre; }
 .hover { position: fixed; z-index: 10; margin: 0; padding: 10px 14px; border: 1px solid #3a3a3a; background: #1d1d1d; color: #c8c8c8; font: 12px/1.6 var(--mono); box-shadow: 0 6px 24px rgba(0,0,0,.5); pointer-events: none; }
 .hover p { margin: 0 0 8px; font-size: 12px; line-height: 1.6; }
 .hover p:last-child { margin-bottom: 0; }

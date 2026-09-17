@@ -401,8 +401,12 @@ test("the book runs every example as a live block on the shared engine", async (
   await expect(first.locator(".view")).toContainText("$556");
   await expect(first.locator(".view .t-jotMoney").first()).toHaveCSS("color", "rgb(180, 217, 138)");
   // Editing a block re-solves it on the engine.
-  await first.locator("textarea").fill("[$10]:a\n[$4]:b\n[c] := a + b\n");
+  await first.evaluate(el => window.jotBook.blocks.find(b => b === el).setText("[$10]:a\n[$4]:b\n[c] := a + b\n"));
   await expect(first.locator(".view")).toContainText("= $14");
+  // Inlays sit inline at their anchor, right after the definition, not at the line end.
+  const inlay = first.locator(".view .inlay").first();
+  await expect(inlay).toHaveText("= $14");
+  expect(await inlay.evaluate(el => el.previousSibling?.textContent?.endsWith("a + b") || el.previousSibling?.textContent?.endsWith("b"))).toBe(true);
   // Cross-note values resolve because every block shares one workspace.
   await expect(page.locator('.jot-block[data-file="27-cross-note-values.jot"] .view')).toContainText("$3,040");
   // Plans solve in the page, and itineraries paint their kinds.

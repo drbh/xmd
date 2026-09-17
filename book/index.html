@@ -23,7 +23,7 @@
     </header>
     <section class="part" id="part-1"><p class="kicker">Part 1</p><h1>Getting Started</h1><p class="lead">Jot is plain text that can count. You write notes the way you already do, and the parts that look like values start to behave like values. This part introduces the four ideas everything else builds on: literals with names, calculations, types, and dates.</p><section class="chapter" id="naming-values"><h2><span class="number">1.1</span> Naming Values</h2><p>Every Jot program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>[$3,000]:budget</code>. The brackets say "this is a value", the name says what to call it.</p><p>Once a value has a name, <code>[budget]</code> reads it anywhere, in this note or any other note in the workspace. The editor shows the current value right after the reference, so a sentence like "we have [remaining] left" always reads with the number filled in.</p><p>Try editing the amount spent below. Every reference updates as you type, because they are reading the value rather than copying it.</p><figure class="jot-block" data-file="01-values.jot">
   <figcaption><span>examples/01-values.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/01-values.jot" rows="12"># Values
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/01-values.jot"># Values
 
 A bracketed literal followed by `:name` defines a value; `[name]` reads it anywhere.
 
@@ -34,12 +34,12 @@ Our budget is [$3,000]:budget and we've spent [$2,444]:spent.
 We have [remaining] left, which is [remaining / budget] of the budget.
 
 &lt;!-- Try: change $2,444 and watch every reference update. Hover remaining. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><figure class="jot-block" data-file="02-calculations.jot">
+</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><p>A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed.</p><figure class="jot-block" data-file="02-calculations.jot">
   <figcaption><span>examples/02-calculations.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/02-calculations.jot" rows="14"># Calculations
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/02-calculations.jot"># Calculations
 
 `[name] := expression` defines a calculated value. Inlays show the result.
 
@@ -52,19 +52,19 @@ We have [remaining] left, which is [remaining / budget] of the budget.
 [total] for [units] units, including [tax] tax.
 
 &lt;!-- Try: hover total for the substituted calculation and its inputs. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="types"><h2><span class="number">1.3</span> Types</h2><p>Jot literals carry a type, and arithmetic respects it. Money times a number is money. A ratio scales anything. A date plus a duration is a date, and two dates subtract to a duration. Comparisons produce booleans.</p><p>Types exist to catch the mistakes that spreadsheets let through. Multiplying two amounts of money is an error, not a very large number. The error points at the exact operator, so you can see which operand is the wrong shape.</p><figure class="jot-block" data-file="03-types.jot">
   <figcaption><span>examples/03-types.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/03-types.jot" rows="20"># Types
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/03-types.jot"># Types
 
 Every literal has a type, and arithmetic respects it.
 
 [42]:count
 [$19.99]:price
 [47%]:share
-[2h 30m]:duration
+[150m]:duration
 [2026-11-20]:date
 [true]:flag
 ["Oaxaca"]:city
@@ -76,12 +76,12 @@ Dates take durations: [date + 7d]; dates subtract to a duration: [date - 2026-11
 Comparisons give booleans: [price &gt; $10 &amp;&amp; flag].
 
 &lt;!-- Try: multiply two money values to see a type error. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="dates-and-relative-dates"><h2><span class="number">1.4</span> Dates and Relative Dates</h2><p>Dates are written in ISO form, <code>2026-11-20</code>, and <code>today()</code> is always the current day, so a calculation like <code>departure - today()</code> counts down on its own. Task attributes accept relative dates such as <code>tomorrow</code> or <code>next Friday</code>, and <code>date("next Friday")</code> turns the same words into a value.</p><p>Relative dates stay relative: a task due tomorrow is due tomorrow again tomorrow. When you want to pin one down, the Freeze relative date action rewrites it as the concrete date it meant at that moment.</p><figure class="jot-block" data-file="04-dates.jot">
   <figcaption><span>examples/04-dates.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/04-dates.jot" rows="14"># Dates and relative dates
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/04-dates.jot"># Dates and relative dates
 
 [2026-11-20]:departure
 [days_left] := departure - today()
@@ -94,12 +94,12 @@ today() is [today()] and date("next Friday") is [date("next Friday")].
 - [ ] Pack @due(tomorrow)
 
 &lt;!-- Try: put the cursor on tomorrow and use Freeze relative date. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="currencies"><h2><span class="number">1.5</span> Currencies</h2><p>Money carries its currency. A symbol before the number (<code>$</code>, <code>€</code>, <code>£</code>, <code>¥</code>) or a code after it (<code>700 MXN</code>) both work. Two amounts in different currencies never add up silently; the error tells you to convert one side.</p><p><code>to(hotel, USD)</code> converts using a cached exchange rate, and <code>rate(EUR, USD)</code> reads the rate itself. Rates come from a cache that only <code>jot refresh</code> fills, so nothing is fetched while you type. This page has no cache, which is why the conversions below show warnings; in the native app they show numbers.</p><figure class="jot-block" data-file="05-currencies.jot">
   <figcaption><span>examples/05-currencies.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/05-currencies.jot" rows="18"># Currencies
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/05-currencies.jot"># Currencies
 
 Money carries its currency: a symbol before the number or a code after it.
 
@@ -116,12 +116,12 @@ One euro is [rate(EUR, USD)] dollars.
 
 &lt;!-- Rates come from the lookup cache: run jot refresh or use the Refresh lookups lens.
 Try: write flights + hotel to see why mixing currencies is an error. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-2"><p class="kicker">Part 2</p><h1>Getting Things Done</h1><p class="lead">Notes are where tasks live, so Jot understands checklists, due dates, dependencies, recurrence, appointments, and timers. None of it needs a new syntax beyond a checkbox and a few attributes.</p><section class="chapter" id="checklists"><h2><span class="number">2.1</span> Checklists</h2><p>A Markdown task list is already a checklist. Give the heading above it a name and the list becomes a value: <code>completed(launch)</code>, <code>remaining(launch)</code>, and <code>total(launch)</code> count leaf tasks, and <code>effort(launch)</code> adds up the estimates of what is left.</p><p>Named tasks are booleans, which lets a calculation depend on whether something has been done. Tick a box below and watch the heading's progress gauge and the numbers change together.</p><figure class="jot-block" data-file="06-checklists.jot">
   <figcaption><span>examples/06-checklists.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/06-checklists.jot" rows="22"># Checklists
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/06-checklists.jot"># Checklists
 
 A heading with :name is a checklist; tasks beneath it count.
 
@@ -142,12 +142,12 @@ A heading with :name is a checklist; tasks beneath it count.
 Named tasks are booleans: the demo is [demo].
 
 &lt;!-- Try: tick a box. The heading inlay shows a progress gauge. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="task-attributes"><h2><span class="number">2.2</span> Task Attributes</h2><p>Attributes trail a task as <code>@key(value)</code>. <code>@due</code> and <code>@scheduled</code> take dates or relative dates, <code>@estimate</code> takes a duration, <code>@tag</code> and <code>#hashtags</code> label a task for filtering, and <code>@after</code> makes it wait for something else. A line with <code>@at</code> and a time is an appointment rather than a task.</p><p>The inlay after each task summarizes what matters today: how far away the deadline is, what the task is waiting on, and its estimate. The agenda on the command line reads the same attributes.</p><figure class="jot-block" data-file="07-task-attributes.jot">
   <figcaption><span>examples/07-task-attributes.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/07-task-attributes.jot" rows="15"># Task attributes
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/07-task-attributes.jot"># Task attributes
 
 Attributes are `@key(value)` at the end of a task.
 
@@ -161,12 +161,12 @@ Attributes are `@key(value)` at the end of a task.
 &lt;!-- @due and @scheduled show relative dates in inlays; @after blocks a task;
 @every advances the due date when completed; a line with @at is an appointment.
 Try: jot agenda --week on the command line. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="dependencies"><h2><span class="number">2.3</span> Dependencies</h2><p><code>@after</code> blocks a task until every dependency is satisfied. A dependency can be a named task, a whole named checklist, or any boolean expression, so "ship once the budget is under control" is a single attribute.</p><p>Blocked tasks say what they are waiting for. If two tasks end up waiting on each other, the error names the cycle and points at both locations.</p><figure class="jot-block" data-file="08-dependencies.jot">
   <figcaption><span>examples/08-dependencies.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/08-dependencies.jot" rows="16"># Task dependencies
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/08-dependencies.jot"># Task dependencies
 
 @after blocks a task until every dependency is done.
 
@@ -181,12 +181,12 @@ Try: jot agenda --week on the command line. --&gt;
 
 &lt;!-- Blocked tasks say what they wait for. Cycles are reported with locations.
 Try: complete Assemble and watch Test and Ship unblock. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="recurring-tasks"><h2><span class="number">2.4</span> Recurring Tasks</h2><p><code>@every</code> repeats a task by day, week, month, year, or a whole-day duration such as <code>2w</code>. Completing a recurring task does not tick it off for good; it advances the due date and records the completion, so the task is ready for next time. Month repeats keep the day of the month.</p><figure class="jot-block" data-file="09-recurring.jot">
   <figcaption><span>examples/09-recurring.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/09-recurring.jot" rows="11"># Recurring tasks
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/09-recurring.jot"># Recurring tasks
 
 @every repeats a task: day, week, month, year, or a whole-day duration like 2w.
 
@@ -196,12 +196,12 @@ Try: complete Assemble and watch Test and Ship unblock. --&gt;
 
 &lt;!-- Completing a recurring task advances its due date and records the
 completion; month repeats keep the day of month. Try: tick one. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="appointments"><h2><span class="number">2.5</span> Appointments</h2><p>A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>jot today</code> and <code>jot agenda</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.</p><figure class="jot-block" data-file="10-events.jot">
   <figcaption><span>examples/10-events.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/10-events.jot" rows="14"># Appointments
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/10-events.jot"># Appointments
 
 A line with @at is an appointment; jot agenda and jot today list it.
 
@@ -214,12 +214,12 @@ A line with @at is an appointment; jot agenda and jot today list it.
 The dentist is in [next].
 
 &lt;!-- Include an explicit UTC offset for times. Try: jot agenda --week. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="timers"><h2><span class="number">2.6</span> Timers</h2><p>A countdown or stopwatch is a value defined with <code>countdown(25m)</code> or <code>stopwatch()</code>. Its inlay ticks while it runs, and properties such as <code>.remaining</code> and <code>.running</code> feed other calculations. Attach one to a task with <code>@timer</code>.</p><p>Starting, pausing, and resetting are code actions that rewrite the definition with the elapsed time and a timestamp. Ticking never edits the note; only your actions do, which keeps the file safe to sync and diff.</p><figure class="jot-block" data-file="11-timers.jot">
   <figcaption><span>examples/11-timers.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/11-timers.jot" rows="15"># Timers
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/11-timers.jot"># Timers
 
 Timers are values; controls save state in the note, ticking never edits it.
 
@@ -233,12 +233,12 @@ Time left: [focus.remaining]. Running: [focus.running]. Spent: [work.elapsed].
 
 &lt;!-- Try: use the Start code lens or code action on a timer line. The countdown
 inlay shows a live gauge. Completing a task does not stop its timer. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-3"><p class="kicker">Part 3</p><h1>Tables and Optimization</h1><p class="lead">Tables give notes structured data with types. From there it is a short step to asking the note to decide something: a linear plan chooses the best values under constraints, decision columns pick rows, and goal seek runs a calculation backwards.</p><section class="chapter" id="tables"><h2><span class="number">3.1</span> Tables</h2><p>A table is a named value followed by a Markdown table. Column names become identifiers, every column keeps one type, and <code>sum(table, expression)</code> evaluates the expression for each row, with column names standing for that row's cells.</p><p>Renaming a column updates the formulas that use it, a bad cell is reported at the cell, and Format Document aligns the pipes. Hover a numeric column for a sparkline of its values.</p><figure class="jot-block" data-file="12-tables.jot">
   <figcaption><span>examples/12-tables.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/12-tables.jot" rows="20"># Tables
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/12-tables.jot"># Tables
 
 `[name] := table` followed by a Markdown table gives typed columns.
 
@@ -257,12 +257,12 @@ Groceries cost [total] for [units] items, [average] each.
 &lt;!-- Columns keep one type; a bad cell is reported at the cell. Hover a column
 for a sparkline, the sum for row contributions. Rename a column to update
 formulas. Try: Format Document to align the table. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="calculated-cells"><h2><span class="number">3.2</span> Calculated Cells</h2><p>A cell in brackets is a calculation, following the same convention as brackets in prose. It can read any named value from any note, so a table can be driven by numbers defined elsewhere. Each calculated cell shows its value as an inlay.</p><figure class="jot-block" data-file="13-calculated-cells.jot">
   <figcaption><span>examples/13-calculated-cells.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/13-calculated-cells.jot" rows="19"># Calculated cells
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/13-calculated-cells.jot"># Calculated cells
 
 A bracketed cell is a calculation that can read named values from any note.
 
@@ -280,12 +280,12 @@ A bracketed cell is a calculation that can read named values from any note.
 Extras cost [extras_total].
 
 &lt;!-- Each calculated cell shows its value as an inlay. Try: change bulk_qty. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="linear-plans"><h2><span class="number">3.3</span> Linear Plans</h2><p>A plan is a calculation that chooses values. <code>maximize</code> or <code>minimize</code> an expression, then list constraints in a two-column table. Names that no note defines become decision variables; every other name is a constant read from your notes, so the plan re-solves as the numbers around it change.</p><p>Each constraint row shows how much of its limit is used and whether it binds. A plan that cannot be satisfied, or that could grow without limit, is a diagnostic on the objective. The solver is pure Rust, which is why it runs right here in the page.</p><figure class="jot-block" data-file="14-plans.jot">
   <figcaption><span>examples/14-plans.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/14-plans.jot" rows="21"># Linear plans
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/14-plans.jot"># Linear plans
 
 maximize or minimize an expression subject to a constraint table. Names no
 note defines are decision variables; everything else is a constant.
@@ -305,12 +305,12 @@ Flour to spare: [bakery.flour].
 
 &lt;!-- Constraint rows show usage and binding or slack. Try: change flour_stock
 to 300, or jot plan bakery on the command line. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="decision-columns"><h2><span class="number">3.4</span> Decision Columns</h2><p>A table column named <code>take?</code> is a yes-or-no choice for each row, and <code>servings#</code> is a whole number. A plan that sums over such a column decides every row, which turns a packing list or a menu into a small optimization problem.</p><p>Each decided cell shows its choice as an inlay, and a code action on the plan line writes the choices into the table when you want them on the page.</p><figure class="jot-block" data-file="15-decision-columns.jot">
   <figcaption><span>examples/15-decision-columns.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/15-decision-columns.jot" rows="23"># Decision columns
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/15-decision-columns.jot"># Decision columns
 
 A column named take? is a yes/no choice per row; servings# is a whole number.
 A plan that sums over the column decides every row.
@@ -332,12 +332,12 @@ Packing scores [pack].
 
 &lt;!-- Each cell shows its choice; the code action on the plan line writes them
 into the table. Try: raise the weight limit to 8. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="goal-seek"><h2><span class="number">3.5</span> Goal Seek</h2><p><code>solve(constraint)</code> makes the definition's own name the unknown. Jot follows the chain of calculations that mention it and finds the boundary value where the constraint holds. The unit comes from the chain: money in, money out.</p><p>Linear goal seeks have a closed form, so no solver runs; the answer is exact.</p><figure class="jot-block" data-file="16-goal-seek.jot">
   <figcaption><span>examples/16-goal-seek.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/16-goal-seek.jot" rows="19"># Goal seek
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/16-goal-seek.jot"># Goal seek
 
 solve(constraint) makes the definition's own name the unknown and finds the
 boundary value through any chain of calculations.
@@ -355,12 +355,12 @@ Save [monthly] a month to reach [saved_by_june] by June.
 That is [calls] calls in an afternoon.
 
 &lt;!-- Hover monthly to see which side of the boundary it sits on. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-4"><p class="kicker">Part 4</p><h1>The World Outside</h1><p class="lead">Some numbers live elsewhere: the status of a pull request, an exchange rate, tomorrow's weather. Jot brings them in through a cache that you refresh on purpose, so a note never phones out while you type and keeps working offline.</p><section class="chapter" id="resources-and-links"><h2><span class="number">4.1</span> Resources and Links</h2><p>Links, files, places, and GitHub items are values. Any of them can be named and referenced, and the editor offers an Open lens on each. GitHub pull requests, issues, and commits get a status badge once refreshed, and properties such as <code>.merged</code> and <code>.checks_passed</code> feed calculations and dependencies.</p><figure class="jot-block" data-file="17-resources.jot">
   <figcaption><span>examples/17-resources.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/17-resources.jot" rows="18"># Resources and links
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/17-resources.jot"># Resources and links
 
 Links, files, places and GitHub items are values with an Open lens.
 
@@ -377,12 +377,12 @@ Links, files, places and GitHub items are values with an Open lens.
 
 &lt;!-- GitHub links get a status badge once refreshed: jot refresh, or the
 Refresh GitHub status lens. Then zed_pr.merged and .checks_passed work. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="weather-and-quotes"><h2><span class="number">4.2</span> Weather and Quotes</h2><p><code>forecast(place, date)</code> is a day's weather with a high, a low, a summary, and a chance of rain; add <code>F</code> for Fahrenheit. <code>quote(NVDA)</code> is the last price as money. Uppercase names such as <code>NVDA</code> are codes rather than references.</p><p>Hover a value to see every lookup it used, how old the data is, and where it came from. Providers are keyless by default and replaceable with your own commands.</p><figure class="jot-block" data-file="18-lookups.jot">
   <figcaption><span>examples/18-lookups.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/18-lookups.jot" rows="19"># Weather and quotes
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/18-lookups.jot"># Weather and quotes
 
 External data lives in a cache that only jot refresh or the Refresh lookups
 lens fills; nothing is fetched while you type.
@@ -400,12 +400,12 @@ Holding [shares] shares is worth [nvda].
 
 &lt;!-- Forecasts cover about 16 days ahead. Uppercase names such as NVDA or F are
 codes, not references. Hover a value to see each lookup's age and source. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-5"><p class="kicker">Part 5</p><h1>Trips</h1><p class="lead">An itinerary is prose with a shape: days, times, and details. Jot recognizes that shape without asking you to change how you write it.</p><section class="chapter" id="itineraries"><h2><span class="number">5.1</span> Itineraries</h2><p>A line with a weekday, month, and day starts a day. A line starting with a clock time is a stop, and one ASCII marker after the time names its kind: <code>&gt;</code> depart, <code>&lt;</code> arrive, <code>~</code> transit, <code>@</code> stay, <code>*</code> meal, <code>+</code> visit, <code>?</code> explore. Indented <code>Key: value</code> lines are the stop's details.</p><p>Each kind has its own color, so a day scans before you read it. Days show their stop count, how far away they are, and the weather once refreshed; stops show the gap to the next one; <code>Cancel by</code> details show the deadline; addresses open in Maps. Diagnostics catch a weekday that does not match its date and stops out of order.</p><figure class="jot-block" data-file="19-itinerary.jot">
   <figcaption><span>examples/19-itinerary.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/19-itinerary.jot" rows="34"># Itinerary
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/19-itinerary.jot"># Itinerary
 
 A weekday, month and day starts a day; a clock time starts a stop; one ASCII
 marker names the kind: &gt; depart, &lt; arrive, ~ transit, @ stay, * meal,
@@ -438,12 +438,12 @@ marker names the kind: &gt; depart, &lt; arrive, ~ transit, @ stay, * meal,
 &lt;!-- Days show stop counts, distance in days and weather once refreshed;
 stops show the gap to the next one and cancellation deadlines. Try: Format
 Document, fold a day, or change Saturday to Sunday. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-6"><p class="kicker">Part 6</p><h1>Reading at a Glance</h1><p class="lead">Most of what Jot adds to a note is meant to be read, not written. Highlighting and small charts make the state of a note visible without opening a dialog.</p><section class="chapter" id="plain-text-charts"><h2><span class="number">6.1</span> Plain-Text Charts</h2><p>Gauges and sparklines are drawn with Unicode block characters, so they render in any editor with no image support. Countdowns and checklists carry a gauge in their inlay, hovers add the percentage, and numeric columns and sums show a sparkline with their range.</p><figure class="jot-block" data-file="20-charts.jot">
   <figcaption><span>examples/20-charts.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/20-charts.jot" rows="25"># Plain-text charts
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/20-charts.jot"># Plain-text charts
 
 Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 
@@ -467,12 +467,12 @@ Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 
 &lt;!-- The countdown and heading inlays carry a gauge; hover them for the bar with
 a percentage. Hover the units column or total_units for a sparkline. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="highlighting"><h2><span class="number">6.2</span> Highlighting</h2><p>The engine produces the highlighting, not a second grammar in the editor, so what is colored is exactly what is understood. Prose values such as dates, times, money, and durations are recognized without becoming symbols. Declared names are bold; references, functions, columns, and itinerary kinds each have their own color.</p><figure class="jot-block" data-file="25-highlighting.jot">
   <figcaption><span>examples/25-highlighting.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/25-highlighting.jot" rows="14"># Highlighting
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/25-highlighting.jot"># Highlighting
 
 Prose values are recognized without becoming symbols.
 
@@ -485,12 +485,12 @@ Declared names are bold; references, functions and table columns have their own 
 - [ ] Open boxes are amber
 
 `[code] := stays literal` and &lt;!-- comments stay inert --&gt;.
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-7"><p class="kicker">Part 7</p><h1>Editing</h1><p class="lead">Jot is a language server first, so the usual editor features come from the same engine: completion, signature help, rename, go to definition, folding, formatting, refactors, and a dependency graph. This page can show the notes and their live state; the actions themselves belong to your editor.</p><section class="chapter" id="format-on-type"><h2><span class="number">7.1</span> Format on Type</h2><p>Typing the closing pipe of a table row realigns the whole table, and only the row you are typing is touched once every column has a cell. Enter after a checkbox continues the list with the same indent, and Enter on an empty checkbox ends it. Both work in this page's blocks too.</p><figure class="jot-block" data-file="21-format-on-type.jot">
   <figcaption><span>examples/21-format-on-type.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/21-format-on-type.jot" rows="16"># Format on type
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/21-format-on-type.jot"># Format on type
 
 Typing the closing pipe of a table row realigns the table; Enter after a
 checkbox continues the list, and Enter on an empty checkbox ends it.
@@ -505,12 +505,12 @@ checkbox continues the list, and Enter on an empty checkbox ends it.
   - [ ] Nested items keep their indent
 
 &lt;!-- Try: add a row | stapler | 3 | under eraser and watch it align on the last pipe. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="code-actions-and-refactors"><h2><span class="number">7.2</span> Code Actions and Refactors</h2><p>Select a literal in prose and extract it into a named value. Inline a calculation into the place it is used, or freeze it at its current value. Freeze a relative date. A misspelled name gets a quick fix suggesting the closest one. These are code actions in Zed and VS Code.</p><figure class="jot-block" data-file="22-refactors.jot">
   <figcaption><span>examples/22-refactors.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/22-refactors.jot" rows="12"># Code actions and refactors
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/22-refactors.jot"># Code actions and refactors
 
 Lunch budget: $25 today, and the meeting is next Friday.
 
@@ -521,12 +521,12 @@ Lunch budget: $25 today, and the meeting is next Friday.
 &lt;!-- Select $25 above, then Extract named value. Select next Friday and Freeze
 relative date. On the half reference in quarter, try Inline expression or
 Freeze current value. Misspell cash as cahs to see the spelling quick fix. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="rename-references-and-navigation"><h2><span class="number">7.3</span> Rename, References, and Navigation</h2><p>Rename a value and every reference follows, across notes. Go to definition, find references, and document highlights all understand the same names, and the outline lists every value, task, and table in the note.</p><figure class="jot-block" data-file="23-rename-and-navigation.jot">
   <figcaption><span>examples/23-rename-and-navigation.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/23-rename-and-navigation.jot" rows="14"># Rename, references and navigation
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/23-rename-and-navigation.jot"># Rename, references and navigation
 
 [$3,000]:budget
 [budget_left] := budget - $1,410
@@ -539,12 +539,12 @@ We have [budget_left]; it fits: [fits].
 &lt;!-- Try: rename budget, and every reference follows. Go to definition on
 budget_left, find references, or put the cursor on a name to highlight reads.
 The outline lists every value and task; breadcrumbs follow the cursor. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="the-dependency-graph"><h2><span class="number">7.4</span> The Dependency Graph</h2><p>Every value and task is a node in a graph. Show Call Hierarchy on a name: outgoing calls are what it reads, incoming calls are what reads it. Tasks link through <code>@after</code>, subtasks, and checklists, and plans link to their constants and variables.</p><figure class="jot-block" data-file="24-dependency-graph.jot">
   <figcaption><span>examples/24-dependency-graph.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/24-dependency-graph.jot" rows="18"># Dependency graph
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/24-dependency-graph.jot"># Dependency graph
 
 Show Call Hierarchy on a name: outgoing calls are what it reads, incoming
 calls are what reads it.
@@ -561,12 +561,12 @@ calls are what reads it.
 
 &lt;!-- On free_cash: outgoing shows income and fixed_costs; incoming shows
 savings_goal and the tasks that depend on it. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="completion-and-signature-help"><h2><span class="number">7.5</span> Completion and Signature Help</h2><p>Completion knows the context: names in prose, column names inside a sum, only timers after <code>@timer(</code>, only dates after <code>@due(</code>, properties after a dot, stop kinds after a time. Signature help describes each argument of a function as you type it.</p><figure class="jot-block" data-file="31-completion-and-signatures.jot">
   <figcaption><span>examples/31-completion-and-signatures.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/31-completion-and-signatures.jot" rows="17"># Completion and signature help
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/31-completion-and-signatures.jot"># Completion and signature help
 
 [groceries] := table
 | item  | quantity | price |
@@ -582,12 +582,12 @@ savings_goal and the tasks that depend on it. --&gt;
 names are offered; after @timer( only timers; after @due( only dates. Inside
 countdown( signature help describes each argument. Type focus. for properties.
 On an itinerary line, a time then two spaces offers stop kinds. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="folding-and-outline"><h2><span class="number">7.6</span> Folding and Outline</h2><p>Sections, tables, plans, itinerary days, stops, and comment blocks fold. The outline shows sections, tasks, values, tables, and columns in source order, with each item's current value beside it.</p><figure class="jot-block" data-file="32-folding-and-outline.jot">
   <figcaption><span>examples/32-folding-and-outline.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/32-folding-and-outline.jot" rows="22"># Folding and outline
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/32-folding-and-outline.jot"># Folding and outline
 
 ## Planning :planning
 
@@ -608,12 +608,12 @@ On an itinerary line, a time then two spaces offers stop kinds. --&gt;
 
 &lt;!-- Sections, tables, plans, itinerary days, stops and comment blocks fold.
 The outline lists sections, tasks, values, tables and columns in source order. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="diagnostics"><h2><span class="number">7.7</span> Diagnostics</h2><p>Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>jot check</code>.</p><p>The example below is valid as written; uncomment one of the suggested lines to see the diagnostic appear.</p><figure class="jot-block" data-file="30-diagnostics.jot">
   <figcaption><span>examples/30-diagnostics.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/30-diagnostics.jot" rows="14"># Diagnostics
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/30-diagnostics.jot"># Diagnostics
 
 Problems point at the exact token, across notes.
 
@@ -626,12 +626,12 @@ Problems point at the exact token, across notes.
   - [ ] Late @due(yesterdayy)  an invalid date
   | apple | two | $3 |  in a table: a typed cell error
 Unfetched lookups and unrecognized itinerary stops are warnings, not errors. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section><section class="part" id="part-8"><p class="kicker">Part 8</p><h1>The Workspace</h1><p class="lead">A workspace is a folder of notes. Names resolve across all of them, comments and code stay inert, and the command line reads the same files the editor does.</p><section class="chapter" id="comments-and-code-stay-inert"><h2><span class="number">8.1</span> Comments and Code Stay Inert</h2><p>HTML comments, fenced code blocks, and inline code are never parsed as definitions, tasks, or attributes. That makes them the place to leave instructions or examples that should not run.</p><figure class="jot-block" data-file="26-comments-and-code.jot">
   <figcaption><span>examples/26-comments-and-code.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/26-comments-and-code.jot" rows="19"># Comments and code stay inert
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/26-comments-and-code.jot"># Comments and code stay inert
 
 &lt;!-- [ignored] := 1 + 1 is not a definition inside a comment. --&gt;
 
@@ -649,12 +649,12 @@ Only [real] exists. Multi-line comment blocks fold.
 Everything here is ignored,
 including @due(tomorrow).
 --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="values-from-other-notes"><h2><span class="number">8.2</span> Values From Other Notes</h2><p>Names resolve across every note in the workspace, and a name defined in the current note wins a tie. The two notes below share a workspace on this page, so the first reads values defined in the second.</p><figure class="jot-block" data-file="27-cross-note-values.jot">
   <figcaption><span>examples/27-cross-note-values.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/27-cross-note-values.jot" rows="11"># Values from other notes
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/27-cross-note-values.jot"># Values from other notes
 
 Names resolve across every note in the workspace; local names win ties.
 
@@ -664,23 +664,23 @@ We can spend [shared_budget] this week.
 
 &lt;!-- shared_rate and shared_hours are defined in 28-cross-note-source.jot.
 Go to definition jumps there; rename updates both notes. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure><figure class="jot-block" data-file="28-cross-note-source.jot">
   <figcaption><span>examples/28-cross-note-source.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/28-cross-note-source.jot" rows="7"># Source of shared values
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/28-cross-note-source.jot"># Source of shared values
 
 [$95]:shared_rate
 [32]:shared_hours
 
 &lt;!-- Read from 27-cross-note-values.jot. Find references shows both notes. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="agenda-and-the-command-line"><h2><span class="number">8.3</span> Agenda and the Command Line</h2><p><code>jot today</code>, <code>jot agenda --week</code>, and <code>jot tasks</code> read every note. <code>jot capture</code> appends a task, <code>jot complete</code> ticks one, <code>jot check</code> reports problems, <code>jot plan</code> solves a plan, and <code>jot refresh</code> fills the caches. Add <code>--json</code> to any listing.</p><figure class="jot-block" data-file="29-agenda-and-cli.jot">
   <figcaption><span>examples/29-agenda-and-cli.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/29-agenda-and-cli.jot" rows="14"># Agenda and the command line
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/29-agenda-and-cli.jot"># Agenda and the command line
 
 Every note feeds jot today, jot agenda --week, and jot tasks.
 
@@ -693,12 +693,12 @@ Every note feeds jot today, jot agenda --week, and jot tasks.
 ticks a box; jot capture "Call the dentist" --due "next Friday" appends to
 inbox.jot; jot check reports problems; jot plan and jot refresh serve plans
 and lookups. Add --json to any listing. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section><section class="chapter" id="images-and-files"><h2><span class="number">8.4</span> Images and Files</h2><p>Relative paths resolve from the note, and home-relative paths work too. Images preview on hover and open with a lens; other files simply open.</p><figure class="jot-block" data-file="33-images-and-files.jot">
   <figcaption><span>examples/33-images-and-files.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
-  <div class="editor"><pre class="view" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="examples/33-images-and-files.jot" rows="12"># Images and files
+  <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/33-images-and-files.jot"># Images and files
 
 [../jots/assets/sample-receipt.svg]:receipt_image
 ![Sample receipt](../jots/assets/sample-receipt.svg)
@@ -709,7 +709,7 @@ and lookups. Add --json to any listing. --&gt;
 
 &lt;!-- Images preview on hover and open with the Open image lens. Relative paths
 resolve from the note; ~/ paths work too. --&gt;
-</textarea></div>
+</pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
 </figure></section></section>

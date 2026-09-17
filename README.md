@@ -97,6 +97,16 @@ Three features ride on standard LSP requests that most editors already send:
   [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
   prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
   also runs in the browser. See `jots/plans.jot`.
+- **Goal seek.** `[monthly] := solve(saved_by_june >= $5,000)` makes the
+  definition's own name the unknown and finds the boundary value through any
+  chain of calculations, with the unit inferred from the chain. Linear
+  equations have a closed form, so no solver runs.
+- **Decision columns.** A table column named `take?` is a yes/no choice per row
+  and `servings#` a whole number. A plan that sums over the column, such as
+  `maximize(sum(gear, value * take))`, chooses every row: each cell gets an
+  inlay with its choice, the plan hover lists what was picked, and a code
+  action on the plan line writes the choices into the table. Outside a plan a
+  decision column is not data.
 - **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
   column, task, or checklist as a node. *Incoming calls* list everything that
   reads it (calculations, `@after`, `@estimate`, parent tasks, checklists);

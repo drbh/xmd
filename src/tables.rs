@@ -15,6 +15,28 @@ pub struct Cell {
     pub span: Span,
     pub value: Result<Value, String>,
 }
+/// What a plan may choose for each row of a decision column.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Domain {
+    /// `name?`: yes or no.
+    Choice,
+    /// `name#`: a whole number, at least zero.
+    Count,
+}
+impl Domain {
+    pub fn sigil(self) -> char {
+        match self {
+            Self::Choice => '?',
+            Self::Count => '#',
+        }
+    }
+    pub fn type_name(self) -> &'static str {
+        match self {
+            Self::Choice => "Choice",
+            Self::Count => "Count",
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Table {
     pub definition: usize,
@@ -25,6 +47,8 @@ pub struct Table {
     pub types: Vec<Option<&'static str>>,
     pub separators: Vec<String>,
     pub problems: Vec<Problem>,
+    /// One entry per column; `Some` marks a decision column a plan fills in.
+    pub domains: Vec<Option<Domain>>,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableValue {
@@ -79,6 +103,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
         types: vec![],
         separators: vec![],
         problems: vec![],
+        domains: vec![],
     };
     let mut problem = |span, message| table.problems.push(Problem { span, message });
     let Some(headers) = lines.get(header).and_then(|l| cells(l, header)) else {
@@ -88,7 +113,14 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
         );
         return table;
     };
-    for (name, span) in headers {
+    for (raw, span) in headers {
+        let domain = match raw.chars().last() {
+            Some('?') => Some(Domain::Choice),
+            Some('#') => Some(Domain::Count),
+            _ => None,
+        };
+        let name = raw[..raw.len() - usize::from(domain.is_some())].to_string();
+        let span = Span::new(span.line, span.start, span.start + name.len());
         if !identifier(&name) || matches!(name.as_str(), "true" | "false") {
             problem(
                 span,
@@ -99,6 +131,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
             problem(span, format!("Duplicate column '{name}'"));
         }
         table.columns.push(Named { name, span });
+        table.domains.push(domain);
     }
     table.end_line = header + 1;
     let separator = lines.get(header + 1).and_then(|l| cells(l, header + 1));
@@ -146,12 +179,17 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                 ),
             );
         }
+        let domains = table.domains.clone();
         table.rows.push(
             parts
                 .into_iter()
-                .map(|(source, span)| {
+                .enumerate()
+                .map(|(column, (source, span))| {
                     let decoded = source.replace("\\|", "|");
-                    let value = if decoded.is_empty() {
+                    let value = if domains.get(column).is_some_and(Option::is_some) {
+                        // A plan decides these; whatever is written is a note to self.
+                        Ok(Value::Text(decoded.clone()))
+                    } else if decoded.is_empty() {
                         Err("Missing cell value".into())
                     } else {
                         engine::literal(&decoded).and_then(|v| {
@@ -177,9 +215,16 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                 .collect(),
         );
     }
-    table.types = vec![None; table.columns.len()];
+    table.types = table
+        .domains
+        .iter()
+        .map(|d| d.map(Domain::type_name))
+        .collect();
     for row in &table.rows {
         for (column, cell) in row.iter().enumerate().take(table.columns.len()) {
+            if table.domains[column].is_some() {
+                continue;
+            }
             match &cell.value {
                 Err(message) => problem(cell.span, message.clone()),
                 Ok(value) => {
@@ -339,7 +384,8 @@ pub fn aligned(doc: &Document, table: &Table) -> Vec<(usize, String)> {
             .iter()
             .enumerate()
             .map(|(i, c)| {
-                c.name.width().max(
+                let sigil = usize::from(table.domains.get(i).is_some_and(Option::is_some));
+                (c.name.width() + sigil).max(
                     3 + usize::from(table.separators[i].starts_with(':'))
                         + usize::from(table.separators[i].ends_with(':')),
                 )

@@ -321,3 +321,183 @@ fn alps_problem_files_round_trip() {
     assert_eq!(plan(&note(&source), "tiny").objective, Value::Number(2.0));
     assert!(plans::import("not valid", &bounded).is_err());
 }
+
+#[test]
+fn goal_seek_inverts_a_chain_of_calculations() {
+    let ws = note(
+        "[$1,200]:saved\n[9]:months_left\n[saved_by_june] := monthly * months_left + saved\n[monthly] := solve(saved_by_june >= $5,000)\nSave [monthly] a month.\n",
+    );
+    let mut engine = Engine::at(&ws, now());
+    assert_eq!(
+        engine.named(path(), "monthly").unwrap().display(),
+        "$422.22"
+    );
+    assert_eq!(
+        engine.named(path(), "saved_by_june").unwrap().display(),
+        "$5,000"
+    );
+    assert_eq!(messages(&ws), Vec::<String>::new());
+    let hover = intelligence::hover(&ws, &def(3), now());
+    assert!(
+        hover.contains("Goal seek: the smallest value that satisfies `saved_by_june >= $5,000`"),
+        "{hover}"
+    );
+    // Units follow the chain: a duration unknown, a plain-number unknown, a ceiling.
+    let hours = note("[30m]:per_call\n[calls] := solve(calls * per_call <= 4h)\n");
+    assert_eq!(
+        Engine::at(&hours, now()).named(path(), "calls").unwrap(),
+        Value::Number(8.0)
+    );
+    let exact = note("[price] := solve(price * 40 == $1,000)\n");
+    assert_eq!(
+        Engine::at(&exact, now()).named(path(), "price").unwrap(),
+        Value::Money(25.0)
+    );
+    let unrelated = note("[x] := solve(3 >= 2)\n");
+    assert_eq!(
+        messages(&unrelated),
+        ["The constraint does not depend on x"]
+    );
+    // A second unknown is an ordinary unknown name; only plans infer variables.
+    let two = note("[x] := solve(x + y >= 2)\n");
+    assert_eq!(messages(&two), ["Unknown name 'y'"]);
+    let declared = note("[y] := solve(y >= 1)\n[x] := solve(x + y >= 2)\n");
+    assert_eq!(
+        Engine::at(&declared, now()).named(path(), "x").unwrap(),
+        Value::Number(1.0)
+    );
+    let cyclic = note("[a] := b\n[b] := a\n[x] := solve(a >= 1)\n");
+    assert!(
+        messages(&cyclic).iter().any(|m| m.contains("cycle")),
+        "{:?}",
+        messages(&cyclic)
+    );
+}
+
+const GEAR: &str = "\
+[gear] := table
+| item   | weight | value | take? |
+| ------ | ------ | ----- | ----- |
+| tent   | 3      | 9     |       |
+| stove  | 1      | 4     |       |
+| camera | 2      | 7     |       |
+| books  | 4      | 3     |       |
+[pack] := maximize(sum(gear, value * take))
+| constraint | expression                    |
+| ---------- | ----------------------------- |
+| weight     | sum(gear, weight * take) <= 6 |
+[menu] := table
+| dish  | cost | protein | servings# |
+| ----- | ---- | ------- | --------- |
+| beans | $2   | 15      |           |
+| eggs  | $3   | 12      |           |
+[diet] := minimize(sum(menu, cost * servings))
+| constraint | expression                          |
+| ---------- | ----------------------------------- |
+| protein    | sum(menu, protein * servings) >= 50 |
+[wrong] := sum(gear, weight * take)
+";
+
+#[test]
+fn decision_columns_become_per_row_choices_and_counts() {
+    let ws = note(GEAR);
+    let pack = plan(&ws, "pack");
+    assert_eq!(pack.objective, Value::Number(20.0));
+    assert!(
+        pack.variables.is_empty(),
+        "columns are not scalar variables: {:?}",
+        pack.variables
+    );
+    let choices: Vec<_> = pack
+        .rows
+        .iter()
+        .map(|(r, v)| (r.name.as_str(), v.clone()))
+        .collect();
+    assert_eq!(
+        choices,
+        [
+            ("gear.take[1]", Value::Bool(true)),
+            ("gear.take[2]", Value::Bool(true)),
+            ("gear.take[3]", Value::Bool(true)),
+            ("gear.take[4]", Value::Bool(false)),
+        ]
+    );
+    let diet = plan(&ws, "diet");
+    assert_eq!(diet.objective, Value::Money(8.0));
+    assert_eq!(diet.rows[0].1, Value::Number(4.0));
+    assert_eq!(diet.rows[1].1, Value::Number(0.0));
+    // Decision columns are not data outside a plan, and column names never leak as variables.
+    let issues = messages(&ws);
+    assert_eq!(issues.len(), 1, "{issues:?}");
+    assert!(issues[0].contains("decision column"), "{issues:?}");
+    assert!(
+        ws.symbols()
+            .iter()
+            .all(|s| !matches!(s.kind, SymbolKind::Variable(..)))
+    );
+    let hover = intelligence::hover(
+        &ws,
+        &Symbol {
+            path: path().into(),
+            kind: SymbolKind::Column(0, 3),
+        },
+        now(),
+    );
+    assert!(
+        hover.contains("Decision column of `gear` (name?)"),
+        "{hover}"
+    );
+    let plan_hover = intelligence::hover(&ws, &def(1), now());
+    assert!(
+        plan_hover.contains("take: tent, stove, camera, ~~books~~"),
+        "{plan_hover}"
+    );
+}
+
+#[test]
+fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
+    let ws = note(GEAR);
+    let hints = presentation::hints_at(
+        &ws,
+        path(),
+        now(),
+        Range::new(Position::new(0, 0), Position::new(30, 0)),
+    );
+    let labels = |line: u32| {
+        hints
+            .iter()
+            .filter(|h| h.position.line == line)
+            .map(|h| match &h.label {
+                InlayHintLabel::String(s) => s.clone(),
+                other => panic!("{other:?}"),
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(labels(3), ["→ yes"]);
+    assert_eq!(labels(6), ["→ no"]);
+    assert_eq!(labels(7), ["= 20 · take 3 of 4"]);
+    assert_eq!(labels(14), ["→ 4"]);
+    assert_eq!(labels(16), ["= $8 · servings 4"]);
+    let line = Position::new(7, 2);
+    let actions = jot::refactor::actions_for(&ws, path(), Range::new(line, line), now());
+    let fill = actions
+        .iter()
+        .find(|a| a.title == "Write the plan's choices into the table")
+        .unwrap();
+    assert_eq!(fill.edits.len(), 4);
+    let written = actions::apply_edits(GEAR, &fill.edits).unwrap();
+    assert!(
+        written.contains("| tent   | 3      | 9     | yes   |"),
+        "{written}"
+    );
+    assert!(
+        written.contains("| books  | 4      | 3     | no    |"),
+        "{written}"
+    );
+    // Written values are notes, not data: the plan still decides, and formatting holds.
+    let rewritten = note(&written);
+    assert_eq!(plan(&rewritten, "pack").objective, Value::Number(20.0));
+    assert!(tables::formatting(&rewritten.documents[path()]).is_empty());
+    let none = jot::refactor::actions_for(&rewritten, path(), Range::new(line, line), now());
+    assert!(none.iter().all(|a| !a.title.starts_with("Write the plan")));
+}

@@ -54,6 +54,8 @@ pub struct ConstraintResult {
     pub slack: Value,
     pub binding: bool,
 }
+/// (table, column index, (row index, chosen value) per row).
+pub type ColumnChoices = (Symbol, usize, Vec<(usize, Value)>);
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanValue {
     pub origin: Symbol,
@@ -61,6 +63,8 @@ pub struct PlanValue {
     pub objective: Value,
     pub variables: Vec<(String, Value)>,
     pub constraints: Vec<ConstraintResult>,
+    /// Decision-column cells the plan filled in.
+    pub rows: Vec<(crate::engine::RowVariable, Value)>,
 }
 impl PlanValue {
     pub fn property(&self, name: &str) -> Result<Value, String> {
@@ -74,6 +78,24 @@ impl PlanValue {
             return Ok(c.slack.clone());
         }
         Err(format!("Unknown plan property '{name}'"))
+    }
+    /// Per decision column: (table, column, chosen values in row order).
+    pub fn columns(&self) -> Vec<ColumnChoices> {
+        let mut result: Vec<ColumnChoices> = Vec::new();
+        for (row, value) in &self.rows {
+            match result
+                .iter_mut()
+                .find(|(t, c, _)| *t == row.table && *c == row.column)
+            {
+                Some((_, _, cells)) => cells.push((row.row, value.clone())),
+                None => result.push((
+                    row.table.clone(),
+                    row.column,
+                    vec![(row.row, value.clone())],
+                )),
+            }
+        }
+        result
     }
     pub fn property_names(&self) -> Vec<String> {
         std::iter::once("objective".to_string())
@@ -268,6 +290,96 @@ pub fn grid(plan: &Plan) -> Table {
             .collect(),
         types: vec![Some("Text"); 2],
         problems: plan.problems.clone(),
+        domains: vec![None; 2],
+    }
+}
+/// `solve(constraint)`: the body of a goal-seek definition.
+pub fn seek_body(source: &str) -> Option<&str> {
+    let rest = source.strip_prefix("solve")?;
+    let rest = rest.trim_start();
+    let inner = rest.strip_prefix('(')?.trim_end().strip_suffix(')')?;
+    let mut depth = 0;
+    for c in inner.chars() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth < 0 {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+    (depth == 0).then_some(inner.trim())
+}
+/// Goal seek: the definition's own name is the unknown, and the answer is the
+/// boundary value that makes the constraint hold. Linear equations have a
+/// closed form, so no solver runs.
+pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
+    let doc = &engine.workspace.documents[&symbol.path];
+    let SymbolKind::Definition(index) = symbol.kind else {
+        return Err("Expected a definition".into());
+    };
+    let def = &doc.definitions[index];
+    let name = def.named.name.clone();
+    let body =
+        seek_body(&def.source).ok_or("solve() needs a constraint, e.g. solve(total >= $500)")?;
+    let raw = &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+    let offset = def.value_span.start + raw.len() - raw.trim_start().len();
+    let start = offset + def.source.find(body).unwrap_or(0);
+    let span = Span::new(def.value_span.line, start, start + body.len());
+    let vars = [name.clone()].into_iter().collect();
+    let (lhs, op, rhs) = engine.constraint(&symbol.path, body, span, &vars)?;
+    let difference = lhs.minus(&rhs)?;
+    let coefficient = difference.terms.get(&name).copied().unwrap_or(0.0);
+    let fail = |engine: &mut Engine<'_>, message: String| {
+        engine.failure.get_or_insert(crate::engine::EvalFailure {
+            path: symbol.path.clone(),
+            span,
+            message: message.clone(),
+            related: vec![],
+        });
+        message
+    };
+    if coefficient == 0.0 {
+        return Err(fail(
+            engine,
+            format!("The constraint does not depend on {name}"),
+        ));
+    }
+    if difference.terms.len() > 1 {
+        let others: Vec<_> = difference
+            .terms
+            .keys()
+            .filter(|k| **k != name)
+            .cloned()
+            .collect();
+        return Err(fail(
+            engine,
+            format!(
+                "solve() finds one value; {} would need a plan",
+                others.join(", ")
+            ),
+        ));
+    }
+    let value = -difference.constant / coefficient;
+    let kind = difference.unknown_kind().ok_or_else(|| {
+        fail(
+            engine,
+            "Cannot tell the unit of the answer; the unknown is scaled by two different units"
+                .into(),
+        )
+    })?;
+    let _ = op;
+    Ok(typed(kind, value))
+}
+/// Human-readable direction for a goal seek: what the boundary value means.
+pub fn seek_summary(op: &str, coefficient_positive: bool) -> &'static str {
+    match (op, coefficient_positive) {
+        ("==", _) => "the exact value that satisfies",
+        (">=", true) | ("<=", false) => "the smallest value that satisfies",
+        _ => "the largest value that satisfies",
     }
 }
 pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)> {
@@ -322,12 +434,13 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         });
         return Err(problem.message.clone());
     }
+    engine.row_variables.clear();
     let objective = engine.linear(&path, &plan.objective, plan.objective_span, &vars)?;
     let mut constraints = Vec::new();
     for constraint in &plan.constraints {
         constraints.push(engine.constraint(&path, &constraint.source, constraint.span, &vars)?);
     }
-    if names.is_empty() {
+    if names.is_empty() && engine.row_variables.is_empty() {
         engine.failure.get_or_insert(crate::engine::EvalFailure {
             path: path.clone(),
             span: plan.objective_span,
@@ -336,11 +449,19 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         });
         return Err("A plan needs at least one unknown name to solve for".into());
     }
+    let rows = std::mem::take(&mut engine.row_variables);
     let mut problem = ProblemVariables::new();
-    let variables: BTreeMap<String, good_lp::Variable> = names
+    let mut variables: BTreeMap<String, good_lp::Variable> = names
         .iter()
         .map(|name| (name.clone(), problem.add(variable().min(0.0))))
         .collect();
+    for row in &rows {
+        let definition = match row.domain {
+            crate::tables::Domain::Choice => variable().binary(),
+            crate::tables::Domain::Count => variable().integer().min(0),
+        };
+        variables.insert(row.name.clone(), problem.add(definition));
+    }
     let expression = |form: &Linear| {
         let mut e = Expression::from(form.constant);
         for (name, coef) in &form.terms {
@@ -389,6 +510,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         .iter()
         .map(|(name, var)| (name.clone(), solution.value(*var)))
         .collect();
+    let _ = &rows;
     let results = plan
         .constraints
         .iter()
@@ -424,6 +546,17 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
             .map(|n| (n.clone(), Value::Number(tidy(values[n]))))
             .collect(),
         constraints: results,
+        rows: rows
+            .into_iter()
+            .map(|row| {
+                let value = tidy(values[&row.name]);
+                let value = match row.domain {
+                    crate::tables::Domain::Choice => Value::Bool(value >= 0.5),
+                    crate::tables::Domain::Count => Value::Number(value.round()),
+                };
+                (row, value)
+            })
+            .collect(),
     })))
 }
 

@@ -616,7 +616,11 @@ pub struct EvalFailure {
 pub struct Linear {
     pub terms: BTreeMap<String, f64>,
     pub constant: f64,
+    /// Unit of the whole form; "Any" while it is only bare variables.
     pub kind: &'static str,
+    /// Unit the variables were multiplied by, so a goal seek can tell whether
+    /// its unknown is money, a duration, or a plain number.
+    pub scale: &'static str,
 }
 impl Linear {
     fn constant(kind: &'static str, value: f64) -> Self {
@@ -624,13 +628,15 @@ impl Linear {
             terms: BTreeMap::new(),
             constant: value,
             kind,
+            scale: "Number",
         }
     }
     fn variable(name: &str) -> Self {
         Self {
             terms: [(name.to_string(), 1.0)].into(),
             constant: 0.0,
-            kind: "Number",
+            kind: "Any",
+            scale: "Number",
         }
     }
     fn is_zero(&self) -> bool {
@@ -640,12 +646,25 @@ impl Linear {
     fn combined(a: &Self, b: &Self) -> Option<&'static str> {
         if a.kind == b.kind {
             Some(a.kind)
-        } else if a.is_zero() {
+        } else if a.is_zero() || a.kind == "Any" {
             Some(b.kind)
-        } else if b.is_zero() {
+        } else if b.is_zero() || b.kind == "Any" {
             Some(a.kind)
         } else {
             None
+        }
+    }
+    pub fn minus(&self, other: &Self) -> Result<Self, String> {
+        self.add(other, -1.0)
+    }
+    /// The unit of a variable in this form, or `None` when it is scaled by
+    /// two different units.
+    pub fn unknown_kind(&self) -> Option<&'static str> {
+        match (self.kind, self.scale) {
+            ("Any", _) => Some("Number"),
+            (kind, "Number") => Some(kind),
+            (kind, scale) if kind == scale => Some("Number"),
+            _ => None,
         }
     }
     fn scaled(mut self, factor: f64) -> Self {
@@ -660,6 +679,15 @@ impl Linear {
             .ok_or_else(|| format!("Cannot add {} and {}", self.kind, other.kind))?;
         let mut result = self.clone();
         result.kind = kind;
+        if !self.terms.is_empty() && !other.terms.is_empty() && self.scale != other.scale {
+            return Err(format!(
+                "Cannot add terms scaled by {} and {}",
+                self.scale, other.scale
+            ));
+        }
+        if self.terms.is_empty() {
+            result.scale = other.scale;
+        }
         for (name, c) in &other.terms {
             *result.terms.entry(name.clone()).or_insert(0.0) += sign * c;
         }
@@ -676,10 +704,17 @@ impl Linear {
         };
         let kind = match (form.kind, factor.kind) {
             (k, "Number") | ("Number", k) => k,
+            ("Any", k) => k,
             (a, b) => return Err(format!("Cannot multiply {a} by {b}")),
         };
         let mut result = form.clone().scaled(factor.constant);
         result.kind = kind;
+        if factor.kind != "Number" && !form.terms.is_empty() {
+            if form.scale != "Number" {
+                return Err(format!("Cannot multiply {} by {}", form.scale, factor.kind));
+            }
+            result.scale = factor.kind;
+        }
         Ok(result)
     }
     fn divide(&self, other: &Self) -> Result<Self, String> {
@@ -696,6 +731,13 @@ impl Linear {
         };
         let mut result = self.clone().scaled(1.0 / other.constant);
         result.kind = kind;
+        if other.kind != "Number" && !self.terms.is_empty() {
+            result.scale = if self.scale == other.kind {
+                "Number"
+            } else {
+                return Err(format!("Cannot divide {} by {}", self.scale, other.kind));
+            };
+        }
         Ok(result)
     }
 }
@@ -708,8 +750,28 @@ pub struct Engine<'a> {
     contexts: Vec<(PathBuf, Span)>,
     memo: BTreeMap<Symbol, Result<Value, String>>,
     stack: Vec<Symbol>,
-    row_values: Vec<(String, BTreeMap<String, Value>)>,
+    row_values: Vec<RowScope>,
+    /// Decision-column variables met while linearizing a plan.
+    pub row_variables: Vec<RowVariable>,
+    /// Definitions being walked symbolically, separate from the value stack:
+    /// a goal seek is legitimately on both at once.
+    linear_stack: Vec<Symbol>,
     steps: usize,
+}
+/// Column values for one table row while a `sum` row expression runs.
+struct RowScope {
+    table: String,
+    values: BTreeMap<String, Value>,
+    /// Decision columns, mapped to the per-row variable name a plan uses.
+    decisions: BTreeMap<String, String>,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct RowVariable {
+    pub name: String,
+    pub table: Symbol,
+    pub column: usize,
+    pub row: usize,
+    pub domain: crate::tables::Domain,
 }
 impl<'a> Engine<'a> {
     pub fn new(workspace: &'a Workspace, today: NaiveDate) -> Self {
@@ -729,6 +791,8 @@ impl<'a> Engine<'a> {
             memo: BTreeMap::new(),
             stack: Vec::new(),
             row_values: Vec::new(),
+            row_variables: Vec::new(),
+            linear_stack: Vec::new(),
             steps: 0,
         }
     }
@@ -862,6 +926,8 @@ impl<'a> Engine<'a> {
                 let def = &doc.definitions[i];
                 if let Some(plan) = doc.plans.iter().find(|p| p.definition == i) {
                     crate::plans::solve(self, symbol, plan)
+                } else if def.expression && crate::plans::seek_body(&def.source).is_some() {
+                    crate::plans::seek(self, symbol)
                 } else if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
                     if let Some(problem) = table.problems.first() {
                         self.failure = Some(EvalFailure {
@@ -1007,6 +1073,35 @@ impl<'a> Engine<'a> {
         self.contexts.pop();
         result
     }
+    /// An ordinary calculation's source, for symbolic descent. Tables, plans,
+    /// goal seeks and literals are opaque and evaluate to constants instead.
+    fn definition_source(&self, path: &Path, name: &str) -> Option<(Symbol, String, Span)> {
+        let symbol = self.workspace.resolve(path, name).ok()?;
+        let SymbolKind::Definition(i) = symbol.kind else {
+            return None;
+        };
+        let doc = &self.workspace.documents[&symbol.path];
+        let def = &doc.definitions[i];
+        if !def.expression
+            || doc.tables.iter().any(|t| t.definition == i)
+            || doc.plans.iter().any(|p| p.definition == i)
+            || crate::plans::seek_body(&def.source).is_some()
+            || crate::plans::goal(&def.source).is_some()
+        {
+            return None;
+        }
+        let raw = &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+        let offset = raw.len() - raw.trim_start().len();
+        Some((
+            symbol.clone(),
+            def.source.clone(),
+            Span::new(
+                def.value_span.line,
+                def.value_span.start + offset,
+                def.value_span.end,
+            ),
+        ))
+    }
     fn linear_expr(
         &mut self,
         path: &Path,
@@ -1033,7 +1128,40 @@ impl<'a> Engine<'a> {
                 }
                 result
             }
-            Expr::Name(n) if vars.contains(n) => Ok(Linear::variable(n)),
+            Expr::Name(n) if vars.contains(n) && self.row_values.is_empty() => {
+                Ok(Linear::variable(n))
+            }
+            Expr::Name(n)
+                if self
+                    .row_values
+                    .last()
+                    .is_some_and(|scope| scope.decisions.contains_key(n)) =>
+            {
+                let variable = self.row_values.last().unwrap().decisions[n].clone();
+                if variable.is_empty() {
+                    return Err(format!("'{n}' is a decision column; use it inside a plan"));
+                }
+                Ok(Linear::variable(&variable))
+            }
+            // Walk into calculations symbolically, so a goal seek can see its
+            // own name through any chain of definitions.
+            Expr::Name(n)
+                if self.row_values.is_empty()
+                    && !matches!(n.as_str(), "true" | "false")
+                    && self.definition_source(path, n).is_some() =>
+            {
+                let (symbol, source, span) = self.definition_source(path, n).unwrap();
+                if self.linear_stack.contains(&symbol) {
+                    return Err(format!("Dependency cycle through {n}"));
+                }
+                self.linear_stack.push(symbol.clone());
+                let result = self.linear(&symbol.path, &source, span, vars);
+                self.linear_stack.pop();
+                result
+            }
+            Expr::Call(n, args) if n == "sum" && args.len() == 2 => {
+                self.linear_sum(path, args, vars)
+            }
             Expr::Unary(op, inner) => {
                 let form = self.linear_expr(path, inner, vars)?;
                 match op.as_str() {
@@ -1078,10 +1206,15 @@ impl<'a> Engine<'a> {
                 "true" => Ok(Value::Bool(true)),
                 "false" => Ok(Value::Bool(false)),
                 _ => {
-                    if let Some((table, row)) = self.row_values.last() {
-                        row.get(n)
-                            .cloned()
-                            .ok_or_else(|| format!("Unknown column '{n}' in table '{table}'"))
+                    if let Some(scope) = self.row_values.last() {
+                        if scope.decisions.contains_key(n) {
+                            return Err(format!(
+                                "'{n}' is a decision column; a plan chooses it, so sum over it inside maximize or minimize"
+                            ));
+                        }
+                        scope.values.get(n).cloned().ok_or_else(|| {
+                            format!("Unknown column '{n}' in table '{}'", scope.table)
+                        })
                     } else {
                         self.named(path, n)
                     }
@@ -1254,16 +1387,21 @@ impl<'a> Engine<'a> {
         };
         let mut total = None;
         let mut contributions = Vec::new();
+        let decisions = self.decision_columns(&table);
         for row in &table.rows {
-            self.row_values.push((
-                name.clone(),
-                table
+            self.row_values.push(RowScope {
+                table: name.clone(),
+                values: table
                     .columns
                     .iter()
                     .cloned()
                     .zip(row.iter().cloned())
                     .collect(),
-            ));
+                decisions: decisions
+                    .keys()
+                    .map(|c| (c.clone(), String::new()))
+                    .collect(),
+            });
             let value = self.expr(path, &args[1]);
             self.row_values.pop();
             let value = value?;
@@ -1295,6 +1433,68 @@ impl<'a> Engine<'a> {
         })
     }
 
+    /// Decision columns of a table value: column name to (index, domain).
+    fn decision_columns(
+        &self,
+        table: &crate::tables::TableValue,
+    ) -> BTreeMap<String, (usize, crate::tables::Domain)> {
+        crate::tables::table(self.workspace, &table.origin)
+            .map(|t| {
+                t.domains
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, d)| d.map(|d| (t.columns[i].name.clone(), (i, d))))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+    /// `sum(table, row expression)` as a linear form: decision columns become
+    /// one variable per row, other columns are constants.
+    fn linear_sum(
+        &mut self,
+        path: &Path,
+        args: &[Expr],
+        vars: &BTreeSet<String>,
+    ) -> Result<Linear, String> {
+        let Some(Expr::Name(name)) = args.first().map(Expr::bare) else {
+            return Err("The first argument to sum must be a table name".into());
+        };
+        let Value::Table(table) = self.named(path, name)? else {
+            return Err(format!("'{name}' is not a table"));
+        };
+        let decisions = self.decision_columns(&table);
+        let mut total = Linear::constant("Any", 0.0);
+        for (index, row) in table.rows.iter().enumerate() {
+            let mut names = BTreeMap::new();
+            for (column, (c, domain)) in &decisions {
+                let variable = format!("{name}.{column}[{}]", index + 1);
+                if !self.row_variables.iter().any(|v| v.name == variable) {
+                    self.row_variables.push(RowVariable {
+                        name: variable.clone(),
+                        table: table.origin.clone(),
+                        column: *c,
+                        row: index,
+                        domain: *domain,
+                    });
+                }
+                names.insert(column.clone(), variable);
+            }
+            self.row_values.push(RowScope {
+                table: name.clone(),
+                values: table
+                    .columns
+                    .iter()
+                    .cloned()
+                    .zip(row.iter().cloned())
+                    .collect(),
+                decisions: names,
+            });
+            let form = self.linear_expr(path, &args[1], vars);
+            self.row_values.pop();
+            total = total.add(&form?, 1.0)?;
+        }
+        Ok(total)
+    }
     pub fn sum_contributions(&mut self, path: &Path, source: &str) -> Option<Vec<Value>> {
         let parsed = Parser::parse(source).ok()?;
         let Expr::Call(name, args) = parsed.bare() else {

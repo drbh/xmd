@@ -138,6 +138,32 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                                 .iter()
                                 .map(|(name, v)| format!("{name} {}", v.display())),
                         )
+                        .chain(plan.columns().into_iter().map(|(table, column, cells)| {
+                            let t = &workspace.documents[&table.path];
+                            let name = crate::tables::table(workspace, &table)
+                                .map(|t| t.columns[column].name.clone())
+                                .unwrap_or_default();
+                            let _ = t;
+                            let chosen = cells
+                                .iter()
+                                .filter(|(_, v)| !matches!(v, Value::Bool(false)))
+                                .count();
+                            match cells.first().map(|(_, v)| v) {
+                                Some(Value::Bool(_)) => {
+                                    format!("{name} {chosen} of {}", cells.len())
+                                }
+                                _ => format!(
+                                    "{name} {}",
+                                    Value::Number(
+                                        cells
+                                            .iter()
+                                            .filter_map(|(_, v)| crate::charts::magnitude(v))
+                                            .sum()
+                                    )
+                                    .display()
+                                ),
+                            }
+                        }))
                         .collect::<Vec<_>>()
                         .join(" · "),
                     value => format!("= {}", value.display()),
@@ -152,6 +178,41 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 ),
             ),
             _ => {}
+        }
+    }
+    // Decision cells of tables in this note, filled by plans in any note.
+    for (plan_path, plan_doc) in &workspace.documents {
+        for plan in &plan_doc.plans {
+            let Ok(Value::Plan(solved)) = engine.symbol(&Symbol {
+                path: plan_path.clone(),
+                kind: SymbolKind::Definition(plan.definition),
+            }) else {
+                continue;
+            };
+            for (row, value) in &solved.rows {
+                if row.table.path != path {
+                    continue;
+                }
+                let Some(table) = crate::tables::table(workspace, &row.table) else {
+                    continue;
+                };
+                let Some(cell) = table.rows.get(row.row).and_then(|r| r.get(row.column)) else {
+                    continue;
+                };
+                let shown = match value {
+                    Value::Bool(true) => "yes".to_string(),
+                    Value::Bool(false) => "no".to_string(),
+                    v => v.display(),
+                };
+                push(
+                    cell.span.range(&doc.text).end,
+                    format!("→ {shown}"),
+                    format!(
+                        "Chosen by plan {}. Use the code action on the plan to write choices into the table.",
+                        plan_doc.definitions[plan.definition].named.name
+                    ),
+                );
+            }
         }
     }
     for plan in &doc.plans {

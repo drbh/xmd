@@ -45,3 +45,49 @@ error, and so is multiplying two variables together. Try either. -->
 
 <!-- On the command line: jot plan bakery, jot plan bakery --export > bakery.json,
 and jot plan --import bakery.json to get the Jot source back. -->
+
+## Goal seek
+
+One unknown, one constraint, and the answer is the boundary value. The
+definition's own name is the unknown, found through any chain of calculations.
+
+[$1,200]:saved
+[9]:months_left
+[saved_by_june] := monthly * months_left + saved
+[monthly] := solve(saved_by_june >= $5,000)
+
+Save [monthly] a month to reach [saved_by_june] by June.
+
+## Decision columns
+
+A column named `take?` is a yes/no choice per row and `servings#` a whole
+number. A plan that sums over the column decides every row; the inlay on each
+cell shows the choice, and the code action on the plan line writes them in.
+
+[gear] := table
+| item   | weight | value | take? |
+| ------ | ------ | ----- | ----- |
+| tent   | 3      | 9     |       |
+| stove  | 1      | 4     |       |
+| camera | 2      | 7     |       |
+| books  | 4      | 3     |       |
+
+[pack] := maximize(sum(gear, value * take))
+| constraint | expression                    |
+| ---------- | ----------------------------- |
+| weight     | sum(gear, weight * take) <= 6 |
+
+[menu] := table
+| dish  | cost | protein | servings# |
+| ----- | ---- | ------- | --------- |
+| beans | $2   | 15      |           |
+| eggs  | $3   | 12      |           |
+| tofu  | $4   | 20      |           |
+
+[diet] := minimize(sum(menu, cost * servings))
+| constraint | expression                          |
+| ---------- | ----------------------------------- |
+| protein    | sum(menu, protein * servings) >= 50 |
+| variety    | sum(menu, servings) <= 4            |
+
+Packing scores [pack]; the cheapest menu costs [diet].

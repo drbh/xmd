@@ -305,8 +305,20 @@ impl Document {
                     );
                 }
                 for reference in &doc.references {
+                    // Column names inside sum(table, ...) belong to the table.
+                    let in_sum = crate::plans::regions(&plan).any(|region| {
+                        region.line == reference.span.line
+                            && reference.span.start >= region.start
+                            && reference.span.end <= region.end
+                            && crate::engine::sum_scope_at(
+                                &lines[region.line][region.start..region.end],
+                                reference.span.start - region.start,
+                            )
+                            .is_some()
+                    });
                     if crate::plans::contains(&plan, reference.span)
                         && reference.property.is_none()
+                        && !in_sum
                         && !plan.names.iter().any(|n| n.name == reference.name)
                     {
                         plan.names.push(Named {

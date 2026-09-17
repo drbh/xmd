@@ -175,6 +175,13 @@ const FUNCTIONS: &[Function] = &[
         example: "3 * bagels + 1.25 * doughnuts",
     },
     Function {
+        name: "solve",
+        params: &["constraint: expression with <=, >=, or =="],
+        result: "Number, Money, or Duration",
+        documentation: "Goal seek: the definition's own name is the unknown, and the answer is the boundary value that makes the constraint hold through any chain of calculations. Example: [monthly] := solve(saved_by_june >= $5,000).",
+        example: "total >= $500",
+    },
+    Function {
         name: "minimize",
         params: &["objective: linear expression"],
         result: "Plan",
@@ -629,6 +636,22 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
             .filter_map(|r| r.get(c))
             .filter_map(|cell| cell.value.clone().ok())
             .collect();
+        if let Some(domain) = table.domains[c] {
+            return format!(
+                "**{} · {}**\n\nDecision column of `{name}` ({}): a plan that sums over it chooses {} for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: {}",
+                named.name,
+                domain.type_name(),
+                match domain {
+                    crate::tables::Domain::Choice => "name?",
+                    crate::tables::Domain::Count => "name#",
+                },
+                match domain {
+                    crate::tables::Domain::Choice => "yes or no",
+                    crate::tables::Domain::Count => "a whole number",
+                },
+                source_link(ws, symbol)
+            );
+        }
         let chart = crate::charts::series(&values)
             .map(|chart| format!("\n\n{chart}"))
             .unwrap_or_default();
@@ -672,7 +695,43 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
                 out.push_str(&format!("= {}\n", v.display()));
             }
             out.push_str("```");
+            if let Some(body) = crate::plans::seek_body(&def.source) {
+                let vars = [named.name.clone()].into_iter().collect();
+                if let Ok((lhs, op, rhs)) =
+                    engine.constraint(&symbol.path, body, def.value_span, &vars)
+                    && let Ok(difference) = lhs.minus(&rhs)
+                {
+                    let coefficient = difference.terms.get(&named.name).copied().unwrap_or(0.0);
+                    out.push_str(&format!(
+                        "\n\nGoal seek: {} `{body}`.",
+                        crate::plans::seek_summary(&op, coefficient > 0.0)
+                    ));
+                }
+            }
             if let Ok(Value::Plan(plan)) = &value {
+                for (table, column, cells) in plan.columns() {
+                    if let Some(t) = crate::tables::table(ws, &table) {
+                        let chosen: Vec<String> = cells
+                            .iter()
+                            .map(|(row, v)| {
+                                let label = t.rows[*row]
+                                    .first()
+                                    .map(|c| c.source.clone())
+                                    .unwrap_or_else(|| (row + 1).to_string());
+                                match v {
+                                    Value::Bool(true) => label,
+                                    Value::Bool(false) => format!("~~{label}~~"),
+                                    v => format!("{label} × {}", v.display()),
+                                }
+                            })
+                            .collect();
+                        out.push_str(&format!(
+                            "\n\n{}: {}",
+                            t.columns[column].name,
+                            chosen.join(", ")
+                        ));
+                    }
+                }
                 out.push_str(&format!(
                     "\n\n{} the objective. Variables: {}",
                     if plan.goal == crate::plans::Goal::Maximize {

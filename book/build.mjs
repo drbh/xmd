@@ -46,6 +46,7 @@ const html = `<!doctype html>
   <meta name="referrer" content="no-referrer">
   <title>The Jot Book</title>
   <link rel="icon" href="data:,">
+  <link rel="preload" href="../fonts/IoskeleyMono-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./book.css">
 </head>
 <body>

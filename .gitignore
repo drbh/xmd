@@ -2,3 +2,10 @@
 /zed-extension/target
 /zed-extension/extension.wasm
 /.jot/
+/web/pkg/
+/web/node_modules/
+/web/test-results/
+/web/playwright-report/
+/vscode-extension/node_modules/
+/vscode-extension/.vscode-test/
+/vscode-extension/*.vsix

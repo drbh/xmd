@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Jot — browser workspace</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://esm.sh/monaco-editor@0.56.0/es2022/monaco-editor.bundle.css">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+    {
+      "scopes": {
+        "https://esm.sh/monaco-editor@0.56.0/": {
+          "https://esm.sh/node/process.mjs": "./browser-process.js"
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="brand">jot<span>notes that think with you</span></div>
+    <div class="actions">
+      <button id="new-note">New note</button>
+      <button id="import-notes">Import .jot</button>
+      <button id="download">Download</button>
+    </div>
+  </header>
+  <main>
+    <aside>
+      <h2>YOUR WORKSPACE</h2>
+      <nav id="notes" aria-label="Notes"></nav>
+      <section class="outline" aria-labelledby="outline-title">
+        <h2 id="outline-title">DOCUMENT OUTLINE</h2>
+        <input id="outline-filter" type="search" aria-label="Filter document symbols" placeholder="Filter symbols…" autocomplete="off">
+        <nav id="outline" aria-label="Document outline"></nav>
+        <p id="outline-empty">Loading symbols…</p>
+      </section>
+      <div class="guide">
+        <p>Plain text. Live values.</p>
+        <p>Hover a name to explain it. Click a timer control to start. Use the outline to jump to headings, tasks, and values.</p>
+        <p>Notes stay in this browser. Download a copy to keep a backup.</p>
+        <details><summary>Browser limits</summary><p>No access to your disk or GitHub CLI. Import related notes together for cross-file references. Local image previews are not included. Timers catch up when this tab wakes; there are no background alarms.</p><p>The editor loads from a CDN. Language evaluation happens locally in Rust/WebAssembly.</p></details>
+      </div>
+    </aside>
+    <section class="document" aria-label="Jot editor">
+      <div class="document-bar"><span id="filename">Starting workspace…</span><span id="engine">Loading Rust / WebAssembly</span></div>
+      <div id="notice" role="status" hidden></div>
+      <div id="editor" aria-label="Note contents"></div>
+      <section id="problems" aria-label="Problems" hidden></section>
+      <footer><span id="save-status">Loading editor…</span><span id="language-status"></span></footer>
+    </section>
+  </main>
+  <input id="file-input" type="file" accept=".jot,text/plain" multiple hidden>
+  <noscript>Jot requires JavaScript and WebAssembly.</noscript>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

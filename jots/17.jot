@@ -1,0 +1,44 @@
+
+- [ ] push trait based input to cuda oxide
+    - target 7AM
+        - would be nice if Nihal has time to take a look so we can talk about it in the interview
+    - [X] changes pushed to my fork
+    - [x] open PR to upstream @completed(2026-09-17)
+- [x] shower @completed(2026-09-17)
+- [x] adderall @completed(2026-09-17)
+- [ ] prepare for interview
+  - [ ] story?
+  - [x] PR @completed(2026-09-17)
+  - [ ] previous work?
+    - [ ] multicast https://github.com/NVlabs/cuda-oxide/pull/606
+    - [ ] mir pass https://github.com/NVlabs/cuda-oxide/pull/674
+      - [ ] use mir pass for warp contention https://github.com/NVlabs/cuda-oxide/pull/975
+      - [ ] pinned overlap https://github.com/NVlabs/cuda-oxide/pull/976
+      - [ ] wait on barriers for race conds https://github.com/NVlabs/cuda-oxide/pull/1065
+
+
+- is the complete task too much?
+- better headers?
+- better understanding of why pliron
+
+```bash
+cd /Users/drbh/Projects/cuda-oxide
+codex resume 01a0ad59-fec7-7740-8554-2eec9567432a
+```
+
+
+----
+
+- on type formatting
+
+
+cute in cuda oxide
+- cute tile
+- cute ir translateion
+-
+
+
+| some | table |
+|-|-|
+| hello | world |
+| test | some|

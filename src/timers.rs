@@ -4,8 +4,8 @@ use crate::{
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset};
+use lsp_types::TextEdit;
 use std::path::Path;
-use tower_lsp::lsp_types::TextEdit;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Timer {

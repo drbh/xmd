@@ -1,7 +1,23 @@
 # Jot
 
 Plain-text notes with calculated values, checklists, timers, reusable links, and dates.
-The same Rust engine powers the Zed language server and terminal commands.
+The same Rust engine powers the language server and terminal commands.
+Use it in **Zed, VS Code, Neovim, or Helix**; see [editor setup](docs/editors.md)
+for the extension/configuration and a shared smoke test.
+
+Jot is **LSP-first**: language/editor features belong in the shared Rust core and
+native language server first. Browser clients consume the same LSP data and
+operations; they must not introduce browser-only language behavior.
+
+There is also a **browser-only, dark-mode editor**: vanilla HTML/JavaScript,
+CDN-loaded Monaco, and the same Rust engine compiled to WebAssembly in a worker.
+No native Jot process or language-server backend is needed. See [browser setup](web/README.md).
+
+```sh
+bash web/build.sh
+node web/serve.mjs
+# Open http://127.0.0.1:4173
+```
 
 ## Try it
 
@@ -11,9 +27,10 @@ cargo build
 ./target/debug/jot agenda --week
 ./target/debug/jot tasks --tag errands --json
 ./target/debug/jot check
+./target/debug/jot plan bakery
 ```
 
-Open `jots/daily.jot`, `jots/resources.jot`, or `jots/timers.jot` in Zed. If you already installed the dev
+Open `jots/interactions.jot`, `jots/daily.jot`, or `jots/timers.jot` in Zed. If you already installed the dev
 extension, restart the Jot language server after rebuilding the binary. The
 extension uses `target/debug/jot` in the project root. To install it initially,
 use **Install Dev Extension** and choose `zed-extension`.
@@ -22,22 +39,185 @@ For notes in other projects, set `lsp.jot.binary.path` in your Zed user settings
 to this repository's absolute `target/debug/jot` path and `arguments` to `["lsp"]`.
 The extension honors that override and otherwise uses the project's debug build.
 
-Enable these settings for the Jot language:
+Enable CodeLens and automatic signature help in your Zed user settings, alongside
+Jot's highlighting and inlay hints:
 
 ```json
 {
+  "code_lens": "on",
+  "auto_signature_help": true,
   "languages": {
     "Jot": {
       "semantic_tokens": "full",
+      "document_symbols": "on",
       "inlay_hints": { "enabled": true, "show_other_hints": true }
     }
   }
 }
 ```
 
+`code_lens` and `auto_signature_help` are top-level, editor-wide settings, not
+Jot language overrides. CodeLens displays clickable labels above relevant lines.
+Use `"code_lens": "menu"` if you prefer controls in the code actions menu.
+See [Zed's settings reference](https://zed.dev/docs/reference/all-settings#code-lens).
+
+`languages.Jot.document_symbols: "on"` makes Zed use Jot's LSP symbols for its
+outline and breadcrumbs instead of tree-sitter. After restarting the language
+server, open Zed's outline or Go to Symbol in Editor to navigate the note.
+
 Rebuild the dev extension after changing its language configuration or token
 rules. On macOS, `/usr/bin/jot` is an unrelated command; the examples deliberately
 use `./target/debug/jot` or `cargo run -- ...`.
+
+## Editor interactions
+
+Three features ride on standard LSP requests that most editors already send:
+
+- **Plain-text charts.** Inlay hints, hovers and tooltips draw with Unicode
+  blocks, so they render in any editor without image support. Checklist
+  headings, parent tasks and countdowns carry a live gauge in their inlay
+  (`███░░░░░ 2/5 complete`, `⏳ ████░░░░ 12:00 remaining · running`); hovers
+  add the percentage (`████░░░░░░ 40%`). Numeric table columns and `sum(...)`
+  row contributions show a sparkline with their range (`▁█▅ 2 → 6`).
+- **Format on type.** Typing the closing `|` of a table row realigns the whole
+  table; the row you are typing is only padded once every column has a cell, and
+  only its whitespace changes so the caret stays put. Enter after a checkbox
+  continues the checklist with the same indent, and Enter on an empty checkbox
+  ends it. Zed sends these automatically; the browser editor sets
+  `formatOnType`.
+- **GitHub status badges.** Every link to a GitHub pull request, issue, or
+  commit gets an inlay, whether it is a named resource, a Markdown link, or a
+  bare URL in a task. With a cached status it reads
+  `merged · checks ok · approved · 2h ago`; failing checks and requested
+  changes are in caps, and a cache older than a week says `stale`. Without one
+  it reads `PR #606 · refresh for status`. Hover for the title, and use the
+  Refresh GitHub status lens or `jot refresh` to update.
+- **Currencies, weather, and quotes.** Money carries a currency: `$3`,
+  `€450`, `£12`, `¥1000`, or `700 MXN`. Different currencies never add up
+  silently; convert with `to(hotel, USD)`, or read the rate with
+  `rate(EUR, USD)`. `forecast("Oaxaca", 2026-11-20)` gives a day's weather
+  with `.high`, `.low`, `.summary` and `.rain` (add `F` for Fahrenheit), and
+  itinerary days with a place show theirs in the day inlay. `quote(NVDA)` is
+  the last price as money. Uppercase names such as `USD` or `NVDA` are codes,
+  not references. All of this reads a cache in `.jot/lookups.json` that only
+  `jot refresh` or the Refresh lookups lens fills, through keyless sources
+  (frankfurter.dev for rates, open-meteo.com for weather, and Yahoo's
+  unofficial chart endpoint for quotes) or commands
+  you name in `.jot/providers.json`, such as `{"quote": "my-quote {symbol}"}`
+  printing `{"price": 42.5, "currency": "EUR"}`. Hovers list every lookup a
+  value used with its age and source. See `jots/lookups.jot`.
+- **Linear plans.** `[bakery] := maximize(3 * bagels + 1.25 * doughnuts)`
+  followed by a `| constraint | expression |` table declares an optimization.
+  Names no note defines are decision variables (never negative); every other
+  name is a constant read from your notes, so plans re-solve as you edit. Money
+  and durations are unit-checked. Inlays show the objective, each variable, and
+  per-constraint usage with binding or slack; hovers add usage bars; infeasible
+  or unbounded plans are diagnostics on the objective. `bakery.bagels` reads a
+  variable and `bakery.flour` a constraint's slack. On the command line,
+  `jot plan bakery` prints the solution, `--export` writes an
+  [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
+  prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
+  also runs in the browser. See `jots/plans.jot`.
+- **Calculated cells.** A table cell in brackets is a calculation, just like
+  `[cash]` in prose: `| bulk | [unit * qty] |` reads named values from any note
+  and shows its result as an inlay. Columns keep one type, and a calculated
+  cell of the wrong type is reported at that cell.
+- **Goal seek.** `[monthly] := solve(saved_by_june >= $5,000)` makes the
+  definition's own name the unknown and finds the boundary value through any
+  chain of calculations, with the unit inferred from the chain. Linear
+  equations have a closed form, so no solver runs.
+- **Decision columns.** A table column named `take?` is a yes/no choice per row
+  and `servings#` a whole number. A plan that sums over the column, such as
+  `maximize(sum(gear, value * take))`, chooses every row: each cell gets an
+  inlay with its choice, the plan hover lists what was picked, and a code
+  action on the plan line writes the choices into the table. Outside a plan a
+  decision column is not data.
+- **Itineraries.** A line such as `Friday, November 20 · New York | Oaxaca`
+  (with or without `##`) starts a day; a line starting with a time such as
+  `07:04 AM` or `14:30` is a stop; `Key: value` lines beneath it are details
+  and other lines are notes. Years carry forward, and a first day without one
+  is the next occurrence. A stop's kind is one ASCII marker after the time:
+  `>` depart, `<` arrive, `~` transit, `@` stay, `*` meal, `+` visit,
+  `?` explore, as in `07:04 AM  > Depart JFK for MEX on AM 405`. Stops that
+  start with a known word or emoji instead get the marker written by Format
+  Document, and stops with no recognizable kind get a warning. Format
+  Document also pads times and indents details. Stops paint their time,
+  and the marker and title in one hue per kind (orange departures, green
+  arrivals, blue transit, purple stays, rose meals, yellow visits, teal
+  exploring), day headings are pink with lilac places, and reservation codes
+  read as code. Days show a stop count and how far away they are, each
+  stop shows the time until the next (or the layover between an arrival and
+  a departure), `Cancel by: 24h before`
+  or a datetime shows the deadline, `Address:` lines open in Maps, the outline
+  lists days and stops, days and stops fold, completion offers stop kinds
+  after a time and detail keys inside a stop, and `jot agenda` includes stops.
+  Diagnostics catch a weekday that does not match the date, days out of order,
+  stops out of order, and impossible dates. See `jots/oaxaca.jot`.
+- **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
+  column, task, or checklist as a node. *Incoming calls* list everything that
+  reads it (calculations, `@after`, `@estimate`, parent tasks, checklists);
+  *outgoing calls* list what it depends on. VS Code shows this as the Call
+  Hierarchy tree; Zed does not expose call hierarchy yet.
+
+
+Open `jots/interactions.jot` to try these without changing any language syntax:
+
+- **Semantic highlighting.** Shared Rust tokens distinguish function calls, bold
+  declarations, table columns, money, dates, durations, percentages, and metadata.
+  Brackets and table separators stay subdued. Open checkboxes are bold amber;
+  checked boxes are bright green, separate from muted, struck-through task text.
+  Prose recognizes ISO dates, month/day/year dates (`09/17/2026`), clock times
+  (`7AM`, `10:00 AM`, `14:30`), relative dates (`tomorrow`, `next Monday`), money,
+  percentages, compact durations, numbers, and booleans. Dates/times are bold
+  pink/cyan. This is highlighting only: prose does not create symbols or schedule
+  tasks, and calculations still use ISO date syntax. Code/comments, links, and
+  identifiers keep their own colors. The Zed extension supplies a
+  Jot-only dark palette (without replacing your editor theme); the browser uses
+  the same colors and fetches its token legend from Rust. Rebuild the dev extension
+  and restart the Jot language server to load new token rules.
+- **Document symbols.** Standard `textDocument/documentSymbol` supplies nested
+  headings, tasks/subtasks, named literals, calculations, timers, and events.
+  Definitions include their evaluated type/value in `detail`; task details show
+  completion. Navigation selects the name, and enclosing ranges describe the
+  section/task hierarchy. Clients without hierarchy support receive flat symbols.
+  Values are snapshots when requested; LSP has no document-symbol refresh request.
+- **Clickable controls.** CodeLens shows task completion/reopening, timer
+  start/pause/resume/reset, resource opening, and explicit GitHub status refresh.
+  Controls also appear in code actions on the relevant line. A stale task or
+  resource control refuses to act if its source line has changed; request fresh
+  actions if that happens. Timer state is captured when a control is executed.
+- **Context-aware completion and signatures.** Names include their current type
+  and value. `@timer(` offers named timers; `@due(` offers dates; `effort(` offers
+  checklists. A dot offers properties for that value. Functions and metadata have
+  argument snippets and signature help tracking the active argument, including
+  nested calls. Clients without snippet support receive plain insertions.
+- **Calculation explanations and navigation.** Prose references such as
+  `[remaining]` show their current value immediately after the closing bracket,
+  without changing the file. Hover a calculated name or its value inlay for the
+  original expression, substituted values, and
+  linked inputs. Timer hovers show state and timing; task hovers explain blockers
+  with definition links. Document highlights distinguish declarations from reads;
+  prepare-rename selects just the name, leaving brackets and properties intact.
+- **Selection refactorings.** Select a literal in prose to extract `[value]:name`,
+  or select a complete subexpression to extract a named calculation above it.
+  Generated names are collision-free; use rename to give them a personal name.
+  On a reference inside a calculation, **Inline expression** preserves precedence
+  and refuses cross-file substitutions that would change which names resolve.
+  **Freeze current value** explicitly snapshots a scalar reference (also in
+  prose); it never runs automatically. Formula snapshots are only offered when
+  the value can round-trip without changing its type or precision. Timers and
+  resources are controlled/opened, not implicitly materialized.
+- **Actionable diagnostics.** Errors point at offending operands; unknown names
+  offer nearby-name corrections and an explicit TODO definition. Ambiguous names
+  and dependency cycles link to relevant declarations. While editing incomplete
+  expressions, their errors and dependent cascades are suppressed; `jot check`
+  remains strict. Clock-dependent diagnostics update without typing. Timer
+  controls refresh at expiry, and ticking never rewrites source.
+
+These use standard LSP requests; no Jot-specific document viewer is required.
+Editor support determines presentation. All source changes go through undoable
+workspace edits, with document versions attached for open buffers. Opening or
+hovering a GitHub resource never fetches metadata; refresh remains explicit.
 
 ## Checklists and calculations
 
@@ -79,6 +259,56 @@ percentages. Ordinary numeric division stays numeric. Durations use `s`, `m`, `h
 accepted when they resolve to whole seconds. Strings use double quotes inside
 expressions. Markdown links, images, inline code, fenced code, and HTML comments
 are distinguished from Jot names. Example syntax inside code/comments is inert.
+
+## Computational tables
+
+Open `jots/tables.jot` to try a table with named columns and row-wise sums:
+
+```text
+[groceries] := table
+| item  | quantity | price |
+|-------|----------|-------|
+| apple | 2        | $3.30 |
+| pear  | 4        | $4.30 |
+
+[total] := sum(groceries, quantity * price)
+[units] := sum(groceries, quantity)
+[average_price] := total / units
+
+Groceries will cost [total].
+```
+
+The total evaluates to `$23.80`. Adding a row includes it automatically; source
+files never receive calculated results unless you explicitly apply a refactoring.
+
+- Only `[name] := table` starts a computational table. Its header must be on the
+  next line, followed by a Markdown separator row and contiguous data rows. Use
+  outer `|` delimiters; a blank or non-table line ends the table. Ordinary Markdown
+  tables and examples inside fenced code/comments remain non-computational.
+- Column names are unique identifiers, excluding `true` and `false`. Cell values
+  are **literals**, not formulas or references: numbers, money, ratios, durations,
+  dates/timestamps, booleans, text, and resources. Bare words such as `apple` are
+  text; quote numeric-looking text. Quoted pipes and escaped `\|` are supported.
+  Missing cells, malformed rows, and type mismatches produce diagnostics.
+- Each column's type is inferred from its first valid value; subsequent cells
+  must have that same type. Money and ordinary numbers are distinct types.
+- `sum(table, expression)` evaluates the expression for each row and adds the
+  results. Names inside the row expression refer **only to that table's columns**,
+  not same-named globals. The first argument is a table name or a named alias;
+  tables and formulas may live in separate notes. Nested sums get independent
+  row scopes. Results must be numbers, money, ratios, or durations. Summing an
+  empty table reports an error because its result type cannot be inferred.
+- Standard LSP supplies column completion and signature help, definition/references,
+  scoped rename, cell/column hovers, row contributions in a direct sum's hover,
+  semantic highlighting, diagnostics, and table/column outline symbols.
+  **Format Document** aligns computational tables only, preserving literals,
+  alignment markers, line endings, and surrounding prose. Malformed tables are
+  left untouched. Refactors that would extract row-local formulas out of their
+  scope are not offered. Very expensive nested calculations have a step limit.
+
+These are shared engine/LSP features. Reload the browser after rebuilding Wasm
+and import `jots/tables.jot` to use the same features there, including undoable
+Format Document. Existing browser-saved notes are not replaced.
 
 ## Stopwatches and countdowns
 
@@ -156,6 +386,29 @@ stay in their original files. Relative paths are resolved against the defining
 note, even when a reference is used in another folder. Normal Markdown links
 and images are clickable too.
 
+Raw resources work directly in prose, headings, tasks, and resource table cells:
+
+```text
+Review https://github.com/zed-industries/zed/pull/123
+Read ../README.md and src/main.rs.
+Settings: ~/.config/zed/settings.json
+Map: geo:40.7306,-73.9866
+```
+
+These get semantic highlighting, standard LSP document links, resource hovers,
+and Open resource actions—no brackets or named definitions needed. HTTP(S),
+`file://`, `geo:`, absolute paths, `./`, `../`, and `~/` are supported, along with
+relative paths containing a file extension and common filenames such as
+`README.md`, `Cargo.toml`, and `.gitignore`. Use `./` for an ambiguous extensionless
+path; use a Markdown link for paths containing spaces. Trailing sentence
+punctuation is excluded, while balanced URL parentheses are preserved. Code and
+comments stay inert. Relative paths are based on the containing note; `~/`
+resolves to your home directory in the native editor.
+
+The browser uses the same Rust document links and can navigate to imported
+`.jot` files or open HTTP(S) URLs. It cannot read arbitrary local files or expand
+your home directory. Try `jots/highlighting.jot` for the full palette and links.
+
 The workspace indexes `.jot` files recursively, respects ignore files, and skips
 hidden/build directories and symlinks. Open editor buffers override disk content.
 Names resolve in the current file first, then to a unique workspace definition.
@@ -171,7 +424,8 @@ Install/authenticate the GitHub CLI (`gh`), then run:
 ./target/debug/jot refresh
 ```
 
-Or use **Refresh GitHub resources** from Zed's code actions. This only reads
+Or use **Refresh GitHub status** on a resource's CodeLens or code actions to
+refresh just that resource. The CLI refreshes all indexed GitHub resources. This only reads
 GitHub; it never merges PRs or changes issues. It supports GitHub.com PRs, issues,
 and commits. PRs expose title, state, merged status, reviews, and check summaries.
 Links show the cache timestamp. Failed refreshes preserve the previous cache;

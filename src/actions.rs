@@ -4,8 +4,8 @@ use crate::{
     workspace::Workspace,
 };
 use chrono::NaiveDate;
+use lsp_types::{Position, Range, TextEdit};
 use std::path::Path;
-use tower_lsp::lsp_types::{Position, Range, TextEdit};
 
 pub fn toggle_task(
     workspace: &Workspace,

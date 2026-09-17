@@ -1,0 +1,27 @@
+# Format on type
+
+Nothing here needs a command. The language server reacts to the keys you type.
+
+## Tables realign on the closing pipe
+
+[inventory] := table
+| item   | count | price |
+| ------ | ----- | ----- |
+| pencil | 40    | $0.50 |
+| eraser | 12    | $1.25 |
+
+<!-- Add a row below the last one: type | strawberry | 3 | $4.00 |
+When you type the final |, every row realigns. The row you are typing is only
+padded once every column has a cell, and only its spaces change. -->
+
+[stock_value] := sum(inventory, count * price)
+Stock value: [stock_value].
+
+## Checklists continue on Enter
+
+- [ ] Put the cursor at the end of this line and press Enter
+- [ ] A new empty checkbox appears with the same indent
+  - [ ] Nested items keep their indentation
+- [ ] Press Enter twice on an empty checkbox to end the list
+
+Plain paragraphs are never turned into tasks.

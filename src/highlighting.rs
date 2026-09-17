@@ -375,10 +375,15 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
             p.paint(column.span, style("property", DECLARATION));
         }
         for cell in table.rows.iter().flatten() {
-            p.mark(
-                cell.span,
-                cell.value.as_ref().map(value_kind).unwrap_or("string"),
-            );
+            if let Some((_, inner)) = &cell.expression {
+                p.brackets(*inner);
+                p.expression(*inner);
+            } else {
+                p.mark(
+                    cell.span,
+                    cell.value.as_ref().map(value_kind).unwrap_or("string"),
+                );
+            }
         }
     }
     for link in &doc.links {

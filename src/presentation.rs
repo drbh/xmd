@@ -254,6 +254,19 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             );
         }
     }
+    for table in &doc.tables {
+        for cell in table.rows.iter().flatten() {
+            if let Some((inner, span)) = &cell.expression
+                && let Ok(value) = engine.eval_at(path, inner, *span)
+            {
+                push(
+                    cell.span.range(&doc.text).end,
+                    value.display(),
+                    format!("`{inner}` = {}", value.display()),
+                );
+            }
+        }
+    }
     for section in &doc.sections {
         let tasks: Vec<_> = doc
             .tasks

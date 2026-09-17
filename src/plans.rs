@@ -284,6 +284,7 @@ pub fn grid(plan: &Plan) -> Table {
                         source: source.clone(),
                         span,
                         value: Ok(Value::Text(source.clone())),
+                        expression: None,
                     })
                     .collect()
             })

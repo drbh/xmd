@@ -97,6 +97,10 @@ Three features ride on standard LSP requests that most editors already send:
   [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
   prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
   also runs in the browser. See `jots/plans.jot`.
+- **Calculated cells.** A table cell in brackets is a calculation, just like
+  `[cash]` in prose: `| bulk | [unit * qty] |` reads named values from any note
+  and shows its result as an inlay. Columns keep one type, and a calculated
+  cell of the wrong type is reported at that cell.
 - **Goal seek.** `[monthly] := solve(saved_by_june >= $5,000)` makes the
   definition's own name the unknown and finds the boundary value through any
   chain of calculations, with the unit inferred from the chain. Linear

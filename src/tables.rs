@@ -14,6 +14,14 @@ pub struct Cell {
     pub source: String,
     pub span: Span,
     pub value: Result<Value, String>,
+    /// `[name]` or `[a * b]`: a calculation evaluated with the table, so cells
+    /// can read named values from any note.
+    pub expression: Option<(String, Span)>,
+}
+impl Cell {
+    pub fn calculated(&self) -> bool {
+        self.expression.is_some()
+    }
 }
 /// What a plan may choose for each row of a decision column.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -186,7 +194,35 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                 .enumerate()
                 .map(|(column, (source, span))| {
                     let decoded = source.replace("\\|", "|");
-                    let value = if domains.get(column).is_some_and(Option::is_some) {
+                    let expression = decoded
+                        .strip_prefix('[')
+                        .and_then(|s| s.strip_suffix(']'))
+                        .filter(|_| domains.get(column).is_none_or(Option::is_none))
+                        .map(|inner| {
+                            let lead = 1 + inner.len() - inner.trim_start().len();
+                            (
+                                inner.trim().to_string(),
+                                Span::new(
+                                    span.line,
+                                    span.start + lead,
+                                    span.start + lead + inner.trim().len(),
+                                ),
+                            )
+                        });
+                    let value = if let Some((inner, _)) = &expression {
+                        if inner.is_empty() {
+                            Err(
+                                "Empty calculation; write a name or expression inside the brackets"
+                                    .into(),
+                            )
+                        } else if engine::Engine::valid_expression(inner) {
+                            Err(format!(
+                                "Calculated cell [{inner}] is evaluated with the table"
+                            ))
+                        } else {
+                            Err(format!("Invalid calculation '{inner}'"))
+                        }
+                    } else if domains.get(column).is_some_and(Option::is_some) {
                         // A plan decides these; whatever is written is a note to self.
                         Ok(Value::Text(decoded.clone()))
                     } else if decoded.is_empty() {
@@ -210,6 +246,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                         source,
                         span,
                         value,
+                        expression,
                     }
                 })
                 .collect(),
@@ -222,7 +259,11 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
         .collect();
     for row in &table.rows {
         for (column, cell) in row.iter().enumerate().take(table.columns.len()) {
-            if table.domains[column].is_some() {
+            if table.domains[column].is_some()
+                || cell.expression.as_ref().is_some_and(|(inner, _)| {
+                    !inner.is_empty() && engine::Engine::valid_expression(inner)
+                })
+            {
                 continue;
             }
             match &cell.value {

@@ -307,3 +307,79 @@ fn row_provenance_never_substitutes_globals_and_date_named_columns_are_reference
         Ok(Value::Number(3.0))
     );
 }
+
+#[test]
+fn bracketed_cells_are_calculations_read_from_any_note() {
+    let source = "[$10]:unit\n[3]:qty\n[groceries] := table\n| item  | price        |\n| ----- | ------------ |\n| apple | $3.30        |\n| bulk  | [unit * qty] |\n| one   | [unit]       |\n[total] := sum(groceries, price)\n";
+    let notes = ws(source);
+    let mut engine = Engine::at(&notes, now());
+    assert_eq!(engine.named(path(), "total").unwrap(), Value::Money(43.3));
+    assert_eq!(
+        jot::diagnostics::collect(&notes, path(), now().date_naive(), now(), false).len(),
+        0
+    );
+    let doc = &notes.documents[path()];
+    let cell = &doc.tables[0].rows[1][1];
+    assert!(cell.calculated());
+    assert_eq!(cell.expression.as_ref().unwrap().0, "unit * qty");
+    // References inside the cell resolve, so rename and navigation see them.
+    let unit = notes.resolve(path(), "unit").unwrap();
+    let uses = jot::intelligence::occurrences(&notes, &unit);
+    assert_eq!(uses.len(), 3, "{uses:?}");
+    assert_eq!(uses[1].1, span(doc, 6, "unit"));
+    let hover = jot::intelligence::cell_hover(
+        &notes,
+        path(),
+        Position::new(6, span(doc, 6, "unit").range(&doc.text).start.character),
+    )
+    .unwrap();
+    let text = match hover.contents {
+        tower_lsp::lsp_types::HoverContents::Markup(m) => m.value,
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        text.contains("Row 2: $30\n\nCalculated from `unit * qty`"),
+        "{text}"
+    );
+    let hints = jot::presentation::hints_at(
+        &notes,
+        path(),
+        now(),
+        Range::new(Position::new(0, 0), Position::new(20, 0)),
+    );
+    let label = |line: u32| {
+        hints
+            .iter()
+            .find(|h| h.position.line == line)
+            .map(|h| match &h.label {
+                tower_lsp::lsp_types::InlayHintLabel::String(s) => s.clone(),
+                other => panic!("{other:?}"),
+            })
+    };
+    assert_eq!(label(6).as_deref(), Some("$30"));
+    assert_eq!(label(7).as_deref(), Some("$10"));
+    // A calculated cell of the wrong type is reported at the cell, not the table.
+    let wrong = ws(&source.replace("| one   | [unit]       |", "| one   | [qty]        |"));
+    let issues = jot::diagnostics::collect(&wrong, path(), now().date_naive(), now(), false);
+    let messages: Vec<_> = issues.iter().map(|d| d.message.as_str()).collect();
+    assert!(
+        messages.contains(&"Column 'price' expects Money, found Number"),
+        "{messages:?}"
+    );
+    assert_eq!(issues[0].range.start, Position::new(7, 11));
+    // Unknown names and empty brackets are ordinary diagnostics.
+    let unknown = ws("[t] := table\n| a |\n| --- |\n| [nope] |\n");
+    let messages: Vec<_> =
+        jot::diagnostics::collect(&unknown, path(), now().date_naive(), now(), false)
+            .into_iter()
+            .map(|d| d.message)
+            .collect();
+    assert_eq!(messages, ["Unknown name 'nope'"]);
+    let empty = ws("[t] := table\n| a |\n| --- |\n| [] |\n");
+    assert!(
+        empty.documents[path()].problems[0]
+            .message
+            .starts_with("Empty calculation")
+    );
+    assert!(jot::tables::formatting(&notes.documents[path()]).is_empty());
+}

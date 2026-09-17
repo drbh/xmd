@@ -350,6 +350,17 @@ impl Document {
                 }
                 for cells in &table.rows {
                     for cell in cells {
+                        if let Some((_, span)) = &cell.expression {
+                            doc.mark(
+                                cell.span.line,
+                                cell.span.start,
+                                cell.span.start + 1,
+                                "operator",
+                            );
+                            doc.mark(cell.span.line, cell.span.end - 1, cell.span.end, "operator");
+                            doc.expression(lines[span.line], span.line, span.start, span.end);
+                            continue;
+                        }
                         if let Ok(crate::engine::Value::Resource(resource)) = &cell.value {
                             doc.links.push(Link {
                                 span: cell.span,

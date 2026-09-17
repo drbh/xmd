@@ -938,19 +938,7 @@ impl<'a> Engine<'a> {
                         });
                         Err(problem.message.clone())
                     } else {
-                        Ok(Value::Table(std::sync::Arc::new(
-                            crate::tables::TableValue {
-                                origin: symbol.clone(),
-                                columns: table.columns.iter().map(|c| c.name.clone()).collect(),
-                                rows: table
-                                    .rows
-                                    .iter()
-                                    .map(|row| {
-                                        row.iter().map(|cell| cell.value.clone().unwrap()).collect()
-                                    })
-                                    .collect(),
-                            },
-                        )))
+                        self.table_value(symbol, table)
                     }
                 } else if def.expression {
                     let raw =
@@ -1433,6 +1421,71 @@ impl<'a> Engine<'a> {
         })
     }
 
+    /// Rows of a table, evaluating calculated cells and checking that each
+    /// column keeps one type. Failures point at the offending cell.
+    fn table_value(
+        &mut self,
+        symbol: &Symbol,
+        table: &crate::tables::Table,
+    ) -> Result<Value, String> {
+        let mut types: Vec<Option<&'static str>> = table.types.clone();
+        let mut rows = Vec::with_capacity(table.rows.len());
+        for row in &table.rows {
+            let mut values = Vec::with_capacity(row.len());
+            for (column, cell) in row.iter().enumerate() {
+                let value = match &cell.expression {
+                    Some((inner, span)) => {
+                        let value = self.eval_at(&symbol.path, inner, *span)?;
+                        if matches!(
+                            value,
+                            Value::Table(_) | Value::Plan(_) | Value::Tasks(_) | Value::Timer(_)
+                        ) {
+                            let message = format!(
+                                "A cell cannot hold a {}; use a scalar value",
+                                value.type_name()
+                            );
+                            self.failure.get_or_insert(EvalFailure {
+                                path: symbol.path.clone(),
+                                span: *span,
+                                message: message.clone(),
+                                related: vec![],
+                            });
+                            return Err(message);
+                        }
+                        if let Some(expected) = types.get(column).copied().flatten() {
+                            if expected != value.type_name() {
+                                let message = format!(
+                                    "Column '{}' expects {expected}, found {}",
+                                    table.columns[column].name,
+                                    value.type_name()
+                                );
+                                self.failure.get_or_insert(EvalFailure {
+                                    path: symbol.path.clone(),
+                                    span: *span,
+                                    message: message.clone(),
+                                    related: vec![],
+                                });
+                                return Err(message);
+                            }
+                        } else if let Some(slot) = types.get_mut(column) {
+                            *slot = Some(value.type_name());
+                        }
+                        value
+                    }
+                    None => cell.value.clone().map_err(|e| e.to_string())?,
+                };
+                values.push(value);
+            }
+            rows.push(values);
+        }
+        Ok(Value::Table(std::sync::Arc::new(
+            crate::tables::TableValue {
+                origin: symbol.clone(),
+                columns: table.columns.iter().map(|c| c.name.clone()).collect(),
+                rows,
+            },
+        )))
+    }
     /// Decision columns of a table value: column name to (index, domain).
     fn decision_columns(
         &self,

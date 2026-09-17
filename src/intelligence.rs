@@ -861,16 +861,25 @@ pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hov
                     && byte >= cell.span.start
                     && byte <= cell.span.end
                 {
-                    let text = match &cell.value {
-                        Ok(value) => format!(
-                            "**{}.{} · {}**\n\nRow {}: {}",
+                    let value = match &cell.expression {
+                        Some((inner, _)) => Engine::at(ws, chrono::Local::now().fixed_offset())
+                            .eval(path, inner)
+                            .map(|v| (v, Some(inner.clone()))),
+                        None => cell.value.clone().map(|v| (v, None)),
+                    };
+                    let text = match value {
+                        Ok((value, expression)) => format!(
+                            "**{}.{} · {}**\n\nRow {}: {}{}",
                             doc.definitions[table.definition].named.name,
                             table.columns[column].name,
                             value.type_name(),
                             row + 1,
-                            value.display()
+                            value.display(),
+                            expression
+                                .map(|e| format!("\n\nCalculated from `{e}`"))
+                                .unwrap_or_default()
                         ),
-                        Err(error) => error.clone(),
+                        Err(error) => error,
                     };
                     return Some(Hover {
                         contents: HoverContents::Markup(markup(text)),

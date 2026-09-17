@@ -1,7 +1,9 @@
 # Jot
 
 Plain-text notes with calculated values, checklists, timers, reusable links, and dates.
-The same Rust engine powers the Zed language server and terminal commands.
+The same Rust engine powers the language server and terminal commands.
+Use it in **Zed, VS Code, Neovim, or Helix**; see [editor setup](docs/editors.md)
+for the extension/configuration and a shared smoke test.
 
 Jot is **LSP-first**: language/editor features belong in the shared Rust core and
 native language server first. Browser clients consume the same LSP data and

@@ -1,0 +1,31 @@
+# Timers
+
+Use code actions on a timer or its checklist line to Start, Pause, Resume, or Reset.
+These timers are idle until you start them. Save after using a control to keep its state.
+
+## Focus session
+
+[focus_length] := 25m
+[focus] := countdown(focus_length)
+
+- [ ] One focused work session @timer(focus) @estimate(25m)
+
+Time left: [focus.remaining]. Session status: [focus.state].
+[focus_finished] := focus.done
+
+## Stopwatch
+
+[debugging] := stopwatch()
+
+- [ ] Investigate a flaky test @timer(debugging) @estimate(30m)
+
+Time spent: [debugging.elapsed].
+[over_estimate] := debugging.elapsed > 30m
+
+## Quick countdown
+
+[tea] := countdown(10s)
+
+Try Start timer on this line: [tea]. It will reach zero and show done.
+
+Completing a task does not automatically stop its timer. Expiry is visual; there is no alarm.

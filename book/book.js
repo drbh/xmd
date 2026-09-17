@@ -74,6 +74,19 @@ function render(block, snapshot, text) {
   block.querySelector(".status").textContent = snapshot.live ? "live" : "";
 }
 
+// The engine's hover is Markdown; keep the few marks it uses and drop the rest.
+function renderHover(markdown) {
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return esc(markdown)
+    .replace(/```text\n([\s\S]*?)```/g, (_, code) => `<pre>${code.trim()}</pre>`)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(&lt;[^)]*&gt;\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .split(/\n{2,}/)
+    .map(part => part.startsWith("<pre>") ? part : `<p>${part.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
 let syncing = Promise.resolve();
 for (const [index, block] of blocks.entries()) {
   const textarea = block.querySelector("textarea");
@@ -129,18 +142,62 @@ for (const [index, block] of blocks.entries()) {
     }, 0);
     void start;
   });
-  const showHover = async () => {
+  // Hover follows the pointer. The block is monospace, so the character under
+  // the pointer comes from the font metrics; the text is the engine's hover.
+  let hoverTimer, hoverKey = "";
+  const metrics = () => {
+    const style = getComputedStyle(view);
+    const probe = document.createElement("span");
+    probe.textContent = "0".repeat(100);
+    probe.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${style.font}`;
+    view.appendChild(probe);
+    const width = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    return { width, lineHeight: parseFloat(style.lineHeight), padLeft: parseFloat(style.paddingLeft), padTop: parseFloat(style.paddingTop) };
+  };
+  const positionAt = event => {
+    const box = view.getBoundingClientRect();
+    const { width, lineHeight, padLeft, padTop } = metrics();
+    const line = Math.floor((event.clientY - box.top - padTop) / lineHeight);
+    const character = Math.round((event.clientX - box.left - padLeft) / width);
+    const lines = textarea.value.split("\n");
+    if (line < 0 || line >= lines.length || character < 0 || character > lines[line].length) return null;
+    return { line, character };
+  };
+  const hideHover = () => { hover.hidden = true; hoverKey = ""; clearTimeout(hoverTimer); };
+  const placeHover = event => {
+    const margin = 12, width = Math.min(460, window.innerWidth - 2 * margin);
+    hover.style.maxWidth = `${width}px`;
+    let left = event.clientX + 14, top = event.clientY + 18;
+    const rect = hover.getBoundingClientRect();
+    if (left + rect.width > window.innerWidth - margin) left = Math.max(margin, event.clientX - rect.width - 14);
+    if (top + rect.height > window.innerHeight - margin) top = Math.max(margin, event.clientY - rect.height - 18);
+    hover.style.left = `${left}px`;
+    hover.style.top = `${top}px`;
+  };
+  const showHover = async event => {
+    const at = positionAt(event);
+    if (!at) { hideHover(); return; }
+    const key = `${at.line}:${at.character}`;
+    if (key === hoverKey) { if (!hover.hidden) placeHover(event); return; }
+    hoverKey = key;
     try {
-      const result = await rpc("hover", { uri: block.uri, position: position() });
+      const result = await rpc("hover", { uri: block.uri, position: at });
+      if (hoverKey !== key) return;
       if (!result) { hover.hidden = true; return; }
       const value = typeof result.contents === "string" ? result.contents : result.contents.value;
-      hover.textContent = value.replace(/\*\*/g, "").replace(/\]\(<[^>]*>\)/g, "]").replace(/```text\n?|```/g, "");
+      hover.innerHTML = renderHover(value);
       hover.hidden = false;
+      placeHover(event);
     } catch { hover.hidden = true; }
   };
-  textarea.addEventListener("click", showHover);
-  textarea.addEventListener("keyup", event => { if (event.key.startsWith("Arrow")) showHover(); });
-  textarea.addEventListener("blur", () => { hover.hidden = true; });
+  textarea.addEventListener("mousemove", event => {
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => showHover(event), 80);
+  });
+  textarea.addEventListener("mouseleave", hideHover);
+  textarea.addEventListener("input", hideHover);
+  textarea.addEventListener("wheel", hideHover, { passive: true });
   // Load every note into the shared workspace before analyzing, so cross-note
   // references resolve regardless of order.
   syncing = syncing.then(() => rpc("setDocument", { uri: block.uri, text: textarea.value, version: ++block.version }));

@@ -408,6 +408,25 @@ test("the book runs every example as a live block on the shared engine", async (
   // Plans solve in the page, and itineraries paint their kinds.
   await expect(page.locator('.jot-block[data-file="14-plans.jot"] .view')).toContainText("= $94.75");
   await expect(page.locator('.jot-block[data-file="19-itinerary.jot"] .view .t-jotDepart').first()).toBeVisible();
+  // Hovering a name shows a floating box with the engine's hover, not a panel below.
+  const box = page.locator('.jot-block[data-file="02-calculations.jot"]');
+  await box.scrollIntoViewIfNeeded();
+  const view = box.locator(".view");
+  const text = await view.evaluate(el => el.textContent);
+  const line = text.split("\n").findIndex(l => l.startsWith("[total] :="));
+  const lineBox = await view.evaluate((el, line) => {
+    const style = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return { x: r.left + parseFloat(style.paddingLeft), y: r.top + parseFloat(style.paddingTop) + (line + 0.5) * parseFloat(style.lineHeight), char: parseFloat(style.fontSize) * 0.6 };
+  }, line);
+  await page.mouse.move(lineBox.x + lineBox.char * 3, lineBox.y);
+  await page.mouse.move(lineBox.x + lineBox.char * 3.2, lineBox.y);
+  const hover = box.locator(".hover");
+  await expect(hover).toBeVisible();
+  await expect(hover).toContainText("total");
+  expect(await hover.evaluate(el => getComputedStyle(el).position)).toBe("fixed");
+  await page.mouse.move(5, 5);
+  await expect(hover).toBeHidden();
   // The bundled monospace font is served and applied to blocks.
   await expect(first.locator(".view")).toHaveCSS("font-family", /Ioskeley Mono/);
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);

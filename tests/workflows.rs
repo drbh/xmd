@@ -30,6 +30,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             })
             .collect(),
         cache: BTreeMap::new(),
+        lookups: Default::default(),
     }
 }
 fn evaluate(ws: &Workspace, name: &str) -> Value {
@@ -433,4 +434,59 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
         .unwrap();
     assert!(!failed.status.success());
     assert_eq!(std::fs::read(root.join(".jot/cache.json")).unwrap(), cache);
+}
+
+#[test]
+fn cli_plan_solves_exports_and_imports_alps_problems() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().canonicalize().unwrap();
+    std::fs::write(
+        root.join("bakery.jot"),
+        "[400]:flour_stock\n[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| --- | --- |\n| flour | 12 * bagels + 6.5 * doughnuts <= flour_stock |\n| bagel_min | bagels >= 12 |\n| doughnut_min | doughnuts >= 14 |\n",
+    )
+    .unwrap();
+    let run = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_jot"))
+            .current_dir(&root)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap()
+    };
+    let report = run(&["plan", "bakery"]);
+    assert!(
+        report.starts_with("bakery: maximize $94.75\n  bagels = 25.75\n  doughnuts = 14\n"),
+        "{report}"
+    );
+    assert!(report.contains("flour: 400 <= 400 · binding"), "{report}");
+    let json: serde_json::Value =
+        serde_json::from_str(&run(&["plan", "bakery", "--json"])).unwrap();
+    assert_eq!(json["objective"], "$94.75");
+    assert_eq!(json["constraints"][0]["binding"], true);
+    let exported = run(&["plan", "bakery", "--export"]);
+    let problem: serde_json::Value = serde_json::from_str(&exported).unwrap();
+    assert_eq!(
+        problem["constraints"][0]["expression"],
+        "12 * bagels + 6.5 * doughnuts <= 400"
+    );
+    std::fs::write(root.join("problem.json"), &exported).unwrap();
+    let imported = run(&["plan", "--import", "problem.json"]);
+    assert!(
+        imported.starts_with("[problem] := maximize(3 * bagels + 1.25 * doughnuts)\n| constraint"),
+        "{imported}"
+    );
+    std::fs::write(root.join("imported.jot"), &imported).unwrap();
+    assert!(run(&["plan", "problem"]).contains("94.75"));
+    let missing = Command::new(env!("CARGO_BIN_EXE_jot"))
+        .current_dir(&root)
+        .args(["plan", "flour_stock"])
+        .output()
+        .unwrap();
+    assert!(!missing.status.success());
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("not a plan"));
 }

@@ -1,0 +1,44 @@
+# Dependency graph
+
+In VS Code, put the cursor on a name and run Show Call Hierarchy.
+Outgoing calls list what the value reads; incoming calls list who reads it.
+
+## Values
+
+[$4,800]:income
+[$1,900]:rent
+[$650]:groceries
+[fixed_costs] := rent + groceries
+[free_cash] := income - fixed_costs
+[savings_goal] := free_cash * 0.4
+
+<!-- On free_cash: outgoing shows income and fixed_costs; incoming shows
+savings_goal and the tasks below that depend on it. Follow fixed_costs to see
+rent and groceries one level deeper. -->
+
+## Tables
+
+[trips] := table
+| city   | nights | rate |
+| ------ | ------ | ---- |
+| Lisbon | 3      | $140 |
+| Porto  | 2      | $95  |
+
+[hotel_total] := sum(trips, nights * rate)
+[affordable] := hotel_total < free_cash
+
+<!-- On the rate column header: incoming shows hotel_total, outgoing shows trips. -->
+
+## Tasks :planning
+
+- [ ] Confirm the budget :budget_ok @after(affordable)
+- [ ] Book hotels :book @after(budget_ok) @estimate(45m)
+  - [ ] Lisbon
+  - [ ] Porto
+- [ ] Set up the savings transfer @after(budget_ok, savings_goal > $500)
+
+<!-- On budget_ok: incoming shows the two tasks blocked by it and the planning
+checklist; outgoing shows affordable. On book: outgoing shows budget_ok and its
+two subtasks. -->
+
+Trip cost is [hotel_total]; planning is [completed(planning)]/[total(planning)] done.

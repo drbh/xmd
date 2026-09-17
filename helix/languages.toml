@@ -1,0 +1,16 @@
+# Merge into ~/.config/helix/languages.toml, or a project's .helix/languages.toml.
+# Replace this with the absolute path to your cargo-built Jot binary.
+[language-server.jot]
+command = "/absolute/path/to/jot/target/debug/jot"
+args = ["lsp"]
+
+[[language]]
+name = "jot"
+scope = "text.jot"
+file-types = ["jot"]
+roots = [".jot", ".git"]
+language-servers = ["jot"]
+indent = { tab-width = 2, unit = "  " }
+block-comment-tokens = { start = "<!--", end = "-->" }
+# Reuse Markdown for basic highlighting; Jot semantics still come from the LSP.
+grammar = "markdown"

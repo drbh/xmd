@@ -75,6 +75,22 @@ pub enum Command {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
+    /// Solve a linear plan, or exchange it with an alps problem file.
+    Plan {
+        /// The plan's name; omit with --import.
+        name: Option<String>,
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+        /// Print the solution as JSON.
+        #[arg(long)]
+        json: bool,
+        /// Print the plan as an alps problem file, with note values substituted.
+        #[arg(long)]
+        export: bool,
+        /// Print Jot source for an alps problem file, named after the file.
+        #[arg(long)]
+        import: Option<PathBuf>,
+    },
     /// Print syntax/evaluation problems, returning nonzero when any exist.
     Check {
         #[arg(long, default_value = ".")]
@@ -169,6 +185,31 @@ pub fn entries(workspace: &Workspace, today: NaiveDate) -> Vec<Entry> {
                 errors,
             });
         }
+        let dates = crate::itinerary::dates(&doc.days, today);
+        for (day, date) in doc.days.iter().zip(&dates) {
+            for stop in &day.stops {
+                entries.push(Entry {
+                    path: path.clone(),
+                    line: stop.line + 1,
+                    uri: location_uri(path, stop.line + 1),
+                    title: crate::itinerary::label(stop),
+                    kind: "stop".into(),
+                    done: false,
+                    due: None,
+                    scheduled: None,
+                    at: Some(match date {
+                        Some(d) => format!("{d} {}", stop.time.format("%H:%M")),
+                        None => stop.time.format("%H:%M").to_string(),
+                    }),
+                    at_date: *date,
+                    tags: Vec::new(),
+                    blocked_by: Vec::new(),
+                    estimate_minutes: None,
+                    estimate_seconds: None,
+                    errors: Vec::new(),
+                });
+            }
+        }
         for event in &doc.events {
             let result = engine.when(path, &event.attributes["at"].value);
             let mut errors = Vec::new();
@@ -217,7 +258,7 @@ pub fn agenda_entry(e: &Entry, today: NaiveDate, end: NaiveDate) -> bool {
     if e.done {
         return false;
     }
-    if e.kind == "event" {
+    if e.kind == "event" || e.kind == "stop" {
         return e.at_date.is_some_and(|d| d >= today && d <= end) || !e.errors.is_empty();
     }
     if e.due.is_some_and(|d| d <= end)
@@ -254,6 +295,7 @@ pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
     if let Err(e) = workspace.save_cache() {
         errors.push(e);
     }
+    errors.extend(crate::lookups::native::refresh(workspace).await);
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {
@@ -374,6 +416,78 @@ pub async fn run(command: Command) -> Result<(), String> {
             println!("GitHub cache updated ({} resources)", workspace.cache.len());
             Ok(())
         }
+        Command::Plan {
+            name,
+            root,
+            json,
+            export,
+            import,
+        } => {
+            if let Some(file) = import {
+                let text = std::fs::read_to_string(&file)
+                    .map_err(|e| format!("{}: {e}", file.display()))?;
+                let problem: serde_json::Value =
+                    serde_json::from_str(&text).map_err(|e| format!("{}: {e}", file.display()))?;
+                let stem = file
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("plan")
+                    .replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+                print!("{}", crate::plans::import(&stem, &problem)?);
+                return Ok(());
+            }
+            let name = name.ok_or("Give a plan name, or --import a problem file")?;
+            let workspace = load(root)?;
+            let root = workspace.root().to_path_buf();
+            let symbol = workspace.resolve(&root, &name)?;
+            let (_, plan) = crate::plans::plan(&workspace, &symbol)
+                .ok_or_else(|| format!("'{name}' is not a plan"))?;
+            let mut engine = Engine::new(&workspace, Local::now().date_naive());
+            if export {
+                let problem = crate::plans::export(&mut engine, &symbol, plan)?;
+                println!("{}", serde_json::to_string_pretty(&problem).unwrap());
+                return Ok(());
+            }
+            let Value::Plan(solved) = engine.symbol(&symbol)? else {
+                return Err(format!("'{name}' is not a plan"));
+            };
+            if json {
+                let out = serde_json::json!({
+                    "goal": solved.goal.keyword(),
+                    "objective": solved.objective.display(),
+                    "variables": solved.variables.iter().map(|(n, v)| (n.clone(), serde_json::json!(v.display()))).collect::<serde_json::Map<_, _>>(),
+                    "constraints": solved.constraints.iter().map(|c| serde_json::json!({
+                        "name": c.name, "lhs": c.lhs.display(), "op": c.op, "rhs": c.rhs.display(),
+                        "slack": c.slack.display(), "binding": c.binding,
+                    })).collect::<Vec<_>>(),
+                });
+                println!("{}", serde_json::to_string_pretty(&out).unwrap());
+                return Ok(());
+            }
+            println!(
+                "{name}: {} {}",
+                solved.goal.keyword(),
+                solved.objective.display()
+            );
+            for (n, v) in &solved.variables {
+                println!("  {n} = {}", v.display());
+            }
+            for c in &solved.constraints {
+                println!(
+                    "  {}: {} {} {} · {}",
+                    c.name,
+                    c.lhs.display(),
+                    c.op,
+                    c.rhs.display(),
+                    if c.binding {
+                        "binding".to_string()
+                    } else {
+                        format!("slack {}", c.slack.display())
+                    }
+                );
+            }
+            Ok(())
+        }
         Command::Check { root } => {
             let workspace = load(root)?;
             let mut count = 0;
@@ -456,7 +570,7 @@ fn report(
             "{}:{}  {} {}{}",
             e.path.display(),
             e.line,
-            if e.kind == "event" {
+            if e.kind == "event" || e.kind == "stop" {
                 "•"
             } else if e.done {
                 "[x]"

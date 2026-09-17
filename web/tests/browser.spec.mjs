@@ -376,3 +376,17 @@ test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits
   await replace(page, "[400]:flour_stock", "[300]:flour_stock");
   await expect(page.locator(".view-lines")).toContainText("= $69.75");
 });
+
+test("itinerary stops render one hue per kind with bold markers", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    window.jotTest.editor.setValue("## Friday, November 20, 2026 · Oaxaca\n\n07:04 AM  > Depart JFK for MEX\n11:55 AM  < Arrive at MEX\n06:00 PM  @ Check in to Majagua\n");
+  });
+  const token = text => renderedToken(page, text);
+  await expect(token("Depart JFK for MEX")).toHaveCSS("color", "rgb(255, 176, 112)");
+  await expect(token(">")).toHaveCSS("font-weight", "700");
+  await expect(token("Arrive at MEX")).toHaveCSS("color", "rgb(156, 232, 160)");
+  await expect(token("Check in to Majagua")).toHaveCSS("color", "rgb(201, 164, 255)");
+  await expect(token("November 20, 2026")).toHaveCSS("color", "rgb(255, 158, 207)");
+  await expect(token("07:04 AM")).toHaveCSS("color", "rgb(145, 220, 232)");
+});

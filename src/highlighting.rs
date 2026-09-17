@@ -30,7 +30,30 @@ pub const TOKEN_TYPES: &[&str] = &[
     "jotTaskDone",
     "jotCheckboxChecked",
     "jotTime",
+    // Itineraries: one hue per stop kind, so a day reads at a glance.
+    "jotDay",
+    "jotPlace",
+    "jotDetailKey",
+    "jotDepart",
+    "jotArrive",
+    "jotTransit",
+    "jotStay",
+    "jotMeal",
+    "jotVisit",
+    "jotExplore",
 ];
+/// The semantic token type for a stop kind.
+pub fn kind_token(kind: &crate::itinerary::Kind) -> &'static str {
+    match kind.marker {
+        '>' => "jotDepart",
+        '<' => "jotArrive",
+        '~' => "jotTransit",
+        '@' => "jotStay",
+        '*' => "jotMeal",
+        '+' => "jotVisit",
+        _ => "jotExplore",
+    }
+}
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
 const DECLARATION: u32 = 1;
 const DEFAULT_LIBRARY: u32 = 2;
@@ -388,20 +411,35 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     }
     for day in &doc.days {
         if let Some((_, span)) = &day.weekday {
-            p.mark(*span, "jotDate");
+            p.paint(*span, style("jotDay", DECLARATION));
+            p.paint(
+                Span::new(span.line, span.end, day.date_span.start),
+                style("jotDay", 0),
+            );
         }
-        p.mark(day.date_span, "jotDate");
+        p.paint(day.date_span, style("jotDay", DECLARATION));
         if let Some((_, span)) = &day.places {
-            p.paint(*span, style("heading", 0));
+            p.mark(*span, "jotPlace");
         }
         for stop in &day.stops {
             p.mark(stop.time_span, "jotTime");
+            let token = stop.kind.map(kind_token).unwrap_or("heading");
             if let Some(marker) = stop.marker_span {
-                p.mark(marker, "keyword");
+                p.paint(marker, style(token, DECLARATION));
             }
-            p.paint(stop.title_span, style("heading", 0));
+            p.mark(stop.title_span, token);
             for detail in &stop.details {
-                p.paint(detail.key_span, style("property", 0));
+                p.mark(detail.key_span, "jotDetailKey");
+                let key = detail.key.to_ascii_lowercase();
+                if key.ends_with("number")
+                    || key == "seats"
+                    || key == "confirmation"
+                    || key == "pnr"
+                {
+                    p.mark(detail.value_span, "jotCode");
+                } else if key == "cancel by" {
+                    p.mark(detail.value_span, "jotDate");
+                }
                 p.mark(
                     Span::new(
                         detail.key_span.line,

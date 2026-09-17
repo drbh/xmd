@@ -121,7 +121,10 @@ Three features ride on standard LSP requests that most editors already send:
   start with a known word or emoji instead get the marker written by Format
   Document, and stops with no recognizable kind get a warning. Format
   Document also pads times and indents details. Stops paint their time,
-  marker and title, days show a stop count and how far away they are, each
+  and the marker and title in one hue per kind (orange departures, green
+  arrivals, blue transit, purple stays, rose meals, yellow visits, teal
+  exploring), day headings are pink with lilac places, and reservation codes
+  read as code. Days show a stop count and how far away they are, each
   stop shows the time until the next (or the layover between an arrival and
   a departure), `Cancel by: 24h before`
   or a datetime shows the deadline, `Address:` lines open in Maps, the outline

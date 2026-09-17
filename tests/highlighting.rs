@@ -283,3 +283,20 @@ fn checkbox_state_is_distinct_from_the_completed_task_title() {
         }
     }
 }
+
+#[test]
+fn itinerary_stops_paint_one_hue_per_kind_with_bold_markers() {
+    let source = "## Friday, November 20, 2026 · New York | Oaxaca\n\n07:04 AM  > Depart JFK for MEX\n    Reservation Number: LPSNKQ\n    Cancel by: 24h before\n11:55 AM  < Arrive at MEX\n02:45 PM  🍽️ Dinner at Casa\n03:00 PM  Something else\n";
+    assert_kind(source, 0, "Friday", "jotDay", 1);
+    assert_kind(source, 0, "November 20, 2026", "jotDay", 1);
+    assert_kind(source, 0, "New York | Oaxaca", "jotPlace", 0);
+    assert_kind(source, 2, "07:04 AM", "jotTime", 0);
+    assert_kind(source, 2, ">", "jotDepart", 1);
+    assert_kind(source, 2, "Depart JFK for MEX", "jotDepart", 0);
+    assert_kind(source, 3, "Reservation Number", "jotDetailKey", 0);
+    assert_kind(source, 3, "LPSNKQ", "jotCode", 0);
+    assert_kind(source, 4, "24h before", "jotDate", 0);
+    assert_kind(source, 5, "<", "jotArrive", 1);
+    assert_kind(source, 6, "Dinner at Casa", "jotMeal", 0);
+    assert_kind(source, 7, "Something else", "heading", 0);
+}

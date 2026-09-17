@@ -121,3 +121,72 @@ fn file_resolution_preserves_spaces_unicode_and_home_paths() {
     assert!(Resource::parse(".25").is_none());
     assert!(Resource::parse("example.com").is_none());
 }
+
+#[test]
+fn github_links_in_prose_carry_a_status_badge_that_ages() {
+    use chrono::{DateTime, Utc};
+    let source = "- [ ] multicast https://github.com/NVlabs/cuda-oxide/pull/606\nSee [the fix](https://github.com/NVlabs/cuda-oxide/pull/975) and https://github.com/NVlabs/cuda-oxide/pull/1286.\nNot a PR: https://github.com/drbh/kawaii\n";
+    let mut ws = jot::workspace::Workspace {
+        roots: vec!["/notes".into()],
+        documents: [(
+            std::path::PathBuf::from("/notes/work.jot"),
+            jot::document::Document::parse(source.into()),
+        )]
+        .into(),
+        cache: Default::default(),
+    };
+    let fetched: DateTime<Utc> = "2026-09-16T16:00:00Z".parse().unwrap();
+    let now = DateTime::parse_from_rfc3339("2026-09-16T18:05:00+00:00").unwrap();
+    ws.cache.insert(
+        "https://github.com/NVlabs/cuda-oxide/pull/606".into(),
+        jot::resources::metadata("pull", &serde_json::json!({"title":"multicast","state":"MERGED","mergedAt":"2026-09-10T00:00:00Z","statusCheckRollup":[{"conclusion":"SUCCESS"}],"reviewDecision":"APPROVED"}), fetched).unwrap(),
+    );
+    ws.cache.insert(
+        "https://github.com/NVlabs/cuda-oxide/pull/975".into(),
+        jot::resources::metadata("pull", &serde_json::json!({"title":"mir pass","state":"OPEN","statusCheckRollup":[{"conclusion":"FAILURE"}],"reviewDecision":"CHANGES_REQUESTED"}), fetched - chrono::Duration::days(9)).unwrap(),
+    );
+    let path = std::path::Path::new("/notes/work.jot");
+    let hints = jot::presentation::hints_at(
+        &ws,
+        path,
+        now,
+        tower_lsp::lsp_types::Range::new(
+            tower_lsp::lsp_types::Position::new(0, 0),
+            tower_lsp::lsp_types::Position::new(9, 0),
+        ),
+    );
+    let labels: Vec<(u32, String)> = hints
+        .iter()
+        .map(|h| {
+            (
+                h.position.line,
+                match &h.label {
+                    tower_lsp::lsp_types::InlayHintLabel::String(s) => s.clone(),
+                    other => panic!("{other:?}"),
+                },
+            )
+        })
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            (0, "merged · checks ok · approved · 2h ago".to_string()),
+            (
+                1,
+                "open · checks FAILING · CHANGES REQUESTED · stale · 9d ago".to_string()
+            ),
+            (1, "PR #1286 · refresh for status".to_string()),
+        ]
+    );
+    // The badge sits right after the link, and the hover carries the title.
+    assert_eq!(
+        hints[2].position.character,
+        source.lines().nth(1).unwrap().find("/1286").unwrap() as u32 + 5
+    );
+    match &hints[0].tooltip {
+        Some(tower_lsp::lsp_types::InlayHintTooltip::MarkupContent(m)) => {
+            assert!(m.value.contains("**multicast**"), "{}", m.value)
+        }
+        other => panic!("{other:?}"),
+    }
+}

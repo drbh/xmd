@@ -85,6 +85,13 @@ Three features ride on standard LSP requests that most editors already send:
   continues the checklist with the same indent, and Enter on an empty checkbox
   ends it. Zed sends these automatically; the browser editor sets
   `formatOnType`.
+- **GitHub status badges.** Every link to a GitHub pull request, issue, or
+  commit gets an inlay, whether it is a named resource, a Markdown link, or a
+  bare URL in a task. With a cached status it reads
+  `merged · checks ok · approved · 2h ago`; failing checks and requested
+  changes are in caps, and a cache older than a week says `stale`. Without one
+  it reads `PR #606 · refresh for status`. Hover for the title, and use the
+  Refresh GitHub status lens or `jot refresh` to update.
 - **Linear plans.** `[bakery] := maximize(3 * bagels + 1.25 * doughnuts)`
   followed by a `| constraint | expression |` table declares an optimization.
   Names no note defines are decision variables (never negative); every other

@@ -104,15 +104,24 @@ impl Resource {
             .iter()
             .any(|e| target.ends_with(e))
     }
-    pub fn label(&self, cache: &Cache) -> String {
+    /// The inline status shown next to a resource: cached GitHub state with
+    /// its age, or what kind of thing the link opens.
+    pub fn label(&self, cache: &Cache, now: DateTime<Utc>) -> String {
         if let Some(m) = cache.get(&self.target) {
-            return m.summary();
+            return m.badge(now);
         }
         if self.target.starts_with("geo:") {
             return "place · open map".into();
         }
-        if github(&self.target).is_some() {
-            return "GitHub · not refreshed".into();
+        if let Some((_, kind, number)) = github(&self.target) {
+            return format!(
+                "{} · refresh for status",
+                match kind.as_str() {
+                    "pull" => format!("PR #{number}"),
+                    "issues" => format!("issue #{number}"),
+                    _ => format!("commit {}", &number[..number.len().min(7)]),
+                }
+            );
         }
         if self.is_image() {
             return "image · open preview".into();
@@ -143,7 +152,7 @@ impl Resource {
         }
         if let Some(m) = cache.get(&self.target) {
             out.push_str(&format!(
-                "\n\n{}\n\n{}\n\nLast refreshed: {}. Use **Refresh GitHub status** to update.",
+                "\n\n**{}**\n\n{}\n\nLast refreshed: {}. Use **Refresh GitHub status** to update.",
                 m.title,
                 m.summary(),
                 m.fetched_at.to_rfc3339()
@@ -292,7 +301,47 @@ pub(crate) fn raw_link_end(line: &str, start: usize) -> Option<usize> {
     }
     Some(start + candidate.len())
 }
+/// `just now`, `5m ago`, `2h ago`, `3d ago`, `2w ago`.
+pub fn ago(from: DateTime<Utc>, now: DateTime<Utc>) -> String {
+    let seconds = (now - from).num_seconds().max(0);
+    match seconds {
+        s if s < 60 => "just now".into(),
+        s if s < 3600 => format!("{}m ago", s / 60),
+        s if s < 86_400 => format!("{}h ago", s / 3600),
+        s if s < 14 * 86_400 => format!("{}d ago", s / 86_400),
+        s => format!("{}w ago", s / (7 * 86_400)),
+    }
+}
 impl Metadata {
+    /// A compact, scannable status: `merged · checks ok · approved · 2h ago`.
+    /// Failing checks and requested changes shout in caps; stale caches say so.
+    pub fn badge(&self, now: DateTime<Utc>) -> String {
+        let mut parts = vec![self.state.clone()];
+        if let Some(checks) = &self.checks {
+            parts.push(match checks.as_str() {
+                "passing" => "checks ok".to_string(),
+                "failing" => "checks FAILING".to_string(),
+                other => format!("checks {other}"),
+            });
+        }
+        if let Some(review) = &self.review
+            && !review.is_empty()
+        {
+            parts.push(match review.as_str() {
+                "APPROVED" => "approved".to_string(),
+                "CHANGES_REQUESTED" => "CHANGES REQUESTED".to_string(),
+                "REVIEW_REQUIRED" => "review needed".to_string(),
+                other => other.to_lowercase().replace('_', " "),
+            });
+        }
+        let age = ago(self.fetched_at, now);
+        parts.push(if (now - self.fetched_at).num_days() >= 7 {
+            format!("stale · {age}")
+        } else {
+            age
+        });
+        parts.join(" · ")
+    }
     pub fn summary(&self) -> String {
         let mut s = self.state.clone();
         if let Some(checks) = &self.checks {

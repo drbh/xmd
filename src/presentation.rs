@@ -125,7 +125,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
         }) {
             Ok(Value::Resource(resource)) => push(
                 def.end.range(&doc.text).start,
-                resource.label(&workspace.cache),
+                resource.label(&workspace.cache, engine.now.to_utc()),
                 resource.hover(path, &workspace.cache),
             ),
             Ok(value) if def.expression => push(
@@ -460,7 +460,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
             match value {
                 Value::Resource(resource) => push(
                     after,
-                    resource.label(&workspace.cache),
+                    resource.label(&workspace.cache, engine.now.to_utc()),
                     resource.hover(&target, &workspace.cache),
                 ),
                 Value::Timer(timer) => push(
@@ -480,6 +480,21 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 }
             }
         }
+    }
+    // Raw and Markdown links to GitHub get the same status badge as named resources.
+    for link in &doc.links {
+        if crate::resources::github(&link.target).is_none() {
+            continue;
+        }
+        let resource = crate::resources::Resource {
+            target: link.target.clone(),
+            origin: Some(path.into()),
+        };
+        push(
+            link.span.range(&doc.text).end,
+            resource.label(&workspace.cache, engine.now.to_utc()),
+            resource.hover(path, &workspace.cache),
+        );
     }
     hints.sort_by_key(|h| h.position);
     hints

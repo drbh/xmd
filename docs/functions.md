@@ -16,6 +16,23 @@ then `add(2)(3)` returns `5`. Global definitions resolve at the function's sourc
 document, never against its caller's parameters. Money, durations, dates and the
 other existing value types retain their normal arithmetic rules.
 
+Definitions can span lines inside `(...)`, `[...]`, and `{...}`, or after
+`=>` and other unfinished operators. Indent continued expressions. Closing
+delimiters may align with the definition; the next declaration starts a new
+expression even if the previous one is incomplete. `//` starts a comment through
+the end of the line, including inside an expression. Quoted URLs remain strings.
+
+```wtf
+// Add tax only to positive prices.
+with_tax := fn(price) => (
+  if(
+    price > $0,
+    price + price * tax,
+    $0
+  )
+)
+```
+
 Records use `{title: "Hello", state: "open"}` and property access uses `.title`.
 Lists use `[1, 2, 3]` in expressions; bracketed references in prose keep their
 existing meaning. Use a space after numeric list separators to distinguish them

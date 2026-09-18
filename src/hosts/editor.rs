@@ -1196,9 +1196,9 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
-            .workspace
-            .documents
+            .plugin_buffers
             .get(&path)
+            .or_else(|| state.workspace.documents.get(&path))
             .map(crate::symbols::folding_ranges))
     }
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {

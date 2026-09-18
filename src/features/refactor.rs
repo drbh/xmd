@@ -163,12 +163,18 @@ pub fn actions_for_in(
         let selected = &line[start..end];
         if let Some(region) = regions
             .iter()
-            .find(|s| s.line == row && start >= s.start && end <= s.end)
+            .find(|s| s.contains(&doc.text, Span::new(row, start, end)))
         {
             if Engine::is_subexpression(
-                &line[region.start..region.end],
-                start - region.start,
-                end - region.start,
+                region.source(&doc.text),
+                region
+                    .offset_of(&doc.text, Span::new(row, start, end))
+                    .unwrap(),
+                region
+                    .offset_of(&doc.text, Span::new(row, start, end))
+                    .unwrap()
+                    + end
+                    - start,
             ) && !identifier(selected)
             {
                 let name = unique(ws, "calculation");
@@ -339,9 +345,7 @@ pub fn actions_for_in(
             let safe = original
                 .references
                 .iter()
-                .filter(|r| {
-                    r.span.line == def.value_span.line && r.span.start >= def.value_span.start
-                })
+                .filter(|r| def.value_span.contains(&original.text, r.span))
                 .all(|r| ws.resolve(&symbol.path, &r.name).ok() == ws.resolve(path, &r.name).ok());
             if safe {
                 result.push(Refactor {

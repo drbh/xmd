@@ -3,7 +3,9 @@
 Plugins are `.wtf` modules using the same [functional expressions](functions.md)
 as notes and queries. Put modules directly in `<workspace>/.wtf/plugins/`.
 No Rust build, separate manifest format, or language runtime dependency is needed.
-Each definition occupies one line, like ordinary note calculations.
+Definitions can span lines inside parentheses, lists, and records, or after
+`=>` and other unfinished operators. Indent continuation lines; closing
+delimiters may align with the definition. Use `//` for short comments.
 
 For a custom URL host, save this as `.wtf/plugins/docs.wtf`:
 

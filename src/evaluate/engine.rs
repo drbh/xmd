@@ -376,6 +376,7 @@ pub fn literal(s: &str) -> Result<Value, String> {
 
 #[derive(Clone, Debug)]
 pub enum Lexeme {
+    Comment,
     Value(Value),
     Name(String),
     Op(String),
@@ -396,6 +397,12 @@ pub struct Token {
     pub end: usize,
 }
 pub fn lex(s: &str) -> Result<Vec<Token>, String> {
+    Ok(lex_with_comments(s)?
+        .into_iter()
+        .filter(|t| !matches!(t.kind, Lexeme::Comment))
+        .collect())
+}
+pub(crate) fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < s.len() {
@@ -406,7 +413,10 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
         }
         let start = i;
         let kind =
-            if c == '"' {
+            if s[i..].starts_with("//") {
+                i += s[i..].find('\n').unwrap_or(s.len() - i);
+                Lexeme::Comment
+            } else if c == '"' {
                 i += 1;
                 let mut escaped = false;
                 let mut closed = false;
@@ -1268,7 +1278,14 @@ impl<'a> Engine<'a> {
         {
             self.failure = Some(EvalFailure {
                 path: path.clone(),
-                span: Span::new(base.line, base.start + bounds.0, base.start + bounds.1),
+                span: self
+                    .workspace
+                    .documents
+                    .get(path)
+                    .map(|doc| base.relative(&doc.text, bounds.0, bounds.1))
+                    .unwrap_or_else(|| {
+                        Span::new(base.line, base.start + bounds.0, base.start + bounds.1)
+                    }),
                 message: message.into(),
                 related: vec![],
             });
@@ -1411,8 +1428,7 @@ impl<'a> Engine<'a> {
                         self.table_value(symbol, table)
                     }
                 } else if def.expression {
-                    let raw =
-                        &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+                    let raw = def.value_span.source(&doc.text);
                     let offset = raw.len() - raw.trim_start().len();
                     self.eval_at(
                         &symbol.path,
@@ -1564,7 +1580,7 @@ impl<'a> Engine<'a> {
         {
             return None;
         }
-        let raw = &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+        let raw = def.value_span.source(&doc.text);
         let offset = raw.len() - raw.trim_start().len();
         Some((
             symbol.clone(),

@@ -73,10 +73,11 @@ pub(crate) fn collect_native_in(
     };
     let unfinished = |span: Span| {
         editing
-            && doc
-                .definitions
-                .iter()
-                .any(|d| d.expression && d.value_span.line == span.line && incomplete(&d.source))
+            && doc.definitions.iter().any(|d| {
+                d.expression
+                    && (d.named.span.line == span.line || d.value_span.contains(&doc.text, span))
+                    && incomplete(&d.source)
+            })
     };
     let mut issues = vec![];
     for problem in &doc.problems {
@@ -129,7 +130,8 @@ pub(crate) fn collect_native_in(
                 let incomplete_dependency = editing
                     && ws.documents[&failure.path].definitions.iter().any(|d| {
                         d.expression
-                            && d.value_span.line == failure.span.line
+                            && d.value_span
+                                .contains(&ws.documents[&failure.path].text, failure.span)
                             && incomplete(&d.source)
                     });
                 if incomplete_dependency {

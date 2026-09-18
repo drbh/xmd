@@ -61,6 +61,36 @@ Bake [bakery.bagels] bagels for [bakery].
 ";
 
 #[test]
+fn multiline_objectives_keep_constraint_tables_and_variable_locations() {
+    let source = BAKERY.replace(
+        "maximize($3 * bagels + $1.25 * doughnuts)",
+        "maximize(\n  // Profit per batch.\n  $3 * bagels +\n  $1.25 * doughnuts\n)",
+    );
+    for source in [source.clone(), source.replace('\n', "\r\n")] {
+        let ws = note(&source);
+        assert_eq!(
+            plan(&ws, "bakery").objective,
+            plan(&note(BAKERY), "bakery").objective
+        );
+        assert!(messages(&ws).is_empty(), "{:?}", messages(&ws));
+        let (symbol, _) = intelligence::symbol_at(&ws, path(), point(&ws, 3, "bagels")).unwrap();
+        assert_eq!(ws.named(&symbol).name, "bagels");
+        assert_eq!(ws.named(&symbol).span.line, 3);
+        let outline = symbols::document_symbols(&ws, path(), now());
+        assert_eq!(
+            outline
+                .iter()
+                .find(|s| s.name == "bakery")
+                .unwrap()
+                .range
+                .end
+                .line,
+            11
+        );
+    }
+}
+
+#[test]
 fn a_plan_solves_reactively_with_note_values_as_constants() {
     let ws = note(BAKERY);
     let solved = plan(&ws, "bakery");

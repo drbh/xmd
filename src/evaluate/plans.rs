@@ -254,17 +254,20 @@ pub fn goal(source: &str) -> Option<(Goal, usize, usize)> {
 pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
     let def = &doc.definitions[definition];
     let (goal, inner_start, inner_end) = goal(&def.source).unwrap();
-    let raw = &lines[def.value_span.line][def.value_span.start..def.value_span.end];
+    let raw = def.value_span.source(&doc.text);
     let offset = def.value_span.start + raw.len() - raw.trim_start().len();
-    let header = def.named.span.line + 1;
+    let header = def.end.line + 1;
+    let objective = &def.source[inner_start..inner_end];
+    let objective_start = inner_start + objective.len() - objective.trim_start().len();
+    let objective = objective.trim();
     let mut plan = Plan {
         definition,
         goal,
-        objective: def.source[inner_start..inner_end].trim().into(),
-        objective_span: Span::new(
-            def.value_span.line,
-            offset + inner_start,
-            offset + inner_end,
+        objective: objective.into(),
+        objective_span: Span::new(def.value_span.line, offset, offset).relative(
+            &doc.text,
+            objective_start,
+            objective_start + objective.len(),
         ),
         header,
         end_line: header,
@@ -378,8 +381,8 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
 pub fn regions(plan: &Plan) -> impl Iterator<Item = Span> + '_ {
     std::iter::once(plan.objective_span).chain(plan.constraints.iter().map(|c| c.span))
 }
-pub fn contains(plan: &Plan, span: Span) -> bool {
-    regions(plan).any(|r| r.line == span.line && span.start >= r.start && span.end <= r.end)
+pub fn contains(plan: &Plan, span: Span, text: &str) -> bool {
+    regions(plan).any(|r| r.contains(text, span))
 }
 /// The plan's rows as a table, so formatting and format-on-type align them.
 pub fn grid(plan: &Plan) -> Table {
@@ -441,10 +444,14 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
     let name = def.named.name.clone();
     let body =
         seek_body(&def.source).ok_or("solve() needs a constraint, e.g. solve(total >= $500)")?;
-    let raw = &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+    let raw = def.value_span.source(&doc.text);
     let offset = def.value_span.start + raw.len() - raw.trim_start().len();
     let start = offset + def.source.find(body).unwrap_or(0);
-    let span = Span::new(def.value_span.line, start, start + body.len());
+    let span = Span::new(def.value_span.line, start, start + body.len()).relative(
+        &doc.text,
+        0,
+        body.len(),
+    );
     let vars = [name.clone()].into_iter().collect();
     let (lhs, op, rhs) = engine.constraint(&symbol.path, body, span, &vars)?;
     let difference = lhs.minus(&rhs)?;

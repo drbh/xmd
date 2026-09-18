@@ -152,7 +152,7 @@ pub fn inert(doc: &Document, position: Position) -> bool {
                         .chain(doc.events.iter().flat_map(|e| e.attributes.values()))
                         .any(|a| a.span.line == row && byte >= a.span.start && byte <= a.span.end)
                     && !doc.definitions.iter().any(|d| {
-                        d.expression && d.value_span.line == row && byte >= d.value_span.start
+                        d.expression && d.value_span.contains(&doc.text, Span::new(row, byte, byte))
                     }))
     })
 }
@@ -1205,9 +1205,11 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
             }
             let doc = &ws.documents[&symbol.path];
             let mut inputs = std::collections::BTreeSet::new();
-            for reference in doc.references.iter().filter(|r| {
-                r.span.line == def.value_span.line && r.span.start >= def.value_span.start
-            }) {
+            for reference in doc
+                .references
+                .iter()
+                .filter(|r| def.value_span.contains(&doc.text, r.span))
+            {
                 if let Ok(input) = crate::tables::resolve_reference(ws, &symbol.path, reference) {
                     inputs.insert(source_link(ws, &input));
                 }

@@ -217,12 +217,19 @@ pub fn document_symbols_in(
                 line_range(doc, end.saturating_sub(1)).end,
             )
         } else {
-            Span::new(
-                row,
-                start,
-                definition.end.end.min(doc.line(row).trim_end().len()),
+            Range::new(
+                Span::new(row, start, start).range(&doc.text).start,
+                Span::new(
+                    definition.end.line,
+                    0,
+                    definition
+                        .end
+                        .end
+                        .min(doc.line(definition.end.line).trim_end().len()),
+                )
+                .range(&doc.text)
+                .end,
             )
-            .range(&doc.text)
         };
         entries.push(symbol(
             definition.named.name.clone(),
@@ -328,6 +335,9 @@ pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
             ranges.push((start, end, Some(lsp_types::FoldingRangeKind::Region)));
         }
     };
+    for definition in &doc.definitions {
+        add(definition.named.span.line, definition.end.line + 1);
+    }
     for section in &doc.sections {
         add(section.line, section.end_line);
     }

@@ -196,7 +196,7 @@ pub fn edit_in(
         now,
     )?
     .display();
-    let raw = &doc.line(def.value_span.line)[def.value_span.start..def.value_span.end];
+    let raw = def.value_span.source(&doc.text);
     let leading = &raw[..raw.len() - raw.trim_start().len()];
     let trailing = &raw[raw.trim_end().len()..];
     let text = format!("{leading}{expression}{trailing}");

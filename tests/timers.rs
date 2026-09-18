@@ -42,6 +42,28 @@ fn change(ws: &mut Workspace, name: &str, action: &str, seconds: i64) {
 }
 
 #[test]
+fn multiline_timer_actions_preserve_the_surrounding_note() {
+    let source = "// Focus timer.\n[session] := 2m\n[focus] := countdown(\n  session + 30s\n)\nKeep this prose.\n";
+    for source in [source.to_owned(), source.replace('\n', "\r\n")] {
+        let mut ws = notes(&source);
+        assert_eq!(eval(&ws, "focus.remaining", 0), Value::Duration(150));
+        change(&mut ws, "focus", "start", 0);
+        assert_eq!(eval(&ws, "focus.remaining", 20), Value::Duration(130));
+        change(&mut ws, "focus", "pause", 20);
+        assert_eq!(eval(&ws, "focus.remaining", 999), Value::Duration(130));
+        change(&mut ws, "focus", "reset", 999);
+        assert_eq!(eval(&ws, "focus.remaining", 999), Value::Duration(150));
+        let expected = source
+            .replace("countdown(\n  session + 30s\n)", "countdown(session + 30s)")
+            .replace(
+                "countdown(\r\n  session + 30s\r\n)",
+                "countdown(session + 30s)",
+            );
+        assert_eq!(ws.documents[path()].text, expected);
+    }
+}
+
+#[test]
 fn declarations_are_idle_and_reading_never_starts_or_changes_them() {
     let text = "[focus] := countdown(25m)\n[watch] := stopwatch()\nTime left: [focus.remaining].\n";
     let ws = notes(text);

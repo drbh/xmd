@@ -143,3 +143,142 @@ fn presentation_primitives_preserve_unicode_units_and_limits() {
         assert!(e.eval(path(), expression).is_err(), "{expression}");
     }
 }
+
+#[test]
+fn multiline_functions_records_and_comments_share_the_note_language() {
+    let source = r#"// The closure keeps its defining scope.
+rate := 10%
+with_tax := fn(
+  cost
+) => (
+  // Only this branch is evaluated.
+  if(
+    cost > $0,
+    cost + cost * rate,
+    $0
+  )
+)
+result := fold(
+  map([$2, $3], with_tax),
+  $0,
+  fn(total, price) => total + price
+)
+config := {
+  title: "https://example.com/)", // Delimiters here are data.
+  values: [
+    1,
+    2
+  ]
+}
+add := fn(x) =>
+  fn(y) => x + y
+"#;
+    for source in [source.to_string(), source.replace('\n', "\r\n")] {
+        let ws = workspace(&source);
+        let doc = &ws.documents[path()];
+        assert_eq!(doc.definitions.len(), 5);
+        assert!(doc.sections.is_empty() && doc.tasks.is_empty() && doc.links.is_empty());
+        let mut e = engine(&ws);
+        assert_eq!(e.named(path(), "result").unwrap().display(), "$5.50");
+        assert_eq!(e.eval(path(), "add(2)(3)").unwrap(), Value::Number(5.0));
+        assert_eq!(
+            e.eval(path(), "config.title").unwrap().display(),
+            "https://example.com/)"
+        );
+        assert!(wtf::diagnostics::collect(&ws, path(), e.today, e.now, false).is_empty());
+        assert!(
+            !doc.references
+                .iter()
+                .any(|r| ["cost", "total", "price", "x", "y"].contains(&r.name.as_str()))
+        );
+        let definition = &doc.definitions[1];
+        assert_eq!(definition.end.line, 11);
+        assert_eq!(definition.value_span.range(&source).end.line, 11);
+        let outline = wtf::symbols::document_symbols(&ws, path(), e.now);
+        assert_eq!(outline[1].range.end.line, 11);
+        assert!(
+            wtf::symbols::folding_ranges(doc)
+                .iter()
+                .any(|f| f.start_line == 2 && f.end_line == 11)
+        );
+    }
+}
+
+#[test]
+fn multiline_errors_and_references_keep_exact_source_locations() {
+    let source = "rate := 2\nbad := fn(x) => (\n  // A Unicode prefix must not move the error.\n  length(\"🦀\") + x / 0\n)\nresult := (\n  rate + bad(1)\n)\n";
+    for source in [source.to_string(), source.replace('\n', "\r\n")] {
+        let ws = workspace(&source);
+        let mut e = engine(&ws);
+        assert!(e.named(path(), "result").is_err());
+        let failure = e.failure.take().unwrap();
+        assert_eq!(failure.span.line, 3);
+        assert_eq!(failure.span.source(&source), "0");
+        let line = ws.documents[path()].line(3);
+        assert_eq!(
+            failure.span.range(&source).start.character as usize,
+            line[..line.find('0').unwrap()].encode_utf16().count()
+        );
+        let reference = ws.documents[path()]
+            .references
+            .iter()
+            .find(|r| r.name == "rate" && r.span.line == 6)
+            .unwrap();
+        assert_eq!(reference.span.source(&source), "rate");
+        assert_eq!(
+            wtf::intelligence::symbol_at(&ws, path(), reference.span.range(&source).start)
+                .unwrap()
+                .0,
+            ws.resolve(path(), "rate").unwrap()
+        );
+        let dependencies =
+            wtf::hierarchy::dependencies(&ws, &ws.resolve(path(), "result").unwrap());
+        assert!(dependencies.iter().any(|(s, _)| ws.named(s).name == "rate"));
+    }
+}
+
+#[test]
+fn unfinished_multiline_expressions_do_not_consume_the_next_definition_or_prose() {
+    for source in [
+        "bad := fn(x) => (\n  x +\ngood := 42\nOrdinary prose\n",
+        "bad := fn(x) => (\n  x +\n  good := 42\nOrdinary prose\n",
+        "bad := fn(x) => (\n  x +\n// A description of good.\ngood := 42\n",
+    ] {
+        let ws = workspace(source);
+        assert_eq!(ws.documents[path()].definitions.len(), 2);
+        assert_eq!(
+            engine(&ws).named(path(), "good").unwrap(),
+            Value::Number(42.0)
+        );
+        assert!(engine(&ws).named(path(), "bad").is_err());
+    }
+}
+
+#[test]
+fn multiline_modules_compile_and_apply_the_same_limits() {
+    let source = "// Summarize headings.\nplugin := {\n  api: 1,\n  id: \"headings\",\n  kind: \"inlay\",\n  inputs: [\"sections\"]\n}\n// Use the selected section anchors.\ncollect := fn(ctx) => (\n  map(\n    ctx.document.sections,\n    fn(s) => {at: s.anchor, label: s.title}\n  )\n)\n";
+    let mut ws = workspace("# Hello\n");
+    ws.plugins = std::sync::Arc::new(
+        wtf::plugins::Plugins::compile(
+            [("/notes/.wtf/plugins/headings.wtf".into(), source.into())].into(),
+        )
+        .unwrap(),
+    );
+    let result = wtf::presentation::hints_at(
+        &ws,
+        path(),
+        engine(&ws).now,
+        lsp_types::Range::new(
+            lsp_types::Position::new(0, 0),
+            lsp_types::Position::new(2, 0),
+        ),
+    );
+    assert!(serde_json::to_string(&result).unwrap().contains("Hello"));
+    let ws = workspace("loop := fn(x) => (\n  loop(x)\n)\n");
+    assert!(
+        engine(&ws)
+            .eval(path(), "loop(1)")
+            .unwrap_err()
+            .contains("depth")
+    );
+}

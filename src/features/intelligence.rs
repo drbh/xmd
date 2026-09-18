@@ -5,7 +5,6 @@ use crate::{
     resources,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
 use std::path::Path;
 
@@ -15,18 +14,141 @@ pub fn markup(value: String) -> MarkupContent {
         value,
     }
 }
-pub fn link_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
-    link_hover_at(ws, path, position, chrono::Utc::now().fixed_offset())
-}
-pub fn link_hover_at(
-    ws: &Workspace,
+
+/// The whole hover chain both hosts show, in one place: a feature module's own
+/// hovers first, then links, table cells, bracketed calculations, symbols (with
+/// a property preview when the reference reads one) and finally this row's task.
+pub(crate) fn hover_at(
+    request: &crate::RequestContext<'_>,
     path: &Path,
     position: Position,
-    now: DateTime<FixedOffset>,
 ) -> Option<Hover> {
-    link_hover_in(&crate::RequestContext::new(ws, now), path, position)
+    let ws = request.workspace();
+    let doc = ws.documents.get(path)?;
+    if let Some(hover) = crate::features::module_features::hover(request, path, position) {
+        return Some(hover);
+    }
+    if let Some(hover) = link_hover(request, path, position) {
+        return Some(hover);
+    }
+    if let Some(hover) = cell_hover(request, path, position) {
+        return Some(hover);
+    }
+    let symbol = symbol_at(ws, path, position);
+    if symbol.is_none()
+        && let Some(hover) = calculation_hover(request, path, position)
+    {
+        return Some(hover);
+    }
+    if let Some((symbol, span)) = symbol {
+        let mut value = symbol_hover(request, &symbol);
+        let mut range = span.range(&doc.text);
+        if let Some(reference) = doc
+            .references
+            .iter()
+            .find(|r| r.span == span && r.property.is_some())
+        {
+            let preview = request
+                .engine()
+                .eval(path, &reference.expression())
+                .map(|v| v.display())
+                .unwrap_or_else(|e| e);
+            value = format!("{} = {preview}\n\n{value}", reference.expression());
+            range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
+        }
+        return Some(Hover {
+            contents: HoverContents::Markup(markup(value)),
+            range: Some(range),
+        });
+    }
+    task_hover(request, path, position)
 }
-pub fn link_hover_in(
+
+/// A task's state, blockers, estimate, timer and subtask progress.
+fn task_hover(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+    let doc = ws.documents.get(path)?;
+    let (index, task) = doc
+        .tasks
+        .iter()
+        .enumerate()
+        .find(|(_, t)| t.line == position.line as usize)?;
+    let mut engine = request.engine();
+    let blocked = engine.blocked(path, index);
+    let mut value = format!(
+        "**{}**\n\n{}",
+        task.title,
+        if engine.task_done(path, index) {
+            "Complete"
+        } else {
+            "Incomplete"
+        }
+    );
+    match blocked {
+        Ok(names) if !names.is_empty() => {
+            let names = names
+                .into_iter()
+                .map(|name| {
+                    ws.resolve(path, &name)
+                        .map(|s| source_link(ws, &s))
+                        .unwrap_or(name)
+                })
+                .collect::<Vec<_>>();
+            value.push_str(&format!("\n\nBlocked by: {}", names.join(", ")));
+        }
+        Err(e) => value.push_str(&format!("\n\n{e}")),
+        _ => {}
+    }
+    if let Some(attr) = task.attributes.get("estimate")
+        && let Ok(v) = engine.eval(path, &attr.value)
+    {
+        value.push_str(&format!("\n\nEstimate: {}", v.display()));
+    }
+    if let Some(attr) = task.attributes.get("timer")
+        && let Ok(v) = engine.eval(path, &attr.value)
+    {
+        value.push_str(&format!("\n\nTimer: {}", v.display()));
+        if let Value::Timer(timer) = &v
+            && let Some(limit) = timer.limit
+        {
+            value.push_str(&format!(
+                "\n\n`{}`",
+                crate::charts::bar_fraction(timer.elapsed as f64 / limit as f64)
+            ));
+        }
+    }
+    let children: Vec<_> = doc
+        .tasks
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| t.parent == Some(index))
+        .map(|(j, _)| j)
+        .collect();
+    if !children.is_empty() {
+        let done = children
+            .iter()
+            .filter(|j| engine.task_done(path, **j))
+            .count();
+        value.push_str(&format!(
+            "\n\nSubtasks: `{}` {done}/{}",
+            crate::charts::bar(done, children.len()),
+            children.len()
+        ));
+    }
+    value.push_str(
+        "\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers.",
+    );
+    Some(Hover {
+        contents: HoverContents::Markup(markup(value)),
+        range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
+    })
+}
+
+pub(crate) fn link_hover(
     request: &crate::RequestContext<'_>,
     path: &Path,
     position: Position,
@@ -793,21 +915,7 @@ fn property_names_with_links(
     };
     names.into_iter().map(str::to_string).collect()
 }
-pub fn completions(
-    ws: &Workspace,
-    path: &Path,
-    position: Position,
-    now: DateTime<FixedOffset>,
-    snippets: bool,
-) -> Vec<CompletionItem> {
-    completions_in(
-        &crate::RequestContext::new(ws, now),
-        path,
-        position,
-        snippets,
-    )
-}
-pub fn completions_in(
+pub(crate) fn completions(
     request: &crate::RequestContext<'_>,
     path: &Path,
     position: Position,
@@ -1088,10 +1196,8 @@ fn itinerary_completions(
     }
     None
 }
-pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
-    hover_in(&crate::RequestContext::new(ws, now), symbol)
-}
-pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
+/// Everything known about one definition, column or decision variable.
+pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
     let ws = request.workspace();
     let now = request.now();
     let features = request.link_features();
@@ -1300,15 +1406,7 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
 }
 
 /// A bracketed calculation in prose: its expression, substitution and value.
-pub fn calculation_hover(
-    ws: &Workspace,
-    path: &Path,
-    position: Position,
-    now: DateTime<FixedOffset>,
-) -> Option<Hover> {
-    calculation_hover_in(&crate::RequestContext::new(ws, now), path, position)
-}
-pub fn calculation_hover_in(
+pub(crate) fn calculation_hover(
     request: &crate::RequestContext<'_>,
     path: &Path,
     position: Position,
@@ -1355,14 +1453,7 @@ pub fn calculation_hover_in(
         ),
     })
 }
-pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
-    cell_hover_in(
-        &crate::RequestContext::new(ws, chrono::Local::now().fixed_offset()),
-        path,
-        position,
-    )
-}
-pub fn cell_hover_in(
+pub(crate) fn cell_hover(
     request: &crate::RequestContext<'_>,
     path: &Path,
     position: Position,

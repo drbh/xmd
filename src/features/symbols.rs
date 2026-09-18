@@ -1,9 +1,8 @@
 //! Standard LSP document symbols, shared by the native server and browser adapter.
 use crate::{
     document::{Document, Span},
-    workspace::{Symbol, SymbolKind, Workspace},
+    workspace::{Symbol, SymbolKind},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation, Url};
 use std::path::Path;
 
@@ -39,14 +38,7 @@ fn line_range(doc: &Document, row: usize) -> Range {
     .range(&doc.text)
 }
 
-pub fn document_symbols(
-    ws: &Workspace,
-    path: &Path,
-    now: DateTime<FixedOffset>,
-) -> Vec<DocumentSymbol> {
-    document_symbols_in(&crate::RequestContext::new(ws, now), path)
-}
-pub fn document_symbols_in(
+pub(crate) fn document_symbols(
     request: &crate::RequestContext<'_>,
     path: &Path,
 ) -> Vec<DocumentSymbol> {

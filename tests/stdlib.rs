@@ -34,12 +34,12 @@ fn export(source: String, name: &str, function: &str) -> String {
     source.replacen(&needle, &format!("_{name} := fn("), 1) + &format!("\n{name} := {function}\n")
 }
 fn hints(ws: &Workspace) -> Vec<lsp_types::InlayHint> {
-    wtf::presentation::hints_in(
-        &RequestContext::new(ws, now()),
-        path(),
-        Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
-    )
-    .hints
+    RequestContext::new(ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
+        )
+        .hints
 }
 
 #[test]
@@ -76,7 +76,8 @@ fn disabling_the_feature_modules_removes_every_inlay_without_native_fallbacks() 
         ws.modules = disabled.clone();
         assert!(hints(&ws).is_empty(), "{source}");
         assert!(
-            !wtf::rendering::html_in(&RequestContext::new(&ws, now()), path())
+            !RequestContext::new(&ws, now())
+                .render_html(path())
                 .unwrap()
                 .contains("class=\"inlay\"")
         );
@@ -117,7 +118,7 @@ fn timer_constructor_properties_display_and_edits_use_the_replaced_library() {
             .new_text,
         " stopwatch(17s)"
     );
-    let html = wtf::rendering::html_in(&request, path()).unwrap();
+    let html = request.render_html(path()).unwrap();
     assert!(html.contains("CUSTOM TIMER"));
     assert!(html.contains("42s</span>"));
     // Previously created values keep their immutable implementation snapshot.
@@ -152,12 +153,13 @@ fn solver_policy_errors_reach_evaluation_and_resolved_html() {
             .unwrap_err()
             .contains("ACTIVE PLAN LIBRARY")
     );
-    let diagnostics = wtf::diagnostics::collect_in(&request, path(), true);
+    let diagnostics = request.diagnostics(path(), true);
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(diagnostics[0].message, "ACTIVE PLAN LIBRARY");
     assert_eq!(diagnostics[0].range.start.line, 0);
     assert!(
-        wtf::rendering::html_in(&request, path())
+        request
+            .render_html(path())
             .unwrap()
             .contains("ACTIVE PLAN LIBRARY")
     );
@@ -175,17 +177,19 @@ fn itinerary_library_changes_both_query_dates_and_editor_output() {
     replace(&mut ws, "itinerary_core", trip);
     let request = RequestContext::new(&ws, now());
     let query = wtf::query::Query::parse("stops | select at_date").unwrap();
-    let result = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now())).unwrap();
+    let result = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+        .query(&query, None)
+        .unwrap();
     assert!(
         serde_json::to_string(&result.rows)
             .unwrap()
             .contains("2040-01-02")
     );
-    let html = wtf::rendering::html_in(&request, path()).unwrap();
+    let html = request.render_html(path()).unwrap();
     assert!(html.contains("2040-01-02"));
     assert!(html.contains("CUSTOM TIME"));
     assert!(
-        serde_json::to_string(&wtf::symbols::document_symbols_in(&request, path()))
+        serde_json::to_string(&request.document_symbols(path()))
             .unwrap()
             .contains("CUSTOM TIME")
     );
@@ -265,7 +269,7 @@ fn missing_and_failed_libraries_report_errors_instead_of_using_bundled_code() {
                 .named(path(), "watch")
                 .is_err()
         );
-        let html = wtf::rendering::html_in(&RequestContext::new(&ws, now()), path()).unwrap();
+        let html = RequestContext::new(&ws, now()).render_html(path()).unwrap();
         assert!(!html.contains("00:00 elapsed"));
         assert!(
             html.contains("disabled") || html.contains("CUSTOM FAILURE"),

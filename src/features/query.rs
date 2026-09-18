@@ -4,7 +4,6 @@ use crate::{
     catalog::{self, Collection, QueryValue as Q, Record},
     engine::{self, Bindings, Engine, Expr, Lexeme, Parser, Value},
     evaluate::functional,
-    workspace::Workspace,
 };
 use serde::Serialize;
 use std::{
@@ -150,7 +149,11 @@ impl Stage {
 }
 impl Query {
     #[cfg(feature = "native")]
-    pub(crate) fn load_imports(&self, workspace: &mut Workspace, only: Option<&Path>) {
+    pub(crate) fn load_imports(
+        &self,
+        workspace: &mut crate::workspace::Workspace,
+        only: Option<&Path>,
+    ) {
         let context = only
             .map(Path::to_path_buf)
             .unwrap_or_else(|| workspace.root().join("__query__.wtf"));
@@ -309,18 +312,9 @@ impl Bindings for WorkspaceBindings {
     }
 }
 
-pub fn execute(ws: &Workspace, query: &Query, ctx: &QueryContext) -> Result<QueryResult, String> {
-    execute_in(&crate::RequestContext::new(ws, ctx.now), query)
-}
-pub fn execute_in(
-    request: &crate::RequestContext<'_>,
-    query: &Query,
-) -> Result<QueryResult, String> {
-    execute_scoped_in(request, query, None)
-}
-
-/// Restrict input records to one indexed document while retaining workspace resolution.
-pub fn execute_scoped_in(
+/// `only` restricts input records to one indexed document while retaining
+/// workspace-wide name resolution.
+pub(crate) fn execute(
     request: &crate::RequestContext<'_>,
     query: &Query,
     only: Option<&Path>,

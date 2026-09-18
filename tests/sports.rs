@@ -50,18 +50,18 @@ fn workspace() -> Workspace {
     }
 }
 fn labels(ws: &Workspace) -> Vec<String> {
-    wtf::presentation::hints_at(
-        ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    )
-    .into_iter()
-    .filter_map(|h| match h.label {
-        InlayHintLabel::String(s) => Some(s),
-        _ => None,
-    })
-    .collect()
+    wtf::RequestContext::new(ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints
+        .into_iter()
+        .filter_map(|h| match h.label {
+            InlayHintLabel::String(s) => Some(s),
+            _ => None,
+        })
+        .collect()
 }
 fn summary() -> serde_json::Value {
     serde_json::json!({

@@ -15,7 +15,8 @@ pub use evaluate::{
 };
 pub use features::{
     actions, catalog, commands, diagnostics, hierarchy, highlighting, inlay_providers, inlays,
-    intelligence, interaction, presentation, prose, query, refactor, rendering, symbols, typing,
+    intelligence, interaction, presentation, prose, query, refactor, rendering, session, symbols,
+    typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

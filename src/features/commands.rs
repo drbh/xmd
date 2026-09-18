@@ -1,8 +1,6 @@
 //! Typed editor actions. The wire codec and validation are shared by every host;
 //! preparation returns effects for the host to deliver without applying them.
-use crate::{
-    RequestContext, actions, interaction, paths, resources::Resource, timers::TimerAction,
-};
+use crate::{RequestContext, actions, paths, resources::Resource, timers::TimerAction};
 use lsp_types::{Command, TextEdit, Url};
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -342,7 +340,7 @@ impl Action {
                     .iter()
                     .position(|t| t.line == target.row)
                     .ok_or("No task at this line")?;
-                let edits = actions::toggle_task_in(request, &path, index)?;
+                let edits = request.toggle_task(&path, index)?;
                 Ok(PreparedAction::Edit { path, edits })
             }
             Self::Timer {
@@ -359,7 +357,8 @@ impl Action {
             }
             Self::OpenResource { target, url } | Self::RefreshResource { target, url } => {
                 let path = target.validate(request)?;
-                let resource = interaction::resources_at_in(request, &path, target.row)
+                let resource = request
+                    .resources_at(&path, target.row)
                     .into_iter()
                     .find(|r| r.url(&path).is_ok_and(|u| u == *url))
                     .ok_or("Resource changed; request fresh controls")?;

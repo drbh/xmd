@@ -264,9 +264,7 @@ impl Record {
             return Ok(engine
                 .workspace
                 .resolve(&self.path, name)
-                .map(|symbol| {
-                    QueryValue::text(crate::intelligence::hover_in(&engine.request(), &symbol))
-                })
+                .map(|symbol| QueryValue::text(engine.request().symbol_hover(&symbol)))
                 .unwrap_or(expression));
         }
         if matches!(key, "value" | "type" | "solution" | "errors" | "display") {
@@ -1255,9 +1253,9 @@ fn diagnostics(
 ) {
     let request = engine.request();
     let diagnostics = if module_diagnostics {
-        crate::diagnostics::collect_in(&request, path, false)
+        crate::diagnostics::collect(&request, path, false)
     } else {
-        crate::diagnostics::collect_native_in(&request, path, false)
+        crate::diagnostics::collect_native(&request, path, false)
     };
     for d in diagnostics {
         let mut r = base(

@@ -2,11 +2,10 @@ use chrono::{DateTime, FixedOffset};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
 use wtf::{
-    diagnostics,
     document::Document,
     engine::{Currency, Value},
     highlighting::{TOKEN_TYPES, semantic_tokens},
-    intelligence, presentation,
+    intelligence,
     workspace::Workspace,
 };
 
@@ -26,18 +25,18 @@ fn note(source: &str) -> Workspace {
     }
 }
 fn labels(ws: &Workspace) -> Vec<(u32, u32, String)> {
-    presentation::hints_at(
-        ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(50, 0)),
-    )
-    .into_iter()
-    .map(|h| match h.label {
-        InlayHintLabel::String(s) => (h.position.line, h.position.character, s),
-        other => panic!("{other:?}"),
-    })
-    .collect()
+    wtf::RequestContext::new(ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(50, 0)),
+        )
+        .hints
+        .into_iter()
+        .map(|h| match h.label {
+            InlayHintLabel::String(s) => (h.position.line, h.position.character, s),
+            other => panic!("{other:?}"),
+        })
+        .collect()
 }
 
 #[test]
@@ -73,7 +72,9 @@ fn bracketed_expressions_in_prose_are_calculations_shown_in_place() {
         "literals are not annotated: {hints:?}"
     );
     assert_eq!(
-        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
     // Names inside a calculation are real references: they highlight and resolve.
@@ -90,7 +91,8 @@ fn bracketed_expressions_in_prose_are_calculations_shown_in_place() {
 #[test]
 fn calculations_report_errors_at_the_token_and_hover_with_substitution() {
     let ws = note("[$3,000]:budget\n[30m]:slot\nOops [budget + slot] and [budgett * 2].\n");
-    let messages: Vec<_> = diagnostics::collect(&ws, path(), now().date_naive(), now(), false)
+    let messages: Vec<_> = wtf::RequestContext::new(&ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .map(|d| (d.range.start.character, d.message))
         .collect();
@@ -107,8 +109,9 @@ fn calculations_report_errors_at_the_token_and_hover_with_substitution() {
     let ws = note("[$3,000]:budget\n[$2,444]:spent\nRatio [spent / budget] here.\n");
     let line = ws.documents[path()].line(2);
     let slash = line.find('/').unwrap() as u32;
-    let hover =
-        intelligence::calculation_hover(&ws, path(), Position::new(2, slash), now()).unwrap();
+    let hover = wtf::RequestContext::new(&ws, now())
+        .calculation_hover(path(), Position::new(2, slash))
+        .unwrap();
     let text = match hover.contents {
         HoverContents::Markup(m) => m.value,
         other => panic!("{other:?}"),
@@ -154,10 +157,14 @@ fn a_line_of_math_with_bracketed_variables_shows_its_result() {
     // The bracketed references keep their own value hints inside the line.
     assert!(hints.contains(&(2, 8, "$3,000".into())), "{hints:?}");
     assert_eq!(
-        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
-    let hover = intelligence::calculation_hover(&ws, path(), Position::new(2, 10), now()).unwrap();
+    let hover = wtf::RequestContext::new(&ws, now())
+        .calculation_hover(path(), Position::new(2, 10))
+        .unwrap();
     let text = match hover.contents {
         HoverContents::Markup(m) => m.value,
         other => panic!("{other:?}"),
@@ -169,7 +176,8 @@ fn a_line_of_math_with_bracketed_variables_shows_its_result() {
     );
     // Errors point into the line.
     let bad = note("[$3,000]:budget\n[budget] - [nope]\n");
-    let issues: Vec<_> = diagnostics::collect(&bad, path(), now().date_naive(), now(), false)
+    let issues: Vec<_> = wtf::RequestContext::new(&bad, now())
+        .diagnostics(path(), false)
         .into_iter()
         .map(|d| d.message)
         .collect();

@@ -28,7 +28,7 @@ fn validate(request: &RequestContext<'_>, path: &Path, range: Range) -> Result<(
     )
     .map(|_| ())
 }
-pub fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic> {
+pub(crate) fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic> {
     if !request.workspace().documents.contains_key(path) {
         return vec![];
     }
@@ -64,7 +64,11 @@ pub fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic>
     }
     result
 }
-pub fn hover(request: &RequestContext<'_>, path: &Path, position: Position) -> Option<Hover> {
+pub(crate) fn hover(
+    request: &RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
     request.workspace().documents.get(path)?;
     for module in request
         .workspace()
@@ -101,7 +105,10 @@ pub fn hover(request: &RequestContext<'_>, path: &Path, position: Position) -> O
     }
     None
 }
-pub fn formatting(request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextEdit>, String> {
+pub(crate) fn formatting(
+    request: &RequestContext<'_>,
+    path: &Path,
+) -> Result<Vec<TextEdit>, String> {
     let doc = request
         .workspace()
         .documents

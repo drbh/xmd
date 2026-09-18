@@ -1,10 +1,9 @@
 //! A browser-local workspace. JSON crosses the worker boundary; all language logic stays in Rust.
 use crate::{
-    actions,
+    actions::TaskToggle,
     commands::{Action, Capabilities, PreparedAction},
-    diagnostics,
-    document::{Document, Span, identifier},
-    intelligence, interaction, paths, presentation, refactor,
+    document::{Document, identifier},
+    intelligence, paths, presentation,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset};
@@ -188,11 +187,8 @@ impl BrowserWorkspace {
                 .filter(|v| !v.is_null())
                 .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
                 .transpose()?;
-            let result = crate::query::execute_scoped_in(
-                &crate::RequestContext::new(&self.workspace, now),
-                &compiled,
-                only.as_deref(),
-            )?;
+            let result = crate::RequestContext::new(&self.workspace, now)
+                .query(&compiled, only.as_deref())?;
             return Ok(
                 json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.versions_json()}),
             );
@@ -214,11 +210,9 @@ impl BrowserWorkspace {
                 .range(&ws.documents[&symbol.path].text),
         };
         match method {
-            "documentLinks" => serialized(presentation::document_links_in(&request, &path)),
-            "documentSymbols" => serialized(crate::symbols::document_symbols_in(&request, &path)),
-            "formatting" => serialized(crate::features::module_features::formatting(
-                &request, &path,
-            )?),
+            "documentLinks" => serialized(request.document_links(&path)),
+            "documentSymbols" => serialized(request.document_symbols(&path)),
+            "formatting" => serialized(request.formatting(&path)?),
             "folding" => serialized(crate::symbols::folding_ranges(doc)),
             "onTypeFormatting" => serialized(crate::typing::on_type(
                 doc,
@@ -226,8 +220,7 @@ impl BrowserWorkspace {
                 &field::<String>(&params, "ch")?,
             )),
             "analyze" | "render" => {
-                let inlays = presentation::hints_in(
-                    &request,
+                let inlays = request.hints(
                     &path,
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
@@ -243,82 +236,26 @@ impl BrowserWorkspace {
                         ]
                     })
                     .collect();
-                let lenses = interaction::lenses_for(&request, &path, Capabilities::BROWSER);
-                let links = presentation::document_links_in(&request, &path);
+                let lenses = request.code_lenses(&path, Capabilities::BROWSER);
+                let links = request.document_links(&path);
                 let editing = params
                     .get("editing")
                     .and_then(Value::as_bool)
                     .unwrap_or(method == "analyze");
-                let diagnostics = diagnostics::collect_in(&request, &path, editing);
+                let diagnostics = request.diagnostics(&path, editing);
                 let html = crate::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
                 Ok(
                     json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":crate::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
-                    "symbols":crate::symbols::document_symbols_in(&request,&path)}),
+                    "symbols":request.document_symbols(&path)}),
                 )
             }
-            "completion" => serialized(intelligence::completions_in(
-                &request,
-                &path,
-                position()?,
-                true,
-            )),
+            "completion" => serialized(request.completions(&path, position()?, true)),
             "signature" => serialized(intelligence::signature(doc, position()?)),
-            "hover" => {
-                if let Some(hover) =
-                    crate::features::module_features::hover(&request, &path, position()?)
-                {
-                    return serialized(hover);
-                }
-                if let Some(hover) = intelligence::link_hover_in(&request, &path, position()?) {
-                    return serialized(hover);
-                }
-                if let Some(hover) = intelligence::cell_hover_in(&request, &path, position()?) {
-                    return serialized(hover);
-                }
-
-                if intelligence::symbol_at(ws, &path, position()?).is_none()
-                    && let Some(hover) =
-                        intelligence::calculation_hover_in(&request, &path, position()?)
-                {
-                    return serialized(hover);
-                }
-                if let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) {
-                    let mut value = intelligence::hover_in(&request, &symbol);
-                    let mut range = span.range(&doc.text);
-                    if let Some(reference) = doc
-                        .references
-                        .iter()
-                        .find(|r| r.span == span && r.property.is_some())
-                    {
-                        let preview = request
-                            .engine()
-                            .eval(&path, &reference.expression())
-                            .map(|v| v.display())
-                            .unwrap_or_else(|e| e);
-                        value = format!("{} = {preview}\n\n{value}", reference.expression());
-                        range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
-                    }
-                    return Ok(json!({"contents":{"kind":"markdown","value":value},"range":range}));
-                }
-                let row = position()?.line as usize;
-                if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-                    let mut engine = request.engine();
-                    let status = if engine.task_done(&path, i) {
-                        "Complete"
-                    } else {
-                        "Incomplete"
-                    };
-                    let blockers = engine
-                        .blocked(&path, i)
-                        .map(|names| names.join(", "))
-                        .unwrap_or_else(|e| e);
-                    return Ok(
-                        json!({"contents":{"kind":"markdown","value":format!("**{}**\n\n{status}\n\n{blockers}",task.title)},"range":Span::new(row,0,doc.line(row).len()).range(&doc.text)}),
-                    );
-                }
-                Ok(Value::Null)
-            }
+            "hover" => match request.hover(&path, position()?) {
+                Some(hover) => serialized(hover),
+                None => Ok(Value::Null),
+            },
             "definition" | "references" | "highlights" | "prepareRename" | "rename" => {
                 let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) else {
                     return Ok(Value::Null);
@@ -367,25 +304,18 @@ impl BrowserWorkspace {
             }
             "actions" => {
                 let range: Range = field(&params, "range")?;
-                let mut choices: Vec<Value> = refactor::actions_for_in(&request,&path,range).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
-                for command in interaction::row_commands_for(
-                    &request,
-                    &path,
-                    range.start.line as usize,
-                    true,
-                    Capabilities::BROWSER,
-                ) {
-                    choices.push(json!({"title":command.title,"command":command}));
-                }
-                let dates: Vec<_> = actions::freeze_dates_in(&request, &path)
+                let choices: Vec<Value> = request
+                    .code_actions(&path, range, Capabilities::BROWSER, TaskToggle::Command)
                     .into_iter()
-                    .filter(|e| {
-                        e.range.start.line >= range.start.line && e.range.end.line <= range.end.line
+                    .map(|item| match item.command {
+                        Some(command) => json!({"title":item.title,"command":command}),
+                        None => json!({
+                            "title": item.title,
+                            "kind": item.kind,
+                            "edit": self.single_edit(&path, item.edits),
+                        }),
                     })
                     .collect();
-                if !dates.is_empty() {
-                    choices.push(json!({"title":"Freeze relative date","kind":"refactor.rewrite","edit":self.single_edit(&path,dates)}));
-                }
                 Ok(json!({"actions":choices,"versions":self.versions_json()}))
             }
             _ => Err(format!("Unknown browser request: {method}")),

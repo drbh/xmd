@@ -29,7 +29,7 @@ fn resolved_text_preserves_source_and_places_multiline_and_inline_results() {
             let source = source.replace('\n', ending) + trailing;
             let ws = note(&source);
             assert_eq!(
-                presentation::render_text_in(&RequestContext::new(&ws, now()), path()).unwrap(),
+                RequestContext::new(&ws, now()).render_text(path()).unwrap(),
                 expected.replace('\n', ending) + trailing
             );
             assert_eq!(ws.documents[path()].text, source);
@@ -105,15 +105,13 @@ fn resolved_text_uses_workspace_modules_overrides_and_the_request_clock() {
         ("/notes/.wtf/modules/custom.wtf".into(), "module := {api: 1, id: \"custom\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: source(now())}, {line: 0, label: \"second\"}]".into()),
     ].into()).unwrap());
     assert_eq!(
-        presentation::render_text_in(&RequestContext::new(&ws, now()), path()).unwrap(),
+        RequestContext::new(&ws, now()).render_text(path()).unwrap(),
         "clock := now() 2026-09-18T12:00:00+00:00 second\n"
     );
     assert!(
-        presentation::render_text_in(
-            &RequestContext::new(&ws, now()),
-            Path::new("/notes/missing.wtf")
-        )
-        .is_err()
+        RequestContext::new(&ws, now())
+            .render_text(Path::new("/notes/missing.wtf"))
+            .is_err()
     );
 }
 
@@ -127,10 +125,10 @@ fn resolved_text_matches_existing_feature_snapshots() {
         let ws = note(source);
         let hints: Vec<InlayHint> = serde_json::from_value(fixture["hints"].clone()).unwrap();
         assert_eq!(
-            presentation::render_text_in(&RequestContext::new(&ws, clock), path()).unwrap(),
+            RequestContext::new(&ws, clock).render_text(path()).unwrap(),
             presentation::render_text(source, &hints).unwrap()
         );
-        let html = wtf::rendering::html_in(&RequestContext::new(&ws, clock), path()).unwrap();
+        let html = RequestContext::new(&ws, clock).render_html(path()).unwrap();
         assert_eq!(html.matches("class=\"inlay\"").count(), hints.len());
     }
 }
@@ -198,16 +196,15 @@ fn standard_library_html_matches_the_pre_migration_output() {
     for fixture in fixtures.as_array().unwrap() {
         let ws = note(fixture["source"].as_str().unwrap());
         let request = RequestContext::new(&ws, clock);
-        let hints = presentation::hints_in(
-            &request,
+        let hints = request.hints(
             path(),
             Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
         );
         let fragment = wtf::rendering::fragment(
             &ws.documents[path()],
             &hints.hints,
-            &wtf::diagnostics::collect_in(&request, path(), false),
-            &presentation::document_links_in(&request, path()),
+            &request.diagnostics(path(), false),
+            &request.document_links(path()),
         )
         .unwrap();
         assert_eq!(

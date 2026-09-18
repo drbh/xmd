@@ -56,7 +56,18 @@ fn parser_distinguishes_markdown_tasks_code_and_multiple_literals() {
     assert_eq!(doc.links.len(), 2);
     assert_eq!(evaluate(&ws, "remaining").display(), "$1,590");
     assert_eq!(evaluate(&ws, "label").display(), "日本語");
-    assert!(editor::problems(&ws, Path::new("/notes/daily.wtf"), today()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(Path::new("/notes/daily.wtf"))
+        .is_empty()
+    );
 }
 #[test]
 fn expressions_have_precedence_dates_durations_and_boolean_properties() {
@@ -121,23 +132,45 @@ fn checklist_counts_leaves_and_completes_hierarchy() {
     )]);
     assert_eq!(evaluate(&ws, "progress").display(), "25%");
     assert_eq!(evaluate(&ws, "work").display(), "1h");
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert_eq!(evaluate(&ws, "progress").display(), "50%");
     assert_eq!(evaluate(&ws, "work").display(), "30m");
-    let hints = editor::hints(
+    let hints = wtf::RequestContext::new(
         &ws,
-        path,
-        today(),
-        Range::new(Position::new(0, 0), Position::new(0, 100)),
-    );
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .hints(path, Range::new(Position::new(0, 0), Position::new(0, 100)))
+    .hints;
     assert_eq!(hints.len(), 1);
     assert!(
         serde_json::to_string(&hints)
             .unwrap()
             .contains("2/4 complete")
     );
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert_eq!(evaluate(&ws, "progress").display(), "0%");
 }
@@ -149,13 +182,41 @@ fn task_dependencies_block_and_detect_cycles() {
         "- [ ] Review :review\n- [ ] Publish @after(review)\n",
     )]);
     assert!(
-        actions::toggle_task(&ws, path, 1, today())
-            .unwrap_err()
-            .contains("Blocked")
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .toggle_task(path, 1)
+        .unwrap_err()
+        .contains("Blocked")
     );
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
-    assert!(actions::toggle_task(&ws, path, 1, today()).is_ok());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .toggle_task(path, 1)
+        .is_ok()
+    );
     let ws = workspace(&[("daily.wtf", "- [ ] A :a @after(b)\n- [ ] B :b @after(a)\n")]);
     assert!(
         Engine::new(&ws, today())
@@ -173,23 +234,49 @@ fn recurrence_preserves_month_end_and_completion_history() {
     )]);
     let jan = NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
     let feb = NaiveDate::from_ymd_opt(2026, 2, 28).unwrap();
-    let edits = actions::toggle_task(&ws, path, 0, jan).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        jan.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-02-28)"));
     assert!(ws.documents[path].text.contains("@repeat_from(2026-01-31)"));
-    let edits = actions::toggle_task(&ws, path, 0, feb).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        feb.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-03-31)"));
     assert_eq!(ws.documents[path].text.matches("wtf-history").count(), 2);
     assert!(!ws.documents[path].tasks[0].checked);
     assert_eq!(ws.documents[path].tasks.len(), 1);
-    assert!(editor::problems(&ws, path, feb).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            feb.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset()
+        )
+        .problems(path)
+        .is_empty()
+    );
 }
 #[test]
 fn recurring_unscheduled_task_and_crlf_no_trailing_newline() {
     let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[("daily.wtf", "# Life\r\n- [ ] Walk @every(day)")]);
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(
         ws.documents[path]
@@ -205,8 +292,27 @@ fn relative_dates_freeze_and_appointments_are_separate() {
         "daily.wtf",
         "- [ ] Call @due(next Friday)\n- [ ] Plan @scheduled(tomorrow)\n- Coffee @at(2026-09-16T14:00-04:00)\n",
     )]);
-    assert!(editor::problems(&ws, path, today()).is_empty());
-    let edits = actions::freeze_dates(&ws, path, today());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path)
+        .is_empty()
+    );
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .freeze_dates(path);
     assert_eq!(edits.len(), 2);
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-09-18)"));
@@ -214,15 +320,17 @@ fn relative_dates_freeze_and_appointments_are_separate() {
     let ctx = wtf::query::QueryContext::new(
         chrono::DateTime::parse_from_rfc3339("2026-09-16T12:00:00-04:00").unwrap(),
     );
-    let entries =
-        wtf::query::execute(&ws, &wtf::query::Query::parse("entries").unwrap(), &ctx).unwrap();
+    let entries = wtf::RequestContext::new(&ws, ctx.now)
+        .query(&wtf::query::Query::parse("entries").unwrap(), None)
+        .unwrap();
     assert_eq!(entries.rows.len(), 3);
-    let agenda = wtf::query::execute(
-        &ws,
-        &wtf::query::Query::parse("import(\"agenda\").between(entries, today(), today())").unwrap(),
-        &ctx,
-    )
-    .unwrap();
+    let agenda = wtf::RequestContext::new(&ws, ctx.now)
+        .query(
+            &wtf::query::Query::parse("import(\"agenda\").between(entries, today(), today())")
+                .unwrap(),
+            None,
+        )
+        .unwrap();
     assert_eq!(agenda.rows.len(), 1);
 }
 #[test]
@@ -249,7 +357,15 @@ fn unicode_highlights_and_edits_use_utf16_positions() {
         end = start + t.length;
         assert!(end <= doc.line(line as usize).encode_utf16().count() as u32);
     }
-    let edits = actions::freeze_dates(&ws, path, today());
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .freeze_dates(path);
     replace(&mut ws, path, &edits);
     assert!(
         ws.documents[path]

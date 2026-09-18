@@ -4,7 +4,7 @@ use std::{
     path::Path,
     process::{Command, Output},
 };
-use wtf::{RequestContext, presentation, workspace::Workspace};
+use wtf::{RequestContext, workspace::Workspace};
 
 fn run(root: &Path, args: &[&str]) -> Output {
     run_format(root, args, Some("text"))
@@ -75,7 +75,8 @@ fn render_cli_matches_editor_hints_with_cross_file_values_modules_and_cached_lin
     ));
     assert_eq!(
         output,
-        presentation::render_text_in(&RequestContext::new(&ws, clock), &notes.join("main.wtf"))
+        RequestContext::new(&ws, clock)
+            .render_text(&notes.join("main.wtf"))
             .unwrap()
     );
     assert!(output.contains("[total] := import(\"./values.wtf\").price * 2 = $14\r\n"));
@@ -237,10 +238,7 @@ fn render_defaults_to_standalone_html_and_keeps_text_explicit() {
         &ws,
         DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap(),
     );
-    assert_eq!(
-        output,
-        wtf::rendering::html_in(&request, &root.join("main.wtf")).unwrap()
-    );
+    assert_eq!(output, request.render_html(&root.join("main.wtf")).unwrap());
     assert_eq!(output, success(run_format(&root, &args, Some("html"))));
     assert!(output.starts_with("<!doctype html>"));
     assert!(output.contains("class=\"t-wtfMoney\""));

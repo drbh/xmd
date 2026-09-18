@@ -3,11 +3,10 @@
 //! item itself depends on. Shared by the native server and deterministic tests.
 use crate::{
     document::{Document, Span},
-    engine::{Engine, Value},
+    engine::Value,
     intelligence::symbol_at,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::{CallHierarchyItem, Position, Range};
 use std::path::{Path, PathBuf};
 
@@ -112,9 +111,10 @@ fn extent(doc: &Document, symbol: &Symbol) -> Range {
     }
 }
 
-pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> CallHierarchyItem {
+pub(crate) fn item(request: &crate::RequestContext<'_>, symbol: &Symbol) -> CallHierarchyItem {
+    let ws = request.workspace();
     let doc = &ws.documents[&symbol.path];
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let (kind, detail) = match symbol.kind {
         SymbolKind::Task(i) => {
             let done = engine.task_done(&symbol.path, i);

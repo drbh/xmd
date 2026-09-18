@@ -4,13 +4,13 @@ use lsp_types::{Diagnostic, DocumentLink, InlayHint, Position, Range};
 use std::path::Path;
 pub use wtf_renderer::{document, styles};
 
-pub fn html_in(request: &RequestContext<'_>, path: &Path) -> Result<String, String> {
+pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<String, String> {
     let doc = request
         .workspace()
         .documents
         .get(path)
         .ok_or("File is not in this workspace's indexed .wtf notes")?;
-    let hints = presentation::hints_in(
+    let hints = presentation::hints(
         request,
         path,
         Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
@@ -19,8 +19,8 @@ pub fn html_in(request: &RequestContext<'_>, path: &Path) -> Result<String, Stri
         &path.file_name().unwrap_or_default().to_string_lossy(),
         doc,
         &hints.hints,
-        &crate::diagnostics::collect_in(request, path, false),
-        &presentation::document_links_in(request, path),
+        &crate::diagnostics::collect(request, path, false),
+        &presentation::document_links(request, path),
     )
 }
 

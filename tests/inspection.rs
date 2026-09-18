@@ -1,12 +1,7 @@
 use chrono::DateTime;
 use serde_json::{Value, json};
 use std::path::Path;
-use wtf::{
-    RequestContext,
-    document::Document,
-    query::{self, Query},
-    workspace::Workspace,
-};
+use wtf::{RequestContext, document::Document, query::Query, workspace::Workspace};
 
 fn workspace(notes: &[(&str, &str)]) -> Workspace {
     Workspace {
@@ -31,13 +26,10 @@ fn run(ws: &Workspace, source: &str, file: Option<&str>) -> Value {
         DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap(),
     );
     json!(
-        query::execute_scoped_in(
-            &request,
-            &Query::parse(source).unwrap(),
-            file.map(Path::new)
-        )
-        .unwrap()
-        .rows
+        request
+            .query(&Query::parse(source).unwrap(), file.map(Path::new))
+            .unwrap()
+            .rows
     )
 }
 fn offset(text: &str, position: &Value) -> usize {

@@ -5,7 +5,6 @@ use crate::{
     intelligence,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
 use std::path::Path;
 
@@ -75,15 +74,7 @@ pub fn expression_regions(doc: &Document) -> Vec<Span> {
         }))
         .collect()
 }
-pub fn actions_for(
-    ws: &Workspace,
-    path: &Path,
-    range: Range,
-    now: DateTime<FixedOffset>,
-) -> Vec<Refactor> {
-    actions_for_in(&crate::RequestContext::new(ws, now), path, range)
-}
-pub fn actions_for_in(
+pub(crate) fn refactors(
     request: &crate::RequestContext<'_>,
     path: &Path,
     range: Range,

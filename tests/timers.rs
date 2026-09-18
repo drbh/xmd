@@ -7,7 +7,6 @@ use tower_lsp::lsp_types::{Position, Range};
 use wtf::{
     actions,
     document::Document,
-    editor,
     engine::{Engine, Value},
     timers,
     workspace::Workspace,
@@ -78,7 +77,19 @@ fn declarations_are_idle_and_reading_never_starts_or_changes_them() {
         assert!(!engine.time_dependent);
     }
     assert_eq!(ws.documents[path()].text, text);
-    assert!(editor::problems(&ws, path(), at(0).date_naive()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            at(0)
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path())
+        .is_empty()
+    );
 }
 
 #[test]
@@ -165,12 +176,12 @@ fn seconds_work_through_dates_effort_cli_and_comparisons() {
             .eval(path(), "2026-09-16 + 1s")
             .is_err()
     );
-    let entries = wtf::query::execute(
-        &ws,
-        &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
-        &wtf::query::QueryContext::new(at(0)),
-    )
-    .unwrap();
+    let entries = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(at(0)).now)
+        .query(
+            &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
+            None,
+        )
+        .unwrap();
     assert_eq!(
         entries.rows[0].json(),
         serde_json::json!({"type":"duration","seconds":90})
@@ -207,7 +218,16 @@ fn timers_reject_invalid_arguments_and_unsupported_properties() {
         assert!(Engine::at(&ws, at(0)).eval(path(), expr).is_err(), "{expr}");
     }
     let ws = notes("[watch] := stopwatch()\n- [ ] Bad @timer(1m)\n[watch.bogus]\n");
-    let issues = editor::problems(&ws, path(), at(0).date_naive());
+    let issues = wtf::RequestContext::new(
+        &ws,
+        at(0)
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .problems(path());
     assert!(issues.iter().any(|p| p.message.contains("@timer requires")));
     assert!(
         issues
@@ -229,7 +249,19 @@ fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_propertie
     change(&mut ws, "alias", "start", 0);
     assert!(ws.documents[&origin].text.contains("countdown(25m, 0s,"));
     assert_eq!(eval(&ws, "alias.remaining", 60), Value::Duration(1440));
-    assert!(editor::problems(&ws, path(), at(0).date_naive()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            at(0)
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path())
+        .is_empty()
+    );
     let reference = ws.documents[path()]
         .references
         .iter()
@@ -239,12 +271,12 @@ fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_propertie
     assert_eq!(reference.expression(), "alias.remaining");
     let line = ws.documents[path()].line(reference.span.line);
     assert_eq!(&line[reference.span.start..reference.span.end], "alias");
-    let hints = editor::hints_at(
-        &ws,
-        path(),
-        at(60),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, at(60))
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     let text = serde_json::to_string(&hints).unwrap();
     assert!(text.contains("24:00 remaining"));
     assert!(text.contains("24m"));
@@ -283,12 +315,12 @@ fn grouped_declarations_whitespace_and_timer_dependency_cycles() {
     change(&mut ws, "watch", "start", 0);
     assert!(ws.documents[path()].text.contains("countdown(limit, 0s,"));
     assert_eq!(eval(&ws, "watch.remaining", 10), Value::Duration(20));
-    let hints = editor::hints_at(
-        &ws,
-        path(),
-        at(10),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, at(10))
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     assert!(hints.iter().any(|h| h.position == Position::new(2, 27)));
     let ws = notes("[a] := countdown(b.remaining)\n[b] := countdown(a.remaining)\n");
     assert!(

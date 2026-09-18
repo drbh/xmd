@@ -1,8 +1,7 @@
+use crate::actions::TaskToggle;
 use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
-    actions,
-    document::{Document, Span, identifier},
-    engine::Value,
+    document::{Document, identifier},
     workspace::{SymbolKind, Workspace},
 };
 use chrono::Local;
@@ -18,8 +17,8 @@ use tower_lsp::{
     lsp_types::*,
 };
 
+pub use crate::presentation::semantic_tokens;
 use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
-pub use crate::presentation::{hints, hints_at, problems, semantic_tokens};
 
 struct State {
     workspace: Workspace,
@@ -65,12 +64,9 @@ impl Backend {
                 .map_err(Error::invalid_params)?;
         }
         compiled.load_imports(&mut state.workspace, only.as_deref());
-        let result = crate::query::execute_scoped_in(
-            &crate::RequestContext::new(&state.workspace, now),
-            &compiled,
-            only.as_deref(),
-        )
-        .map_err(Error::invalid_params)?;
+        let result = crate::RequestContext::new(&state.workspace, now)
+            .query(&compiled, only.as_deref())
+            .map_err(Error::invalid_params)?;
         let versions = state
             .open
             .iter()
@@ -122,14 +118,14 @@ impl Backend {
                 let request = crate::RequestContext::new(&state.workspace, now);
                 let live = paths
                     .iter()
-                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .filter(|p| request.live_hints(p))
                     .cloned()
                     .collect();
                 let updates: Vec<_> = paths
                     .into_iter()
                     .map(|path| {
-                        let ds = crate::diagnostics::collect_in(&request, &path, true);
-                        let lenses = crate::interaction::lenses_in(&request, &path);
+                        let ds = request.diagnostics(&path, true);
+                        let lenses = request.code_lenses(&path, Capabilities::NATIVE);
                         (path, ds, lenses)
                     })
                     .collect();
@@ -184,14 +180,14 @@ impl Backend {
                 let updates: Vec<_> = paths
                     .iter()
                     .map(|path| {
-                        let ds = crate::diagnostics::collect_in(&request, path, true);
-                        let lenses = crate::interaction::lenses_in(&request, path);
+                        let ds = request.diagnostics(path, true);
+                        let lenses = request.code_lenses(path, Capabilities::NATIVE);
                         (path.clone(), ds, lenses)
                     })
                     .collect();
                 let live = paths
                     .into_iter()
-                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .filter(|p| request.live_hints(p))
                     .collect();
                 (live, updates)
             };
@@ -535,12 +531,9 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state.workspace.documents.contains_key(&path).then(|| {
-            hints_at(
-                &state.workspace,
-                &path,
-                Local::now().fixed_offset(),
-                params.range,
-            )
+            crate::RequestContext::new(&state.workspace, Local::now().fixed_offset())
+                .hints(&path, params.range)
+                .hints
         }))
     }
     async fn semantic_tokens_full(
@@ -564,124 +557,8 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        let Some(doc) = ws.documents.get(&path) else {
-            return Ok(None);
-        };
-        let now = Local::now().fixed_offset();
-        let request = crate::RequestContext::new(ws, now);
-        if let Some(hover) = crate::features::module_features::hover(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-        if let Some(hover) = crate::intelligence::link_hover_in(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-        if let Some(hover) = crate::intelligence::cell_hover_in(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-
-        if symbol_at(ws, &path, at.position).is_none()
-            && let Some(hover) =
-                crate::intelligence::calculation_hover_in(&request, &path, at.position)
-        {
-            return Ok(Some(hover));
-        }
-        if let Some((symbol, span)) = symbol_at(ws, &path, at.position) {
-            let mut value = crate::intelligence::hover_in(&request, &symbol);
-            let mut range = span.range(&doc.text);
-            if let Some(reference) = doc
-                .references
-                .iter()
-                .find(|r| r.span == span && r.property.is_some())
-            {
-                let property = request
-                    .engine()
-                    .eval(&path, &reference.expression())
-                    .map(|v| v.display())
-                    .unwrap_or_else(|e| e);
-                value = format!("{} = {}\n\n{}", reference.expression(), property, value);
-                range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
-            }
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(crate::intelligence::markup(value)),
-                range: Some(range),
-            }));
-        }
-        if let Some((index, task)) = doc
-            .tasks
-            .iter()
-            .enumerate()
-            .find(|(_, t)| t.line == at.position.line as usize)
-        {
-            let mut engine = request.engine();
-            let blocked = engine.blocked(&path, index);
-            let mut value = format!(
-                "**{}**\n\n{}",
-                task.title,
-                if engine.task_done(&path, index) {
-                    "Complete"
-                } else {
-                    "Incomplete"
-                }
-            );
-            match blocked {
-                Ok(names) if !names.is_empty() => {
-                    let names = names
-                        .into_iter()
-                        .map(|name| {
-                            ws.resolve(&path, &name)
-                                .map(|s| crate::intelligence::source_link(ws, &s))
-                                .unwrap_or(name)
-                        })
-                        .collect::<Vec<_>>();
-                    value.push_str(&format!("\n\nBlocked by: {}", names.join(", ")));
-                }
-                Err(e) => value.push_str(&format!("\n\n{e}")),
-                _ => {}
-            }
-            if let Some(attr) = task.attributes.get("estimate")
-                && let Ok(v) = engine.eval(&path, &attr.value)
-            {
-                value.push_str(&format!("\n\nEstimate: {}", v.display()));
-            }
-            if let Some(attr) = task.attributes.get("timer")
-                && let Ok(v) = engine.eval(&path, &attr.value)
-            {
-                value.push_str(&format!("\n\nTimer: {}", v.display()));
-                if let Value::Timer(timer) = &v
-                    && let Some(limit) = timer.limit
-                {
-                    value.push_str(&format!(
-                        "\n\n`{}`",
-                        crate::charts::bar_fraction(timer.elapsed as f64 / limit as f64)
-                    ));
-                }
-            }
-            let children: Vec<_> = doc
-                .tasks
-                .iter()
-                .enumerate()
-                .filter(|(_, t)| t.parent == Some(index))
-                .map(|(j, _)| j)
-                .collect();
-            if !children.is_empty() {
-                let done = children
-                    .iter()
-                    .filter(|j| engine.task_done(&path, **j))
-                    .count();
-                value.push_str(&format!(
-                    "\n\nSubtasks: `{}` {done}/{}",
-                    crate::charts::bar(done, children.len()),
-                    children.len()
-                ));
-            }
-            value.push_str("\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers.");
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(crate::intelligence::markup(value)),
-                range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
-            }));
-        }
-        Ok(None)
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(request.hover(&path, at.position))
     }
     async fn goto_definition(
         &self,
@@ -762,15 +639,12 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(Some(CompletionResponse::Array(
-            crate::intelligence::completions(
-                &state.workspace,
-                &path,
-                at.position,
-                Local::now().fixed_offset(),
-                state.snippets,
-            ),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(CompletionResponse::Array(request.completions(
+            &path,
+            at.position,
+            state.snippets,
+        ))))
     }
     async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
         let at = params.text_document_position_params;
@@ -785,11 +659,8 @@ impl LanguageServer for Backend {
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(Some(crate::interaction::lenses(
-            &state.workspace,
-            &path,
-            Local::now().fixed_offset(),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
     async fn document_highlight(
         &self,
@@ -836,74 +707,41 @@ impl LanguageServer for Backend {
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        if !ws.documents.contains_key(&path) {
+        if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        Ok(Some(crate::presentation::document_links(
-            ws,
-            &path,
-            Local::now().fixed_offset(),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(request.document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        let Some(doc) = ws.documents.get(&path) else {
+        if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
-        };
-        let now = Local::now().fixed_offset();
-        let request = crate::RequestContext::new(ws, now);
-        let row = params.range.start.line as usize;
-        let mut result: Vec<_> = crate::interaction::row_commands_in(&request, &path, row, false)
-            .into_iter()
-            .map(CodeActionOrCommand::Command)
-            .collect();
-        if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-            let title = crate::interaction::task_toggle_title(
-                task.attributes.contains_key("every"),
-                request.engine().task_done(&path, i),
-            );
-            let mut action = CodeAction {
-                title,
-                kind: Some(CodeActionKind::REFACTOR_REWRITE),
-                ..Default::default()
-            };
-            match actions::toggle_task_in(&request, &path, i) {
-                Ok(edits) => action.edit = Some(edit_for(&state, &path, edits)),
-                Err(reason) => action.disabled = Some(CodeActionDisabled { reason }),
-            }
-            result.push(CodeActionOrCommand::CodeAction(action));
         }
-        for action in crate::refactor::actions_for_in(&request, &path, params.range) {
-            result.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: action.title,
-                kind: Some(action.kind),
-                edit: Some(edit_for(&state, &path, action.edits)),
-                ..Default::default()
-            }));
-        }
-        let edits = actions::freeze_dates_in(&request, &path)
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let mut result: Vec<_> = request
+            .code_actions(
+                &path,
+                params.range,
+                Capabilities::NATIVE,
+                TaskToggle::Action,
+            )
             .into_iter()
-            .filter(|e| {
-                e.range.start.line >= params.range.start.line
-                    && e.range.start.line <= params.range.end.line
+            .map(|item| match item.command {
+                Some(command) => CodeActionOrCommand::Command(command),
+                None => CodeActionOrCommand::CodeAction(CodeAction {
+                    title: item.title,
+                    kind: item.kind,
+                    edit: item
+                        .disabled
+                        .is_none()
+                        .then(|| edit_for(&state, &path, item.edits)),
+                    disabled: item.disabled.map(|reason| CodeActionDisabled { reason }),
+                    ..Default::default()
+                }),
             })
-            .collect::<Vec<_>>();
-        if !edits.is_empty() {
-            result.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: "Freeze relative date".into(),
-                kind: Some(CodeActionKind::REFACTOR_REWRITE),
-                edit: Some(edit_for(&state, &path, edits)),
-                ..Default::default()
-            }));
-        }
-        if row == 0 && doc.line(0).trim_start().starts_with('#') {
-            result.push(CodeActionOrCommand::Command(
-                Action::ShowToday.command(format!("{} today", crate::glyphs::FLAG)),
-            ));
-        }
+            .collect();
         if let Some(only) = params.context.only {
             result.retain(|a| match a {
                 CodeActionOrCommand::CodeAction(a) => a.kind.as_ref().is_some_and(|kind| {
@@ -1031,12 +869,9 @@ impl LanguageServer for Backend {
                     "import(\"agenda\").between(entries, today(), today())",
                 )
                 .map_err(Error::invalid_params)?;
-                let result = crate::query::execute(
-                    &workspace,
-                    &compiled,
-                    &crate::query::QueryContext::new(now),
-                )
-                .map_err(Error::invalid_params)?;
+                let result = crate::RequestContext::new(&workspace, now)
+                    .query(&compiled, None)
+                    .map_err(Error::invalid_params)?;
                 let lines: Vec<_> = result
                     .rows
                     .iter()
@@ -1139,7 +974,8 @@ impl LanguageServer for Backend {
         if !ws.documents.contains_key(&path) {
             return Ok(None);
         }
-        let symbols = crate::symbols::document_symbols(ws, &path, Local::now().fixed_offset());
+        let symbols =
+            crate::RequestContext::new(ws, Local::now().fixed_offset()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
         } else {
@@ -1170,15 +1006,9 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         let ws = &state.workspace;
-        Ok(
-            crate::hierarchy::prepare(ws, &path, at.position).map(|symbol| {
-                vec![crate::hierarchy::item(
-                    ws,
-                    &symbol,
-                    Local::now().fixed_offset(),
-                )]
-            }),
-        )
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        Ok(crate::hierarchy::prepare(ws, &path, at.position)
+            .map(|symbol| vec![request.hierarchy_item(&symbol)]))
     }
     async fn incoming_calls(
         &self,
@@ -1189,13 +1019,13 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let now = Local::now().fixed_offset();
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
         Ok(Some(
             crate::hierarchy::dependents(ws, &symbol)
                 .into_iter()
                 .map(|(from, spans)| CallHierarchyIncomingCall {
                     from_ranges: crate::hierarchy::ranges(ws, &from.path, &spans),
-                    from: crate::hierarchy::item(ws, &from, now),
+                    from: request.hierarchy_item(&from),
                 })
                 .collect(),
         ))
@@ -1209,13 +1039,13 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let now = Local::now().fixed_offset();
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
         Ok(Some(
             crate::hierarchy::dependencies(ws, &symbol)
                 .into_iter()
                 .map(|(to, spans)| CallHierarchyOutgoingCall {
                     from_ranges: crate::hierarchy::ranges(ws, &symbol.path, &spans),
-                    to: crate::hierarchy::item(ws, &to, now),
+                    to: request.hierarchy_item(&to),
                 })
                 .collect(),
         ))
@@ -1233,7 +1063,8 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
-        crate::features::module_features::formatting(&request, &path)
+        request
+            .formatting(&path)
             .map(Some)
             .map_err(Error::invalid_params)
     }

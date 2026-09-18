@@ -1,6 +1,6 @@
 use chrono::{DateTime, FixedOffset};
 use lsp_types::{InlayHintLabel, Position, Range};
-use std::{collections::BTreeMap, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 use wtf::{
     document::Document,
     engine::{Engine, Value},
@@ -48,18 +48,18 @@ fn workspace() -> Workspace {
     }
 }
 fn labels(ws: &Workspace) -> Vec<String> {
-    wtf::presentation::hints_at(
-        ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    )
-    .into_iter()
-    .map(|h| match h.label {
-        InlayHintLabel::String(s) => s,
-        _ => panic!(),
-    })
-    .collect()
+    wtf::RequestContext::new(ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints
+        .into_iter()
+        .map(|h| match h.label {
+            InlayHintLabel::String(s) => s,
+            _ => panic!(),
+        })
+        .collect()
 }
 
 #[test]
@@ -109,12 +109,12 @@ fn generic_inlays_use_the_shared_sink_and_do_not_edit_notes() {
     let mut ws = workspace();
     ws.modules = registry(INLAY);
     let source = ws.documents[path()].text.clone();
-    let hints = wtf::presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(0, 99)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(0, 99)),
+        )
+        .hints;
     let hint = hints
         .iter()
         .find(|h| matches!(&h.label, InlayHintLabel::String(s) if s == "section · Hello 🦀"))
@@ -122,13 +122,10 @@ fn generic_inlays_use_the_shared_sink_and_do_not_edit_notes() {
     assert_eq!(hint.position, Position::new(0, 10));
     assert_eq!(ws.documents[path()].text, source);
     assert!(
-        wtf::presentation::hints_at(
-            &ws,
-            path(),
-            now(),
-            Range::new(Position::new(1, 0), Position::new(1, 0))
-        )
-        .is_empty()
+        wtf::RequestContext::new(&ws, now())
+            .hints(path(), Range::new(Position::new(1, 0), Position::new(1, 0)))
+            .hints
+            .is_empty()
     );
     ws.modules = registry(&INLAY.replace("h.line", "999"));
     assert!(labels(&ws).iter().any(|s| s == "module error · headings"));
@@ -314,7 +311,7 @@ fn browser_modules_reload_and_decode_host_data_without_executing_commands() {
         request(
             &mut browser,
             "setModules",
-            serde_json::json!({"sources":BTreeMap::<String,String>::new()})
+            serde_json::json!({"sources":std::collections::BTreeMap::<String,String>::new()})
         )["ok"],
         true
     );
@@ -326,12 +323,12 @@ fn example_workspace_uses_modules_without_rust_registration() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/modules");
     let ws = Workspace::load(vec![root.clone()]).unwrap();
     assert_eq!(ws.modules.modules.len(), wtf::modules::bundled().len() + 4);
-    let hints = wtf::presentation::hints_at(
-        &ws,
-        &root.join("demo.wtf"),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            &root.join("demo.wtf"),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     assert!(
         hints
             .iter()
@@ -354,17 +351,19 @@ fn semantic_inputs_and_utf16_anchors_are_shared_with_queries() {
 collect := fn(ctx) => map(ctx.document.calculations, fn(c) => {at: c.anchor, label: "custom " + c.display, tooltip: trim(c.expression)})
 "#,
     );
-    let hints = wtf::presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     assert_eq!(hints.len(), 1);
     assert_eq!(hints[0].position, Position::new(0, 15));
     assert!(matches!(&hints[0].label, InlayHintLabel::String(s) if s == "custom 3"));
     let q = wtf::query::Query::parse("calculations | select anchor").unwrap();
-    let result = wtf::query::execute(&ws, &q, &wtf::query::QueryContext::new(now())).unwrap();
+    let result = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+        .query(&q, None)
+        .unwrap();
     assert_eq!(
         serde_json::to_value(result).unwrap()["rows"][0],
         serde_json::json!({"line":0,"character":15})
@@ -384,8 +383,7 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Insert greeting", action: {kind
 "#,
     );
     let request = wtf::RequestContext::new(&ws, now());
-    let commands =
-        wtf::interaction::row_commands_for(&request, path(), 0, true, Capabilities::BROWSER);
+    let commands = request.row_commands(path(), 0, true, Capabilities::BROWSER);
     let command = commands
         .iter()
         .find(|c| c.title == "Insert greeting")
@@ -610,14 +608,18 @@ fn bundled_consumers_relink_transitive_dependencies_and_revisions() {
         Document::parse("watch := countdown(1m)\n".into()),
     );
     ws.modules = Arc::new(updated);
-    let html = wtf::rendering::html_in(&wtf::RequestContext::new(&ws, now()), path()).unwrap();
+    let html = wtf::RequestContext::new(&ws, now())
+        .render_html(path())
+        .unwrap();
     // The bundled timers feature imports timer, which imports the replaced format.
     assert!(html.contains("░░░░░░░░"));
     ws.documents.insert(
         path().into(),
         Document::parse("watch := countdown(1m, 30s)\n".into()),
     );
-    let html = wtf::rendering::html_in(&wtf::RequestContext::new(&ws, now()), path()).unwrap();
+    let html = wtf::RequestContext::new(&ws, now())
+        .render_html(path())
+        .unwrap();
     assert!(html.contains("▓▓▓▓░░░░"), "{html}");
 }
 
@@ -643,7 +645,8 @@ fn source_library_reloads_only_from_the_explicit_manifest() {
     let mut ws = Workspace::load(vec![root.into()]).unwrap();
     assert_eq!(ws.documents.len(), 1);
     let render = |ws: &Workspace| {
-        wtf::rendering::html_in(&wtf::RequestContext::new(ws, now()), &root.join("main.wtf"))
+        wtf::RequestContext::new(ws, now())
+            .render_html(&root.join("main.wtf"))
             .unwrap()
     };
     assert!(render(&ws).contains(" library</span>"));

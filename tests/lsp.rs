@@ -463,7 +463,8 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
         lookups: Default::default(),
         modules: Default::default(),
     };
-    let shared = wtf::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
+    let shared =
+        wtf::RequestContext::new(&ws, chrono::Local::now().fixed_offset()).document_symbols(&path);
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());
     assert_eq!(
         symbols[0]["children"][1]["children"][0]["detail"],

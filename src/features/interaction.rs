@@ -1,23 +1,14 @@
 use crate::commands::{Action, Capabilities, RowTarget};
 use crate::glyphs;
 use crate::modules::{Hook, ModuleKind};
-use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
-use chrono::{DateTime, FixedOffset};
+use crate::{actions, engine::Value, resources::Resource};
 use lsp_types::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
 
-pub fn resources_at(
-    ws: &Workspace,
-    path: &Path,
-    row: usize,
-    now: DateTime<FixedOffset>,
-) -> Vec<Resource> {
-    resources_at_in(&crate::RequestContext::new(ws, now), path, row)
-}
-pub fn resources_at_in(
+pub(crate) fn resources_at(
     request: &crate::RequestContext<'_>,
     path: &Path,
     row: usize,
@@ -58,28 +49,6 @@ pub fn resources_at_in(
     }
     found.into_values().collect()
 }
-pub fn row_commands(
-    ws: &Workspace,
-    path: &Path,
-    row: usize,
-    now: DateTime<FixedOffset>,
-    include_task: bool,
-) -> Vec<Command> {
-    row_commands_in(
-        &crate::RequestContext::new(ws, now),
-        path,
-        row,
-        include_task,
-    )
-}
-pub fn row_commands_in(
-    request: &crate::RequestContext<'_>,
-    path: &Path,
-    row: usize,
-    include_task: bool,
-) -> Vec<Command> {
-    row_commands_for(request, path, row, include_task, Capabilities::NATIVE)
-}
 /// The shared label for the task toggle lens and code action.
 pub fn task_toggle_title(recurring: bool, done: bool) -> String {
     if recurring {
@@ -90,7 +59,7 @@ pub fn task_toggle_title(recurring: bool, done: bool) -> String {
         format!("{} done", glyphs::DONE)
     }
 }
-pub fn row_commands_for(
+pub(crate) fn row_commands(
     request: &crate::RequestContext<'_>,
     path: &Path,
     row: usize,
@@ -116,7 +85,7 @@ pub fn row_commands_for(
     let engine = request.engine();
     if include_task
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
-        && actions::toggle_task_in(request, path, index).is_ok()
+        && actions::toggle_task(request, path, index).is_ok()
     {
         let title = task_toggle_title(
             task.attributes.contains_key("every"),
@@ -124,7 +93,7 @@ pub fn row_commands_for(
         );
         push(Action::ToggleTask(target.clone()), title);
     }
-    for resource in resources_at_in(request, path, row) {
+    for resource in resources_at(request, path, row) {
         let url = resource.url(path).unwrap();
         let kind = if resource.is_image() {
             "image"
@@ -171,13 +140,7 @@ pub fn row_commands_for(
     ));
     result
 }
-pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {
-    lenses_in(&crate::RequestContext::new(ws, now), path)
-}
-pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLens> {
-    lenses_for(request, path, Capabilities::NATIVE)
-}
-pub fn lenses_for(
+pub(crate) fn lenses(
     request: &crate::RequestContext<'_>,
     path: &Path,
     capabilities: Capabilities,
@@ -208,7 +171,7 @@ pub fn lenses_for(
         .collect();
     rows.into_iter()
         .flat_map(|row| {
-            row_commands_for(request, path, row, true, capabilities)
+            row_commands(request, path, row, true, capabilities)
                 .into_iter()
                 .map(move |command| CodeLens {
                     range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),

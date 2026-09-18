@@ -1,10 +1,7 @@
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
-use wtf::{
-    actions, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
-    workspace::Workspace,
-};
+use wtf::{actions, document::Document, itinerary, symbols, workspace::Workspace};
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
@@ -25,7 +22,8 @@ fn note(source: &str) -> Workspace {
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {
-    diagnostics::collect(ws, path(), today(), now(), false)
+    wtf::RequestContext::new(ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .filter(|d| d.severity != Some(DiagnosticSeverity::WARNING))
         .map(|d| d.message)
@@ -157,7 +155,8 @@ fn markers_are_parsed_and_unknown_kinds_are_warned_about() {
     assert_eq!(stops[1].kind, None);
     // A marker needs a space after it; "*Lunch" is a title starting with an asterisk.
     assert_eq!(stops[2].kind.map(|k| k.name), None);
-    let warnings: Vec<_> = diagnostics::collect(&ws, path(), today(), now(), false)
+    let warnings: Vec<_> = wtf::RequestContext::new(&ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .filter(|d| d.severity == Some(DiagnosticSeverity::WARNING))
         .map(|d| d.range.start.line)
@@ -215,11 +214,9 @@ fn itinerary_diagnostics_catch_wrong_weekdays_order_and_bad_dates() {
 fn format_document_normalizes_times_and_detail_indentation() {
     let formatted = actions::apply_edits(
         TRIP,
-        &wtf::features::module_features::formatting(
-            &wtf::RequestContext::new(&note(TRIP), now()),
-            path(),
-        )
-        .unwrap(),
+        &wtf::RequestContext::new(&note(TRIP), now())
+            .formatting(path())
+            .unwrap(),
     )
     .unwrap();
     assert!(
@@ -236,12 +233,10 @@ fn format_document_normalizes_times_and_detail_indentation() {
     assert!(formatted.contains("## Friday, November 20, 2026 · New York | Oaxaca\n"));
     assert!(formatted.contains("SATURDAY, NOVEMBER 21  OAXACA\n"));
     assert!(
-        wtf::features::module_features::formatting(
-            &wtf::RequestContext::new(&note(&formatted), now()),
-            path()
-        )
-        .unwrap()
-        .is_empty()
+        wtf::RequestContext::new(&note(&formatted), now())
+            .formatting(path())
+            .unwrap()
+            .is_empty()
     );
 }
 
@@ -249,12 +244,12 @@ fn format_document_normalizes_times_and_detail_indentation() {
 fn inlays_hover_outline_and_folding_describe_the_trip() {
     let ws = note(TRIP);
     let doc = &ws.documents[path()];
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(40, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(40, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()
@@ -270,12 +265,9 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
     assert_eq!(label(9), "↻ 2h 50m layover");
     assert_eq!(label(18), "cancel by Thu Nov 19, 07:20 PM");
     assert_eq!(label(22), "2 stops · 11:30 AM – 01:00 PM · in 66 days");
-    let hover = wtf::features::module_features::hover(
-        &wtf::RequestContext::new(&ws, now()),
-        path(),
-        Position::new(9, 3),
-    )
-    .unwrap();
+    let hover = wtf::RequestContext::new(&ws, now())
+        .module_hover(path(), Position::new(9, 3))
+        .unwrap();
     let text = match hover.contents {
         HoverContents::Markup(m) => m.value,
         other => panic!("{other:?}"),
@@ -287,7 +279,7 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
         "{text}"
     );
     assert!(text.contains("**Note:** 2h 50m layover."), "{text}");
-    let outline = symbols::document_symbols(&ws, path(), now());
+    let outline = wtf::RequestContext::new(&ws, now()).document_symbols(path());
     let trip = &outline[0];
     let friday = trip
         .children
@@ -347,12 +339,13 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
 #[test]
 fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
     let ws = note("Friday, November 20, 2026\n\n09:00 AM De\n\n10:00 AM Coffee\nAd\n");
-    let kinds = intelligence::completions(&ws, path(), Position::new(2, 11), now(), false);
+    let kinds =
+        wtf::RequestContext::new(&ws, now()).completions(path(), Position::new(2, 11), false);
     assert_eq!(
         kinds.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(),
         ["> Depart"]
     );
-    let keys = intelligence::completions(&ws, path(), Position::new(5, 2), now(), false);
+    let keys = wtf::RequestContext::new(&ws, now()).completions(path(), Position::new(5, 2), false);
     assert_eq!(
         keys.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(),
         ["Address:"]
@@ -362,12 +355,9 @@ fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
 #[test]
 fn stops_join_the_agenda_in_time_order() {
     let ws = note(TRIP);
-    let entries = wtf::query::execute(
-        &ws,
-        &wtf::query::Query::parse("stops | sort at").unwrap(),
-        &wtf::query::QueryContext::new(now()),
-    )
-    .unwrap();
+    let entries = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+        .query(&wtf::query::Query::parse("stops | sort at").unwrap(), None)
+        .unwrap();
     assert_eq!(entries.rows.len(), 7);
     let first = entries.rows[0].json();
     assert_eq!(first["at"]["value"], "2026-11-20T07:04:00-04:00");
@@ -380,13 +370,15 @@ fn stops_join_the_agenda_in_time_order() {
         DateTime::parse_from_rfc3339("2026-11-20T12:00:00-05:00").unwrap(),
     );
     assert!(
-        !wtf::query::execute(&ws, &query, &trip)
+        !wtf::RequestContext::new(&ws, trip.now)
+            .query(&query, None)
             .unwrap()
             .rows
             .is_empty()
     );
     assert!(
-        wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now()))
+        wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+            .query(&query, None)
             .unwrap()
             .rows
             .is_empty()

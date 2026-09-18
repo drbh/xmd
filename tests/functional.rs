@@ -37,7 +37,11 @@ fn functions_capture_lexical_scopes_and_keep_units() {
         e.eval(path(), "map([$2, $3], add_tax)").unwrap().display(),
         "[$2.2, $3.3]"
     );
-    assert!(wtf::diagnostics::collect(&ws, path(), e.today, e.now, false).is_empty());
+    assert!(
+        wtf::RequestContext::new(&ws, e.now)
+            .diagnostics(path(), false)
+            .is_empty()
+    );
 }
 
 #[test]
@@ -61,7 +65,9 @@ fn records_lists_and_lazy_branches_work_in_notes_and_queries() {
         "values | where name == \"result\" | select map([1, 2], fn(x) => x + value)",
     )
     .unwrap();
-    let result = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(e.now)).unwrap();
+    let result = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(e.now).now)
+        .query(&query, None)
+        .unwrap();
     assert_eq!(
         serde_json::to_value(result).unwrap()["rows"],
         serde_json::json!([[11.0, 12.0]])
@@ -185,7 +191,11 @@ add := fn(x) =>
             e.eval(path(), "config.title").unwrap().display(),
             "https://example.com/)"
         );
-        assert!(wtf::diagnostics::collect(&ws, path(), e.today, e.now, false).is_empty());
+        assert!(
+            wtf::RequestContext::new(&ws, e.now)
+                .diagnostics(path(), false)
+                .is_empty()
+        );
         assert!(
             !doc.references
                 .iter()
@@ -194,7 +204,7 @@ add := fn(x) =>
         let definition = &doc.definitions[1];
         assert_eq!(definition.end.line, 11);
         assert_eq!(definition.value_span.range(&source).end.line, 11);
-        let outline = wtf::symbols::document_symbols(&ws, path(), e.now);
+        let outline = wtf::RequestContext::new(&ws, e.now).document_symbols(path());
         assert_eq!(outline[1].range.end.line, 11);
         assert!(
             wtf::symbols::folding_ranges(doc)
@@ -264,15 +274,15 @@ fn multiline_modules_compile_and_apply_the_same_limits() {
         )
         .unwrap(),
     );
-    let result = wtf::presentation::hints_at(
-        &ws,
-        path(),
-        engine(&ws).now,
-        lsp_types::Range::new(
-            lsp_types::Position::new(0, 0),
-            lsp_types::Position::new(2, 0),
-        ),
-    );
+    let result = wtf::RequestContext::new(&ws, engine(&ws).now)
+        .hints(
+            path(),
+            lsp_types::Range::new(
+                lsp_types::Position::new(0, 0),
+                lsp_types::Position::new(2, 0),
+            ),
+        )
+        .hints;
     assert!(serde_json::to_string(&result).unwrap().contains("Hello"));
     let ws = workspace("loop := fn(x) => (\n  loop(x)\n)\n");
     assert!(
@@ -325,7 +335,8 @@ fn dynamic_evaluation_is_bounded_and_row_function_bindings_capture_lexically() {
         wtf::query::Query::parse("[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))").unwrap();
     assert_eq!(
         serde_json::json!(
-            wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(e.now))
+            wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(e.now).now)
+                .query(&query, None)
                 .unwrap()
                 .rows
         ),
@@ -337,7 +348,7 @@ fn dynamic_evaluation_is_bounded_and_row_function_bindings_capture_lexically() {
 fn unfinished_builtin_calls_do_not_become_unknown_function_references() {
     let ws = workspace("broken := sum([1,\nnext := 2\n");
     let e = engine(&ws);
-    let issues = wtf::diagnostics::collect(&ws, path(), e.today, e.now, false);
+    let issues = wtf::RequestContext::new(&ws, e.now).diagnostics(path(), false);
     assert!(!issues.is_empty());
     assert!(
         issues

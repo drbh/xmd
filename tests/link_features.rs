@@ -233,7 +233,7 @@ fn registry_priority_and_unrecognized_resources_have_predictable_fallbacks() {
 fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age() {
     let url = "https://github.com/acme/app/pull/42";
     let mut ws = workspace(&format!("[{url}]:pr\nSee [pr] and {url}.\n"));
-    assert!(!wtf::presentation::live_hints(&ws, path(), now()));
+    assert!(!wtf::RequestContext::new(&ws, now()).live_hints(path()));
     ws.cache.insert(
         url.into(),
         wtf::github::metadata(
@@ -265,8 +265,13 @@ fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age()
             .all(|h| label(h) == "✓ merged · ● checks · 2h ago")
     );
     assert!(result.time_dependent);
-    assert!(wtf::presentation::live_hints(&ws, path(), now()));
-    let commands = wtf::interaction::row_commands(&ws, path(), 1, now(), false);
+    assert!(wtf::RequestContext::new(&ws, now()).live_hints(path()));
+    let commands = wtf::RequestContext::new(&ws, now()).row_commands(
+        path(),
+        1,
+        false,
+        wtf::commands::Capabilities::NATIVE,
+    );
     let refresh: Vec<_> = commands
         .iter()
         .filter(|c| c.command == "wtf.refreshResource")

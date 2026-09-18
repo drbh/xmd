@@ -2,7 +2,7 @@ use chrono::DateTime;
 use serde_json::{Value, json};
 use wtf::{
     document::Document,
-    query::{self, Query, QueryContext},
+    query::{Query, QueryContext},
     workspace::Workspace,
 };
 
@@ -28,7 +28,8 @@ fn context() -> QueryContext {
 }
 fn run(ws: &Workspace, source: &str) -> Value {
     json!(
-        query::execute(ws, &Query::parse(source).unwrap(), &context())
+        wtf::RequestContext::new(ws, context().now)
+            .query(&Query::parse(source).unwrap(), None)
             .unwrap()
             .rows
     )
@@ -91,13 +92,13 @@ fn one_clock_and_offset_control_queries_and_calculated_values() {
     )]);
     let ctx = QueryContext::new(DateTime::parse_from_rfc3339("2026-09-16T23:00:00-04:00").unwrap());
     let result = json!(
-        query::execute(
-            &ws,
-            &Query::parse("values | select {name, value}").unwrap(),
-            &ctx
-        )
-        .unwrap()
-        .rows
+        wtf::RequestContext::new(&ws, ctx.now)
+            .query(
+                &Query::parse("values | select {name, value}").unwrap(),
+                None
+            )
+            .unwrap()
+            .rows
     );
     assert_eq!(
         result[0]["value"],
@@ -108,13 +109,13 @@ fn one_clock_and_offset_control_queries_and_calculated_values() {
         json!({"type":"datetime","value":"2026-09-16T23:00:00-04:00"})
     );
     let events = json!(
-        query::execute(
-            &ws,
-            &Query::parse("events | where at_date == today()").unwrap(),
-            &ctx
-        )
-        .unwrap()
-        .rows
+        wtf::RequestContext::new(&ws, ctx.now)
+            .query(
+                &Query::parse("events | where at_date == today()").unwrap(),
+                None
+            )
+            .unwrap()
+            .rows
     );
     assert_eq!(events.as_array().unwrap().len(), 1);
     assert_eq!(
@@ -182,12 +183,12 @@ fn definitions_resolve_in_their_own_document_and_keep_money_typed() {
         json!({"value":{"type":"money","amount":10.0,"currency":"USD"},"amount":10.0,"currency":"USD","local":{"type":"money","amount":5.0,"currency":"USD"}})
     );
     assert_eq!(result[1]["currency"], "EUR");
-    let err = query::execute(
-        &ws,
-        &Query::parse("values | where name == \"price\" | sum value").unwrap(),
-        &context(),
-    )
-    .unwrap_err();
+    let err = wtf::RequestContext::new(&ws, context().now)
+        .query(
+            &Query::parse("values | where name == \"price\" | sum value").unwrap(),
+            None,
+        )
+        .unwrap_err();
     assert!(err.contains("currency") || err.contains("USD"), "{err}");
 }
 
@@ -298,7 +299,9 @@ fn malformed_queries_and_incompatible_values_return_errors() {
         "tasks | select {x: 1 + 2d}",
     ] {
         assert!(
-            query::execute(&ws, &Query::parse(source).unwrap(), &context()).is_err(),
+            wtf::RequestContext::new(&ws, context().now)
+                .query(&Query::parse(source).unwrap(), None)
+                .is_err(),
             "{source}"
         );
     }
@@ -366,12 +369,9 @@ fn stdlib_agendas_preserve_task_event_and_itinerary_semantics() {
 #[test]
 fn mixed_sort_types_and_long_flat_expressions_fail_without_panics() {
     let ws = workspace(&[("n.wtf", "1:a\n\"text\":b\n2:c\n")]);
-    let error = query::execute(
-        &ws,
-        &Query::parse("values | sort value").unwrap(),
-        &context(),
-    )
-    .unwrap_err();
+    let error = wtf::RequestContext::new(&ws, context().now)
+        .query(&Query::parse("values | sort value").unwrap(), None)
+        .unwrap_err();
     assert!(error.contains("compare"), "{error}");
     let long = format!("tasks | select {}", vec!["1"; 100].join(" + "));
     assert!(Query::parse(&long).unwrap_err().contains("depth"));
@@ -391,7 +391,8 @@ fn functional_queries_share_the_note_language_and_can_scope_a_document() {
     let path = std::path::Path::new("/notes/a.wtf");
     let run_file = |source| {
         json!(
-            query::execute_scoped_in(&request, &Query::parse(source).unwrap(), Some(path))
+            request
+                .query(&Query::parse(source).unwrap(), Some(path))
                 .unwrap()
                 .rows
         )
@@ -424,13 +425,13 @@ fn functional_queries_share_the_note_language_and_can_scope_a_document() {
         json!([{"done":false,"count":1},{"done":true,"count":1}])
     );
     assert!(
-        query::execute_scoped_in(
-            &request,
-            &Query::parse("tasks").unwrap(),
-            Some(std::path::Path::new("/notes/missing.wtf"))
-        )
-        .unwrap_err()
-        .contains("not indexed")
+        request
+            .query(
+                &Query::parse("tasks").unwrap(),
+                Some(std::path::Path::new("/notes/missing.wtf"))
+            )
+            .unwrap_err()
+            .contains("not indexed")
     );
 }
 
@@ -460,5 +461,9 @@ fn shared_query_scopes_capture_lexically_without_leaking_into_definitions() {
         ),
         json!([{"title":"A", "nested":{"title":"A"}}])
     );
-    assert!(query::execute(&ws, &Query::parse("unknown").unwrap(), &context()).is_err());
+    assert!(
+        wtf::RequestContext::new(&ws, context().now)
+            .query(&Query::parse("unknown").unwrap(), None)
+            .is_err()
+    );
 }

@@ -21,11 +21,9 @@ fn browser_and_native_render_the_same_snapshot_with_an_explicit_clock_and_mode()
         lookups: Default::default(),
         modules: Default::default(),
     };
-    let html = wtf::rendering::html_in(
-        &RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap()),
-        path,
-    )
-    .unwrap();
+    let html = RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+        .render_html(path)
+        .unwrap();
     assert!(html.contains(snapshot["html"].as_str().unwrap()));
     assert_eq!(snapshot["schemaVersion"], 1);
     assert_eq!(snapshot["source"], source);
@@ -52,11 +50,10 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         lookups: Default::default(),
         modules: Default::default(),
     };
-    let expected = serde_json::to_value(wtf::presentation::document_links(
-        &shared,
-        path,
-        chrono::DateTime::parse_from_rfc3339(NOW).unwrap(),
-    ))
+    let expected = serde_json::to_value(
+        wtf::RequestContext::new(&shared, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+            .document_links(path),
+    )
     .unwrap();
     let links = request(&mut ws, "documentLinks", json!({"uri":URI}));
     assert_eq!(links, expected);
@@ -145,11 +142,10 @@ fn browser_document_symbols_are_the_standard_shared_lsp_data() {
     };
     assert_eq!(
         result,
-        serde_json::to_value(wtf::symbols::document_symbols(
-            &shared,
-            path,
-            chrono::DateTime::parse_from_rfc3339(NOW).unwrap()
-        ))
+        serde_json::to_value(
+            wtf::RequestContext::new(&shared, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+                .document_symbols(path)
+        )
         .unwrap()
     );
     assert_eq!(
@@ -385,11 +381,11 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
         lookups: Default::default(),
         modules: Default::default(),
     };
-    let expected = wtf::query::execute(
+    let expected = wtf::RequestContext::new(
         &ws,
-        &wtf::query::Query::parse(query).unwrap(),
-        &wtf::query::QueryContext::new(chrono::DateTime::parse_from_rfc3339(NOW).unwrap()),
+        wtf::query::QueryContext::new(chrono::DateTime::parse_from_rfc3339(NOW).unwrap()).now,
     )
+    .query(&wtf::query::Query::parse(query).unwrap(), None)
     .unwrap();
     assert_eq!(result["rows"], json!(expected.rows));
     set(&mut browser, URI, &source.replace("$5", "$9"), 2);
@@ -648,12 +644,12 @@ fn browser_file_queries_inspect_live_syntax_and_dependencies_with_native_parity(
         "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)",
     ] {
         let result = request(&mut browser, "query", json!({"uri":URI,"query":source}));
-        let expected = wtf::query::execute_scoped_in(
-            &context,
-            &wtf::query::Query::parse(source).unwrap(),
-            Some(std::path::Path::new("/workspace/trip.wtf")),
-        )
-        .unwrap();
+        let expected = context
+            .query(
+                &wtf::query::Query::parse(source).unwrap(),
+                Some(std::path::Path::new("/workspace/trip.wtf")),
+            )
+            .unwrap();
         assert_eq!(result["rows"], json!(expected.rows));
         assert_eq!(result["versions"][URI], 4);
     }

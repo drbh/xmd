@@ -268,8 +268,8 @@ fn capabilities_control_both_available_controls_and_execution() {
         "[focus] := stopwatch()\n- [ ] Task\nhttps://github.com/acme/app/pull/42\n[price] := quote(ACME)\n",
     );
     let request = RequestContext::new(&ws, now());
-    let native = wtf::interaction::lenses_for(&request, path(), Capabilities::NATIVE);
-    let browser = wtf::interaction::lenses_for(&request, path(), Capabilities::BROWSER);
+    let native = request.code_lenses(path(), Capabilities::NATIVE);
+    let browser = request.code_lenses(path(), Capabilities::BROWSER);
     assert!(
         native
             .iter()

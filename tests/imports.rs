@@ -54,13 +54,11 @@ fn names_and_solver_variables_are_local_even_when_other_notes_are_loaded() {
             .name,
         "widgets"
     );
-    let issues = wtf::diagnostics::collect(
+    let issues = wtf::RequestContext::new(
         &ws,
-        path(),
-        NaiveDate::from_ymd_opt(2026, 9, 18).unwrap(),
         chrono::DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap(),
-        false,
-    );
+    )
+    .diagnostics(path(), false);
     assert!(issues.iter().any(|d| d.message == "Unknown name 'amount'"));
 }
 
@@ -164,13 +162,11 @@ fn imported_members_have_definition_rename_completion_and_graph_provenance() {
             .iter()
             .any(|(s, _)| *s == foreign)
     );
-    let items = wtf::intelligence::completions(
+    let items = wtf::RequestContext::new(
         &ws,
-        path(),
-        Position::new(1, 14),
         chrono::DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap(),
-        false,
-    );
+    )
+    .completions(path(), Position::new(1, 14), false);
     assert!(items.iter().any(|c| c.label == "amount"));
     assert!(wtf::tables::validate_rename(&ws, &foreign, "result").is_ok());
 }

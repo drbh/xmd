@@ -223,11 +223,7 @@ fn run_query(source: String, within: Option<PathBuf>, options: QueryOutput) -> R
         None => Workspace::load(vec![root])?,
     };
     compiled.load_imports(&mut workspace, only.as_deref());
-    let result = query::execute_scoped_in(
-        &crate::RequestContext::new(&workspace, now),
-        &compiled,
-        only.as_deref(),
-    )?;
+    let result = crate::RequestContext::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
@@ -284,10 +280,10 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     let workspace = Workspace::load_file(vec![root], &path)?;
     let request = crate::RequestContext::new(&workspace, now);
     let text = match options.format {
-        RenderFormat::Html => crate::rendering::html_in(&request, &path)?,
-        RenderFormat::Text => crate::presentation::render_text_in(&request, &path)?,
+        RenderFormat::Html => request.render_html(&path)?,
+        RenderFormat::Text => request.render_text(&path)?,
     };
-    let diagnostics = crate::diagnostics::collect_in(&request, &path, false);
+    let diagnostics = request.diagnostics(&path, false);
     let stdout = io::stdout();
     let mut output = stdout.lock();
     if let Err(e) = output

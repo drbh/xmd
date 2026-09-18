@@ -55,34 +55,25 @@ fn feature_behavior_matches_native_baseline() {
         let ws = note(source);
         let request = wtf::RequestContext::new(&ws, now());
         let mut engine = request.engine();
-        let hints = wtf::presentation::hints_in(
-            &request,
-            path,
-            Range::new(Position::new(0, 0), Position::new(99, 0)),
-        )
-        .hints;
+        let hints = request
+            .hints(path, Range::new(Position::new(0, 0), Position::new(99, 0)))
+            .hints;
         let mut definitions = vec![];
         for (i, def) in ws.documents[path].definitions.iter().enumerate() {
             let symbol = Symbol {
                 path: path.into(),
                 kind: SymbolKind::Definition(i),
             };
-            definitions.push(json!({"name":def.named.name,"value":engine.symbol(&symbol).map(|v|v.display()),"hover":wtf::intelligence::hover_in(&request,&symbol)}));
+            definitions.push(json!({"name":def.named.name,"value":engine.symbol(&symbol).map(|v|v.display()),"hover":request.symbol_hover(&symbol)}));
         }
         let doc = &ws.documents[path];
         let stop_hovers: Vec<_> = doc
             .days
             .iter()
             .flat_map(|d| &d.stops)
-            .map(|s| {
-                wtf::features::module_features::hover(
-                    &request,
-                    path,
-                    Position::new(s.line as u32, 0),
-                )
-            })
+            .map(|s| request.module_hover(path, Position::new(s.line as u32, 0)))
             .collect();
-        output.push(json!({"source":source,"hints":hints,"definitions":definitions,"diagnostics":wtf::diagnostics::collect_in(&request,path,false),"format":wtf::features::module_features::formatting(&request, path).unwrap(),"stop_hovers":stop_hovers}));
+        output.push(json!({"source":source,"hints":hints,"definitions":definitions,"diagnostics":request.diagnostics(path, false),"format":request.formatting(path).unwrap(),"stop_hovers":stop_hovers}));
     }
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lifted-features.json");
     assert_json(
@@ -140,7 +131,9 @@ fn imported_functions_keep_lexical_environments_and_share_execution_limits() {
     let q = wtf::query::Query::parse("notes | select import(\"format\").human(125m)").unwrap();
     assert_eq!(
         serde_json::to_value(
-            wtf::query::execute(&ws, &q, &wtf::query::QueryContext::new(now())).unwrap()
+            wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+                .query(&q, None)
+                .unwrap()
         )
         .unwrap()["rows"],
         json!(["2h 5m"])
@@ -164,13 +157,8 @@ reduce := fn(ctx, event) => {kind: "edit", document: ctx.document.uri, expected:
         )
     };
     ws.modules = compile(source);
-    let commands = wtf::interaction::row_commands_for(
-        &wtf::RequestContext::new(&ws, now()),
-        path,
-        0,
-        true,
-        Capabilities::BROWSER,
-    );
+    let commands =
+        wtf::RequestContext::new(&ws, now()).row_commands(path, 0, true, Capabilities::BROWSER);
     let command = commands.iter().find(|c| c.title == "Stamp").unwrap();
     let action = Action::decode(&command.command, command.arguments.as_ref().unwrap()).unwrap();
     let later = now() + chrono::Duration::minutes(2);
@@ -205,12 +193,12 @@ format := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, ch
         .unwrap(),
     );
     let request = wtf::RequestContext::new(&ws, now());
-    assert!(wtf::features::module_features::hover(&request, path, Position::new(0, 1)).is_some());
+    assert!(request.module_hover(path, Position::new(0, 1)).is_some());
     assert_eq!(
-        wtf::diagnostics::collect_in(&request, path, false)[0].message,
+        request.diagnostics(path, false)[0].message,
         "Check greeting"
     );
-    let edits = wtf::features::module_features::formatting(&request, path).unwrap();
+    let edits = request.formatting(path).unwrap();
     assert_eq!(
         wtf::actions::apply_edits("Hello\n", &edits).unwrap(),
         "HELLO\n"
@@ -223,17 +211,14 @@ fn migrated_features_can_be_disabled_without_leaking_controls_or_hooks() {
     let mut ws = note("watch := stopwatch()\n## Monday, September 16, 2026\n9:00 > Leave\n");
     let request = wtf::RequestContext::new(&ws, now());
     assert!(
-        wtf::interaction::row_commands_in(&request, path, 0, false)
+        request
+            .row_commands(path, 0, false, wtf::commands::Capabilities::NATIVE)
             .iter()
             .any(|c| c.title == "▸ start watch")
     );
-    assert!(!wtf::diagnostics::collect_in(&request, path, false).is_empty());
-    assert!(wtf::features::module_features::hover(&request, path, Position::new(2, 2)).is_some());
-    assert!(
-        !wtf::features::module_features::formatting(&request, path)
-            .unwrap()
-            .is_empty()
-    );
+    assert!(!request.diagnostics(path, false).is_empty());
+    assert!(request.module_hover(path, Position::new(2, 2)).is_some());
+    assert!(!request.formatting(path).unwrap().is_empty());
     ws.modules = std::sync::Arc::new(
         wtf::modules::ModuleRegistry::compile(
             ["timers", "itinerary"]
@@ -251,22 +236,19 @@ fn migrated_features_can_be_disabled_without_leaking_controls_or_hooks() {
         .unwrap(),
     );
     let request = wtf::RequestContext::new(&ws, now());
-    assert!(wtf::interaction::row_commands_in(&request, path, 0, false).is_empty());
-    assert!(wtf::diagnostics::collect_in(&request, path, false).is_empty());
-    assert!(wtf::features::module_features::hover(&request, path, Position::new(2, 2)).is_none());
     assert!(
-        wtf::features::module_features::formatting(&request, path)
-            .unwrap()
+        request
+            .row_commands(path, 0, false, wtf::commands::Capabilities::NATIVE)
             .is_empty()
     );
+    assert!(request.diagnostics(path, false).is_empty());
+    assert!(request.module_hover(path, Position::new(2, 2)).is_none());
+    assert!(request.formatting(path).unwrap().is_empty());
     assert!(
-        wtf::presentation::hints_in(
-            &request,
-            path,
-            Range::new(Position::new(0, 0), Position::new(9, 0))
-        )
-        .hints
-        .is_empty()
+        request
+            .hints(path, Range::new(Position::new(0, 0), Position::new(9, 0)))
+            .hints
+            .is_empty()
     );
 }
 
@@ -275,7 +257,9 @@ fn language_diagnostics_reach_queries_and_imported_libraries_can_be_replaced() {
     let path = Path::new("/notes/features.wtf");
     let mut ws = note("## Monday, September 16, 2026\n9:00 > Leave\n");
     let query = wtf::query::Query::parse("diagnostics | where code == \"itinerary\"").unwrap();
-    let rows = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now())).unwrap();
+    let rows = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+        .query(&query, None)
+        .unwrap();
     assert_eq!(rows.rows.len(), 1);
     // Replacing only a library updates its bundled consumer and typed values.
     let timer = include_str!("../stdlib/timer.wtf").replace("  if(t.limit == null, \"◴ \", \"◷ \" + fmt.gauge(t.elapsed / t.limit, 8) + \" \") + suffix(t)", "  \"custom timer\"");
@@ -292,17 +276,17 @@ fn language_diagnostics_reach_queries_and_imported_libraries_can_be_replaced() {
         Document::parse("watch := stopwatch()\n".into()),
     );
     let request = wtf::RequestContext::new(&ws, now());
-    let hints = wtf::presentation::hints_in(
-        &request,
-        path,
-        Range::new(Position::new(0, 0), Position::new(9, 0)),
-    );
+    let hints = request.hints(path, Range::new(Position::new(0, 0), Position::new(9, 0)));
     assert!(
         serde_json::to_string(&hints.hints)
             .unwrap()
             .contains("custom timer")
     );
-    assert!(wtf::interaction::row_commands_in(&request, path, 0, false).is_empty());
+    assert!(
+        request
+            .row_commands(path, 0, false, wtf::commands::Capabilities::NATIVE)
+            .is_empty()
+    );
 }
 
 #[test]
@@ -383,12 +367,8 @@ fn representative_document_stays_within_module_limits() {
     let ws = note(&source);
     let request = wtf::RequestContext::new(&ws, now());
     let started = std::time::Instant::now();
-    let hints = wtf::presentation::hints_in(
-        &request,
-        path,
-        Range::new(Position::new(0, 0), Position::new(100, 0)),
-    );
-    let diagnostics = wtf::diagnostics::collect_in(&request, path, false);
+    let hints = request.hints(path, Range::new(Position::new(0, 0), Position::new(100, 0)));
+    let diagnostics = request.diagnostics(path, false);
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
     assert_eq!(hints.hints.len(), 52, "{:?}", hints.hints);
     assert!(
@@ -409,13 +389,13 @@ fn oversized_itinerary_reports_a_module_error_instead_of_panicking() {
     let ws = note(&source);
     let path = Path::new("/notes/features.wtf");
     let request = wtf::RequestContext::new(&ws, now());
-    let issues = wtf::diagnostics::collect_in(&request, path, false);
+    let issues = request.diagnostics(path, false);
     assert!(
         issues.iter().any(|d| d.message.contains("size limit")),
         "{issues:?}"
     );
-    assert!(wtf::features::module_features::formatting(&request, path).is_err());
-    assert!(wtf::features::module_features::hover(&request, path, Position::new(1, 0)).is_none());
+    assert!(request.formatting(path).is_err());
+    assert!(request.module_hover(path, Position::new(1, 0)).is_none());
 }
 
 #[test]
@@ -452,15 +432,13 @@ fn plans_preserve_source_variable_order() {
     );
     let path = Path::new("/notes/features.wtf");
     let request = wtf::RequestContext::new(&ws, now());
-    let hints = wtf::presentation::hints_in(
-        &request,
-        path,
-        Range::new(Position::new(0, 0), Position::new(9, 0)),
-    );
+    let hints = request.hints(path, Range::new(Position::new(0, 0), Position::new(9, 0)));
     let json = serde_json::to_value(hints.hints).unwrap();
     assert_eq!(json[0]["label"], "= 3 · zebra 1 · apple 2");
     let symbol = ws.resolve(path, "result").unwrap();
     assert!(
-        wtf::intelligence::hover_in(&request, &symbol).contains("Variables: zebra = 1, apple = 2")
+        request
+            .symbol_hover(&symbol)
+            .contains("Variables: zebra = 1, apple = 2")
     );
 }

@@ -62,7 +62,7 @@ fn link_targets_hovers_and_controls_share_origin_and_utf16_ranges() {
         lookups: Default::default(),
         modules: Default::default(),
     };
-    let links = wtf::presentation::document_links(&ws, path, now());
+    let links = wtf::RequestContext::new(&ws, now()).document_links(path);
     assert_eq!(links.len(), 5, "{links:?}");
     assert_eq!(links[0].range.start.character, 3);
     assert_eq!(
@@ -78,14 +78,21 @@ fn link_targets_hovers_and_controls_share_origin_and_utf16_ranges() {
         links[2].target.as_ref().unwrap().as_str(),
         "file:///notes/trips/src/main.rs"
     );
-    let hover = wtf::intelligence::link_hover(&ws, path, lsp_types::Position::new(0, 4)).unwrap();
+    let hover = wtf::RequestContext::new(&ws, chrono::Utc::now().fixed_offset())
+        .link_hover(path, lsp_types::Position::new(0, 4))
+        .unwrap();
     assert_eq!(hover.range, Some(links[0].range));
     assert!(
         serde_json::to_string(&hover)
             .unwrap()
             .contains("file:///notes/packing.wtf")
     );
-    let commands = wtf::interaction::row_commands(&ws, path, 0, now(), false);
+    let commands = wtf::RequestContext::new(&ws, now()).row_commands(
+        path,
+        0,
+        false,
+        wtf::commands::Capabilities::NATIVE,
+    );
     assert_eq!(
         commands
             .iter()
@@ -93,7 +100,11 @@ fn link_targets_hovers_and_controls_share_origin_and_utf16_ranges() {
             .count(),
         2
     );
-    assert!(wtf::intelligence::link_hover(&ws, path, lsp_types::Position::new(0, 1)).is_none());
+    assert!(
+        wtf::RequestContext::new(&ws, chrono::Utc::now().fixed_offset())
+            .link_hover(path, lsp_types::Position::new(0, 1))
+            .is_none()
+    );
 }
 
 #[test]
@@ -150,15 +161,15 @@ fn github_links_in_prose_carry_a_status_badge_that_ages() {
         wtf::resources::metadata("pull", &serde_json::json!({"title":"mir pass","state":"OPEN","statusCheckRollup":[{"conclusion":"FAILURE"}],"reviewDecision":"CHANGES_REQUESTED"}), fetched - chrono::Duration::days(9)).unwrap(),
     );
     let path = std::path::Path::new("/notes/work.wtf");
-    let hints = wtf::presentation::hints_at(
-        &ws,
-        path,
-        now,
-        tower_lsp::lsp_types::Range::new(
-            tower_lsp::lsp_types::Position::new(0, 0),
-            tower_lsp::lsp_types::Position::new(9, 0),
-        ),
-    );
+    let hints = wtf::RequestContext::new(&ws, now)
+        .hints(
+            path,
+            tower_lsp::lsp_types::Range::new(
+                tower_lsp::lsp_types::Position::new(0, 0),
+                tower_lsp::lsp_types::Position::new(9, 0),
+            ),
+        )
+        .hints;
     let labels: Vec<(u32, String)> = hints
         .iter()
         .map(|h| {

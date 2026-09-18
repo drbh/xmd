@@ -18,6 +18,7 @@ pub mod prose;
 pub mod query;
 pub mod refactor;
 pub mod rendering;
+pub mod session;
 pub mod symbols;
 pub mod typing;
 

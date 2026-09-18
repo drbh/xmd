@@ -4,7 +4,6 @@ use crate::{
     engine::{Engine, Value},
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset, Local, NaiveDate};
 use lsp_types::*;
 use std::path::Path;
 
@@ -123,20 +122,9 @@ pub fn incomplete(source: &str) -> bool {
             > source.chars().filter(|c| *c == ')').count()
         || crate::engine::lex(source).is_err_and(|e| e == "Unclosed string")
 }
-pub fn collect(
-    ws: &Workspace,
-    path: &Path,
-    today: NaiveDate,
-    now: DateTime<FixedOffset>,
-    editing: bool,
-) -> Vec<Diagnostic> {
-    collect_in(
-        &crate::RequestContext::new(ws, now).with_today(today),
-        path,
-        editing,
-    )
-}
-pub(crate) fn collect_native_in(
+/// The native analysis only: name resolution, evaluation, resources and
+/// attributes. Feature modules add their own on top in `collect`.
+pub(crate) fn collect_native(
     request: &crate::RequestContext<'_>,
     path: &Path,
     editing: bool,
@@ -414,8 +402,9 @@ pub(crate) fn collect_native_in(
     issues
 }
 /// Errors only: warnings such as unfetched lookups do not fail checks.
-pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
-    collect(ws, path, today, Local::now().fixed_offset(), false)
+pub(crate) fn problems(request: &crate::RequestContext<'_>, path: &Path) -> Vec<Problem> {
+    let ws = request.workspace();
+    collect(request, path, false)
         .into_iter()
         .filter(|d| d.severity != Some(DiagnosticSeverity::WARNING))
         .map(|d| {
@@ -432,12 +421,13 @@ pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
         .collect()
 }
 
-pub fn collect_in(
+/// Everything wrong with one note, native analysis and feature modules alike.
+pub(crate) fn collect(
     request: &crate::RequestContext<'_>,
     path: &Path,
     editing: bool,
 ) -> Vec<Diagnostic> {
-    let mut result = collect_native_in(request, path, editing);
+    let mut result = collect_native(request, path, editing);
     result.extend(super::module_features::diagnostics(request, path));
     result.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone()));
     result.dedup_by(|a, b| a.range == b.range && a.message == b.message);

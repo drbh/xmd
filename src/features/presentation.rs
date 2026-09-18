@@ -1,23 +1,18 @@
 //! Host-independent editor presentation, shared by native LSP and WebAssembly.
 use crate::{
-    document::{Problem, Span},
-    engine::{Engine, Value},
-    workspace::{Symbol, SymbolKind, Workspace},
+    document::Span,
+    engine::Value,
+    workspace::{Symbol, SymbolKind},
 };
-use chrono::{DateTime, FixedOffset, NaiveDate};
 use lsp_types::*;
 use std::path::Path;
 
 pub use crate::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 
-pub fn document_links(
-    workspace: &Workspace,
+pub(crate) fn document_links(
+    request: &crate::RequestContext<'_>,
     path: &Path,
-    now: DateTime<FixedOffset>,
 ) -> Vec<DocumentLink> {
-    document_links_in(&crate::RequestContext::new(workspace, now), path)
-}
-pub fn document_links_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<DocumentLink> {
     let workspace = request.workspace();
 
     let Some(doc) = workspace.documents.get(path) else {
@@ -64,22 +59,7 @@ pub fn document_links_in(request: &crate::RequestContext<'_>, path: &Path) -> Ve
     links.dedup_by(|a, b| a.range == b.range && a.target == b.target);
     links
 }
-pub fn problems(workspace: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
-    crate::diagnostics::problems(workspace, path, today)
-}
-pub fn hints(workspace: &Workspace, path: &Path, today: NaiveDate, range: Range) -> Vec<InlayHint> {
-    let mut engine = Engine::new(workspace, today);
-    crate::inlays::collect(&mut engine, path, range, crate::inlay_providers::BUILTINS).hints
-}
-pub fn hints_at(
-    workspace: &Workspace,
-    path: &Path,
-    now: DateTime<FixedOffset>,
-    range: Range,
-) -> Vec<InlayHint> {
-    hints_in(&crate::RequestContext::new(workspace, now), path, range).hints
-}
-pub fn hints_in(
+pub(crate) fn hints(
     request: &crate::RequestContext<'_>,
     path: &Path,
     range: Range,
@@ -93,13 +73,16 @@ pub fn hints_in(
 }
 
 /// Materialize the same source and inline labels shown by the editor, at one clock snapshot.
-pub fn render_text_in(request: &crate::RequestContext<'_>, path: &Path) -> Result<String, String> {
+pub(crate) fn rendered_text(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+) -> Result<String, String> {
     let doc = request
         .workspace()
         .documents
         .get(path)
         .ok_or("File is not in this workspace's indexed .wtf notes")?;
-    let hints = hints_in(
+    let hints = hints(
         request,
         path,
         Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
@@ -139,11 +122,8 @@ pub(crate) fn inlay_label(hint: &InlayHint) -> String {
     label.replace(['\r', '\n', '\t'], " ")
 }
 
-pub fn live_hints(workspace: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> bool {
-    live_hints_in(&crate::RequestContext::new(workspace, now), path)
-}
-pub fn live_hints_in(request: &crate::RequestContext<'_>, path: &Path) -> bool {
-    hints_in(
+pub(crate) fn live_hints(request: &crate::RequestContext<'_>, path: &Path) -> bool {
+    hints(
         request,
         path,
         Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),

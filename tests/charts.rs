@@ -5,7 +5,6 @@ use wtf::{
     charts,
     document::Document,
     engine::Value,
-    intelligence, presentation,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 
@@ -59,25 +58,17 @@ fn column_and_sum_hovers_include_sparklines() {
     let ws = ws(
         "[t] := table\n| item | qty | price |\n|---|---|---|\n| apple | 2 | $3 |\n| pear | 6 | $1 |\n| fig | 4 | $2 |\n[total] := sum(t, qty * price)\n",
     );
-    let qty = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Column(0, 1),
-        },
-        now(),
-    );
+    let qty = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Column(0, 1),
+    });
     assert!(qty.contains("`▁█▅` 2 → 6"), "{qty}");
-    let item = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Column(0, 0),
-        },
-        now(),
-    );
+    let item = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Column(0, 0),
+    });
     assert!(!item.contains('▁'), "text columns have no chart: {item}");
-    let total = intelligence::hover(&ws, &def(1), now());
+    let total = wtf::RequestContext::new(&ws, now()).symbol_hover(&def(1));
     assert!(
         total.contains("Row contributions:\n\n`▁▁█` $6 → $8\n"),
         "{total}"
@@ -88,23 +79,19 @@ fn column_and_sum_hovers_include_sparklines() {
 fn countdowns_and_checklists_show_progress_bars() {
     let source = "[focus] := countdown(10m, 4m)\n# Plan :plan\n- [x] a\n- [ ] b :b @timer(focus)\n  - [x] c\n  - [ ] d\n";
     let ws = ws(source);
-    let timer = intelligence::hover(&ws, &def(0), now());
+    let timer = wtf::RequestContext::new(&ws, now()).symbol_hover(&def(0));
     assert!(timer.contains("`████░░░░░░ 40%`"), "{timer}");
-    let plan = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Section(0),
-        },
-        now(),
-    );
+    let plan = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Section(0),
+    });
     assert!(plan.contains("`███████░░░ 67%` 2/3 complete"), "{plan}");
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(20, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(20, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()

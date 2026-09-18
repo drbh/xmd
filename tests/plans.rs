@@ -2,10 +2,10 @@ use chrono::{DateTime, FixedOffset};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
 use wtf::{
-    actions, diagnostics,
+    actions,
     document::Document,
     engine::{Engine, Value},
-    hierarchy, intelligence, plans, presentation, symbols, tables, typing,
+    hierarchy, intelligence, plans, tables, typing,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 
@@ -42,7 +42,8 @@ fn plan(ws: &Workspace, name: &str) -> std::sync::Arc<plans::PlanValue> {
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {
-    diagnostics::collect(ws, path(), now().date_naive(), now(), false)
+    wtf::RequestContext::new(ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .map(|d| d.message)
         .collect()
@@ -76,7 +77,7 @@ fn multiline_objectives_keep_constraint_tables_and_variable_locations() {
         let (symbol, _) = intelligence::symbol_at(&ws, path(), point(&ws, 3, "bagels")).unwrap();
         assert_eq!(ws.named(&symbol).name, "bagels");
         assert_eq!(ws.named(&symbol).span.line, 3);
-        let outline = symbols::document_symbols(&ws, path(), now());
+        let outline = wtf::RequestContext::new(&ws, now()).document_symbols(path());
         assert_eq!(
             outline
                 .iter()
@@ -182,7 +183,7 @@ fn infeasible_and_unbounded_plans_report_on_the_objective() {
     let unbounded = note(
         "[p] := maximize(x)\n| constraint | expression |\n| ---------- | ---------- |\n| floor      | x >= 1     |\n",
     );
-    let issues = diagnostics::collect(&unbounded, path(), now().date_naive(), now(), false);
+    let issues = wtf::RequestContext::new(&unbounded, now()).diagnostics(path(), false);
     assert_eq!(issues.len(), 1, "{issues:?}");
     assert!(issues[0].message.contains("without limit"));
     assert_eq!(issues[0].range.start, Position::new(0, 16));
@@ -204,10 +205,10 @@ fn decision_variables_are_symbols_with_hover_rename_and_completion() {
     assert_eq!(ws.named(&symbol).name, "bagels");
     // The declaration is the first occurrence, in the objective.
     assert_eq!(ws.named(&symbol).span.line, 1);
-    let hover = intelligence::hover(&ws, &symbol, now());
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&symbol);
     assert!(hover.starts_with("**bagels · Number**\n\n25.75"), "{hover}");
     assert!(hover.contains("Decision variable of [bakery]"), "{hover}");
-    let plan_hover = intelligence::hover(&ws, &def(1), now());
+    let plan_hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&def(1));
     assert!(
         plan_hover.contains("Variables: bagels = 25.75, doughnuts = 14"),
         "{plan_hover}"
@@ -221,7 +222,7 @@ fn decision_variables_are_symbols_with_hover_rename_and_completion() {
         "{plan_hover}"
     );
     let completions =
-        intelligence::completions(&ws, path(), point(&ws, 8, "[bakery."), now(), false);
+        wtf::RequestContext::new(&ws, now()).completions(path(), point(&ws, 8, "[bakery."), false);
     let labels: Vec<_> = completions.iter().map(|c| c.label.as_str()).collect();
     assert_eq!(
         labels,
@@ -249,12 +250,12 @@ fn decision_variables_are_symbols_with_hover_rename_and_completion() {
 #[test]
 fn inlays_symbols_and_formatting_cover_the_constraint_table() {
     let ws = note(BAKERY);
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(20, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(20, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()
@@ -269,7 +270,7 @@ fn inlays_symbols_and_formatting_cover_the_constraint_table() {
     assert_eq!(label(4), "████████ 400 ≤ 400 · ● binding");
     assert_eq!(label(5), "█░░░░░░░ 32.75 ≤ 200 · ○ slack 167.25");
     assert_eq!(label(6), "25.75 ≥ 12 · ○ slack 13.75");
-    let outline = symbols::document_symbols(&ws, path(), now());
+    let outline = wtf::RequestContext::new(&ws, now()).document_symbols(path());
     let bakery = outline.iter().find(|s| s.name == "bakery").unwrap();
     assert_eq!(bakery.kind, tower_lsp::lsp_types::SymbolKind::STRUCT);
     assert_eq!(bakery.range.end.line, 7);
@@ -320,11 +321,17 @@ fn the_dependency_graph_links_plans_constants_and_variables() {
     };
     assert_eq!(names(hierarchy::dependencies(&ws, &bagels)), ["bakery"]);
     assert_eq!(
-        hierarchy::item(&ws, &bagels, now()).detail.as_deref(),
+        wtf::RequestContext::new(&ws, now())
+            .hierarchy_item(&bagels)
+            .detail
+            .as_deref(),
         Some("decision variable of bakery · 25.75")
     );
     assert_eq!(
-        hierarchy::item(&ws, &def(1), now()).detail.as_deref(),
+        wtf::RequestContext::new(&ws, now())
+            .hierarchy_item(&def(1))
+            .detail
+            .as_deref(),
         Some("plan · maximize $94.75 · 2 variables")
     );
     let mut readers = names(hierarchy::dependents(&ws, &def(1)));
@@ -347,7 +354,7 @@ fn goal_seek_inverts_a_chain_of_calculations() {
         "$5,000"
     );
     assert_eq!(messages(&ws), Vec::<String>::new());
-    let hover = intelligence::hover(&ws, &def(3), now());
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&def(3));
     assert!(
         hover.contains("Goal seek: the smallest value that satisfies `saved_by_june >= $5,000`"),
         "{hover}"
@@ -448,19 +455,15 @@ fn decision_columns_become_per_row_choices_and_counts() {
             .iter()
             .all(|s| !matches!(s.kind, SymbolKind::Variable(..)))
     );
-    let hover = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Column(0, 3),
-        },
-        now(),
-    );
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Column(0, 3),
+    });
     assert!(
         hover.contains("Decision column of `gear` (name?)"),
         "{hover}"
     );
-    let plan_hover = intelligence::hover(&ws, &def(1), now());
+    let plan_hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&def(1));
     assert!(
         plan_hover.contains("take: tent, stove, camera, ~~books~~"),
         "{plan_hover}"
@@ -470,12 +473,12 @@ fn decision_columns_become_per_row_choices_and_counts() {
 #[test]
 fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
     let ws = note(GEAR);
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(30, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(30, 0)),
+        )
+        .hints;
     let labels = |line: u32| {
         hints
             .iter()
@@ -492,7 +495,7 @@ fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
     assert_eq!(labels(14), ["→ 4"]);
     assert_eq!(labels(16), ["= $8 · servings 4"]);
     let line = Position::new(7, 2);
-    let actions = wtf::refactor::actions_for(&ws, path(), Range::new(line, line), now());
+    let actions = wtf::RequestContext::new(&ws, now()).refactors(path(), Range::new(line, line));
     let fill = actions
         .iter()
         .find(|a| a.title == "Write the plan's choices into the table")
@@ -511,6 +514,7 @@ fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
     let rewritten = note(&written);
     assert_eq!(plan(&rewritten, "pack").objective, Value::Number(20.0));
     assert!(tables::formatting(&rewritten.documents[path()]).is_empty());
-    let none = wtf::refactor::actions_for(&rewritten, path(), Range::new(line, line), now());
+    let none =
+        wtf::RequestContext::new(&rewritten, now()).refactors(path(), Range::new(line, line));
     assert!(none.iter().all(|a| !a.title.starts_with("Write the plan")));
 }

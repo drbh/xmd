@@ -1009,8 +1009,10 @@ impl LanguageServer for Backend {
                 let now = Local::now().fixed_offset();
                 let today = now.date_naive();
                 let workspace = self.state.read().await.workspace.clone();
-                let compiled =
-                    crate::query::Query::parse("@today").map_err(Error::invalid_params)?;
+                let compiled = crate::query::Query::parse(
+                    "import(\"agenda\").between(entries, today(), today())",
+                )
+                .map_err(Error::invalid_params)?;
                 let result = crate::query::execute(
                     &workspace,
                     &compiled,

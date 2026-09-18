@@ -9,7 +9,7 @@ use std::{
     collections::BTreeSet,
     ffi::OsString,
     io::{self, Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 #[derive(Parser)]
@@ -52,23 +52,20 @@ pub enum Command {
 }
 #[derive(Args)]
 #[command(
-    override_usage = "wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] <FILE> -f <QUERY_FILE>\n       wtf query [OPTIONS] --workspace <QUERY>\n       wtf query [OPTIONS] --workspace -f <QUERY_FILE>",
-    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          wtf query --workspace @today --json\n          wtf query note.wtf -f report.wq"
+    override_usage = "wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] --workspace <QUERY>",
+    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin.\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query note.wtf -"
 )]
 pub struct QueryOptions {
     /// A note relative to --root, or the query expression when --workspace is set.
-    #[arg(value_name = "FILE_OR_QUERY", required_unless_present_all = ["workspace", "file"])]
-    pub input: Option<OsString>,
-    /// A functional expression, collection pipeline or saved view such as @today.
+    #[arg(value_name = "FILE_OR_QUERY")]
+    pub input: OsString,
+    /// A functional expression or collection pipeline; use - for stdin.
     #[arg(
         value_name = "QUERY",
-        required_unless_present_any = ["file", "workspace"],
-        conflicts_with_all = ["file", "workspace"]
+        required_unless_present = "workspace",
+        conflicts_with = "workspace"
     )]
     pub source: Option<String>,
-    /// Read a query file; use - for stdin.
-    #[arg(short = 'f', long, value_name = "QUERY_FILE")]
-    pub file: Option<PathBuf>,
     /// Query all indexed notes instead of supplying a positional note file.
     #[arg(long)]
     pub workspace: bool,
@@ -229,31 +226,27 @@ fn inspect_command(view: &str, mut options: InspectOptions) -> Result<(), String
     )
 }
 fn query_command(options: QueryOptions) -> Result<(), String> {
-    let (within, source) = if options.workspace {
-        let source = options
-            .input
-            .map(|s| s.into_string().map_err(|_| "Query must be UTF-8"))
-            .transpose()?;
-        (None, source)
+    let (within, mut source) = if options.workspace {
+        (
+            None,
+            options
+                .input
+                .into_string()
+                .map_err(|_| "Query must be UTF-8")?,
+        )
     } else {
-        let path = options.input.ok_or("Supply a note FILE or --workspace")?;
-        (Some(PathBuf::from(path)), options.source)
+        (
+            Some(PathBuf::from(options.input)),
+            options.source.ok_or("Supply a query expression")?,
+        )
     };
-    let source = match (source, options.file) {
-        (Some(source), None) => source,
-        (None, Some(path)) if path == Path::new("-") => {
-            let mut source = String::new();
-            io::stdin()
-                .take(65_537)
-                .read_to_string(&mut source)
-                .map_err(|e| e.to_string())?;
-            source
-        }
-        (None, Some(path)) => {
-            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?
-        }
-        _ => return Err("Supply either a query expression or -f QUERY_FILE".into()),
-    };
+    if source == "-" {
+        source.clear();
+        io::stdin()
+            .take(65_537)
+            .read_to_string(&mut source)
+            .map_err(|e| e.to_string())?;
+    }
     run_query(source, within, options.output)
 }
 fn run_query(source: String, within: Option<PathBuf>, options: QueryOutput) -> Result<(), String> {

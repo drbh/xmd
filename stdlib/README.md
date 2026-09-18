@@ -67,6 +67,10 @@ All default inlays are feature modules: `definitions`, `references`, `tasks`,
 `itinerary`. Disabling them removes their hints; there is no second native inlay
 implementation to take over.
 
+The `agenda` library selects and orders tasks, events, and itinerary stops over
+an explicit date window. The editor and CLI call the same `between` function; see
+the [query guide](../src/features/query.md) for examples.
+
 The `plan`, `timer`, and `itinerary_core` libraries provide solver policy, timer
 construction/properties/transitions, and itinerary resolution. Typed adapters
 call the active workspace library. A timer retains the module snapshot that

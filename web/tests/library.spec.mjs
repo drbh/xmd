@@ -105,15 +105,17 @@ test("file queries share functional syntax, graph data and current workspace ver
     await ws.setDocument(uri, "answer := rate * 2\n- [ ] Local\n");
     await ws.setDocument("file:///workspace/other.wtf", "3:rate\n- [ ] Other\n");
     const local = await ws.query(uri, "query", {query: "map(tasks, fn(t) => t.title)"});
+    const agenda = await ws.query(uri, "query", {query: 'map(import("agenda").between(entries, today(), today()), fn(e) => e.title)'});
     const all = await ws.request("query", {query: "length(tasks)"});
     const graph = await ws.query(uri, "query", {query: "graph.nodes | where external | select name"});
     const ast = await ws.query(uri, "query", {query: 'ast | where kind == "definition" | select name'});
     await ws.setDocument(uri, "answer := rate * 3\n");
     const changed = await ws.query(uri, "query", {query: 'ast | where kind == "document" | select text'});
     ws.destroy();
-    return {local, all, graph, ast, changed, uri};
+    return {local, agenda, all, graph, ast, changed, uri};
   });
   expect(result.local.rows).toEqual(["Local"]);
+  expect(result.agenda.rows).toEqual(["Local"]);
   expect(result.all.rows).toEqual([2]);
   expect(result.graph.rows).toEqual(["rate"]);
   expect(result.ast.rows).toEqual(["answer"]);

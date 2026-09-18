@@ -397,7 +397,11 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
     assert_eq!(updated["versions"][URI], 2);
     assert_eq!(updated["rows"][0]["value"]["amount"], 18.0);
     assert_eq!(
-        request(&mut browser, "query", json!({"query":"@tasks | count"}))["rows"],
+        request(
+            &mut browser,
+            "query",
+            json!({"query":"tasks | where leaf && !done | sort source.path, source.line | count"})
+        )["rows"],
         json!([1])
     );
     let bad = raw(

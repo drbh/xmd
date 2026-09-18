@@ -217,8 +217,12 @@ fn relative_dates_freeze_and_appointments_are_separate() {
     let entries =
         wtf::query::execute(&ws, &wtf::query::Query::parse("entries").unwrap(), &ctx).unwrap();
     assert_eq!(entries.rows.len(), 3);
-    let agenda =
-        wtf::query::execute(&ws, &wtf::query::Query::parse("@today").unwrap(), &ctx).unwrap();
+    let agenda = wtf::query::execute(
+        &ws,
+        &wtf::query::Query::parse("import(\"agenda\").between(entries, today(), today())").unwrap(),
+        &ctx,
+    )
+    .unwrap();
     assert_eq!(agenda.rows.len(), 1);
 }
 #[test]
@@ -339,7 +343,7 @@ fn cli_agendas_filter_ignored_notes_without_mutating_them() {
     let tasks: serde_json::Value = serde_json::from_str(&run(&[
         "query",
         "--workspace",
-        "@tasks | where contains(tags, \"errands\")",
+        "tasks | where leaf && !done | sort source.path, source.line | where contains(tags, \"errands\")",
         "--json",
     ]))
     .unwrap();
@@ -348,7 +352,7 @@ fn cli_agendas_filter_ignored_notes_without_mutating_them() {
     let agenda: serde_json::Value = serde_json::from_str(&run(&[
         "query",
         "--workspace",
-        "@week",
+        "import(\"agenda\").between(entries, today(), today() + 6d)",
         "--on",
         "2026-09-16",
         "--json",
@@ -359,7 +363,12 @@ fn cli_agendas_filter_ignored_notes_without_mutating_them() {
         std::fs::read_to_string(root.join("inbox.wtf")).unwrap(),
         note
     );
-    run(&["query", "--workspace", "@check", "--fail-on-match"]);
+    run(&[
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\"",
+        "--fail-on-match",
+    ]);
 }
 
 #[test]

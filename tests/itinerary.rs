@@ -372,7 +372,10 @@ fn stops_join_the_agenda_in_time_order() {
     let first = entries.rows[0].json();
     assert_eq!(first["at"]["value"], "2026-11-20T07:04:00-04:00");
     assert_eq!(first["at_date"]["value"], "2026-11-20");
-    let query = wtf::query::Query::parse("@week | where kind == \"stop\"").unwrap();
+    let query = wtf::query::Query::parse(
+        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\"",
+    )
+    .unwrap();
     let trip = wtf::query::QueryContext::new(
         DateTime::parse_from_rfc3339("2026-11-20T12:00:00-05:00").unwrap(),
     );

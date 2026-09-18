@@ -14,11 +14,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub const TODAY: &str = include_str!("../../queries/today.wq");
-pub const WEEK: &str = include_str!("../../queries/week.wq");
-pub const TASKS: &str = include_str!("../../queries/tasks.wq");
-pub const CHECK: &str = include_str!("../../queries/check.wq");
-
 #[derive(Clone, Debug)]
 pub struct Query {
     sources: Vec<String>,
@@ -155,24 +150,6 @@ impl Query {
     pub fn parse(source: &str) -> Result<Self, String> {
         if source.len() > 65_536 {
             return Err("Queries are limited to 64 KiB".into());
-        }
-        if let Some(view) = source.trim_start().strip_prefix('@') {
-            let end = view
-                .find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
-                .unwrap_or(view.len());
-            let name = &view[..end];
-            let saved = match name {
-                "today" => TODAY,
-                "week" => WEEK,
-                "tasks" => TASKS,
-                "check" => CHECK,
-                _ => {
-                    return Err(format!(
-                        "Unknown saved view '@{name}'; use @today, @week, @tasks or @check"
-                    ));
-                }
-            };
-            return Self::parse(&format!("{} {}", saved.trim(), &view[end..]));
         }
         let parts = split(source, '|')?;
         if parts.len() > 129 {

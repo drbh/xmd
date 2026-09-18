@@ -282,7 +282,12 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
     // The refreshed workspace evaluates with the new values.
     let check = std::process::Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
-        .args(["query", "--workspace", "@check", "--fail-on-match"])
+        .args([
+            "query",
+            "--workspace",
+            "diagnostics | where severity == \"error\"",
+            "--fail-on-match",
+        ])
         .output()
         .unwrap();
     assert!(

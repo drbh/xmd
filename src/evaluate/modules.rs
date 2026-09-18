@@ -600,6 +600,7 @@ pub fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
         let modules = [
+            ("agenda", include_str!("../../stdlib/agenda.wtf")),
             ("definitions", include_str!("../../stdlib/definitions.wtf")),
             ("tasks", include_str!("../../stdlib/tasks.wtf")),
             ("references", include_str!("../../stdlib/references.wtf")),

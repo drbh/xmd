@@ -1168,6 +1168,42 @@ fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
 }
 
 #[test]
+fn editor_agenda_uses_the_replaceable_standard_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    std::fs::write(root.join("tasks.wtf"), "- [ ] Active\n- [x] Finished\n").unwrap();
+    let mut lsp = Lsp::start(&root);
+    let command = json!({"command":"wtf.today","arguments":[]});
+    lsp.request("workspace/executeCommand", command.clone());
+    let view = root.join(".wtf/today.md");
+    let original = std::fs::read_to_string(&view).unwrap();
+    assert!(original.contains("— Active"), "{original}");
+    assert!(!original.contains("— Finished"), "{original}");
+    assert_eq!(
+        lsp.opened_documents.last().unwrap()["uri"],
+        Url::from_file_path(&view).unwrap().as_str()
+    );
+
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules/agenda.wtf"),
+        r#"module := {api: 1, id: "agenda", kind: "library", inputs: []}
+between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
+"#,
+    )
+    .unwrap();
+    // The command rescans saved modules before evaluating the same import as a query.
+    lsp.request("workspace/executeCommand", command);
+    let replaced = std::fs::read_to_string(view).unwrap();
+    assert!(replaced.contains("— Finished"), "{replaced}");
+    assert!(!replaced.contains("— Active"), "{replaced}");
+    assert_eq!(
+        lsp.request("wtf/query", json!({"query":"map(import(\"agenda\").between(entries, today(), today()), fn(e) => e.title)"}))["rows"],
+        json!(["Finished"])
+    );
+}
+
+#[test]
 fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
@@ -1194,13 +1230,16 @@ fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
     assert_eq!(
         lsp.request(
             "wtf/query",
-            json!({"query":"@tasks | select title","now":now})
+            json!({"query":"tasks | where leaf && !done | sort source.path, source.line | select title","now":now})
         )["rows"],
         json!(["Unsaved"])
     );
     lsp.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"$12:price\n- [x] Finished\n"}]}));
     assert_eq!(lsp.diagnostics(2), json!([]));
-    let changed = lsp.request("wtf/query", json!({"query":"@tasks","now":now}));
+    let changed = lsp.request(
+        "wtf/query",
+        json!({"query":"tasks | where leaf && !done | sort source.path, source.line","now":now}),
+    );
     assert_eq!(changed["versions"][uri.as_str()], 2);
     assert_eq!(changed["rows"], json!([]));
     let invalid = lsp.request_raw("wtf/query", json!({"query":"tasks | where ("}));

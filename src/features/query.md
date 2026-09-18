@@ -126,22 +126,28 @@ expand the entire external documents. Workspace graphs include all indexed nodes
 
 ## Existing pipelines and transports
 
-Saved views `@today`, `@week`, `@tasks`, `@check` and pipeline stages `where`,
-`select`, `sort`, `limit`, `count`, `sum`, `group` remain supported. Their
-expressions use the same evaluator. A pipeline can start with a functional
+Pipeline stages `where`, `select`, `sort`, `limit`, `count`, `sum`, and `group`
+remain supported. Their expressions use the same evaluator. A pipeline can start with a functional
 expression, such as `filter(ast, fn(n) => n.kind == "definition") | count`.
 Metadata-only pipeline projections retain lazy definition evaluation.
 
-`-f QUERY_FILE` reads a query program, and `-f -` reads stdin. Choose exactly one
-program source: an inline expression or `-f`. Query files can contain multiline
-expressions and `//` comments. Their paths are relative to the current directory;
-note paths are relative to `--root`.
+Use `-` as the query argument to read a multiline expression with `//` comments
+from stdin. There is no separate query-file format or query-file flag. Reusable
+functions belong in ordinary note definitions or modules.
 
 ```sh
-wtf query trip.wtf -f report.wq --json
-wtf query --workspace -f report.wq --json
-printf 'length(tasks)' | wtf query trip.wtf -f - --json
-printf 'length(tasks)' | wtf query --workspace -f - --json
+printf 'length(tasks)' | wtf query trip.wtf - --json
+printf 'length(tasks)' | wtf query --workspace - --json
+```
+
+The editor's agenda uses an ordinary library function. It accepts document
+records and an explicit date window, preserving overdue and undated tasks:
+
+```sh
+wtf query --workspace 'import("agenda").between(entries, today(), today())'
+wtf query trip.wtf 'import("agenda").between(entries, today(), today() + 6d)'
+wtf query --workspace 'filter(tasks, fn(t) => t.leaf && !t.done)'
+wtf query --workspace 'filter(diagnostics, fn(d) => d.severity == "error")' --fail-on-match
 ```
 
 `--on DATE` or `--now TIMESTAMP` pins the clock. JSON output is always an array: a list expression

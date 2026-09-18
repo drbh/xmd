@@ -284,7 +284,7 @@ pub(crate) fn collect_native_in(
     issues.retain(|d| !matches!(&d.code, Some(NumberOrString::String(c)) if c == "evaluation" || c == "attribute" || c == "dependency") || !name_errors.iter().any(|(r, m)| r.start.line == d.range.start.line && (d.message == *m || d.message.contains("requires"))));
     issues
 }
-/// Errors only: the `@check` query view passes on warnings such as unfetched lookups.
+/// Errors only: warnings such as unfetched lookups do not fail checks.
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)
         .into_iter()

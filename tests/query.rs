@@ -281,6 +281,10 @@ fn malformed_queries_and_incompatible_values_return_errors() {
         "tasks | limit -1",
         "tasks | explode",
         "tasks | select {x:}",
+        "@today",
+        "@week",
+        "@tasks",
+        "@check",
     ] {
         assert!(Query::parse(source).is_err(), "{source}");
     }
@@ -310,7 +314,7 @@ fn malformed_queries_and_incompatible_values_return_errors() {
 }
 
 #[test]
-fn saved_agendas_preserve_task_event_and_itinerary_semantics() {
+fn stdlib_agendas_preserve_task_event_and_itinerary_semantics() {
     let ws = workspace(&[(
         "n.wtf",
         concat!(
@@ -334,11 +338,29 @@ fn saved_agendas_preserve_task_event_and_itinerary_semantics() {
         "+ Museum",
         "Afternoon"
     ]);
-    assert_eq!(run(&ws, "@today | select title"), today);
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today()) | select title"
+        ),
+        today
+    );
     let mut week = today.as_array().unwrap().clone();
     week.extend([json!("Tomorrow"), json!("Next")]);
-    assert_eq!(run(&ws, "@week | select title"), json!(week));
-    assert_eq!(run(&ws, "@today | count"), json!([9]));
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today() + 6d) | select title"
+        ),
+        json!(week)
+    );
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today()) | count"
+        ),
+        json!([9])
+    );
 }
 
 #[test]

@@ -128,11 +128,12 @@ pub(crate) fn collect_native_in(
         if let Err(message) = evaluated {
             if let Some(failure) = engine.failure {
                 let incomplete_dependency = editing
-                    && ws.documents[&failure.path].definitions.iter().any(|d| {
-                        d.expression
-                            && d.value_span
-                                .contains(&ws.documents[&failure.path].text, failure.span)
-                            && incomplete(&d.source)
+                    && ws.documents.get(&failure.path).is_some_and(|dependency| {
+                        dependency.definitions.iter().any(|d| {
+                            d.expression
+                                && d.value_span.contains(&dependency.text, failure.span)
+                                && incomplete(&d.source)
+                        })
                     });
                 if incomplete_dependency {
                     continue;

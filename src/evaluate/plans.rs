@@ -469,24 +469,13 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
         .unknown_kind()
         .map(|k| typed_in(k, difference.currency, 1.0))
         .unwrap_or(Value::Null);
-    crate::modules::standard(
-        "plan",
-        "seek_boundary",
-        vec![Value::Text(name), form_value(&difference), unit],
-        engine.now,
-    )
-    .map_err(|message| fail(engine, message))
-}
-/// Human-readable direction for a goal seek.
-pub fn seek_summary(op: &str, coefficient_positive: bool) -> String {
-    crate::modules::standard(
-        "plan",
-        "seek_summary",
-        vec![Value::Text(op.into()), Value::Bool(coefficient_positive)],
-        chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.fixed_offset(),
-    )
-    .expect("valid comparison")
-    .display()
+    engine
+        .call_module(
+            "plan",
+            "seek_boundary",
+            vec![Value::Text(name), form_value(&difference), unit],
+        )
+        .map_err(|message| fail(engine, message))
 }
 pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)> {
     if let SymbolKind::Definition(index) = symbol.kind {
@@ -604,7 +593,8 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
             ),
         ),
     ]);
-    let result = crate::modules::standard("plan", "solve_model", vec![input], engine.now)
+    let result = engine
+        .call_module("plan", "solve_model", vec![input])
         .inspect_err(|message| {
             engine.failure.get_or_insert(crate::engine::EvalFailure {
                 path: path.clone(),

@@ -58,7 +58,7 @@ pub fn document_symbols_in(
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let dates = crate::itinerary::dates(&doc.days, now.date_naive());
+    let dates = crate::itinerary::dates(&ws.modules, &doc.days, now.date_naive());
     let day_detail = |day: &crate::itinerary::Day, date: &Option<chrono::NaiveDate>| {
         format!(
             "{} stops{}",
@@ -167,9 +167,13 @@ pub fn document_symbols_in(
                 stop.title.clone(),
                 match stop.kind {
                     Some(kind) => {
-                        format!("{} · {}", crate::itinerary::display_time(stop), kind.name)
+                        format!(
+                            "{} · {}",
+                            crate::itinerary::display_time(&ws.modules, stop),
+                            kind.name
+                        )
                     }
-                    None => crate::itinerary::display_time(stop),
+                    None => crate::itinerary::display_time(&ws.modules, stop),
                 },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(

@@ -129,7 +129,7 @@ fn bundled_inlays_match_previous_positions_labels_tooltips_and_clock_dependencie
         let mut engine = Engine::at(&ws, now().fixed_offset());
         let features: Vec<&dyn wtf::inlays::InlayFeature> = wtf::modules::bundled()
             .iter()
-            .filter(|m| m.kind == "feature")
+            .filter(|m| matches!(m.id.as_str(), "checklists" | "table_cells" | "calculations"))
             .map(|m| m as &dyn wtf::inlays::InlayFeature)
             .collect();
         let result = wtf::inlays::collect(

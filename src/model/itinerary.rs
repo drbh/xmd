@@ -4,10 +4,10 @@
 use crate::document::{Document, Span};
 use crate::{
     engine::Value,
-    modules::{from_json, record, standard},
+    modules::{ModuleRegistry, from_json, record},
 };
 use chrono::{NaiveDate, NaiveTime, Timelike, Weekday};
-use lsp_types::{Position, Range, TextEdit};
+use lsp_types::{Position, Range};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Detail {
@@ -514,12 +514,16 @@ pub fn parse(lines: &[&str]) -> Vec<Day> {
 
 /// Calendar dates for each day. Years carry forward from the previous day or
 /// an explicit year, and a first day without one is the next occurrence.
-pub fn dates(days: &[Day], today: NaiveDate) -> Vec<Option<NaiveDate>> {
-    try_dates(days, today).unwrap_or_else(|_| vec![None; days.len()])
+pub fn dates(modules: &ModuleRegistry, days: &[Day], today: NaiveDate) -> Vec<Option<NaiveDate>> {
+    try_dates(modules, days, today).unwrap_or_else(|_| vec![None; days.len()])
 }
-pub(crate) fn try_dates(days: &[Day], today: NaiveDate) -> Result<Vec<Option<NaiveDate>>, String> {
+pub(crate) fn try_dates(
+    modules: &ModuleRegistry,
+    days: &[Day],
+    today: NaiveDate,
+) -> Result<Vec<Option<NaiveDate>>, String> {
     let input = Value::List(days.iter().map(day_parts).collect());
-    let result = call("dates", vec![input, Value::Date(today)])?;
+    let result = call(modules, "dates", vec![input, Value::Date(today)])?;
     Ok(crate::modules::list(&result)?
         .iter()
         .map(|v| match v {
@@ -528,16 +532,10 @@ pub(crate) fn try_dates(days: &[Day], today: NaiveDate) -> Result<Vec<Option<Nai
         })
         .collect())
 }
-pub fn display_time(stop: &Stop) -> String {
-    call("time_text", vec![stop_record(stop, None)])
+pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> String {
+    call(modules, "time_text", vec![stop_record(stop, None)])
         .map(|v| v.display())
         .unwrap_or_else(|e| e)
-}
-/// Human-readable travel duration, shared with user modules.
-pub fn human(seconds: i64) -> String {
-    standard("format", "human", vec![Value::Duration(seconds)], epoch())
-        .expect("valid duration")
-        .display()
 }
 pub fn month_name(month: u32) -> &'static str {
     let name = MONTHS[(month as usize).saturating_sub(1).min(11)];
@@ -556,65 +554,32 @@ pub fn month_name(month: u32) -> &'static str {
         _ => "December",
     }
 }
-/// Seconds from one stop to the next on the same day, when in order.
-pub fn gap(stop: &Stop, next: &Stop) -> Option<i64> {
-    match call(
-        "gap",
-        vec![stop_record(stop, None), stop_record(next, None)],
-    ) {
-        Ok(Value::Duration(n)) => Some(n),
-        _ => None,
-    }
-}
 /// A Google Maps search for an address; every platform opens it.
 pub fn map_url(address: &str) -> String {
     let encoded: String = url::form_urlencoded::byte_serialize(address.as_bytes()).collect();
     format!("https://www.google.com/maps/search/?api=1&query={encoded}")
 }
-/// `Cancel by: 24h before` or an explicit datetime, resolved against the stop.
-pub fn cancel_by(day: NaiveDate, stop: &Stop) -> Option<(chrono::NaiveDateTime, bool)> {
-    let value = call(
-        "cancel",
-        vec![
-            Value::Date(day),
-            stop_record(stop, None),
-            Value::DateTime(epoch()),
-        ],
-    )
-    .ok()?;
-    let at = crate::modules::field(&value, "at").ok()?;
-    let Value::DateTime(at) = at else { return None };
-    let relative = crate::modules::field(&value, "relative").ok()? == &Value::Bool(true);
-    Some((at.naive_local(), relative))
-}
-pub fn canonical_line(stop: &Stop) -> String {
-    call("canonical", vec![stop_record(stop, None)])
+pub fn canonical_line(modules: &ModuleRegistry, stop: &Stop) -> String {
+    call(modules, "canonical", vec![stop_record(stop, None)])
         .map(|v| v.display())
         .unwrap_or_else(|e| e)
 }
-pub fn label(stop: &Stop) -> String {
-    call("label", vec![stop_record(stop, None)])
+pub fn label(modules: &ModuleRegistry, stop: &Stop) -> String {
+    call(modules, "label", vec![stop_record(stop, None)])
         .map(|v| v.display())
         .unwrap_or_else(|e| e)
-}
-pub fn formatting(doc: &Document, days: &[Day]) -> Vec<TextEdit> {
-    call(
-        "format_days",
-        vec![Value::List(
-            days.iter().map(|d| day_record(d, doc)).collect(),
-        )],
-    )
-    .and_then(|v| crate::modules::json(&v))
-    .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
-    .unwrap_or_default()
 }
 fn epoch() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::DateTime::from_timestamp(0, 0)
         .unwrap()
         .fixed_offset()
 }
-pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value, String> {
-    standard("itinerary_core", name, args, epoch())
+pub(crate) fn call(
+    modules: &ModuleRegistry,
+    name: &str,
+    args: Vec<Value>,
+) -> Result<Value, String> {
+    modules.call("itinerary_core", name, args, epoch())
 }
 fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
     record(fields.into_iter().map(|(k, v)| (k.into(), v)))

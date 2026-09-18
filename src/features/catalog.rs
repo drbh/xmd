@@ -215,6 +215,7 @@ pub(crate) struct Record {
     pub fields: BTreeMap<String, QueryValue>,
     pub path: PathBuf,
     deferred: Option<Symbol>,
+    resource: Option<crate::resources::Resource>,
 }
 impl Record {
     pub fn projected(path: PathBuf, fields: BTreeMap<String, QueryValue>) -> Self {
@@ -222,17 +223,50 @@ impl Record {
             path,
             fields,
             deferred: None,
+            resource: None,
         }
     }
     pub fn field(&mut self, key: &str, engine: &mut Engine<'_>) -> Result<QueryValue, String> {
+        if key == "presentation" {
+            self.evaluate(engine);
+            let Some(resource) = &self.resource else {
+                return Ok(QueryValue::Null);
+            };
+            let view = resource.presentation(
+                &self.path,
+                &engine.workspace.cache,
+                engine.now.to_utc(),
+                engine.link_features(),
+            );
+            engine.time_dependent |= view.time_dependent;
+            return Ok(QueryValue::object([
+                ("label", QueryValue::text(view.label)),
+                ("hover", QueryValue::text(view.hover)),
+                ("known", QueryValue::boolean(view.known_link)),
+            ]));
+        }
         if key == "hover"
             && let Some(QueryValue::Scalar(Value::Text(name))) = self.fields.get("name")
         {
-            let symbol = engine.workspace.resolve(&self.path, name)?;
-            return Ok(QueryValue::text(crate::intelligence::hover_in(
-                &engine.request(),
-                &symbol,
-            )));
+            let expression = self
+                .fields
+                .get("expression")
+                .cloned()
+                .unwrap_or(QueryValue::Null);
+            if self
+                .fields
+                .get("property")
+                .is_some_and(|v| *v != QueryValue::Null)
+            {
+                return Ok(expression);
+            }
+            return Ok(engine
+                .workspace
+                .resolve(&self.path, name)
+                .map(|symbol| {
+                    QueryValue::text(crate::intelligence::hover_in(&engine.request(), &symbol))
+                })
+                .unwrap_or(expression));
         }
         if matches!(key, "value" | "type" | "solution" | "errors" | "display") {
             self.evaluate(engine);
@@ -248,6 +282,9 @@ impl Record {
         };
         match engine.symbol(&symbol) {
             Ok(value) => {
+                if let Value::Resource(resource) = &value {
+                    self.resource = Some(resource.clone());
+                }
                 self.fields
                     .insert("type".into(), QueryValue::text(value.type_name()));
                 self.fields
@@ -423,7 +460,7 @@ pub(crate) fn collect_document(
             continue;
         }
         if collection == "days" {
-            let dates = crate::itinerary::try_dates(&doc.days, engine.today)?;
+            let dates = crate::itinerary::try_dates(&ws.modules, &doc.days, engine.today)?;
             for (day, date) in doc.days.iter().zip(dates) {
                 let mut value = crate::itinerary::day_record(day, doc);
                 if let Some(date) = date
@@ -522,6 +559,10 @@ pub(crate) fn collect_document(
         if collection == "links" {
             for link in &doc.links {
                 let mut r = base(ws, path, link.span.line, "link", &link.target);
+                r.resource = Some(crate::resources::Resource {
+                    target: link.target.clone(),
+                    origin: Some(path.into()),
+                });
                 r.fields
                     .insert("url".into(), QueryValue::text(&link.target));
                 r.fields
@@ -701,6 +742,7 @@ pub(crate) fn collect_document(
                     ),
                 );
                 let mut errors = Vec::new();
+                let mut schedule_values = Vec::new();
                 for key in ["due", "scheduled", "at", "estimate"] {
                     if let Some(a) = task.attributes.get(key) {
                         let value = if key == "estimate" {
@@ -708,6 +750,28 @@ pub(crate) fn collect_document(
                         } else {
                             engine.when(path, &a.value)
                         };
+                        if key != "estimate" {
+                            schedule_values.push(QueryValue::object([
+                                ("key", QueryValue::text(key)),
+                                (
+                                    "value",
+                                    value
+                                        .as_ref()
+                                        .ok()
+                                        .and_then(|v| ctx.date(v))
+                                        .map(|v| QueryValue::Scalar(Value::Date(v)))
+                                        .unwrap_or(QueryValue::Null),
+                                ),
+                                (
+                                    "error",
+                                    value
+                                        .as_ref()
+                                        .err()
+                                        .map(QueryValue::text)
+                                        .unwrap_or(QueryValue::Null),
+                                ),
+                            ]));
+                        }
                         match value {
                             Ok(Value::Duration(s)) if key == "estimate" && s >= 0 => {
                                 r.fields
@@ -746,8 +810,44 @@ pub(crate) fn collect_document(
                     Ok(v) => {
                         r.fields.insert("blocked_by".into(), QueryValue::strings(v));
                     }
-                    Err(e) => errors.push(e),
+                    Err(e) => {
+                        r.fields
+                            .insert("blocked_error".into(), QueryValue::text(&e));
+                        errors.push(e);
+                    }
                 }
+                r.fields
+                    .entry("blocked_error".into())
+                    .or_insert(QueryValue::Null);
+                r.fields
+                    .insert("schedule".into(), QueryValue::Array(schedule_values));
+                r.fields.insert(
+                    "children".into(),
+                    QueryValue::Array(
+                        doc.tasks
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, child)| child.parent == Some(i))
+                            .map(|(index, child)| {
+                                QueryValue::object([
+                                    ("line", QueryValue::count(child.line)),
+                                    ("done", QueryValue::boolean(engine.task_done(path, index))),
+                                ])
+                            })
+                            .collect(),
+                    ),
+                );
+                let timer = task
+                    .attributes
+                    .get("timer")
+                    .and_then(|a| engine.eval(path, &a.value).ok());
+                r.fields.insert(
+                    "timer".into(),
+                    match timer {
+                        Some(Value::Timer(timer)) => QueryValue::from_value(timer.record()),
+                        _ => QueryValue::Null,
+                    },
+                );
                 r.fields
                     .insert("errors".into(), QueryValue::strings(errors));
                 records.push(r);
@@ -775,10 +875,16 @@ pub(crate) fn collect_document(
             }
         }
         if matches!(collection, "stops" | "entries") {
-            let dates = crate::itinerary::dates(&doc.days, ctx.today());
+            let dates = crate::itinerary::dates(&ws.modules, &doc.days, ctx.today());
             for (day, date) in doc.days.iter().zip(dates) {
                 for stop in &day.stops {
-                    let mut r = base(ws, path, stop.line, "stop", &crate::itinerary::label(stop));
+                    let mut r = base(
+                        ws,
+                        path,
+                        stop.line,
+                        "stop",
+                        &crate::itinerary::label(&ws.modules, stop),
+                    );
                     schedule(&mut r);
                     r.fields.insert("at_date".into(), date_field(date));
                     let at = date.and_then(|d| {
@@ -950,6 +1056,9 @@ fn expression_record(
     value: Result<Value, String>,
 ) -> Record {
     let mut record = base(ws, path, span.line, kind, expression);
+    if let Ok(Value::Resource(resource)) = &value {
+        record.resource = Some(resource.clone());
+    }
     record
         .fields
         .insert("source".into(), source(ws, path, span));

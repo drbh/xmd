@@ -166,7 +166,7 @@ pub fn wanted(
                 let _ = engine.eval(path, &attr.value);
             }
         }
-        let dates = crate::itinerary::dates(&doc.days, today);
+        let dates = crate::itinerary::dates(&ws.modules, &doc.days, today);
         for (day, date) in doc.days.iter().zip(&dates) {
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)

@@ -103,21 +103,25 @@ pub fn actions_for_in(
             kind: SymbolKind::Definition(plan.definition),
         };
         if let Ok(Value::Plan(solved)) = request.engine().symbol(&symbol) {
-            let edits: Vec<TextEdit> = crate::modules::standard(
-                "plan",
-                "write_edits",
-                vec![
-                    solved.record(ws),
-                    Value::Text(crate::paths::file_url(path).unwrap().to_string()),
-                ],
-                request.now(),
-            )
-            .and_then(|v| crate::modules::json(&v))
-            .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
-            .unwrap_or_default();
+            let edits: Vec<TextEdit> = ws
+                .modules
+                .call(
+                    "plan",
+                    "write_edits",
+                    vec![
+                        solved.record(ws),
+                        Value::Text(crate::paths::file_url(path).unwrap().to_string()),
+                    ],
+                    request.now(),
+                )
+                .and_then(|v| crate::modules::json(&v))
+                .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
+                .unwrap_or_default();
             if !edits.is_empty() {
                 result.push(Refactor {
-                    title: crate::modules::standard("plan", "write_title", vec![], request.now())
+                    title: ws
+                        .modules
+                        .call("plan", "write_title", vec![], request.now())
                         .map(|v| v.display())
                         .unwrap_or_default(),
                     kind: CodeActionKind::REFACTOR_REWRITE,

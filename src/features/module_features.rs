@@ -107,7 +107,7 @@ pub fn formatting(request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextE
         .documents
         .get(path)
         .ok_or("Unknown document")?;
-    let mut edits = crate::tables::table_formatting(doc);
+    let mut edits = crate::tables::formatting(doc);
     for module in request
         .workspace()
         .modules

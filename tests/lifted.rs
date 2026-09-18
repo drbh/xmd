@@ -75,15 +75,14 @@ fn feature_behavior_matches_native_baseline() {
             .iter()
             .flat_map(|d| &d.stops)
             .map(|s| {
-                wtf::intelligence::stop_hover(
-                    &ws,
+                wtf::features::module_features::hover(
+                    &request,
                     path,
                     Position::new(s.line as u32, 0),
-                    now().date_naive(),
                 )
             })
             .collect();
-        output.push(json!({"source":source,"hints":hints,"definitions":definitions,"diagnostics":wtf::diagnostics::collect_in(&request,path,false),"format":wtf::tables::formatting(doc),"stop_hovers":stop_hovers}));
+        output.push(json!({"source":source,"hints":hints,"definitions":definitions,"diagnostics":wtf::diagnostics::collect_in(&request,path,false),"format":wtf::features::module_features::formatting(&request, path).unwrap(),"stop_hovers":stop_hovers}));
     }
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lifted-features.json");
     assert_json(
@@ -278,12 +277,16 @@ fn language_diagnostics_reach_queries_and_imported_libraries_can_be_replaced() {
     let query = wtf::query::Query::parse("diagnostics | where code == \"itinerary\"").unwrap();
     let rows = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now())).unwrap();
     assert_eq!(rows.rows.len(), 1);
-    // Copying a bundled provider and replacing its imported library works through
-    // the public registry, without registering a new Rust feature implementation.
-    ws.modules = std::sync::Arc::new(wtf::modules::ModuleRegistry::compile([
-        ("/notes/.wtf/modules/timers.wtf".into(), include_str!("../stdlib/timers.wtf").into()),
-        ("/notes/.wtf/modules/timer.wtf".into(), "module := {api: 1, id: \"timer\", kind: \"library\", inputs: []}\nrunning := fn(t) => false\ninlay := fn(t) => \"custom timer\"\nactions := fn(t) => []\n".into()),
-    ].into()).unwrap());
+    // Replacing only a library updates its bundled consumer and typed values.
+    let timer = include_str!("../stdlib/timer.wtf").replace("  if(t.limit == null, \"◴ \", \"◷ \" + fmt.gauge(t.elapsed / t.limit, 8) + \" \") + suffix(t)", "  \"custom timer\"");
+    let timer =
+        timer.replace("actions := fn(t) =>", "_actions := fn(t) =>") + "\nactions := fn(t) => []\n";
+    ws.modules = std::sync::Arc::new(
+        wtf::modules::ModuleRegistry::compile(
+            [("/notes/.wtf/modules/timer.wtf".into(), timer)].into(),
+        )
+        .unwrap(),
+    );
     ws.documents.insert(
         path.into(),
         Document::parse("watch := stopwatch()\n".into()),
@@ -412,17 +415,18 @@ fn oversized_itinerary_reports_a_module_error_instead_of_panicking() {
         "{issues:?}"
     );
     assert!(wtf::features::module_features::formatting(&request, path).is_err());
-    assert!(
-        wtf::intelligence::stop_hover(&ws, path, Position::new(1, 0), now().date_naive()).is_none()
-    );
+    assert!(wtf::features::module_features::hover(&request, path, Position::new(1, 0)).is_none());
 }
 
 #[test]
 fn timer_clock_preserves_integer_second_precision() {
     for seconds in [59, 3600, 9_007_199_254_741_003, i64::MAX] {
-        let timer =
-            wtf::timers::Timer::new("stopwatch", &[wtf::engine::Value::Duration(seconds)], now())
-                .unwrap();
+        let timer = wtf::timers::Timer::new(
+            &mut wtf::engine::Engine::at(&note(""), now()),
+            "stopwatch",
+            &[wtf::engine::Value::Duration(seconds)],
+        )
+        .unwrap();
         let expected = if seconds < 3600 {
             format!("{:02}:{:02}", seconds / 60, seconds % 60)
         } else {

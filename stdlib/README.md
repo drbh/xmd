@@ -59,3 +59,36 @@ collect := fn(ctx) => (
 Run `wtf render note.wtf --root . > note.html` to inspect exactly the same inlays,
 syntax tokens, links, and diagnostics as the editor. Module functions are pure:
 hosts validate their returned data and execute explicit action/refresh requests.
+
+## Runtime boundary
+
+All default inlays are feature modules: `definitions`, `references`, `tasks`,
+`links`, `checklists`, `calculations`, `table_cells`, `plans`, `timers`, and
+`itinerary`. Disabling them removes their hints; there is no second native inlay
+implementation to take over.
+
+The `plan`, `timer`, and `itinerary_core` libraries provide solver policy, timer
+construction/properties/transitions, and itinerary resolution. Typed adapters
+call the active workspace library. A timer retains the module snapshot that
+created it. Its `time_dependent(timer)` export controls clock refreshes; absent
+that export, clock use in the module or its imports determines refreshes.
+
+Rust retains the language parser and evaluator, typed value adapters, document
+and query records, the numeric `solve_linear` primitive, generic editor operations,
+and host I/O. Modules return data; the host validates positions and edits and
+executes authorized actions. A library error is reported instead of selecting a
+bundled replacement.
+
+Feature inputs also expose these reusable query fields:
+
+- `values` and `references`: `display`, `hover`, `type`, `errors`, and UTF-16
+  `anchor`; `presentation` is a resource view or null.
+- `links`: `presentation` contains `label`, `hover`, and `known`, resolved from
+  the active host modules and cached data.
+- `tasks`: `schedule` keeps explicit date attributes and their errors;
+  `blocked_by`, `blocked_error`, `children`, and `timer` expose evaluated state.
+  The module decides how to combine and display them.
+
+The HTML regression fixture records output before the migration. Additional
+native and browser tests replace library exports to prove that evaluation,
+actions, queries, and rendering use the same implementation.

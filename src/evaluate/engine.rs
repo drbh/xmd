@@ -115,7 +115,7 @@ pub enum Value {
     Text(String),
     Resource(Resource),
     Tasks(Vec<TaskKey>),
-    Timer(Timer),
+    Timer(std::sync::Arc<Timer>),
     Table(std::sync::Arc<crate::tables::TableValue>),
     Plan(std::sync::Arc<crate::plans::PlanValue>),
 }
@@ -1546,7 +1546,7 @@ impl<'a> Engine<'a> {
                         Value::Timer(mut timer)
                             if timer.origin.is_none() && timer_arguments(&def.source).is_some() =>
                         {
-                            timer.origin = Some(symbol.clone());
+                            std::sync::Arc::make_mut(&mut timer).origin = Some(symbol.clone());
                             Value::Timer(timer)
                         }
                         other => other,
@@ -1958,9 +1958,11 @@ impl<'a> Engine<'a> {
                         .iter()
                         .map(|a| self.expr(path, a))
                         .collect::<Result<Vec<_>, _>>()?;
-                    let timer = Timer::new(n, &values, self.now)?;
-                    self.time_dependent |= timer.running();
-                    return Ok(Value::Timer(timer));
+                    let time_dependent = self.time_dependent;
+                    let timer = Timer::new(self, n, &values)?;
+                    // The module declares whether this resolved state still needs a clock.
+                    self.time_dependent = time_dependent || timer.time_dependent()?;
+                    return Ok(Value::Timer(std::sync::Arc::new(timer)));
                 }
                 if n == "today" && args.is_empty() {
                     return Ok(Value::Date(self.today));
@@ -2131,8 +2133,37 @@ impl<'a> Engine<'a> {
         self.steps = other.steps;
         self.time_dependent |= other.time_dependent;
         if self.failure.is_none() {
-            self.failure = other.failure.clone();
+            // A module has its own source workspace. Let the caller attach an
+            // error there to its call site instead of carrying an unusable span.
+            self.failure = other
+                .failure
+                .clone()
+                .filter(|failure| self.workspace.documents.contains_key(&failure.path));
         }
+    }
+    /// Typed adapters use the same module snapshot, clock and execution budget as imports.
+    pub(crate) fn call_module(
+        &mut self,
+        id: &str,
+        name: &str,
+        args: Vec<Value>,
+    ) -> Result<Value, String> {
+        let module = self
+            .workspace
+            .modules
+            .active()
+            .find(|m| m.id == id)
+            .ok_or_else(|| format!("Module '{id}' is unavailable or disabled"))?
+            .clone();
+        let workspace = module.environment();
+        let mut engine = self
+            .module_engine(&workspace)
+            .with_expressions(module.expressions.clone());
+        let result = engine
+            .named(&module.path, name)
+            .and_then(|function| engine.call(function, args));
+        self.absorb_module(&engine);
+        result
     }
     fn import(&mut self, id: &str) -> Result<Value, String> {
         let module = self

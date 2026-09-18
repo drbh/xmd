@@ -1067,41 +1067,6 @@ fn itinerary_completions(
     }
     None
 }
-/// A stop line: its time, day, details, and the time until the next stop.
-pub fn stop_hover(
-    ws: &Workspace,
-    path: &Path,
-    position: Position,
-    today: chrono::NaiveDate,
-) -> Option<Hover> {
-    let doc = ws.documents.get(path)?;
-    let row = position.line as usize;
-    let dates = crate::itinerary::dates(&doc.days, today);
-    let (day, date) = doc
-        .days
-        .iter()
-        .zip(&dates)
-        .find(|(d, _)| d.stops.iter().any(|s| s.line == row))?;
-    let index = day.stops.iter().position(|s| s.line == row)?;
-    let stop = &day.stops[index];
-    let text = crate::itinerary::call(
-        "stop_hover",
-        vec![
-            crate::itinerary::stop_record(stop, None),
-            day.stops
-                .get(index + 1)
-                .map(|s| crate::itinerary::stop_record(s, None))
-                .unwrap_or(Value::Null),
-            date.map(Value::Date).unwrap_or(Value::Null),
-        ],
-    )
-    .ok()?
-    .display();
-    Some(Hover {
-        contents: HoverContents::Markup(markup(text)),
-        range: Some(Span::new(row, stop.time_span.start, stop.title_span.end).range(&doc.text)),
-    })
-}
 pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
     hover_in(&crate::RequestContext::new(ws, now), symbol)
 }
@@ -1202,13 +1167,19 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
                     let coefficient = difference.terms.get(&named.name).copied().unwrap_or(0.0);
                     out.push_str(&format!(
                         "\n\nGoal seek: {} `{body}`.",
-                        crate::plans::seek_summary(&op, coefficient > 0.0)
+                        engine
+                            .call_module(
+                                "plan",
+                                "seek_summary",
+                                vec![Value::Text(op), Value::Bool(coefficient > 0.0)]
+                            )
+                            .map(|v| v.display())
+                            .unwrap_or_else(|e| e)
                     ));
                 }
             }
             if let Ok(Value::Plan(plan)) = &value
-                && let Ok(text) =
-                    crate::modules::standard("plan", "hover", vec![plan.record(ws)], now)
+                && let Ok(text) = ws.modules.call("plan", "hover", vec![plan.record(ws)], now)
             {
                 out.push_str(&text.display());
             }

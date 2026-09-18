@@ -102,6 +102,11 @@ running := fn(t) => (
   t.started != null && done(t) == false
 )
 
+// Only a running state needs future clock refreshes.
+time_dependent := fn(t) => (
+  running(t)
+)
+
 // Distinguish completed, untouched, running, and paused timers.
 state := fn(t) => (
   if(done(t), "done", if(t.idle, "idle", if(running(t), "running", "paused")))

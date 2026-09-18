@@ -119,7 +119,7 @@ pub fn url_value(url: &Url) -> Value {
 impl Module {
     pub fn compile(path: PathBuf, source: String) -> Result<Self, String> {
         if source.len() > 65_536 {
-            return Err("Module modules are limited to 64 KiB".into());
+            return Err("Modules are limited to 64 KiB".into());
         }
         let document = Document::parse(source);
         if let Some(problem) = document.problems.first() {
@@ -503,11 +503,6 @@ impl LinkFeature for Module {
     }
 }
 impl ModuleRegistry {
-    pub fn overrides(&self, id: &str) -> bool {
-        self.modules
-            .iter()
-            .any(|m| m.id == id && !m.path.starts_with("/__wtf_stdlib__"))
-    }
     pub fn active(&self) -> impl Iterator<Item = &Module> {
         self.modules.iter().filter(|m| m.enabled)
     }
@@ -542,7 +537,7 @@ impl ModuleRegistry {
     }
     fn compile_over(sources: BTreeMap<PathBuf, String>, base: &[Module]) -> Result<Self, String> {
         if sources.len() > 64 {
-            return Err("At most 64 module modules may be loaded".into());
+            return Err("At most 64 modules may be loaded per source layer".into());
         }
         let mut modules = Vec::new();
         let mut ids = BTreeSet::new();
@@ -605,6 +600,10 @@ pub fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
         let modules = [
+            ("definitions", include_str!("../../stdlib/definitions.wtf")),
+            ("tasks", include_str!("../../stdlib/tasks.wtf")),
+            ("references", include_str!("../../stdlib/references.wtf")),
+            ("links", include_str!("../../stdlib/links.wtf")),
             (
                 "itinerary_core",
                 include_str!("../../stdlib/itinerary_core.wtf"),
@@ -678,25 +677,6 @@ fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
         .map(|id| resolve(&id, &sources, &mut ready, &mut vec![]))
         .collect()
 }
-/// Run shared standard-library behavior with an explicit request clock.
-pub fn standard(
-    id: &str,
-    name: &str,
-    args: Vec<Value>,
-    now: DateTime<FixedOffset>,
-) -> Result<Value, String> {
-    bundled()
-        .iter()
-        .find(|m| m.id == id)
-        .ok_or_else(|| format!("Unknown standard module '{id}'"))?
-        .call(name, args, now)
-        .map_err(|e| {
-            e.strip_prefix(&format!("Module {id}.{name}: "))
-                .unwrap_or(&e)
-                .to_owned()
-        })
-}
-
 pub(crate) fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
     if let Value::Record(fields) = value {
         fields

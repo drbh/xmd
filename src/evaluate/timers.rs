@@ -38,13 +38,32 @@ impl std::str::FromStr for TimerAction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Timer {
     pub limit: Option<i64>,
     pub elapsed: i64,
     pub started: Option<DateTime<FixedOffset>>,
     pub idle: bool,
     pub origin: Option<Symbol>,
+    implementation: std::sync::Arc<crate::modules::Module>,
+    now: DateTime<FixedOffset>,
+}
+impl PartialEq for Timer {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            self.limit,
+            self.elapsed,
+            self.started,
+            self.idle,
+            &self.origin,
+        ) == (
+            other.limit,
+            other.elapsed,
+            other.started,
+            other.idle,
+            &other.origin,
+        ) && self.implementation.revision() == other.implementation.revision()
+    }
 }
 
 impl Timer {
@@ -62,12 +81,22 @@ impl Timer {
             ("idle".into(), Value::Bool(self.idle)),
         ])
     }
-    pub fn new(name: &str, args: &[Value], now: DateTime<FixedOffset>) -> Result<Self, String> {
-        let Value::Record(fields) = crate::modules::standard(
+    pub fn new(
+        engine: &mut crate::engine::Engine<'_>,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Self, String> {
+        let implementation = engine
+            .workspace
+            .modules
+            .active()
+            .find(|m| m.id == "timer")
+            .ok_or("Module 'timer' is unavailable or disabled")?
+            .clone();
+        let Value::Record(fields) = engine.call_module(
             "timer",
             "create",
             vec![Value::Text(name.into()), Value::List(args.to_vec())],
-            now,
         )?
         else {
             return Err("Timer constructor must return a record".into());
@@ -94,45 +123,58 @@ impl Timer {
             started,
             idle: *idle,
             origin: None,
+            implementation: std::sync::Arc::new(implementation),
+            now: engine.now,
         })
     }
-    fn call(&self, name: &str) -> Value {
-        crate::modules::standard(
-            "timer",
-            name,
-            vec![self.record()],
-            chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.fixed_offset(),
-        )
-        .expect("valid typed timer")
+    fn call(&self, name: &str) -> Result<Value, String> {
+        self.implementation
+            .call(name, vec![self.record()], self.now)
     }
     pub fn done(&self) -> bool {
-        matches!(self.call("done"), Value::Bool(true))
+        matches!(self.call("done"), Ok(Value::Bool(true)))
     }
     pub fn running(&self) -> bool {
-        matches!(self.call("running"), Value::Bool(true))
+        matches!(self.call("running"), Ok(Value::Bool(true)))
+    }
+    pub fn time_dependent(&self) -> Result<bool, String> {
+        if !self.implementation.has("time_dependent") {
+            return Ok(self.implementation.live);
+        }
+        match self.call("time_dependent")? {
+            Value::Bool(live) => Ok(live),
+            _ => Err("timer.time_dependent must return a boolean".into()),
+        }
     }
     pub fn state(&self) -> String {
-        self.call("state").display()
+        self.call("state")
+            .map(|v| v.display())
+            .unwrap_or_else(|e| e)
     }
     pub fn display(&self) -> String {
-        self.call("display").display()
+        self.call("display")
+            .map(|v| v.display())
+            .unwrap_or_else(|e| e)
     }
     pub fn inlay(&self) -> String {
-        self.call("inlay").display()
+        self.call("inlay")
+            .map(|v| v.display())
+            .unwrap_or_else(|e| e)
     }
     pub fn hover(&self) -> String {
-        self.call("hover").display()
+        self.call("hover")
+            .map(|v| v.display())
+            .unwrap_or_else(|e| e)
     }
     pub fn property(&self, name: &str) -> Result<Value, String> {
-        crate::modules::standard(
-            "timer",
+        self.implementation.call(
             "property",
             vec![self.record(), Value::Text(name.into())],
-            chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.fixed_offset(),
+            self.now,
         )
     }
     pub fn available_actions(&self) -> Vec<TimerAction> {
-        let Value::List(actions) = self.call("actions") else {
+        let Ok(Value::List(actions)) = self.call("actions") else {
             return vec![];
         };
         actions
@@ -185,17 +227,19 @@ pub fn edit_in(
     let doc = &workspace.documents[&origin.path];
     let def = &doc.definitions[index];
     let original = timer_arguments(&def.source).ok_or("Expected timer declaration")?;
-    let expression = crate::modules::standard(
-        "timer",
-        "transition",
-        vec![
-            timer.record(),
-            Value::Text(action.into()),
-            Value::Text(original.first().copied().unwrap_or_default().into()),
-        ],
-        now,
-    )?
-    .display();
+    let expression = workspace
+        .modules
+        .call(
+            "timer",
+            "transition",
+            vec![
+                timer.record(),
+                Value::Text(action.into()),
+                Value::Text(original.first().copied().unwrap_or_default().into()),
+            ],
+            now,
+        )?
+        .display();
     let raw = def.value_span.source(&doc.text);
     let leading = &raw[..raw.len() - raw.trim_start().len()];
     let trailing = &raw[raw.trim_end().len()..];

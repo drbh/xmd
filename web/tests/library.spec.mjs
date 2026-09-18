@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/embed-test.html", route => route.fulfill({ contentType: "text/html", body: '<!doctype html><link rel="stylesheet" href="/lib/theme/style.css"><div id="one"></div><div id="two"></div><p class="error" id="outside">Outside</p>' }));
@@ -118,4 +119,31 @@ test("file queries share functional syntax, graph data and current workspace ver
   expect(result.ast.rows).toEqual(["answer"]);
   expect(result.changed.rows).toEqual(["answer := rate * 3\n"]);
   expect(result.changed.versions[result.uri]).toBeGreaterThan(result.local.versions[result.uri]);
+});
+
+
+test("library replacement updates bundled features, typed values, and static HTML together", async ({ page }) => {
+  const timer = readFileSync(new URL("../../stdlib/timer.wtf", import.meta.url), "utf8")
+    .replace("display := fn(t) =>", "_display := fn(t) =>")
+    .replace("inlay := fn(t) =>", "_inlay := fn(t) =>")
+    + '\ndisplay := fn(t) => "MODULE VALUE"\ninlay := fn(t) => "MODULE INLAY"\n';
+  const result = await page.evaluate(async timer => {
+    const ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
+    const uri = "file:///workspace/timer.wtf";
+    await ws.setDocument(uri, "watch := stopwatch()\nUse [watch].\n");
+    const before = await ws.analyze(uri);
+    await ws.setModules({ "timer.wtf": timer });
+    const after = await ws.analyze(uri);
+    const html = await lib.render(ws.getDocument(uri).source, { workspace: ws, uri });
+    const values = await ws.request("query", { uri, query: "values | select display" });
+    await ws.setModules({});
+    const restored = await ws.analyze(uri);
+    ws.destroy();
+    return { before, after, restored, html, values };
+  }, timer);
+  expect(result.after.hints.map(h => h.label)).toEqual(["= MODULE INLAY", "MODULE INLAY"]);
+  expect(result.values.rows).toEqual(["MODULE VALUE"]);
+  expect(result.html).toContain("MODULE INLAY");
+  expect(result.html).toContain("MODULE VALUE");
+  expect(result.restored.hints).toEqual(result.before.hints);
 });

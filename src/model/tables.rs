@@ -389,13 +389,8 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     }
 }
 
+/// Align parsed tables; document feature formatting runs through module_features.
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
-    let mut edits = table_formatting(doc);
-    edits.extend(crate::itinerary::formatting(doc, &doc.days));
-    edits.sort_by_key(|e| (e.range.start, e.range.end));
-    edits
-}
-pub(crate) fn table_formatting(doc: &Document) -> Vec<TextEdit> {
     grids(doc)
         .iter()
         // Never invent missing cells or repair a malformed table during formatting.

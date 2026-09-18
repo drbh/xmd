@@ -19,8 +19,8 @@ other existing value types retain their normal arithmetic rules.
 Definitions can span lines inside `(...)`, `[...]`, and `{...}`, or after
 `=>` and other unfinished operators. Indent continued expressions. Closing
 delimiters may align with the definition; the next declaration starts a new
-expression even if the previous one is incomplete. `//` starts a comment through
-the end of the line, including inside an expression. Quoted URLs remain strings.
+expression even if the previous one is incomplete. Use `//` for full-line
+comments or trailing comments inside expressions. Quoted URLs remain strings.
 
 ```wtf
 // Add tax only to positive prices.

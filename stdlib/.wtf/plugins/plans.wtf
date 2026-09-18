@@ -1,6 +1,58 @@
-plugin := {api: 1, id: "plans", kind: "inlay", imports: ["plan"], inputs: {plans: ["anchor", "value", "errors", "hover"], decisions: ["anchor", "value", "plan"]}}
+plugin := {
+  api: 1,
+  id: "plans",
+  kind: "inlay",
+  imports: ["plan"],
+  inputs: {
+    plans: ["anchor", "value", "errors", "hover"],
+    decisions: ["anchor", "value", "plan"]
+  }
+}
 plan := import("plan")
-constraints := fn(plans) => fold(plans, [], fn(hints, p) => concat(hints, map(p.value.constraints, fn(c) => {at: c.anchor, label: plan.constraint_label(c), tooltip: plan.constraint_hover(c)})))
-definitions := fn(plans) => map(plans, fn(p) => {at: p.anchor, label: plan.inlay(p.value), tooltip: p.hover})
-decisions := fn(cells) => map(cells, fn(cell) => {at: cell.anchor, label: plan.choice(cell.value), tooltip: "Chosen by plan " + cell.plan + ". Use the code action on the plan to write choices into the table."})
-collect := fn(ctx) => concat(definitions(filter(ctx.document.plans, fn(p) => length(p.errors) == 0)), decisions(ctx.document.decisions), constraints(filter(ctx.document.plans, fn(p) => length(p.errors) == 0)))
+
+// Place each constraint's result at its original source anchor.
+constraints := fn(plans) => (
+  fold(
+    plans,
+    [],
+    fn(hints, p) => concat(
+      hints,
+      map(
+        p.value.constraints,
+        fn(c) => {
+          at: c.anchor,
+          label: plan.constraint_label(c),
+          tooltip: plan.constraint_hover(c)
+        }
+      )
+    )
+  )
+)
+
+// Attach plan summaries and hover text to their definitions.
+definitions := fn(plans) => (
+  map(plans, fn(p) => {at: p.anchor, label: plan.inlay(p.value), tooltip: p.hover})
+)
+
+// Show chosen cell values and point to the write-choices action.
+decisions := fn(cells) => (
+  map(
+    cells,
+    fn(cell) => {
+      at: cell.anchor,
+      label: plan.choice(cell.value),
+      tooltip: "Chosen by plan "
+      + cell.plan
+      + ". Use the code action on the plan to write choices into the table."
+    }
+  )
+)
+
+// Combine successful plan summaries, decisions, and constraint hints.
+collect := fn(ctx) => (
+  concat(
+    definitions(filter(ctx.document.plans, fn(p) => length(p.errors) == 0)),
+    decisions(ctx.document.decisions),
+    constraints(filter(ctx.document.plans, fn(p) => length(p.errors) == 0))
+  )
+)

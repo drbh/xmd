@@ -1,6 +1,69 @@
-plugin := {api: 1, id: "timers", kind: "inlay", inputs: {timers: ["line", "anchor", "value", "origin", "definition", "inlay", "hover"]}, imports: ["timer"]}
+plugin := {
+  api: 1,
+  id: "timers",
+  kind: "inlay",
+  inputs: {timers: ["line", "anchor", "value", "origin", "definition", "inlay", "hover"]},
+  imports: ["timer"]
+}
 timer := import("timer")
-time_dependent := fn(ctx) => length(filter(ctx.document.timers, fn(t) => timer.running(t.value))) > 0
-collect := fn(ctx) => map(filter(ctx.document.timers, fn(t) => t.inlay), fn(t) => {at: t.anchor, label: if(t.definition, "= ", "") + timer.inlay(t.value), tooltip: if(t.definition, t.hover, "Use Start, Pause, Resume, or Reset timer in code actions.")})
-unique := fn(timers) => fold(timers, [], fn(out, t) => if(length(filter(out, fn(old) => old.origin == t.origin)) > 0, out, concat(out, [t])))
-actions := fn(ctx) => fold(unique(filter(ctx.document.timers, fn(t) => t.line == ctx.row && t.origin != null)), [], fn(out, t) => concat(out, map(timer.actions(t.value), fn(action) => {title: upper(slice(action, 0, 1)) + slice(action, 1, length(action)) + " timer '" + t.origin.name + "'", action: {kind: "timer", document: t.origin.document, name: t.origin.name, action: action}})))
+
+// Stop live refreshes when no visible timer is running.
+time_dependent := fn(ctx) => (
+  length(filter(ctx.document.timers, fn(t) => timer.running(t.value))) > 0
+)
+
+// Render timer definitions and eligible bracketed references.
+collect := fn(ctx) => (
+  map(
+    filter(ctx.document.timers, fn(t) => t.inlay),
+    fn(t) => {
+      at: t.anchor,
+      label: if(t.definition, "= ", "") + timer.inlay(t.value),
+      tooltip: if(
+        t.definition,
+        t.hover,
+        "Use Start, Pause, Resume, or Reset timer in code actions."
+      )
+    }
+  )
+)
+
+// Collapse aliases that refer to the same original timer declaration.
+unique := fn(timers) => (
+  fold(
+    timers,
+    [],
+    fn(out, t) => if(
+      length(filter(out, fn(old) => old.origin == t.origin)) > 0,
+      out,
+      concat(out, [t])
+    )
+  )
+)
+
+// Offer each timer's valid controls once on the requested line.
+actions := fn(ctx) => (
+  fold(
+    unique(filter(ctx.document.timers, fn(t) => t.line == ctx.row && t.origin != null)),
+    [],
+    fn(out, t) => concat(
+      out,
+      map(
+        timer.actions(t.value),
+        fn(action) => {
+          title: upper(slice(action, 0, 1))
+          + slice(action, 1, length(action))
+          + " timer '"
+          + t.origin.name
+          + "'",
+          action: {
+            kind: "timer",
+            document: t.origin.document,
+            name: t.origin.name,
+            action: action
+          }
+        }
+      )
+    )
+  )
+)

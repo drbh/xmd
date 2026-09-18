@@ -9,13 +9,18 @@ pub mod model;
 
 // Every leaf module is also reachable at the crate root, so `wtf::engine`
 // and `wtf::document` name the same things the layers do.
-pub use evaluate::{charts, engine, glyphs, lookups, plans, resources, timers};
+pub use evaluate::{
+    charts, context, engine, github, glyphs, link_features, lookups, plans, plugins, resources,
+    timers,
+};
 pub use features::{
-    actions, diagnostics, hierarchy, highlighting, intelligence, interaction, presentation, prose,
-    refactor, symbols, typing,
+    actions, catalog, commands, diagnostics, hierarchy, highlighting, inlay_providers, inlays,
+    intelligence, interaction, presentation, prose, query, refactor, symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;
 #[cfg(feature = "native")]
 pub use hosts::{cli, editor};
 pub use model::{document, itinerary, paths, tables, workspace};
+
+pub use context::RequestContext;

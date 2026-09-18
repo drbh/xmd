@@ -1,0 +1,1 @@
+tasks | where leaf && !done | sort source.path, source.line

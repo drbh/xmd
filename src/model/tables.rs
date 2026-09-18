@@ -101,7 +101,7 @@ pub(crate) fn cells(line: &str, row: usize) -> Option<Vec<(String, Span)>> {
 
 pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
     let def = &doc.definitions[definition];
-    let header = def.named.span.line + 1;
+    let header = def.end.line + 1;
     let mut table = Table {
         definition,
         header,
@@ -326,13 +326,8 @@ pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
     crate::refactor::expression_regions(doc)
         .into_iter()
         .find_map(|region| {
-            if region.line != span.line || span.start < region.start || span.start > region.end {
-                return None;
-            }
-            engine::sum_scope_at(
-                &doc.line(region.line)[region.start..region.end],
-                span.start - region.start,
-            )
+            let offset = region.offset_of(&doc.text, span)?;
+            engine::sum_scope_at(region.source(&doc.text), offset)
         })
 }
 pub fn resolve_reference(
@@ -395,16 +390,19 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
 }
 
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
-    let mut edits: Vec<TextEdit> = grids(doc)
+    let mut edits = table_formatting(doc);
+    edits.extend(crate::itinerary::formatting(doc, &doc.days));
+    edits.sort_by_key(|e| (e.range.start, e.range.end));
+    edits
+}
+pub(crate) fn table_formatting(doc: &Document) -> Vec<TextEdit> {
+    grids(doc)
         .iter()
         // Never invent missing cells or repair a malformed table during formatting.
         .filter(|table| table.problems.is_empty())
         .flat_map(|table| aligned(doc, table))
         .map(|(line, text)| line_edit(doc, line, text))
-        .collect();
-    edits.extend(crate::itinerary::formatting(doc, &doc.days));
-    edits.sort_by_key(|e| (e.range.start, e.range.end));
-    edits
+        .collect()
 }
 /// Data tables plus plan constraint tables, which share the same grid shape.
 pub fn grids(doc: &Document) -> Vec<Table> {

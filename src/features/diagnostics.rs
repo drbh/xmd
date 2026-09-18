@@ -3,7 +3,7 @@ use crate::{
     engine::{Engine, Value},
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate};
+use chrono::{DateTime, FixedOffset, Local, NaiveDate};
 use lsp_types::*;
 use std::path::Path;
 
@@ -54,15 +54,30 @@ pub fn collect(
     now: DateTime<FixedOffset>,
     editing: bool,
 ) -> Vec<Diagnostic> {
+    collect_in(
+        &crate::RequestContext::new(ws, now).with_today(today),
+        path,
+        editing,
+    )
+}
+pub(crate) fn collect_native_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    editing: bool,
+) -> Vec<Diagnostic> {
+    let ws = request.workspace();
+    let today = request.today();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
     let unfinished = |span: Span| {
         editing
-            && doc
-                .definitions
-                .iter()
-                .any(|d| d.expression && d.value_span.line == span.line && incomplete(&d.source))
+            && doc.definitions.iter().any(|d| {
+                d.expression
+                    && (d.named.span.line == span.line || d.value_span.contains(&doc.text, span))
+                    && incomplete(&d.source)
+            })
     };
     let mut issues = vec![];
     for problem in &doc.problems {
@@ -99,8 +114,7 @@ pub fn collect(
             ));
             continue;
         }
-        let mut engine = Engine::at(ws, now);
-        engine.today = today;
+        let mut engine = request.engine();
         let evaluated = engine.symbol(&symbol);
         if let Ok(Value::Resource(resource)) = &evaluated
             && let Err(message) = resource.url(path)
@@ -116,7 +130,8 @@ pub fn collect(
                 let incomplete_dependency = editing
                     && ws.documents[&failure.path].definitions.iter().any(|d| {
                         d.expression
-                            && d.value_span.line == failure.span.line
+                            && d.value_span
+                                .contains(&ws.documents[&failure.path].text, failure.span)
                             && incomplete(&d.source)
                     });
                 if incomplete_dependency {
@@ -158,8 +173,7 @@ pub fn collect(
         }
     }
     for calculation in &doc.calculations {
-        let mut engine = Engine::at(ws, now);
-        engine.today = today;
+        let mut engine = request.engine();
         if let Err(message) = engine.eval_at(path, &calculation.source, calculation.span) {
             let span = engine
                 .failure
@@ -192,7 +206,7 @@ pub fn collect(
                 &candidates,
             ));
         } else if reference.property.is_some() {
-            let mut engine = Engine::at(ws, now);
+            let mut engine = request.engine();
             // A failing receiver already carries its own diagnostic.
             if engine.named(path, &reference.name).is_err() {
                 continue;
@@ -204,8 +218,7 @@ pub fn collect(
         }
     }
     // Keep existing task/date validation, but evaluate attributes at their source spans.
-    let mut engine = Engine::at(ws, now);
-    engine.today = today;
+    let mut engine = request.engine();
     for (index, task) in doc.tasks.iter().enumerate() {
         engine.failure = None;
         if let Err(message) = engine.blocked(path, index) {
@@ -241,85 +254,6 @@ pub fn collect(
             }
         }
     }
-    let dates = crate::itinerary::dates(&doc.days, today);
-    let mut previous_date: Option<NaiveDate> = None;
-    for (day, date) in doc.days.iter().zip(&dates) {
-        let Some(date) = date else {
-            issues.push(diagnostic(
-                ws,
-                path,
-                day.date_span,
-                format!(
-                    "{} {} is not a valid date",
-                    crate::itinerary::month_name(day.month),
-                    day.day
-                ),
-                "itinerary",
-                &[],
-            ));
-            continue;
-        };
-        if let Some((weekday, span)) = &day.weekday
-            && *weekday != date.weekday()
-        {
-            issues.push(diagnostic(
-                ws,
-                path,
-                *span,
-                format!(
-                    "{} is a {}, not a {}",
-                    date.format("%B %-d, %Y"),
-                    date.format("%A"),
-                    weekday_name(*weekday)
-                ),
-                "itinerary",
-                &[],
-            ));
-        }
-        if let Some(prev) = previous_date
-            && *date < prev
-        {
-            issues.push(diagnostic(
-                ws,
-                path,
-                day.date_span,
-                format!("{} comes before the previous day, {prev}", date),
-                "itinerary",
-                &[],
-            ));
-        }
-        previous_date = Some(*date);
-        for stop in &day.stops {
-            if stop.kind.is_none() {
-                let mut hint = diagnostic(
-                    ws,
-                    path,
-                    stop.title_span,
-                    "Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)".into(),
-                    "itinerary-kind",
-                    &[],
-                );
-                hint.severity = Some(DiagnosticSeverity::WARNING);
-                issues.push(hint);
-            }
-        }
-        for pair in day.stops.windows(2) {
-            if pair[1].time < pair[0].time {
-                issues.push(diagnostic(
-                    ws,
-                    path,
-                    pair[1].time_span,
-                    format!(
-                        "{} is earlier than the previous stop at {}",
-                        crate::itinerary::display_time(&pair[1]),
-                        crate::itinerary::display_time(&pair[0])
-                    ),
-                    "itinerary",
-                    &[],
-                ));
-            }
-        }
-    }
     for event in &doc.events {
         let attr = &event.attributes["at"];
         if let Err(message) = engine.when(path, &attr.value) {
@@ -349,19 +283,7 @@ pub fn collect(
     issues.retain(|d| !matches!(&d.code, Some(NumberOrString::String(c)) if c == "evaluation" || c == "attribute" || c == "dependency") || !name_errors.iter().any(|(r, m)| r.start.line == d.range.start.line && (d.message == *m || d.message.contains("requires"))));
     issues
 }
-fn weekday_name(weekday: chrono::Weekday) -> String {
-    match weekday {
-        chrono::Weekday::Mon => "Monday",
-        chrono::Weekday::Tue => "Tuesday",
-        chrono::Weekday::Wed => "Wednesday",
-        chrono::Weekday::Thu => "Thursday",
-        chrono::Weekday::Fri => "Friday",
-        chrono::Weekday::Sat => "Saturday",
-        chrono::Weekday::Sun => "Sunday",
-    }
-    .to_string()
-}
-/// Errors only: `wtf check` passes on warnings such as unfetched lookups.
+/// Errors only: the `@check` query view passes on warnings such as unfetched lookups.
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)
         .into_iter()
@@ -378,4 +300,16 @@ pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
             }
         })
         .collect()
+}
+
+pub fn collect_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    editing: bool,
+) -> Vec<Diagnostic> {
+    let mut result = collect_native_in(request, path, editing);
+    result.extend(super::module_features::diagnostics(request, path));
+    result.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone()));
+    result.dedup_by(|a, b| a.range == b.range && a.message == b.message);
+    result
 }

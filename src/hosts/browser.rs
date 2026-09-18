@@ -1,9 +1,10 @@
 //! A browser-local workspace. JSON crosses the worker boundary; all language logic stays in Rust.
 use crate::{
-    actions, diagnostics,
+    actions,
+    commands::{Action, Capabilities, PreparedAction},
+    diagnostics,
     document::{Document, Span, identifier},
-    engine::Engine,
-    intelligence, interaction, paths, presentation, refactor, timers,
+    intelligence, interaction, paths, presentation, refactor,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset};
@@ -38,6 +39,7 @@ impl BrowserWorkspace {
                 documents: BTreeMap::new(),
                 cache: BTreeMap::new(),
                 lookups: Default::default(),
+                plugins: Default::default(),
             },
             versions: BTreeMap::new(),
         }
@@ -116,6 +118,38 @@ impl BrowserWorkspace {
                 json!({"tokenTypes": presentation::TOKEN_TYPES, "tokenModifiers": presentation::TOKEN_MODIFIERS}),
             );
         }
+        if method == "setResourceData" {
+            let target: String = field(&params, "url")?;
+            let data: Value = field(&params, "data")?;
+            let metadata =
+                self.workspace
+                    .link_features()
+                    .decode_refresh(&target, &data, now.to_utc())?;
+            self.workspace.cache.insert(target, metadata);
+            return Ok(Value::Null);
+        }
+        if method == "setPlugins" {
+            let sources: BTreeMap<String, String> = field(&params, "sources")?;
+            let sources = sources
+                .into_iter()
+                .map(|(name, source)| {
+                    if Path::new(&name).components().count() != 1
+                        || !matches!(
+                            Path::new(&name).components().next(),
+                            Some(Component::Normal(_))
+                        )
+                        || !name.ends_with(".wtf")
+                        || name.contains(['\\', '\0'])
+                    {
+                        return Err("Plugin names must be .wtf filenames".to_string());
+                    }
+                    Ok((Path::new("/workspace/.wtf/plugins").join(name), source))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            let plugins = crate::plugins::Plugins::compile(sources)?;
+            self.workspace.plugins = std::sync::Arc::new(plugins);
+            return Ok(Value::Null);
+        }
         if method == "setDocument" {
             let path = virtual_path(&field::<String>(&params, "uri")?)?;
             let version: i32 = field(&params, "version")?;
@@ -147,6 +181,17 @@ impl BrowserWorkspace {
             let command: Command = field(&params, "command")?;
             return self.execute(command, now);
         }
+        if method == "query" {
+            let compiled = crate::query::Query::parse(&field::<String>(&params, "query")?)?;
+            let result = crate::query::execute(
+                &self.workspace,
+                &compiled,
+                &crate::query::QueryContext::new(now),
+            )?;
+            return Ok(
+                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.versions_json()}),
+            );
+        }
         let path = virtual_path(&field::<String>(&params, "uri")?)?;
         let doc = self
             .workspace
@@ -154,6 +199,7 @@ impl BrowserWorkspace {
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
         let ws = &self.workspace;
+        let request = crate::RequestContext::new(ws, now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &crate::workspace::Symbol| Location {
             uri: paths::file_url(&symbol.path).unwrap(),
@@ -163,9 +209,11 @@ impl BrowserWorkspace {
                 .range(&ws.documents[&symbol.path].text),
         };
         match method {
-            "documentLinks" => serialized(presentation::document_links(ws, &path, now)),
-            "documentSymbols" => serialized(crate::symbols::document_symbols(ws, &path, now)),
-            "formatting" => serialized(crate::tables::formatting(doc)),
+            "documentLinks" => serialized(presentation::document_links_in(&request, &path)),
+            "documentSymbols" => serialized(crate::symbols::document_symbols_in(&request, &path)),
+            "formatting" => serialized(crate::features::module_features::formatting(
+                &request, &path,
+            )?),
             "folding" => serialized(crate::symbols::folding_ranges(doc)),
             "onTypeFormatting" => serialized(crate::typing::on_type(
                 doc,
@@ -173,10 +221,9 @@ impl BrowserWorkspace {
                 &field::<String>(&params, "ch")?,
             )),
             "analyze" => {
-                let hints = presentation::hints_at(
-                    ws,
+                let inlays = presentation::hints_in(
+                    &request,
                     &path,
-                    now,
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
                 let tokens: Vec<u32> = presentation::semantic_tokens(doc)
@@ -191,52 +238,50 @@ impl BrowserWorkspace {
                         ]
                     })
                     .collect();
-                let lenses: Vec<_> = interaction::lenses(ws, &path, now)
-                    .into_iter()
-                    .filter(|l| {
-                        l.command
-                            .as_ref()
-                            .is_none_or(|c| c.command != "wtf.refreshResource")
-                    })
-                    .collect();
-                let links = presentation::document_links(ws, &path, now);
+                let lenses = interaction::lenses_for(&request, &path, Capabilities::BROWSER);
+                let links = presentation::document_links_in(&request, &path);
                 Ok(
-                    json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
-                    "diagnostics":diagnostics::collect(ws, &path, now.date_naive(), now, true),"lenses":lenses,"links":links,"live":presentation::live_hints(ws,&path,now),
-                    "symbols":crate::symbols::document_symbols(ws,&path,now)}),
+                    json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    "diagnostics":diagnostics::collect_in(&request, &path, true),"lenses":lenses,"links":links,"live":inlays.time_dependent,
+                    "symbols":crate::symbols::document_symbols_in(&request,&path)}),
                 )
             }
-            "completion" => {
-                serialized(intelligence::completions(ws, &path, position()?, now, true))
-            }
+            "completion" => serialized(intelligence::completions_in(
+                &request,
+                &path,
+                position()?,
+                true,
+            )),
             "signature" => serialized(intelligence::signature(doc, position()?)),
             "hover" => {
-                if let Some(hover) = intelligence::link_hover(ws, &path, position()?) {
-                    return serialized(hover);
-                }
-                if let Some(hover) = intelligence::cell_hover(ws, &path, position()?) {
-                    return serialized(hover);
-                }
                 if let Some(hover) =
-                    intelligence::stop_hover(ws, &path, position()?, now.date_naive())
+                    crate::features::module_features::hover(&request, &path, position()?)
                 {
                     return serialized(hover);
                 }
+                if let Some(hover) = intelligence::link_hover_in(&request, &path, position()?) {
+                    return serialized(hover);
+                }
+                if let Some(hover) = intelligence::cell_hover_in(&request, &path, position()?) {
+                    return serialized(hover);
+                }
+
                 if intelligence::symbol_at(ws, &path, position()?).is_none()
                     && let Some(hover) =
-                        intelligence::calculation_hover(ws, &path, position()?, now)
+                        intelligence::calculation_hover_in(&request, &path, position()?)
                 {
                     return serialized(hover);
                 }
                 if let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) {
-                    let mut value = intelligence::hover(ws, &symbol, now);
+                    let mut value = intelligence::hover_in(&request, &symbol);
                     let mut range = span.range(&doc.text);
                     if let Some(reference) = doc
                         .references
                         .iter()
                         .find(|r| r.span == span && r.property.is_some())
                     {
-                        let preview = Engine::at(ws, now)
+                        let preview = request
+                            .engine()
                             .eval(&path, &reference.expression())
                             .map(|v| v.display())
                             .unwrap_or_else(|e| e);
@@ -247,7 +292,7 @@ impl BrowserWorkspace {
                 }
                 let row = position()?.line as usize;
                 if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-                    let mut engine = Engine::at(ws, now);
+                    let mut engine = request.engine();
                     let status = if engine.task_done(&path, i) {
                         "Complete"
                     } else {
@@ -311,15 +356,17 @@ impl BrowserWorkspace {
             }
             "actions" => {
                 let range: Range = field(&params, "range")?;
-                let mut choices: Vec<Value> = refactor::actions_for(ws,&path,range,now).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
-                for command in
-                    interaction::row_commands(ws, &path, range.start.line as usize, now, true)
-                        .into_iter()
-                        .filter(|c| c.command != "wtf.refreshResource")
-                {
+                let mut choices: Vec<Value> = refactor::actions_for_in(&request,&path,range).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
+                for command in interaction::row_commands_for(
+                    &request,
+                    &path,
+                    range.start.line as usize,
+                    true,
+                    Capabilities::BROWSER,
+                ) {
                     choices.push(json!({"title":command.title,"command":command}));
                 }
-                let dates: Vec<_> = actions::freeze_dates(ws, &path, now.date_naive())
+                let dates: Vec<_> = actions::freeze_dates_in(&request, &path)
                     .into_iter()
                     .filter(|e| {
                         e.range.start.line >= range.start.line && e.range.end.line <= range.end.line
@@ -335,63 +382,20 @@ impl BrowserWorkspace {
     }
 
     fn execute(&self, command: Command, now: DateTime<FixedOffset>) -> Result<Value, String> {
-        let args = command.arguments.unwrap_or_default();
-        let uri = args
-            .first()
-            .and_then(Value::as_str)
-            .ok_or("Missing document URI")?;
-        let path = virtual_path(uri)?;
-        let doc = self
-            .workspace
-            .documents
-            .get(&path)
-            .ok_or("Note is no longer open")?;
-        if command.command == "wtf.timer" {
-            let name = args
-                .get(1)
-                .and_then(Value::as_str)
-                .ok_or("Missing timer name")?;
-            let action = args
-                .get(2)
-                .and_then(Value::as_str)
-                .ok_or("Missing timer action")?;
-            let (origin, edit) = timers::edit(&self.workspace, &path, name, action, now)?;
-            return Ok(json!({"edit":self.single_edit(&origin.path,vec![edit])}));
+        let action = Action::decode(
+            &command.command,
+            command.arguments.as_deref().unwrap_or(&[]),
+        )?;
+        // The virtual workspace boundary belongs to the browser host.
+        if let Some(document) = action.document() {
+            virtual_path(document.as_str())?;
         }
-        let row = args
-            .get(1)
-            .and_then(Value::as_u64)
-            .and_then(|n| usize::try_from(n).ok())
-            .ok_or("Missing line number")?;
-        if row >= doc.text.lines().count()
-            || args.get(2).and_then(Value::as_str) != Some(doc.line(row))
-        {
-            return Err("Source changed; request fresh controls".into());
-        }
-        match command.command.as_str() {
-            "wtf.task" => {
-                let index = doc
-                    .tasks
-                    .iter()
-                    .position(|t| t.line == row)
-                    .ok_or("No task on this line")?;
-                Ok(
-                    json!({"edit":self.single_edit(&path,actions::toggle_task(&self.workspace,&path,index,now.date_naive())?)}),
-                )
+        let request = crate::RequestContext::new(&self.workspace, now);
+        match action.prepare(&request, Capabilities::BROWSER)? {
+            PreparedAction::Edit { path, edits } => {
+                Ok(json!({"edit":self.single_edit(&path, edits)}))
             }
-            "wtf.openResource" => {
-                let target = args
-                    .get(3)
-                    .and_then(Value::as_str)
-                    .ok_or("Missing resource URL")?;
-                let found = interaction::resources_at(&self.workspace, &path, row, now)
-                    .iter()
-                    .any(|r| r.url(&path).is_ok_and(|u| u.as_str() == target));
-                if !found {
-                    return Err("Resource changed; request fresh controls".into());
-                }
-                Ok(json!({"open":target}))
-            }
+            PreparedAction::Open { url } => Ok(json!({"open":url})),
             _ => Err("This command is not available in the browser".into()),
         }
     }

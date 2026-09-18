@@ -220,7 +220,7 @@ impl BrowserWorkspace {
                 position()?,
                 &field::<String>(&params, "ch")?,
             )),
-            "analyze" => {
+            "analyze" | "render" => {
                 let inlays = presentation::hints_in(
                     &request,
                     &path,
@@ -240,9 +240,15 @@ impl BrowserWorkspace {
                     .collect();
                 let lenses = interaction::lenses_for(&request, &path, Capabilities::BROWSER);
                 let links = presentation::document_links_in(&request, &path);
+                let editing = params
+                    .get("editing")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(method == "analyze");
+                let diagnostics = diagnostics::collect_in(&request, &path, editing);
+                let html = crate::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
-                    "diagnostics":diagnostics::collect_in(&request, &path, true),"lenses":lenses,"links":links,"live":inlays.time_dependent,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":crate::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":crate::symbols::document_symbols_in(&request,&path)}),
                 )
             }

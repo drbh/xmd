@@ -83,7 +83,7 @@ fn label_parts_padding_and_ties_use_display_order_without_applying_actions() {
     let document = Document::parse("🦀!\r\n\r\n".into());
     let html = wtf::rendering::html("Escaped <&\" title", &document, &hints, &[], &[]).unwrap();
     assert!(html.contains("<title>Escaped &lt;&amp;&quot; title</title>"));
-    assert!(html.contains("🦀 <span class=\"inlay\" title=\"\">first part</span> <span class=\"inlay\" title=\"\">second</span>!\r\n"));
+    assert!(html.contains("🦀<span class=\"inlay\" contenteditable=\"false\" title=\"\"> first part </span><span class=\"inlay\" contenteditable=\"false\" title=\"\">second</span>!\r\n"));
     assert!(!html.contains("DO NOT APPLY"));
     assert!(
         wtf::rendering::html(
@@ -186,6 +186,6 @@ fn html_escapes_content_tooltips_and_links_and_marks_diagnostics() {
     assert!(
         wtf::rendering::html("empty", &Document::parse(String::new()), &[], &[], &[])
             .unwrap()
-            .contains("<code></code>")
+            .contains("<code><span class=\"line \" data-line=\"0\"></span></code>")
     );
 }

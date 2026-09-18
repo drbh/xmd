@@ -6,6 +6,40 @@ const URI: &str = "file:///workspace/trip.wtf";
 const NOW: &str = "2026-09-16T14:00:00-04:00";
 
 #[test]
+fn browser_and_native_render_the_same_snapshot_with_an_explicit_clock_and_mode() {
+    use std::path::Path;
+    use wtf::{RequestContext, document::Document, workspace::Workspace};
+    let source = "# Real 🦀\r\na := 1 + 2\r\nValue [a].\r\n```\r\n# Inert\r\n```\r\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 1);
+    let snapshot = request(&mut browser, "render", json!({"uri":URI}));
+    let path = Path::new("/workspace/trip.wtf");
+    let ws = Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [(path.into(), Document::parse(source.into()))].into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+        plugins: Default::default(),
+    };
+    let html = wtf::rendering::html_in(
+        &RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap()),
+        path,
+    )
+    .unwrap();
+    assert!(html.contains(snapshot["html"].as_str().unwrap()));
+    assert_eq!(snapshot["schemaVersion"], 1);
+    assert_eq!(snapshot["source"], source);
+    assert_eq!(snapshot["now"], NOW);
+    assert_eq!(snapshot["editing"], false);
+    assert_eq!(snapshot["lineClasses"][0], "h1");
+    assert_eq!(snapshot["lineClasses"][4], "");
+    assert_eq!(
+        request(&mut browser, "analyze", json!({"uri":URI}))["editing"],
+        true
+    );
+}
+
+#[test]
 fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
     let mut ws = BrowserWorkspace::new();
     let source = "🦀 ./today.wtf and https://example.com/docs.\n";

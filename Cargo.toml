@@ -17,6 +17,7 @@ native = ["dep:tokio", "dep:tower-lsp", "dep:clap", "dep:ignore"]
 browser = ["dep:wasm-bindgen"]
 
 [dependencies]
+wtf-renderer = { path = "web/renderer" }
 tokio = { version = "1", optional = true, features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
 tower-lsp = { version = "0.20", optional = true }
 lsp-types = "0.94.1"

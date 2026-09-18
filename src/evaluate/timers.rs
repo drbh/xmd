@@ -1,6 +1,6 @@
 //! Timers are timestamp-based values. Reading/evaluating them never mutates state.
 use crate::{
-    engine::{Engine, Value, timer_arguments},
+    engine::{Value, timer_arguments},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset};
@@ -147,7 +147,23 @@ pub fn edit(
     action: &str,
     now: DateTime<FixedOffset>,
 ) -> Result<(Symbol, TextEdit), String> {
-    let Value::Timer(timer) = Engine::at(workspace, now).named(path, name)? else {
+    edit_in(
+        &crate::RequestContext::new(workspace, now),
+        path,
+        name,
+        action,
+    )
+}
+pub fn edit_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    name: &str,
+    action: &str,
+) -> Result<(Symbol, TextEdit), String> {
+    let workspace = request.workspace();
+    let now = request.now();
+
+    let Value::Timer(timer) = request.engine().named(path, name)? else {
         return Err("Expected a named timer".into());
     };
     if !timer.actions().contains(&action) {

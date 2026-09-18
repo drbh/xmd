@@ -1,6 +1,6 @@
 use crate::{
     document::{Span, byte_at},
-    engine::{Engine, Value, next_occurrence},
+    engine::{Value, next_occurrence},
     workspace::Workspace,
 };
 use chrono::NaiveDate;
@@ -13,9 +13,24 @@ pub fn toggle_task(
     index: usize,
     today: NaiveDate,
 ) -> Result<Vec<TextEdit>, String> {
+    toggle_task_in(
+        &crate::RequestContext::new(workspace, chrono::Local::now().fixed_offset())
+            .with_today(today),
+        path,
+        index,
+    )
+}
+pub fn toggle_task_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    index: usize,
+) -> Result<Vec<TextEdit>, String> {
+    let workspace = request.workspace();
+    let today = request.today();
+
     let doc = &workspace.documents[path];
     let task = doc.tasks.get(index).ok_or("No task at this line")?;
-    let mut engine = Engine::new(workspace, today);
+    let mut engine = request.engine();
     let done = engine.task_done(path, index);
     let mut indices = vec![index];
     for i in index + 1..doc.tasks.len() {
@@ -48,7 +63,7 @@ pub fn toggle_task(
         let due = task
             .attributes
             .get("due")
-            .map(|a| engine.when(path, &a.value).and_then(|v| v.date()))
+            .map(|a| engine.when(path, &a.value).and_then(|v| engine.date(&v)))
             .transpose()?
             .unwrap_or(today);
         let anchor = task
@@ -126,8 +141,18 @@ pub fn toggle_task(
     Ok(edits)
 }
 pub fn freeze_dates(workspace: &Workspace, path: &Path, today: NaiveDate) -> Vec<TextEdit> {
+    freeze_dates_in(
+        &crate::RequestContext::new(workspace, chrono::Local::now().fixed_offset())
+            .with_today(today),
+        path,
+    )
+}
+pub fn freeze_dates_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
+    let today = request.today();
+    let workspace = request.workspace();
+
     let doc = &workspace.documents[path];
-    let mut engine = Engine::new(workspace, today);
+    let mut engine = request.engine();
     doc.tasks
         .iter()
         .flat_map(|t| t.attributes.iter())

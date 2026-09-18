@@ -54,6 +54,20 @@ pub fn collect(
     now: DateTime<FixedOffset>,
     editing: bool,
 ) -> Vec<Diagnostic> {
+    collect_in(
+        &crate::RequestContext::new(ws, now).with_today(today),
+        path,
+        editing,
+    )
+}
+pub fn collect_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    editing: bool,
+) -> Vec<Diagnostic> {
+    let ws = request.workspace();
+    let today = request.today();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -99,8 +113,7 @@ pub fn collect(
             ));
             continue;
         }
-        let mut engine = Engine::at(ws, now);
-        engine.today = today;
+        let mut engine = request.engine();
         let evaluated = engine.symbol(&symbol);
         if let Ok(Value::Resource(resource)) = &evaluated
             && let Err(message) = resource.url(path)
@@ -158,8 +171,7 @@ pub fn collect(
         }
     }
     for calculation in &doc.calculations {
-        let mut engine = Engine::at(ws, now);
-        engine.today = today;
+        let mut engine = request.engine();
         if let Err(message) = engine.eval_at(path, &calculation.source, calculation.span) {
             let span = engine
                 .failure
@@ -192,7 +204,7 @@ pub fn collect(
                 &candidates,
             ));
         } else if reference.property.is_some() {
-            let mut engine = Engine::at(ws, now);
+            let mut engine = request.engine();
             // A failing receiver already carries its own diagnostic.
             if engine.named(path, &reference.name).is_err() {
                 continue;
@@ -204,8 +216,7 @@ pub fn collect(
         }
     }
     // Keep existing task/date validation, but evaluate attributes at their source spans.
-    let mut engine = Engine::at(ws, now);
-    engine.today = today;
+    let mut engine = request.engine();
     for (index, task) in doc.tasks.iter().enumerate() {
         engine.failure = None;
         if let Err(message) = engine.blocked(path, index) {

@@ -422,7 +422,15 @@ fn eval(
 }
 
 pub fn execute(ws: &Workspace, query: &Query, ctx: &QueryContext) -> Result<QueryResult, String> {
-    let mut engine = ctx.engine(ws);
+    execute_in(&crate::RequestContext::new(ws, ctx.now), query)
+}
+pub fn execute_in(
+    request: &crate::RequestContext<'_>,
+    query: &Query,
+) -> Result<QueryResult, String> {
+    let ws = request.workspace();
+    let ctx = &request.clock();
+    let mut engine = request.engine();
     let mut items = Vec::new();
     for source in &query.sources {
         items.extend(

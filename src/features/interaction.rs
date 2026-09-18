@@ -1,9 +1,4 @@
-use crate::{
-    actions,
-    engine::{Engine, Value},
-    resources::Resource,
-    workspace::Workspace,
-};
+use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
 use std::{
@@ -17,10 +12,19 @@ pub fn resources_at(
     row: usize,
     now: DateTime<FixedOffset>,
 ) -> Vec<Resource> {
+    resources_at_in(&crate::RequestContext::new(ws, now), path, row)
+}
+pub fn resources_at_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+) -> Vec<Resource> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let mut found = BTreeMap::new();
     let mut add = |resource: Resource| {
         if let Ok(url) = resource.url(path) {
@@ -58,13 +62,28 @@ pub fn row_commands(
     now: DateTime<FixedOffset>,
     include_task: bool,
 ) -> Vec<Command> {
+    row_commands_in(
+        &crate::RequestContext::new(ws, now),
+        path,
+        row,
+        include_task,
+    )
+}
+pub fn row_commands_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    include_task: bool,
+) -> Vec<Command> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
     let uri = crate::paths::file_url(path).unwrap();
     let mut result = vec![];
     let mut seen = BTreeSet::new();
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     for name in doc
         .definitions
         .iter()
@@ -101,7 +120,7 @@ pub fn row_commands(
     }
     if include_task
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
-        && actions::toggle_task(ws, path, index, now.date_naive()).is_ok()
+        && actions::toggle_task_in(request, path, index).is_ok()
     {
         let title = if task.attributes.contains_key("every") {
             "Complete occurrence and schedule next"
@@ -120,7 +139,7 @@ pub fn row_commands(
             ]),
         });
     }
-    for resource in resources_at(ws, path, row, now) {
+    for resource in resources_at_in(request, path, row) {
         let url = resource.url(path).unwrap();
         let args = vec![
             serde_json::json!(uri),
@@ -142,7 +161,7 @@ pub fn row_commands(
             command: "wtf.openResource".into(),
             arguments: Some(args.clone()),
         });
-        if let Some(request) = crate::link_features::BUILTINS.refresh_request(&resource.target) {
+        if let Some(request) = request.link_features().refresh_request(&resource.target) {
             result.push(Command {
                 title: request.title.into(),
                 command: "wtf.refreshResource".into(),
@@ -165,6 +184,11 @@ pub fn row_commands(
     result
 }
 pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {
+    lenses_in(&crate::RequestContext::new(ws, now), path)
+}
+pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLens> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -178,7 +202,7 @@ pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<Co
         .collect();
     rows.into_iter()
         .flat_map(|row| {
-            row_commands(ws, path, row, now, true)
+            row_commands_in(request, path, row, true)
                 .into_iter()
                 .map(move |command| CodeLens {
                     range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),

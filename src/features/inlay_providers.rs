@@ -94,14 +94,12 @@ impl InlayFeature for DefinitionInlays {
                         }
                         value => format!("= {}", value.display()),
                     },
-                    crate::intelligence::hover_with_links(
-                        workspace,
+                    crate::intelligence::hover_in(
+                        &engine.request(),
                         &Symbol {
                             path: path.into(),
                             kind: SymbolKind::Definition(i),
                         },
-                        engine.now,
-                        engine.link_features(),
                     ),
                 ),
                 _ => {}
@@ -408,7 +406,7 @@ impl InlayFeature for TaskInlays {
                     if let Some(attr) = task.attributes.get(key) {
                         match engine.when(path, &attr.value) {
                             Ok(value) => {
-                                let date = value.date().unwrap();
+                                let date = engine.date(&value).unwrap();
                                 let delta = (date - today).num_days();
                                 let relative = if delta < 0 && key == "due" {
                                     format!("{} {}d overdue", crate::glyphs::ALERT, -delta)
@@ -516,14 +514,7 @@ impl InlayFeature for ReferenceInlays {
                     value => {
                         let tooltip = workspace
                             .resolve(path, &reference.name)
-                            .map(|symbol| {
-                                crate::intelligence::hover_with_links(
-                                    workspace,
-                                    &symbol,
-                                    engine.now,
-                                    engine.link_features(),
-                                )
-                            })
+                            .map(|symbol| crate::intelligence::hover_in(&engine.request(), &symbol))
                             .unwrap_or_else(|_| reference.expression());
                         push(after, value.display(), tooltip);
                     }

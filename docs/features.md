@@ -113,3 +113,19 @@ registration state.
 See [`tests/inlays.rs`](../tests/inlays.rs) for an independent non-link producer
 and [`tests/link_features.rs`](../tests/link_features.rs) for static links,
 properties, precedence, URL positions and a local refresh fixture.
+
+## Sharing a request
+
+`RequestContext::new(&workspace, now)` captures the workspace, timestamp and its
+calendar offset, provider registry, and evaluation cache. Pass it to the shared
+`*_in` entry points for queries, inlays, hovers, diagnostics, completion and actions.
+Use `with_link_features` on the context to configure every feature in that request.
+The older functions remain convenience wrappers for individual requests.
+
+Each call to `request.engine()` creates an independent evaluation session sharing
+memoized symbol and provider-property results. Cache entries preserve failure
+locations, lookup dependencies and clock dependencies. Session error state and
+recursion/row scopes stay separate, so visiting one feature cannot contaminate
+another feature's diagnostics. Inlay tooltips reuse the originating engine's
+request. Start a new context after a document/cache change or clock tick; contexts
+never persist in editor workspace state.

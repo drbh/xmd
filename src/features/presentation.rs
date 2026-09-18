@@ -15,6 +15,11 @@ pub fn document_links(
     path: &Path,
     now: DateTime<FixedOffset>,
 ) -> Vec<DocumentLink> {
+    document_links_in(&crate::RequestContext::new(workspace, now), path)
+}
+pub fn document_links_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<DocumentLink> {
+    let workspace = request.workspace();
+
     let Some(doc) = workspace.documents.get(path) else {
         return vec![];
     };
@@ -38,7 +43,7 @@ pub fn document_links(
             },
         );
     }
-    let mut engine = Engine::at(workspace, now);
+    let mut engine = request.engine();
     for (i, def) in doc.definitions.iter().enumerate() {
         if let Ok(Value::Resource(resource)) = engine.symbol(&Symbol {
             path: path.into(),
@@ -71,21 +76,29 @@ pub fn hints_at(
     now: DateTime<FixedOffset>,
     range: Range,
 ) -> Vec<InlayHint> {
+    hints_in(&crate::RequestContext::new(workspace, now), path, range).hints
+}
+pub fn hints_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    range: Range,
+) -> crate::inlays::InlayOutput {
     crate::inlays::collect(
-        &mut Engine::at(workspace, now),
+        &mut request.engine(),
         path,
         range,
         crate::inlay_providers::BUILTINS,
     )
-    .hints
 }
+
 pub fn live_hints(workspace: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> bool {
-    let mut engine = Engine::at(workspace, now);
-    crate::inlays::collect(
-        &mut engine,
+    live_hints_in(&crate::RequestContext::new(workspace, now), path)
+}
+pub fn live_hints_in(request: &crate::RequestContext<'_>, path: &Path) -> bool {
+    hints_in(
+        request,
         path,
         Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
-        crate::inlay_providers::BUILTINS,
-    );
-    engine.time_dependent
+    )
+    .time_dependent
 }

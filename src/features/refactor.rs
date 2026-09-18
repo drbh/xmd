@@ -77,6 +77,15 @@ pub fn actions_for(
     range: Range,
     now: DateTime<FixedOffset>,
 ) -> Vec<Refactor> {
+    actions_for_in(&crate::RequestContext::new(ws, now), path, range)
+}
+pub fn actions_for_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    range: Range,
+) -> Vec<Refactor> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -93,7 +102,7 @@ pub fn actions_for(
             path: path.into(),
             kind: SymbolKind::Definition(plan.definition),
         };
-        if let Ok(Value::Plan(solved)) = Engine::at(ws, now).symbol(&symbol) {
+        if let Ok(Value::Plan(solved)) = request.engine().symbol(&symbol) {
             let edits: Vec<TextEdit> = solved
                 .rows
                 .iter()
@@ -296,7 +305,7 @@ pub fn actions_for(
         }
         let symbol = ws.resolve(path, &reference.name).unwrap();
         let replace = Span::new(row, begin, finish).range(&doc.text);
-        let mut engine = Engine::at(ws, now);
+        let mut engine = request.engine();
         let expression = if reference.bracket {
             reference.expression()
         } else {

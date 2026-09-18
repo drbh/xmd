@@ -1,7 +1,6 @@
 //! Standard LSP document symbols, shared by the native server and browser adapter.
 use crate::{
     document::{Document, Span},
-    engine::Engine,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset};
@@ -45,10 +44,19 @@ pub fn document_symbols(
     path: &Path,
     now: DateTime<FixedOffset>,
 ) -> Vec<DocumentSymbol> {
+    document_symbols_in(&crate::RequestContext::new(ws, now), path)
+}
+pub fn document_symbols_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+) -> Vec<DocumentSymbol> {
+    let ws = request.workspace();
+    let now = request.now();
+
     let Some(doc) = ws.documents.get(path) else {
         return Vec::new();
     };
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let mut entries = Vec::new();
     let dates = crate::itinerary::dates(&doc.days, now.date_naive());
     let day_detail = |day: &crate::itinerary::Day, date: &Option<chrono::NaiveDate>| {

@@ -877,6 +877,18 @@ impl Linear {
         Ok(result)
     }
 }
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum MemoKey {
+    Symbol(Symbol),
+    ResourceProperty(String, String),
+}
+#[derive(Clone)]
+pub(crate) struct MemoEntry {
+    value: Result<Value, String>,
+    failure: Option<EvalFailure>,
+    wanted: Vec<String>,
+    time_dependent: bool,
+}
 pub struct Engine<'a> {
     pub workspace: &'a Workspace,
     pub today: NaiveDate,
@@ -885,7 +897,7 @@ pub struct Engine<'a> {
     link_features: crate::link_features::LinkFeatures<'a>,
     pub failure: Option<EvalFailure>,
     contexts: Vec<(PathBuf, Span)>,
-    memo: BTreeMap<Symbol, Result<Value, String>>,
+    memo: std::sync::Arc<std::sync::Mutex<BTreeMap<MemoKey, MemoEntry>>>,
     stack: Vec<Symbol>,
     row_values: Vec<RowScope>,
     /// Decision-column variables met while linearizing a plan.
@@ -914,21 +926,24 @@ pub struct RowVariable {
 }
 impl<'a> Engine<'a> {
     pub fn new(workspace: &'a Workspace, today: NaiveDate) -> Self {
-        let mut engine = Self::at(workspace, Local::now().fixed_offset());
-        engine.today = today;
-        engine
+        crate::RequestContext::new(workspace, Local::now().fixed_offset())
+            .with_today(today)
+            .engine()
     }
     /// One clock snapshot per evaluation; injectable for deterministic tests.
     pub fn at(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
+        crate::RequestContext::new(workspace, now).engine()
+    }
+    pub(crate) fn in_request(request: &crate::RequestContext<'a>) -> Self {
         Self {
-            workspace,
-            today: now.with_timezone(&Local).date_naive(),
-            now,
+            workspace: request.workspace(),
+            today: request.today(),
+            now: request.now(),
             time_dependent: false,
-            link_features: crate::link_features::BUILTINS,
+            link_features: request.link_features(),
             failure: None,
             contexts: Vec::new(),
-            memo: BTreeMap::new(),
+            memo: request.memo.clone(),
             stack: Vec::new(),
             row_values: Vec::new(),
             row_variables: Vec::new(),
@@ -937,13 +952,29 @@ impl<'a> Engine<'a> {
             steps: 0,
         }
     }
+    /// Share immutable inputs and memoized results with another feature session.
+    pub fn request(&self) -> crate::RequestContext<'a> {
+        crate::RequestContext {
+            workspace: self.workspace,
+            clock: crate::context::Clock::new(self.now),
+            today: self.today,
+            links: self.link_features,
+            memo: self.memo.clone(),
+        }
+    }
+    pub fn date(&self, value: &Value) -> Result<NaiveDate, String> {
+        self.request()
+            .clock()
+            .date(value)
+            .ok_or_else(|| "Expected a date or appointment time".into())
+    }
     pub fn link_features(&self) -> crate::link_features::LinkFeatures<'a> {
         self.link_features
     }
     /// Override the registry for an embedded host or test before evaluation begins.
     pub fn with_link_features(mut self, features: crate::link_features::LinkFeatures<'a>) -> Self {
         self.link_features = features;
-        self.memo.clear();
+        self.memo = Default::default();
         self
     }
     pub fn eval(&mut self, path: &Path, expression: &str) -> Result<Value, String> {
@@ -1042,8 +1073,20 @@ impl<'a> Engine<'a> {
         if self.contexts.is_empty() && self.stack.is_empty() && self.row_values.is_empty() {
             self.steps = 0;
         }
-        if let Some(v) = self.memo.get(symbol) {
-            return v.clone();
+        let key = MemoKey::Symbol(symbol.clone());
+        let cached = self
+            .memo
+            .lock()
+            .expect("request cache poisoned")
+            .get(&key)
+            .cloned();
+        if let Some(entry) = cached {
+            if entry.value.is_err() && self.failure.is_none() {
+                self.failure = entry.failure;
+            }
+            self.wanted.extend(entry.wanted);
+            self.time_dependent |= entry.time_dependent;
+            return entry.value;
         }
         if let Some(start) = self.stack.iter().position(|s| s == symbol) {
             let mut related = self.stack[start..].to_vec();
@@ -1067,6 +1110,9 @@ impl<'a> Engine<'a> {
         if self.stack.len() >= 64 {
             return Err("Dependency chain exceeds 64 levels".into());
         }
+        let previous_failure = self.failure.take();
+        let previous_time = std::mem::replace(&mut self.time_dependent, false);
+        let wanted_start = self.wanted.len();
         self.stack.push(symbol.clone());
         // Named definitions never capture a caller's row locals.
         let caller_rows = std::mem::take(&mut self.row_values);
@@ -1147,15 +1193,30 @@ impl<'a> Engine<'a> {
                     path: symbol.path.clone(),
                     kind: SymbolKind::Definition(doc.plans[plan].definition),
                 };
-                match self.symbol(&definition)? {
+                self.symbol(&definition).and_then(|value| match value {
                     Value::Plan(p) => p.property(&name),
                     _ => Err("Expected a plan".into()),
-                }
+                })
             }
         };
         self.row_values = caller_rows;
         self.stack.pop();
-        self.memo.insert(symbol.clone(), result.clone());
+        let entry = MemoEntry {
+            value: result.clone(),
+            failure: if result.is_err() {
+                self.failure.clone()
+            } else {
+                None
+            },
+            wanted: self.wanted[wanted_start..].to_vec(),
+            time_dependent: self.time_dependent,
+        };
+        self.memo
+            .lock()
+            .expect("request cache poisoned")
+            .insert(key, entry);
+        self.failure = previous_failure.or(self.failure.take());
+        self.time_dependent |= previous_time;
         result
     }
     /// A linear form over `vars`; every other name is evaluated to a constant.
@@ -1484,12 +1545,33 @@ impl<'a> Engine<'a> {
                             &self.workspace.cache,
                             self.now.to_utc(),
                         );
-                        self.link_features.property(
+                        let memo_key =
+                            MemoKey::ResourceProperty(resource.target.clone(), key.clone());
+                        if let Some(entry) = self
+                            .memo
+                            .lock()
+                            .expect("request cache poisoned")
+                            .get(&memo_key)
+                            .cloned()
+                        {
+                            return entry.value;
+                        }
+                        let value = self.link_features.property(
                             &resource.target,
                             &self.workspace.cache,
                             self.now.to_utc(),
                             key,
-                        )
+                        );
+                        self.memo.lock().expect("request cache poisoned").insert(
+                            memo_key,
+                            MemoEntry {
+                                value: value.clone(),
+                                failure: None,
+                                wanted: vec![],
+                                time_dependent: false,
+                            },
+                        );
+                        value
                     }
                     _ => Err("Only resource and timer values have properties".into()),
                 }
@@ -1699,7 +1781,8 @@ impl<'a> Engine<'a> {
                         "The place must be text, e.g. forecast(\"Oaxaca\", 2026-11-20)".into(),
                     );
                 };
-                let date = self.expr(path, &args[1])?.date()?;
+                let value = self.expr(path, &args[1])?;
+                let date = self.date(&value)?;
                 let fahrenheit = match args.get(2) {
                     Some(unit) => match code(self.expr(path, unit)?, "The unit")?.as_str() {
                         "F" | "FAHRENHEIT" => true,
@@ -1863,7 +1946,7 @@ impl<'a> Engine<'a> {
             return Ok(Value::Date(v));
         }
         let value = self.eval(path, source)?;
-        value.date()?;
+        self.date(&value)?;
         Ok(value)
     }
 }

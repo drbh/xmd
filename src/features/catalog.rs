@@ -4,7 +4,7 @@ use crate::{
     engine::{Engine, Value},
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone};
+use chrono::{NaiveDate, TimeZone};
 use serde::{Serialize, Serializer};
 use serde_json::json;
 use std::{
@@ -12,31 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// One clock and offset for every operation in a query, including note evaluation.
-#[derive(Clone, Copy, Debug)]
-pub struct QueryContext {
-    pub now: DateTime<FixedOffset>,
-}
-impl QueryContext {
-    pub fn new(now: DateTime<FixedOffset>) -> Self {
-        Self { now }
-    }
-    pub fn today(self) -> NaiveDate {
-        self.now.date_naive()
-    }
-    pub fn engine(self, ws: &Workspace) -> Engine<'_> {
-        let mut engine = Engine::at(ws, self.now);
-        engine.today = self.today();
-        engine
-    }
-    fn date(self, value: &Value) -> Option<NaiveDate> {
-        match value {
-            Value::Date(d) => Some(*d),
-            Value::DateTime(d) => Some(d.with_timezone(self.now.offset()).date_naive()),
-            _ => None,
-        }
-    }
-}
+pub use crate::context::Clock as QueryContext;
 
 /// JSON containers around WTF scalars: units survive filtering, sorting and output.
 #[derive(Clone, Debug, PartialEq)]
@@ -610,7 +586,7 @@ pub(crate) fn collect(
             }
         }
         if collection == "diagnostics" {
-            for d in crate::diagnostics::collect(ws, path, ctx.today(), ctx.now, false) {
+            for d in crate::diagnostics::collect_in(&engine.request(), path, false) {
                 let mut r = base(
                     ws,
                     path,

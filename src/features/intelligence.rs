@@ -1,7 +1,7 @@
 //! Editor intelligence shared by the LSP handlers and deterministic tests.
 use crate::{
     document::{Document, Span, byte_at},
-    engine::{Engine, Value},
+    engine::Value,
     resources,
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -24,6 +24,15 @@ pub fn link_hover_at(
     position: Position,
     now: DateTime<FixedOffset>,
 ) -> Option<Hover> {
+    link_hover_in(&crate::RequestContext::new(ws, now), path, position)
+}
+pub fn link_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let link = doc.links.iter().find(|l| {
@@ -34,7 +43,16 @@ pub fn link_hover_at(
         origin: None,
     };
     Some(Hover {
-        contents: HoverContents::Markup(markup(resource.hover_at(path, &ws.cache, now.to_utc()))),
+        contents: HoverContents::Markup(markup(
+            resource
+                .presentation(
+                    path,
+                    &ws.cache,
+                    request.now().to_utc(),
+                    request.link_features(),
+                )
+                .hover,
+        )),
         range: Some(link.span.range(&doc.text)),
     })
 }
@@ -427,6 +445,12 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
     }
 }
 pub fn property_names(value: &Value) -> Vec<String> {
+    property_names_with_links(value, crate::link_features::BUILTINS)
+}
+fn property_names_with_links(
+    value: &Value,
+    links: crate::link_features::LinkFeatures<'_>,
+) -> Vec<String> {
     let names: Vec<&str> = match value {
         Value::Timer(t) => {
             let mut names = vec!["elapsed", "running", "done", "state"];
@@ -437,7 +461,7 @@ pub fn property_names(value: &Value) -> Vec<String> {
         }
         Value::Resource(r) => {
             let mut names = vec!["url"];
-            names.extend(crate::link_features::BUILTINS.property_names(&r.target));
+            names.extend(links.property_names(&r.target));
             if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
                 names.push("exists");
             }
@@ -455,6 +479,22 @@ pub fn completions(
     now: DateTime<FixedOffset>,
     snippets: bool,
 ) -> Vec<CompletionItem> {
+    completions_in(
+        &crate::RequestContext::new(ws, now),
+        path,
+        position,
+        snippets,
+    )
+}
+pub fn completions_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+    snippets: bool,
+) -> Vec<CompletionItem> {
+    let ws = request.workspace();
+    let now = request.now();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -475,7 +515,7 @@ pub fn completions(
             .take_while(|b| b.is_ascii_alphanumeric() || *b == b'_')
             .count();
     let replacement = Span::new(position.line as usize, start, end).range(&doc.text);
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let mut result = vec![];
     if let Some(table_name) =
         crate::tables::scope_at(doc, Span::new(position.line as usize, byte, byte))
@@ -505,7 +545,7 @@ pub fn completions(
             .next()
             .unwrap_or("");
         if let Ok(value) = engine.named(path, receiver) {
-            for name in property_names(&value) {
+            for name in property_names_with_links(&value, request.link_features()) {
                 let preview = engine.eval(path, &format!("{receiver}.{name}"));
                 result.push(CompletionItem {
                     label: name.clone(),
@@ -765,15 +805,13 @@ pub fn stop_hover(
     })
 }
 pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
-    hover_with_links(ws, symbol, now, crate::link_features::BUILTINS)
+    hover_in(&crate::RequestContext::new(ws, now), symbol)
 }
-pub(crate) fn hover_with_links(
-    ws: &Workspace,
-    symbol: &Symbol,
-    now: DateTime<FixedOffset>,
-    features: crate::link_features::LinkFeatures<'_>,
-) -> String {
-    let mut engine = Engine::at(ws, now).with_link_features(features);
+pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
+    let ws = request.workspace();
+    let now = request.now();
+    let features = request.link_features();
+    let mut engine = request.engine();
     let named = ws.named(symbol);
     if let SymbolKind::Column(t, c) = symbol.kind {
         let doc = &ws.documents[&symbol.path];
@@ -1043,6 +1081,15 @@ pub fn calculation_hover(
     position: Position,
     now: DateTime<FixedOffset>,
 ) -> Option<Hover> {
+    calculation_hover_in(&crate::RequestContext::new(ws, now), path, position)
+}
+pub fn calculation_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let calculation = doc.calculations.iter().find(|c| {
@@ -1050,7 +1097,7 @@ pub fn calculation_hover(
             && byte + usize::from(c.bracketed) >= c.span.start
             && byte <= c.span.end
     })?;
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let value = engine.eval_at(path, &calculation.source, calculation.span);
     let mut text = match &value {
         Ok(v) => format!("**{} · {}**", v.display(), v.type_name()),
@@ -1084,6 +1131,19 @@ pub fn calculation_hover(
     })
 }
 pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
+    cell_hover_in(
+        &crate::RequestContext::new(ws, chrono::Local::now().fixed_offset()),
+        path,
+        position,
+    )
+}
+pub fn cell_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     for table in &doc.tables {
@@ -1094,7 +1154,8 @@ pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hov
                     && byte <= cell.span.end
                 {
                     let value = match &cell.expression {
-                        Some((inner, _)) => Engine::at(ws, chrono::Local::now().fixed_offset())
+                        Some((inner, _)) => request
+                            .engine()
                             .eval(path, inner)
                             .map(|v| (v, Some(inner.clone()))),
                         None => cell.value.clone().map(|v| (v, None)),

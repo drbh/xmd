@@ -2,7 +2,6 @@
 use crate::{
     actions, diagnostics,
     document::{Document, Span, identifier},
-    engine::Engine,
     intelligence, interaction, paths, presentation, refactor, timers,
     workspace::Workspace,
 };
@@ -165,6 +164,7 @@ impl BrowserWorkspace {
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
         let ws = &self.workspace;
+        let request = crate::RequestContext::new(ws, now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &crate::workspace::Symbol| Location {
             uri: paths::file_url(&symbol.path).unwrap(),
@@ -174,8 +174,8 @@ impl BrowserWorkspace {
                 .range(&ws.documents[&symbol.path].text),
         };
         match method {
-            "documentLinks" => serialized(presentation::document_links(ws, &path, now)),
-            "documentSymbols" => serialized(crate::symbols::document_symbols(ws, &path, now)),
+            "documentLinks" => serialized(presentation::document_links_in(&request, &path)),
+            "documentSymbols" => serialized(crate::symbols::document_symbols_in(&request, &path)),
             "formatting" => serialized(crate::tables::formatting(doc)),
             "folding" => serialized(crate::symbols::folding_ranges(doc)),
             "onTypeFormatting" => serialized(crate::typing::on_type(
@@ -184,10 +184,9 @@ impl BrowserWorkspace {
                 &field::<String>(&params, "ch")?,
             )),
             "analyze" => {
-                let hints = presentation::hints_at(
-                    ws,
+                let inlays = presentation::hints_in(
+                    &request,
                     &path,
-                    now,
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
                 let tokens: Vec<u32> = presentation::semantic_tokens(doc)
@@ -202,7 +201,7 @@ impl BrowserWorkspace {
                         ]
                     })
                     .collect();
-                let lenses: Vec<_> = interaction::lenses(ws, &path, now)
+                let lenses: Vec<_> = interaction::lenses_in(&request, &path)
                     .into_iter()
                     .filter(|l| {
                         l.command
@@ -210,22 +209,25 @@ impl BrowserWorkspace {
                             .is_none_or(|c| c.command != "wtf.refreshResource")
                     })
                     .collect();
-                let links = presentation::document_links(ws, &path, now);
+                let links = presentation::document_links_in(&request, &path);
                 Ok(
-                    json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
-                    "diagnostics":diagnostics::collect(ws, &path, now.date_naive(), now, true),"lenses":lenses,"links":links,"live":presentation::live_hints(ws,&path,now),
-                    "symbols":crate::symbols::document_symbols(ws,&path,now)}),
+                    json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    "diagnostics":diagnostics::collect_in(&request, &path, true),"lenses":lenses,"links":links,"live":inlays.time_dependent,
+                    "symbols":crate::symbols::document_symbols_in(&request,&path)}),
                 )
             }
-            "completion" => {
-                serialized(intelligence::completions(ws, &path, position()?, now, true))
-            }
+            "completion" => serialized(intelligence::completions_in(
+                &request,
+                &path,
+                position()?,
+                true,
+            )),
             "signature" => serialized(intelligence::signature(doc, position()?)),
             "hover" => {
-                if let Some(hover) = intelligence::link_hover_at(ws, &path, position()?, now) {
+                if let Some(hover) = intelligence::link_hover_in(&request, &path, position()?) {
                     return serialized(hover);
                 }
-                if let Some(hover) = intelligence::cell_hover(ws, &path, position()?) {
+                if let Some(hover) = intelligence::cell_hover_in(&request, &path, position()?) {
                     return serialized(hover);
                 }
                 if let Some(hover) =
@@ -235,19 +237,20 @@ impl BrowserWorkspace {
                 }
                 if intelligence::symbol_at(ws, &path, position()?).is_none()
                     && let Some(hover) =
-                        intelligence::calculation_hover(ws, &path, position()?, now)
+                        intelligence::calculation_hover_in(&request, &path, position()?)
                 {
                     return serialized(hover);
                 }
                 if let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) {
-                    let mut value = intelligence::hover(ws, &symbol, now);
+                    let mut value = intelligence::hover_in(&request, &symbol);
                     let mut range = span.range(&doc.text);
                     if let Some(reference) = doc
                         .references
                         .iter()
                         .find(|r| r.span == span && r.property.is_some())
                     {
-                        let preview = Engine::at(ws, now)
+                        let preview = request
+                            .engine()
                             .eval(&path, &reference.expression())
                             .map(|v| v.display())
                             .unwrap_or_else(|e| e);
@@ -258,7 +261,7 @@ impl BrowserWorkspace {
                 }
                 let row = position()?.line as usize;
                 if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-                    let mut engine = Engine::at(ws, now);
+                    let mut engine = request.engine();
                     let status = if engine.task_done(&path, i) {
                         "Complete"
                     } else {
@@ -322,15 +325,15 @@ impl BrowserWorkspace {
             }
             "actions" => {
                 let range: Range = field(&params, "range")?;
-                let mut choices: Vec<Value> = refactor::actions_for(ws,&path,range,now).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
+                let mut choices: Vec<Value> = refactor::actions_for_in(&request,&path,range).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
                 for command in
-                    interaction::row_commands(ws, &path, range.start.line as usize, now, true)
+                    interaction::row_commands_in(&request, &path, range.start.line as usize, true)
                         .into_iter()
                         .filter(|c| c.command != "wtf.refreshResource")
                 {
                     choices.push(json!({"title":command.title,"command":command}));
                 }
-                let dates: Vec<_> = actions::freeze_dates(ws, &path, now.date_naive())
+                let dates: Vec<_> = actions::freeze_dates_in(&request, &path)
                     .into_iter()
                     .filter(|e| {
                         e.range.start.line >= range.start.line && e.range.end.line <= range.end.line

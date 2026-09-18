@@ -419,3 +419,45 @@ fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
             .all(|lens| lens["command"]["command"] != "wtf.refreshResource")
     );
 }
+
+#[test]
+fn browser_cell_hover_and_calendar_dates_use_the_injected_clock() {
+    let source = "[t] := table\n| clock |\n| --- |\n| [now()] |\n[day] := today()\n- [ ] Call @due(2026-09-16T10:30:00Z)\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 1);
+    for now in ["2026-09-17T00:15:00+14:00", "2026-09-15T22:15:00-12:00"] {
+        let hover = raw(
+            &mut browser,
+            "hover",
+            json!({"uri":URI,"position":{"line":3,"character":4}}),
+            now,
+        );
+        assert_eq!(hover["ok"], true, "{hover}");
+        let time = chrono::DateTime::parse_from_rfc3339(now).unwrap();
+        let expected = wtf::engine::Value::DateTime(time).display();
+        assert!(
+            hover["result"]["contents"]["value"]
+                .as_str()
+                .unwrap()
+                .contains(&expected),
+            "{hover}"
+        );
+        let analysis = raw(&mut browser, "analyze", json!({"uri":URI}), now);
+        assert_eq!(analysis["ok"], true, "{analysis}");
+        assert!(
+            analysis["result"]["hints"]
+                .to_string()
+                .contains("due today")
+        );
+        let query = raw(
+            &mut browser,
+            "query",
+            json!({"query":"tasks | select due"}),
+            now,
+        );
+        assert_eq!(
+            query["result"]["rows"][0]["value"],
+            time.date_naive().to_string()
+        );
+    }
+}

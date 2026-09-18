@@ -1,7 +1,7 @@
 use crate::{
     actions,
     document::{Document, Span, identifier},
-    engine::{Engine, Value},
+    engine::Value,
     timers,
     workspace::{SymbolKind, Workspace},
 };
@@ -18,7 +18,7 @@ use tower_lsp::{
     lsp_types::*,
 };
 
-use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES, live_hints};
+use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
 pub use crate::presentation::{hints, hints_at, problems, semantic_tokens};
 
 struct State {
@@ -102,29 +102,34 @@ impl Backend {
                 .filter(|p| state.workspace.documents.contains_key(*p))
                 .cloned()
                 .collect();
-            state.live = paths
-                .iter()
-                .filter(|p| live_hints(&state.workspace, p, now))
-                .cloned()
-                .collect();
+            let (live, updates) = {
+                let request = crate::RequestContext::new(&state.workspace, now);
+                let live = paths
+                    .iter()
+                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .cloned()
+                    .collect();
+                let updates: Vec<_> = paths
+                    .into_iter()
+                    .map(|path| {
+                        let ds = crate::diagnostics::collect_in(&request, &path, true);
+                        let lenses = crate::interaction::lenses_in(&request, &path);
+                        (path, ds, lenses)
+                    })
+                    .collect();
+                (live, updates)
+            };
+            state.live = live;
             state.diagnostics.clear();
             state.lenses.clear();
             let mut diagnostics = Vec::new();
-            for path in paths {
-                let ds = crate::diagnostics::collect(
-                    &state.workspace,
-                    &path,
-                    now.date_naive(),
-                    now,
-                    true,
-                );
+            for (path, ds, lenses) in updates {
                 diagnostics.push((
                     Url::from_file_path(&path).unwrap(),
                     state.open[&path],
                     ds.clone(),
                 ));
                 state.diagnostics.insert(path.clone(), ds);
-                let lenses = crate::interaction::lenses(&state.workspace, &path, now);
                 state.lenses.insert(path, lenses);
             }
             (
@@ -164,34 +169,39 @@ impl Backend {
                 })
                 .cloned()
                 .collect();
+            let (live, updates) = {
+                let request = crate::RequestContext::new(&state.workspace, now);
+                let updates: Vec<_> = paths
+                    .iter()
+                    .map(|path| {
+                        let ds = crate::diagnostics::collect_in(&request, path, true);
+                        let lenses = crate::interaction::lenses_in(&request, path);
+                        (path.clone(), ds, lenses)
+                    })
+                    .collect();
+                let live = paths
+                    .into_iter()
+                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .collect();
+                (live, updates)
+            };
             let mut diagnostics = Vec::new();
             let mut lens_changed = false;
-            for path in &paths {
-                let ds = crate::diagnostics::collect(
-                    &state.workspace,
-                    path,
-                    now.date_naive(),
-                    now,
-                    true,
-                );
-                if state.diagnostics.get(path) != Some(&ds) {
+            for (path, ds, lenses) in updates {
+                if state.diagnostics.get(&path) != Some(&ds) {
                     diagnostics.push((
-                        Url::from_file_path(path).unwrap(),
-                        state.open[path],
+                        Url::from_file_path(&path).unwrap(),
+                        state.open[&path],
                         ds.clone(),
                     ));
                     state.diagnostics.insert(path.clone(), ds);
                 }
-                let lenses = crate::interaction::lenses(&state.workspace, path, now);
-                if state.lenses.get(path) != Some(&lenses) {
-                    state.lenses.insert(path.clone(), lenses);
+                if state.lenses.get(&path) != Some(&lenses) {
+                    state.lenses.insert(path, lenses);
                     lens_changed = true;
                 }
             }
-            state.live = paths
-                .into_iter()
-                .filter(|p| live_hints(&state.workspace, p, now))
-                .collect();
+            state.live = live;
             (
                 state.hint_refresh,
                 state.lens_refresh && lens_changed,
@@ -532,10 +542,11 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let now = Local::now().fixed_offset();
-        if let Some(hover) = crate::intelligence::link_hover_at(ws, &path, at.position, now) {
+        let request = crate::RequestContext::new(ws, now);
+        if let Some(hover) = crate::intelligence::link_hover_in(&request, &path, at.position) {
             return Ok(Some(hover));
         }
-        if let Some(hover) = crate::intelligence::cell_hover(ws, &path, at.position) {
+        if let Some(hover) = crate::intelligence::cell_hover_in(&request, &path, at.position) {
             return Ok(Some(hover));
         }
         if let Some(hover) =
@@ -544,19 +555,21 @@ impl LanguageServer for Backend {
             return Ok(Some(hover));
         }
         if symbol_at(ws, &path, at.position).is_none()
-            && let Some(hover) = crate::intelligence::calculation_hover(ws, &path, at.position, now)
+            && let Some(hover) =
+                crate::intelligence::calculation_hover_in(&request, &path, at.position)
         {
             return Ok(Some(hover));
         }
         if let Some((symbol, span)) = symbol_at(ws, &path, at.position) {
-            let mut value = crate::intelligence::hover(ws, &symbol, now);
+            let mut value = crate::intelligence::hover_in(&request, &symbol);
             let mut range = span.range(&doc.text);
             if let Some(reference) = doc
                 .references
                 .iter()
                 .find(|r| r.span == span && r.property.is_some())
             {
-                let property = Engine::at(ws, now)
+                let property = request
+                    .engine()
                     .eval(&path, &reference.expression())
                     .map(|v| v.display())
                     .unwrap_or_else(|e| e);
@@ -574,7 +587,7 @@ impl LanguageServer for Backend {
             .enumerate()
             .find(|(_, t)| t.line == at.position.line as usize)
         {
-            let mut engine = Engine::at(ws, now);
+            let mut engine = request.engine();
             let blocked = engine.blocked(&path, index);
             let mut value = format!(
                 "**{}**\n\n{}",
@@ -815,16 +828,16 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let now = Local::now().fixed_offset();
-        let today = now.date_naive();
+        let request = crate::RequestContext::new(ws, now);
         let row = params.range.start.line as usize;
-        let mut result: Vec<_> = crate::interaction::row_commands(ws, &path, row, now, false)
+        let mut result: Vec<_> = crate::interaction::row_commands_in(&request, &path, row, false)
             .into_iter()
             .map(CodeActionOrCommand::Command)
             .collect();
         if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
             let title = if task.attributes.contains_key("every") {
                 "Complete occurrence and schedule next"
-            } else if Engine::new(ws, today).task_done(&path, i) {
+            } else if request.engine().task_done(&path, i) {
                 "Reopen task"
             } else {
                 "Complete task"
@@ -834,13 +847,13 @@ impl LanguageServer for Backend {
                 kind: Some(CodeActionKind::REFACTOR_REWRITE),
                 ..Default::default()
             };
-            match actions::toggle_task(ws, &path, i, today) {
+            match actions::toggle_task_in(&request, &path, i) {
                 Ok(edits) => action.edit = Some(edit_for(&state, &path, edits)),
                 Err(reason) => action.disabled = Some(CodeActionDisabled { reason }),
             }
             result.push(CodeActionOrCommand::CodeAction(action));
         }
-        for action in crate::refactor::actions_for(ws, &path, params.range, now) {
+        for action in crate::refactor::actions_for_in(&request, &path, params.range) {
             result.push(CodeActionOrCommand::CodeAction(CodeAction {
                 title: action.title,
                 kind: Some(action.kind),
@@ -848,7 +861,7 @@ impl LanguageServer for Backend {
                 ..Default::default()
             }));
         }
-        let edits = actions::freeze_dates(ws, &path, today)
+        let edits = actions::freeze_dates_in(&request, &path)
             .into_iter()
             .filter(|e| {
                 e.range.start.line >= params.range.start.line

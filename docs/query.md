@@ -21,6 +21,10 @@ printf 'tasks | count' | wtf query -f - --json
 In this repository use `cargo run -- query ...` or `./target/debug/wtf query ...`;
 on macOS `/usr/bin/wtf` is an unrelated program.
 
+To print a whole note with its IDE inline values, use
+[`wtf render FILE`](rendering.md). Queries select structured data; rendering
+preserves the document layout and adds the language server's inlay labels.
+
 ## Collections and records
 
 | Collection | Records and notable fields |

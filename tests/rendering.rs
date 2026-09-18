@@ -80,6 +80,21 @@ fn label_parts_padding_and_ties_use_display_order_without_applying_actions() {
     assert!(presentation::render_text("🦀", &[hint(Position::new(0, 1), "bad".into())]).is_err());
     assert!(presentation::render_text("", &[hint(Position::new(1, 0), "bad".into())]).is_err());
     assert_eq!(presentation::render_text("", &[]).unwrap(), "");
+    let document = Document::parse("🦀!\r\n\r\n".into());
+    let html = wtf::rendering::html("Escaped <&\" title", &document, &hints, &[], &[]).unwrap();
+    assert!(html.contains("<title>Escaped &lt;&amp;&quot; title</title>"));
+    assert!(html.contains("🦀 <span class=\"inlay\" title=\"\">first part</span> <span class=\"inlay\" title=\"\">second</span>!\r\n"));
+    assert!(!html.contains("DO NOT APPLY"));
+    assert!(
+        wtf::rendering::html(
+            "bad",
+            &document,
+            &[hint(Position::new(0, 1), "bad".into())],
+            &[],
+            &[]
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -115,5 +130,62 @@ fn resolved_text_matches_existing_feature_snapshots() {
             presentation::render_text_in(&RequestContext::new(&ws, clock), path()).unwrap(),
             presentation::render_text(source, &hints).unwrap()
         );
+        let html = wtf::rendering::html_in(&RequestContext::new(&ws, clock), path()).unwrap();
+        assert_eq!(html.matches("class=\"inlay\"").count(), hints.len());
     }
+}
+
+#[test]
+fn html_escapes_content_tooltips_and_links_and_marks_diagnostics() {
+    use lsp_types::{Diagnostic, DocumentLink, InlayHintTooltip, Url};
+    let doc = Document::parse("abc 🦀\n<script>bad()</script>\n".into());
+    let range = Range::new(Position::new(0, 0), Position::new(0, 3));
+    let mut hint = InlayHint {
+        position: Position::new(0, 3),
+        label: InlayHintLabel::String("<img src=x onerror=bad()>".into()),
+        kind: None,
+        text_edits: None,
+        tooltip: Some(InlayHintTooltip::String("\" onmouseover=\"bad()".into())),
+        padding_left: Some(true),
+        padding_right: None,
+        data: None,
+    };
+    let diagnostic = Diagnostic::new_simple(range, "<error & detail>".into());
+    let point = Diagnostic::new_simple(
+        Range::new(Position::new(2, 0), Position::new(2, 0)),
+        "Expected a value".into(),
+    );
+    let link = |target| DocumentLink {
+        range,
+        target: Some(Url::parse(target).unwrap()),
+        tooltip: None,
+        data: None,
+    };
+    let html = wtf::rendering::html(
+        "test",
+        &doc,
+        &[hint.clone()],
+        &[diagnostic, point],
+        &[
+            link("javascript:bad()"),
+            link("https://example.com/?a=1&b=2"),
+        ],
+    )
+    .unwrap();
+    assert!(html.contains("diagnostic error"));
+    assert!(html.contains("class=\"diagnostic error point\" title=\"Expected a value\"></span>"));
+    assert!(html.contains("&lt;error &amp; detail&gt;"));
+    assert!(html.contains("href=\"https://example.com/?a=1&amp;b=2\""));
+    assert!(!html.contains("javascript:"));
+    assert!(!html.contains("<script>"));
+    assert!(!html.contains("<img"));
+    assert!(html.contains("&lt;img src=x onerror=bad()&gt;"));
+    assert!(html.contains("title=\"&quot; onmouseover=&quot;bad()\""));
+    hint.position = Position::new(99, 0);
+    assert!(wtf::rendering::html("test", &doc, &[hint], &[], &[]).is_err());
+    assert!(
+        wtf::rendering::html("empty", &Document::parse(String::new()), &[], &[], &[])
+            .unwrap()
+            .contains("<code></code>")
+    );
 }

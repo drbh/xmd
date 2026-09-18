@@ -116,25 +116,26 @@ pub fn render_text(source: &str, hints: &[InlayHint]) -> Result<String, String> 
             if hint.padding_left == Some(true) {
                 label.push(' ');
             }
-            match &hint.label {
-                InlayHintLabel::String(text) => label.push_str(text),
-                InlayHintLabel::LabelParts(parts) => {
-                    for part in parts {
-                        label.push_str(&part.value);
-                    }
-                }
-            }
+            label.push_str(&inlay_label(hint));
             if hint.padding_right == Some(true) {
                 label.push(' ');
             }
             TextEdit {
                 range: Range::new(hint.position, hint.position),
-                // LSP labels occupy one display line even if their value contains newlines.
-                new_text: label.replace(['\r', '\n', '\t'], " "),
+                new_text: label,
             }
         })
         .collect();
     crate::actions::apply_edits(source, &edits)
+}
+
+pub(crate) fn inlay_label(hint: &InlayHint) -> String {
+    let label = match &hint.label {
+        InlayHintLabel::String(text) => text.clone(),
+        InlayHintLabel::LabelParts(parts) => parts.iter().map(|p| p.value.as_str()).collect(),
+    };
+    // LSP labels occupy one display line even if their value contains newlines.
+    label.replace(['\r', '\n', '\t'], " ")
 }
 
 pub fn live_hints(workspace: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> bool {

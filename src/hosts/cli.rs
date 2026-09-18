@@ -6,7 +6,7 @@ use crate::{
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{
     collections::BTreeSet,
     io::{self, Read, Write},
@@ -30,6 +30,8 @@ pub enum Command {
     /// Query tasks, values, tables, plans, resources and diagnostics.
     #[command(alias = "q")]
     Query(QueryOptions),
+    /// Export a saved note with the language server's colors and inline values.
+    Render(RenderOptions),
     /// Append a task to inbox.wtf, or to journal/YYYY-MM-DD.wtf.
     Capture {
         #[arg(required=true,num_args=1..)]
@@ -103,6 +105,30 @@ pub struct QueryOptions {
     #[arg(long)]
     pub fail_on_match: bool,
 }
+#[derive(Args)]
+#[command(
+    after_help = "Example: wtf render trip.wtf --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, plugins and cached data; never refreshes or edits them."
+)]
+pub struct RenderOptions {
+    /// A .wtf note, relative to --root or an absolute path inside the workspace.
+    pub file: PathBuf,
+    #[arg(long, default_value = ".")]
+    pub root: PathBuf,
+    /// Standalone styled HTML, or source with inline values as plain text.
+    #[arg(long, value_enum, default_value_t = RenderFormat::Html)]
+    pub format: RenderFormat,
+    /// Evaluate at local midnight on this date.
+    #[arg(long, conflicts_with = "now")]
+    pub on: Option<NaiveDate>,
+    /// Freeze the clock and timezone offset using an RFC3339 timestamp.
+    #[arg(long)]
+    pub now: Option<DateTime<FixedOffset>>,
+}
+#[derive(Clone, Copy, ValueEnum)]
+pub enum RenderFormat {
+    Html,
+    Text,
+}
 pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
     let mut errors = refresh_in_memory(workspace).await;
     if let Err(e) = workspace.save_cache() {
@@ -146,6 +172,7 @@ pub async fn run(command: Command) -> Result<(), String> {
     match command {
         Command::Lsp => unreachable!(),
         Command::Query(options) => query_command(options),
+        Command::Render(options) => render_command(options),
         Command::Capture {
             text,
             root,
@@ -306,17 +333,7 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
         _ => return Err("Supply a query or --file PATH".into()),
     };
     let compiled = query::Query::parse(&source)?;
-    let now = if let Some(now) = options.now {
-        now
-    } else if let Some(date) = options.on {
-        Local
-            .from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
-            .single()
-            .ok_or("Local midnight is ambiguous or nonexistent; use --now with an explicit offset")?
-            .fixed_offset()
-    } else {
-        Local::now().fixed_offset()
-    };
+    let now = request_time(options.on, options.now)?;
     let workspace = load(options.root)?;
     let result = query::execute(&workspace, &compiled, &QueryContext::new(now))?;
     let stdout = io::stdout();
@@ -345,6 +362,71 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
     }
     if options.fail_on_match && !result.rows.is_empty() {
         return Err(format!("{} matching result(s)", result.rows.len()));
+    }
+    Ok(())
+}
+fn request_time(
+    on: Option<NaiveDate>,
+    now: Option<DateTime<FixedOffset>>,
+) -> Result<DateTime<FixedOffset>, String> {
+    if let Some(now) = now {
+        Ok(now)
+    } else if let Some(date) = on {
+        Local
+            .from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
+            .single()
+            .map(|t| t.fixed_offset())
+            .ok_or(
+                "Local midnight is ambiguous or nonexistent; use --now with an explicit offset"
+                    .into(),
+            )
+    } else {
+        Ok(Local::now().fixed_offset())
+    }
+}
+fn render_command(options: RenderOptions) -> Result<(), String> {
+    let now = request_time(options.on, options.now)?;
+    let workspace = load(options.root)?;
+    let path = workspace.root().join(options.file);
+    let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let request = crate::RequestContext::new(&workspace, now);
+    let text = match options.format {
+        RenderFormat::Html => crate::rendering::html_in(&request, &path)?,
+        RenderFormat::Text => crate::presentation::render_text_in(&request, &path)?,
+    };
+    let diagnostics = crate::diagnostics::collect_in(&request, &path, false);
+    let stdout = io::stdout();
+    let mut output = stdout.lock();
+    if let Err(e) = output
+        .write_all(text.as_bytes())
+        .and_then(|_| output.flush())
+    {
+        if e.kind() == io::ErrorKind::BrokenPipe {
+            return Ok(());
+        }
+        return Err(e.to_string());
+    }
+    let mut errors = 0;
+    for diagnostic in diagnostics {
+        let severity = match diagnostic.severity {
+            Some(lsp_types::DiagnosticSeverity::WARNING) => "warning",
+            Some(lsp_types::DiagnosticSeverity::INFORMATION) => "info",
+            Some(lsp_types::DiagnosticSeverity::HINT) => "hint",
+            _ => {
+                errors += 1;
+                "error"
+            }
+        };
+        eprintln!(
+            "{}:{}:{}: {severity}: {}",
+            path.display(),
+            diagnostic.range.start.line + 1,
+            diagnostic.range.start.character + 1,
+            diagnostic.message
+        );
+    }
+    if errors > 0 {
+        return Err(format!("{errors} error(s) while rendering"));
     }
     Ok(())
 }

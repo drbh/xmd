@@ -1,0 +1,19 @@
+:root { color-scheme: dark; color: #d4ded4; background: #171b19; }
+body { margin: 0; padding: 28px; }
+.wtf { margin: 0; font: 14px/1.8 "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace; tab-size: 2; white-space: pre; }
+.wtf code { font: inherit; }
+.inlay { color: #b6c8a6; background: #283125; border-radius: 3px; font-style: normal; }
+a { color: inherit; text-decoration: underline; text-decoration-color: #90bed8; text-underline-offset: 3px; }
+.diagnostic { text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 4px; }
+.point { position: relative; }
+.point::after { content: " "; position: absolute; left: 0; min-width: 1ch; text-decoration: inherit; }
+.error { text-decoration-color: #ef8b80; }
+.warning { text-decoration-color: #eac080; }
+.info, .hint { text-decoration-color: #90bed8; }
+@media print {
+  :root { color-scheme: light; background: white; }
+  body { padding: 0; }
+  .wtf { color: #202820; font-size: 10px; }
+  .wtf [class] { color: inherit; }
+  .inlay { background: #e9eee5; }
+}

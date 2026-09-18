@@ -9,7 +9,7 @@ From the repository root, build WTF and package the extension (Node.js 22+):
 
 ```sh
 cargo build --locked
-cd vscode-extension
+cd ide/vscode
 npm ci
 npm run package
 code --install-extension wtf-0.1.0.vsix
@@ -30,6 +30,12 @@ workspace, the executable must be installed on that remote host. On macOS,
 Open your notes folder, then a `.wtf` file. Changing the server path restarts
 the server. After rebuilding Rust, run **WTF: Restart Language Server**.
 Errors and server messages appear in the **WTF** Output channel.
+
+If you previously installed **Jot** (`drbh.jot`), install this **WTF** extension
+(`drbh.wtf`) and set `wtf.serverPath`. The older extension handles `.jot` files
+and reads `jot.serverPath`; it does not activate for `.wtf` files. Check that the
+editor's language mode says **WTF**, then run **Developer: Reload Window** if the
+new extension has not attached to an already open file.
 
 The extension requires a trusted workspace because it launches a native
 executable. It supports saved file locations, including unsaved edits to those

@@ -1,8 +1,6 @@
 use crate::{
-    actions,
-    document::Document,
     engine::Engine,
-    query::{self, QueryContext, QueryValue},
+    query::{self, QueryValue},
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
@@ -32,31 +30,10 @@ pub enum Command {
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
     Render(RenderOptions),
-    /// Append a task to inbox.wtf, or to journal/YYYY-MM-DD.wtf.
-    Capture {
-        #[arg(required=true,num_args=1..)]
-        text: Vec<String>,
-        #[arg(long, default_value = ".")]
-        root: PathBuf,
-        #[arg(long)]
-        file: Option<PathBuf>,
-        #[arg(long)]
-        journal: bool,
-        #[arg(long)]
-        on: Option<NaiveDate>,
-        #[arg(long)]
-        due: Option<String>,
-        #[arg(long)]
-        tag: Option<String>,
-    },
-    /// Toggle a task at file.wtf:LINE; recurring tasks advance.
-    Complete {
-        target: String,
-        #[arg(long, default_value = ".")]
-        root: PathBuf,
-        #[arg(long)]
-        on: Option<NaiveDate>,
-    },
+    /// Inspect syntax nodes, source text and expression trees for one note (JSON).
+    Ast(InspectOptions),
+    /// Inspect dependencies between values, tasks and checklists in one note (JSON).
+    Graph(InspectOptions),
     /// Explicitly refresh cached resource status and external lookups.
     Refresh {
         #[arg(long, default_value = ".")]
@@ -74,10 +51,10 @@ pub enum Command {
 }
 #[derive(Args)]
 #[command(
-    after_help = "Collections: tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExample: wtf query 'tasks | where leaf && !done | select {title, due, source}'"
+    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExamples: wtf query 'map(tasks, fn(t) => t.title)' --in note.wtf --json\n          wtf ast note.wtf --query 'filter(ast, fn(n) => n.kind == \"definition\")'"
 )]
 pub struct QueryOptions {
-    /// A collection pipeline or a saved view such as @today.
+    /// A functional expression, collection pipeline or saved view such as @today.
     #[arg(
         value_name = "QUERY",
         required_unless_present = "file",
@@ -87,6 +64,24 @@ pub struct QueryOptions {
     /// Read a query file; use - for stdin.
     #[arg(short = 'f', long)]
     pub file: Option<PathBuf>,
+    /// Read input records from this note; paths are relative to --root.
+    #[arg(long = "in", value_name = "NOTE")]
+    pub within: Option<PathBuf>,
+    #[command(flatten)]
+    pub output: QueryOutput,
+}
+#[derive(Args)]
+pub struct InspectOptions {
+    /// A saved .wtf note, relative to --root or an absolute path.
+    pub file: PathBuf,
+    /// A query over ast, graph or any other collection in this note.
+    #[arg(short = 'q', long, value_name = "QUERY")]
+    pub query: Option<String>,
+    #[command(flatten)]
+    pub output: QueryOutput,
+}
+#[derive(Args)]
+pub struct QueryOutput {
     #[arg(long, default_value = ".")]
     pub root: PathBuf,
     /// Emit a JSON array, preserving dates, currencies and units.
@@ -173,104 +168,8 @@ pub async fn run(command: Command) -> Result<(), String> {
         Command::Lsp => unreachable!(),
         Command::Query(options) => query_command(options),
         Command::Render(options) => render_command(options),
-        Command::Capture {
-            text,
-            root,
-            file,
-            journal,
-            on,
-            due,
-            tag,
-        } => {
-            let root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
-            let today = on.unwrap_or_else(|| Local::now().date_naive());
-            if file.is_some() && journal {
-                return Err("Choose --file or --journal".into());
-            }
-            let path = root.join(file.unwrap_or_else(|| {
-                if journal {
-                    PathBuf::from(format!("journal/{today}.wtf"))
-                } else {
-                    PathBuf::from("inbox.wtf")
-                }
-            }));
-            let mut title = text.join(" ");
-            if title.contains(['\n', '\r']) {
-                return Err("Capture expects a single task line".into());
-            }
-            if let Some(due) = due {
-                if due.contains(['\n', '\r']) {
-                    return Err("Invalid due date".into());
-                }
-                title.push_str(&format!(" @due({due})"));
-            }
-            if let Some(tag) = tag {
-                if !crate::document::identifier(&tag) {
-                    return Err("Tags must be identifiers".into());
-                }
-                title.push_str(&format!(" #{tag}"));
-            }
-            let mut line = format!("- [ ] {}\n", title.trim_start_matches("- [ ] "));
-            let previous = match std::fs::read_to_string(&path) {
-                Ok(text) => text,
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-                Err(e) => return Err(e.to_string()),
-            };
-            let mut next = previous.clone();
-            if !next.is_empty() && !next.ends_with('\n') {
-                next.push('\n');
-            }
-            let row = next.lines().count() + 1;
-            if previous.contains("\r\n") {
-                line = line.replace('\n', "\r\n");
-            }
-            next.push_str(&line);
-            let mut workspace = load(root)?;
-            workspace
-                .documents
-                .insert(path.clone(), Document::parse(next.clone()));
-            let edits: Vec<_> = actions::freeze_dates(&workspace, &path, today)
-                .into_iter()
-                .filter(|e| e.range.start.line as usize >= row - 1)
-                .collect();
-            next = actions::apply_edits(&next, &edits)?;
-            workspace
-                .documents
-                .insert(path.clone(), Document::parse(next.clone()));
-            let issues = crate::editor::problems(&workspace, &path, today);
-            if let Some(issue) = issues.iter().find(|p| p.span.line >= row - 1) {
-                return Err(issue.message.clone());
-            }
-            write_note(&path, &previous, &next)?;
-            println!("{}:{row}", path.display());
-            Ok(())
-        }
-        Command::Complete { target, root, on } => {
-            let workspace = load(root)?;
-            let (file, row) = target.rsplit_once(':').ok_or("Use file.wtf:LINE")?;
-            let row: usize = row.parse().map_err(|_| "Invalid line number")?;
-            let path =
-                std::fs::canonicalize(workspace.root().join(file)).map_err(|e| e.to_string())?;
-            let doc = workspace
-                .documents
-                .get(&path)
-                .ok_or("File is not in this workspace's indexed .wtf notes")?;
-            let i = doc
-                .tasks
-                .iter()
-                .position(|t| t.line + 1 == row)
-                .ok_or("No task on that line")?;
-            let edits = actions::toggle_task(
-                &workspace,
-                &path,
-                i,
-                on.unwrap_or_else(|| Local::now().date_naive()),
-            )?;
-            let next = actions::apply_edits(&doc.text, &edits)?;
-            write_note(&path, &doc.text, &next)?;
-            println!("Updated {}:{row}", path.display());
-            Ok(())
-        }
+        Command::Ast(options) => inspect_command("ast", options),
+        Command::Graph(options) => inspect_command("graph", options),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -316,6 +215,15 @@ pub async fn run(command: Command) -> Result<(), String> {
         }
     }
 }
+fn inspect_command(view: &str, mut options: InspectOptions) -> Result<(), String> {
+    options.output.json = !options.output.jsonl;
+    query_command(QueryOptions {
+        source: Some(options.query.unwrap_or_else(|| view.into())),
+        file: None,
+        within: Some(options.file),
+        output: options.output,
+    })
+}
 fn query_command(options: QueryOptions) -> Result<(), String> {
     let source = match (options.source, options.file) {
         (Some(source), None) => source,
@@ -333,9 +241,21 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
         _ => return Err("Supply a query or --file PATH".into()),
     };
     let compiled = query::Query::parse(&source)?;
-    let now = request_time(options.on, options.now)?;
-    let workspace = load(options.root)?;
-    let result = query::execute(&workspace, &compiled, &QueryContext::new(now))?;
+    let now = request_time(options.output.on, options.output.now)?;
+    let workspace = load(options.output.root.clone())?;
+    let only = options
+        .within
+        .map(|file| {
+            let path = workspace.root().join(file);
+            std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))
+        })
+        .transpose()?;
+    let result = query::execute_scoped_in(
+        &crate::RequestContext::new(&workspace, now),
+        &compiled,
+        only.as_deref(),
+    )?;
+    let options = options.output;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
@@ -451,28 +371,4 @@ fn render(value: &QueryValue) -> String {
         })
         .collect::<Vec<_>>()
         .join("\t")
-}
-fn write_note(path: &Path, previous: &str, next: &str) -> Result<(), String> {
-    let actual = match std::fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(e) => return Err(e.to_string()),
-    };
-    if actual != previous {
-        return Err("Note changed while the command was running; retry".into());
-    }
-    let parent = path.parent().ok_or("Invalid note path")?;
-    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    let tmp = parent.join(format!(".wtf-write-{}.tmp", std::process::id()));
-    let mut options = std::fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    let mut file = options.open(&tmp).map_err(|e| e.to_string())?;
-    use std::io::Write;
-    file.write_all(next.as_bytes())
-        .and_then(|_| file.sync_all())
-        .map_err(|e| e.to_string())?;
-    if let Ok(metadata) = std::fs::metadata(path) {
-        std::fs::set_permissions(&tmp, metadata.permissions()).map_err(|e| e.to_string())?;
-    }
-    std::fs::rename(tmp, path).map_err(|e| e.to_string())
 }

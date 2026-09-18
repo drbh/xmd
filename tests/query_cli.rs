@@ -110,7 +110,9 @@ fn diagnostic_exit_status_and_invalid_queries_keep_stdout_machine_readable() {
     let missing = run(root, &["query", "-f", "missing.wq"]);
     assert!(!missing.status.success());
     assert!(missing.stdout.is_empty());
-    for old in ["today", "agenda", "tasks", "check", "plan"] {
+    for old in [
+        "today", "agenda", "tasks", "check", "plan", "capture", "complete",
+    ] {
         assert_eq!(run(root, &[old]).status.code(), Some(2), "{old}");
     }
 }
@@ -167,4 +169,119 @@ fn clock_options_freeze_both_today_and_now_and_root_is_respected() {
         .code(),
         Some(2)
     );
+}
+
+#[test]
+fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    std::fs::create_dir(root.join("notes")).unwrap();
+    let source = "a := rate * 2\n- [ ] Local\n";
+    std::fs::write(root.join("notes/one.wtf"), source).unwrap();
+    std::fs::write(root.join("notes/two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
+    let args = [
+        "query",
+        "map(tasks, fn(t) => t.title)",
+        "--root",
+        "notes",
+        "--in",
+        "one.wtf",
+        "--json",
+    ];
+    assert_eq!(json_output(root, &args), json!(["Local"]));
+    let ast = json_output(root, &["ast", "one.wtf", "--root", "notes"]);
+    assert_eq!(
+        ast,
+        json_output(
+            root,
+            &[
+                "query", "ast", "--root", "notes", "--in", "one.wtf", "--json"
+            ]
+        )
+    );
+    assert_eq!(ast[0]["text"], source);
+    let graph = json_output(root, &["graph", "one.wtf", "--root", "notes"]);
+    assert_eq!(
+        graph,
+        json_output(
+            root,
+            &[
+                "query", "graph", "--root", "notes", "--in", "one.wtf", "--json"
+            ]
+        )
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "graph",
+                "one.wtf",
+                "--root",
+                "notes",
+                "--query",
+                "graph.nodes | where external | select name"
+            ]
+        ),
+        json!(["rate"])
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "ast",
+                "one.wtf",
+                "--root",
+                "notes",
+                "--query",
+                "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)"
+            ]
+        ),
+        json!(["a"])
+    );
+    std::fs::write(root.join("select.wq"), "map(tasks, fn(t) => t.title)").unwrap();
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "-f",
+                "select.wq",
+                "--root",
+                "notes",
+                "--in",
+                "one.wtf",
+                "--json"
+            ]
+        ),
+        json!(["Local"])
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "length(tasks)",
+                "--in",
+                root.join("notes/one.wtf").to_str().unwrap(),
+                "--json"
+            ]
+        ),
+        json!([1])
+    );
+    std::fs::write(root.join("notes/.gitignore"), "ignored.wtf\n").unwrap();
+    std::fs::write(root.join("notes/ignored.wtf"), "1:secret\n").unwrap();
+    for file in ["missing.wtf", "ignored.wtf", "../select.wq"] {
+        let output = run(root, &["ast", file, "--root", "notes"]);
+        assert!(!output.status.success(), "{file}");
+        assert!(output.stdout.is_empty());
+    }
+    for command in ["capture", "complete"] {
+        let output = run(root, &[command, "one.wtf"]);
+        assert_eq!(output.status.code(), Some(2));
+    }
+    assert_eq!(
+        std::fs::read_to_string(root.join("notes/one.wtf")).unwrap(),
+        source
+    );
+    assert!(!root.join("notes/.wtf").exists());
 }

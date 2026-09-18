@@ -835,10 +835,12 @@ impl Document {
                         Span::new(row, start, end).relative(&self.text, token.start, token.end);
                     let kind = match &token.kind {
                         crate::engine::Lexeme::Name(name) => {
+                            let builtin_call = crate::engine::is_builtin_function(name)
+                                && line[start + token.end..end].trim_start().starts_with('(');
                             if free_names
                                 .as_ref()
                                 .is_none_or(|names| names.contains(&token.start))
-                                && !line[start + token.end..end].trim_start().starts_with('(')
+                                && !builtin_call
                                 && !crate::engine::is_code(name)
                                 && (token.start == 0
                                     || !line[start..start + token.start].trim_end().ends_with('.'))

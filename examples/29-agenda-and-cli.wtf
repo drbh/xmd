@@ -7,7 +7,9 @@ Every note feeds wtf query @today, wtf query @week, and wtf query @tasks.
 - [ ] Draft the talk @scheduled(2026-09-19) @estimate(2h)
 - Standup @at(2026-09-18T09:00-04:00)
 
-<!-- wtf query '@tasks | where contains(tags, "finance")' filters by tag; wtf complete 29-agenda-and-cli.wtf:5
-ticks a box; wtf capture "Call the dentist" --due "next Friday" appends to
-inbox.wtf; wtf query @check --fail-on-match reports errors. Query plans for
-solutions, and use wtf refresh to fill caches. Add --json to a query. -->
+<!-- wtf query 'map(filter(tasks, fn(t) => contains(t.tags, "finance")), fn(t) => t.title)'
+filters and projects with the same functions as notes. Add --in 29-agenda-and-cli.wtf
+for this file, or use wtf ast 29-agenda-and-cli.wtf and wtf graph 29-agenda-and-cli.wtf
+for syntax and dependencies. Queries are read-only. wtf query @check --fail-on-match
+reports errors; wtf query plans reads solutions; wtf refresh fills caches.
+Add --json to a query for structured output. -->

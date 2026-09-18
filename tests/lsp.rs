@@ -1471,3 +1471,49 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit
     );
     assert_eq!(client.applied_edits.len(), 1);
 }
+
+#[test]
+fn file_queries_read_unsaved_syntax_and_keep_cross_file_graph_endpoints() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let path = root.join("one.wtf");
+    let uri = Url::from_file_path(&path).unwrap();
+    std::fs::write(&path, "1:saved\n").unwrap();
+    std::fs::write(root.join("two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
+    let mut lsp = Lsp::start(&root);
+    lsp.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := rate * 2\n- [ ] Local\n"}}));
+    assert_eq!(lsp.diagnostics(1), json!([]));
+    let result = lsp.request("wtf/query", json!({"uri":uri,"query":"map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)"}));
+    assert_eq!(result["rows"], json!(["answer"]));
+    assert_eq!(result["versions"][uri.as_str()], 1);
+    assert_eq!(
+        lsp.request(
+            "wtf/query",
+            json!({"uri":uri,"query":"tasks | select title"})
+        )["rows"],
+        json!(["Local"])
+    );
+    assert_eq!(
+        lsp.request("wtf/query", json!({"query":"length(tasks)"}))["rows"],
+        json!([2])
+    );
+    assert_eq!(
+        lsp.request(
+            "wtf/query",
+            json!({"uri":uri,"query":"graph.nodes | where external | select name"})
+        )["rows"],
+        json!(["rate"])
+    );
+    for uri in [
+        "https://example.com/n.wtf".to_string(),
+        Url::from_file_path(root.join("missing.wtf"))
+            .unwrap()
+            .to_string(),
+    ] {
+        assert_eq!(
+            lsp.request_raw("wtf/query", json!({"uri":uri,"query":"ast"}))["error"]["code"],
+            -32602
+        );
+    }
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "1:saved\n");
+}

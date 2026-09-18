@@ -165,7 +165,7 @@ struct Function {
     example: &'static str,
 }
 pub(crate) fn is_builtin_function(name: &str) -> bool {
-    FUNCTIONS.iter().any(|f| f.name == name)
+    crate::engine::is_builtin_function(name)
 }
 const FUNCTIONS: &[Function] = &[
     Function {
@@ -372,6 +372,27 @@ const FUNCTIONS: &[Function] = &[
         example: "[1, 2], fn(x) => x > 1",
     },
     Function {
+        name: "sort_by",
+        params: &["items: List", "key: Function"],
+        result: "List",
+        documentation: "Stable ascending sort by a compatible scalar key; nulls come last.",
+        example: "[3, 1], fn(x) => x",
+    },
+    Function {
+        name: "group_by",
+        params: &["items: List", "key: Function"],
+        result: "List",
+        documentation: "Group by a scalar key into {key, rows} records, in first-seen order.",
+        example: "[1, 2, 1], fn(x) => x",
+    },
+    Function {
+        name: "eval",
+        params: &["expression: Text"],
+        result: "Value",
+        documentation: "Evaluate expression text in the current document's scope.",
+        example: "\"price * 2\"",
+    },
+    Function {
         name: "fold",
         params: &["items: List", "initial: Value", "function: Function"],
         result: "Value",
@@ -396,7 +417,7 @@ const FUNCTIONS: &[Function] = &[
         name: "text",
         params: &["value: Value"],
         result: "Text",
-        documentation: "Format a value as text.",
+        documentation: "Format a value as text; null remains null.",
         example: "$25",
     },
     Function {
@@ -457,9 +478,9 @@ const FUNCTIONS: &[Function] = &[
     },
     Function {
         name: "sum",
-        params: &["table: Table", "expression: row calculation"],
+        params: &["items: List or Table", "expression?: row calculation"],
         result: "Number, Money, Ratio, or Duration",
-        documentation: "Evaluate the second argument for each row, then add the results. Names inside the row expression refer only to that table's columns. Example: sum(groceries, quantity * price).",
+        documentation: "Sum a list of compatible quantities, skipping nulls, or evaluate a row expression for each table row and add the results. Units are preserved.",
         example: "groceries, quantity * price",
     },
     Function {
@@ -545,9 +566,9 @@ const FUNCTIONS: &[Function] = &[
     },
     Function {
         name: "date",
-        params: &["text: Text"],
+        params: &["value: Text, Date, or DateTime"],
         result: "Date or DateTime",
-        documentation: "Parse an ISO date/time or a relative date. Example: date(\"next Friday\"). Relative values remain dynamic.",
+        documentation: "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone.",
         example: "\"next Friday\"",
     },
     Function {

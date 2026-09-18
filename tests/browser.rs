@@ -600,3 +600,73 @@ fn browser_hides_and_rejects_every_native_refresh_action() {
         );
     }
 }
+
+#[test]
+fn browser_file_queries_inspect_live_syntax_and_dependencies_with_native_parity() {
+    let mut browser = BrowserWorkspace::new();
+    let other = "file:///workspace/other.wtf";
+    let source = "answer := rate * 2\n- [ ] Local\n";
+    set(&mut browser, URI, source, 4);
+    set(&mut browser, other, "3:rate\n- [ ] Other\n", 2);
+    assert_eq!(
+        request(
+            &mut browser,
+            "query",
+            json!({"uri":URI,"query":"tasks | select title"})
+        )["rows"],
+        json!(["Local"])
+    );
+    assert_eq!(
+        request(&mut browser, "query", json!({"query":"length(tasks)"}))["rows"],
+        json!([2])
+    );
+    let ws = wtf::workspace::Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [
+            (
+                std::path::PathBuf::from("/workspace/trip.wtf"),
+                wtf::document::Document::parse(source.into()),
+            ),
+            (
+                std::path::PathBuf::from("/workspace/other.wtf"),
+                wtf::document::Document::parse("3:rate\n- [ ] Other\n".into()),
+            ),
+        ]
+        .into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+        plugins: Default::default(),
+    };
+    let context = wtf::RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap());
+    for source in [
+        "ast",
+        "graph",
+        "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)",
+    ] {
+        let result = request(&mut browser, "query", json!({"uri":URI,"query":source}));
+        let expected = wtf::query::execute_scoped_in(
+            &context,
+            &wtf::query::Query::parse(source).unwrap(),
+            Some(std::path::Path::new("/workspace/trip.wtf")),
+        )
+        .unwrap();
+        assert_eq!(result["rows"], json!(expected.rows));
+        assert_eq!(result["versions"][URI], 4);
+    }
+    set(&mut browser, URI, "answer := rate * 3\n", 5);
+    let updated = request(
+        &mut browser,
+        "query",
+        json!({"uri":URI,"query":"ast | where kind == \"document\" | select text"}),
+    );
+    assert_eq!(updated["rows"], json!(["answer := rate * 3\n"]));
+    assert_eq!(updated["versions"][URI], 5);
+    for uri in [
+        "file:///workspace/missing.wtf",
+        "file:///outside/private.wtf",
+        "https://example.com/n.wtf",
+    ] {
+        let result = raw(&mut browser, "query", json!({"uri":uri,"query":"ast"}), NOW);
+        assert_eq!(result["ok"], false, "{uri}");
+    }
+}

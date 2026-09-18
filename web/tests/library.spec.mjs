@@ -96,3 +96,26 @@ test("optional editing preserves ranges, composition, task undo and redo", async
   await expect(page.locator("#one .t-wtfCheckboxChecked")).toHaveCount(2);
   await page.evaluate(() => { one.destroy(); ws.destroy(); });
 });
+
+test("file queries share functional syntax, graph data and current workspace versions", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
+    const uri = "file:///workspace/query.wtf";
+    await ws.setDocument(uri, "answer := rate * 2\n- [ ] Local\n");
+    await ws.setDocument("file:///workspace/other.wtf", "3:rate\n- [ ] Other\n");
+    const local = await ws.query(uri, "query", {query: "map(tasks, fn(t) => t.title)"});
+    const all = await ws.request("query", {query: "length(tasks)"});
+    const graph = await ws.query(uri, "query", {query: "graph.nodes | where external | select name"});
+    const ast = await ws.query(uri, "query", {query: 'ast | where kind == "definition" | select name'});
+    await ws.setDocument(uri, "answer := rate * 3\n");
+    const changed = await ws.query(uri, "query", {query: 'ast | where kind == "document" | select text'});
+    ws.destroy();
+    return {local, all, graph, ast, changed, uri};
+  });
+  expect(result.local.rows).toEqual(["Local"]);
+  expect(result.all.rows).toEqual([2]);
+  expect(result.graph.rows).toEqual(["rate"]);
+  expect(result.ast.rows).toEqual(["answer"]);
+  expect(result.changed.rows).toEqual(["answer := rate * 3\n"]);
+  expect(result.changed.versions[result.uri]).toBeGreaterThan(result.local.versions[result.uri]);
+});

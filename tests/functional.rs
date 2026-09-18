@@ -314,3 +314,34 @@ fn query_data_operations_are_available_in_note_functions() {
     assert_eq!(e.eval(path(), "date(now())").unwrap(), Value::Date(e.today));
     assert!(e.eval(path(), "sort_by([1, \"two\"], fn(x) => x)").is_err());
 }
+
+#[test]
+fn dynamic_evaluation_is_bounded_and_row_function_bindings_capture_lexically() {
+    let ws = workspace("code := \"eval(code)\"\n");
+    let mut e = engine(&ws);
+    assert!(e.eval(path(), "eval(code)").unwrap_err().contains("depth"));
+    assert_eq!(e.eval(path(), "1 + 2").unwrap(), Value::Number(3.0));
+    let query =
+        wtf::query::Query::parse("[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))").unwrap();
+    assert_eq!(
+        serde_json::json!(
+            wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(e.now))
+                .unwrap()
+                .rows
+        ),
+        serde_json::json!([[2.0]])
+    );
+}
+
+#[test]
+fn unfinished_builtin_calls_do_not_become_unknown_function_references() {
+    let ws = workspace("broken := sum([1,\nnext := 2\n");
+    let e = engine(&ws);
+    let issues = wtf::diagnostics::collect(&ws, path(), e.today, e.now, false);
+    assert!(!issues.is_empty());
+    assert!(
+        issues
+            .iter()
+            .all(|d| !d.message.contains("Unknown name 'sum'"))
+    );
+}

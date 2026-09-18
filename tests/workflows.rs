@@ -314,7 +314,7 @@ fn cached_github_status_is_typed_and_absent_checks_are_unknown() {
     assert!(resources::github("https://github.com.evil.example/acme/app/pull/42").is_none());
 }
 #[test]
-fn cli_capture_agenda_complete_and_ignored_notes() {
+fn cli_agendas_filter_ignored_notes_without_mutating_them() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(root.join(".gitignore"), "ignored.wtf\n").unwrap();
@@ -334,18 +334,8 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
         );
         String::from_utf8(output.stdout).unwrap()
     };
-    run(&[
-        "capture",
-        "Call dentist",
-        "--due",
-        "next Friday",
-        "--tag",
-        "errands",
-        "--on",
-        "2026-09-16",
-    ]);
-    let note = std::fs::read_to_string(root.join("inbox.wtf")).unwrap();
-    assert!(note.contains("@due(2026-09-18)"));
+    let note = "- [ ] Call dentist #errands @due(2026-09-18)\n";
+    std::fs::write(root.join("inbox.wtf"), note).unwrap();
     let tasks: serde_json::Value = serde_json::from_str(&run(&[
         "query",
         "@tasks | where contains(tags, \"errands\")",
@@ -357,43 +347,11 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
     let agenda: serde_json::Value =
         serde_json::from_str(&run(&["query", "@week", "--on", "2026-09-16", "--json"])).unwrap();
     assert_eq!(agenda.as_array().unwrap().len(), 1);
-    run(&["complete", "inbox.wtf:1", "--on", "2026-09-18"]);
-    assert!(
-        std::fs::read_to_string(root.join("inbox.wtf"))
-            .unwrap()
-            .contains("[x]")
+    assert_eq!(
+        std::fs::read_to_string(root.join("inbox.wtf")).unwrap(),
+        note
     );
-    let tasks: serde_json::Value =
-        serde_json::from_str(&run(&["query", "@tasks", "--json"])).unwrap();
-    assert!(tasks.as_array().unwrap().is_empty());
     run(&["query", "@check", "--fail-on-match"]);
-}
-
-#[test]
-fn capture_keeps_existing_content_and_can_reference_same_note() {
-    let temp = tempfile::tempdir().unwrap();
-    let original = "[2026-09-25]:departure\n- [ ] Existing @due(tomorrow)\n";
-    std::fs::write(temp.path().join("inbox.wtf"), original).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
-        .current_dir(temp.path())
-        .args([
-            "capture",
-            "Book hotel",
-            "--due",
-            "departure-7d",
-            "--on",
-            "2026-09-16",
-        ])
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let saved = std::fs::read_to_string(temp.path().join("inbox.wtf")).unwrap();
-    assert!(saved.starts_with(original));
-    assert!(saved.contains("Book hotel @due(departure-7d)"));
 }
 
 #[test]

@@ -43,6 +43,7 @@ pub struct Backend {
 #[derive(serde::Deserialize)]
 struct QueryParams {
     query: String,
+    uri: Option<Url>,
     now: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
 impl Backend {
@@ -51,10 +52,17 @@ impl Backend {
         self.rescan().await;
         let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
         let state = self.state.read().await;
-        let result = crate::query::execute(
-            &state.workspace,
+        let only = params
+            .uri
+            .map(|uri| {
+                uri.to_file_path()
+                    .map_err(|_| Error::invalid_params("Query uri must be a local file URI"))
+            })
+            .transpose()?;
+        let result = crate::query::execute_scoped_in(
+            &crate::RequestContext::new(&state.workspace, now),
             &compiled,
-            &crate::query::QueryContext::new(now),
+            only.as_deref(),
         )
         .map_err(Error::invalid_params)?;
         let versions = state

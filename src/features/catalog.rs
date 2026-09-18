@@ -272,7 +272,7 @@ impl Record {
         QueryValue::Object(self.fields)
     }
 }
-fn source(ws: &Workspace, path: &Path, span: Span) -> QueryValue {
+pub(crate) fn source(ws: &Workspace, path: &Path, span: Span) -> QueryValue {
     let mut uri = crate::paths::file_url(path)
         .map(|u| u.to_string())
         .unwrap_or_default();
@@ -325,6 +325,7 @@ fn date_field(value: Option<NaiveDate>) -> QueryValue {
 }
 
 pub const COLLECTIONS: &[&str] = &[
+    "ast",
     "days",
     "timers",
     "links",
@@ -362,6 +363,16 @@ pub(crate) fn collect_document(
         ));
     }
     let mut records = Vec::new();
+    if collection == "ast" {
+        for path in ws
+            .documents
+            .keys()
+            .filter(|p| only.is_none_or(|only| only == p.as_path()))
+        {
+            records.extend(crate::features::inspection::ast(ws, path));
+        }
+        return Ok(records);
+    }
     if collection == "decisions" {
         for (plan_path, doc) in &ws.documents {
             for plan in &doc.plans {

@@ -280,7 +280,7 @@ export const parts = [
         file: "29-agenda-and-cli.wtf",
         title: "Agenda and the Command Line",
         prose: [
-          "<code>wtf query @today</code>, <code>wtf query @week</code>, and <code>wtf query @tasks</code> read every note. <code>wtf capture</code> appends a task, <code>wtf complete</code> ticks one, <code>wtf query @check --fail-on-match</code> reports problems, <code>wtf query plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Pipelines filter, project, sort, and group results. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.",
+          "<code>wtf query @today</code>, <code>wtf query @week</code>, and <code>wtf query @tasks</code> read every note. <code>wtf ast file.wtf</code> exposes syntax nodes, <code>wtf graph file.wtf</code> shows dependencies, <code>wtf query @check --fail-on-match</code> reports problems, <code>wtf query plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Queries use the same functions as notes: <code>map(filter(tasks, fn(t) =&gt; !t.done), fn(t) =&gt; t.title)</code>. Add <code>--in file.wtf</code> to read one note. Existing pipelines also filter, project, sort, and group results. Queries are read-only. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.",
         ],
       },
       {

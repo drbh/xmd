@@ -592,7 +592,15 @@ impl Expr {
                     visit(a, bound, start, out);
                     visit(b, bound, start, out);
                 }
-                Expr::Call(_, items) | Expr::List(items) => {
+                Expr::Call(name, items) => {
+                    if !bound.contains(name) && !is_builtin_function(name) {
+                        out.push((name.clone(), start));
+                    }
+                    for e in items {
+                        visit(e, bound, start, out);
+                    }
+                }
+                Expr::List(items) => {
                     for e in items {
                         visit(e, bound, start, out);
                     }
@@ -1180,6 +1188,33 @@ pub(crate) struct MemoEntry {
     wanted: Vec<String>,
     time_dependent: bool,
 }
+/// Names reserved by the evaluator, also used by references and editor highlighting.
+pub(crate) fn is_builtin_function(name: &str) -> bool {
+    crate::evaluate::functional::is_builtin(name)
+        || matches!(
+            name,
+            "if" | "coalesce"
+                | "sum"
+                | "eval"
+                | "now"
+                | "today"
+                | "stopwatch"
+                | "countdown"
+                | "rate"
+                | "to"
+                | "forecast"
+                | "quote"
+                | "date"
+                | "total"
+                | "completed"
+                | "remaining"
+                | "effort"
+                | "maximize"
+                | "minimize"
+                | "solve"
+        )
+}
+
 /// Host-provided names are resolved lazily by the same evaluator as note functions.
 /// Resolution runs without the caller's bindings, so definitions cannot capture them.
 pub(crate) trait Bindings: Send + Sync {
@@ -1873,32 +1908,14 @@ impl<'a> Engine<'a> {
                         .collect::<Result<Vec<_>, _>>()?;
                     return self.functional(n, values);
                 }
-                if !matches!(
-                    n.as_str(),
-                    "sum"
-                        | "eval"
-                        | "now"
-                        | "today"
-                        | "stopwatch"
-                        | "countdown"
-                        | "rate"
-                        | "to"
-                        | "forecast"
-                        | "quote"
-                        | "date"
-                        | "total"
-                        | "completed"
-                        | "remaining"
-                        | "effort"
-                ) && (self.locals.last().is_some_and(|s| s.contains_key(n))
-                    || self.workspace.resolve(path, n).is_ok())
-                {
+                if !is_builtin_function(n) {
                     let function = self
                         .locals
                         .last()
                         .and_then(|s| s.get(n))
                         .cloned()
                         .map(Ok)
+                        .or_else(|| self.binding(n))
                         .unwrap_or_else(|| self.named(path, n))?;
                     let values = args
                         .iter()
@@ -1913,8 +1930,8 @@ impl<'a> Engine<'a> {
                     return crate::evaluate::functional::sum(values);
                 }
                 if n == "eval" && args.len() == 1 {
-                    if self.contexts.len() >= 64 {
-                        return Err("Expression evaluation depth exceeds 64".into());
+                    if self.calls >= 32 {
+                        return Err("Function call depth exceeds 32".into());
                     }
                     let Value::Text(source) = self.expr(path, &args[0])? else {
                         return Err("eval expects expression text".into());
@@ -1922,7 +1939,9 @@ impl<'a> Engine<'a> {
                     // Dynamic expressions use the current document, not query row fields.
                     let bindings = self.bindings.take();
                     let locals = std::mem::take(&mut self.locals);
+                    self.calls += 1;
                     let result = self.eval(path, &source);
+                    self.calls -= 1;
                     self.locals = locals;
                     self.bindings = bindings;
                     return result;

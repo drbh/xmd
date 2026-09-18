@@ -107,6 +107,50 @@ fn split(source: &str, separator: char) -> Result<Vec<&str>, String> {
 fn expression(source: &str) -> Result<Expr, String> {
     Parser::parse(source)
 }
+impl Stage {
+    fn parse(source: &str) -> Result<Self, String> {
+        let tokens = engine::lex(source)?;
+        let first = tokens.first().ok_or("Empty pipeline stage")?;
+        let last = tokens.last().unwrap();
+        let Lexeme::Name(op) = &first.kind else {
+            return Err("Expected a pipeline stage name".into());
+        };
+        let argument = source[first.end..last.end].trim();
+        Ok(match op.as_str() {
+            "where" => Self::Where(expression(argument)?),
+            "select" => Self::Select(expression(argument)?),
+            "sort" => Self::Sort(
+                split(argument, ',')?
+                    .into_iter()
+                    .map(|key| {
+                        let tokens = engine::lex(key)?;
+                        let last = tokens.last().ok_or("Empty sort key")?;
+                        let descending = matches!(&last.kind, Lexeme::Name(n) if n == "desc");
+                        let direction = tokens.len() > 1
+                            && matches!(&last.kind, Lexeme::Name(n) if n == "desc" || n == "asc");
+                        Ok((
+                            expression(if direction { &key[..last.start] } else { key })?,
+                            direction && descending,
+                        ))
+                    })
+                    .collect::<Result<_, String>>()?,
+            ),
+            "limit" => Self::Limit(
+                argument
+                    .parse()
+                    .map_err(|_| "limit requires a nonnegative integer")?,
+            ),
+            "count" if argument.is_empty() => Self::Count,
+            "sum" => Self::Sum(expression(argument)?),
+            "group" => Self::Group(expression(argument)?),
+            _ => {
+                return Err(format!(
+                    "Unknown stage '{op}'; use where, select, sort, limit, count, sum or group"
+                ));
+            }
+        })
+    }
+}
 impl Query {
     pub fn parse(source: &str) -> Result<Self, String> {
         if source.len() > 65_536 {
@@ -157,26 +201,11 @@ impl Query {
                 ));
             }
         }
-        let mut stages = Vec::new();
-        for (i, part) in parts[1..].iter().enumerate() {
-            let parsed=(||{
-                let (op,argument)=part.split_once(char::is_whitespace).map(|(a,b)|(a,b.trim())).unwrap_or((part,""));
-                Ok(match op {
-                    "where"=>Stage::Where(expression(argument)?),
-                    "select"=>Stage::Select(expression(argument)?),
-                    "sort"=>Stage::Sort(split(argument,',')?.into_iter().map(|s|{
-                        let (expr,desc)=if let Some(s)=s.strip_suffix(" desc") {(s.trim(),true)} else {(s.strip_suffix(" asc").unwrap_or(s).trim(),false)};
-                        Ok((expression(expr)?,desc))
-                    }).collect::<Result<_,String>>()?),
-                    "limit"=>Stage::Limit(argument.parse().map_err(|_|"limit requires a nonnegative integer")?),
-                    "count" if argument.is_empty()=>Stage::Count,
-                    "sum"=>Stage::Sum(expression(argument)?),
-                    "group"=>Stage::Group(expression(argument)?),
-                    _=>return Err(format!("Unknown stage '{part}'; use where, select, sort, limit, count, sum or group")),
-                })
-            })().map_err(|e:String|format!("Stage {}: {e}",i+1))?;
-            stages.push(parsed);
-        }
+        let stages = parts[1..]
+            .iter()
+            .enumerate()
+            .map(|(i, part)| Stage::parse(part).map_err(|e| format!("Stage {}: {e}", i + 1)))
+            .collect::<Result<_, _>>()?;
         Ok(Self {
             sources,
             stages,
@@ -226,28 +255,32 @@ struct WorkspaceBindings {
 }
 impl Bindings for WorkspaceBindings {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>> {
-        if !catalog::COLLECTIONS.contains(&name) {
+        if name != "graph" && !catalog::COLLECTIONS.contains(&name) {
             return None;
         }
         if let Some(value) = self.cache.lock().expect("query cache poisoned").get(name) {
             return Some(Ok(value.clone()));
         }
-        let result = catalog::collect_document(
-            engine.workspace,
-            name,
-            QueryContext::new(engine.now),
-            engine,
-            self.only.as_deref(),
-            true,
-        )
-        .map(|records| {
-            Value::List(
-                records
-                    .into_iter()
-                    .map(|r| r.materialize(engine).value())
-                    .collect(),
+        let result = if name == "graph" {
+            Ok(crate::features::inspection::graph(engine.workspace, self.only.as_deref()).value())
+        } else {
+            catalog::collect_document(
+                engine.workspace,
+                name,
+                QueryContext::new(engine.now),
+                engine,
+                self.only.as_deref(),
+                true,
             )
-        });
+            .map(|records| {
+                Value::List(
+                    records
+                        .into_iter()
+                        .map(|r| r.materialize(engine).value())
+                        .collect(),
+                )
+            })
+        };
         if let Ok(value) = &result {
             self.cache
                 .lock()

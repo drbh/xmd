@@ -183,10 +183,15 @@ impl BrowserWorkspace {
         }
         if method == "query" {
             let compiled = crate::query::Query::parse(&field::<String>(&params, "query")?)?;
-            let result = crate::query::execute(
-                &self.workspace,
+            let only = params
+                .get("uri")
+                .filter(|v| !v.is_null())
+                .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
+                .transpose()?;
+            let result = crate::query::execute_scoped_in(
+                &crate::RequestContext::new(&self.workspace, now),
                 &compiled,
-                &crate::query::QueryContext::new(now),
+                only.as_deref(),
             )?;
             return Ok(
                 json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.versions_json()}),

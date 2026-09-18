@@ -91,6 +91,52 @@ pub fn hints_in(
     )
 }
 
+/// Materialize the same source and inline labels shown by the editor, at one clock snapshot.
+pub fn render_text_in(request: &crate::RequestContext<'_>, path: &Path) -> Result<String, String> {
+    let doc = request
+        .workspace()
+        .documents
+        .get(path)
+        .ok_or("File is not in this workspace's indexed .wtf notes")?;
+    let hints = hints_in(
+        request,
+        path,
+        Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
+    );
+    render_text(&doc.text, &hints.hints)
+}
+
+/// Insert display labels, honoring UTF-16 positions, padding and provider order.
+/// Inlay text edits are interactive actions and are never applied by a renderer.
+pub fn render_text(source: &str, hints: &[InlayHint]) -> Result<String, String> {
+    let edits: Vec<_> = hints
+        .iter()
+        .map(|hint| {
+            let mut label = String::new();
+            if hint.padding_left == Some(true) {
+                label.push(' ');
+            }
+            match &hint.label {
+                InlayHintLabel::String(text) => label.push_str(text),
+                InlayHintLabel::LabelParts(parts) => {
+                    for part in parts {
+                        label.push_str(&part.value);
+                    }
+                }
+            }
+            if hint.padding_right == Some(true) {
+                label.push(' ');
+            }
+            TextEdit {
+                range: Range::new(hint.position, hint.position),
+                // LSP labels occupy one display line even if their value contains newlines.
+                new_text: label.replace(['\r', '\n', '\t'], " "),
+            }
+        })
+        .collect();
+    crate::actions::apply_edits(source, &edits)
+}
+
 pub fn live_hints(workspace: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> bool {
     live_hints_in(&crate::RequestContext::new(workspace, now), path)
 }

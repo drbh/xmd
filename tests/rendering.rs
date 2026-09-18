@@ -1,0 +1,119 @@
+use chrono::{DateTime, FixedOffset};
+use lsp_types::{InlayHint, InlayHintLabel, InlayHintLabelPart, Position, Range, TextEdit};
+use std::path::Path;
+use wtf::{RequestContext, document::Document, presentation, workspace::Workspace};
+
+fn now() -> DateTime<FixedOffset> {
+    DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap()
+}
+fn path() -> &'static Path {
+    Path::new("/notes/main.wtf")
+}
+fn note(source: &str) -> Workspace {
+    Workspace {
+        roots: vec!["/notes".into()],
+        documents: [(path().into(), Document::parse(source.into()))].into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+        plugins: Default::default(),
+    }
+}
+
+#[test]
+fn resolved_text_preserves_source_and_places_multiline_and_inline_results() {
+    let source =
+        "[$10]:budget\n[total] := (\n  budget * 2\n)\n🦀 Total [total], extra [total + $1].";
+    let expected = "[$10]:budget\n[total] := (\n  budget * 2\n) = $20\n🦀 Total [total] $20, extra [total + $1] $21.";
+    for ending in ["\n", "\r\n"] {
+        for trailing in ["", ending] {
+            let source = source.replace('\n', ending) + trailing;
+            let ws = note(&source);
+            assert_eq!(
+                presentation::render_text_in(&RequestContext::new(&ws, now()), path()).unwrap(),
+                expected.replace('\n', ending) + trailing
+            );
+            assert_eq!(ws.documents[path()].text, source);
+        }
+    }
+}
+
+#[test]
+fn label_parts_padding_and_ties_use_display_order_without_applying_actions() {
+    let hint = |position, label| InlayHint {
+        position,
+        label: InlayHintLabel::String(label),
+        kind: None,
+        text_edits: None,
+        tooltip: None,
+        padding_left: None,
+        padding_right: None,
+        data: None,
+    };
+    let mut parts = hint(Position::new(0, 2), String::new());
+    parts.label = InlayHintLabel::LabelParts(
+        ["first", "\npart"]
+            .into_iter()
+            .map(|value| InlayHintLabelPart {
+                value: value.into(),
+                tooltip: None,
+                location: None,
+                command: None,
+            })
+            .collect(),
+    );
+    parts.padding_left = Some(true);
+    parts.padding_right = Some(true);
+    parts.text_edits = Some(vec![TextEdit {
+        range: Range::new(Position::new(0, 0), Position::new(0, 2)),
+        new_text: "DO NOT APPLY".into(),
+    }]);
+    let hints = [
+        hint(Position::new(2, 0), "end".into()),
+        parts,
+        hint(Position::new(0, 2), "second".into()),
+        hint(Position::new(1, 0), "empty".into()),
+    ];
+    assert_eq!(
+        presentation::render_text("🦀!\r\n\r\n", &hints).unwrap(),
+        "🦀 first part second!\r\nempty\r\nend"
+    );
+    assert!(presentation::render_text("🦀", &[hint(Position::new(0, 1), "bad".into())]).is_err());
+    assert!(presentation::render_text("", &[hint(Position::new(1, 0), "bad".into())]).is_err());
+    assert_eq!(presentation::render_text("", &[]).unwrap(), "");
+}
+
+#[test]
+fn resolved_text_uses_workspace_plugins_overrides_and_the_request_clock() {
+    let mut ws = note("clock := now()\n");
+    ws.plugins = std::sync::Arc::new(wtf::plugins::Plugins::compile([
+        ("/notes/.wtf/plugins/definitions.wtf".into(), "plugin := {api: 1, id: \"definitions\", kind: \"inlay\", enabled: false}".into()),
+        ("/notes/.wtf/plugins/custom.wtf".into(), "plugin := {api: 1, id: \"custom\", kind: \"inlay\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: source(now())}, {line: 0, label: \"second\"}]".into()),
+    ].into()).unwrap());
+    assert_eq!(
+        presentation::render_text_in(&RequestContext::new(&ws, now()), path()).unwrap(),
+        "clock := now() 2026-09-18T12:00:00+00:00 second\n"
+    );
+    assert!(
+        presentation::render_text_in(
+            &RequestContext::new(&ws, now()),
+            Path::new("/notes/missing.wtf")
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn resolved_text_matches_existing_feature_snapshots() {
+    let fixtures: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/lifted-features.json")).unwrap();
+    let clock = DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap();
+    for fixture in fixtures.as_array().unwrap() {
+        let source = fixture["source"].as_str().unwrap();
+        let ws = note(source);
+        let hints: Vec<InlayHint> = serde_json::from_value(fixture["hints"].clone()).unwrap();
+        assert_eq!(
+            presentation::render_text_in(&RequestContext::new(&ws, clock), path()).unwrap(),
+            presentation::render_text(source, &hints).unwrap()
+        );
+    }
+}

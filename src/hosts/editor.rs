@@ -236,6 +236,8 @@ impl Backend {
                     .module_buffers
                     .insert(path.clone(), Document::parse(text));
             } else {
+                // Open notes bypass discovery filters, including hidden/ignored
+                // directories and workspace roots. Rescans preserve these buffers.
                 state
                     .workspace
                     .documents

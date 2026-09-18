@@ -307,84 +307,126 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
 }
 
 #[test]
-fn ignored_open_notes_keep_highlighting_without_workspace_token_invalidations() {
+fn open_notes_keep_highlighting_and_inlays_outside_discovery_paths() {
     let dir = tempfile::tempdir().unwrap();
-    let root = dir.path().canonicalize().unwrap();
-    std::fs::write(root.join(".gitignore"), ".hidden/\n").unwrap();
-    std::fs::create_dir(root.join(".hidden")).unwrap();
-    let path = root.join(".hidden/TODOS.wtf");
-    let uri = Url::from_file_path(&path).unwrap();
-    let source = "# Notes\n\n## Checklist :launch\n\n- [ ] First\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n";
-    std::fs::write(&path, source).unwrap();
-    assert!(
-        !wtf::workspace::Workspace::load(vec![root.clone()])
-            .unwrap()
-            .documents
-            .contains_key(&path)
-    );
-    let mut lsp = Lsp::start(&root);
-    let assert_highlighting = |lsp: &mut Lsp, text: &str| {
-        // Wait until all change notifications have been sent, including refresh requests.
-        lsp.wait_for_request("workspace/codeLens/refresh");
-        let tokens = lsp.request(
-            "textDocument/semanticTokens/full",
-            json!({"textDocument":{"uri":uri}}),
-        );
-        let expected =
-            wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(text.into()));
-        assert!(!expected.is_empty());
-        assert_eq!(
-            tokens["data"],
-            serde_json::to_value(lsp_types::SemanticTokens {
-                result_id: None,
-                data: expected
-            })
-            .unwrap()["data"]
-        );
+    let parent = dir.path().canonicalize().unwrap();
+    let root = parent.join("workspace");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join(".gitignore"), ".hidden/\nignored/\n").unwrap();
+    for path in [
+        root.join(".hidden/TODOS.wtf"),
+        root.join(".local/TODOS.wtf"),
+        root.join("ignored/TODOS.wtf"),
+        root.join("node_modules/package/TODOS.wtf"),
+        root.join("target/TODOS.wtf"),
+        parent.join("outside/TODOS.wtf"),
+    ] {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let uri = Url::from_file_path(&path).unwrap();
+        let source = "# Notes\n\n## Checklist :launch\n\n- [ ] First @estimate(20m)\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n";
+        std::fs::write(&path, source).unwrap();
         assert!(
-            !lsp.requests
-                .iter()
-                .any(|r| r == "workspace/semanticTokens/refresh"),
-            "Document edits must not invalidate highlighting across the workspace"
+            !wtf::workspace::Workspace::load(vec![root.clone()])
+                .unwrap()
+                .documents
+                .contains_key(&path)
         );
-    };
-    lsp.notify(
-        "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":source}}),
-    );
-    assert_highlighting(&mut lsp, source);
-    for (i, title) in ["First 🦀", "First 🦀 edit", "First", "First again"]
+        let mut lsp = Lsp::start(&root);
+        let assert_presentation = |lsp: &mut Lsp, text: &str, completed: usize| {
+            // Wait until all change notifications have been sent, including refresh requests.
+            lsp.wait_for_request("workspace/codeLens/refresh");
+            let tokens = lsp.request(
+                "textDocument/semanticTokens/full",
+                json!({"textDocument":{"uri":uri}}),
+            );
+            let expected =
+                wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(text.into()));
+            assert!(!expected.is_empty());
+            assert_eq!(
+                tokens["data"],
+                serde_json::to_value(lsp_types::SemanticTokens {
+                    result_id: None,
+                    data: expected
+                })
+                .unwrap()["data"]
+            );
+            let hints = lsp.request(
+                "textDocument/inlayHint",
+                json!({
+                    "textDocument": {"uri": uri},
+                    "range": {"start": {"line": 0, "character": 0}, "end": {"line": 99, "character": 0}}
+                }),
+            );
+            let labels: Vec<_> = hints
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|hint| hint["label"].as_str().unwrap())
+                .collect();
+            let progress = if completed == 2 {
+                "████████ 2/2 complete"
+            } else {
+                "████░░░░ 1/2 complete · 20m estimated left"
+            };
+            let done = format!("= {completed}");
+            let left = format!("= {}", 2 - completed);
+            let effort = if completed == 2 { "= 0s" } else { "= 20m" };
+            assert_eq!(
+                labels,
+                [progress, progress, done.as_str(), left.as_str(), effort],
+                "{uri}"
+            );
+            assert!(
+                !lsp.requests
+                    .iter()
+                    .any(|r| r == "workspace/semanticTokens/refresh"),
+                "Document edits must not invalidate highlighting across the workspace"
+            );
+        };
+        lsp.notify(
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":source}}),
+        );
+        assert_presentation(&mut lsp, source, 1);
+        for (i, (text, completed)) in [
+            (source.replace("First", "First 🦀"), 1),
+            (source.replace("- [ ]", "- [x]"), 2),
+            (source.replace("First", "First again"), 1),
+        ]
         .into_iter()
         .enumerate()
-    {
-        let text = source.replace("First", title);
+        {
+            lsp.notify(
+                "textDocument/didChange",
+                json!({
+                    "textDocument": {"uri": uri, "version": i + 2},
+                    "contentChanges": [{"text": text}]
+                }),
+            );
+            assert_presentation(&mut lsp, &text, completed);
+            // Rescans retain open buffers and their evaluated hints regardless of path.
+            lsp.notify(
+                "workspace/didChangeWatchedFiles",
+                json!({"changes":[{"uri":uri,"type":2}]}),
+            );
+            assert_presentation(&mut lsp, &text, completed);
+            std::fs::write(&path, &text).unwrap();
+            lsp.notify("textDocument/didSave", json!({"textDocument":{"uri":uri}}));
+            assert_presentation(&mut lsp, &text, completed);
+        }
+        // Other documents' changes preserve this note's tokens and inlays too.
+        let other = Url::from_file_path(root.join("other.wtf")).unwrap();
         lsp.notify(
-            "textDocument/didChange",
-            json!({"textDocument":{"uri":uri,"version":i + 2},"contentChanges":[{"text":text}]}),
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":other,"languageId":"wtf","version":1,"text":"1:value\n"}}),
         );
-        assert_highlighting(&mut lsp, &text);
-        // A watcher rescan must retain an ignored note's unsaved buffer and its tokens.
+        assert_presentation(&mut lsp, &source.replace("First", "First again"), 1);
         lsp.notify(
-            "workspace/didChangeWatchedFiles",
-            json!({"changes":[{"uri":uri,"type":2}]}),
+            "textDocument/didClose",
+            json!({"textDocument":{"uri":other}}),
         );
-        assert_highlighting(&mut lsp, &text);
-        std::fs::write(&path, &text).unwrap();
-        lsp.notify("textDocument/didSave", json!({"textDocument":{"uri":uri}}));
-        assert_highlighting(&mut lsp, &text);
+        assert_presentation(&mut lsp, &source.replace("First", "First again"), 1);
     }
-    // Changing a second note must not clear the ignored note's highlighting either.
-    let other = Url::from_file_path(root.join("other.wtf")).unwrap();
-    lsp.notify(
-        "textDocument/didOpen",
-        json!({"textDocument":{"uri":other,"languageId":"wtf","version":1,"text":"1:value\n"}}),
-    );
-    assert_highlighting(&mut lsp, &source.replace("First", "First again"));
-    lsp.notify(
-        "textDocument/didClose",
-        json!({"textDocument":{"uri":other}}),
-    );
-    assert_highlighting(&mut lsp, &source.replace("First", "First again"));
 }
 
 #[test]

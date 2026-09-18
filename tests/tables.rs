@@ -2,7 +2,7 @@ use chrono::{DateTime, FixedOffset};
 use lsp_types::{Position, Range};
 use std::path::Path;
 use wtf::{
-    actions, diagnostics,
+    actions,
     document::{Document, Span},
     engine::{Engine, Value},
     intelligence, tables,
@@ -21,7 +21,7 @@ fn ws(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn span(doc: &Document, row: usize, needle: &str) -> Span {
@@ -36,7 +36,11 @@ fn tables_evaluate_typed_row_formulas_and_reactive_totals() {
     assert_eq!(engine.named(path(), "total").unwrap().display(), "$23.80");
     assert_eq!(engine.named(path(), "units"), Ok(Value::Number(6.0)));
     assert_eq!(engine.named(path(), "average").unwrap().display(), "$3.97");
-    assert!(diagnostics::collect(&ws, path(), now().date_naive(), now(), true).is_empty());
+    assert!(
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), true)
+            .is_empty()
+    );
     let changed = SOURCE
         .replace("| pear | 4", "| pear | 5")
         .replace("\n\n[total]", "\n| peach | 1 | $2.00 |\n\n[total]");
@@ -48,12 +52,12 @@ fn tables_evaluate_typed_row_formulas_and_reactive_totals() {
             .display(),
         "$30.10"
     );
-    let hints = wtf::presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(100, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(100, 0)),
+        )
+        .hints;
     assert!(hints.iter().any(|h| h.position.line == 9
         && matches!(&h.label, lsp_types::InlayHintLabel::String(s) if s == "$23.80")));
 }
@@ -85,12 +89,17 @@ fn columns_are_scoped_even_with_same_named_globals_and_other_tables() {
     assert!(tables::validate_rename(&ws, &symbol, "quantity").is_err());
     assert!(tables::validate_rename(&ws, &symbol, "unit_price").is_ok());
     assert!(tables::validate_rename(&ws, &symbol, "true").is_err());
-    assert!(diagnostics::collect(&ws, path(), now().date_naive(), now(), true).is_empty());
+    assert!(
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), true)
+            .is_empty()
+    );
 }
 
 #[test]
 fn table_aliases_and_columns_resolve_across_notes_without_capturing_globals() {
-    let mut ws = ws("[alias] := groceries\n[cost] := sum(alias, quantity * price)\n");
+    let mut ws =
+        ws("[alias] := import(\"./data.wtf\").groceries\n[cost] := sum(alias, quantity * price)\n");
     ws.documents
         .insert("/notes/data.wtf".into(), Document::parse(SOURCE.into()));
     assert_eq!(
@@ -117,7 +126,7 @@ fn table_diagnostics_pinpoint_bad_cells_and_unknown_columns() {
         .replace("quantity * price)", "quantity * prcie)");
     let ws = ws(&source);
     let doc = &ws.documents[path()];
-    let issues = diagnostics::collect(&ws, path(), now().date_naive(), now(), false);
+    let issues = wtf::RequestContext::new(&ws, now()).diagnostics(path(), false);
     assert!(
         issues
             .iter()
@@ -202,7 +211,7 @@ fn lsp_column_intelligence_works_for_incomplete_formulas_and_table_symbols() {
     let ws = ws(&SOURCE.replace("quantity * price)", "quantity * pr"));
     let doc = &ws.documents[path()];
     let position = doc.line_end(6);
-    let items = intelligence::completions(&ws, path(), position, now(), false);
+    let items = wtf::RequestContext::new(&ws, now()).completions(path(), position, false);
     assert_eq!(
         items.iter().map(|i| i.label.as_str()).collect::<Vec<_>>(),
         ["item", "quantity", "price"]
@@ -213,8 +222,12 @@ fn lsp_column_intelligence_works_for_incomplete_formulas_and_table_symbols() {
     assert_eq!(signature.active_parameter, Some(1));
     let position = span(doc, 1, "price").range(&doc.text).start;
     let (symbol, _) = intelligence::symbol_at(&ws, path(), position).unwrap();
-    assert!(intelligence::hover(&ws, &symbol, now()).contains("Column of `groceries`"));
-    let symbols = wtf::symbols::document_symbols(&ws, path(), now());
+    assert!(
+        wtf::RequestContext::new(&ws, now())
+            .symbol_hover(&symbol)
+            .contains("Column of `groceries`")
+    );
+    let symbols = wtf::RequestContext::new(&ws, now()).document_symbols(path());
     assert_eq!(symbols[0].name, "groceries");
     assert_eq!(
         symbols[0]
@@ -233,12 +246,13 @@ fn hovers_explain_cells_and_row_contributions_and_refactors_keep_row_scope() {
     let ws = ws(SOURCE);
     let doc = &ws.documents[path()];
     let total = ws.resolve(path(), "total").unwrap();
-    let hover = intelligence::hover(&ws, &total, now());
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&total);
     assert!(
         hover.contains("Row 1: $6.60") && hover.contains("Row 2: $17.20"),
         "{hover}"
     );
-    let cell = intelligence::cell_hover(&ws, path(), span(doc, 3, "$3.30").range(&doc.text).start)
+    let cell = wtf::RequestContext::new(&ws, chrono::Local::now().fixed_offset())
+        .cell_hover(path(), span(doc, 3, "$3.30").range(&doc.text).start)
         .unwrap();
     assert!(
         serde_json::to_string(&cell)
@@ -246,7 +260,11 @@ fn hovers_explain_cells_and_row_contributions_and_refactors_keep_row_scope() {
             .contains("groceries.price · Money")
     );
     let range = span(doc, 6, "quantity * price").range(&doc.text);
-    assert!(wtf::refactor::actions_for(&ws, path(), range, now()).is_empty());
+    assert!(
+        wtf::RequestContext::new(&ws, now())
+            .refactors(path(), range)
+            .is_empty()
+    );
 }
 
 #[test]
@@ -291,7 +309,7 @@ fn row_provenance_never_substitutes_globals_and_date_named_columns_are_reference
         "{SOURCE}\n[999]:quantity\n[999]:price\n[dates] := table\n|today|tomorrow|\n|---|---|\n|1|2|\n[future] := sum(dates, today + tomorrow)\n"
     ));
     let total = ws.resolve(path(), "total").unwrap();
-    let hover = intelligence::hover(&ws, &total, now());
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&total);
     assert!(!hover.contains("999"), "{hover}");
     let reference = ws.documents[path()]
         .references
@@ -320,7 +338,9 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
         Value::Money(43.3, wtf::engine::Currency::USD)
     );
     assert_eq!(
-        wtf::diagnostics::collect(&notes, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&notes, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
     let doc = &notes.documents[path()];
@@ -332,12 +352,12 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     let uses = wtf::intelligence::occurrences(&notes, &unit);
     assert_eq!(uses.len(), 3, "{uses:?}");
     assert_eq!(uses[1].1, span(doc, 6, "unit"));
-    let hover = wtf::intelligence::cell_hover(
-        &notes,
-        path(),
-        Position::new(6, span(doc, 6, "unit").range(&doc.text).start.character),
-    )
-    .unwrap();
+    let hover = wtf::RequestContext::new(&notes, chrono::Local::now().fixed_offset())
+        .cell_hover(
+            path(),
+            Position::new(6, span(doc, 6, "unit").range(&doc.text).start.character),
+        )
+        .unwrap();
     let text = match hover.contents {
         tower_lsp::lsp_types::HoverContents::Markup(m) => m.value,
         other => panic!("{other:?}"),
@@ -346,12 +366,12 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
         text.contains("Row 2: $30\n\nCalculated from `unit * qty`"),
         "{text}"
     );
-    let hints = wtf::presentation::hints_at(
-        &notes,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(20, 0)),
-    );
+    let hints = wtf::RequestContext::new(&notes, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(20, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()
@@ -365,7 +385,7 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     assert_eq!(label(7).as_deref(), Some("$10"));
     // A calculated cell of the wrong type is reported at the cell, not the table.
     let wrong = ws(&source.replace("| one   | [unit]       |", "| one   | [qty]        |"));
-    let issues = wtf::diagnostics::collect(&wrong, path(), now().date_naive(), now(), false);
+    let issues = wtf::RequestContext::new(&wrong, now()).diagnostics(path(), false);
     let messages: Vec<_> = issues.iter().map(|d| d.message.as_str()).collect();
     assert!(
         messages.contains(&"Column 'price' expects Money, found Number"),
@@ -374,11 +394,11 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     assert_eq!(issues[0].range.start, Position::new(7, 11));
     // Unknown names and empty brackets are ordinary diagnostics.
     let unknown = ws("[t] := table\n| a |\n| --- |\n| [nope] |\n");
-    let messages: Vec<_> =
-        wtf::diagnostics::collect(&unknown, path(), now().date_naive(), now(), false)
-            .into_iter()
-            .map(|d| d.message)
-            .collect();
+    let messages: Vec<_> = wtf::RequestContext::new(&unknown, now())
+        .diagnostics(path(), false)
+        .into_iter()
+        .map(|d| d.message)
+        .collect();
     assert_eq!(messages, ["Unknown name 'nope'"]);
     let empty = ws("[t] := table\n| a |\n| --- |\n| [] |\n");
     assert!(

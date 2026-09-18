@@ -12,12 +12,12 @@ constructs the LSP hint without source edits.
 Built-in producers cover definitions (including timers, charts and plans), plan
 decisions and constraints, table cells, itineraries, checklists, task status,
 calculations, references and links. Their implementations and registration order
-are in [`src/features/inlay_providers.rs`](../src/features/inlay_providers.rs).
+are in [`src/features/modules.rs`](../src/features/modules.rs).
 The core contract is in [`src/features/inlays.rs`](../src/features/inlays.rs).
 
 ## Adding an inlay
 
-Implement `InlayFeature` and add its instance to `inlay_providers::BUILTINS`:
+Implement `InlayFeature` and add its instance to `features::modules::BUILTINS`:
 
 ```rust
 use wtf::inlays::{InlayContext, InlayFeature, InlaySink};
@@ -45,7 +45,7 @@ clock. The evaluator tracks live values such as running timers. Call
 its output participate in editor refresh checks.
 
 For tests or embedding, pass any slice of `&dyn InlayFeature` to
-`inlays::collect`; append to `inlay_providers::BUILTINS.to_vec()` to retain the
+`inlays::collect`; append to `features::modules::BUILTINS.to_vec()` to retain the
 built-ins. Registration order breaks ties at the same position. No editor
 handler changes are needed.
 

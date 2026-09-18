@@ -1,0 +1,18 @@
+.wtf { color-scheme: dark; color: var(--wtf-foreground, #d4ded4); background: var(--wtf-background, #171b19); margin: 0; font: var(--wtf-font-size, 14px)/1.8 var(--wtf-font, "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace); tab-size: 2; white-space: pre; }
+.wtf code { font: inherit; }
+.wtf .inlay { color: var(--wtf-inlay-foreground, #b6c8a6); background: var(--wtf-inlay-background, #283125); border-radius: 3px; font-style: normal; font-weight: 400; white-space: pre; }
+.wtf a { color: inherit; text-decoration: underline; text-decoration-color: #90bed8; text-underline-offset: 3px; }
+.wtf .diagnostic { text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 4px; }
+.wtf .point { position: relative; }
+.wtf .point::after { content: " "; position: absolute; left: 0; min-width: 1ch; text-decoration: inherit; }
+.wtf .error { text-decoration-color: #ef8b80; }
+.wtf .warning { text-decoration-color: #eac080; }
+.wtf .info, .wtf .hint { text-decoration-color: #90bed8; }
+.wtf[data-interactive] .t-wtfCheckbox, .wtf[data-interactive] .t-wtfCheckboxChecked { cursor: pointer; }
+.wtf[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wtf[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
+.wtf[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
+.wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
+.wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
+.wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
+.wtf-controls button { font: inherit; cursor: pointer; }

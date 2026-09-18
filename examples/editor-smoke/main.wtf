@@ -2,7 +2,8 @@
 
 <!-- Change 125 to 150. The remaining value should change from $75 to $100. -->
 [$125]:smoke_budget
-[smoke_remaining] := smoke_budget - smoke_spent
+source := import("./values.wtf")
+[smoke_remaining] := smoke_budget - source.smoke_spent
 Remaining: [smoke_remaining].
 
 <!-- Go to definition on smoke_spent above to open values.wtf. -->

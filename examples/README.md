@@ -35,3 +35,5 @@ One short note per feature. Open any of them in Zed or the browser editor; each 
 - [Completion and signature help](31-completion-and-signatures.wtf)
 - [Folding and outline](32-folding-and-outline.wtf)
 - [Images and files](33-images-and-files.wtf)
+- [Sports scores](modules/34-sports-scores.wtf) — open `modules/` as the workspace so its `.wtf/modules.json` activates the `sports` link module and the `scores` library.
+- [Unit conversions](35-unit-conversions.wtf)

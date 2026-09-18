@@ -1,5 +1,0 @@
-# Documentation links
-
-plugin := {api: 1, id: "documentation", kind: "link", hosts: ["docs.example"]}
-inlay := fn(ctx) => "docs · " + ctx.url.path
-hover := fn(ctx) => "Open documentation at " + ctx.url.raw

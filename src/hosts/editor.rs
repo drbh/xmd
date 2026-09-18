@@ -1,8 +1,7 @@
+use crate::actions::TaskToggle;
 use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
-    actions,
-    document::{Document, Span, identifier},
-    engine::Value,
+    document::{Document, identifier},
     workspace::{SymbolKind, Workspace},
 };
 use chrono::Local;
@@ -18,15 +17,14 @@ use tower_lsp::{
     lsp_types::*,
 };
 
+pub use crate::presentation::semantic_tokens;
 use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
-pub use crate::presentation::{hints, hints_at, problems, semantic_tokens};
 
 struct State {
     workspace: Workspace,
     open: BTreeMap<PathBuf, i32>,
-    plugin_buffers: BTreeMap<PathBuf, Document>,
+    module_buffers: BTreeMap<PathBuf, Document>,
     hint_refresh: bool,
-    token_refresh: bool,
     watch: bool,
     live: BTreeSet<PathBuf>,
     lens_refresh: bool,
@@ -43,6 +41,7 @@ pub struct Backend {
 #[derive(serde::Deserialize)]
 struct QueryParams {
     query: String,
+    uri: Option<Url>,
     now: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
 impl Backend {
@@ -50,13 +49,24 @@ impl Backend {
         let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
         self.rescan().await;
         let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
-        let state = self.state.read().await;
-        let result = crate::query::execute(
-            &state.workspace,
-            &compiled,
-            &crate::query::QueryContext::new(now),
-        )
-        .map_err(Error::invalid_params)?;
+        let only = params
+            .uri
+            .map(|uri| {
+                uri.to_file_path()
+                    .map_err(|_| Error::invalid_params("Query uri must be a local file URI"))
+            })
+            .transpose()?;
+        let mut state = self.state.write().await;
+        if let Some(path) = &only {
+            state
+                .workspace
+                .include_file(path)
+                .map_err(Error::invalid_params)?;
+        }
+        compiled.load_imports(&mut state.workspace, only.as_deref());
+        let result = crate::RequestContext::new(&state.workspace, now)
+            .query(&compiled, only.as_deref())
+            .map_err(Error::invalid_params)?;
         let versions = state
             .open
             .iter()
@@ -79,12 +89,11 @@ impl Backend {
                     documents: BTreeMap::new(),
                     cache: BTreeMap::new(),
                     lookups: BTreeMap::new(),
-                    plugins: Default::default(),
+                    modules: Default::default(),
                 },
                 open: BTreeMap::new(),
-                plugin_buffers: BTreeMap::new(),
+                module_buffers: BTreeMap::new(),
                 hint_refresh: false,
-                token_refresh: false,
                 watch: false,
                 live: BTreeSet::new(),
                 lens_refresh: false,
@@ -96,7 +105,7 @@ impl Backend {
         }
     }
     async fn notify_changes(&self) {
-        let (diagnostics, hint_refresh, token_refresh, lens_refresh) = {
+        let (diagnostics, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
             let now = Local::now().fixed_offset();
             let paths: Vec<_> = state
@@ -109,14 +118,14 @@ impl Backend {
                 let request = crate::RequestContext::new(&state.workspace, now);
                 let live = paths
                     .iter()
-                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .filter(|p| request.live_hints(p))
                     .cloned()
                     .collect();
                 let updates: Vec<_> = paths
                     .into_iter()
                     .map(|path| {
-                        let ds = crate::diagnostics::collect_in(&request, &path, true);
-                        let lenses = crate::interaction::lenses_in(&request, &path);
+                        let ds = request.diagnostics(&path, true);
+                        let lenses = request.code_lenses(&path, Capabilities::NATIVE);
                         (path, ds, lenses)
                     })
                     .collect();
@@ -135,23 +144,17 @@ impl Backend {
                 state.diagnostics.insert(path.clone(), ds);
                 state.lenses.insert(path, lenses);
             }
-            (
-                diagnostics,
-                state.hint_refresh,
-                state.token_refresh,
-                state.lens_refresh,
-            )
+            (diagnostics, state.hint_refresh, state.lens_refresh)
         };
         for (uri, version, diagnostics) in diagnostics {
             self.client
                 .publish_diagnostics(uri, diagnostics, Some(version))
                 .await;
         }
+        // Only evaluated features need workspace refreshes. Semantic tokens depend
+        // on document text, and clients request updates when their buffers change.
         if hint_refresh {
             let _ = self.client.inlay_hint_refresh().await;
-        }
-        if token_refresh {
-            let _ = self.client.semantic_tokens_refresh().await;
         }
         if lens_refresh {
             let _ = self.client.code_lens_refresh().await;
@@ -177,14 +180,14 @@ impl Backend {
                 let updates: Vec<_> = paths
                     .iter()
                     .map(|path| {
-                        let ds = crate::diagnostics::collect_in(&request, path, true);
-                        let lenses = crate::interaction::lenses_in(&request, path);
+                        let ds = request.diagnostics(path, true);
+                        let lenses = request.code_lenses(path, Capabilities::NATIVE);
                         (path.clone(), ds, lenses)
                     })
                     .collect();
                 let live = paths
                     .into_iter()
-                    .filter(|p| crate::presentation::live_hints_in(&request, p))
+                    .filter(|p| request.live_hints(p))
                     .collect();
                 (live, updates)
             };
@@ -229,34 +232,44 @@ impl Backend {
             if state.open.get(&path).is_some_and(|v| *v > version) {
                 return;
             }
-            if crate::plugins::is_plugin_path(&path) {
+            if crate::modules::is_module_path(&path)
+                || state
+                    .workspace
+                    .modules
+                    .modules
+                    .iter()
+                    .any(|m| m.path == path)
+            {
                 // Highlight unsaved module source without activating it or adding
                 // its definitions to the note workspace. Reload still uses disk.
                 state
-                    .plugin_buffers
+                    .module_buffers
                     .insert(path.clone(), Document::parse(text));
             } else {
+                // Open notes bypass discovery filters, including hidden/ignored
+                // directories and workspace roots. Rescans preserve these buffers.
                 state
                     .workspace
                     .documents
                     .insert(path.clone(), Document::parse(text));
+                state.workspace.load_imports();
             }
             state.open.insert(path, version);
         }
         self.notify_changes().await;
     }
     async fn rescan(&self) {
-        let (roots, plugins) = {
+        let (roots, modules) = {
             let state = self.state.read().await;
             (
                 state.workspace.roots.clone(),
-                state.workspace.plugins.clone(),
+                state.workspace.modules.clone(),
             )
         };
         let result = tokio::task::spawn_blocking(move || {
             let mut workspace = Workspace::load_notes(roots)?;
-            workspace.plugins = plugins;
-            let error = workspace.reload_plugins().err();
+            workspace.modules = modules;
+            let error = workspace.reload_modules().err();
             Ok::<_, String>((workspace, error))
         })
         .await;
@@ -266,11 +279,26 @@ impl Backend {
                     self.client.log_message(MessageType::ERROR, error).await;
                 }
                 let mut state = self.state.write().await;
-                for path in state.open.keys() {
-                    if let Some(doc) = state.workspace.documents.get(path) {
-                        workspace.documents.insert(path.clone(), doc.clone());
+                let open: Vec<_> = state.open.keys().cloned().collect();
+                for path in open {
+                    let module = crate::modules::is_module_path(&path)
+                        || workspace.modules.modules.iter().any(|m| m.path == path);
+                    if module {
+                        if let Some(doc) = state.workspace.documents.get(&path).cloned() {
+                            state.module_buffers.insert(path, doc);
+                        }
+                    } else if let Some(doc) = state
+                        .module_buffers
+                        .remove(&path)
+                        .or_else(|| state.workspace.documents.get(&path).cloned())
+                    {
+                        workspace.documents.insert(path, doc);
                     }
                 }
+                workspace.load_imports();
+                workspace
+                    .documents
+                    .retain(|path, _| !workspace.modules.modules.iter().any(|m| m.path == *path));
                 state.workspace = workspace;
             }
             Ok(Err(e)) => self.client.log_message(MessageType::ERROR, e).await,
@@ -342,9 +370,6 @@ impl LanguageServer for Backend {
                 state.lens_refresh = w.code_lens.is_some_and(|c| c.refresh_support == Some(true));
                 state.hint_refresh = w
                     .inlay_hint
-                    .is_some_and(|c| c.refresh_support == Some(true));
-                state.token_refresh = w
-                    .semantic_tokens
                     .is_some_and(|c| c.refresh_support == Some(true));
                 state.watch = w
                     .did_change_watched_files
@@ -437,7 +462,7 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/plugins/*.wtf"}]}))}]).await;
+            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/modules.json"}]}))}]).await;
         }
         let backend = self.clone();
         tokio::spawn(async move {
@@ -485,7 +510,7 @@ impl LanguageServer for Backend {
             {
                 let mut state = self.state.write().await;
                 state.open.remove(&path);
-                state.plugin_buffers.remove(&path);
+                state.module_buffers.remove(&path);
             }
             self.rescan().await;
             self.client
@@ -506,12 +531,9 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state.workspace.documents.contains_key(&path).then(|| {
-            hints_at(
-                &state.workspace,
-                &path,
-                Local::now().fixed_offset(),
-                params.range,
-            )
+            crate::RequestContext::new(&state.workspace, Local::now().fixed_offset())
+                .hints(&path, params.range)
+                .hints
         }))
     }
     async fn semantic_tokens_full(
@@ -521,7 +543,7 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
-            .plugin_buffers
+            .module_buffers
             .get(&path)
             .or_else(|| state.workspace.documents.get(&path))
             .map(|doc| {
@@ -535,124 +557,8 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        let Some(doc) = ws.documents.get(&path) else {
-            return Ok(None);
-        };
-        let now = Local::now().fixed_offset();
-        let request = crate::RequestContext::new(ws, now);
-        if let Some(hover) = crate::features::module_features::hover(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-        if let Some(hover) = crate::intelligence::link_hover_in(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-        if let Some(hover) = crate::intelligence::cell_hover_in(&request, &path, at.position) {
-            return Ok(Some(hover));
-        }
-
-        if symbol_at(ws, &path, at.position).is_none()
-            && let Some(hover) =
-                crate::intelligence::calculation_hover_in(&request, &path, at.position)
-        {
-            return Ok(Some(hover));
-        }
-        if let Some((symbol, span)) = symbol_at(ws, &path, at.position) {
-            let mut value = crate::intelligence::hover_in(&request, &symbol);
-            let mut range = span.range(&doc.text);
-            if let Some(reference) = doc
-                .references
-                .iter()
-                .find(|r| r.span == span && r.property.is_some())
-            {
-                let property = request
-                    .engine()
-                    .eval(&path, &reference.expression())
-                    .map(|v| v.display())
-                    .unwrap_or_else(|e| e);
-                value = format!("{} = {}\n\n{}", reference.expression(), property, value);
-                range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
-            }
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(crate::intelligence::markup(value)),
-                range: Some(range),
-            }));
-        }
-        if let Some((index, task)) = doc
-            .tasks
-            .iter()
-            .enumerate()
-            .find(|(_, t)| t.line == at.position.line as usize)
-        {
-            let mut engine = request.engine();
-            let blocked = engine.blocked(&path, index);
-            let mut value = format!(
-                "**{}**\n\n{}",
-                task.title,
-                if engine.task_done(&path, index) {
-                    "Complete"
-                } else {
-                    "Incomplete"
-                }
-            );
-            match blocked {
-                Ok(names) if !names.is_empty() => {
-                    let names = names
-                        .into_iter()
-                        .map(|name| {
-                            ws.resolve(&path, &name)
-                                .map(|s| crate::intelligence::source_link(ws, &s))
-                                .unwrap_or(name)
-                        })
-                        .collect::<Vec<_>>();
-                    value.push_str(&format!("\n\nBlocked by: {}", names.join(", ")));
-                }
-                Err(e) => value.push_str(&format!("\n\n{e}")),
-                _ => {}
-            }
-            if let Some(attr) = task.attributes.get("estimate")
-                && let Ok(v) = engine.eval(&path, &attr.value)
-            {
-                value.push_str(&format!("\n\nEstimate: {}", v.display()));
-            }
-            if let Some(attr) = task.attributes.get("timer")
-                && let Ok(v) = engine.eval(&path, &attr.value)
-            {
-                value.push_str(&format!("\n\nTimer: {}", v.display()));
-                if let Value::Timer(timer) = &v
-                    && let Some(limit) = timer.limit
-                {
-                    value.push_str(&format!(
-                        "\n\n`{}`",
-                        crate::charts::bar_fraction(timer.elapsed as f64 / limit as f64)
-                    ));
-                }
-            }
-            let children: Vec<_> = doc
-                .tasks
-                .iter()
-                .enumerate()
-                .filter(|(_, t)| t.parent == Some(index))
-                .map(|(j, _)| j)
-                .collect();
-            if !children.is_empty() {
-                let done = children
-                    .iter()
-                    .filter(|j| engine.task_done(&path, **j))
-                    .count();
-                value.push_str(&format!(
-                    "\n\nSubtasks: `{}` {done}/{}",
-                    crate::charts::bar(done, children.len()),
-                    children.len()
-                ));
-            }
-            value.push_str("\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers.");
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(crate::intelligence::markup(value)),
-                range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
-            }));
-        }
-        Ok(None)
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(request.hover(&path, at.position))
     }
     async fn goto_definition(
         &self,
@@ -733,15 +639,12 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(Some(CompletionResponse::Array(
-            crate::intelligence::completions(
-                &state.workspace,
-                &path,
-                at.position,
-                Local::now().fixed_offset(),
-                state.snippets,
-            ),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(CompletionResponse::Array(request.completions(
+            &path,
+            at.position,
+            state.snippets,
+        ))))
     }
     async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
         let at = params.text_document_position_params;
@@ -756,11 +659,8 @@ impl LanguageServer for Backend {
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(Some(crate::interaction::lenses(
-            &state.workspace,
-            &path,
-            Local::now().fixed_offset(),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
     async fn document_highlight(
         &self,
@@ -807,77 +707,41 @@ impl LanguageServer for Backend {
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        if !ws.documents.contains_key(&path) {
+        if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        Ok(Some(crate::presentation::document_links(
-            ws,
-            &path,
-            Local::now().fixed_offset(),
-        )))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        Ok(Some(request.document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        let Some(doc) = ws.documents.get(&path) else {
+        if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
-        };
-        let now = Local::now().fixed_offset();
-        let request = crate::RequestContext::new(ws, now);
-        let row = params.range.start.line as usize;
-        let mut result: Vec<_> = crate::interaction::row_commands_in(&request, &path, row, false)
-            .into_iter()
-            .map(CodeActionOrCommand::Command)
-            .collect();
-        if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-            let title = if task.attributes.contains_key("every") {
-                "Complete occurrence and schedule next"
-            } else if request.engine().task_done(&path, i) {
-                "Reopen task"
-            } else {
-                "Complete task"
-            };
-            let mut action = CodeAction {
-                title: title.into(),
-                kind: Some(CodeActionKind::REFACTOR_REWRITE),
-                ..Default::default()
-            };
-            match actions::toggle_task_in(&request, &path, i) {
-                Ok(edits) => action.edit = Some(edit_for(&state, &path, edits)),
-                Err(reason) => action.disabled = Some(CodeActionDisabled { reason }),
-            }
-            result.push(CodeActionOrCommand::CodeAction(action));
         }
-        for action in crate::refactor::actions_for_in(&request, &path, params.range) {
-            result.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: action.title,
-                kind: Some(action.kind),
-                edit: Some(edit_for(&state, &path, action.edits)),
-                ..Default::default()
-            }));
-        }
-        let edits = actions::freeze_dates_in(&request, &path)
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let mut result: Vec<_> = request
+            .code_actions(
+                &path,
+                params.range,
+                Capabilities::NATIVE,
+                TaskToggle::Action,
+            )
             .into_iter()
-            .filter(|e| {
-                e.range.start.line >= params.range.start.line
-                    && e.range.start.line <= params.range.end.line
+            .map(|item| match item.command {
+                Some(command) => CodeActionOrCommand::Command(command),
+                None => CodeActionOrCommand::CodeAction(CodeAction {
+                    title: item.title,
+                    kind: item.kind,
+                    edit: item
+                        .disabled
+                        .is_none()
+                        .then(|| edit_for(&state, &path, item.edits)),
+                    disabled: item.disabled.map(|reason| CodeActionDisabled { reason }),
+                    ..Default::default()
+                }),
             })
-            .collect::<Vec<_>>();
-        if !edits.is_empty() {
-            result.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: "Freeze relative date".into(),
-                kind: Some(CodeActionKind::REFACTOR_REWRITE),
-                edit: Some(edit_for(&state, &path, edits)),
-                ..Default::default()
-            }));
-        }
-        if row == 0 && doc.line(0).trim_start().starts_with('#') {
-            result.push(CodeActionOrCommand::Command(
-                Action::ShowToday.command("Show today's agenda"),
-            ));
-        }
+            .collect();
         if let Some(only) = params.context.only {
             result.retain(|a| match a {
                 CodeActionOrCommand::CodeAction(a) => a.kind.as_ref().is_some_and(|kind| {
@@ -947,9 +811,9 @@ impl LanguageServer for Backend {
                     .map_err(Error::invalid_params)?;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&snapshot.plugins, &state.workspace.plugins) {
+                    if !Arc::ptr_eq(&snapshot.modules, &state.workspace.modules) {
                         return Err(Error::invalid_params(
-                            "Plugins changed during refresh; refresh again",
+                            "Modules changed during refresh; refresh again",
                         ));
                     }
                     state.workspace.cache.insert(resource.target, metadata);
@@ -966,9 +830,9 @@ impl LanguageServer for Backend {
                 let mut errors = crate::cli::refresh_in_memory(&mut workspace).await;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&workspace.plugins, &state.workspace.plugins) {
+                    if !Arc::ptr_eq(&workspace.modules, &state.workspace.modules) {
                         return Err(Error::invalid_params(
-                            "Plugins changed during refresh; refresh again",
+                            "Modules changed during refresh; refresh again",
                         ));
                     }
                     state.workspace.cache = workspace.cache;
@@ -1001,14 +865,13 @@ impl LanguageServer for Backend {
                 let now = Local::now().fixed_offset();
                 let today = now.date_naive();
                 let workspace = self.state.read().await.workspace.clone();
-                let compiled =
-                    crate::query::Query::parse("@today").map_err(Error::invalid_params)?;
-                let result = crate::query::execute(
-                    &workspace,
-                    &compiled,
-                    &crate::query::QueryContext::new(now),
+                let compiled = crate::query::Query::parse(
+                    "import(\"agenda\").between(entries, today(), today())",
                 )
                 .map_err(Error::invalid_params)?;
+                let result = crate::RequestContext::new(&workspace, now)
+                    .query(&compiled, None)
+                    .map_err(Error::invalid_params)?;
                 let lines: Vec<_> = result
                     .rows
                     .iter()
@@ -1111,7 +974,8 @@ impl LanguageServer for Backend {
         if !ws.documents.contains_key(&path) {
             return Ok(None);
         }
-        let symbols = crate::symbols::document_symbols(ws, &path, Local::now().fixed_offset());
+        let symbols =
+            crate::RequestContext::new(ws, Local::now().fixed_offset()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
         } else {
@@ -1142,15 +1006,9 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         let ws = &state.workspace;
-        Ok(
-            crate::hierarchy::prepare(ws, &path, at.position).map(|symbol| {
-                vec![crate::hierarchy::item(
-                    ws,
-                    &symbol,
-                    Local::now().fixed_offset(),
-                )]
-            }),
-        )
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        Ok(crate::hierarchy::prepare(ws, &path, at.position)
+            .map(|symbol| vec![request.hierarchy_item(&symbol)]))
     }
     async fn incoming_calls(
         &self,
@@ -1161,13 +1019,13 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let now = Local::now().fixed_offset();
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
         Ok(Some(
             crate::hierarchy::dependents(ws, &symbol)
                 .into_iter()
                 .map(|(from, spans)| CallHierarchyIncomingCall {
                     from_ranges: crate::hierarchy::ranges(ws, &from.path, &spans),
-                    from: crate::hierarchy::item(ws, &from, now),
+                    from: request.hierarchy_item(&from),
                 })
                 .collect(),
         ))
@@ -1181,13 +1039,13 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let now = Local::now().fixed_offset();
+        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
         Ok(Some(
             crate::hierarchy::dependencies(ws, &symbol)
                 .into_iter()
                 .map(|(to, spans)| CallHierarchyOutgoingCall {
                     from_ranges: crate::hierarchy::ranges(ws, &symbol.path, &spans),
-                    to: crate::hierarchy::item(ws, &to, now),
+                    to: request.hierarchy_item(&to),
                 })
                 .collect(),
         ))
@@ -1196,7 +1054,7 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
-            .plugin_buffers
+            .module_buffers
             .get(&path)
             .or_else(|| state.workspace.documents.get(&path))
             .map(crate::symbols::folding_ranges))
@@ -1205,7 +1063,8 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
-        crate::features::module_features::formatting(&request, &path)
+        request
+            .formatting(&path)
             .map(Some)
             .map_err(Error::invalid_params)
     }

@@ -14,4 +14,4 @@ geo:17.0654,-96.7236:zocalo
 merged := zed_pr.merged
 
 <!-- GitHub links get a status badge once refreshed: wtf refresh, or the
-Refresh GitHub status lens. Then zed_pr.merged and .checks_passed work. -->
+⟳ github lens. Then zed_pr.merged and .checks_passed work. -->

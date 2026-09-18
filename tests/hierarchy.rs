@@ -22,7 +22,7 @@ fn ws(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn point(ws: &Workspace, row: usize, needle: &str) -> Position {
@@ -71,7 +71,7 @@ fn values_report_what_they_read_and_who_reads_them() {
     // Preparing on a reference resolves to its definition.
     let via_reference = hierarchy::prepare(&ws, path(), point(&ws, 3, "cas")).unwrap();
     assert_eq!(via_reference, cash);
-    let item = hierarchy::item(&ws, &cash, now());
+    let item = wtf::RequestContext::new(&ws, now()).hierarchy_item(&cash);
     assert_eq!(item.name, "cash");
     assert_eq!(item.detail.as_deref(), Some("Money · $1,590"));
     assert_eq!(hierarchy::decode(&ws, &item), Some(cash));
@@ -90,7 +90,7 @@ fn columns_and_sums_form_edges_through_the_table() {
     };
     assert_eq!(names(&ws, hierarchy::dependents(&ws, &qty)), ["total×1"]);
     assert_eq!(names(&ws, hierarchy::dependencies(&ws, &qty)), ["t×1"]);
-    let item = hierarchy::item(&ws, &qty, now());
+    let item = wtf::RequestContext::new(&ws, now()).hierarchy_item(&qty);
     assert_eq!(item.detail.as_deref(), Some("Number · column of t"));
 }
 
@@ -103,7 +103,7 @@ fn tasks_link_through_after_subtasks_and_checklists() {
         names(&ws, hierarchy::dependencies(&ws, &ship)),
         ["buy×1", "cash×1", "spent×1"]
     );
-    let item = hierarchy::item(&ws, &ship, now());
+    let item = wtf::RequestContext::new(&ws, now()).hierarchy_item(&ship);
     assert_eq!(item.name, "Ship");
     assert_eq!(item.detail.as_deref(), Some("task · blocked by buy"));
     let buy = hierarchy::prepare(&ws, path(), point(&ws, 10, ":bu")).unwrap();
@@ -119,7 +119,10 @@ fn tasks_link_through_after_subtasks_and_checklists() {
     leaves.sort();
     assert_eq!(leaves, ["Pay×1", "Ship×1", "pick×1"]);
     assert_eq!(
-        hierarchy::item(&ws, &plan, now()).detail.as_deref(),
+        wtf::RequestContext::new(&ws, now())
+            .hierarchy_item(&plan)
+            .detail
+            .as_deref(),
         Some("checklist · 1/3 complete")
     );
 }
@@ -127,14 +130,10 @@ fn tasks_link_through_after_subtasks_and_checklists() {
 #[test]
 fn stale_or_foreign_items_are_rejected() {
     let ws = ws(NOTE);
-    let mut item = hierarchy::item(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Task(3),
-        },
-        now(),
-    );
+    let mut item = wtf::RequestContext::new(&ws, now()).hierarchy_item(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Task(3),
+    });
     item.data = Some(
         serde_json::json!({"path": PathBuf::from("/notes/other.wtf"), "kind": "task", "index": 0, "column": 0}),
     );

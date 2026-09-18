@@ -159,7 +159,18 @@ fn zed_rules_cover_the_shared_legend_and_match_browser_palette() {
         "../ide/zed/languages/wtf/semantic_token_rules.json"
     ))
     .unwrap();
-    let browser = include_str!("../web/editor.js");
+    let palette: serde_json::Value =
+        serde_json::from_str(include_str!("../web/theme/palette.json")).unwrap();
+    assert_eq!(serde_json::to_value(&rules).unwrap(), palette);
+    let browser: Vec<serde_json::Value> = serde_json::from_str(
+        include_str!("../web/theme/monaco.js")
+            .split("export default ")
+            .nth(1)
+            .unwrap()
+            .trim()
+            .trim_end_matches(';'),
+    )
+    .unwrap();
     for kind in TOKEN_TYPES {
         let rule = rules
             .iter()
@@ -170,7 +181,9 @@ fn zed_rules_cover_the_shared_legend_and_match_browser_palette() {
             .unwrap()
             .trim_start_matches('#');
         assert!(
-            browser.contains(&format!("token: \"{kind}\", foreground: \"{color}\"")),
+            browser
+                .iter()
+                .any(|rule| rule["token"] == *kind && rule["foreground"] == color),
             "Missing browser style for {kind}"
         );
     }

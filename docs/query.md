@@ -21,6 +21,10 @@ printf 'tasks | count' | wtf query -f - --json
 In this repository use `cargo run -- query ...` or `./target/debug/wtf query ...`;
 on macOS `/usr/bin/wtf` is an unrelated program.
 
+To print a whole note with its IDE inline values, use
+[`wtf render FILE`](rendering.md). Queries select structured data; rendering
+preserves the document layout and adds the language server's inlay labels.
+
 ## Collections and records
 
 | Collection | Records and notable fields |
@@ -186,14 +190,12 @@ paths are relative to the process working directory, independently of `--root`.
 | `wtf tasks --tag errands` | `wtf query '@tasks \| where contains(tags, "errands")'` |
 | `wtf check` | `wtf query @check --fail-on-match` |
 | `wtf plan bakery --json` | `wtf query 'plans \| where name == "bakery" \| select solution' --json` |
-| `wtf plan bakery --export` | `wtf convert --to-alps bakery` |
-| `wtf plan --import problem.json` | `wtf convert --from-alps problem.json` |
 
 These are breaking CLI changes; the old read commands have been removed.
 `@tasks` selects unfinished leaves, while the `tasks` collection includes every
 task. `@today` and `@week` preserve overdue/undated tasks and malformed appointment
 visibility. `@week` covers today through six days later. `@check` selects errors
-and excludes warnings. The editor's **Show today's agenda** uses `@today` too.
+and excludes warnings. The editor's **⚑ today** uses `@today` too.
 
 `capture`, `complete`, and `refresh` remain explicit operations. Completion still
 checks blockers, handles descendants, and advances recurring tasks with history.

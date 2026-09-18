@@ -1,8 +1,6 @@
 //! Typed editor actions. The wire codec and validation are shared by every host;
 //! preparation returns effects for the host to deliver without applying them.
-use crate::{
-    RequestContext, actions, interaction, paths, resources::Resource, timers::TimerAction,
-};
+use crate::{RequestContext, actions, paths, resources::Resource, timers::TimerAction};
 use lsp_types::{Command, TextEdit, Url};
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -36,7 +34,7 @@ pub enum Action {
     Invoke {
         document: Url,
         expected: String,
-        plugin: String,
+        module: String,
         revision: String,
         event: Value,
     },
@@ -250,12 +248,12 @@ impl Action {
         let Self::Invoke {
             document,
             expected,
-            plugin,
+            module,
             revision,
             ..
         } = self
         else {
-            return Err("Expected a plugin invocation".into());
+            return Err("Expected a module invocation".into());
         };
         let path = document_path(document)?;
         let doc = request
@@ -268,15 +266,15 @@ impl Action {
         }
         let module = request
             .workspace()
-            .plugins
+            .modules
             .active()
-            .find(|m| m.id == *plugin)
-            .ok_or("Plugin is no longer available")?;
+            .find(|m| m.id == *module)
+            .ok_or("Module is no longer available")?;
         if module.revision() != *revision {
-            return Err("Plugin changed; request fresh controls".into());
+            return Err("Module changed; request fresh controls".into());
         }
-        if !module.has("reduce") {
-            return Err("Plugin has no reducer".into());
+        if !module.has(crate::modules::Hook::Reduce) {
+            return Err("Module has no reducer".into());
         }
         Ok(())
     }
@@ -299,18 +297,18 @@ impl Action {
         match self {
             Self::Invoke {
                 document,
-                plugin,
+                module,
                 event,
                 ..
             } => {
                 self.validate_invocation(request)?;
                 let module = request
                     .workspace()
-                    .plugins
+                    .modules
                     .active()
-                    .find(|m| m.id == *plugin)
-                    .ok_or("Plugin is no longer available")?;
-                super::plugin_inlays::reduce(
+                    .find(|m| m.id == *module)
+                    .ok_or("Module is no longer available")?;
+                super::modules::reduce(
                     request,
                     &document_path(document)?,
                     module,
@@ -342,7 +340,7 @@ impl Action {
                     .iter()
                     .position(|t| t.line == target.row)
                     .ok_or("No task at this line")?;
-                let edits = actions::toggle_task_in(request, &path, index)?;
+                let edits = request.toggle_task(&path, index)?;
                 Ok(PreparedAction::Edit { path, edits })
             }
             Self::Timer {
@@ -350,12 +348,8 @@ impl Action {
                 name,
                 action,
             } => {
-                let (origin, edit) = crate::timers::edit_in(
-                    request,
-                    &document_path(document)?,
-                    name,
-                    action.as_str(),
-                )?;
+                let (origin, edit) =
+                    crate::timers::edit_in(request, &document_path(document)?, name, *action)?;
                 Ok(PreparedAction::Edit {
                     path: origin.path,
                     edits: vec![edit],
@@ -363,7 +357,8 @@ impl Action {
             }
             Self::OpenResource { target, url } | Self::RefreshResource { target, url } => {
                 let path = target.validate(request)?;
-                let resource = interaction::resources_at_in(request, &path, target.row)
+                let resource = request
+                    .resources_at(&path, target.row)
                     .into_iter()
                     .find(|r| r.url(&path).is_ok_and(|u| u == *url))
                     .ok_or("Resource changed; request fresh controls")?;

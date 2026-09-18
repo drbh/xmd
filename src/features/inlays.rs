@@ -7,7 +7,7 @@ use std::path::Path;
 
 /// A producer of labels and their tooltips. Collection is read-only: use the
 /// request's engine/clock and cached data, never fetch or modify source here.
-/// Implement this trait and register the implementation in `inlay_providers::BUILTINS`.
+/// Hosts may supply additional producers to `collect`; default features are modules.
 pub trait InlayFeature: Send + Sync {
     fn id(&self) -> &str {
         ""
@@ -82,9 +82,7 @@ pub fn collect(
         hints: Vec::new(),
     };
     for feature in features {
-        if !context.engine.workspace.plugins.overrides(feature.id()) {
-            feature.collect(&mut context, &mut output);
-        }
+        feature.collect(&mut context, &mut output);
     }
     output.hints.sort_by_key(|hint| hint.position);
     InlayOutput {

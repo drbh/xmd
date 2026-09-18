@@ -1,10 +1,7 @@
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
-use wtf::{
-    actions, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
-    tables, workspace::Workspace,
-};
+use wtf::{actions, document::Document, itinerary, symbols, workspace::Workspace};
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
@@ -21,11 +18,12 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {
-    diagnostics::collect(ws, path(), today(), now(), false)
+    wtf::RequestContext::new(ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .filter(|d| d.severity != Some(DiagnosticSeverity::WARNING))
         .map(|d| d.message)
@@ -89,7 +87,10 @@ fn days_stops_and_details_parse_from_natural_text() {
     assert!(flight.inferred && flight.marker_span.is_none());
     assert_eq!(friday.stops[3].kind.map(|k| k.name), Some("Stay"));
     assert_eq!(kinds(&doc.days[1]), ["Explore", "Meal"]);
-    assert_eq!(itinerary::display_time(flight), "07:04 AM");
+    assert_eq!(
+        itinerary::display_time(&Default::default(), flight),
+        "07:04 AM"
+    );
     assert_eq!(
         flight
             .details
@@ -103,7 +104,10 @@ fn days_stops_and_details_parse_from_natural_text() {
         ]
     );
     assert_eq!(flight.end_line, 8);
-    assert_eq!(itinerary::display_time(&friday.stops[2]), "02:45 PM");
+    assert_eq!(
+        itinerary::display_time(&Default::default(), &friday.stops[2]),
+        "02:45 PM"
+    );
     let saturday = &doc.days[1];
     assert_eq!(saturday.year, None);
     assert_eq!(
@@ -112,7 +116,7 @@ fn days_stops_and_details_parse_from_natural_text() {
     );
     assert_eq!(saturday.stops[0].notes.len(), 2);
     assert_eq!(
-        itinerary::dates(&doc.days, today()),
+        itinerary::dates(&Default::default(), &doc.days, today()),
         [
             NaiveDate::from_ymd_opt(2026, 11, 20),
             NaiveDate::from_ymd_opt(2026, 11, 21)
@@ -151,23 +155,27 @@ fn markers_are_parsed_and_unknown_kinds_are_warned_about() {
     assert_eq!(stops[1].kind, None);
     // A marker needs a space after it; "*Lunch" is a title starting with an asterisk.
     assert_eq!(stops[2].kind.map(|k| k.name), None);
-    let warnings: Vec<_> = diagnostics::collect(&ws, path(), today(), now(), false)
+    let warnings: Vec<_> = wtf::RequestContext::new(&ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .filter(|d| d.severity == Some(DiagnosticSeverity::WARNING))
         .map(|d| d.range.start.line)
         .collect();
     assert_eq!(warnings, [3, 4]);
     assert_eq!(
-        itinerary::canonical_line(&stops[0]),
+        itinerary::canonical_line(&Default::default(), &stops[0]),
         "09:00 AM  > JFK to MEX"
     );
-    assert_eq!(itinerary::label(&stops[1]), "Something vague");
+    assert_eq!(
+        itinerary::label(&Default::default(), &stops[1]),
+        "Something vague"
+    );
 }
 
 #[test]
 fn years_carry_forward_and_a_bare_first_day_is_upcoming() {
     let ws = note("December 30\n\n9:00 AM Fly\n\nJanuary 2\n\n9:00 AM Fly home\n");
-    let dates = itinerary::dates(&ws.documents[path()].days, today());
+    let dates = itinerary::dates(&Default::default(), &ws.documents[path()].days, today());
     assert_eq!(
         dates,
         [
@@ -177,7 +185,7 @@ fn years_carry_forward_and_a_bare_first_day_is_upcoming() {
     );
     let past = note("March 3\n\n9:00 AM Something\n");
     assert_eq!(
-        itinerary::dates(&past.documents[path()].days, today()),
+        itinerary::dates(&Default::default(), &past.documents[path()].days, today()),
         [NaiveDate::from_ymd_opt(2027, 3, 3)]
     );
     // Prose that merely mentions a date is not a day heading.
@@ -204,8 +212,13 @@ fn itinerary_diagnostics_catch_wrong_weekdays_order_and_bad_dates() {
 
 #[test]
 fn format_document_normalizes_times_and_detail_indentation() {
-    let doc = Document::parse(TRIP.into());
-    let formatted = actions::apply_edits(TRIP, &tables::formatting(&doc)).unwrap();
+    let formatted = actions::apply_edits(
+        TRIP,
+        &wtf::RequestContext::new(&note(TRIP), now())
+            .formatting(path())
+            .unwrap(),
+    )
+    .unwrap();
     assert!(
         formatted.contains("02:45 PM  > Depart MEX for OAX on AM 1050\n"),
         "{formatted}"
@@ -219,20 +232,24 @@ fn format_document_normalizes_times_and_detail_indentation() {
     // Headings and prose are untouched, and formatting is idempotent.
     assert!(formatted.contains("## Friday, November 20, 2026 · New York | Oaxaca\n"));
     assert!(formatted.contains("SATURDAY, NOVEMBER 21  OAXACA\n"));
-    let again = Document::parse(formatted.clone());
-    assert!(tables::formatting(&again).is_empty());
+    assert!(
+        wtf::RequestContext::new(&note(&formatted), now())
+            .formatting(path())
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[test]
 fn inlays_hover_outline_and_folding_describe_the_trip() {
     let ws = note(TRIP);
     let doc = &ws.documents[path()];
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(40, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(40, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()
@@ -248,7 +265,9 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
     assert_eq!(label(9), "↻ 2h 50m layover");
     assert_eq!(label(18), "cancel by Thu Nov 19, 07:20 PM");
     assert_eq!(label(22), "2 stops · 11:30 AM – 01:00 PM · in 66 days");
-    let hover = intelligence::stop_hover(&ws, path(), Position::new(9, 3), today()).unwrap();
+    let hover = wtf::RequestContext::new(&ws, now())
+        .module_hover(path(), Position::new(9, 3))
+        .unwrap();
     let text = match hover.contents {
         HoverContents::Markup(m) => m.value,
         other => panic!("{other:?}"),
@@ -260,7 +279,7 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
         "{text}"
     );
     assert!(text.contains("**Note:** 2h 50m layover."), "{text}");
-    let outline = symbols::document_symbols(&ws, path(), now());
+    let outline = wtf::RequestContext::new(&ws, now()).document_symbols(path());
     let trip = &outline[0];
     let friday = trip
         .children
@@ -320,12 +339,13 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
 #[test]
 fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
     let ws = note("Friday, November 20, 2026\n\n09:00 AM De\n\n10:00 AM Coffee\nAd\n");
-    let kinds = intelligence::completions(&ws, path(), Position::new(2, 11), now(), false);
+    let kinds =
+        wtf::RequestContext::new(&ws, now()).completions(path(), Position::new(2, 11), false);
     assert_eq!(
         kinds.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(),
         ["> Depart"]
     );
-    let keys = intelligence::completions(&ws, path(), Position::new(5, 2), now(), false);
+    let keys = wtf::RequestContext::new(&ws, now()).completions(path(), Position::new(5, 2), false);
     assert_eq!(
         keys.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(),
         ["Address:"]
@@ -335,28 +355,30 @@ fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
 #[test]
 fn stops_join_the_agenda_in_time_order() {
     let ws = note(TRIP);
-    let entries = wtf::query::execute(
-        &ws,
-        &wtf::query::Query::parse("stops | sort at").unwrap(),
-        &wtf::query::QueryContext::new(now()),
-    )
-    .unwrap();
+    let entries = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+        .query(&wtf::query::Query::parse("stops | sort at").unwrap(), None)
+        .unwrap();
     assert_eq!(entries.rows.len(), 7);
     let first = entries.rows[0].json();
     assert_eq!(first["at"]["value"], "2026-11-20T07:04:00-04:00");
     assert_eq!(first["at_date"]["value"], "2026-11-20");
-    let query = wtf::query::Query::parse("@week | where kind == \"stop\"").unwrap();
+    let query = wtf::query::Query::parse(
+        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\"",
+    )
+    .unwrap();
     let trip = wtf::query::QueryContext::new(
         DateTime::parse_from_rfc3339("2026-11-20T12:00:00-05:00").unwrap(),
     );
     assert!(
-        !wtf::query::execute(&ws, &query, &trip)
+        !wtf::RequestContext::new(&ws, trip.now)
+            .query(&query, None)
             .unwrap()
             .rows
             .is_empty()
     );
     assert!(
-        wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now()))
+        wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(now()).now)
+            .query(&query, None)
             .unwrap()
             .rows
             .is_empty()

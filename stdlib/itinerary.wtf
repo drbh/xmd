@@ -1,0 +1,38 @@
+module := {
+  api: 1,
+  id: "itinerary",
+  kind: "feature",
+  inputs: {days: ["value"]},
+  imports: ["itinerary_core"]
+}
+trip := import("itinerary_core")
+
+// Unwrap the parsed day records selected from the catalog.
+days := fn(ctx) => (
+  map(ctx.document.days, fn(d) => d.value)
+)
+
+// Produce day and stop hints using the request's calendar date.
+collect := fn(ctx) => (
+  trip.collect(days(ctx), ctx.today)
+)
+
+// Describe stops, their details, and the next scheduled stop.
+hovers := fn(ctx) => (
+  trip.hovers(days(ctx), ctx.today)
+)
+
+// Validate itinerary dates and ordering through the shared library.
+diagnostics := fn(ctx) => (
+  trip.diagnostics(days(ctx), ctx.today)
+)
+
+// Normalize stop lines and detail indentation.
+format := fn(ctx) => (
+  trip.format_days(days(ctx))
+)
+
+// Refresh relative dates only for documents with itinerary days.
+time_dependent := fn(ctx) => (
+  length(ctx.document.days) > 0
+)

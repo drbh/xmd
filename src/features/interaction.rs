@@ -1,21 +1,14 @@
 use crate::commands::{Action, Capabilities, RowTarget};
-use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
-use chrono::{DateTime, FixedOffset};
+use crate::glyphs;
+use crate::modules::{Hook, ModuleKind};
+use crate::{actions, engine::Value, resources::Resource};
 use lsp_types::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
 
-pub fn resources_at(
-    ws: &Workspace,
-    path: &Path,
-    row: usize,
-    now: DateTime<FixedOffset>,
-) -> Vec<Resource> {
-    resources_at_in(&crate::RequestContext::new(ws, now), path, row)
-}
-pub fn resources_at_in(
+pub(crate) fn resources_at(
     request: &crate::RequestContext<'_>,
     path: &Path,
     row: usize,
@@ -56,29 +49,17 @@ pub fn resources_at_in(
     }
     found.into_values().collect()
 }
-pub fn row_commands(
-    ws: &Workspace,
-    path: &Path,
-    row: usize,
-    now: DateTime<FixedOffset>,
-    include_task: bool,
-) -> Vec<Command> {
-    row_commands_in(
-        &crate::RequestContext::new(ws, now),
-        path,
-        row,
-        include_task,
-    )
+/// The shared label for the task toggle lens and code action.
+pub fn task_toggle_title(recurring: bool, done: bool) -> String {
+    if recurring {
+        format!("{} next", glyphs::REPEAT)
+    } else if done {
+        format!("{} reopen", glyphs::OFF)
+    } else {
+        format!("{} done", glyphs::DONE)
+    }
 }
-pub fn row_commands_in(
-    request: &crate::RequestContext<'_>,
-    path: &Path,
-    row: usize,
-    include_task: bool,
-) -> Vec<Command> {
-    row_commands_for(request, path, row, include_task, Capabilities::NATIVE)
-}
-pub fn row_commands_for(
+pub(crate) fn row_commands(
     request: &crate::RequestContext<'_>,
     path: &Path,
     row: usize,
@@ -104,32 +85,29 @@ pub fn row_commands_for(
     let engine = request.engine();
     if include_task
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
-        && actions::toggle_task_in(request, path, index).is_ok()
+        && actions::toggle_task(request, path, index).is_ok()
     {
-        let title = if task.attributes.contains_key("every") {
-            "Complete occurrence and schedule next"
-        } else if engine.task_done(path, index) {
-            "Reopen task"
-        } else {
-            "Complete task"
-        };
-        push(Action::ToggleTask(target.clone()), title.into());
+        let title = task_toggle_title(
+            task.attributes.contains_key("every"),
+            engine.task_done(path, index),
+        );
+        push(Action::ToggleTask(target.clone()), title);
     }
-    for resource in resources_at_in(request, path, row) {
+    for resource in resources_at(request, path, row) {
         let url = resource.url(path).unwrap();
         let kind = if resource.is_image() {
             "image"
         } else if resource.target.starts_with("geo:") {
             "map"
         } else {
-            "resource"
+            "open"
         };
         push(
             Action::OpenResource {
                 target: target.clone(),
                 url: url.clone(),
             },
-            format!("Open {kind}"),
+            format!("{} {kind}", glyphs::OPEN),
         );
         if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
             push(
@@ -151,24 +129,13 @@ pub fn row_commands_for(
             Action::Refresh {
                 document: Some(uri),
             },
-            "Refresh lookups".into(),
+            format!("{} lookups", glyphs::REFRESH),
         );
     }
-    result.extend(super::plugin_inlays::commands(
-        request,
-        path,
-        row,
-        capabilities,
-    ));
+    result.extend(super::modules::commands(request, path, row, capabilities));
     result
 }
-pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {
-    lenses_in(&crate::RequestContext::new(ws, now), path)
-}
-pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLens> {
-    lenses_for(request, path, Capabilities::NATIVE)
-}
-pub fn lenses_for(
+pub(crate) fn lenses(
     request: &crate::RequestContext<'_>,
     path: &Path,
     capabilities: Capabilities,
@@ -187,9 +154,9 @@ pub fn lenses_for(
         .chain(doc.links.iter().map(|l| l.span.line))
         .chain(
             if ws
-                .plugins
+                .modules
                 .active()
-                .any(|m| m.kind == "inlay" && m.has("actions"))
+                .any(|m| m.kind == ModuleKind::Feature && m.has(Hook::Actions))
             {
                 0..doc.text.lines().count()
             } else {
@@ -199,7 +166,7 @@ pub fn lenses_for(
         .collect();
     rows.into_iter()
         .flat_map(|row| {
-            row_commands_for(request, path, row, true, capabilities)
+            row_commands(request, path, row, true, capabilities)
                 .into_iter()
                 .map(move |command| CodeLens {
                     range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),

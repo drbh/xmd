@@ -55,7 +55,7 @@ pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> 
     }
     let key = rate_key(from, to);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached rate {from}→{to}; run wtf refresh or use Refresh lookups")
+        format!("No cached rate {from}→{to}; run wtf refresh or use the ⟳ lookups lens")
     })?;
     lookup.value["rate"]
         .as_f64()
@@ -70,7 +70,7 @@ pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> 
 pub fn quote(store: &Store, symbol: &str) -> Result<Value, String> {
     let key = quote_key(symbol);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached quote for {symbol}; run wtf refresh or use Refresh lookups")
+        format!("No cached quote for {symbol}; run wtf refresh or use the ⟳ lookups lens")
     })?;
     let price = lookup.value["price"]
         .as_f64()
@@ -95,7 +95,9 @@ pub fn forecast(
 ) -> Result<Forecast, String> {
     let key = forecast_key(place, date);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached forecast for {place} on {date}; run wtf refresh or use Refresh lookups")
+        format!(
+            "No cached forecast for {place} on {date}; run wtf refresh or use the ⟳ lookups lens"
+        )
     })?;
     forecast_from(&lookup.value, fahrenheit)
         .map_err(|e| format!("Forecast for {place} on {date}: {e}"))
@@ -166,7 +168,7 @@ pub fn wanted(
                 let _ = engine.eval(path, &attr.value);
             }
         }
-        let dates = crate::itinerary::dates(&doc.days, today);
+        let dates = crate::itinerary::dates(&ws.modules, &doc.days, today);
         for (day, date) in doc.days.iter().zip(&dates) {
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)

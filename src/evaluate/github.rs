@@ -2,14 +2,14 @@
 use crate::{
     engine::Value,
     link_features::{LinkContext, LinkFeature, RefreshRequest},
-    plugins::{Module, from_json, url_value},
+    modules::{Module, from_json, url_value},
     resources::Metadata,
 };
 use chrono::{DateTime, Utc};
 use lsp_types::Url;
 
 fn module() -> &'static Module {
-    crate::plugins::bundled()
+    crate::modules::bundled()
         .iter()
         .find(|m| m.id == "github")
         .expect("bundled GitHub module")

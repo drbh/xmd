@@ -1,26 +1,119 @@
 use crate::{
+    commands::{Action, Capabilities},
     document::{Span, byte_at},
     engine::{Value, next_occurrence},
-    workspace::Workspace,
 };
 use chrono::NaiveDate;
-use lsp_types::{Position, Range, TextEdit};
+use lsp_types::{CodeActionKind, Command, Position, Range, TextEdit};
 use std::path::Path;
 
-pub fn toggle_task(
-    workspace: &Workspace,
-    path: &Path,
-    index: usize,
-    today: NaiveDate,
-) -> Result<Vec<TextEdit>, String> {
-    toggle_task_in(
-        &crate::RequestContext::new(workspace, chrono::Local::now().fixed_offset())
-            .with_today(today),
-        path,
-        index,
-    )
+/// One proposal, before a host decides how to carry it: an edit, a command, or
+/// an edit it must show as unavailable with a reason.
+#[derive(Clone, Debug)]
+pub struct CodeActionItem {
+    pub title: String,
+    pub kind: Option<CodeActionKind>,
+    pub edits: Vec<TextEdit>,
+    pub command: Option<Command>,
+    pub disabled: Option<String>,
 }
-pub fn toggle_task_in(
+impl CodeActionItem {
+    fn edit(title: String, kind: CodeActionKind, edits: Vec<TextEdit>) -> Self {
+        Self {
+            title,
+            kind: Some(kind),
+            edits,
+            command: None,
+            disabled: None,
+        }
+    }
+    fn command(command: Command) -> Self {
+        Self {
+            title: command.title.clone(),
+            kind: None,
+            edits: vec![],
+            command: Some(command),
+            disabled: None,
+        }
+    }
+}
+
+/// How a host prefers to offer completing or reopening a task.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TaskToggle {
+    /// A command the host executes, listed with the row's other controls.
+    Command,
+    /// An edit the host applies itself, shown disabled when it is blocked.
+    Action,
+}
+
+/// Every action offered for one range, in the order a host should show them.
+pub(crate) fn code_actions(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    range: Range,
+    capabilities: Capabilities,
+    toggle: TaskToggle,
+) -> Vec<CodeActionItem> {
+    let ws = request.workspace();
+    let Some(doc) = ws.documents.get(path) else {
+        return vec![];
+    };
+    let row = range.start.line as usize;
+    let mut result: Vec<_> = crate::interaction::row_commands(
+        request,
+        path,
+        row,
+        toggle == TaskToggle::Command,
+        capabilities,
+    )
+    .into_iter()
+    .map(CodeActionItem::command)
+    .collect();
+    if toggle == TaskToggle::Action
+        && let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
+    {
+        let title = crate::interaction::task_toggle_title(
+            task.attributes.contains_key("every"),
+            request.engine().task_done(path, i),
+        );
+        let mut item = CodeActionItem::edit(title, CodeActionKind::REFACTOR_REWRITE, vec![]);
+        match toggle_task(request, path, i) {
+            Ok(edits) => item.edits = edits,
+            Err(reason) => item.disabled = Some(reason),
+        }
+        result.push(item);
+    }
+    for action in crate::refactor::refactors(request, path, range) {
+        result.push(CodeActionItem::edit(
+            action.title,
+            action.kind,
+            action.edits,
+        ));
+    }
+    let dates: Vec<_> = freeze_dates(request, path)
+        .into_iter()
+        .filter(|e| e.range.start.line >= range.start.line && e.range.start.line <= range.end.line)
+        .collect();
+    if !dates.is_empty() {
+        result.push(CodeActionItem::edit(
+            "Freeze relative date".into(),
+            CodeActionKind::REFACTOR_REWRITE,
+            dates,
+        ));
+    }
+    if row == 0
+        && doc.line(0).trim_start().starts_with('#')
+        && capabilities.supports(&Action::ShowToday)
+    {
+        result.push(CodeActionItem::command(
+            Action::ShowToday.command(format!("{} today", crate::glyphs::FLAG)),
+        ));
+    }
+    result
+}
+
+pub(crate) fn toggle_task(
     request: &crate::RequestContext<'_>,
     path: &Path,
     index: usize,
@@ -140,14 +233,7 @@ pub fn toggle_task_in(
     }
     Ok(edits)
 }
-pub fn freeze_dates(workspace: &Workspace, path: &Path, today: NaiveDate) -> Vec<TextEdit> {
-    freeze_dates_in(
-        &crate::RequestContext::new(workspace, chrono::Local::now().fixed_offset())
-            .with_today(today),
-        path,
-    )
-}
-pub fn freeze_dates_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
+pub(crate) fn freeze_dates(request: &crate::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
     let today = request.today();
     let workspace = request.workspace();
 

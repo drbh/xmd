@@ -117,11 +117,11 @@ test("clickable timer and task controls produce undoable source edits", async ({
   await expect(page.locator(".codelens-decoration").filter({ hasText: "Start timer 'focus'" }).first()).toBeVisible();
   await page.locator(".codelens-decoration").getByText("Start timer 'focus'", { exact: true }).first().click();
   await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("countdown(25m, 0s,");
-  await expect(page.locator(".view-lines")).toContainText("remaining · running");
+  await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
   await page.locator(".codelens-decoration").getByText("Pause timer 'focus'", { exact: true }).first().click();
-  await expect(page.locator(".view-lines")).toContainText("remaining · paused");
+  await expect(page.locator(".view-lines")).toContainText("remaining · ‖ paused");
   await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
-  await expect(page.locator(".view-lines")).toContainText("remaining · running");
+  await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
   await page.locator(".codelens-decoration").getByText("Complete task", { exact: true }).first().click();
   await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("- [x] Investigate");
 });
@@ -194,9 +194,9 @@ test("countdown expiry refreshes inlays and controls without source edits", asyn
   await ready(page);
   await page.evaluate(() => window.wtfTest.editor.getModel().setValue("[tea] := countdown(2s)\nTime left: [tea.remaining].\n"));
   await page.locator(".codelens-decoration").getByText("Start timer 'tea'", { exact: true }).first().click();
-  await expect(page.locator(".view-lines")).toContainText("remaining · running");
+  await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
   const running = await page.evaluate(() => window.wtfTest.editor.getValue());
-  await expect(page.locator(".view-lines")).toContainText("00:00 remaining · done", { timeout: 6000 });
+  await expect(page.locator(".view-lines")).toContainText("00:00 remaining · ✓ done", { timeout: 6000 });
   await expect(page.locator(".codelens-decoration").getByText("Pause timer 'tea'", { exact: true })).toHaveCount(0);
   await expect(page.locator(".codelens-decoration").getByText("Reset timer 'tea'", { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => window.wtfTest.editor.getValue())).toBe(running);
@@ -371,7 +371,7 @@ test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits
   const source = readFileSync(new URL("../../notes/plans.wtf", import.meta.url));
   await page.locator("#file-input").setInputFiles({ name: "plans.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("= $94.75 · bagels 25.75 · doughnuts 14");
-  await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · binding");
+  await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · ● binding");
   await expect(page.locator("#problems")).toBeHidden();
   await replace(page, "[400]:flour_stock", "[300]:flour_stock");
   await expect(page.locator(".view-lines")).toContainText("= $69.75");

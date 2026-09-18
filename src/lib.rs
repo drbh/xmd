@@ -9,6 +9,7 @@ pub mod document;
 #[cfg(feature = "native")]
 pub mod editor;
 pub mod engine;
+pub mod glyphs;
 pub mod hierarchy;
 pub mod highlighting;
 pub mod intelligence;

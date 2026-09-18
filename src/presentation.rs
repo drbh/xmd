@@ -200,13 +200,13 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                     continue;
                 };
                 let shown = match value {
-                    Value::Bool(true) => "yes".to_string(),
-                    Value::Bool(false) => "no".to_string(),
-                    v => v.display(),
+                    Value::Bool(true) => format!("{} yes", crate::glyphs::CHOSEN),
+                    Value::Bool(false) => format!("{} no", crate::glyphs::UNCHOSEN),
+                    v => format!("{} {}", crate::glyphs::ARROW, v.display()),
                 };
                 push(
                     cell.span.range(&doc.text).end,
-                    format!("→ {shown}"),
+                    shown,
                     format!(
                         "Chosen by plan {}. Use the code action on the plan to write choices into the table.",
                         plan_doc.definitions[plan.definition].named.name
@@ -230,9 +230,9 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 _ => String::new(),
             };
             let status = if result.binding {
-                "binding".to_string()
+                format!("{} binding", crate::glyphs::ON)
             } else {
-                format!("slack {}", result.slack.display())
+                format!("{} slack {}", crate::glyphs::OFF, result.slack.display())
             };
             let symbol = match result.op.as_str() {
                 "<=" => "≤",
@@ -319,16 +319,25 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                 let arrive_then_depart = stop.kind.is_some_and(|k| k.marker == '<')
                     && next.kind.is_some_and(|k| k.marker == '>');
                 labels.push(if arrive_then_depart {
-                    format!("{} layover", crate::itinerary::human(seconds))
+                    format!(
+                        "{} {} layover",
+                        crate::glyphs::REPEAT,
+                        crate::itinerary::human(seconds)
+                    )
                 } else {
-                    format!("{} until {}", crate::itinerary::human(seconds), next.title)
+                    format!(
+                        "{} {} until {}",
+                        crate::glyphs::ARROW,
+                        crate::itinerary::human(seconds),
+                        next.title
+                    )
                 });
             }
             if let Some((deadline, _)) = crate::itinerary::cancel_by(*date, stop) {
                 let passed = deadline.date() < today;
                 labels.push(format!(
                     "{}cancel by {}",
-                    if passed { "⚠ " } else { "" },
+                    if passed { "! " } else { "" },
                     deadline.format("%a %b %-d, %I:%M %p")
                 ));
             }
@@ -397,9 +406,11 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
         }
         if !engine.task_done(path, i) {
             match engine.blocked(path, i) {
-                Ok(blocked) if !blocked.is_empty() => {
-                    labels.push(format!("blocked by {}", blocked.join(", ")))
-                }
+                Ok(blocked) if !blocked.is_empty() => labels.push(format!(
+                    "{} blocked by {}",
+                    crate::glyphs::BLOCKED,
+                    blocked.join(", ")
+                )),
                 Err(e) => labels.push(e),
                 _ => {}
             }
@@ -410,7 +421,7 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                             let date = value.date().unwrap();
                             let delta = (date - today).num_days();
                             let relative = if delta < 0 && key == "due" {
-                                format!("{}d overdue", -delta)
+                                format!("{} {}d overdue", crate::glyphs::ALERT, -delta)
                             } else if delta == 0 {
                                 "today".into()
                             } else if delta == 1 {
@@ -418,14 +429,14 @@ fn collect_hints(engine: &mut Engine<'_>, path: &Path, range: Range) -> Vec<Inla
                             } else {
                                 date.to_string()
                             };
-                            labels.push(format!("{key} {relative}"));
+                            labels.push(format!("{} {key} {relative}", crate::glyphs::ARROW));
                         }
                         Err(e) => labels.push(e),
                     }
                 }
             }
             if let Some(attr) = task.attributes.get("every") {
-                labels.push(format!("repeats every {}", attr.value));
+                labels.push(format!("{} every {}", crate::glyphs::REPEAT, attr.value));
             }
         }
         let children: Vec<_> = doc

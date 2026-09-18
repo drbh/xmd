@@ -78,7 +78,7 @@ fn symbols_nest_sections_subtasks_values_and_events_in_source_order() {
             .detail
             .as_ref()
             .unwrap()
-            .contains("Countdown · ⏳ 25:00")
+            .contains("Countdown · ◷ 25:00")
     );
     assert_eq!(values[0].kind, lsp_types::SymbolKind::VARIABLE);
     assert_eq!(trip[0].kind, lsp_types::SymbolKind::CONSTANT);

@@ -463,7 +463,7 @@ fn cli_plan_solves_exports_and_imports_alps_problems() {
         report.starts_with("bakery: maximize $94.75\n  bagels = 25.75\n  doughnuts = 14\n"),
         "{report}"
     );
-    assert!(report.contains("flour: 400 <= 400 · binding"), "{report}");
+    assert!(report.contains("flour: 400 <= 400 · ● binding"), "{report}");
     let json: serde_json::Value =
         serde_json::from_str(&run(&["plan", "bakery", "--json"])).unwrap();
     assert_eq!(json["objective"], "$94.75");

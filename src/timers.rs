@@ -85,10 +85,15 @@ impl Timer {
     }
     pub fn display(&self) -> String {
         let time = clock(self.limit.map(|n| n - self.elapsed).unwrap_or(self.elapsed));
+        let state = format!(
+            "{} {}",
+            crate::glyphs::timer_state(self.state()),
+            self.state()
+        );
         if self.limit.is_some() {
-            format!("⏳ {time} remaining · {}", self.state())
+            format!("{} {time} remaining · {state}", crate::glyphs::COUNTDOWN)
         } else {
-            format!("⏱ {time} elapsed · {}", self.state())
+            format!("{} {time} elapsed · {state}", crate::glyphs::STOPWATCH)
         }
     }
     pub fn property(&self, name: &str) -> Result<Value, String> {

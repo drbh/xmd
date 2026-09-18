@@ -75,6 +75,29 @@ Rebuild the dev extension after changing its language configuration or token
 rules. On macOS, `/usr/bin/wtf` is an unrelated command; the examples deliberately
 use `./target/debug/wtf` or `cargo run -- ...`.
 
+## Symbols
+
+Every label the engine produces, in inlays, badges, hovers, the outline and the
+CLI, draws from one small vocabulary. Only glyphs that every monospace font
+covers and that have no emoji form, so Zed, VS Code, the terminal, the browser
+and the book show the same thing at the same width. No emoji, no icon font to
+install.
+
+| Glyph | Meaning | Seen on |
+| --- | --- | --- |
+| `✓` | done, merged, approved, passing | pull requests, reviews, finished timers |
+| `✗` | failed, closed | failing checks, closed pull requests |
+| `●` `○` `◐` `◌` | on, off, partial, pending | open and draft pull requests, checks, binding constraints and slack, timers |
+| `⚑` | needs a person | review needed, changes requested |
+| `!` | warning | overdue tasks, stale caches, passed cancellation deadlines |
+| `⊘` | blocked | tasks waiting on a dependency |
+| `→` | leads to | due dates, time until the next stop, counted decision cells |
+| `↻` | repeats | recurring tasks, layovers |
+| `◷` `◴` | countdown, stopwatch | timer labels |
+| `▸` `‖` | running, paused | timer state |
+| `☑` `☐` | chosen, not chosen | decision cells |
+| `█ ░` `▁▂▃▅▇` | gauges, sparklines | checklists, countdowns, columns, sums |
+
 ## Editor interactions
 
 Three features ride on standard LSP requests that most editors already send:
@@ -82,7 +105,7 @@ Three features ride on standard LSP requests that most editors already send:
 - **Plain-text charts.** Inlay hints, hovers and tooltips draw with Unicode
   blocks, so they render in any editor without image support. Checklist
   headings, parent tasks and countdowns carry a live gauge in their inlay
-  (`███░░░░░ 2/5 complete`, `⏳ ████░░░░ 12:00 remaining · running`); hovers
+  (`███░░░░░ 2/5 complete`, `◷ ████░░░░ 12:00 remaining · ▸ running`); hovers
   add the percentage (`████░░░░░░ 40%`). Numeric table columns and `sum(...)`
   row contributions show a sparkline with their range (`▁█▅ 2 → 6`).
 - **Format on type.** Typing the closing `|` of a table row realigns the whole
@@ -94,9 +117,9 @@ Three features ride on standard LSP requests that most editors already send:
 - **GitHub status badges.** Every link to a GitHub pull request, issue, or
   commit gets an inlay, whether it is a named resource, a Markdown link, or a
   bare URL in a task. With a cached status it reads
-  `merged · checks ok · approved · 2h ago`; failing checks and requested
+  `✓ merged · ● checks · ✓ approved · 2h ago`; failing checks and requested
   changes are in caps, and a cache older than a week says `stale`. Without one
-  it reads `PR #606 · refresh for status`. Hover for the title, and use the
+  it reads `◌ PR #606 · refresh for status`. Hover for the title, and use the
   Refresh GitHub status lens or `wtf refresh` to update.
 - **Currencies, weather, and quotes.** Money carries a currency: `$3`,
   `€450`, `£12`, `¥1000`, or `700 MXN`. Different currencies never add up

@@ -182,11 +182,11 @@ fn decision_variables_are_symbols_with_hover_rename_and_completion() {
         "{plan_hover}"
     );
     assert!(
-        plan_hover.contains("- flour: `██████████ 100%` 400 ≤ 400 · binding"),
+        plan_hover.contains("- flour: `██████████ 100%` 400 ≤ 400 · ● binding"),
         "{plan_hover}"
     );
     assert!(
-        plan_hover.contains("- milk: `██░░░░░░░░ 16%` 32.75 ≤ 200 · slack 167.25"),
+        plan_hover.contains("- milk: `██░░░░░░░░ 16%` 32.75 ≤ 200 · ○ slack 167.25"),
         "{plan_hover}"
     );
     let completions =
@@ -235,9 +235,9 @@ fn inlays_symbols_and_formatting_cover_the_constraint_table() {
             .unwrap_or_default()
     };
     assert_eq!(label(1), "= $94.75 · bagels 25.75 · doughnuts 14");
-    assert_eq!(label(4), "████████ 400 ≤ 400 · binding");
-    assert_eq!(label(5), "█░░░░░░░ 32.75 ≤ 200 · slack 167.25");
-    assert_eq!(label(6), "25.75 ≥ 12 · slack 13.75");
+    assert_eq!(label(4), "████████ 400 ≤ 400 · ● binding");
+    assert_eq!(label(5), "█░░░░░░░ 32.75 ≤ 200 · ○ slack 167.25");
+    assert_eq!(label(6), "25.75 ≥ 12 · ○ slack 13.75");
     let outline = symbols::document_symbols(&ws, path(), now());
     let bakery = outline.iter().find(|s| s.name == "bakery").unwrap();
     assert_eq!(bakery.kind, tower_lsp::lsp_types::SymbolKind::STRUCT);
@@ -483,8 +483,8 @@ fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
             })
             .collect::<Vec<_>>()
     };
-    assert_eq!(labels(3), ["→ yes"]);
-    assert_eq!(labels(6), ["→ no"]);
+    assert_eq!(labels(3), ["☑ yes"]);
+    assert_eq!(labels(6), ["☐ no"]);
     assert_eq!(labels(7), ["= 20 · take 3 of 4"]);
     assert_eq!(labels(14), ["→ 4"]);
     assert_eq!(labels(16), ["= $8 · servings 4"]);

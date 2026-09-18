@@ -746,7 +746,8 @@ pub fn stop_hover(
         && let Some(seconds) = crate::itinerary::gap(stop, next)
     {
         text.push_str(&format!(
-            "\n\n{} until {}",
+            "\n\n{} {} until {}",
+            crate::glyphs::ARROW,
             crate::itinerary::human(seconds),
             next.title
         ));
@@ -917,9 +918,9 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
                         c.lhs.display(),
                         c.rhs.display(),
                         if c.binding {
-                            "binding".to_string()
+                            format!("{} binding", crate::glyphs::ON)
                         } else {
-                            format!("slack {}", c.slack.display())
+                            format!("{} slack {}", crate::glyphs::OFF, c.slack.display())
                         }
                     ));
                 }

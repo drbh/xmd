@@ -908,7 +908,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
         "textDocument/inlayHint",
         json!({"textDocument":{"uri":uri},"range":range}),
     );
-    assert!(hints.to_string().contains("elapsed · idle"));
+    assert!(hints.to_string().contains("elapsed · ○ idle"));
     let completion = lsp.request(
         "textDocument/completion",
         json!({"textDocument":{"uri":uri},"position":{"line":3,"character":13}}),
@@ -949,7 +949,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
         "textDocument/inlayHint",
         json!({"textDocument":{"uri":uri},"range":range}),
     );
-    assert!(hints.to_string().contains("elapsed · running"));
+    assert!(hints.to_string().contains("elapsed · ▸ running"));
     let elapsed = hints
         .as_array()
         .unwrap()
@@ -962,7 +962,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
         "textDocument/inlayHint",
         json!({"textDocument":{"uri":uri},"range":range}),
     );
-    assert!(hints.to_string().contains("elapsed · paused"));
+    assert!(hints.to_string().contains("elapsed · ‖ paused"));
     let resumed = lsp.timer_action(&uri, &paused, 0, 3, "Resume timer");
     let reset = lsp.timer_action(&uri, &resumed, 0, 4, "Reset timer");
     assert_eq!(reset, initial);
@@ -979,7 +979,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
             "textDocument/inlayHint",
             json!({"textDocument":{"uri":uri},"range":range}),
         );
-        if hints.to_string().contains("00:00 remaining · done") {
+        if hints.to_string().contains("00:00 remaining · ✓ done") {
             break;
         }
     }
@@ -1120,7 +1120,7 @@ fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
         json!({"textDocument":{"uri":uri},"range":range}),
     );
     assert_eq!(hints[0]["label"], "= $94.75 · bagels 25.75 · doughnuts 14");
-    assert!(hints.to_string().contains("400 ≤ 400 · binding"));
+    assert!(hints.to_string().contains("400 ≤ 400 · ● binding"));
     let at = json!({"textDocument":{"uri":uri},"position":selected(text,3,"bagels")["start"]});
     let hover = lsp.request("textDocument/hover", at.clone());
     assert!(

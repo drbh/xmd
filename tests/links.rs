@@ -172,12 +172,12 @@ fn github_links_in_prose_carry_a_status_badge_that_ages() {
     assert_eq!(
         labels,
         [
-            (0, "merged · checks ok · approved · 2h ago".to_string()),
+            (0, "✓ merged · ● checks · ✓ approved · 2h ago".to_string()),
             (
                 1,
-                "open · checks FAILING · CHANGES REQUESTED · stale · 9d ago".to_string()
+                "○ open · ✗ checks FAILING · ⚑ CHANGES REQUESTED · ! stale · 9d ago".to_string()
             ),
-            (1, "PR #1286 · refresh for status".to_string()),
+            (1, "◌ PR #1286 · refresh for status".to_string()),
         ]
     );
     // The badge sits right after the link, and the hover carries the title.

@@ -115,7 +115,8 @@ impl Resource {
         }
         if let Some((_, kind, number)) = github(&self.target) {
             return format!(
-                "{} · refresh for status",
+                "{} {} · refresh for status",
+                crate::glyphs::PENDING,
                 match kind.as_str() {
                     "pull" => format!("PR #{number}"),
                     "issues" => format!("issue #{number}"),
@@ -313,30 +314,38 @@ pub fn ago(from: DateTime<Utc>, now: DateTime<Utc>) -> String {
     }
 }
 impl Metadata {
-    /// A compact, scannable status: `merged · checks ok · approved · 2h ago`.
+    /// A compact, scannable status: `✓ merged · ● checks · ✓ approved · 2h ago`.
     /// Failing checks and requested changes shout in caps; stale caches say so.
     pub fn badge(&self, now: DateTime<Utc>) -> String {
-        let mut parts = vec![self.state.clone()];
+        use crate::glyphs::*;
+        let state = match self.state.as_str() {
+            "merged" => format!("{DONE} merged"),
+            "open" => format!("{OFF} open"),
+            "draft" => format!("{HALF} draft"),
+            "closed" => format!("{FAIL} closed"),
+            other => other.to_string(),
+        };
+        let mut parts = vec![state];
         if let Some(checks) = &self.checks {
             parts.push(match checks.as_str() {
-                "passing" => "checks ok".to_string(),
-                "failing" => "checks FAILING".to_string(),
-                other => format!("checks {other}"),
+                "passing" => format!("{ON} checks"),
+                "failing" => format!("{FAIL} checks FAILING"),
+                _ => format!("{PENDING} checks pending"),
             });
         }
         if let Some(review) = &self.review
             && !review.is_empty()
         {
             parts.push(match review.as_str() {
-                "APPROVED" => "approved".to_string(),
-                "CHANGES_REQUESTED" => "CHANGES REQUESTED".to_string(),
-                "REVIEW_REQUIRED" => "review needed".to_string(),
+                "APPROVED" => format!("{DONE} approved"),
+                "CHANGES_REQUESTED" => format!("{FLAG} CHANGES REQUESTED"),
+                "REVIEW_REQUIRED" => format!("{FLAG} review needed"),
                 other => other.to_lowercase().replace('_', " "),
             });
         }
         let age = ago(self.fetched_at, now);
         parts.push(if (now - self.fetched_at).num_days() >= 7 {
-            format!("stale · {age}")
+            format!("{ALERT} stale · {age}")
         } else {
             age
         });

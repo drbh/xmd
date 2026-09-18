@@ -237,7 +237,7 @@ fn browser_controls_are_undoable_snapshots_and_reject_stale_versions() {
         json!({"uri":URI}),
         "2026-09-16T14:00:03-04:00",
     );
-    assert!(finished.to_string().contains("00:00 remaining · done"));
+    assert!(finished.to_string().contains("00:00 remaining · ✓ done"));
     assert_eq!(finished["result"]["live"], false);
     assert_eq!(finished["result"]["version"], 2);
 }

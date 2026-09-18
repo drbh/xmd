@@ -480,9 +480,9 @@ pub async fn run(command: Command) -> Result<(), String> {
                     c.op,
                     c.rhs.display(),
                     if c.binding {
-                        "binding".to_string()
+                        format!("{} binding", crate::glyphs::ON)
                     } else {
-                        format!("slack {}", c.slack.display())
+                        format!("{} slack {}", crate::glyphs::OFF, c.slack.display())
                     }
                 );
             }
@@ -563,7 +563,11 @@ fn report(
             labels.push(Value::Duration(s).display());
         }
         if !e.blocked_by.is_empty() {
-            labels.push(format!("blocked by {}", e.blocked_by.join(", ")));
+            labels.push(format!(
+                "{} blocked by {}",
+                crate::glyphs::BLOCKED,
+                e.blocked_by.join(", ")
+            ));
         }
         labels.extend(e.errors);
         println!(

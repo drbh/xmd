@@ -114,10 +114,10 @@ fn countdowns_and_checklists_show_progress_bars() {
             })
             .unwrap()
     };
-    assert_eq!(label(0), "= ⏳ ███░░░░░ 06:00 remaining · paused");
+    assert_eq!(label(0), "= ◷ ███░░░░░ 06:00 remaining · ‖ paused");
     assert_eq!(label(1), "█████░░░ 2/3 complete");
     assert!(
-        label(3).starts_with("⏳ ███░░░░░ 06:00 remaining · paused · ████░░░░ 1/2 subtasks"),
+        label(3).starts_with("◷ ███░░░░░ 06:00 remaining · ‖ paused · ████░░░░ 1/2 subtasks"),
         "{}",
         label(3)
     );

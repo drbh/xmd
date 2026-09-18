@@ -105,7 +105,7 @@ fn countdown_clamps_at_zero_and_preserves_duration_expression() {
             .eval(path(), "focus")
             .unwrap()
             .display()
-            .contains("00:00 remaining · done")
+            .contains("00:00 remaining · ✓ done")
     );
     assert!(!engine.time_dependent);
     assert!(timers::edit(&ws, path(), "focus", "resume", at(9000)).is_err());

@@ -12,7 +12,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [("/notes/test.wtf".into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn engine(ws: &Workspace) -> Engine<'_> {
@@ -256,11 +256,11 @@ fn unfinished_multiline_expressions_do_not_consume_the_next_definition_or_prose(
 
 #[test]
 fn multiline_modules_compile_and_apply_the_same_limits() {
-    let source = "// Summarize headings.\nplugin := {\n  api: 1,\n  id: \"headings\",\n  kind: \"inlay\",\n  inputs: [\"sections\"]\n}\n// Use the selected section anchors.\ncollect := fn(ctx) => (\n  map(\n    ctx.document.sections,\n    fn(s) => {at: s.anchor, label: s.title}\n  )\n)\n";
+    let source = "// Summarize headings.\nmodule := {\n  api: 1,\n  id: \"headings\",\n  kind: \"feature\",\n  inputs: [\"sections\"]\n}\n// Use the selected section anchors.\ncollect := fn(ctx) => (\n  map(\n    ctx.document.sections,\n    fn(s) => {at: s.anchor, label: s.title}\n  )\n)\n";
     let mut ws = workspace("# Hello\n");
-    ws.plugins = std::sync::Arc::new(
-        wtf::plugins::Plugins::compile(
-            [("/notes/.wtf/plugins/headings.wtf".into(), source.into())].into(),
+    ws.modules = std::sync::Arc::new(
+        wtf::modules::ModuleRegistry::compile(
+            [("/notes/.wtf/modules/headings.wtf".into(), source.into())].into(),
         )
         .unwrap(),
     );

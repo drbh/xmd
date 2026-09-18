@@ -1,8 +1,8 @@
 // Computed table cells retain their exact source anchor and typed display value.
-plugin := {
+module := {
   api: 1,
   id: "table_cells",
-  kind: "inlay",
+  kind: "feature",
   inputs: {cells: ["anchor", "errors", "computed", "display", "expression"]}
 }
 

@@ -329,7 +329,7 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
         documents: [(path.clone(), wtf::document::Document::parse(text.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     let shared = wtf::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());
@@ -1240,17 +1240,17 @@ fn native_actions_reject_the_same_malformed_commands_as_the_shared_codec() {
 }
 
 #[test]
-fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_source() {
+fn module_and_standard_library_buffers_highlight_without_activating_unsaved_source() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let plugin = root.join(".wtf/plugins/docs.wtf");
-    let library = root.join("stdlib/.wtf/plugins/format.wtf");
-    for path in [&plugin, &library] {
+    let module = root.join(".wtf/modules/docs.wtf");
+    let library = root.join("stdlib/format.wtf");
+    for path in [&module, &library] {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     }
-    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n";
-    let standard = include_str!("../stdlib/.wtf/plugins/format.wtf");
-    std::fs::write(&plugin, source).unwrap();
+    let source = "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n";
+    let standard = include_str!("../stdlib/format.wtf");
+    std::fs::write(&module, source).unwrap();
     std::fs::write(&library, standard).unwrap();
     let note = root.join("main.wtf");
     std::fs::write(&note, "https://docs.example/start\n").unwrap();
@@ -1272,7 +1272,7 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             .unwrap()
         );
     };
-    for (path, text) in [(&plugin, source), (&library, standard)] {
+    for (path, text) in [(&module, source), (&library, standard)] {
         let uri = Url::from_file_path(path).unwrap();
         client.notify(
             "textDocument/didOpen",
@@ -1315,10 +1315,10 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
         );
     }
     // Saving still activates the disk version through the normal reload path.
-    std::fs::write(&plugin, source.replace("saved", "reloaded")).unwrap();
+    std::fs::write(&module, source.replace("saved", "reloaded")).unwrap();
     client.notify(
         "textDocument/didSave",
-        json!({"textDocument":{"uri":Url::from_file_path(&plugin).unwrap()}}),
+        json!({"textDocument":{"uri":Url::from_file_path(&module).unwrap()}}),
     );
     client.wait_for_request("workspace/semanticTokens/refresh");
     assert_eq!(
@@ -1328,17 +1328,17 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
 }
 
 #[test]
-fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
+fn functional_modules_hot_reload_over_lsp_and_keep_last_good_version() {
     let dir = tempfile::tempdir().unwrap();
-    let plugin_dir = dir.path().join(".wtf/plugins");
-    std::fs::create_dir_all(&plugin_dir).unwrap();
-    let plugin = plugin_dir.join("docs.wtf");
-    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"first\"\n";
-    std::fs::write(&plugin, source).unwrap();
+    let module_dir = dir.path().join(".wtf/modules");
+    std::fs::create_dir_all(&module_dir).unwrap();
+    let module = module_dir.join("docs.wtf");
+    let source = "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"first\"\n";
+    std::fs::write(&module, source).unwrap();
     let note = dir.path().join("main.wtf");
     std::fs::write(&note, "https://docs.example/start\n").unwrap();
     let uri = Url::from_file_path(&note).unwrap();
-    let plugin_uri = Url::from_file_path(&plugin).unwrap();
+    let module_uri = Url::from_file_path(&module).unwrap();
     let mut client = Lsp::start(dir.path());
     client.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"https://docs.example/start\n"}}));
     let params = json!({"textDocument":{"uri":uri},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
@@ -1350,12 +1350,12 @@ fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
     );
     for (source, label) in [
         (source.replace("first", "second"), "second"),
-        ("plugin := {".into(), "second"),
+        ("module := {".into(), "second"),
     ] {
-        std::fs::write(&plugin, source).unwrap();
+        std::fs::write(&module, source).unwrap();
         client.notify(
             "workspace/didChangeWatchedFiles",
-            json!({"changes":[{"uri":plugin_uri,"type":2}]}),
+            json!({"changes":[{"uri":module_uri,"type":2}]}),
         );
         client.wait_for_request("workspace/inlayHint/refresh");
         assert_eq!(
@@ -1363,29 +1363,29 @@ fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
             label
         );
     }
-    std::fs::remove_file(&plugin).unwrap();
+    std::fs::remove_file(&module).unwrap();
     client.notify(
         "workspace/didChangeWatchedFiles",
-        json!({"changes":[{"uri":plugin_uri,"type":3}]}),
+        json!({"changes":[{"uri":module_uri,"type":3}]}),
     );
     client.wait_for_request("workspace/inlayHint/refresh");
     assert_eq!(client.request("textDocument/inlayHint", params), json!([]));
 }
 
 #[test]
-fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
+fn module_reload_rejects_an_in_flight_refresh_before_saving_resources() {
     let dir = tempfile::tempdir().unwrap();
-    let plugin_dir = dir.path().join(".wtf/plugins");
-    std::fs::create_dir_all(&plugin_dir).unwrap();
-    let plugin = plugin_dir.join("docs.wtf");
+    let module_dir = dir.path().join(".wtf/modules");
+    std::fs::create_dir_all(&module_dir).unwrap();
+    let module = module_dir.join("docs.wtf");
     let script = dir.path().join("resolve.sh");
     std::fs::write(&script,"touch \"$1/started\"\nwhile [ ! -e \"$1/finish\" ]; do sleep 0.02; done\nprintf '{\"title\":\"stale\"}'\n").unwrap();
     let source = format!(
-        "plugin := {{api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}}\ninlay := fn(ctx) => \"first\"\nrefresh := fn(url) => {{program: \"/bin/sh\", args: [{}, {}]}}\ndecode := fn(url, data) => data\n",
+        "module := {{api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}}\ninlay := fn(ctx) => \"first\"\nrefresh := fn(url) => {{program: \"/bin/sh\", args: [{}, {}]}}\ndecode := fn(url, data) => data\n",
         json!(script),
         json!(dir.path())
     );
-    std::fs::write(&plugin, &source).unwrap();
+    std::fs::write(&module, &source).unwrap();
     std::fs::write(dir.path().join("main.wtf"), "https://docs.example/start\n").unwrap();
     let mut client = Lsp::start(dir.path());
     client.request("wtf/query", json!({"query":"notes | count"}));
@@ -1400,10 +1400,10 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
         );
         std::thread::sleep(Duration::from_millis(10));
     }
-    std::fs::write(&plugin, source.replace("first", "second")).unwrap();
+    std::fs::write(&module, source.replace("first", "second")).unwrap();
     client.notify(
         "workspace/didChangeWatchedFiles",
-        json!({"changes":[{"uri":Url::from_file_path(&plugin).unwrap(),"type":2}]}),
+        json!({"changes":[{"uri":Url::from_file_path(&module).unwrap(),"type":2}]}),
     );
     client.wait_for_request("workspace/inlayHint/refresh");
     std::fs::write(dir.path().join("finish"), "").unwrap();
@@ -1414,7 +1414,7 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
                 response["error"]["message"]
                     .as_str()
                     .unwrap()
-                    .contains("Plugins changed"),
+                    .contains("Modules changed"),
                 "{response}"
             );
             break;
@@ -1430,9 +1430,9 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
 fn module_edits_use_native_apply_edit_and_reject_stale_controls() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let plugins = root.join(".wtf/plugins");
-    std::fs::create_dir_all(&plugins).unwrap();
-    std::fs::write(plugins.join("edit.wtf"),r#"plugin := {api: 1, id: "edit", kind: "inlay", inputs: []}
+    let modules = root.join(".wtf/modules");
+    std::fs::create_dir_all(&modules).unwrap();
+    std::fs::write(modules.join("edit.wtf"),r#"module := {api: 1, id: "edit", kind: "feature", inputs: []}
 actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
 "#).unwrap();
     let note = root.join("main.wtf");

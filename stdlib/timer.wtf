@@ -1,5 +1,5 @@
 // Timer state and transitions. Rust carries the typed value and applies edits.
-plugin := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: []}
+module := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: []}
 fmt := import("format")
 
 // Require a nonnegative duration measured in whole seconds.

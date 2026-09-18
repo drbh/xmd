@@ -32,17 +32,17 @@ fn success(output: Output) -> String {
 }
 
 #[test]
-fn render_cli_matches_editor_hints_with_cross_file_values_plugins_and_cached_links() {
+fn render_cli_matches_editor_hints_with_cross_file_values_modules_and_cached_links() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     let notes = root.join("notes");
-    let plugins = notes.join(".wtf/plugins");
-    std::fs::create_dir_all(&plugins).unwrap();
+    let modules = notes.join(".wtf/modules");
+    std::fs::create_dir_all(&modules).unwrap();
     let source = "# Work 🦀\r\n- [ ] Ship @estimate(20m)\r\n[total] := price * 2\r\nTotal [total].\r\nhttps://github.com/o/r/pull/42\r\n";
     std::fs::write(notes.join("main.wtf"), source).unwrap();
     std::fs::write(notes.join("values.wtf"), "[$7]:price\n").unwrap();
-    let plugin = "plugin := {api: 1, id: \"headings\", kind: \"inlay\", inputs: {sections: [\"anchor\"]}}\ncollect := fn(ctx) => map(ctx.document.sections, fn(s) => {at: s.anchor, label: \"custom \" + format_date(now(), \"%H:%M\")})\n";
-    std::fs::write(plugins.join("headings.wtf"), plugin).unwrap();
+    let module = "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: {sections: [\"anchor\"]}}\ncollect := fn(ctx) => map(ctx.document.sections, fn(s) => {at: s.anchor, label: \"custom \" + format_date(now(), \"%H:%M\")})\n";
+    std::fs::write(modules.join("headings.wtf"), module).unwrap();
     let notes = notes.canonicalize().unwrap();
     let clock = DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap();
     let mut ws = Workspace::load(vec![notes.clone()]).unwrap();
@@ -86,8 +86,8 @@ fn render_cli_matches_editor_hints_with_cross_file_values_plugins_and_cached_lin
         "[$7]:price\n"
     );
     assert_eq!(
-        std::fs::read_to_string(plugins.join("headings.wtf")).unwrap(),
-        plugin
+        std::fs::read_to_string(modules.join("headings.wtf")).unwrap(),
+        module
     );
     assert_eq!(
         std::fs::read(notes.join(".wtf/cache.json")).unwrap(),
@@ -191,7 +191,7 @@ fn render_reports_diagnostics_separately_while_preserving_successful_values() {
 }
 
 #[test]
-fn render_rejects_missing_unindexed_and_invalid_plugin_inputs_without_output() {
+fn render_rejects_missing_unindexed_and_invalid_module_inputs_without_output() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     std::fs::write(root.join(".gitignore"), "ignored.wtf\n").unwrap();
@@ -210,8 +210,8 @@ fn render_rejects_missing_unindexed_and_invalid_plugin_inputs_without_output() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     std::fs::write(root.join("main.wtf"), "answer := 42\n").unwrap();
-    std::fs::create_dir_all(root.join(".wtf/plugins")).unwrap();
-    std::fs::write(root.join(".wtf/plugins/bad.wtf"), "plugin := {api: 99}").unwrap();
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    std::fs::write(root.join(".wtf/modules/bad.wtf"), "module := {api: 99}").unwrap();
     let output = run(root, &["render", "main.wtf"]);
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());

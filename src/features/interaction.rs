@@ -154,7 +154,7 @@ pub fn row_commands_for(
             "Refresh lookups".into(),
         );
     }
-    result.extend(super::plugin_inlays::commands(
+    result.extend(super::module_inlays::commands(
         request,
         path,
         row,
@@ -187,9 +187,9 @@ pub fn lenses_for(
         .chain(doc.links.iter().map(|l| l.span.line))
         .chain(
             if ws
-                .plugins
+                .modules
                 .active()
-                .any(|m| m.kind == "inlay" && m.has("actions"))
+                .any(|m| m.kind == "feature" && m.has("actions"))
             {
                 0..doc.text.lines().count()
             } else {

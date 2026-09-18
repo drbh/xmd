@@ -27,25 +27,25 @@ pub struct Workspace {
     pub documents: BTreeMap<PathBuf, Document>,
     pub cache: Cache,
     pub lookups: crate::lookups::Store,
-    pub plugins: std::sync::Arc<crate::evaluate::plugins::Plugins>,
+    pub modules: std::sync::Arc<crate::evaluate::modules::ModuleRegistry>,
 }
 impl Workspace {
     #[cfg(feature = "native")]
     pub fn load(roots: Vec<PathBuf>) -> Result<Self, String> {
         let mut workspace = Self::load_notes(roots)?;
-        workspace.reload_plugins()?;
+        workspace.reload_modules()?;
         Ok(workspace)
     }
     #[cfg(feature = "native")]
-    pub fn reload_plugins(&mut self) -> Result<(), String> {
-        let plugins = crate::evaluate::plugins::Plugins::load(&self.roots)?;
-        if !self.plugins.same_sources(&plugins) {
-            self.plugins = std::sync::Arc::new(plugins);
+    pub fn reload_modules(&mut self) -> Result<(), String> {
+        let modules = crate::evaluate::modules::ModuleRegistry::load(&self.roots)?;
+        if !self.modules.same_sources(&modules) {
+            self.modules = std::sync::Arc::new(modules);
         }
         Ok(())
     }
     pub fn link_features(&self) -> crate::link_features::LinkFeatures<'_> {
-        crate::link_features::BUILTINS.with_plugins(&self.plugins.modules)
+        crate::link_features::BUILTINS.with_modules(&self.modules.modules)
     }
     #[cfg(feature = "native")]
     pub(crate) fn load_notes(roots: Vec<PathBuf>) -> Result<Self, String> {
@@ -54,7 +54,7 @@ impl Workspace {
             documents: BTreeMap::new(),
             cache: BTreeMap::new(),
             lookups: BTreeMap::new(),
-            plugins: Default::default(),
+            modules: Default::default(),
         };
         for root in &result.roots {
             result.cache.extend(crate::resources::load_cache(root));
@@ -75,6 +75,7 @@ impl Workspace {
                 let entry = entry.map_err(|e| e.to_string())?;
                 if entry.file_type().is_some_and(|t| t.is_file())
                     && entry.path().extension().is_some_and(|s| s == "wtf")
+                    && !crate::modules::is_module_path(entry.path())
                 {
                     let text = std::fs::read_to_string(entry.path())
                         .map_err(|e| format!("{}: {e}", entry.path().display()))?;

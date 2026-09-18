@@ -23,7 +23,7 @@ fn workspace() -> Workspace {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn all() -> Range {

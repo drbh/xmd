@@ -24,7 +24,7 @@ fn ws(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn point(ws: &Workspace, row: usize, needle: &str) -> Position {

@@ -172,7 +172,7 @@ const FUNCTIONS: &[Function] = &[
         name: "import",
         params: &["id: Text"],
         result: "Record",
-        documentation: "Load a module namespace; plugins declare their imports.",
+        documentation: "Load a module namespace; modules declare their imports.",
         example: "\"format\"",
     },
     Function {
@@ -1208,7 +1208,7 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
             }
             if let Ok(Value::Plan(plan)) = &value
                 && let Ok(text) =
-                    crate::plugins::standard("plan", "hover", vec![plan.record(ws)], now)
+                    crate::modules::standard("plan", "hover", vec![plan.record(ws)], now)
             {
                 out.push_str(&text.display());
             }

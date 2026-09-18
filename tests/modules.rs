@@ -5,20 +5,20 @@ use wtf::{
     document::Document,
     engine::{Engine, Value},
     link_features::LinkFeature,
-    plugins::{Module, Plugins},
+    modules::{Module, ModuleRegistry},
     workspace::Workspace,
 };
 
 const URL: &str = "https://issues.example/tickets/42";
-const LINK: &str = r#"plugin := {api: 1, id: "tickets", kind: "link", hosts: ["issues.example"], properties: ["title", "points"]}
+const LINK: &str = r#"module := {api: 1, id: "tickets", kind: "link", hosts: ["issues.example"], properties: ["title", "points"]}
 inlay := fn(ctx) => if(ctx.cached == null, "ticket " + ctx.url.path, ctx.cached.title)
 hover := fn(ctx) => "Details for " + ctx.url.raw
 property := fn(ctx, name) => get(ctx.cached, name)
 refresh := fn(url) => {program: "/bin/echo", args: ["{\"summary\":\"Ship it\",\"points\":8}"]}
 decode := fn(url, data) => {title: data.summary, points: data.points}
 "#;
-const INLAY: &str = r#"plugin := {api: 1, id: "headings", kind: "inlay"}
-collect := fn(ctx) => map(ctx.document.sections, fn(h) => {line: h.line, label: "section · " + h.title, tooltip: "From a functional plugin"})
+const INLAY: &str = r#"module := {api: 1, id: "headings", kind: "feature"}
+collect := fn(ctx) => map(ctx.document.sections, fn(h) => {line: h.line, label: "section · " + h.title, tooltip: "From a functional module"})
 "#;
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap()
@@ -26,9 +26,9 @@ fn now() -> DateTime<FixedOffset> {
 fn path() -> &'static Path {
     Path::new("/notes/main.wtf")
 }
-fn registry(source: &str) -> Arc<Plugins> {
+fn registry(source: &str) -> Arc<ModuleRegistry> {
     Arc::new(
-        Plugins::compile([("/notes/.wtf/plugins/tickets.wtf".into(), source.into())].into())
+        ModuleRegistry::compile([("/notes/.wtf/modules/tickets.wtf".into(), source.into())].into())
             .unwrap(),
     )
 }
@@ -44,7 +44,7 @@ fn workspace() -> Workspace {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: registry(LINK),
+        modules: registry(LINK),
     }
 }
 fn labels(ws: &Workspace) -> Vec<String> {
@@ -90,7 +90,7 @@ fn functional_links_share_labels_properties_hover_and_cache_versions() {
     );
     assert!(labels(&ws).iter().any(|s| s == "Ready"));
     let original = ws.clone();
-    ws.plugins = registry(&LINK.replace("api: 1,", "api: 1, cache_version: 2,"));
+    ws.modules = registry(&LINK.replace("api: 1,", "api: 1, cache_version: 2,"));
     assert!(labels(&ws).iter().any(|s| s == "ticket /tickets/42"));
     assert!(labels(&original).iter().any(|s| s == "Ready"));
     assert!(
@@ -107,7 +107,7 @@ fn functional_links_share_labels_properties_hover_and_cache_versions() {
 #[test]
 fn generic_inlays_use_the_shared_sink_and_do_not_edit_notes() {
     let mut ws = workspace();
-    ws.plugins = registry(INLAY);
+    ws.modules = registry(INLAY);
     let source = ws.documents[path()].text.clone();
     let hints = wtf::presentation::hints_at(
         &ws,
@@ -130,8 +130,8 @@ fn generic_inlays_use_the_shared_sink_and_do_not_edit_notes() {
         )
         .is_empty()
     );
-    ws.plugins = registry(&INLAY.replace("h.line", "999"));
-    assert!(labels(&ws).iter().any(|s| s == "plugin error · headings"));
+    ws.modules = registry(&INLAY.replace("h.line", "999"));
+    assert!(labels(&ws).iter().any(|s| s == "module error · headings"));
 }
 
 #[test]
@@ -143,13 +143,13 @@ fn invalid_modules_and_impure_access_fail_with_errors() {
         LINK.replace("fn(ctx) => if", "fn(ctx, ctx) => if"),
         LINK.replace("decode :=", "not_decode :="),
     ] {
-        assert!(Plugins::compile([("/plugins/a.wtf".into(), source)].into()).is_err());
+        assert!(ModuleRegistry::compile([("/modules/a.wtf".into(), source)].into()).is_err());
     }
     let source = LINK.replace(
         "if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)",
         "text(ctx.file.exists)",
     );
-    let module = Module::compile("/plugins/a.wtf".into(), source).unwrap();
+    let module = Module::compile("/modules/a.wtf".into(), source).unwrap();
     let input = Value::Record(
         [(
             "file".into(),
@@ -170,7 +170,7 @@ fn invalid_modules_and_impure_access_fail_with_errors() {
         "if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)",
         "inlay(ctx)",
     );
-    let module = Module::compile("/plugins/a.wtf".into(), recursive).unwrap();
+    let module = Module::compile("/modules/a.wtf".into(), recursive).unwrap();
     let url = URL.parse().unwrap();
     assert!(
         module
@@ -182,7 +182,7 @@ fn invalid_modules_and_impure_access_fail_with_errors() {
             .contains("depth")
     );
     assert!(
-        Plugins::compile(
+        ModuleRegistry::compile(
             [
                 ("/a.wtf".into(), LINK.into()),
                 ("/b.wtf".into(), LINK.into())
@@ -190,7 +190,7 @@ fn invalid_modules_and_impure_access_fail_with_errors() {
             .into()
         )
         .unwrap_err()
-        .contains("Duplicate plugin id")
+        .contains("Duplicate module id")
     );
 }
 
@@ -199,27 +199,27 @@ fn invalid_modules_and_impure_access_fail_with_errors() {
 async fn native_load_refresh_reload_rollback_and_removal() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().to_path_buf();
-    std::fs::create_dir_all(root.join(".wtf/plugins")).unwrap();
-    let plugin = root.join(".wtf/plugins/tickets.wtf");
-    std::fs::write(&plugin, LINK).unwrap();
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    let module = root.join(".wtf/modules/tickets.wtf");
+    std::fs::write(&module, LINK).unwrap();
     std::fs::write(root.join("main.wtf"), format!("{URL}:ticket\n")).unwrap();
     let mut ws = Workspace::load(vec![root.clone()]).unwrap();
     assert_eq!(
         ws.documents.len(),
         1,
-        "Plugin definitions must stay out of note scope"
+        "Module definitions must stay out of note scope"
     );
     assert!(wtf::cli::refresh(&mut ws).await.is_empty());
     assert_eq!(ws.cache[URL].data.as_ref().unwrap()["title"], "Ship it");
     let snapshot = ws.clone();
-    ws.reload_plugins().unwrap();
-    assert!(Arc::ptr_eq(&snapshot.plugins, &ws.plugins));
+    ws.reload_modules().unwrap();
+    assert!(Arc::ptr_eq(&snapshot.modules, &ws.modules));
     std::fs::write(
-        &plugin,
+        &module,
         LINK.replace("ctx.cached.title)", "upper(ctx.cached.title))"),
     )
     .unwrap();
-    ws.reload_plugins().unwrap();
+    ws.reload_modules().unwrap();
     assert_eq!(
         ws.link_features()
             .presentation(URL, &ws.cache, now().to_utc())
@@ -235,12 +235,12 @@ async fn native_load_refresh_reload_rollback_and_removal() {
             .label,
         "Ship it"
     );
-    let working = ws.plugins.clone();
-    std::fs::write(&plugin, "plugin := {").unwrap();
-    assert!(ws.reload_plugins().is_err());
-    assert!(Arc::ptr_eq(&working, &ws.plugins));
-    std::fs::remove_file(&plugin).unwrap();
-    ws.reload_plugins().unwrap();
+    let working = ws.modules.clone();
+    std::fs::write(&module, "module := {").unwrap();
+    assert!(ws.reload_modules().is_err());
+    assert!(Arc::ptr_eq(&working, &ws.modules));
+    std::fs::remove_file(&module).unwrap();
+    ws.reload_modules().unwrap();
     assert!(
         ws.link_features()
             .presentation(URL, &ws.cache, now().to_utc())
@@ -253,7 +253,7 @@ async fn native_load_refresh_reload_rollback_and_removal() {
 
 #[cfg(feature = "browser")]
 #[test]
-fn browser_plugins_reload_and_decode_host_data_without_executing_commands() {
+fn browser_modules_reload_and_decode_host_data_without_executing_commands() {
     fn request(
         browser: &mut wtf::browser::BrowserWorkspace,
         method: &str,
@@ -274,7 +274,7 @@ fn browser_plugins_reload_and_decode_host_data_without_executing_commands() {
     assert_eq!(
         request(
             &mut browser,
-            "setPlugins",
+            "setModules",
             serde_json::json!({"sources":{"tickets.wtf":LINK}})
         )["ok"],
         true
@@ -295,8 +295,8 @@ fn browser_plugins_reload_and_decode_host_data_without_executing_commands() {
     assert_eq!(
         request(
             &mut browser,
-            "setPlugins",
-            serde_json::json!({"sources":{"tickets.wtf":"plugin := {"}})
+            "setModules",
+            serde_json::json!({"sources":{"tickets.wtf":"module := {"}})
         )["ok"],
         false
     );
@@ -307,7 +307,7 @@ fn browser_plugins_reload_and_decode_host_data_without_executing_commands() {
     assert_eq!(
         request(
             &mut browser,
-            "setPlugins",
+            "setModules",
             serde_json::json!({"sources":BTreeMap::<String,String>::new()})
         )["ok"],
         true
@@ -316,10 +316,10 @@ fn browser_plugins_reload_and_decode_host_data_without_executing_commands() {
 
 #[cfg(feature = "native")]
 #[test]
-fn example_workspace_uses_plugins_without_rust_registration() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/plugins");
+fn example_workspace_uses_modules_without_rust_registration() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/modules");
     let ws = Workspace::load(vec![root.clone()]).unwrap();
-    assert_eq!(ws.plugins.modules.len(), 2);
+    assert_eq!(ws.modules.modules.len(), wtf::modules::bundled().len() + 2);
     let hints = wtf::presentation::hints_at(
         &ws,
         &root.join("demo.wtf"),
@@ -343,8 +343,8 @@ fn semantic_inputs_and_utf16_anchors_are_shared_with_queries() {
     let mut ws = workspace();
     ws.documents
         .insert(path().into(), Document::parse("🦀 [round(2.6)]\n".into()));
-    ws.plugins = registry(
-        r#"plugin := {api: 1, id: "calculations", kind: "inlay", inputs: ["calculations"]}
+    ws.modules = registry(
+        r#"module := {api: 1, id: "calculations", kind: "feature", inputs: ["calculations"]}
 collect := fn(ctx) => map(ctx.document.calculations, fn(c) => {at: c.anchor, label: "custom " + c.display, tooltip: trim(c.expression)})
 "#,
     );
@@ -363,17 +363,17 @@ collect := fn(ctx) => map(ctx.document.calculations, fn(c) => {at: c.anchor, lab
         serde_json::to_value(result).unwrap()["rows"][0],
         serde_json::json!({"line":0,"character":15})
     );
-    ws.plugins =
-        registry(r#"plugin := {api: 1, id: "calculations", kind: "inlay", enabled: false}"#);
+    ws.modules =
+        registry(r#"module := {api: 1, id: "calculations", kind: "feature", enabled: false}"#);
     assert!(labels(&ws).is_empty());
 }
 
 #[test]
-fn plugin_edit_actions_share_codec_validation_and_stale_source_checks() {
+fn module_edit_actions_share_codec_validation_and_stale_source_checks() {
     use wtf::commands::{Action, Capabilities, PreparedAction};
     let mut ws = workspace();
-    ws.plugins = registry(
-        r#"plugin := {api: 1, id: "insert", kind: "inlay", inputs: []}
+    ws.modules = registry(
+        r#"module := {api: 1, id: "insert", kind: "feature", inputs: []}
 actions := fn(ctx) => if(ctx.row == 0, [{title: "Insert greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: "Hello "}]}}], [])
 "#,
     );
@@ -406,16 +406,16 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Insert greeting", action: {kind
 }
 
 #[test]
-fn invalid_plugin_positions_are_atomic_and_reversed_edits_return_errors() {
+fn invalid_module_positions_are_atomic_and_reversed_edits_return_errors() {
     let mut ws = workspace();
-    ws.plugins = registry(
-        r#"plugin := {api: 1, id: "bad", kind: "inlay", inputs: []}
+    ws.modules = registry(
+        r#"module := {api: 1, id: "bad", kind: "feature", inputs: []}
 collect := fn(ctx) => [{line: 0, label: "partial"}, {at: {line: 0, character: 9}, label: "splits emoji"}]
 "#,
     );
     let values = labels(&ws);
     assert!(!values.iter().any(|s| s == "partial"));
-    assert!(values.iter().any(|s| s == "plugin error · bad"));
+    assert!(values.iter().any(|s| s == "module error · bad"));
     let edit = lsp_types::TextEdit {
         range: Range::new(Position::new(0, 1), Position::new(0, 0)),
         new_text: String::new(),
@@ -431,7 +431,7 @@ collect := fn(ctx) => [{line: 0, label: "partial"}, {at: {line: 0, character: 9}
 fn link_callbacks_narrow_matches_properties_and_refresh_options() {
     let source=LINK.replace("inlay :=", "matches := fn(url) => ends_with(url.path, \"42\")\nproperty_names := fn(url) => [\"title\"]\ntime_dependent := fn(ctx) => false\ninlay :=").replace("program: \"/bin/echo\",", "title: \"Fetch ticket\", env: {TICKET_MODE: \"json\"}, program: \"/bin/echo\",");
     let mut ws = workspace();
-    ws.plugins = registry(&source);
+    ws.modules = registry(&source);
     let links = ws.link_features();
     assert_eq!(links.property_names(URL), ["title"]);
     assert!(
@@ -448,15 +448,15 @@ fn link_callbacks_narrow_matches_properties_and_refresh_options() {
 #[test]
 fn bundled_providers_are_replaceable_disableable_and_restored_on_unload() {
     let mut ws = workspace();
-    ws.plugins = Default::default();
+    ws.modules = Default::default();
     let url = "https://github.com/org/repo/pull/42";
     let original = ws
         .link_features()
         .presentation(url, &ws.cache, now().to_utc())
         .unwrap()
         .label;
-    ws.plugins = registry(
-        r#"plugin := {api: 1, id: "github", kind: "link", hosts: ["github.com"]}
+    ws.modules = registry(
+        r#"module := {api: 1, id: "github", kind: "link", hosts: ["github.com"]}
 inlay := fn(ctx) => "My GitHub"
 "#,
     );
@@ -467,13 +467,13 @@ inlay := fn(ctx) => "My GitHub"
             .label,
         "My GitHub"
     );
-    ws.plugins = registry(r#"plugin := {api: 1, id: "github", kind: "link", enabled: false}"#);
+    ws.modules = registry(r#"module := {api: 1, id: "github", kind: "link", enabled: false}"#);
     assert!(
         ws.link_features()
             .presentation(url, &ws.cache, now().to_utc())
             .is_none()
     );
-    ws.plugins = Default::default();
+    ws.modules = Default::default();
     assert_eq!(
         ws.link_features()
             .presentation(url, &ws.cache, now().to_utc())
@@ -491,14 +491,14 @@ fn bundled_checklist_projections_handle_large_notes_within_the_language_limits()
         "- [ ] Task @estimate(1m)\n".repeat(500)
     );
     ws.documents.insert(path().into(), Document::parse(source));
-    ws.plugins = Default::default();
+    ws.modules = Default::default();
     let labels = labels(&ws);
     assert!(
         labels.iter().any(|s| s.contains("0/500 complete")),
         "{:?}",
         labels.first()
     );
-    assert!(!labels.iter().any(|s| s.contains("plugin error")));
+    assert!(!labels.iter().any(|s| s.contains("module error")));
 }
 
 #[cfg(feature = "browser")]
@@ -521,14 +521,14 @@ fn browser_executes_user_module_edits_and_replaces_bundled_features() {
         )["ok"],
         true
     );
-    let module = r#"plugin := {api: 1, id: "calculations", kind: "inlay", inputs: []}
+    let module = r#"module := {api: 1, id: "calculations", kind: "feature", inputs: []}
 collect := fn(ctx) => [{line: 0, label: "custom"}]
 actions := fn(ctx) => [{title: "Replace", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}]
 "#;
     assert_eq!(
         request(
             &mut browser,
-            "setPlugins",
+            "setModules",
             json!({"sources":{"custom.wtf":module}})
         )["ok"],
         true
@@ -573,7 +573,7 @@ actions := fn(ctx) => [{title: "Replace", action: {kind: "edit", document: ctx.d
     );
     assert_eq!(stale["ok"], false, "{stale}");
     assert_eq!(
-        request(&mut browser, "setPlugins", json!({"sources":{}}))["ok"],
+        request(&mut browser, "setModules", json!({"sources":{}}))["ok"],
         true
     );
     let analysis = request(
@@ -582,4 +582,65 @@ actions := fn(ctx) => [{title: "Replace", action: {kind: "edit", document: ctx.d
         json!({"uri":"file:///workspace/main.wtf"}),
     );
     assert_eq!(analysis["result"]["hints"][0]["label"], "3");
+}
+
+#[test]
+fn bundled_consumers_relink_transitive_dependencies_and_revisions() {
+    let original = ModuleRegistry::default();
+    let changed = include_str!("../stdlib/format.wtf").replace("repeat(\"█\",", "repeat(\"▓\",");
+    let updated =
+        ModuleRegistry::compile([("/notes/.wtf/modules/format.wtf".into(), changed)].into())
+            .unwrap();
+    let find = |registry: &ModuleRegistry, id: &str| {
+        registry.active().find(|m| m.id == id).unwrap().revision()
+    };
+    assert_ne!(find(&original, "format"), find(&updated, "format"));
+    assert_ne!(find(&original, "timer"), find(&updated, "timer"));
+    assert_ne!(find(&original, "timers"), find(&updated, "timers"));
+    assert_eq!(find(&original, "github"), find(&updated, "github"));
+    let mut ws = workspace();
+    ws.documents.insert(
+        path().into(),
+        Document::parse("watch := countdown(1m)\n".into()),
+    );
+    ws.modules = Arc::new(updated);
+    let html = wtf::rendering::html_in(&wtf::RequestContext::new(&ws, now()), path()).unwrap();
+    // The bundled timers feature imports timer, which imports the replaced format.
+    assert!(html.contains("░░░░░░░░"));
+    ws.documents.insert(
+        path().into(),
+        Document::parse("watch := countdown(1m, 30s)\n".into()),
+    );
+    let html = wtf::rendering::html_in(&wtf::RequestContext::new(&ws, now()), path()).unwrap();
+    assert!(html.contains("▓▓▓▓░░░░"), "{html}");
+}
+
+#[cfg(feature = "native")]
+#[test]
+fn source_library_reloads_on_disk_and_workspace_modules_take_precedence() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::create_dir(root.join("stdlib")).unwrap();
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    std::fs::write(root.join("main.wtf"), "# Note\n").unwrap();
+    let source = |label: &str| {
+        format!(
+            "module := {{api: 1, id: \"headings\", kind: \"feature\", inputs: []}}\ncollect := fn(ctx) => [{{line: 0, label: \"{label}\"}}]\n"
+        )
+    };
+    std::fs::write(root.join("stdlib/headings.wtf"), source("library")).unwrap();
+    let mut ws = Workspace::load(vec![root.into()]).unwrap();
+    assert_eq!(ws.documents.len(), 1);
+    let render = |ws: &Workspace| {
+        wtf::rendering::html_in(&wtf::RequestContext::new(ws, now()), &root.join("main.wtf"))
+            .unwrap()
+    };
+    assert!(render(&ws).contains(" library</span>"));
+    std::fs::write(root.join("stdlib/headings.wtf"), source("saved")).unwrap();
+    ws.reload_modules().unwrap();
+    assert!(render(&ws).contains(" saved</span>"));
+    std::fs::write(root.join(".wtf/modules/headings.wtf"), source("workspace")).unwrap();
+    ws.reload_modules().unwrap();
+    assert!(render(&ws).contains(" workspace</span>"));
+    assert!(!render(&ws).contains(" saved</span>"));
 }

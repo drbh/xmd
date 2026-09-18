@@ -1,7 +1,7 @@
-plugin := {
+module := {
   api: 1,
   id: "plans",
-  kind: "inlay",
+  kind: "feature",
   imports: ["plan"],
   inputs: {
     plans: ["anchor", "value", "errors", "hover"],

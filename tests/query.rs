@@ -20,7 +20,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             .collect(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn context() -> QueryContext {

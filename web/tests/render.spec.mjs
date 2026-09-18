@@ -12,8 +12,8 @@ test("resolved HTML matches inline text, editor colors, links and diagnostics wi
   try {
     const source = '\n# Resolved 🦀\n[$10]:budget\nremaining := (\n  budget - $3\n)\nAmount [remaining].\n- [x] Done\n- [ ] Next\n[Site](https://example.com/?a=1&b=2)\nbad := missing + 1\n// </code><script>globalThis.pwned=1</script>\n';
     writeFileSync(join(root, "main.wtf"), source);
-    mkdirSync(join(root, ".wtf/plugins"), { recursive: true });
-    writeFileSync(join(root, ".wtf/plugins/custom.wtf"), 'plugin := {api: 1, id: "custom", kind: "inlay", inputs: []}\ncollect := fn(ctx) => [{line: 1, label: "<img src=x onerror=bad()>", tooltip: "tip <&>"}]');
+    mkdirSync(join(root, ".wtf/modules"), { recursive: true });
+    writeFileSync(join(root, ".wtf/modules/custom.wtf"), 'module := {api: 1, id: "custom", kind: "feature", inputs: []}\ncollect := fn(ctx) => [{line: 1, label: "<img src=x onerror=bad()>", tooltip: "tip <&>"}]');
     const render = format => spawnSync(binary, ["render", "main.wtf", "--root", root, "--now", "2026-09-18T12:00:00Z", "--format", format], { encoding: "utf8" });
     const html = render("html"), text = render("text");
     expect(html.status).toBe(1); // The missing name remains a visible diagnostic.

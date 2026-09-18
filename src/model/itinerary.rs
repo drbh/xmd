@@ -4,7 +4,7 @@
 use crate::document::{Document, Span};
 use crate::{
     engine::Value,
-    plugins::{from_json, record, standard},
+    modules::{from_json, record, standard},
 };
 use chrono::{NaiveDate, NaiveTime, Timelike, Weekday};
 use lsp_types::{Position, Range, TextEdit};
@@ -520,7 +520,7 @@ pub fn dates(days: &[Day], today: NaiveDate) -> Vec<Option<NaiveDate>> {
 pub(crate) fn try_dates(days: &[Day], today: NaiveDate) -> Result<Vec<Option<NaiveDate>>, String> {
     let input = Value::List(days.iter().map(day_parts).collect());
     let result = call("dates", vec![input, Value::Date(today)])?;
-    Ok(crate::plugins::list(&result)?
+    Ok(crate::modules::list(&result)?
         .iter()
         .map(|v| match v {
             Value::Date(d) => Some(*d),
@@ -582,9 +582,9 @@ pub fn cancel_by(day: NaiveDate, stop: &Stop) -> Option<(chrono::NaiveDateTime, 
         ],
     )
     .ok()?;
-    let at = crate::plugins::field(&value, "at").ok()?;
+    let at = crate::modules::field(&value, "at").ok()?;
     let Value::DateTime(at) = at else { return None };
-    let relative = crate::plugins::field(&value, "relative").ok()? == &Value::Bool(true);
+    let relative = crate::modules::field(&value, "relative").ok()? == &Value::Bool(true);
     Some((at.naive_local(), relative))
 }
 pub fn canonical_line(stop: &Stop) -> String {
@@ -604,7 +604,7 @@ pub fn formatting(doc: &Document, days: &[Day]) -> Vec<TextEdit> {
             days.iter().map(|d| day_record(d, doc)).collect(),
         )],
     )
-    .and_then(|v| crate::plugins::json(&v))
+    .and_then(|v| crate::modules::json(&v))
     .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
     .unwrap_or_default()
 }

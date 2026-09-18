@@ -435,7 +435,7 @@ pub(crate) fn collect_document(
                 {
                     fields.insert(
                         "forecast".into(),
-                        crate::plugins::record([
+                        crate::modules::record([
                             ("place".into(), Value::Text(place)),
                             (
                                 "display".into(),

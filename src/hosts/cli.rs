@@ -107,7 +107,7 @@ pub struct QueryOutput {
 }
 #[derive(Args)]
 #[command(
-    after_help = "Example: wtf render trip.wtf --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, plugins and cached data; never refreshes or edits them."
+    after_help = "Example: wtf render trip.wtf --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them."
 )]
 pub struct RenderOptions {
     /// A .wtf note, relative to --root or an absolute path inside the workspace.

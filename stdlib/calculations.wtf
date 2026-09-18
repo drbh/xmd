@@ -1,8 +1,8 @@
 // Inline calculations use the same evaluated records as `wtf query calculations`.
-plugin := {
+module := {
   api: 1,
   id: "calculations",
-  kind: "inlay",
+  kind: "feature",
   inputs: {calculations: ["anchor", "errors", "bracketed", "display", "expression"]}
 }
 

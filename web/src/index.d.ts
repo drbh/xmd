@@ -52,7 +52,7 @@ export interface Workspace {
   subscribe(uri: string, listener: (snapshot: Snapshot) => void, options?: { editing?: boolean }): () => void;
   execute(command: Command, versions: Record<string, number>, options?: { apply?: boolean }): Promise<{ edit?: WorkspaceEdit; open?: string }>;
   applyEdit(edit: WorkspaceEdit): Promise<void>;
-  setPlugins(sources: Record<string, string>): Promise<void>;
+  setModules(sources: Record<string, string>): Promise<void>;
   setResourceData(url: string, data: unknown): Promise<void>;
   refresh(): Promise<void>;
   settled(): Promise<void>;

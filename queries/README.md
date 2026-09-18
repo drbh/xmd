@@ -1,6 +1,6 @@
 # Queries and document inspection
 
-Queries use the functional language from notes and plugins: the same lexer,
+Queries use the functional language from notes and modules: the same lexer,
 parser, records, lists, lambdas, typed values, builtins, imports and evaluator.
 Workspace collections are input bindings, loaded when an expression reads them.
 

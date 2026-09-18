@@ -2,7 +2,7 @@
 
 All browser clients, HTML rendering, themes, fonts, and web build tooling live
 here. The CLI and browser use the same Rust HTML serializer in `renderer/`.
-Language parsing, evaluation, plugins, and actions remain in the shared engine.
+Language parsing, evaluation, modules, and actions remain in the shared engine.
 
 ## Build and run
 
@@ -94,7 +94,7 @@ and runs one live-refresh scheduler per workspace. `onChange` fires for source
 transactions; `onRender` fires for presentation updates, including clock ticks.
 Persist by the callback's URI, never by the currently selected document.
 
-Use `setPlugins({ "custom.wtf": source })` for the shared language's plugin
+Use `setModules({ "custom.wtf": source })` for the shared language's module
 interface and `setResourceData(url, data)` for host-supplied resource metadata.
 Both invalidate presentation without emitting source changes. `query`,
 `analyze`, and `request` expose the existing browser engine protocol for advanced

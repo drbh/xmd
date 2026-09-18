@@ -21,7 +21,7 @@ fn ws(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn span(doc: &Document, row: usize, needle: &str) -> Span {

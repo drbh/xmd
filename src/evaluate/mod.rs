@@ -9,8 +9,8 @@ pub mod github;
 pub mod glyphs;
 pub mod link_features;
 pub mod lookups;
+pub mod modules;
 pub mod plans;
-pub mod plugins;
 pub mod resources;
 pub mod timers;
 

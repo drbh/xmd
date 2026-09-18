@@ -36,7 +36,7 @@ pub enum Action {
     Invoke {
         document: Url,
         expected: String,
-        plugin: String,
+        module: String,
         revision: String,
         event: Value,
     },
@@ -250,12 +250,12 @@ impl Action {
         let Self::Invoke {
             document,
             expected,
-            plugin,
+            module,
             revision,
             ..
         } = self
         else {
-            return Err("Expected a plugin invocation".into());
+            return Err("Expected a module invocation".into());
         };
         let path = document_path(document)?;
         let doc = request
@@ -268,15 +268,15 @@ impl Action {
         }
         let module = request
             .workspace()
-            .plugins
+            .modules
             .active()
-            .find(|m| m.id == *plugin)
-            .ok_or("Plugin is no longer available")?;
+            .find(|m| m.id == *module)
+            .ok_or("Module is no longer available")?;
         if module.revision() != *revision {
-            return Err("Plugin changed; request fresh controls".into());
+            return Err("Module changed; request fresh controls".into());
         }
         if !module.has("reduce") {
-            return Err("Plugin has no reducer".into());
+            return Err("Module has no reducer".into());
         }
         Ok(())
     }
@@ -299,18 +299,18 @@ impl Action {
         match self {
             Self::Invoke {
                 document,
-                plugin,
+                module,
                 event,
                 ..
             } => {
                 self.validate_invocation(request)?;
                 let module = request
                     .workspace()
-                    .plugins
+                    .modules
                     .active()
-                    .find(|m| m.id == *plugin)
-                    .ok_or("Plugin is no longer available")?;
-                super::plugin_inlays::reduce(
+                    .find(|m| m.id == *module)
+                    .ok_or("Module is no longer available")?;
+                super::module_inlays::reduce(
                     request,
                     &document_path(document)?,
                     module,

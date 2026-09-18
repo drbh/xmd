@@ -1,8 +1,8 @@
 // Section progress is a projection of leaf tasks, including evaluated completion.
-plugin := {
+module := {
   api: 1,
   id: "checklists",
-  kind: "inlay",
+  kind: "feature",
   inputs: {
     sections: ["anchor", "line", "end_line"],
     tasks: ["line", "leaf", "done", "estimate"]

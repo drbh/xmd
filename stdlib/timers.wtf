@@ -1,7 +1,7 @@
-plugin := {
+module := {
   api: 1,
   id: "timers",
-  kind: "inlay",
+  kind: "feature",
   inputs: {timers: ["line", "anchor", "value", "origin", "definition", "inlay", "hover"]},
   imports: ["timer"]
 }

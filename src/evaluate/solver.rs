@@ -1,7 +1,7 @@
 //! The numerical boundary: a bounded, unit-free linear model in, raw values out.
 use crate::{
     engine::Value,
-    plugins::{from_json, json},
+    modules::{from_json, json},
 };
 use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
 use serde::Deserialize;

@@ -2049,7 +2049,7 @@ impl<'a> Engine<'a> {
                         }
                         if key == "exists" {
                             if self.pure {
-                                return Err("Plugin evaluation cannot access the filesystem".into());
+                                return Err("Module evaluation cannot access the filesystem".into());
                             }
                             #[cfg(target_arch = "wasm32")]
                             return Err("Local file existence is unavailable in the browser".into());
@@ -2135,13 +2135,13 @@ impl<'a> Engine<'a> {
         }
     }
     fn import(&mut self, id: &str) -> Result<Value, String> {
-        let module = if self.pure {
-            self.workspace.plugins.modules.iter().find(|m| m.id == id)
-        } else {
-            self.workspace.plugins.active().find(|m| m.id == id)
-        }
-        .ok_or_else(|| format!("Unknown or undeclared import '{id}'"))?
-        .clone();
+        let module = self
+            .workspace
+            .modules
+            .active()
+            .find(|m| m.id == id)
+            .ok_or_else(|| format!("Unknown or undeclared import '{id}'"))?
+            .clone();
         let workspace = module.environment();
         let mut engine = self
             .module_engine(&workspace)
@@ -2149,7 +2149,7 @@ impl<'a> Engine<'a> {
         let result = workspace.documents[&module.path]
             .definitions
             .iter()
-            .filter(|d| d.named.name != "plugin" && !d.named.name.starts_with('_'))
+            .filter(|d| d.named.name != "module" && !d.named.name.starts_with('_'))
             .map(|d| {
                 Ok((
                     d.named.name.clone(),

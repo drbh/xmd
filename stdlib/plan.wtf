@@ -1,5 +1,5 @@
 // Plan policy surrounds the generic numerical primitive.
-plugin := {api: 1, id: "plan", kind: "library", imports: ["format"], inputs: []}
+module := {api: 1, id: "plan", kind: "library", imports: ["format"], inputs: []}
 fmt := import("format")
 
 // Round displayed solver results to four decimal places.

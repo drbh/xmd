@@ -44,7 +44,7 @@ test("static and live HTML match at a fixed clock; heading metadata respects cod
   expect(await page.locator('#one a[href="https://example.com/"]').count()).toBeGreaterThan(0);
 });
 
-test("dependent views refresh for source and plugin changes, without spurious source notifications", async ({ page }) => {
+test("dependent views refresh for source and module changes, without spurious source notifications", async ({ page }) => {
   await page.evaluate(async () => {
     window.ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
     await ws.setDocument("file:///workspace/a.wtf", "a := 1\n");
@@ -54,7 +54,7 @@ test("dependent views refresh for source and plugin changes, without spurious so
     await ws.setDocument("file:///workspace/a.wtf", "a := 42\n");
   });
   await expect(page.locator("#one .inlay")).toContainText("42");
-  await page.evaluate(() => ws.setPlugins({ "custom.wtf": 'plugin := {api: 1, id: "custom", kind: "inlay", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: "CUSTOM"}]' }));
+  await page.evaluate(() => ws.setModules({ "custom.wtf": 'module := {api: 1, id: "custom", kind: "feature", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: "CUSTOM"}]' }));
   await expect(page.locator("#one pre")).toContainText("CUSTOM");
   expect(await page.evaluate(() => edits)).toEqual([]);
   await page.evaluate(() => { one.destroy(); ws.destroy(); });

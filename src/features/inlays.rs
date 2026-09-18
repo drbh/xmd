@@ -82,7 +82,7 @@ pub fn collect(
         hints: Vec::new(),
     };
     for feature in features {
-        if !context.engine.workspace.plugins.overrides(feature.id()) {
+        if !context.engine.workspace.modules.overrides(feature.id()) {
             feature.collect(&mut context, &mut output);
         }
     }

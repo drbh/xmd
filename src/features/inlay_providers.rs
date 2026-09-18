@@ -12,7 +12,7 @@ pub const BUILTINS: &[&dyn InlayFeature] = &[
     &TaskInlays,
     &ReferenceInlays,
     &LinkInlays,
-    &super::plugin_inlays::PluginInlays,
+    &super::module_inlays::ModuleInlays,
 ];
 
 pub struct DefinitionInlays;

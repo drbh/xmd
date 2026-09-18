@@ -21,7 +21,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn eval(ws: &Workspace, name: &str) -> Result<Value, String> {

@@ -39,7 +39,7 @@ impl BrowserWorkspace {
                 documents: BTreeMap::new(),
                 cache: BTreeMap::new(),
                 lookups: Default::default(),
-                plugins: Default::default(),
+                modules: Default::default(),
             },
             versions: BTreeMap::new(),
         }
@@ -128,7 +128,7 @@ impl BrowserWorkspace {
             self.workspace.cache.insert(target, metadata);
             return Ok(Value::Null);
         }
-        if method == "setPlugins" {
+        if method == "setModules" {
             let sources: BTreeMap<String, String> = field(&params, "sources")?;
             let sources = sources
                 .into_iter()
@@ -141,13 +141,13 @@ impl BrowserWorkspace {
                         || !name.ends_with(".wtf")
                         || name.contains(['\\', '\0'])
                     {
-                        return Err("Plugin names must be .wtf filenames".to_string());
+                        return Err("Module names must be .wtf filenames".to_string());
                     }
-                    Ok((Path::new("/workspace/.wtf/plugins").join(name), source))
+                    Ok((Path::new("/workspace/.wtf/modules").join(name), source))
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
-            let plugins = crate::plugins::Plugins::compile(sources)?;
-            self.workspace.plugins = std::sync::Arc::new(plugins);
+            let modules = crate::modules::ModuleRegistry::compile(sources)?;
+            self.workspace.modules = std::sync::Arc::new(modules);
             return Ok(Value::Null);
         }
         if method == "setDocument" {

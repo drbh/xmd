@@ -1,5 +1,5 @@
 // Calendar policy and presentation use shared date and collection primitives.
-plugin := {api: 1, id: "itinerary_core", kind: "library", inputs: [], imports: ["format"]}
+module := {api: 1, id: "itinerary_core", kind: "library", inputs: [], imports: ["format"]}
 fmt := import("format")
 weekdays := ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 months := [

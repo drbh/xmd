@@ -67,7 +67,7 @@ pub struct PlanValue {
 impl PlanValue {
     /// Typed result plus source geometry; presentation policy lives in plan.wtf.
     pub fn record(&self, ws: &Workspace) -> Value {
-        use crate::plugins::{from_json, record};
+        use crate::modules::{from_json, record};
         let columns = self
             .columns()
             .into_iter()
@@ -469,7 +469,7 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
         .unknown_kind()
         .map(|k| typed_in(k, difference.currency, 1.0))
         .unwrap_or(Value::Null);
-    crate::plugins::standard(
+    crate::modules::standard(
         "plan",
         "seek_boundary",
         vec![Value::Text(name), form_value(&difference), unit],
@@ -479,7 +479,7 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
 }
 /// Human-readable direction for a goal seek.
 pub fn seek_summary(op: &str, coefficient_positive: bool) -> String {
-    crate::plugins::standard(
+    crate::modules::standard(
         "plan",
         "seek_summary",
         vec![Value::Text(op.into()), Value::Bool(coefficient_positive)],
@@ -508,11 +508,11 @@ fn typed_in(kind: &str, currency: Option<crate::engine::Currency>, n: f64) -> Va
     }
 }
 fn form_value(form: &Linear) -> Value {
-    crate::plugins::record([
+    crate::modules::record([
         ("constant".into(), Value::Number(form.constant)),
         (
             "terms".into(),
-            crate::plugins::record(
+            crate::modules::record(
                 form.terms
                     .iter()
                     .map(|(k, n)| (k.clone(), Value::Number(*n))),
@@ -556,7 +556,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         return Err("A plan needs at least one unknown name to solve for".into());
     }
     let rows = std::mem::take(&mut engine.row_variables);
-    use crate::plugins::{field, list, record};
+    use crate::modules::{field, list, record};
     let input = record([
         ("goal".into(), Value::Text(plan.goal.keyword().into())),
         (
@@ -604,7 +604,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
             ),
         ),
     ]);
-    let result = crate::plugins::standard("plan", "solve_model", vec![input], engine.now)
+    let result = crate::modules::standard("plan", "solve_model", vec![input], engine.now)
         .inspect_err(|message| {
             engine.failure.get_or_insert(crate::engine::EvalFailure {
                 path: path.clone(),

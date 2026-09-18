@@ -4,16 +4,16 @@ use crate::{
     commands::{Action, Capabilities},
     engine::{Engine, Value},
     inlays::{InlayContext, InlayFeature, InlaySink},
-    plugins::{Module, from_json, json, record},
+    modules::{Module, from_json, json, record},
 };
 use lsp_types::{Command, Position, Range, TextEdit};
 use std::path::Path;
 
-pub struct PluginInlays;
-impl InlayFeature for PluginInlays {
+pub struct ModuleInlays;
+impl InlayFeature for ModuleInlays {
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        let plugins = context.engine.workspace.plugins.clone();
-        for module in plugins.active().filter(|m| m.kind == "inlay") {
+        let modules = context.engine.workspace.modules.clone();
+        for module in modules.active().filter(|m| m.kind == "feature") {
             module.collect(context, output);
         }
     }
@@ -87,7 +87,7 @@ pub(crate) fn input(
         ("today", Value::Date(engine.today)),
         ("document", Value::Record(document)),
         (
-            "plugin",
+            "module",
             object([
                 ("id", Value::Text(module.id.clone())),
                 ("revision", Value::Text(module.revision())),
@@ -110,7 +110,7 @@ impl InlayFeature for Module {
         &self.id
     }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        if !self.enabled || self.kind != "inlay" || !self.has("collect") {
+        if !self.enabled || self.kind != "feature" || !self.has("collect") {
             return;
         }
         let document = context.document;
@@ -170,7 +170,7 @@ impl InlayFeature for Module {
             }
             Err(error) => output.push(
                 document.line_end(0),
-                format!("plugin error · {}", self.id),
+                format!("module error · {}", self.id),
                 error,
             ),
         }
@@ -188,9 +188,9 @@ pub fn commands(
     let mut commands = vec![];
     for module in request
         .workspace()
-        .plugins
+        .modules
         .active()
-        .filter(|m| m.kind == "inlay" && m.has("actions"))
+        .filter(|m| m.kind == "feature" && m.has("actions"))
     {
         let result = (|| {
             let Value::Record(mut ctx) = input(module, &mut engine, path)? else {

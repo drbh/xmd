@@ -1,5 +1,5 @@
-// GitHub is an ordinary link module. Null namespace reads pre-plugin caches.
-plugin := {
+// GitHub is an ordinary link module. Null namespace reads pre-module caches.
+module := {
   api: 1,
   id: "github",
   kind: "link",

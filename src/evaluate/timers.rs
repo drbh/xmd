@@ -49,7 +49,7 @@ pub struct Timer {
 
 impl Timer {
     pub fn record(&self) -> Value {
-        crate::plugins::record([
+        crate::modules::record([
             (
                 "limit".into(),
                 self.limit.map(Value::Duration).unwrap_or(Value::Null),
@@ -63,7 +63,7 @@ impl Timer {
         ])
     }
     pub fn new(name: &str, args: &[Value], now: DateTime<FixedOffset>) -> Result<Self, String> {
-        let Value::Record(fields) = crate::plugins::standard(
+        let Value::Record(fields) = crate::modules::standard(
             "timer",
             "create",
             vec![Value::Text(name.into()), Value::List(args.to_vec())],
@@ -97,7 +97,7 @@ impl Timer {
         })
     }
     fn call(&self, name: &str) -> Value {
-        crate::plugins::standard(
+        crate::modules::standard(
             "timer",
             name,
             vec![self.record()],
@@ -124,7 +124,7 @@ impl Timer {
         self.call("hover").display()
     }
     pub fn property(&self, name: &str) -> Result<Value, String> {
-        crate::plugins::standard(
+        crate::modules::standard(
             "timer",
             "property",
             vec![self.record(), Value::Text(name.into())],
@@ -185,7 +185,7 @@ pub fn edit_in(
     let doc = &workspace.documents[&origin.path];
     let def = &doc.definitions[index];
     let original = timer_arguments(&def.source).ok_or("Expected timer declaration")?;
-    let expression = crate::plugins::standard(
+    let expression = crate::modules::standard(
         "timer",
         "transition",
         vec![

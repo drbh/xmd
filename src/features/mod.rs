@@ -12,7 +12,7 @@ pub mod inlays;
 pub mod inspection;
 pub mod intelligence;
 pub mod interaction;
-pub mod plugin_inlays;
+pub mod module_inlays;
 pub mod presentation;
 pub mod prose;
 pub mod query;

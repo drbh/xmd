@@ -60,7 +60,7 @@ fn link_targets_hovers_and_controls_share_origin_and_utf16_ranges() {
         documents: [(path.into(), doc)].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     let links = wtf::presentation::document_links(&ws, path, now());
     assert_eq!(links.len(), 5, "{links:?}");
@@ -137,7 +137,7 @@ fn github_links_in_prose_carry_a_status_badge_that_ages() {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     let fetched: DateTime<Utc> = "2026-09-16T16:00:00Z".parse().unwrap();
     let now = DateTime::parse_from_rfc3339("2026-09-16T18:05:00+00:00").unwrap();

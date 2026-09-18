@@ -1,7 +1,7 @@
-plugin := {
+module := {
   api: 1,
   id: "itinerary",
-  kind: "inlay",
+  kind: "feature",
   inputs: {days: ["value"]},
   imports: ["itinerary_core"]
 }

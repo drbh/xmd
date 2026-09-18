@@ -2,7 +2,7 @@
 use crate::{
     RequestContext,
     engine::Value,
-    plugins::{Module, json},
+    modules::{Module, json},
 };
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
@@ -15,7 +15,7 @@ fn call(
     module: &Module,
     hook: &str,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let input = super::plugin_inlays::input(module, &mut request.engine(), path)?;
+    let input = super::module_inlays::input(module, &mut request.engine(), path)?;
     let Value::List(items) = module.call(hook, vec![input], request.now())? else {
         return Err(format!("{hook} must return a list"));
     };
@@ -35,9 +35,9 @@ pub fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic>
     let mut result = vec![];
     for module in request
         .workspace()
-        .plugins
+        .modules
         .active()
-        .filter(|m| m.kind == "inlay" && m.has("diagnostics"))
+        .filter(|m| m.kind == "feature" && m.has("diagnostics"))
     {
         let batch = (|| {
             let mut batch = vec![];
@@ -56,7 +56,7 @@ pub fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic>
                 range: Range::default(),
                 severity: Some(DiagnosticSeverity::ERROR),
                 source: Some("wtf".into()),
-                code: Some(NumberOrString::String("plugin".into())),
+                code: Some(NumberOrString::String("module".into())),
                 message: format!("{}: {error}", module.id),
                 ..Default::default()
             }),
@@ -68,9 +68,9 @@ pub fn hover(request: &RequestContext<'_>, path: &Path, position: Position) -> O
     request.workspace().documents.get(path)?;
     for module in request
         .workspace()
-        .plugins
+        .modules
         .active()
-        .filter(|m| m.kind == "inlay" && m.has("hovers"))
+        .filter(|m| m.kind == "feature" && m.has("hovers"))
     {
         let batch = (|| {
             let mut batch = vec![];
@@ -110,9 +110,9 @@ pub fn formatting(request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextE
     let mut edits = crate::tables::table_formatting(doc);
     for module in request
         .workspace()
-        .plugins
+        .modules
         .active()
-        .filter(|m| m.kind == "inlay" && m.has("format"))
+        .filter(|m| m.kind == "feature" && m.has("format"))
     {
         for value in call(request, path, module, "format")? {
             edits.push(serde_json::from_value(value).map_err(|e| e.to_string())?);

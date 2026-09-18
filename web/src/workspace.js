@@ -117,7 +117,7 @@ export function createWorkspace(options = {}) {
       if (params.uri) params = { ...params, uri: canonicalUri(params.uri) };
       if (method === "setDocument") return api.setDocument(params.uri, params.text);
       if (method === "removeDocument") return api.removeDocument(params.uri);
-      if (["setPlugins", "setResourceData"].includes(method)) return enqueue(async () => { const result = await call(method, params); invalidate(); return result; });
+      if (["setModules", "setResourceData"].includes(method)) return enqueue(async () => { const result = await call(method, params); invalidate(); return result; });
       return enqueue(() => call(method, params));
     },
     query(uri, method, params = {}) {
@@ -161,7 +161,7 @@ export function createWorkspace(options = {}) {
       });
     },
     applyEdit(edit) { return enqueue(() => applyEdit(edit)); },
-    setPlugins: sources => api.request("setPlugins", { sources }),
+    setModules: sources => api.request("setModules", { sources }),
     setResourceData: (url, data) => api.request("setResourceData", { url, data }),
     refresh,
     settled: () => tail,

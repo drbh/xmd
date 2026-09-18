@@ -16,7 +16,7 @@ fn note(source: &str) -> Workspace {
         documents: [("/notes/features.wtf".into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn assert_json(at: &str, actual: &Value, expected: &Value) {
@@ -111,8 +111,8 @@ fn primitive_linear_solver_and_imports_are_available_to_notes_and_queries() {
 fn imported_functions_keep_lexical_environments_and_share_execution_limits() {
     use std::sync::Arc;
     let mut ws = note("x := import(\"consumer\").run(3)\n");
-    let sources=[("/notes/.wtf/plugins/consumer.wtf".into(),"plugin := {api: 1, id: \"consumer\", kind: \"library\", imports: [\"math\"]}\nmath := import(\"math\")\nbase := 100\nrun := fn(x) => math.add(x)(2)\n".into()),("/notes/.wtf/plugins/math.wtf".into(),"plugin := {api: 1, id: \"math\", kind: \"library\"}\nbase := 7\nadd := fn(x) => fn(y) => x + y + base\nloop := fn(x) => loop(x)\n".into())].into();
-    ws.plugins = Arc::new(wtf::plugins::Plugins::compile(sources).unwrap());
+    let sources=[("/notes/.wtf/modules/consumer.wtf".into(),"module := {api: 1, id: \"consumer\", kind: \"library\", imports: [\"math\"]}\nmath := import(\"math\")\nbase := 100\nrun := fn(x) => math.add(x)(2)\n".into()),("/notes/.wtf/modules/math.wtf".into(),"module := {api: 1, id: \"math\", kind: \"library\"}\nbase := 7\nadd := fn(x) => fn(y) => x + y + base\nloop := fn(x) => loop(x)\n".into())].into();
+    ws.modules = Arc::new(wtf::modules::ModuleRegistry::compile(sources).unwrap());
     let mut engine = Engine::at(&ws, now());
     let path = Path::new("/notes/features.wtf");
     assert_eq!(engine.named(path, "x").unwrap().display(), "12");
@@ -124,17 +124,17 @@ fn imported_functions_keep_lexical_environments_and_share_execution_limits() {
     );
     let cycle = [
         (
-            "/notes/.wtf/plugins/a.wtf".into(),
-            "plugin := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}".into(),
+            "/notes/.wtf/modules/a.wtf".into(),
+            "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}".into(),
         ),
         (
-            "/notes/.wtf/plugins/b.wtf".into(),
-            "plugin := {api: 1, id: \"b\", kind: \"library\", imports: [\"a\"]}".into(),
+            "/notes/.wtf/modules/b.wtf".into(),
+            "module := {api: 1, id: \"b\", kind: \"library\", imports: [\"a\"]}".into(),
         ),
     ]
     .into();
     assert!(
-        wtf::plugins::Plugins::compile(cycle)
+        wtf::modules::ModuleRegistry::compile(cycle)
             .unwrap_err()
             .contains("cycle")
     );
@@ -150,21 +150,21 @@ fn imported_functions_keep_lexical_environments_and_share_execution_limits() {
 #[test]
 fn reducers_run_at_execution_time_and_reject_changed_modules() {
     use wtf::commands::{Action, Capabilities, PreparedAction};
-    let source = r#"plugin := {api: 1, id: "stamp", kind: "inlay", inputs: []}
-actions := fn(ctx) => [{title: "Stamp", action: {kind: "invoke", document: ctx.document.uri, expected: ctx.document.text, plugin: ctx.plugin.id, revision: ctx.plugin.revision, event: {}}}]
+    let source = r#"module := {api: 1, id: "stamp", kind: "feature", inputs: []}
+actions := fn(ctx) => [{title: "Stamp", action: {kind: "invoke", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]
 reduce := fn(ctx, event) => {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}
 "#;
     let mut ws = note("Hello\n");
     let path = Path::new("/notes/features.wtf");
     let compile = |source: &str| {
         std::sync::Arc::new(
-            wtf::plugins::Plugins::compile(
-                [("/notes/.wtf/plugins/stamp.wtf".into(), source.into())].into(),
+            wtf::modules::ModuleRegistry::compile(
+                [("/notes/.wtf/modules/stamp.wtf".into(), source.into())].into(),
             )
             .unwrap(),
         )
     };
-    ws.plugins = compile(source);
+    ws.modules = compile(source);
     let commands = wtf::interaction::row_commands_for(
         &wtf::RequestContext::new(&ws, now()),
         path,
@@ -182,26 +182,26 @@ reduce := fn(ctx, event) => {kind: "edit", document: ctx.document.uri, expected:
         panic!()
     };
     assert_eq!(edits[0].new_text, later.to_rfc3339());
-    ws.plugins = compile(&source.replace("Stamp", "New stamp"));
+    ws.modules = compile(&source.replace("Stamp", "New stamp"));
     assert!(
         action
             .prepare(&wtf::RequestContext::new(&ws, later), Capabilities::BROWSER)
             .unwrap_err()
-            .contains("Plugin changed")
+            .contains("Module changed")
     );
 }
 #[test]
 fn generic_hooks_validate_ranges_and_share_catalog_without_recursion() {
     let mut ws = note("Hello\n");
     let path = Path::new("/notes/features.wtf");
-    let source = r#"plugin := {api: 1, id: "hooks", kind: "inlay", inputs: ["diagnostics"]}
+    let source = r#"module := {api: 1, id: "hooks", kind: "feature", inputs: ["diagnostics"]}
 hovers := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, contents: "Greeting"}]
 diagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, severity: 2, message: "Check greeting", code: "greeting"}]
 format := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "HELLO"}]
 "#;
-    ws.plugins = std::sync::Arc::new(
-        wtf::plugins::Plugins::compile(
-            [("/notes/.wtf/plugins/hooks.wtf".into(), source.into())].into(),
+    ws.modules = std::sync::Arc::new(
+        wtf::modules::ModuleRegistry::compile(
+            [("/notes/.wtf/modules/hooks.wtf".into(), source.into())].into(),
         )
         .unwrap(),
     );
@@ -235,15 +235,15 @@ fn migrated_features_can_be_disabled_without_leaking_controls_or_hooks() {
             .unwrap()
             .is_empty()
     );
-    ws.plugins = std::sync::Arc::new(
-        wtf::plugins::Plugins::compile(
+    ws.modules = std::sync::Arc::new(
+        wtf::modules::ModuleRegistry::compile(
             ["timers", "itinerary"]
                 .into_iter()
                 .map(|id| {
                     (
-                        format!("/notes/.wtf/plugins/{id}.wtf").into(),
+                        format!("/notes/.wtf/modules/{id}.wtf").into(),
                         format!(
-                            "plugin := {{api: 1, id: \"{id}\", kind: \"inlay\", enabled: false}}\n"
+                            "module := {{api: 1, id: \"{id}\", kind: \"feature\", enabled: false}}\n"
                         ),
                     )
                 })
@@ -280,9 +280,9 @@ fn language_diagnostics_reach_queries_and_imported_libraries_can_be_replaced() {
     assert_eq!(rows.rows.len(), 1);
     // Copying a bundled provider and replacing its imported library works through
     // the public registry, without registering a new Rust feature implementation.
-    ws.plugins = std::sync::Arc::new(wtf::plugins::Plugins::compile([
-        ("/notes/.wtf/plugins/timers.wtf".into(), include_str!("../stdlib/.wtf/plugins/timers.wtf").into()),
-        ("/notes/.wtf/plugins/timer.wtf".into(), "plugin := {api: 1, id: \"timer\", kind: \"library\", inputs: []}\nrunning := fn(t) => false\ninlay := fn(t) => \"custom timer\"\nactions := fn(t) => []\n".into()),
+    ws.modules = std::sync::Arc::new(wtf::modules::ModuleRegistry::compile([
+        ("/notes/.wtf/modules/timers.wtf".into(), include_str!("../stdlib/timers.wtf").into()),
+        ("/notes/.wtf/modules/timer.wtf".into(), "module := {api: 1, id: \"timer\", kind: \"library\", inputs: []}\nrunning := fn(t) => false\ninlay := fn(t) => \"custom timer\"\nactions := fn(t) => []\n".into()),
     ].into()).unwrap());
     ws.documents.insert(
         path.into(),
@@ -310,19 +310,19 @@ fn solver_primitive_checks_models_and_keeps_integer_and_status_semantics() {
     let model = r#"{goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}"#;
     let solve = |model: &str| format!("solve_linear({model})");
     let value = engine.eval(path, &solve(model)).unwrap();
-    let json = wtf::plugins::json(&value).unwrap();
+    let json = wtf::modules::json(&value).unwrap();
     assert_eq!(json["status"], "optimal");
     assert_eq!(json["values"]["x"], 2);
     let unbounded = model
         .replace(", upper: 2.8", "")
         .replace("integer", "continuous");
     assert_eq!(
-        wtf::plugins::json(&engine.eval(path, &solve(&unbounded)).unwrap()).unwrap()["status"],
+        wtf::modules::json(&engine.eval(path, &solve(&unbounded)).unwrap()).unwrap()["status"],
         "unbounded"
     );
     let infeasible = model.replace("constraints: []", "constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: \">=\", rhs: {constant: 5, terms: {}}}]");
     assert_eq!(
-        wtf::plugins::json(&engine.eval(path, &solve(&infeasible)).unwrap()).unwrap()["status"],
+        wtf::modules::json(&engine.eval(path, &solve(&infeasible)).unwrap()).unwrap()["status"],
         "infeasible"
     );
     for bad in [
@@ -391,7 +391,7 @@ fn representative_document_stays_within_module_limits() {
     assert!(
         !serde_json::to_string(&hints.hints)
             .unwrap()
-            .contains("plugin error")
+            .contains("module error")
     );
     eprintln!(
         "32 timers + 20 stops: {:?} for inlays and diagnostics",

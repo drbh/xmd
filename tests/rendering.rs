@@ -15,7 +15,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 
@@ -98,11 +98,11 @@ fn label_parts_padding_and_ties_use_display_order_without_applying_actions() {
 }
 
 #[test]
-fn resolved_text_uses_workspace_plugins_overrides_and_the_request_clock() {
+fn resolved_text_uses_workspace_modules_overrides_and_the_request_clock() {
     let mut ws = note("clock := now()\n");
-    ws.plugins = std::sync::Arc::new(wtf::plugins::Plugins::compile([
-        ("/notes/.wtf/plugins/definitions.wtf".into(), "plugin := {api: 1, id: \"definitions\", kind: \"inlay\", enabled: false}".into()),
-        ("/notes/.wtf/plugins/custom.wtf".into(), "plugin := {api: 1, id: \"custom\", kind: \"inlay\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: source(now())}, {line: 0, label: \"second\"}]".into()),
+    ws.modules = std::sync::Arc::new(wtf::modules::ModuleRegistry::compile([
+        ("/notes/.wtf/modules/definitions.wtf".into(), "module := {api: 1, id: \"definitions\", kind: \"feature\", enabled: false}".into()),
+        ("/notes/.wtf/modules/custom.wtf".into(), "module := {api: 1, id: \"custom\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: source(now())}, {line: 0, label: \"second\"}]".into()),
     ].into()).unwrap());
     assert_eq!(
         presentation::render_text_in(&RequestContext::new(&ws, now()), path()).unwrap(),
@@ -188,4 +188,33 @@ fn html_escapes_content_tooltips_and_links_and_marks_diagnostics() {
             .unwrap()
             .contains("<code><span class=\"line \" data-line=\"0\"></span></code>")
     );
+}
+
+#[test]
+fn standard_library_html_matches_the_pre_migration_output() {
+    let fixtures: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/stdlib-html.json")).unwrap();
+    let clock = DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap();
+    for fixture in fixtures.as_array().unwrap() {
+        let ws = note(fixture["source"].as_str().unwrap());
+        let request = RequestContext::new(&ws, clock);
+        let hints = presentation::hints_in(
+            &request,
+            path(),
+            Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX)),
+        );
+        let fragment = wtf::rendering::fragment(
+            &ws.documents[path()],
+            &hints.hints,
+            &wtf::diagnostics::collect_in(&request, path(), false),
+            &presentation::document_links_in(&request, path()),
+        )
+        .unwrap();
+        assert_eq!(
+            fragment,
+            fixture["html"].as_str().unwrap(),
+            "{}",
+            fixture["source"]
+        );
+    }
 }

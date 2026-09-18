@@ -14,9 +14,16 @@ use std::{
     sync::Arc,
 };
 
-#[derive(Clone, Debug, Default)]
-pub struct Plugins {
+#[derive(Clone, Debug)]
+pub struct ModuleRegistry {
     pub modules: Vec<Module>,
+}
+impl Default for ModuleRegistry {
+    fn default() -> Self {
+        Self {
+            modules: bundled().to_vec(),
+        }
+    }
 }
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -24,6 +31,7 @@ pub struct Module {
     pub kind: String,
     pub path: PathBuf,
     pub live: bool,
+    own_live: bool,
     pub enabled: bool,
     pub inputs: Vec<String>,
     pub fields: BTreeMap<String, Vec<String>>,
@@ -35,12 +43,13 @@ pub struct Module {
     cache_key: Option<String>,
     workspace: Arc<Workspace>,
 }
-pub fn is_plugin_path(path: &Path) -> bool {
+pub fn is_module_path(path: &Path) -> bool {
     path.extension().is_some_and(|s| s == "wtf")
         && path.parent().is_some_and(|p| {
-            p.file_name().is_some_and(|s| s == "plugins")
-                && p.parent()
-                    .is_some_and(|p| p.file_name().is_some_and(|s| s == ".wtf"))
+            p.file_name().is_some_and(|s| s == "stdlib")
+                || (p.file_name().is_some_and(|s| s == "modules")
+                    && p.parent()
+                        .is_some_and(|p| p.file_name().is_some_and(|s| s == ".wtf")))
         })
 }
 fn epoch() -> DateTime<FixedOffset> {
@@ -83,7 +92,7 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
             (*v as u64).into()
         }
         Value::Number(v) => serde_json::Number::from_f64(*v)
-            .ok_or("Nonfinite plugin number")?
+            .ok_or("Nonfinite module number")?
             .into(),
         Value::Count(v) => (*v).into(),
         Value::Text(v) => v.clone().into(),
@@ -93,7 +102,7 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
                 .map(|(k, v)| Ok((k.clone(), json(v)?)))
                 .collect::<Result<_, String>>()?,
         ),
-        _ => return Err("Cached plugin data must contain JSON values".into()),
+        _ => return Err("Cached module data must contain JSON values".into()),
     })
 }
 pub fn url_value(url: &Url) -> Value {
@@ -110,7 +119,7 @@ pub fn url_value(url: &Url) -> Value {
 impl Module {
     pub fn compile(path: PathBuf, source: String) -> Result<Self, String> {
         if source.len() > 65_536 {
-            return Err("Plugin modules are limited to 64 KiB".into());
+            return Err("Module modules are limited to 64 KiB".into());
         }
         let document = Document::parse(source);
         if let Some(problem) = document.problems.first() {
@@ -124,7 +133,7 @@ impl Module {
                 return Err(format!("Duplicate definition '{}'", def.named.name));
             }
             if !def.expression {
-                return Err("Plugin definitions must use :=".into());
+                return Err("Module definitions must use :=".into());
             }
             expressions.insert(
                 def.source.clone(),
@@ -140,26 +149,26 @@ impl Module {
             documents: [(path.clone(), document)].into(),
             cache: Default::default(),
             lookups: Default::default(),
-            plugins: Default::default(),
+            modules: Arc::new(ModuleRegistry { modules: vec![] }),
         });
         let mut engine = Engine::at(&workspace, epoch())
             .pure()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]));
-        let Value::Record(config) = engine.named(&path, "plugin")? else {
-            return Err("plugin must be a record".into());
+        let Value::Record(config) = engine.named(&path, "module")? else {
+            return Err("module must be a record".into());
         };
         if !matches!(config.get("api"),Some(Value::Number(n)) if *n==1.0) {
-            return Err("plugin.api must be 1".into());
+            return Err("module.api must be 1".into());
         }
-        let id = text(config.get("id").ok_or("plugin.id is required")?)?;
+        let id = text(config.get("id").ok_or("module.id is required")?)?;
         if id.is_empty()
             || !id
                 .bytes()
                 .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_' | b'.'))
         {
-            return Err("Invalid plugin id".into());
+            return Err("Invalid module id".into());
         }
-        let kind = text(config.get("kind").ok_or("plugin.kind is required")?)?;
+        let kind = text(config.get("kind").ok_or("module.kind is required")?)?;
         let enabled = match config.get("enabled") {
             None => true,
             Some(Value::Bool(v)) => *v,
@@ -188,9 +197,9 @@ impl Module {
         }
         let required = match kind.as_str() {
             "link" => "inlay",
-            "inlay" => "collect",
+            "feature" => "collect",
             "library" => "",
-            _ => return Err("plugin.kind must be link, inlay, or library".into()),
+            _ => return Err("module.kind must be link, feature, or library".into()),
         };
         let hosts = config
             .get("hosts")
@@ -206,7 +215,7 @@ impl Module {
                         || host.to_lowercase() != *host
                 }))
         {
-            return Err("Link plugins require lowercase host names".into());
+            return Err("Link modules require lowercase host names".into());
         }
         let prefix = config
             .get("path_prefix")
@@ -279,6 +288,7 @@ impl Module {
             kind,
             path,
             live,
+            own_live: live,
             enabled,
             inputs,
             imports: config
@@ -302,7 +312,7 @@ impl Module {
         use std::hash::{Hash, Hasher};
         let mut hash = std::collections::hash_map::DefaultHasher::new();
         self.workspace.documents[&self.path].text.hash(&mut hash);
-        for module in &self.workspace.plugins.modules {
+        for module in &self.workspace.modules.modules {
             module.revision().hash(&mut hash);
         }
         format!("{:016x}", hash.finish())
@@ -316,6 +326,9 @@ impl Module {
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
     ) -> Result<Value, String> {
+        if !self.enabled {
+            return Err(format!("Module '{}' is disabled", self.id));
+        }
         for arg in &args {
             crate::evaluate::functional::check_size(arg)?;
         }
@@ -327,7 +340,7 @@ impl Module {
         let function = engine.named(&self.path, name)?;
         engine
             .call(function, args)
-            .map_err(|e| format!("Plugin {}.{name}: {e}", self.id))
+            .map_err(|e| format!("Module {}.{name}: {e}", self.id))
     }
     fn context(&self, ctx: &LinkContext<'_>) -> Value {
         let cached = ctx
@@ -376,7 +389,7 @@ impl LinkFeature for Module {
     fn inlay(&self, ctx: &LinkContext<'_>) -> String {
         self.call("inlay", vec![self.context(ctx)], ctx.now.fixed_offset())
             .and_then(|v| text(&v))
-            .unwrap_or_else(|e| format!("plugin error · {e}"))
+            .unwrap_or_else(|e| format!("module error · {e}"))
     }
     fn hover(&self, ctx: &LinkContext<'_>) -> Option<String> {
         self.has("hover").then(|| {
@@ -448,7 +461,7 @@ impl LinkFeature for Module {
                 .map(text)
                 .transpose()
                 .ok()?
-                .unwrap_or_else(|| "Plugin refresh".into()),
+                .unwrap_or_else(|| "Module refresh".into()),
             program,
             args: strings(fields.get("args")?).ok()?,
             env: match fields.get("env") {
@@ -489,15 +502,32 @@ impl LinkFeature for Module {
         })
     }
 }
-impl Plugins {
+impl ModuleRegistry {
     pub fn overrides(&self, id: &str) -> bool {
-        self.modules.iter().any(|m| m.id == id)
-    }
-    pub fn active(&self) -> impl Iterator<Item = &Module> {
         self.modules
             .iter()
-            .chain(bundled().iter().filter(|m| !self.overrides(&m.id)))
-            .filter(|m| m.enabled)
+            .any(|m| m.id == id && !m.path.starts_with("/__wtf_stdlib__"))
+    }
+    pub fn active(&self) -> impl Iterator<Item = &Module> {
+        self.modules.iter().filter(|m| m.enabled)
+    }
+    /// Resolve every call against this immutable workspace snapshot.
+    pub fn call(
+        &self,
+        id: &str,
+        name: &str,
+        args: Vec<Value>,
+        now: DateTime<FixedOffset>,
+    ) -> Result<Value, String> {
+        self.active()
+            .find(|m| m.id == id)
+            .ok_or_else(|| format!("Module '{id}' is unavailable or disabled"))?
+            .call(name, args, now)
+            .map_err(|e| {
+                e.strip_prefix(&format!("Module {id}.{name}: "))
+                    .unwrap_or(&e)
+                    .to_owned()
+            })
     }
     pub fn same_sources(&self, other: &Self) -> bool {
         self.modules.len() == other.modules.len()
@@ -508,8 +538,11 @@ impl Plugins {
     }
     /// Compile a complete replacement before the caller swaps its Arc snapshot.
     pub fn compile(sources: BTreeMap<PathBuf, String>) -> Result<Self, String> {
+        Self::compile_over(sources, bundled())
+    }
+    fn compile_over(sources: BTreeMap<PathBuf, String>, base: &[Module]) -> Result<Self, String> {
         if sources.len() > 64 {
-            return Err("At most 64 plugin modules may be loaded".into());
+            return Err("At most 64 module modules may be loaded".into());
         }
         let mut modules = Vec::new();
         let mut ids = BTreeSet::new();
@@ -517,19 +550,31 @@ impl Plugins {
             let module = Module::compile(path.clone(), source)
                 .map_err(|e| format!("{}: {e}", path.display()))?;
             if !ids.insert(module.id.clone()) {
-                return Err(format!("Duplicate plugin id '{}'", module.id));
+                return Err(format!("Duplicate module id '{}'", module.id));
             }
             modules.push(module);
         }
+        modules.extend(base.iter().filter(|m| !ids.contains(&m.id)).cloned());
         Ok(Self {
-            modules: link(modules, true)?,
+            modules: link(modules)?,
         })
     }
     #[cfg(feature = "native")]
     pub fn load(roots: &[PathBuf]) -> Result<Self, String> {
+        let standard = Self::compile(Self::read_sources(roots, "stdlib")?)?;
+        Self::compile_over(
+            Self::read_sources(roots, ".wtf/modules")?,
+            &standard.modules,
+        )
+    }
+    #[cfg(feature = "native")]
+    fn read_sources(
+        roots: &[PathBuf],
+        directory: &str,
+    ) -> Result<BTreeMap<PathBuf, String>, String> {
         let mut sources = BTreeMap::new();
         for root in roots {
-            let directory = root.join(".wtf/plugins");
+            let directory = root.join(directory);
             let entries = match std::fs::read_dir(&directory) {
                 Ok(v) => v,
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
@@ -551,7 +596,7 @@ impl Plugins {
                 }
             }
         }
-        Self::compile(sources)
+        Ok(sources)
     }
 }
 
@@ -562,60 +607,41 @@ pub fn bundled() -> &'static [Module] {
         let modules = [
             (
                 "itinerary_core",
-                include_str!("../../stdlib/.wtf/plugins/itinerary_core.wtf"),
+                include_str!("../../stdlib/itinerary_core.wtf"),
             ),
-            (
-                "itinerary",
-                include_str!("../../stdlib/.wtf/plugins/itinerary.wtf"),
-            ),
-            (
-                "timers",
-                include_str!("../../stdlib/.wtf/plugins/timers.wtf"),
-            ),
-            ("plans", include_str!("../../stdlib/.wtf/plugins/plans.wtf")),
-            ("plan", include_str!("../../stdlib/.wtf/plugins/plan.wtf")),
-            ("timer", include_str!("../../stdlib/.wtf/plugins/timer.wtf")),
-            (
-                "format",
-                include_str!("../../stdlib/.wtf/plugins/format.wtf"),
-            ),
-            (
-                "github",
-                include_str!("../../stdlib/.wtf/plugins/github.wtf"),
-            ),
-            (
-                "table_cells",
-                include_str!("../../stdlib/.wtf/plugins/table_cells.wtf"),
-            ),
-            (
-                "checklists",
-                include_str!("../../stdlib/.wtf/plugins/checklists.wtf"),
-            ),
+            ("itinerary", include_str!("../../stdlib/itinerary.wtf")),
+            ("timers", include_str!("../../stdlib/timers.wtf")),
+            ("plans", include_str!("../../stdlib/plans.wtf")),
+            ("plan", include_str!("../../stdlib/plan.wtf")),
+            ("timer", include_str!("../../stdlib/timer.wtf")),
+            ("format", include_str!("../../stdlib/format.wtf")),
+            ("github", include_str!("../../stdlib/github.wtf")),
+            ("table_cells", include_str!("../../stdlib/table_cells.wtf")),
+            ("checklists", include_str!("../../stdlib/checklists.wtf")),
             (
                 "calculations",
-                include_str!("../../stdlib/.wtf/plugins/calculations.wtf"),
+                include_str!("../../stdlib/calculations.wtf"),
             ),
         ]
         .into_iter()
         .map(|(id, source)| {
             Module::compile(
-                format!("/__wtf_stdlib__/.wtf/plugins/{id}.wtf").into(),
+                format!("/__wtf_stdlib__/stdlib/{id}.wtf").into(),
                 source.into(),
             )
             .expect("valid bundled module")
         })
         .collect();
-        link(modules, false).expect("valid standard imports")
+        link(modules).expect("valid standard imports")
     })
 }
 
-fn link(modules: Vec<Module>, fallback: bool) -> Result<Vec<Module>, String> {
+fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
     fn resolve(
         id: &str,
         sources: &BTreeMap<String, Module>,
         ready: &mut BTreeMap<String, Module>,
         stack: &mut Vec<String>,
-        fallback: bool,
     ) -> Result<Module, String> {
         if let Some(module) = ready.get(id) {
             return Ok(module.clone());
@@ -628,22 +654,17 @@ fn link(modules: Vec<Module>, fallback: bool) -> Result<Vec<Module>, String> {
         }
         let mut module = match sources.get(id) {
             Some(m) => m.clone(),
-            None if fallback => bundled()
-                .iter()
-                .find(|m| m.id == id)
-                .cloned()
-                .ok_or_else(|| format!("Unknown module import '{id}'"))?,
             None => return Err(format!("Unknown module import '{id}'")),
         };
         stack.push(id.into());
         let dependencies = module
             .imports
             .iter()
-            .map(|id| resolve(id, sources, ready, stack, fallback))
+            .map(|id| resolve(id, sources, ready, stack))
             .collect::<Result<Vec<_>, _>>()?;
         stack.pop();
-        module.live |= dependencies.iter().any(|m| m.live);
-        Arc::make_mut(&mut module.workspace).plugins = Arc::new(Plugins {
+        module.live = module.own_live || dependencies.iter().any(|m| m.live);
+        Arc::make_mut(&mut module.workspace).modules = Arc::new(ModuleRegistry {
             modules: dependencies,
         });
         ready.insert(id.into(), module.clone());
@@ -654,7 +675,7 @@ fn link(modules: Vec<Module>, fallback: bool) -> Result<Vec<Module>, String> {
     let mut ready = BTreeMap::new();
     order
         .into_iter()
-        .map(|id| resolve(&id, &sources, &mut ready, &mut vec![], fallback))
+        .map(|id| resolve(&id, &sources, &mut ready, &mut vec![]))
         .collect()
 }
 /// Run shared standard-library behavior with an explicit request clock.
@@ -670,7 +691,7 @@ pub fn standard(
         .ok_or_else(|| format!("Unknown standard module '{id}'"))?
         .call(name, args, now)
         .map_err(|e| {
-            e.strip_prefix(&format!("Plugin {id}.{name}: "))
+            e.strip_prefix(&format!("Module {id}.{name}: "))
                 .unwrap_or(&e)
                 .to_owned()
         })

@@ -1,0 +1,92 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "values.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "values.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "values.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 2,
+          "character": 3
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 0,
+          "character": 10
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 4,
+          "character": 3
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 10,
+          "character": 3
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 7,
+          "character": 47
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 11,
+          "character": 8
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "values.wtf",
+          "line": 8,
+          "character": 15
+        },
+        {
+          "open": "bakery.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "bakery.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "bakery.wtf",
+          "line": 3,
+          "character": 17
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "bakery.wtf",
+          "line": 0,
+          "character": 3
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "bakery.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

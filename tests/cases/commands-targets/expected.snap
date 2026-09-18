@@ -1,0 +1,132 @@
+### 0 lsp
+-- open note.wtf
+-- await textDocument/publishDiagnostics note.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/note.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,"- [ ] Different"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",9999,""],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+-- request workspace/executeCommand {"arguments":["${uri:gone.wtf}",0,"- [ ] Task"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Document is no longer in the workspace"
+}
+-- request workspace/executeCommand {"arguments":["${uri:blocked.wtf}",0,"- [ ] Waiting @after(prerequisite)"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Blocked by prerequisite"
+}
+-- request workspace/executeCommand {"arguments":["${uri:plain.wtf}",0,"plain text"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "No task at this line"
+}
+-- request workspace/executeCommand {"arguments":["${uri:alias.wtf}","alias","start"],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 22,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/timer.wtf",
+          "version": null
+        }
+      }
+    ]
+  }
+}
+-- write timer.wtf
+[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/timer.wtf"}]}
+-- request workspace/executeCommand {"arguments":["${uri:alias.wtf}","alias","start"],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Cannot start a running timer"
+}
+-- request workspace/executeCommand {"arguments":["${uri:alias.wtf}","alias","pause"],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(75s)",
+            "range": {
+              "end": {
+                "character": 51,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/timer.wtf",
+          "version": null
+        }
+      }
+    ]
+  }
+}
+-- request workspace/executeCommand {"arguments":["${uri:use.wtf}",0,"See [site].","https://example.com/old"],"command":"wtf.openResource"}
+null
+-- await window/showDocument
+{
+  "external": true,
+  "takeFocus": true,
+  "uri": "https://example.com/old"
+}
+-- request workspace/executeCommand {"arguments":["${uri:use.wtf}",0,"See [site].","https://example.com/old"],"command":"wtf.refreshResource"}
+error: {
+  "code": -32602,
+  "message": "This resource does not support refresh"
+}
+-- write links.wtf
+[https://github.com/acme/app/pull/42]:site
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/links.wtf"}]}
+-- request workspace/executeCommand {"arguments":["${uri:use.wtf}",0,"See [site].","https://example.com/old"],"command":"wtf.openResource"}
+error: {
+  "code": -32602,
+  "message": "Resource changed; request fresh controls"
+}
+
+### 1 read note.wtf blocked.wtf timer.wtf
+-- note.wtf
+- [ ] Task
+-- blocked.wtf
+- [ ] Waiting @after(prerequisite)
+- [ ] First :prerequisite
+-- timer.wtf
+[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)
+

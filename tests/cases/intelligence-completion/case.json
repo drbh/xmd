@@ -1,0 +1,131 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "base.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "base.wtf"
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n- [ ] Do @timer(\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 16
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n- [ ] Do @due(\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 14
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n[sum] := effort(\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 16
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n[value] := countdown(25m, 0s, \n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 30
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n- [ ] Do @every(we\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 18
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n\ud83e\udd80 [value] := pr.sta\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 20
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\nUse [work.\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 10
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n- [ ] Do @due(dat\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 17
+        }
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "base.wtf"
+        },
+        {
+          "change": {
+            "file": "base.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget - spent\n[2026-09-25]:departure\n[focus] := countdown(25m)\n[work] := stopwatch()\n[30m]:estimate\n[https://github.com/zed-industries/zed/pull/1]:pr\n# Checklist :checklist\n- [x] Done :done\n- [ ] Do @due(dat\n"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "base.wtf",
+          "line": 10,
+          "character": 17
+        }
+      ],
+      "capabilities": {}
+    }
+  ]
+}

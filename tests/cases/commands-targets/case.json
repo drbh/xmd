@@ -1,0 +1,189 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "note.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "note.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              0,
+              "- [ ] Different"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              9999,
+              ""
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:gone.wtf}",
+              0,
+              "- [ ] Task"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:blocked.wtf}",
+              0,
+              "- [ ] Waiting @after(prerequisite)"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:plain.wtf}",
+              0,
+              "plain text"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:alias.wtf}",
+              "alias",
+              "start"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "write": {
+            "file": "timer.wtf",
+            "text": "[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:timer.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:alias.wtf}",
+              "alias",
+              "start"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:alias.wtf}",
+              "alias",
+              "pause"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              "${uri:use.wtf}",
+              0,
+              "See [site].",
+              "https://example.com/old"
+            ]
+          }
+        },
+        {
+          "await": "window/showDocument"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.refreshResource",
+            "arguments": [
+              "${uri:use.wtf}",
+              0,
+              "See [site].",
+              "https://example.com/old"
+            ]
+          }
+        },
+        {
+          "write": {
+            "file": "links.wtf",
+            "text": "[https://github.com/acme/app/pull/42]:site\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:links.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              "${uri:use.wtf}",
+              0,
+              "See [site].",
+              "https://example.com/old"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        "note.wtf",
+        "blocked.wtf",
+        "timer.wtf"
+      ]
+    }
+  ]
+}

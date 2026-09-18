@@ -1,0 +1,183 @@
+{
+  "requires": "browser",
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "note.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "note.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "note.wtf"
+        }
+      ]
+    },
+    {
+      "browser": [
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 0
+              },
+              "end": {
+                "line": 0,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 2,
+                "character": 0
+              },
+              "end": {
+                "line": 2,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 3,
+                "character": 0
+              },
+              "end": {
+                "line": 3,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.task",
+              "arguments": [
+                "file:///workspace/note.wtf",
+                1,
+                "- [ ] Task"
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.timer",
+              "arguments": [
+                "file:///workspace/note.wtf",
+                "focus",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.refresh",
+              "arguments": []
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.today",
+              "arguments": []
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.refreshResource",
+              "arguments": [
+                "file:///workspace/note.wtf",
+                2,
+                "https://github.com/acme/app/pull/42",
+                "https://github.com/acme/app/pull/42"
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 2
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.task",
+              "arguments": [
+                "file:///workspace/note.wtf",
+                1,
+                "- [ ] Task"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

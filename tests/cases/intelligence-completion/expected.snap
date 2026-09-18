@@ -1,0 +1,925 @@
+### 0 lsp
+-- open base.wtf
+-- await textDocument/publishDiagnostics base.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/base.wtf",
+  "version": 1
+}
+-- change base.wtf (version 2)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+- [ ] Do @timer(
+-- request textDocument/completion base.wtf 10:16
+[
+  {
+    "detail": "Countdown · ◷ 25:00 remaining · ○ idle",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[focus](<file://<root>/base.wtf#L5>)"
+    },
+    "kind": 6,
+    "label": "focus",
+    "sortText": "0_focus",
+    "textEdit": {
+      "newText": "focus",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Stopwatch · ◴ 00:00 elapsed · ○ idle",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[work](<file://<root>/base.wtf#L6>)"
+    },
+    "kind": 6,
+    "label": "work",
+    "sortText": "0_work",
+    "textEdit": {
+      "newText": "work",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 3)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+- [ ] Do @due(
+-- request textDocument/completion base.wtf 10:14
+[
+  {
+    "detail": "Date · 2026-09-25",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+    },
+    "kind": 6,
+    "label": "departure",
+    "sortText": "0_departure",
+    "textEdit": {
+      "newText": "departure",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current local calendar date. Updates at midnight."
+    },
+    "filterText": "today",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "today()",
+    "textEdit": {
+      "newText": "today()",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current timestamp. Sampled once per evaluation; live hints refresh every second."
+    },
+    "filterText": "now",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "now()",
+    "textEdit": {
+      "newText": "now()",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date or DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone."
+    },
+    "filterText": "date",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "date(\"next Friday\")",
+    "textEdit": {
+      "newText": "date(${1:\"next Friday\"})$0",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "today",
+    "textEdit": {
+      "newText": "today",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "tomorrow",
+    "textEdit": {
+      "newText": "tomorrow",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "next Friday",
+    "textEdit": {
+      "newText": "next Friday",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 4)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+[sum] := effort(
+-- request textDocument/completion base.wtf 10:16
+[
+  {
+    "detail": "Checklist · 1 tasks",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[checklist](<file://<root>/base.wtf#L9>)"
+    },
+    "kind": 6,
+    "label": "checklist",
+    "sortText": "0_checklist",
+    "textEdit": {
+      "newText": "checklist",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 5)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+[value] := countdown(25m, 0s, 
+-- request textDocument/completion base.wtf 10:30
+[
+  {
+    "detail": "DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current timestamp. Sampled once per evaluation; live hints refresh every second."
+    },
+    "filterText": "now",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "now()",
+    "textEdit": {
+      "newText": "now()",
+      "range": {
+        "end": {
+          "character": 30,
+          "line": 10
+        },
+        "start": {
+          "character": 30,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 6)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+- [ ] Do @every(we
+-- request textDocument/completion base.wtf 10:18
+[
+  {
+    "kind": 12,
+    "label": "day",
+    "textEdit": {
+      "newText": "day",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "week",
+    "textEdit": {
+      "newText": "week",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "month",
+    "textEdit": {
+      "newText": "month",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "year",
+    "textEdit": {
+      "newText": "year",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "2w",
+    "textEdit": {
+      "newText": "2w",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 10
+        },
+        "start": {
+          "character": 16,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 7)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+🦀 [value] := pr.sta
+-- request textDocument/completion base.wtf 10:20
+[
+  {
+    "detail": "Text · https://github.com/zed-industries/zed/pull/1",
+    "kind": 10,
+    "label": "url",
+    "textEdit": {
+      "newText": "url",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 10
+        },
+        "start": {
+          "character": 17,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "kind": 10,
+    "label": "title",
+    "textEdit": {
+      "newText": "title",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 10
+        },
+        "start": {
+          "character": 17,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "kind": 10,
+    "label": "state",
+    "textEdit": {
+      "newText": "state",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 10
+        },
+        "start": {
+          "character": 17,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "kind": 10,
+    "label": "merged",
+    "textEdit": {
+      "newText": "merged",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 10
+        },
+        "start": {
+          "character": 17,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "kind": 10,
+    "label": "checks_passed",
+    "textEdit": {
+      "newText": "checks_passed",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 10
+        },
+        "start": {
+          "character": 17,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 8)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+Use [work.
+-- request textDocument/completion base.wtf 10:10
+[
+  {
+    "detail": "Duration · 0s",
+    "kind": 10,
+    "label": "elapsed",
+    "textEdit": {
+      "newText": "elapsed",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "running",
+    "textEdit": {
+      "newText": "running",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "done",
+    "textEdit": {
+      "newText": "done",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · idle",
+    "kind": 10,
+    "label": "state",
+    "textEdit": {
+      "newText": "state",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+-- change base.wtf (version 9)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+- [ ] Do @due(dat
+-- request textDocument/completion base.wtf 10:17
+[
+  {
+    "detail": "Date · 2026-09-25",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+    },
+    "kind": 6,
+    "label": "departure",
+    "sortText": "0_departure",
+    "textEdit": {
+      "newText": "departure",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current local calendar date. Updates at midnight."
+    },
+    "filterText": "today",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "today()",
+    "textEdit": {
+      "newText": "today()",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current timestamp. Sampled once per evaluation; live hints refresh every second."
+    },
+    "filterText": "now",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "now()",
+    "textEdit": {
+      "newText": "now()",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date or DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone."
+    },
+    "filterText": "date",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "date(\"next Friday\")",
+    "textEdit": {
+      "newText": "date(${1:\"next Friday\"})$0",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "today",
+    "textEdit": {
+      "newText": "today",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "tomorrow",
+    "textEdit": {
+      "newText": "tomorrow",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "next Friday",
+    "textEdit": {
+      "newText": "next Friday",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+
+### 1 lsp capabilities {}
+-- open base.wtf
+-- change base.wtf (version 2)
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent
+[2026-09-25]:departure
+[focus] := countdown(25m)
+[work] := stopwatch()
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr
+# Checklist :checklist
+- [x] Done :done
+- [ ] Do @due(dat
+-- request textDocument/completion base.wtf 10:17
+[
+  {
+    "detail": "Date · 2026-09-25",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+    },
+    "kind": 6,
+    "label": "departure",
+    "sortText": "0_departure",
+    "textEdit": {
+      "newText": "departure",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current local calendar date. Updates at midnight."
+    },
+    "filterText": "today",
+    "insertTextFormat": 1,
+    "kind": 3,
+    "label": "today()",
+    "textEdit": {
+      "newText": "today()",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current timestamp. Sampled once per evaluation; live hints refresh every second."
+    },
+    "filterText": "now",
+    "insertTextFormat": 1,
+    "kind": 3,
+    "label": "now()",
+    "textEdit": {
+      "newText": "now()",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date or DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone."
+    },
+    "filterText": "date",
+    "insertTextFormat": 1,
+    "kind": 3,
+    "label": "date(\"next Friday\")",
+    "textEdit": {
+      "newText": "date(\"next Friday\")",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "today",
+    "textEdit": {
+      "newText": "today",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "tomorrow",
+    "textEdit": {
+      "newText": "tomorrow",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "next Friday",
+    "textEdit": {
+      "newText": "next Friday",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 10
+        },
+        "start": {
+          "character": 14,
+          "line": 10
+        }
+      }
+    }
+  }
+]
+

@@ -110,6 +110,13 @@ JSON, normalized as above, with `version` fields kept.
 | `{"request": "<method>", ...}` | any request; see the params rules below |
 | `{"await": "<method>", "file": "trip.wtf"}` | wait for the next notification (or server request) with that method, and that uri if given, and record its params |
 | `{"query": {"query": "...", "uri": "trip.wtf"}}` | the custom `wtf/query` method; `uri` is resolved and `now` is added |
+| `{"initialize": true}` | records the `initialize` result: what this server told this client it can do |
+| `{"notify": "<method>", "params": {...}}` | any client notification (`workspace/didChangeWatchedFiles`, …), with the same params rules |
+| `{"write": {"file": "m.wtf", "text": "..."}}` | writes a workspace file behind the server's back, so a watched-file or save notification has something to pick up; the new text is recorded |
+
+An `lsp` step may also carry `"capabilities": {...}`, which replaces the standard
+client capabilities for that server, so a case can take the path a poorer editor
+takes (`{"lsp": [...], "capabilities": {}}` announces none at all).
 
 Server-initiated requests are answered automatically the moment they are read —
 `workspace/applyEdit` with `{"applied": true}` and `window/showDocument` with

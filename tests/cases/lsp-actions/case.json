@@ -1,0 +1,193 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "controls.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "controls.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "controls.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              "${uri:controls.wtf}",
+              1,
+              "[./receipt.png]:receipt",
+              "${uri:receipt.png}"
+            ]
+          }
+        },
+        {
+          "await": "window/showDocument"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:controls.wtf}",
+              0,
+              "- [ ] First :first"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "change": {
+            "file": "controls.wtf",
+            "text": "- [x] First :first @completed(2026-09-16)\n[./receipt.png]:receipt\nUse [receipt].\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "controls.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "controls.wtf"
+        },
+        {
+          "change": {
+            "file": "controls.wtf",
+            "text": "- [ ] Different task\n- [x] First :first @completed(2026-09-16)\n[./receipt.png]:receipt\nUse [receipt].\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "controls.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:controls.wtf}",
+              0,
+              "- [x] First :first @completed(2026-09-16)"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json",
+        "controls.wtf"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "edits.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "edits.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "edits.wtf",
+          "range": {
+            "start": {
+              "line": 6,
+              "character": 0
+            },
+            "end": {
+              "line": 6,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "edits.wtf",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 10
+            },
+            "end": {
+              "line": 2,
+              "character": 24
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": [],
+              "only": [
+                "refactor.extract"
+              ]
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "edits.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [cash].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "edits.wtf"
+        },
+        {
+          "change": {
+            "file": "edits.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [csah].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "edits.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "edits.wtf",
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 5
+            },
+            "end": {
+              "line": 4,
+              "character": 9
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": [],
+              "only": [
+                "quickfix"
+              ]
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "edits.wtf",
+            "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [cash].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "edits.wtf"
+        }
+      ]
+    }
+  ]
+}

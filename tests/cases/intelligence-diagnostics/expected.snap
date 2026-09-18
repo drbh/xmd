@@ -1,0 +1,350 @@
+### 0 cli query types.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query types.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 1,
+    "message": "Unsupported arithmetic types (Money + Duration)",
+    "severity": "error"
+  }
+]
+
+### 1 cli query syntax.wtf diagnostics | select {line, code, message} --json
+$ wtf query syntax.wtf diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "unknown-name",
+    "line": 0,
+    "message": "Unknown name 'unknown'"
+  },
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "Expected an expression"
+  }
+]
+
+### 2 cli query clock.wtf diagnostics | select {line, message} --json
+$ wtf query clock.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "message": "Division by zero (Duration / Duration)"
+  }
+]
+
+### 3 cli query clock.wtf diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00
+$ wtf query clock.wtf diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
+exit 0
+--- stdout
+[]
+
+### 4 lsp
+-- open types.wtf
+-- await textDocument/publishDiagnostics types.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "Unsupported arithmetic types (Money + Duration)",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 1
+        },
+        "start": {
+          "character": 18,
+          "line": 1
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/types.wtf",
+  "version": 1
+}
+-- open syntax.wtf
+-- await textDocument/publishDiagnostics syntax.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/syntax.wtf",
+  "version": 1
+}
+-- open cycles.wtf
+-- await textDocument/publishDiagnostics cycles.wtf
+{
+  "diagnostics": [
+    {
+      "code": "cycle",
+      "message": "Dependency cycle: a → b → c → a",
+      "range": {
+        "end": {
+          "character": 2,
+          "line": 0
+        },
+        "start": {
+          "character": 1,
+          "line": 0
+        }
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 2,
+                "line": 0
+              },
+              "start": {
+                "character": 1,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/cycles.wtf"
+          },
+          "message": "a defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 2,
+                "line": 1
+              },
+              "start": {
+                "character": 1,
+                "line": 1
+              }
+            },
+            "uri": "file://<root>/cycles.wtf"
+          },
+          "message": "b defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 2,
+                "line": 2
+              },
+              "start": {
+                "character": 1,
+                "line": 2
+              }
+            },
+            "uri": "file://<root>/cycles.wtf"
+          },
+          "message": "c defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 2,
+                "line": 0
+              },
+              "start": {
+                "character": 1,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/cycles.wtf"
+          },
+          "message": "a defined here"
+        }
+      ],
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/cycles.wtf",
+  "version": 1
+}
+-- open ambiguous.wtf
+-- await textDocument/publishDiagnostics ambiguous.wtf
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'amount'",
+      "range": {
+        "end": {
+          "character": 11,
+          "line": 0
+        },
+        "start": {
+          "character": 5,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/ambiguous.wtf",
+  "version": 1
+}
+-- open tasks.wtf
+-- await textDocument/publishDiagnostics tasks.wtf
+{
+  "diagnostics": [
+    {
+      "code": "dependency",
+      "message": "Task dependency cycle: first → second → first",
+      "range": {
+        "end": {
+          "character": 32,
+          "line": 0
+        },
+        "start": {
+          "character": 26,
+          "line": 0
+        }
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 18,
+                "line": 0
+              },
+              "start": {
+                "character": 13,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "first defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 20,
+                "line": 1
+              },
+              "start": {
+                "character": 14,
+                "line": 1
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "second defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 18,
+                "line": 0
+              },
+              "start": {
+                "character": 13,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "first defined here"
+        }
+      ],
+      "severity": 1,
+      "source": "wtf"
+    },
+    {
+      "code": "dependency",
+      "message": "Task dependency cycle: second → first → second",
+      "range": {
+        "end": {
+          "character": 33,
+          "line": 1
+        },
+        "start": {
+          "character": 28,
+          "line": 1
+        }
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 20,
+                "line": 1
+              },
+              "start": {
+                "character": 14,
+                "line": 1
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "second defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 18,
+                "line": 0
+              },
+              "start": {
+                "character": 13,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "first defined here"
+        },
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 20,
+                "line": 1
+              },
+              "start": {
+                "character": 14,
+                "line": 1
+              }
+            },
+            "uri": "file://<root>/tasks.wtf"
+          },
+          "message": "second defined here"
+        }
+      ],
+      "severity": 1,
+      "source": "wtf"
+    },
+    {
+      "code": "resource",
+      "message": "Coordinates are out of range",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 2
+        },
+        "start": {
+          "character": 1,
+          "line": 2
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/tasks.wtf",
+  "version": 1
+}
+

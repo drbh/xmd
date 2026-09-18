@@ -1,0 +1,50 @@
+### 0 lsp
+-- request workspace/executeCommand {"arguments":[],"command":"wtf.today"}
+null
+-- await window/showDocument
+{
+  "external": false,
+  "takeFocus": true,
+  "uri": "file://<root>/.wtf/today.md"
+}
+
+### 1 read .wtf/today.md
+-- .wtf/today.md
+# Today — 2026-09-16
+
+Generated view. Follow a link to edit the original note.
+
+- [tasks.wtf:1](<file://<root>/tasks.wtf#L1>) — Active
+
+### 2 lsp
+-- write .wtf/modules/agenda.wtf
+module := {api: 1, id: "agenda", kind: "library", inputs: []}
+between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
+-- write .wtf/modules.json
+["./modules/agenda.wtf"]
+-- request workspace/executeCommand {"arguments":[],"command":"wtf.today"}
+null
+-- await window/showDocument
+{
+  "external": false,
+  "takeFocus": true,
+  "uri": "file://<root>/.wtf/today.md"
+}
+-- query map(import("agenda").between(entries, today(), today()), fn(e) => e.title)
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    "Finished"
+  ],
+  "schemaVersion": 1,
+  "versions": {}
+}
+
+### 3 read .wtf/today.md
+-- .wtf/today.md
+# Today — 2026-09-16
+
+Generated view. Follow a link to edit the original note.
+
+- [tasks.wtf:2](<file://<root>/tasks.wtf#L2>) — Finished
+

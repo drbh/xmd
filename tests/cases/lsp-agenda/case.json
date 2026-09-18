@@ -1,0 +1,59 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.today",
+            "arguments": []
+          }
+        },
+        {
+          "await": "window/showDocument"
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/today.md"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "write": {
+            "file": ".wtf/modules/agenda.wtf",
+            "text": "module := {api: 1, id: \"agenda\", kind: \"library\", inputs: []}\nbetween := fn(entries, first, last) => filter(entries, fn(e) => e.done)\n"
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules.json",
+            "text": "[\"./modules/agenda.wtf\"]\n"
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.today",
+            "arguments": []
+          }
+        },
+        {
+          "await": "window/showDocument"
+        },
+        {
+          "query": {
+            "query": "map(import(\"agenda\").between(entries, today(), today()), fn(e) => e.title)"
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/today.md"
+      ]
+    }
+  ]
+}

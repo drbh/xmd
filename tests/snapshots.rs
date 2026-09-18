@@ -229,8 +229,17 @@ impl World {
             let _ = writeln!(out, "### {index} cli {}", shown.join(" "));
             self.cli(&args, out);
         } else if let Some(items) = step.get("lsp").and_then(Value::as_array) {
-            let _ = writeln!(out, "### {index} lsp");
-            self.lsp(items, out);
+            // An explicit `capabilities` object stands in for a poorer client.
+            let capabilities = step.get("capabilities").cloned();
+            let _ = writeln!(
+                out,
+                "### {index} lsp{}",
+                capabilities
+                    .as_ref()
+                    .map(|c| format!(" capabilities {}", compact(c)))
+                    .unwrap_or_default()
+            );
+            self.lsp(items, capabilities, out);
         } else if let Some(paths) = step.get("read").and_then(Value::as_array) {
             let paths: Vec<String> = paths.iter().map(as_text).collect();
             let _ = writeln!(out, "### {index} read {}", paths.join(" "));
@@ -306,8 +315,13 @@ impl World {
 
     // ------------------------------------------------------------------ lsp
 
-    fn lsp(&self, items: &[Value], out: &mut String) {
-        let mut lsp = Lsp::start(&self.root, &self.now, &self.path());
+    fn lsp(&self, items: &[Value], capabilities: Option<Value>, out: &mut String) {
+        let mut lsp = match capabilities {
+            Some(capabilities) => {
+                Lsp::start_with(&self.root, &self.now, &self.path(), capabilities)
+            }
+            None => Lsp::start(&self.root, &self.now, &self.path()),
+        };
         let mut texts: BTreeMap<String, String> = BTreeMap::new();
         let mut versions: BTreeMap<String, i64> = BTreeMap::new();
         let mut last = Value::Null;
@@ -352,6 +366,34 @@ impl World {
                     json!({"textDocument":{"uri":self.uri(&name)}}),
                 );
                 let _ = writeln!(out, "-- close {name}");
+            } else if item.get("initialize").is_some() {
+                // What the server told this client it can do.
+                let _ = writeln!(out, "-- initialize");
+                out.push_str(&pretty(&self.scrub_json(&lsp.initialize_result)));
+            } else if let Some(method) = item.get("notify").map(as_text) {
+                // Any client notification, for the ones with no shorthand
+                // (`workspace/didChangeWatchedFiles`, ...).
+                let params = self.params(item, &last);
+                lsp.notify(&method, params.clone());
+                let _ = writeln!(
+                    out,
+                    "-- notify {method} {}",
+                    compact(&self.scrub_json(&params))
+                );
+            } else if let Some(write) = item.get("write") {
+                // Edits made behind the server's back, so a watched-file or save
+                // notification has something new to pick up.
+                let name = as_text(&write["file"]);
+                let text = as_text(&write["text"]);
+                let path = self.root.join(&name);
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::write(&path, &text).unwrap();
+                let _ = writeln!(out, "-- write {name}");
+                let shown = self.body(&text);
+                out.push_str(&shown);
+                if !shown.ends_with('\n') {
+                    out.push('\n');
+                }
             } else if let Some(query) = item.get("query") {
                 let mut params = query.clone();
                 if let Some(uri) = params.get("uri").map(as_text) {

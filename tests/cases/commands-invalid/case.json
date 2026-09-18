@@ -1,0 +1,178 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "note.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "note.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": []
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              0,
+              "- [ ] Task",
+              "extra"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              -1,
+              "- [ ] Task"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              "0",
+              "- [ ] Task"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:note.wtf}",
+              0,
+              null
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "https://example.com",
+              0,
+              "- [ ] Task"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "file:///workspace/note.wtf#L1",
+              0,
+              "- [ ] Task"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:note.wtf}",
+              "focus",
+              "explode"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:note.wtf}",
+              12,
+              "start"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              "${uri:note.wtf}",
+              0,
+              "- [ ] Task",
+              "not a URL"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              "${uri:note.wtf}",
+              -1,
+              "- [ ] Task",
+              "https://example.com"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.refresh",
+            "arguments": [
+              "${uri:note.wtf}",
+              "extra"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.today",
+            "arguments": [
+              "${uri:note.wtf}"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "toggle_task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "unknown",
+            "arguments": []
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json",
+        "note.wtf"
+      ]
+    }
+  ]
+}

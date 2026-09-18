@@ -1,0 +1,179 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "timers.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "timers.wtf",
+          "line": 3,
+          "character": 13
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "timers.wtf",
+          "line": 3,
+          "character": 7,
+          "extra": {
+            "newName": "debugging"
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:timers.wtf}",
+              "watch",
+              "start"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "change": {
+            "file": "timers.wtf",
+            "text": "[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)\n[focus] := countdown(2s)\n- [ ] Work @timer(watch)\nSpent [watch.elapsed].\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:timers.wtf}",
+              "watch",
+              "start"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:timers.wtf}",
+              "watch",
+              "pause"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "change": {
+            "file": "timers.wtf",
+            "text": "[watch] := stopwatch(0s)\n[focus] := countdown(2s)\n- [ ] Work @timer(watch)\nSpent [watch.elapsed].\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              "${uri:timers.wtf}",
+              "watch",
+              "reset"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "open": "expired.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "expired.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "expired.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "expired.wtf"
+        }
+      ]
+    },
+    {
+      "read": [
+        "timers.wtf"
+      ]
+    }
+  ]
+}

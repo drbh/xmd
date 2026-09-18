@@ -53,6 +53,12 @@ impl Lsp {
     /// Starts `wtf lsp` in `root` with the clock frozen at `now` (`WTF_NOW`),
     /// `PATH` set to `path`, and completes the initialize handshake.
     pub fn start(root: &Path, now: &str, path: &str) -> Self {
+        Self::start_with(root, now, path, capabilities())
+    }
+
+    /// Like `start`, but announcing the given client capabilities, so a case can
+    /// take the path a poorer editor takes.
+    pub fn start_with(root: &Path, now: &str, path: &str, capabilities: Value) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_wtf"))
             .arg("lsp")
             .current_dir(root)
@@ -105,7 +111,7 @@ impl Lsp {
         let root_uri = url::Url::from_directory_path(root).unwrap();
         let result = client.request(
             "initialize",
-            json!({"processId": null, "rootUri": root_uri, "capabilities": capabilities()}),
+            json!({"processId": null, "rootUri": root_uri, "capabilities": capabilities}),
         );
         let legend = &result["capabilities"]["semanticTokensProvider"]["legend"];
         client.token_types = strings(&legend["tokenTypes"]);

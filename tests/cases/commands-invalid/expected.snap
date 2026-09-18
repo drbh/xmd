@@ -1,0 +1,90 @@
+### 0 lsp
+-- open note.wtf
+-- await textDocument/publishDiagnostics note.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/note.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":[],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "wtf.task expects 3 arguments"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,"- [ ] Task","extra"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "wtf.task expects 3 arguments"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",-1,"- [ ] Task"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Expected line number"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}","0","- [ ] Task"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Expected line number"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,null],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Expected text argument 3 for wtf.task"
+}
+-- request workspace/executeCommand {"arguments":["https://example.com",0,"- [ ] Task"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Expected a local file URI"
+}
+-- request workspace/executeCommand {"arguments":["file:///workspace/note.wtf#L1",0,"- [ ] Task"],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Document URIs cannot contain queries or fragments"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}","focus","explode"],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Unknown timer action 'explode'"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",12,"start"],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Expected text argument 2 for wtf.timer"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,"- [ ] Task","not a URL"],"command":"wtf.openResource"}
+error: {
+  "code": -32602,
+  "message": "relative URL without a base"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}",-1,"- [ ] Task","https://example.com"],"command":"wtf.openResource"}
+error: {
+  "code": -32602,
+  "message": "Expected line number"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}","extra"],"command":"wtf.refresh"}
+error: {
+  "code": -32602,
+  "message": "wtf.refresh expects zero arguments or a document URI"
+}
+-- request workspace/executeCommand {"arguments":["${uri:note.wtf}"],"command":"wtf.today"}
+error: {
+  "code": -32602,
+  "message": "wtf.today expects 0 arguments"
+}
+-- request workspace/executeCommand {"arguments":[{"kind":"toggle_task"}],"command":"wtf.applyEdits"}
+error: {
+  "code": -32602,
+  "message": "missing field `document`"
+}
+-- request workspace/executeCommand {"arguments":[],"command":"unknown"}
+error: {
+  "code": -32602,
+  "message": "Unknown command: unknown"
+}
+
+### 1 read .wtf/cache.json note.wtf
+-- .wtf/cache.json
+(missing: entity not found)
+-- note.wtf
+- [ ] Task
+

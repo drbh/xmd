@@ -26,6 +26,7 @@ pub struct Module {
     pub live: bool,
     pub enabled: bool,
     pub inputs: Vec<String>,
+    pub fields: BTreeMap<String, Vec<String>>,
     hosts: Vec<String>,
     prefix: String,
     properties: Vec<String>,
@@ -158,18 +159,22 @@ impl Module {
             Some(Value::Bool(v)) => *v,
             _ => return Err("enabled must be boolean".into()),
         };
-        let inputs = config
-            .get("inputs")
-            .map(strings)
-            .transpose()?
-            .unwrap_or_else(|| {
-                vec![
-                    "sections".into(),
-                    "tasks".into(),
-                    "values".into(),
-                    "links".into(),
-                ]
-            });
+        let mut fields = BTreeMap::new();
+        let inputs = match config.get("inputs") {
+            None => vec![
+                "sections".into(),
+                "tasks".into(),
+                "values".into(),
+                "links".into(),
+            ],
+            Some(Value::Record(selections)) => {
+                for (name, selection) in selections {
+                    fields.insert(name.clone(), strings(selection)?);
+                }
+                fields.keys().cloned().collect()
+            }
+            Some(value) => strings(value)?,
+        };
         for input in &inputs {
             if !crate::catalog::COLLECTIONS.contains(&input.as_str()) {
                 return Err(format!("Unknown input collection: {input}"));
@@ -256,6 +261,7 @@ impl Module {
             live,
             enabled,
             inputs,
+            fields,
             hosts,
             prefix,
             properties,
@@ -310,6 +316,9 @@ impl Module {
     }
 }
 impl LinkFeature for Module {
+    fn id(&self) -> &str {
+        &self.id
+    }
     fn matches(&self, url: &Url) -> bool {
         self.enabled
             && self.kind == "link"
@@ -506,5 +515,34 @@ impl Plugins {
 
 /// Bundled modules use exactly the same compiler and adapters as workspace modules.
 pub fn bundled() -> &'static [Module] {
-    &[]
+    static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
+    MODULES.get_or_init(|| {
+        [
+            (
+                "github",
+                include_str!("../../stdlib/.wtf/plugins/github.wtf"),
+            ),
+            (
+                "table_cells",
+                include_str!("../../stdlib/.wtf/plugins/table_cells.wtf"),
+            ),
+            (
+                "checklists",
+                include_str!("../../stdlib/.wtf/plugins/checklists.wtf"),
+            ),
+            (
+                "calculations",
+                include_str!("../../stdlib/.wtf/plugins/calculations.wtf"),
+            ),
+        ]
+        .into_iter()
+        .map(|(id, source)| {
+            Module::compile(
+                format!("/__wtf_stdlib__/.wtf/plugins/{id}.wtf").into(),
+                source.into(),
+            )
+            .expect("valid bundled module")
+        })
+        .collect()
+    })
 }

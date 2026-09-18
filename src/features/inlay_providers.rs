@@ -11,11 +11,8 @@ pub const BUILTINS: &[&dyn InlayFeature] = &[
     &DefinitionInlays,
     &DecisionInlays,
     &ConstraintInlays,
-    &TableCellInlays,
     &ItineraryInlays,
-    &ChecklistInlays,
     &TaskInlays,
-    &CalculationInlays,
     &ReferenceInlays,
     &LinkInlays,
     &super::plugin_inlays::PluginInlays,
@@ -213,32 +210,6 @@ impl InlayFeature for ConstraintInlays {
     }
 }
 
-pub struct TableCellInlays;
-impl InlayFeature for TableCellInlays {
-    fn id(&self) -> &str {
-        "table_cells"
-    }
-    fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        let engine = &mut *context.engine;
-        let path = context.path;
-        let doc = context.document;
-        let mut push = |position, label, tooltip| output.push(position, label, tooltip);
-        for table in &doc.tables {
-            for cell in table.rows.iter().flatten() {
-                if let Some((inner, span)) = &cell.expression
-                    && let Ok(value) = engine.eval_at(path, inner, *span)
-                {
-                    push(
-                        cell.span.range(&doc.text).end,
-                        value.display(),
-                        format!("`{inner}` = {}", value.display()),
-                    );
-                }
-            }
-        }
-    }
-}
-
 pub struct ItineraryInlays;
 impl InlayFeature for ItineraryInlays {
     fn id(&self) -> &str {
@@ -341,61 +312,6 @@ impl InlayFeature for ItineraryInlays {
     }
 }
 
-pub struct ChecklistInlays;
-impl InlayFeature for ChecklistInlays {
-    fn id(&self) -> &str {
-        "checklists"
-    }
-    fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        let engine = &mut *context.engine;
-        let path = context.path;
-        let doc = context.document;
-        let mut push = |position, label, tooltip| output.push(position, label, tooltip);
-        for section in &doc.sections {
-            let tasks: Vec<_> = doc
-                .tasks
-                .iter()
-                .enumerate()
-                .filter(|(i, t)| {
-                    t.line > section.line
-                        && t.line < section.end_line
-                        && !doc.tasks.iter().any(|t| t.parent == Some(*i))
-                })
-                .collect();
-            if tasks.is_empty() {
-                continue;
-            }
-            let done = tasks
-                .iter()
-                .filter(|(i, _)| engine.task_done(path, *i))
-                .count();
-            let mut effort = 0i64;
-            let mut estimates = 0;
-            for (i, t) in &tasks {
-                if !engine.task_done(path, *i)
-                    && let Some(attr) = t.attributes.get("estimate")
-                    && let Ok(Value::Duration(m)) = engine.eval(path, &attr.value)
-                {
-                    effort = effort.saturating_add(m);
-                    estimates += 1;
-                }
-            }
-            let summary = format!(
-                "{done}/{} complete{}",
-                tasks.len(),
-                if estimates > 0 {
-                    format!(" · {} estimated left", Value::Duration(effort).display())
-                } else {
-                    String::new()
-                }
-            );
-            let tooltip = format!("`{}` {summary}", crate::charts::bar(done, tasks.len()));
-            let label = format!("{} {summary}", crate::charts::gauge(done, tasks.len()));
-            push(doc.line_end(section.line), label, tooltip);
-        }
-    }
-}
-
 pub struct TaskInlays;
 impl InlayFeature for TaskInlays {
     fn id(&self) -> &str {
@@ -475,34 +391,6 @@ impl InlayFeature for TaskInlays {
             if !labels.is_empty() {
                 tooltip.push_str("Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.");
                 push(doc.line_end(task.line), labels.join(" · "), tooltip);
-            }
-        }
-    }
-}
-
-pub struct CalculationInlays;
-impl InlayFeature for CalculationInlays {
-    fn id(&self) -> &str {
-        "calculations"
-    }
-    fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        let engine = &mut *context.engine;
-        let path = context.path;
-        let doc = context.document;
-        let mut push = |position, label, tooltip| output.push(position, label, tooltip);
-        for calculation in &doc.calculations {
-            if let Ok(value) = engine.eval_at(path, &calculation.source, calculation.span) {
-                let after = calculation.span.end + usize::from(calculation.bracketed);
-                let end = Span::new(calculation.span.line, after, after);
-                push(
-                    end.range(&doc.text).start,
-                    if calculation.bracketed {
-                        value.display()
-                    } else {
-                        format!("= {}", value.display())
-                    },
-                    format!("`{}` = {}", calculation.source.trim(), value.display()),
-                );
             }
         }
     }

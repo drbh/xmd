@@ -36,8 +36,16 @@ on macOS `/usr/bin/wtf` is an unrelated program.
 | `resources` | Written links and literal resource definitions: `target`, cached `metadata` (or null) |
 | `diagnostics` | Strict, non-editing diagnostics: `severity`, `message`, `code` |
 | `notes` | Documents: `title`, `text` |
+| `links` | Parsed link occurrences: `url`, precise source range |
+| `sections` | Headings: `level`, exclusive zero-based `end_line` |
+| `calculations` | Inline calculations: `expression`, `bracketed`, evaluated `value`, `type`, `display` |
+| `references` | Bracketed references: `name`, optional `property`, evaluated `value`, `type`, `display` |
+| `cells` | Individual table cells: `table`, zero-based `row`, `column`, `computed`, `expression`, evaluated `value`, `type`, `display` |
 
-Every original record has `kind`, `title`, `source`, and `errors`. `source` contains
+Every original record has `kind`, `title`, `source`, `errors`, a zero-based `line`,
+and an `anchor` for inlay placement in UTF-16 coordinates. These same records are
+[plugin inputs](plugins.md). Definitions also expose `computed` and evaluated
+`display`. `source` contains
 an absolute `path`, a file `uri` with a line fragment, a **one-based** `line`, and
 an LSP `range` with **zero-based UTF-16** coordinates. These locations describe the
 queried snapshot; they are not durable IDs or authority to edit a later snapshot.
@@ -56,7 +64,7 @@ does not remove duplicates. Without `sort`, collections use document path order
 and then source order within each kind. `entries` visits tasks, events, and stops
 within each document. Sorting is stable and leaves nulls last in either direction.
 
-Definitions are evaluated when `value`, `type`, `solution`, or `errors` is needed,
+Definitions are evaluated when `value`, `type`, `display`, `solution`, or `errors` is needed,
 or when a full record is output. `plans | select {name}` does not solve plans.
 Tables must be evaluated to enumerate `rows`. Task scheduling/dependency fields
 are evaluated when the task collection is built. Each query shares one engine.

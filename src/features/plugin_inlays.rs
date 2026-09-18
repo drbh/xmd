@@ -45,8 +45,18 @@ fn input(module: &Module, engine: &mut Engine<'_>, path: &Path) -> Result<Value,
         let values = Value::List(
             records
                 .into_iter()
-                .map(|r| r.materialize(engine).value())
-                .collect(),
+                .map(|mut r| {
+                    if let Some(fields) = module.fields.get(collection) {
+                        fields
+                            .iter()
+                            .map(|key| Ok((key.clone(), r.field(key, engine)?.value())))
+                            .collect::<Result<_, String>>()
+                            .map(Value::Record)
+                    } else {
+                        Ok(r.materialize(engine).value())
+                    }
+                })
+                .collect::<Result<_, String>>()?,
         );
         if collection == "values" {
             // Preserve the original API's alias; all new fields come from the catalog.

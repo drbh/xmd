@@ -444,3 +444,142 @@ fn link_callbacks_narrow_matches_properties_and_refresh_options() {
     assert_eq!(refresh.env, [("TICKET_MODE".into(), "json".into())]);
     assert!(!links.time_dependent(URL, &ws.cache, now().to_utc()));
 }
+
+#[test]
+fn bundled_providers_are_replaceable_disableable_and_restored_on_unload() {
+    let mut ws = workspace();
+    ws.plugins = Default::default();
+    let url = "https://github.com/org/repo/pull/42";
+    let original = ws
+        .link_features()
+        .presentation(url, &ws.cache, now().to_utc())
+        .unwrap()
+        .label;
+    ws.plugins = registry(
+        r#"plugin := {api: 1, id: "github", kind: "link", hosts: ["github.com"]}
+inlay := fn(ctx) => "My GitHub"
+"#,
+    );
+    assert_eq!(
+        ws.link_features()
+            .presentation(url, &ws.cache, now().to_utc())
+            .unwrap()
+            .label,
+        "My GitHub"
+    );
+    ws.plugins = registry(r#"plugin := {api: 1, id: "github", kind: "link", enabled: false}"#);
+    assert!(
+        ws.link_features()
+            .presentation(url, &ws.cache, now().to_utc())
+            .is_none()
+    );
+    ws.plugins = Default::default();
+    assert_eq!(
+        ws.link_features()
+            .presentation(url, &ws.cache, now().to_utc())
+            .unwrap()
+            .label,
+        original
+    );
+}
+
+#[test]
+fn bundled_checklist_projections_handle_large_notes_within_the_language_limits() {
+    let mut ws = workspace();
+    let source = format!(
+        "# Large checklist\n{}",
+        "- [ ] Task @estimate(1m)\n".repeat(500)
+    );
+    ws.documents.insert(path().into(), Document::parse(source));
+    ws.plugins = Default::default();
+    let labels = labels(&ws);
+    assert!(
+        labels.iter().any(|s| s.contains("0/500 complete")),
+        "{:?}",
+        labels.first()
+    );
+    assert!(!labels.iter().any(|s| s.contains("plugin error")));
+}
+
+#[cfg(feature = "browser")]
+#[test]
+fn browser_executes_user_module_edits_and_replaces_bundled_features() {
+    use serde_json::json;
+    let mut browser = wtf::browser::BrowserWorkspace::new();
+    let request = |b: &mut wtf::browser::BrowserWorkspace,
+                   method: &str,
+                   params: serde_json::Value|
+     -> serde_json::Value {
+        serde_json::from_str(&b.request(method, &params.to_string(), "2026-09-18T12:00:00Z"))
+            .unwrap()
+    };
+    assert_eq!(
+        request(
+            &mut browser,
+            "setDocument",
+            json!({"uri":"file:///workspace/main.wtf","text":"Hello [round(2.6)]\n","version":1})
+        )["ok"],
+        true
+    );
+    let module = r#"plugin := {api: 1, id: "calculations", kind: "inlay", inputs: []}
+collect := fn(ctx) => [{line: 0, label: "custom"}]
+actions := fn(ctx) => [{title: "Replace", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}]
+"#;
+    assert_eq!(
+        request(
+            &mut browser,
+            "setPlugins",
+            json!({"sources":{"custom.wtf":module}})
+        )["ok"],
+        true
+    );
+    let analysis = request(
+        &mut browser,
+        "analyze",
+        json!({"uri":"file:///workspace/main.wtf"}),
+    );
+    assert_eq!(analysis["ok"], true, "{analysis}");
+    assert_eq!(analysis["result"]["hints"][0]["label"], "custom");
+    let command = analysis["result"]["lenses"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["command"]["title"] == "Replace")
+        .unwrap()["command"]
+        .clone();
+    let executed = request(
+        &mut browser,
+        "execute",
+        json!({"command":command,"versions":analysis["result"]["versions"]}),
+    );
+    assert_eq!(executed["ok"], true, "{executed}");
+    let edits: Vec<lsp_types::TextEdit> =
+        serde_json::from_value(executed["result"]["edit"]["documentChanges"][0]["edits"].clone())
+            .unwrap();
+    let text = wtf::actions::apply_edits("Hello [round(2.6)]\n", &edits).unwrap();
+    assert_eq!(text, "Goodbye [round(2.6)]\n");
+    assert_eq!(
+        request(
+            &mut browser,
+            "setDocument",
+            json!({"uri":"file:///workspace/main.wtf","text":text,"version":2})
+        )["ok"],
+        true
+    );
+    let stale = request(
+        &mut browser,
+        "execute",
+        json!({"command":command,"versions":analysis["result"]["versions"]}),
+    );
+    assert_eq!(stale["ok"], false, "{stale}");
+    assert_eq!(
+        request(&mut browser, "setPlugins", json!({"sources":{}}))["ok"],
+        true
+    );
+    let analysis = request(
+        &mut browser,
+        "analyze",
+        json!({"uri":"file:///workspace/main.wtf"}),
+    );
+    assert_eq!(analysis["result"]["hints"][0]["label"], "3");
+}

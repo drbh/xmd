@@ -1,0 +1,34 @@
+# GitHub is an ordinary link module. Null namespace reads pre-plugin caches.
+plugin := {api: 1, id: "github", kind: "link", hosts: ["github.com"], properties: ["title", "state", "merged", "checks_passed"], cache_namespace: null, inputs: []}
+segments := fn(url) => filter(split(url.path, "/"), fn(s) => s != "")
+part := fn(url, index) => get(segments(url), index)
+all_chars := fn(value, allowed) => length(filter(split(value, ""), fn(c) => contains(allowed, c) == false)) == 0
+valid_parts := fn(parts) => length(filter(parts, fn(p) => all_chars(p, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.") == false)) == 0
+matches := fn(url) => url.scheme == "https" && length(segments(url)) == 4 && contains(["pull", "issues", "commit"], part(url, 2)) && valid_parts(segments(url)) && (part(url, 2) == "commit" || all_chars(part(url, 3), "0123456789"))
+repo := fn(url) => part(url, 0) + "/" + part(url, 1)
+identity := fn(url) => if(part(url, 2) == "pull", "PR #" + part(url, 3), if(part(url, 2) == "issues", "issue #" + part(url, 3), "commit " + slice(part(url, 3), 0, 7)))
+field := fn(value, key) => if(type(value) == "Record", get(value, key), null)
+string := fn(value, fallback) => if(type(value) == "Text", value, fallback)
+review_text := fn(review) => replace(lower(review), "_", " ")
+age := fn(elapsed) => if(elapsed < 1m, "just now", if(elapsed < 1h, text(floor(elapsed / 1m)) + "m ago", if(elapsed < 1d, text(floor(elapsed / 1h)) + "h ago", if(elapsed < 14d, text(floor(elapsed / 1d)) + "d ago", text(floor(elapsed / 7d)) + "w ago"))))
+state_badge := fn(state) => coalesce(get({merged: "✓ merged", open: "○ open", draft: "◐ draft", closed: "✗ closed"}, state), state)
+checks_badge := fn(checks) => if(checks == null, [], [if(checks == "passing", "● checks", if(checks == "failing", "✗ checks FAILING", "◌ checks pending"))])
+review_badge := fn(review) => if(review == null || review == "", [], [coalesce(get({APPROVED: "✓ approved", CHANGES_REQUESTED: "⚑ CHANGES REQUESTED", REVIEW_REQUIRED: "⚑ review needed"}, review), review_text(review))])
+badge := fn(cached, fetched) => join(concat([state_badge(cached.state)], checks_badge(cached.checks), review_badge(cached.review), [if(now() - fetched >= 7d, "! stale · ", "") + age(now() - fetched)]), " · ")
+summary := fn(cached, fetched) => cached.state + if(cached.checks == null, "", " · checks " + cached.checks) + if(cached.review == null || cached.review == "", "", " · " + review_text(cached.review)) + " · cached " + format_date(fetched, "%Y-%m-%d %H:%M UTC")
+inlay := fn(ctx) => if(ctx.cached == null, "◌ " + identity(ctx.url) + " · refresh for status", badge(ctx.cached, ctx.fetched_at))
+hover := fn(ctx) => if(ctx.cached == null, if(ctx.native, "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).", "GitHub status refresh is available in the native WTF app, not this browser workspace."), "**" + ctx.cached.title + "**\n\n" + summary(ctx.cached, ctx.fetched_at) + "\n\nLast refreshed: " + format_date(ctx.fetched_at, "%+") + ". Use **Refresh GitHub status** to update.")
+time_dependent := fn(ctx) => ctx.cached != null
+property_names := fn(url) => if(part(url, 2) == "pull", ["title", "state", "merged", "checks_passed"], ["title", "state"])
+property := fn(ctx, name) => if(ctx.cached == null, error("No cached GitHub status; run wtf refresh"), if(name == "checks_passed", if(ctx.cached.checks == null, error("No checks reported"), ctx.cached.checks == "passing"), if(name == "merged" && ctx.cached.merged == null, error("merged is only available on pull requests"), get(ctx.cached, name))))
+refresh := fn(url) => {title: "Refresh GitHub status", program: "gh", env: {GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1"}, args: if(part(url, 2) == "commit", ["api", "repos/" + repo(url) + "/commits/" + part(url, 3)], [if(part(url, 2) == "pull", "pr", "issue"), "view", part(url, 3), "--repo", repo(url), "--json", if(part(url, 2) == "pull", "title,state,isDraft,mergedAt,reviewDecision,statusCheckRollup", "title,state")])}
+strip_cr := fn(value) => if(ends_with(value, "\r"), slice(value, 0, length(value) - 1), value)
+first_line := fn(value) => if(contains(value, "\n"), strip_cr(get(split(value, "\n"), 0)), value)
+title := fn(value) => if(type(value) == "Text", first_line(value), error("Missing GitHub title"))
+merged := fn(kind, data) => if(kind == "pull", field(data, "state") == "MERGED" || type(field(data, "mergedAt")) == "Text", null)
+state := fn(kind, data) => if(kind == "commit", "commit", if(merged(kind, data) == true, "merged", if(field(data, "isDraft") == true, "draft", lower(string(field(data, "state"), "unknown")))))
+check_status := fn(check) => if(type(field(check, "conclusion")) == "Text" && field(check, "conclusion") != "", field(check, "conclusion"), string(field(check, "state"), "PENDING"))
+checks_status := fn(statuses) => if(length(filter(statuses, fn(s) => contains(["FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"], s))) > 0, "failing", if(length(filter(statuses, fn(s) => contains(["SUCCESS", "NEUTRAL", "SKIPPED"], s) == false)) == 0, "passing", "pending"))
+checks := fn(rollup) => if(type(rollup) == "List" && length(rollup) > 0, checks_status(map(rollup, check_status)), null)
+decode_kind := fn(kind, data) => {title: title(if(kind == "commit", field(field(data, "commit"), "message"), field(data, "title"))), state: state(kind, data), merged: merged(kind, data), checks: checks(field(data, "statusCheckRollup")), review: string(field(data, "reviewDecision"), null)}
+decode := fn(url, data) => decode_kind(part(url, 2), data)

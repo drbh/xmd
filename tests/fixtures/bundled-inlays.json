@@ -1,0 +1,97 @@
+[
+  {
+    "hints": [
+      {
+        "label": "████░░░░ 2/4 complete · 90m estimated left",
+        "paddingLeft": true,
+        "position": {
+          "character": 6,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`█████░░░░░ 50%` 2/4 complete · 90m estimated left"
+        }
+      },
+      {
+        "label": "████░░░░ 1/2 complete · 1h estimated left",
+        "paddingLeft": true,
+        "position": {
+          "character": 9,
+          "line": 3
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`█████░░░░░ 50%` 1/2 complete · 1h estimated left"
+        }
+      }
+    ],
+    "live": false,
+    "source": "# Work\n- [x] Done @estimate(20m)\n- [ ] Next @estimate(30m)\n## Nested\n- [ ] Parent\n  - [x] Child\n  - [ ] Child @estimate(1h)\n# Empty\n"
+  },
+  {
+    "hints": [
+      {
+        "label": "$25",
+        "paddingLeft": true,
+        "position": {
+          "character": 29,
+          "line": 3
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`budget - spent` = $25"
+        }
+      },
+      {
+        "label": "= 5",
+        "paddingLeft": true,
+        "position": {
+          "character": 5,
+          "line": 4
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`2 + 3` = 5"
+        }
+      },
+      {
+        "label": "2026-09-18 12:00:00 +00:00",
+        "paddingLeft": true,
+        "position": {
+          "character": 13,
+          "line": 5
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`now()` = 2026-09-18 12:00:00 +00:00"
+        }
+      }
+    ],
+    "live": true,
+    "source": "# Formula\n[$30]:budget\n[$5]:spent\n🦀 Remaining [budget - spent].\n2 + 3\nClock [now()].\nBroken [missing + 2].\n"
+  },
+  {
+    "hints": [
+      {
+        "label": "$6",
+        "paddingLeft": true,
+        "position": {
+          "character": 16,
+          "line": 3
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`$2 * 3` = $6"
+        }
+      }
+    ],
+    "live": false,
+    "source": "prices := table\n| Item | Cost |\n| --- | --- |\n| Tea | [$2 * 3] |\n| Pie | [missing + 1] |\n"
+  },
+  {
+    "hints": [],
+    "live": false,
+    "source": "# Empty\nplain text\n"
+  }
+]

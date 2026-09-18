@@ -47,7 +47,8 @@ The program writes JSON to stdout. `decode` returns a record containing JSON
 values, stored with the plugin ID, cache version and fetch time. Property functions
 can derive ordinary typed WTF values from that data. Change `cache_version` when
 changing the cached record's meaning; mismatched cached data is treated as absent.
-Legacy GitHub cache entries remain readable and are isolated from plugin data.
+The bundled GitHub module reads legacy cache entries; ordinary plugins use their
+own ID/version namespace.
 Both `refresh` and `decode` must be supplied together. Refresh failures and decoder
 errors preserve the previous cache. Refresh descriptions depend only on their URL;
 clock functions in refresh descriptions use a fixed epoch.
@@ -122,7 +123,7 @@ Malformed positions, including split surrogate pairs, reject the whole batch.
 `uri`, `text`, and `lines`. Omitting `inputs` selects the original collections;
 `definitions` remains an alias for `values` with a nullable `error` field.
 
-A workspace module replaces a provider with the same ID. Native inlay IDs are
+A workspace module replaces a provider with the same ID. Inlay provider IDs are
 `definitions`, `decisions`, `constraints`, `table_cells`, `itinerary`, `checklists`,
 `tasks`, `calculations`, `references`, and `links`; the GitHub link provider is
 `github`. Replacement is by provider, independent of which records or URLs the
@@ -165,3 +166,32 @@ own semantic checks. Unsupported host actions are omitted; an invalid proposal
 rejects that module's entire action batch. Execution revalidates against current
 source, so stale controls cannot overwrite newer edits. Merely evaluating a
 module never applies an action.
+
+
+## Bundled modules and the core
+
+The shipped [GitHub provider](../stdlib/.wtf/plugins/github.wtf),
+[calculations](../stdlib/.wtf/plugins/calculations.wtf),
+[checklist progress](../stdlib/.wtf/plugins/checklists.wtf), and
+[computed table cells](../stdlib/.wtf/plugins/table_cells.wtf) are ordinary WTF
+modules. They are embedded for native and browser builds, compiled by the same
+module loader, and run through the same adapters and limits as user modules.
+Copy one into `.wtf/plugins/` and edit it to replace that default; no Rust
+registration or build is needed. Regression fixtures compare their behavior with
+the previous Rust implementations, which have been removed from production.
+
+Inputs can also select fields, using catalog field names:
+
+```wtf
+plugin := {api: 1, id: "completion-count", kind: "inlay", inputs: {tasks: ["done"], sections: ["anchor"]}}
+collect := fn(ctx) => map(ctx.document.sections, fn(s) => {at: s.anchor, label: text(length(filter(ctx.document.tasks, fn(t) => t.done))) + " completed in this note"})
+```
+
+Field selection avoids copying unused catalog data into a module and leaves more
+room within the bounded value size. Unknown fields produce a module error.
+The kernel owns parsing, typed evaluation, semantic records, source coordinates,
+output validation, and effect delivery. Modules own the migrated presentation
+and link policies. Existing solver, itinerary, task, timer, and reference
+semantics still have native implementations; they expose reusable values and
+validated actions rather than a separate plugin language. There is currently no
+plugin callback for adding custom diagnostics or parser syntax.

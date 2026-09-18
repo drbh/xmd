@@ -73,7 +73,7 @@ pub struct LinkFeatures<'a> {
     bundled: bool,
 }
 pub const BUILTINS: LinkFeatures<'static> = LinkFeatures {
-    features: &[&crate::github::GitHub],
+    features: &[],
     plugins: &[],
     bundled: true,
 };

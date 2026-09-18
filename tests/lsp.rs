@@ -1337,3 +1337,49 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
         "An outdated refresh wrote the resource cache"
     );
 }
+
+#[test]
+fn module_edits_use_native_apply_edit_and_reject_stale_controls() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let plugins = root.join(".wtf/plugins");
+    std::fs::create_dir_all(&plugins).unwrap();
+    std::fs::write(plugins.join("edit.wtf"),r#"plugin := {api: 1, id: "edit", kind: "inlay", inputs: []}
+actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
+"#).unwrap();
+    let note = root.join("main.wtf");
+    std::fs::write(&note, "Hello world\n").unwrap();
+    let uri = Url::from_file_path(&note).unwrap();
+    let mut client = Lsp::start(&root);
+    client.notify(
+        "textDocument/didOpen",
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"Hello world\n"}}),
+    );
+    client.diagnostics(1);
+    let lenses = client.request("textDocument/codeLens", json!({"textDocument":{"uri":uri}}));
+    let command = lenses
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["command"]["title"] == "Greeting")
+        .unwrap()["command"]
+        .clone();
+    assert_eq!(command["command"], "wtf.applyEdits");
+    client.request("workspace/executeCommand", command.clone());
+    assert_eq!(client.applied_edits.len(), 1);
+    assert_eq!(
+        client.applied_edits[0]["documentChanges"][0]["edits"][0]["newText"],
+        "Goodbye"
+    );
+    client.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"Goodbye world\n"}]}));
+    client.diagnostics(2);
+    let response = client.request_raw("workspace/executeCommand", command);
+    assert!(
+        response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Source changed"),
+        "{response}"
+    );
+    assert_eq!(client.applied_edits.len(), 1);
+}

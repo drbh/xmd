@@ -1,0 +1,3 @@
+# Inline calculations use the same evaluated records as `wtf query calculations`.
+plugin := {api: 1, id: "calculations", kind: "inlay", inputs: {calculations: ["anchor", "errors", "bracketed", "display", "expression"]}}
+collect := fn(ctx) => map(filter(ctx.document.calculations, fn(c) => length(c.errors) == 0), fn(c) => {at: c.anchor, label: if(c.bracketed, c.display, "= " + c.display), tooltip: "`" + trim(c.expression) + "` = " + c.display})

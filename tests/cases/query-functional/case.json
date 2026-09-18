@@ -1,0 +1,275 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "tasks | where !done | select title",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "{count: length(tasks), value: double(n)}",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "sum(tasks.estimate)",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "length(tasks)",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title))",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "a.wtf",
+        "map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)})",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "tasks | select map([1], fn(title) => title + 1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "tasks | select if(false, nonexistent, title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "if(true, 1, values)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "tasks | select { // | , } inside a comment\n title, nested: {title}}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "scope.wtf",
+        "[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "add(2)(3)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "values | select {name, type, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "caller(90%)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "map([$2, $3], add_tax)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "values | where name == \"result\" | select {value, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "values | where name == \"result\" | select map([1, 2], fn(x) => x + value)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "if(true, {title: upper(\"hello\")}, 1 / 0).title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "coalesce(get({}, \"missing\"), get([3, 4], 1))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "[get([], 0), get({a: 1}, \"a\"), length([])]",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "{name, cost:money.amount}.name",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "sum([{x:30m}, {x:null}, {x:90s}].x)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "map(sort_by([3, null, 1], fn(x) => x), fn(x) => x)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "length(group_by([1, 2, 1], fn(x) => x))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "[null < today(), \"a\" < \"b\", date(now()) == today()]",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "shadow.wtf",
+        "read_clock()",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "shadow.wtf",
+        "values | where name == \"now\" | select value",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "{slice: slice(\"a\ud83e\udd80z\", 1, 2), joined: join(concat([\"a\"], [\"b\"]), \"/\"), bar: repeat(\"\u2588\", round(2.6)), day: format_date(today(), \"%Y-%m-%d\"), trimmed: trim(\"  hi  \")}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "data.wtf",
+        "length(join([\"a\", \"b\", \"c\"], replace(\"xxxxxxxxxx\", \"x\", replace(\"xxxxxxxxxx\", \"x\", \"small\"))))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "lib.wtf",
+        "eval(\"rate\")",
+        "--json"
+      ]
+    }
+  ]
+}

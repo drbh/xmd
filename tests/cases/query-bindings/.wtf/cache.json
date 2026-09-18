@@ -1,0 +1,17 @@
+{
+  "https://github.com/org/repo/pull/1": {
+    "title": "Cached",
+    "state": "open",
+    "merged": false,
+    "checks": "passing",
+    "review": "APPROVED",
+    "fetched_at": "2026-09-16T11:00:00Z",
+    "data": {
+      "title": "Cached",
+      "state": "open",
+      "merged": false,
+      "checks": "passing",
+      "review": "APPROVED"
+    }
+  }
+}

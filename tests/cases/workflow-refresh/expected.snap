@@ -1,0 +1,121 @@
+### 0 read .wtf/cache.json .wtf/lookups.json
+-- .wtf/cache.json
+(missing: entity not found)
+-- .wtf/lookups.json
+(missing: entity not found)
+
+### 1 cli render links.wtf --format text
+$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[https://github.com/acme/app/pull/42]:pr ◌ PR #42 · refresh for status
+[ready] := pr.merged && pr.checks_passed
+--- stderr
+<root>/links.wtf:2:12: warning: Module github.property: No cached GitHub status; run wtf refresh
+
+### 2 cli render money.wtf --format text
+$ wtf render money.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[price] := quote(ACME)
+--- stderr
+<root>/money.wtf:1:12: warning: No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens
+
+### 3 cli refresh
+$ wtf refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (1 resources)
+
+### 4 read .wtf/cache.json .wtf/lookups.json
+-- .wtf/cache.json
+{
+  "https://github.com/acme/app/pull/42": {
+    "title": "Fixture PR",
+    "state": "merged",
+    "merged": true,
+    "checks": "passing",
+    "review": "APPROVED",
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": "passing",
+      "merged": true,
+      "review": "APPROVED",
+      "state": "merged",
+      "title": "Fixture PR"
+    }
+  }
+}
+-- .wtf/lookups.json
+{
+  "quote:ACME": {
+    "value": {
+      "currency": "USD",
+      "price": 12.5
+    },
+    "fetched_at": "<clock>",
+    "source": "fakequote"
+  }
+}
+
+### 5 cli render links.wtf --format text
+$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now
+[ready] := pr.merged && pr.checks_passed = true
+
+### 6 cli render money.wtf --format text
+$ wtf render money.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[price] := quote(ACME) = $12.50
+
+### 7 cli query links.wtf values | select {name, display} --json
+$ wtf query links.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "https://github.com/acme/app/pull/42",
+    "name": "pr"
+  },
+  {
+    "display": "true",
+    "name": "ready"
+  }
+]
+
+### 8 cli refresh
+$ WTF_TEST_FAIL=1 wtf refresh --root <root>
+exit 1
+--- stderr
+wtf: https://github.com/acme/app/pull/42: gh failed: fixture failure
+
+### 9 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://github.com/acme/app/pull/42": {
+    "title": "Fixture PR",
+    "state": "merged",
+    "merged": true,
+    "checks": "passing",
+    "review": "APPROVED",
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": "passing",
+      "merged": true,
+      "review": "APPROVED",
+      "state": "merged",
+      "title": "Fixture PR"
+    }
+  }
+}
+
+### 10 cli render links.wtf --format text
+$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now
+[ready] := pr.merged && pr.checks_passed = true
+

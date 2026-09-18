@@ -88,6 +88,16 @@ the workspace root.
 { "cli": ["refresh"] }
 ```
 
+A `cli` step may also carry two optional fields. `stdin` feeds text to the
+command's standard input (for `query ... -`), and is recorded under `--- stdin`.
+`env` sets extra environment variables for that one command, and they are shown
+in front of the recorded command line.
+
+```json
+{ "cli": ["query", "--workspace", "-", "--json"], "stdin": "tasks | count" }
+{ "cli": ["refresh"], "env": {"WTF_TEST_FAIL": "1"} }
+```
+
 ### `{"read": ["path", ...]}`
 
 Records the contents of files in the workspace, or `(missing: …)`. Use it to

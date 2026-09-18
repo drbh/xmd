@@ -1,0 +1,34 @@
+{
+  "now": "2026-01-31T09:00:00-05:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "bill.wtf",
+        "tasks | select {title, due, done}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "bill.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              "${uri:bill.wtf}",
+              0,
+              "- [ ] Pay bill :bill @every(month) @due(2026-01-31)"
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        }
+      ]
+    }
+  ]
+}

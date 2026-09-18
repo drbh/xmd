@@ -1,0 +1,3 @@
+other := import("./other.wtf")
+a := other.b
+safe := other.safe

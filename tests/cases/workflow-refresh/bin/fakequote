@@ -1,0 +1,2 @@
+#!/bin/sh
+printf '%s' '{"price": 12.5, "currency": "USD", "symbol": "'"$1"'"}'

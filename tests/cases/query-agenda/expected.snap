@@ -1,0 +1,119 @@
+### 0 cli query n.wtf import("agenda").between(entries, today(), today()) | select title --json
+$ wtf query n.wtf import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "Overdue",
+  "Undated",
+  "Today",
+  "Recurring",
+  "Broken",
+  "Broken event",
+  "Morning",
+  "+ Museum",
+  "Afternoon"
+]
+
+### 1 cli query n.wtf import("agenda").between(entries, today(), today()) | count --json
+$ wtf query n.wtf import("agenda").between(entries, today(), today()) | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  9
+]
+
+### 2 cli query n.wtf import("agenda").between(entries, today(), today() + 6d) | select title --json
+$ wtf query n.wtf import("agenda").between(entries, today(), today() + 6d) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "Overdue",
+  "Undated",
+  "Today",
+  "Recurring",
+  "Broken",
+  "Broken event",
+  "Morning",
+  "+ Museum",
+  "Afternoon",
+  "Tomorrow",
+  "Next"
+]
+
+### 3 cli query n.wtf entries | select {kind, title} --json
+$ wtf query n.wtf entries | select {kind, title} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "kind": "task",
+    "title": "Undated"
+  },
+  {
+    "kind": "task",
+    "title": "Done"
+  },
+  {
+    "kind": "task",
+    "title": "Overdue"
+  },
+  {
+    "kind": "task",
+    "title": "Today"
+  },
+  {
+    "kind": "task",
+    "title": "Next"
+  },
+  {
+    "kind": "task",
+    "title": "Future"
+  },
+  {
+    "kind": "task",
+    "title": "Recurring"
+  },
+  {
+    "kind": "task",
+    "title": "Broken"
+  },
+  {
+    "kind": "event",
+    "title": "Morning"
+  },
+  {
+    "kind": "event",
+    "title": "Afternoon"
+  },
+  {
+    "kind": "event",
+    "title": "Tomorrow"
+  },
+  {
+    "kind": "event",
+    "title": "Yesterday"
+  },
+  {
+    "kind": "event",
+    "title": "Broken event"
+  },
+  {
+    "kind": "stop",
+    "title": "+ Museum"
+  }
+]
+
+### 4 cli query n.wtf import("agenda").between(entries, today(), today())
+$ wtf query n.wtf import("agenda").between(entries, today(), today()) --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+anchor={"character":30,"line":3}	at=null	at_date=null	attributes={"due":"2026-09-15"}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=2026-09-15	errors=[]	estimate=null	kind=task	leaf=true	line=3	name=null	parent=null	schedule=[{"error":null,"key":"due","value":{"type":"date","value":"2026-09-15"}}]	scheduled=null	source=<root>/n.wtf:4	tags=[]	timer=null	title=Overdue
+anchor={"character":15,"line":1}	at=null	at_date=null	attributes={}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=null	errors=[]	estimate=null	kind=task	leaf=true	line=1	name=null	parent={"line":1,"path":"<root>/n.wtf","range":{"end":{"character":5,"line":0},"start":{"character":2,"line":0}},"uri":"file://<root>/n.wtf#L1"}	schedule=[]	scheduled=null	source=<root>/n.wtf:2	tags=[]	timer=null	title=Undated
+anchor={"character":28,"line":4}	at=null	at_date=null	attributes={"due":"2026-09-16"}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=2026-09-16	errors=[]	estimate=null	kind=task	leaf=true	line=4	name=null	parent=null	schedule=[{"error":null,"key":"due","value":{"type":"date","value":"2026-09-16"}}]	scheduled=null	source=<root>/n.wtf:5	tags=[]	timer=null	title=Today
+anchor={"character":27,"line":7}	at=null	at_date=null	attributes={"every":"day"}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=2026-09-16	errors=[]	estimate=null	kind=task	leaf=true	line=7	name=null	parent=null	schedule=[]	scheduled=null	source=<root>/n.wtf:8	tags=[]	timer=null	title=Recurring
+anchor={"character":26,"line":8}	at=null	at_date=null	attributes={"due":"missing"}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=null	errors=["@due: Unknown name 'missing'"]	estimate=null	kind=task	leaf=true	line=8	name=null	parent=null	schedule=[{"error":"Unknown name 'missing'","key":"due","value":null}]	scheduled=null	source=<root>/n.wtf:9	tags=[]	timer=null	title=Broken
+anchor={"character":27,"line":13}	at=null	at_date=null	blocked_by=[]	done=false	due=null	errors=["Unknown name 'missing'"]	estimate=null	kind=event	leaf=true	line=13	parent=null	scheduled=null	source=<root>/n.wtf:14	tags=[]	title=Broken event
+anchor={"character":40,"line":9}	at=2026-09-16 09:00:00 -04:00	at_date=2026-09-16	blocked_by=[]	done=false	due=null	errors=[]	estimate=null	kind=event	leaf=true	line=9	parent=null	scheduled=null	source=<root>/n.wtf:10	tags=[]	title=Morning
+anchor={"character":17,"line":15}	at=2026-09-16 10:00:00 -04:00	at_date=2026-09-16	blocked_by=[]	done=false	due=null	errors=[]	estimate=null	kind=stop	leaf=true	line=15	parent=null	scheduled=null	source=<root>/n.wtf:16	tags=[]	title=+ Museum
+anchor={"character":42,"line":10}	at=2026-09-16 16:00:00 -04:00	at_date=2026-09-16	blocked_by=[]	done=false	due=null	errors=[]	estimate=null	kind=event	leaf=true	line=10	parent=null	scheduled=null	source=<root>/n.wtf:11	tags=[]	title=Afternoon
+

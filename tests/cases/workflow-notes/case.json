@@ -1,0 +1,134 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "daily.wtf",
+        "--root",
+        "parse",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "daily.wtf",
+        "values | select {name, display}",
+        "--root",
+        "parse",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "daily.wtf",
+        "[length(tasks), length(links), length(diagnostics)]",
+        "--root",
+        "parse",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "expressions.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "parse",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "places.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "parse",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "parse/places.wtf"
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "parse/places.wtf"
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "lookalike.wtf",
+        "--root",
+        "parse",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | where leaf && !done | sort source.path, source.line | where contains(tags, \"errands\") | select {title, line: source.line}",
+        "--root",
+        "cli",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "import(\"agenda\").between(entries, today(), today() + 6d) | select title",
+        "--root",
+        "cli",
+        "--on",
+        "2026-09-16",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\"",
+        "--root",
+        "cli",
+        "--fail-on-match",
+        "--json"
+      ]
+    },
+    {
+      "read": [
+        "cli/inbox.wtf",
+        "cli/.wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "plans | where name == \"bakery\" | select solution",
+        "--root",
+        "plan"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "plans | where name == \"bakery\" | select {objective: solution.objective, binding: solution.constraints}",
+        "--root",
+        "plan",
+        "--json"
+      ]
+    }
+  ]
+}

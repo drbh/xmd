@@ -1,0 +1,83 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "read": [
+        ".wtf/cache.json",
+        ".wtf/lookups.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "links.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "money.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json",
+        ".wtf/lookups.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "links.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "money.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "links.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "refresh"
+      ],
+      "env": {
+        "WTF_TEST_FAIL": "1"
+      }
+    },
+    {
+      "read": [
+        ".wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "links.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

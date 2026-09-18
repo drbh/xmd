@@ -1,0 +1,152 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "tasks.wtf",
+        "tasks | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.wtf",
+        "tasks | where leaf && !done && contains(tags, \"errands\") | select {title, due, estimate, source, parent} | sort due | limit 1",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.wtf",
+        "tasks | where parent != null | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.wtf",
+        "tasks | select {title, due}"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.wtf",
+        "tasks | where title == \"a|b\" || (false && nonexistent) | select {label: title, separator: \":,|\", nested: contains(title, \"|\"), timestamp: 2026-09-16T12:00:00-04:00}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.wtf",
+        "tasks | where true || nonexistent | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.wtf",
+        "tasks | select {name: title} | where contains(name, \"b\") | select name",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.wtf",
+        "tasks | sort due | select title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.wtf",
+        "tasks | sort due desc, title desc | select title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.wtf",
+        "tasks | where due < today() | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | sum estimate",
+        "--root",
+        "effort",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | group source.path | select {path:key, tasks:length(rows), effort:sum(rows.estimate)} | sort path",
+        "--root",
+        "effort",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | sum estimate",
+        "--root",
+        "empty",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.wtf",
+        "values | select {name, value}",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.wtf",
+        "events | where at_date == today() | select title",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.wtf",
+        "values | where name == \"day\" | select {tomorrow: value + 1d}",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "union.wtf",
+        "union(tasks, events) | select kind",
+        "--json"
+      ]
+    }
+  ]
+}

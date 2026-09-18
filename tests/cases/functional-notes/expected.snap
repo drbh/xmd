@@ -1,0 +1,401 @@
+### 0 cli render multiline.wtf --format text
+$ wtf render multiline.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+// The closure keeps its defining scope.
+rate := 10% = 10%
+with_tax := fn(
+  cost
+) => (
+  // Only this branch is evaluated.
+  if(
+    cost > $0,
+    cost + cost * rate,
+    $0
+  )
+) = <function>
+result := fold(
+  map([$2, $3], with_tax),
+  $0,
+  fn(total, price) => total + price
+) = $5.50
+config := {
+  title: "https://example.com/)", // Delimiters here are data.
+  values: [
+    1,
+    2
+  ]
+} = {"title": "https://example.com/)", "values": [1, 2]}
+add := fn(x) =>
+  fn(y) => x + y = <function>
+
+### 1 cli query multiline.wtf values | select {name, display, errors} --json
+$ wtf query multiline.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": "10%",
+    "errors": [],
+    "name": "rate"
+  },
+  {
+    "display": "<function>",
+    "errors": [],
+    "name": "with_tax"
+  },
+  {
+    "display": "$5.50",
+    "errors": [],
+    "name": "result"
+  },
+  {
+    "display": "{\"title\": \"https://example.com/)\", \"values\": [1, 2]}",
+    "errors": [],
+    "name": "config"
+  },
+  {
+    "display": "<function>",
+    "errors": [],
+    "name": "add"
+  }
+]
+
+### 2 cli query multiline.wtf add(2)(3) --json
+$ wtf query multiline.wtf add(2)(3) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  5.0
+]
+
+### 3 cli query multiline.wtf config.title --json
+$ wtf query multiline.wtf config.title --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "https://example.com/)"
+]
+
+### 4 cli query multiline.wtf references | select {name, line: source.line} --json
+$ wtf query multiline.wtf references | select {name, line: source.line} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[]
+
+### 5 cli query multiline.wtf [length(sections), length(tasks), length(links)] --json
+$ wtf query multiline.wtf [length(sections), length(tasks), length(links)] --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  0,
+  0,
+  0
+]
+
+### 6 cli query multiline_crlf.wtf values | select {name, display, errors} --json
+$ wtf query multiline_crlf.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": "10%",
+    "errors": [],
+    "name": "rate"
+  },
+  {
+    "display": "<function>",
+    "errors": [],
+    "name": "with_tax"
+  },
+  {
+    "display": "$5.50",
+    "errors": [],
+    "name": "result"
+  },
+  {
+    "display": "{\"title\": \"https://example.com/)\", \"values\": [1, 2]}",
+    "errors": [],
+    "name": "config"
+  },
+  {
+    "display": "<function>",
+    "errors": [],
+    "name": "add"
+  }
+]
+
+### 7 cli query multiline_crlf.wtf diagnostics | select {line, message} --json
+$ wtf query multiline_crlf.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[]
+
+### 8 cli query unfinished_prose.wtf values | select {name, display, errors} --json
+$ wtf query unfinished_prose.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": null,
+    "errors": [
+      "Expected an expression"
+    ],
+    "name": "bad"
+  },
+  {
+    "display": "42",
+    "errors": [],
+    "name": "good"
+  }
+]
+
+### 9 cli query unfinished_indent.wtf values | select {name, display, errors} --json
+$ wtf query unfinished_indent.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": null,
+    "errors": [
+      "Expected an expression"
+    ],
+    "name": "bad"
+  },
+  {
+    "display": "42",
+    "errors": [],
+    "name": "good"
+  }
+]
+
+### 10 cli query unfinished_comment.wtf values | select {name, display, errors} --json
+$ wtf query unfinished_comment.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": null,
+    "errors": [
+      "Expected an expression"
+    ],
+    "name": "bad"
+  },
+  {
+    "display": "42",
+    "errors": [],
+    "name": "good"
+  }
+]
+
+### 11 cli query errors.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query errors.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 3,
+    "message": "Division by zero (Number / Number)",
+    "severity": "error"
+  }
+]
+
+### 12 cli render errors.wtf --format text
+$ wtf render errors.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stdout
+rate := 2 = 2
+bad := fn(x) => (
+  // A Unicode prefix must not move the error.
+  length("🦀") + x / 0
+) = <function>
+result := (
+  rate + bad(1)
+)
+--- stderr
+<root>/errors.wtf:4:22: error: Division by zero (Number / Number)
+wtf: 1 error(s) while rendering
+
+### 13 cli query loop.wtf loop(1) --json
+$ wtf query loop.wtf loop(1) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: Function call depth exceeds 32
+
+### 14 cli render hello.wtf --format text
+$ wtf render hello.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Hello Hello
+
+### 15 lsp
+-- open multiline.wtf
+-- request textDocument/documentSymbol multiline.wtf
+[
+  {
+    "detail": "Ratio · 10%",
+    "kind": 13,
+    "name": "rate",
+    "range": {
+      "end": {
+        "character": 11,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 4,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "detail": "Function · <function>",
+    "kind": 13,
+    "name": "with_tax",
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 11
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 8,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "detail": "Money · $5.50",
+    "kind": 13,
+    "name": "result",
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 16
+      },
+      "start": {
+        "character": 0,
+        "line": 12
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 12
+      },
+      "start": {
+        "character": 0,
+        "line": 12
+      }
+    }
+  },
+  {
+    "detail": "Record · {\"title\": \"https://example.com/)\", \"values\": [1, 2]}",
+    "kind": 13,
+    "name": "config",
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 23
+      },
+      "start": {
+        "character": 0,
+        "line": 17
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 17
+      },
+      "start": {
+        "character": 0,
+        "line": 17
+      }
+    }
+  },
+  {
+    "detail": "Function · <function>",
+    "kind": 13,
+    "name": "add",
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 25
+      },
+      "start": {
+        "character": 0,
+        "line": 24
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 3,
+        "line": 24
+      },
+      "start": {
+        "character": 0,
+        "line": 24
+      }
+    }
+  }
+]
+-- request textDocument/foldingRange multiline.wtf
+[
+  {
+    "endLine": 11,
+    "kind": "region",
+    "startLine": 2
+  },
+  {
+    "endLine": 16,
+    "kind": "region",
+    "startLine": 12
+  },
+  {
+    "endLine": 23,
+    "kind": "region",
+    "startLine": 17
+  },
+  {
+    "endLine": 25,
+    "kind": "region",
+    "startLine": 24
+  }
+]
+-- open hello.wtf
+-- request textDocument/inlayHint hello.wtf {"end":{"character":0,"line":2},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "Hello",
+    "paddingLeft": true,
+    "position": {
+      "character": 7,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+

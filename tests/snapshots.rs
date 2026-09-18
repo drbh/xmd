@@ -17,7 +17,7 @@ use std::{
     collections::BTreeMap,
     fmt::Write as _,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 use support::lsp::Lsp;
 
@@ -227,7 +227,7 @@ impl World {
             let root = self.root.display().to_string();
             let args: Vec<String> = shown.iter().map(|a| a.replace("${root}", &root)).collect();
             let _ = writeln!(out, "### {index} cli {}", shown.join(" "));
-            self.cli(&args, out);
+            self.cli(&args, step.get("stdin").map(as_text), step.get("env"), out);
         } else if let Some(items) = step.get("lsp").and_then(Value::as_array) {
             // An explicit `capabilities` object stands in for a poorer client.
             let capabilities = step.get("capabilities").cloned();
@@ -269,7 +269,7 @@ impl World {
 
     // ------------------------------------------------------------------ cli
 
-    fn cli(&self, args: &[String], out: &mut String) {
+    fn cli(&self, args: &[String], stdin: Option<String>, env: Option<&Value>, out: &mut String) {
         let subcommand = args.first().map(String::as_str).unwrap_or_default();
         let mut full: Vec<String> = args.to_vec();
         let has = |flag: &str| args.iter().any(|a| a == flag);
@@ -281,16 +281,48 @@ impl World {
             full.push("--now".into());
             full.push(self.now.clone());
         }
-        let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
+        let mut command = Command::new(env!("CARGO_BIN_EXE_wtf"));
+        command
             .current_dir(&self.root)
             .env("TZ", "UTC")
             .env("WTF_NOW", &self.now)
             .env("PATH", self.path())
-            .args(&full)
-            .output()
-            .expect("failed to run the wtf binary");
+            .args(&full);
+        if let Some(Value::Object(vars)) = env {
+            for (key, value) in vars {
+                command.env(key, as_text(value));
+            }
+        }
+        let output = match &stdin {
+            None => command.output(),
+            Some(text) => {
+                command
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped());
+                let mut child = command.spawn().expect("failed to run the wtf binary");
+                std::io::Write::write_all(child.stdin.as_mut().unwrap(), text.as_bytes()).unwrap();
+                drop(child.stdin.take());
+                child.wait_with_output()
+            }
+        }
+        .expect("failed to run the wtf binary");
         let shown: Vec<String> = full.iter().map(|a| self.scrub(a)).collect();
-        let _ = writeln!(out, "$ wtf {}", shown.join(" "));
+        let mut prefix = String::new();
+        if let Some(Value::Object(vars)) = env {
+            for (key, value) in vars {
+                let _ = write!(prefix, "{key}={} ", as_text(value));
+            }
+        }
+        let _ = writeln!(out, "$ {prefix}wtf {}", shown.join(" "));
+        if let Some(text) = &stdin {
+            let text = self.body(text);
+            let _ = writeln!(out, "--- stdin");
+            out.push_str(&text);
+            if !text.ends_with('\n') {
+                out.push('\n');
+            }
+        }
         let _ = writeln!(
             out,
             "exit {}",

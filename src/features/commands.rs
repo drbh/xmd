@@ -275,7 +275,7 @@ impl Action {
         if module.revision() != *revision {
             return Err("Module changed; request fresh controls".into());
         }
-        if !module.has("reduce") {
+        if !module.has(crate::modules::Hook::Reduce) {
             return Err("Module has no reducer".into());
         }
         Ok(())

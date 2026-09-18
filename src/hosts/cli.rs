@@ -301,15 +301,10 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     }
     let mut errors = 0;
     for diagnostic in diagnostics {
-        let severity = match diagnostic.severity {
-            Some(lsp_types::DiagnosticSeverity::WARNING) => "warning",
-            Some(lsp_types::DiagnosticSeverity::INFORMATION) => "info",
-            Some(lsp_types::DiagnosticSeverity::HINT) => "hint",
-            _ => {
-                errors += 1;
-                "error"
-            }
-        };
+        let severity = crate::diagnostics::severity_name(diagnostic.severity);
+        if severity == "error" {
+            errors += 1;
+        }
         eprintln!(
             "{}:{}:{}: {severity}: {}",
             path.display(),

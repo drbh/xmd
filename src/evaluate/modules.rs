@@ -1,5 +1,6 @@
 //! Hot-reloadable WTF modules. Adapters use the ordinary expression evaluator.
 use crate::{
+    catalog::Collection,
     document::Document,
     engine::{Engine, Lexeme, Value},
     link_features::{LinkContext, LinkFeature, RefreshRequest},
@@ -13,6 +14,147 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+/// What a module plugs into. `module.kind` in the source names one of these.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ModuleKind {
+    /// Decorates matching URLs: inlays, hovers, properties and refreshes.
+    Link,
+    /// Drives editor features over the document catalog.
+    Feature,
+    /// Plain functions other modules and the engine import by name.
+    Library,
+}
+impl ModuleKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Link => "link",
+            Self::Feature => "feature",
+            Self::Library => "library",
+        }
+    }
+    /// The one hook a module of this kind must supply.
+    pub fn required_hook(self) -> Option<Hook> {
+        match self {
+            Self::Link => Some(Hook::Inlay),
+            Self::Feature => Some(Hook::Collect),
+            Self::Library => None,
+        }
+    }
+}
+impl std::str::FromStr for ModuleKind {
+    type Err = String;
+    fn from_str(value: &str) -> Result<Self, String> {
+        match value {
+            "link" => Ok(Self::Link),
+            "feature" => Ok(Self::Feature),
+            "library" => Ok(Self::Library),
+            _ => Err("module.kind must be link, feature, or library".into()),
+        }
+    }
+}
+impl std::fmt::Display for ModuleKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// The fixed entry points a link or feature module may define. Library exports
+/// are user-chosen names and stay text; these are the contract the hosts call.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Hook {
+    Collect,
+    Inlay,
+    Hover,
+    Property,
+    Refresh,
+    Decode,
+    Matches,
+    PropertyNames,
+    TimeDependent,
+    Actions,
+    Reduce,
+    Hovers,
+    Diagnostics,
+    Format,
+}
+impl Hook {
+    /// Declaration order is also the order compilation validates them in.
+    pub const ALL: &'static [Hook] = &[
+        Hook::Collect,
+        Hook::Inlay,
+        Hook::Hover,
+        Hook::Property,
+        Hook::Refresh,
+        Hook::Decode,
+        Hook::Matches,
+        Hook::PropertyNames,
+        Hook::TimeDependent,
+        Hook::Actions,
+        Hook::Reduce,
+        Hook::Hovers,
+        Hook::Diagnostics,
+        Hook::Format,
+    ];
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Collect => "collect",
+            Self::Inlay => "inlay",
+            Self::Hover => "hover",
+            Self::Property => "property",
+            Self::Refresh => "refresh",
+            Self::Decode => "decode",
+            Self::Matches => "matches",
+            Self::PropertyNames => "property_names",
+            Self::TimeDependent => "time_dependent",
+            Self::Actions => "actions",
+            Self::Reduce => "reduce",
+            Self::Hovers => "hovers",
+            Self::Diagnostics => "diagnostics",
+            Self::Format => "format",
+        }
+    }
+    pub fn arity(self) -> usize {
+        match self {
+            Self::Property | Self::Reduce | Self::Decode => 2,
+            _ => 1,
+        }
+    }
+    /// The kind this hook is mandatory for; such hooks are validated first.
+    pub fn required_for(self) -> Option<ModuleKind> {
+        match self {
+            Self::Collect => Some(ModuleKind::Feature),
+            Self::Inlay => Some(ModuleKind::Link),
+            _ => None,
+        }
+    }
+}
+impl std::fmt::Display for Hook {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+/// Lets `Module::has`/`Module::call` take a typed `Hook` or, for library
+/// modules whose exports are user-defined, a plain function name.
+pub trait Entry {
+    fn entry_name(&self) -> &str;
+}
+impl Entry for Hook {
+    fn entry_name(&self) -> &str {
+        self.name()
+    }
+}
+impl Entry for &str {
+    fn entry_name(&self) -> &str {
+        self
+    }
+}
+impl Entry for String {
+    fn entry_name(&self) -> &str {
+        self
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ModuleRegistry {
@@ -28,13 +170,13 @@ impl Default for ModuleRegistry {
 #[derive(Clone, Debug)]
 pub struct Module {
     pub id: String,
-    pub kind: String,
+    pub kind: ModuleKind,
     pub path: PathBuf,
     pub live: bool,
     own_live: bool,
     pub enabled: bool,
-    pub inputs: Vec<String>,
-    pub fields: BTreeMap<String, Vec<String>>,
+    pub inputs: Vec<Collection>,
+    pub fields: BTreeMap<Collection, Vec<String>>,
     pub imports: Vec<String>,
     pub(crate) expressions: Arc<BTreeMap<String, crate::engine::Expr>>,
     hosts: Vec<String>,
@@ -168,38 +310,31 @@ impl Module {
         {
             return Err("Invalid module id".into());
         }
-        let kind = text(config.get("kind").ok_or("module.kind is required")?)?;
+        let kind: ModuleKind =
+            text(config.get("kind").ok_or("module.kind is required")?)?.parse()?;
         let enabled = match config.get("enabled") {
             None => true,
             Some(Value::Bool(v)) => *v,
             _ => return Err("enabled must be boolean".into()),
         };
         let mut fields = BTreeMap::new();
-        let inputs = match config.get("inputs") {
+        let inputs: Vec<Collection> = match config.get("inputs") {
             None => vec![
-                "sections".into(),
-                "tasks".into(),
-                "values".into(),
-                "links".into(),
+                Collection::Sections,
+                Collection::Tasks,
+                Collection::Values,
+                Collection::Links,
             ],
             Some(Value::Record(selections)) => {
                 for (name, selection) in selections {
-                    fields.insert(name.clone(), strings(selection)?);
+                    fields.insert(name.parse()?, strings(selection)?);
                 }
-                fields.keys().cloned().collect()
+                fields.keys().copied().collect()
             }
-            Some(value) => strings(value)?,
-        };
-        for input in &inputs {
-            if !crate::catalog::COLLECTIONS.contains(&input.as_str()) {
-                return Err(format!("Unknown input collection: {input}"));
-            }
-        }
-        let required = match kind.as_str() {
-            "link" => "inlay",
-            "feature" => "collect",
-            "library" => "",
-            _ => return Err("module.kind must be link, feature, or library".into()),
+            Some(value) => strings(value)?
+                .iter()
+                .map(|input| input.parse())
+                .collect::<Result<_, String>>()?,
         };
         let hosts = config
             .get("hosts")
@@ -207,7 +342,7 @@ impl Module {
             .transpose()?
             .unwrap_or_default();
         if enabled
-            && kind == "link"
+            && kind == ModuleKind::Link
             && (hosts.is_empty()
                 || hosts.iter().any(|host| {
                     Url::parse(&format!("https://{host}")).is_err()
@@ -233,44 +368,37 @@ impl Module {
         {
             return Err("Invalid or reserved property name".into());
         }
-        for (name, arity) in [
-            (required, 1),
-            ("hover", 1),
-            ("property", 2),
-            ("refresh", 1),
-            ("decode", 2),
-            ("matches", 1),
-            ("property_names", 1),
-            ("time_dependent", 1),
-            ("actions", 1),
-            ("reduce", 2),
-            ("hovers", 1),
-            ("diagnostics", 1),
-            ("format", 1),
-        ] {
-            if kind == "library" {
-                break;
-            }
+        // A library's exports are its own names, so only link and feature
+        // modules are checked against the hook table: required hook first.
+        let required = kind.required_hook();
+        for hook in required.into_iter().chain(
+            Hook::ALL
+                .iter()
+                .copied()
+                .filter(|_| required.is_some())
+                .filter(|h| h.required_for().is_none()),
+        ) {
+            let name = hook.name();
+            let arity = hook.arity();
             if names.contains(name) {
                 if !matches!(engine.named(&path,name)?,Value::Function(f) if f.params.len()==arity)
                 {
                     return Err(format!("{name} must be a function with {arity} parameters"));
                 }
-            } else if name == required
+            } else if Some(hook) == required
                 && enabled
-                && kind != "library"
-                && (kind == "link"
-                    || !["actions", "hovers", "diagnostics", "format"]
+                && (kind == ModuleKind::Link
+                    || ![Hook::Actions, Hook::Hovers, Hook::Diagnostics, Hook::Format]
                         .iter()
-                        .any(|n| names.contains(*n)))
+                        .any(|h| names.contains(h.name())))
             {
-                return Err(format!("Missing {required} function"));
+                return Err(format!("Missing {name} function"));
             }
         }
-        if names.contains("refresh") != names.contains("decode") {
+        if names.contains(Hook::Refresh.name()) != names.contains(Hook::Decode.name()) {
             return Err("refresh and decode must be supplied together".into());
         }
-        if !properties.is_empty() && !names.contains("property") {
+        if !properties.is_empty() && !names.contains(Hook::Property.name()) {
             return Err("Declared properties need a property function".into());
         }
         let version = match config.get("cache_version") {
@@ -317,15 +445,18 @@ impl Module {
         }
         format!("{:016x}", hash.finish())
     }
-    pub fn has(&self, name: &str) -> bool {
-        self.workspace.resolve(&self.path, name).is_ok()
+    pub fn has(&self, entry: impl Entry) -> bool {
+        self.workspace
+            .resolve(&self.path, entry.entry_name())
+            .is_ok()
     }
     pub fn call(
         &self,
-        name: &str,
+        entry: impl Entry,
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
     ) -> Result<Value, String> {
+        let name = entry.entry_name();
         if !self.enabled {
             return Err(format!("Module '{}' is disabled", self.id));
         }
@@ -374,35 +505,35 @@ impl LinkFeature for Module {
     }
     fn matches(&self, url: &Url) -> bool {
         self.enabled
-            && self.kind == "link"
+            && self.kind == ModuleKind::Link
             && matches!(url.scheme(), "http" | "https")
             && url
                 .host_str()
                 .is_some_and(|host| self.hosts.iter().any(|h| h == host))
             && url.path().starts_with(&self.prefix)
-            && (!self.has("matches")
+            && (!self.has(Hook::Matches)
                 || matches!(
-                    self.call("matches", vec![url_value(url)], epoch()),
+                    self.call(Hook::Matches, vec![url_value(url)], epoch()),
                     Ok(Value::Bool(true))
                 ))
     }
     fn inlay(&self, ctx: &LinkContext<'_>) -> String {
-        self.call("inlay", vec![self.context(ctx)], ctx.now.fixed_offset())
+        self.call(Hook::Inlay, vec![self.context(ctx)], ctx.now.fixed_offset())
             .and_then(|v| text(&v))
             .unwrap_or_else(|e| format!("module error · {e}"))
     }
     fn hover(&self, ctx: &LinkContext<'_>) -> Option<String> {
-        self.has("hover").then(|| {
-            self.call("hover", vec![self.context(ctx)], ctx.now.fixed_offset())
+        self.has(Hook::Hover).then(|| {
+            self.call(Hook::Hover, vec![self.context(ctx)], ctx.now.fixed_offset())
                 .and_then(|v| text(&v))
                 .unwrap_or_else(|e| e)
         })
     }
     fn time_dependent(&self, ctx: &LinkContext<'_>) -> bool {
-        if self.has("time_dependent") {
+        if self.has(Hook::TimeDependent) {
             return !matches!(
                 self.call(
-                    "time_dependent",
+                    Hook::TimeDependent,
                     vec![self.context(ctx)],
                     ctx.now.fixed_offset()
                 ),
@@ -415,9 +546,9 @@ impl LinkFeature for Module {
         self.cache_key.as_deref()
     }
     fn property_names(&self, url: &Url) -> Vec<String> {
-        if self.has("property_names") {
+        if self.has(Hook::PropertyNames) {
             return self
-                .call("property_names", vec![url_value(url)], epoch())
+                .call(Hook::PropertyNames, vec![url_value(url)], epoch())
                 .and_then(|v| strings(&v))
                 .unwrap_or_default()
                 .into_iter()
@@ -431,17 +562,19 @@ impl LinkFeature for Module {
             return Err(format!("Unknown resource property '{name}'"));
         }
         self.call(
-            "property",
+            Hook::Property,
             vec![self.context(ctx), Value::Text(name.into())],
             ctx.now.fixed_offset(),
         )
     }
     fn refresh_request(&self, url: &Url) -> Option<RefreshRequest> {
-        if !self.has("refresh") {
+        if !self.has(Hook::Refresh) {
             return None;
         }
         // A request is data. The native host alone executes it on explicit refresh.
-        let Value::Record(fields) = self.call("refresh", vec![url_value(url)], epoch()).ok()?
+        let Value::Record(fields) = self
+            .call(Hook::Refresh, vec![url_value(url)], epoch())
+            .ok()?
         else {
             return None;
         };
@@ -482,7 +615,7 @@ impl LinkFeature for Module {
         now: DateTime<Utc>,
     ) -> Result<Metadata, String> {
         let value = self.call(
-            "decode",
+            Hook::Decode,
             vec![url_value(url), from_json(data)],
             now.fixed_offset(),
         )?;

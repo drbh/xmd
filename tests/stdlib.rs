@@ -50,7 +50,7 @@ fn disabling_the_feature_modules_removes_every_inlay_without_native_fallbacks() 
         ModuleRegistry::compile(
             wtf::modules::bundled()
                 .iter()
-                .filter(|m| m.kind == "feature")
+                .filter(|m| m.kind == wtf::modules::ModuleKind::Feature)
                 .map(|m| {
                     (
                         format!("/notes/.wtf/modules/{}.wtf", m.id).into(),

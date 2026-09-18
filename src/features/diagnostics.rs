@@ -1,3 +1,4 @@
+//! Every problem a note can report, and the one vocabulary hosts describe them with.
 use crate::{
     document::{Problem, Span},
     engine::{Engine, Value},
@@ -7,12 +8,87 @@ use chrono::{DateTime, FixedOffset, Local, NaiveDate};
 use lsp_types::*;
 use std::path::Path;
 
+/// The `code` on every diagnostic this crate produces. Queries filter on these
+/// names, and the post-processing below reasons about them rather than strings.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DiagnosticCode {
+    Syntax,
+    AmbiguousName,
+    UnknownName,
+    Resource,
+    Evaluation,
+    Cycle,
+    Dependency,
+    Property,
+    Attribute,
+    /// A feature module's own hook failed; the module id is in the message.
+    Module,
+}
+impl DiagnosticCode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Syntax => "syntax",
+            Self::AmbiguousName => "ambiguous-name",
+            Self::UnknownName => "unknown-name",
+            Self::Resource => "resource",
+            Self::Evaluation => "evaluation",
+            Self::Cycle => "cycle",
+            Self::Dependency => "dependency",
+            Self::Property => "property",
+            Self::Attribute => "attribute",
+            Self::Module => "module",
+        }
+    }
+    /// Names a token, so a second error for the containing expression is noise.
+    fn names_a_token(self) -> bool {
+        matches!(self, Self::UnknownName | Self::AmbiguousName)
+    }
+    fn about_an_expression(self) -> bool {
+        matches!(self, Self::Evaluation | Self::Attribute | Self::Dependency)
+    }
+}
+impl std::fmt::Display for DiagnosticCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+/// Recover the enum from a diagnostic the workspace produced.
+fn code_of(diagnostic: &Diagnostic) -> Option<DiagnosticCode> {
+    let Some(NumberOrString::String(code)) = &diagnostic.code else {
+        return None;
+    };
+    [
+        DiagnosticCode::Syntax,
+        DiagnosticCode::AmbiguousName,
+        DiagnosticCode::UnknownName,
+        DiagnosticCode::Resource,
+        DiagnosticCode::Evaluation,
+        DiagnosticCode::Cycle,
+        DiagnosticCode::Dependency,
+        DiagnosticCode::Property,
+        DiagnosticCode::Attribute,
+        DiagnosticCode::Module,
+    ]
+    .into_iter()
+    .find(|c| c.as_str() == code)
+}
+
+/// The one severity vocabulary shared by the query catalog and the CLI.
+pub fn severity_name(severity: Option<DiagnosticSeverity>) -> &'static str {
+    match severity {
+        Some(DiagnosticSeverity::WARNING) => "warning",
+        Some(DiagnosticSeverity::INFORMATION) => "information",
+        Some(DiagnosticSeverity::HINT) => "hint",
+        _ => "error",
+    }
+}
+
 fn diagnostic(
     ws: &Workspace,
     path: &Path,
     span: Span,
     message: String,
-    code: &str,
+    code: DiagnosticCode,
     related: &[Symbol],
 ) -> Diagnostic {
     Diagnostic {
@@ -20,7 +96,7 @@ fn diagnostic(
         severity: Some(DiagnosticSeverity::ERROR),
         source: Some("wtf".into()),
         message,
-        code: Some(NumberOrString::String(code.into())),
+        code: Some(NumberOrString::String(code.as_str().into())),
         related_information: (!related.is_empty()).then(|| {
             related
                 .iter()
@@ -89,7 +165,7 @@ pub(crate) fn collect_native_in(
             path,
             problem.span,
             problem.message.clone(),
-            "syntax",
+            DiagnosticCode::Syntax,
             &[],
         ));
     }
@@ -109,7 +185,7 @@ pub(crate) fn collect_native_in(
                 path,
                 named.span,
                 message,
-                "ambiguous-name",
+                DiagnosticCode::AmbiguousName,
                 &candidates,
             ));
             continue;
@@ -123,7 +199,14 @@ pub(crate) fn collect_native_in(
                 SymbolKind::Definition(i) => doc.definitions[i].value_span,
                 _ => named.span,
             };
-            issues.push(diagnostic(ws, path, span, message, "resource", &[]));
+            issues.push(diagnostic(
+                ws,
+                path,
+                span,
+                message,
+                DiagnosticCode::Resource,
+                &[],
+            ));
         }
         if let Err(message) = evaluated {
             if let Some(failure) = engine.failure {
@@ -145,9 +228,9 @@ pub(crate) fn collect_native_in(
                         failure.span,
                         failure.message,
                         if failure.related.is_empty() {
-                            "evaluation"
+                            DiagnosticCode::Evaluation
                         } else {
-                            "cycle"
+                            DiagnosticCode::Cycle
                         },
                         &failure.related,
                     ));
@@ -164,12 +247,19 @@ pub(crate) fn collect_native_in(
                         path,
                         named.span,
                         format!("Dependency error: {message}"),
-                        "dependency",
+                        DiagnosticCode::Dependency,
                         &related,
                     ));
                 }
             } else {
-                issues.push(diagnostic(ws, path, named.span, message, "evaluation", &[]));
+                issues.push(diagnostic(
+                    ws,
+                    path,
+                    named.span,
+                    message,
+                    DiagnosticCode::Evaluation,
+                    &[],
+                ));
             }
         }
     }
@@ -181,7 +271,14 @@ pub(crate) fn collect_native_in(
                 .filter(|f| f.path == path)
                 .map(|f| f.span)
                 .unwrap_or(calculation.span);
-            issues.push(diagnostic(ws, path, span, message, "evaluation", &[]));
+            issues.push(diagnostic(
+                ws,
+                path,
+                span,
+                message,
+                DiagnosticCode::Evaluation,
+                &[],
+            ));
         }
     }
     for reference in &doc.references {
@@ -200,9 +297,9 @@ pub(crate) fn collect_native_in(
                 reference.span,
                 message,
                 if candidates.is_empty() {
-                    "unknown-name"
+                    DiagnosticCode::UnknownName
                 } else {
-                    "ambiguous-name"
+                    DiagnosticCode::AmbiguousName
                 },
                 &candidates,
             ));
@@ -214,7 +311,14 @@ pub(crate) fn collect_native_in(
             }
             if let Err(message) = engine.eval_at(path, &reference.expression(), reference.span) {
                 let span = Span::new(reference.span.line, reference.span.end + 1, reference.end());
-                issues.push(diagnostic(ws, path, span, message, "property", &[]));
+                issues.push(diagnostic(
+                    ws,
+                    path,
+                    span,
+                    message,
+                    DiagnosticCode::Property,
+                    &[],
+                ));
             }
         }
     }
@@ -233,7 +337,14 @@ pub(crate) fn collect_native_in(
                 .as_ref()
                 .map(|f| f.related.as_slice())
                 .unwrap_or(&[]);
-            issues.push(diagnostic(ws, path, span, message, "dependency", related));
+            issues.push(diagnostic(
+                ws,
+                path,
+                span,
+                message,
+                DiagnosticCode::Dependency,
+                related,
+            ));
         }
         for (key, attr) in &task.attributes {
             let error = match key.as_str() {
@@ -249,7 +360,7 @@ pub(crate) fn collect_native_in(
                     path,
                     attr.value_span,
                     message,
-                    "attribute",
+                    DiagnosticCode::Attribute,
                     &[],
                 ));
             }
@@ -263,7 +374,7 @@ pub(crate) fn collect_native_in(
                 path,
                 attr.value_span,
                 message,
-                "attribute",
+                DiagnosticCode::Attribute,
                 &[],
             ));
         }
@@ -277,11 +388,29 @@ pub(crate) fn collect_native_in(
             issue.severity = Some(DiagnosticSeverity::WARNING);
         }
     }
-    issues.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone(), !matches!(&d.code, Some(NumberOrString::String(c)) if c == "unknown-name" || c == "ambiguous-name")));
+    let names_a_token = |d: &Diagnostic| code_of(d).is_some_and(DiagnosticCode::names_a_token);
+    issues.sort_by_key(|d| {
+        (
+            d.range.start,
+            d.range.end,
+            d.message.clone(),
+            !names_a_token(d),
+        )
+    });
     issues.dedup_by(|a, b| a.range == b.range && a.message == b.message);
     // If name resolution already pinpoints a token, don't add a second error for its containing expression.
-    let name_errors = issues.iter().filter(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "unknown-name" || c == "ambiguous-name")).map(|d| (d.range, d.message.clone())).collect::<Vec<_>>();
-    issues.retain(|d| !matches!(&d.code, Some(NumberOrString::String(c)) if c == "evaluation" || c == "attribute" || c == "dependency") || !name_errors.iter().any(|(r, m)| r.start.line == d.range.start.line && (d.message == *m || d.message.contains("requires"))));
+    let name_errors = issues
+        .iter()
+        .filter(|d| names_a_token(d))
+        .map(|d| (d.range, d.message.clone()))
+        .collect::<Vec<_>>();
+    issues.retain(|d| {
+        !code_of(d).is_some_and(DiagnosticCode::about_an_expression)
+            || !name_errors.iter().any(|(r, m)| {
+                r.start.line == d.range.start.line
+                    && (d.message == *m || d.message.contains("requires"))
+            })
+    });
     issues
 }
 /// Errors only: warnings such as unfetched lookups do not fail checks.

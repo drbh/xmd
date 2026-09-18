@@ -4,7 +4,7 @@ use crate::{
     commands::{Action, Capabilities},
     engine::{Engine, Value},
     inlays::{InlayContext, InlayFeature, InlaySink},
-    modules::{Module, from_json, json, record},
+    modules::{Hook, Module, ModuleKind, from_json, json, record},
 };
 use lsp_types::{Command, Position, Range, TextEdit};
 use std::path::Path;
@@ -13,7 +13,7 @@ pub struct ModuleInlays;
 impl InlayFeature for ModuleInlays {
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let modules = context.engine.workspace.modules.clone();
-        for module in modules.active().filter(|m| m.kind == "feature") {
+        for module in modules.active().filter(|m| m.kind == ModuleKind::Feature) {
             module.collect(context, output);
         }
     }
@@ -41,7 +41,7 @@ pub(crate) fn input(
     for collection in &module.inputs {
         let records = catalog::collect_document(
             engine.workspace,
-            collection,
+            *collection,
             QueryContext::new(engine.now),
             engine,
             Some(path),
@@ -63,7 +63,7 @@ pub(crate) fn input(
                 })
                 .collect::<Result<_, String>>()?,
         );
-        if collection == "values" {
+        if *collection == catalog::Collection::Values {
             // Preserve the original API's alias; all new fields come from the catalog.
             let mut definitions = values.clone();
             if let Value::List(items) = &mut definitions {
@@ -81,7 +81,7 @@ pub(crate) fn input(
             }
             document.insert("definitions".into(), definitions);
         }
-        document.insert(collection.clone(), values);
+        document.insert(collection.as_str().into(), values);
     }
     Ok(object([
         ("today", Value::Date(engine.today)),
@@ -110,7 +110,7 @@ impl InlayFeature for Module {
         &self.id
     }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        if !self.enabled || self.kind != "feature" || !self.has("collect") {
+        if !self.enabled || self.kind != ModuleKind::Feature || !self.has(Hook::Collect) {
             return;
         }
         let document = context.document;
@@ -119,8 +119,8 @@ impl InlayFeature for Module {
             if let Value::Record(fields) = &mut input {
                 fields.insert("range".into(), from_json(&serde_json::json!(context.range)));
             }
-            if self.has("time_dependent") {
-                if self.call("time_dependent", vec![input.clone()], context.engine.now)?
+            if self.has(Hook::TimeDependent) {
+                if self.call(Hook::TimeDependent, vec![input.clone()], context.engine.now)?
                     == Value::Bool(true)
                 {
                     context.mark_time_dependent();
@@ -128,7 +128,8 @@ impl InlayFeature for Module {
             } else if self.live {
                 context.mark_time_dependent();
             }
-            let Value::List(hints) = self.call("collect", vec![input], context.engine.now)? else {
+            let Value::List(hints) = self.call(Hook::Collect, vec![input], context.engine.now)?
+            else {
                 return Err("collect must return a list".into());
             };
             let mut validated = Vec::new();
@@ -190,7 +191,7 @@ pub fn commands(
         .workspace()
         .modules
         .active()
-        .filter(|m| m.kind == "feature" && m.has("actions"))
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Actions))
     {
         let result = (|| {
             let Value::Record(mut ctx) = input(module, &mut engine, path)? else {
@@ -205,7 +206,7 @@ pub fn commands(
                 ]),
             );
             let Value::List(proposals) =
-                module.call("actions", vec![Value::Record(ctx)], request.now())?
+                module.call(Hook::Actions, vec![Value::Record(ctx)], request.now())?
             else {
                 return Err("actions must return a list".into());
             };
@@ -257,7 +258,7 @@ pub(crate) fn reduce(
         ]),
     );
     let result = module.call(
-        "reduce",
+        Hook::Reduce,
         vec![Value::Record(context), from_json(event)],
         request.now(),
     )?;

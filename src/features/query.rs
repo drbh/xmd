@@ -1,7 +1,7 @@
 //! Functional queries over lazy workspace bindings. Legacy pipelines share the evaluator.
 pub use crate::catalog::{QueryContext, QueryValue};
 use crate::{
-    catalog::{self, QueryValue as Q, Record},
+    catalog::{self, Collection, QueryValue as Q, Record},
     engine::{self, Bindings, Engine, Expr, Lexeme, Parser, Value},
     evaluate::functional,
     workspace::Workspace,
@@ -16,7 +16,7 @@ use std::{
 
 #[derive(Clone, Debug)]
 pub struct Query {
-    sources: Vec<String>,
+    sources: Vec<Collection>,
     stages: Vec<Stage>,
     expression: Option<Expr>,
 }
@@ -196,28 +196,28 @@ impl Query {
             return Err("Queries are limited to 128 stages".into());
         }
         let mut input = None;
-        let sources = if let Some(body) = parts[0]
+        let names = if let Some(body) = parts[0]
             .strip_prefix("union(")
             .and_then(|s| s.strip_suffix(')'))
         {
             split(body, ',')?
-                .into_iter()
-                .map(str::to_owned)
-                .collect::<Vec<_>>()
-        } else if catalog::COLLECTIONS.contains(&parts[0]) {
-            vec![parts[0].into()]
+        } else if parts[0].parse::<Collection>().is_ok() {
+            vec![parts[0]]
         } else {
             input = Some(expression(parts[0])?);
             vec![]
         };
-        for name in &sources {
-            if !catalog::COLLECTIONS.contains(&name.as_str()) {
-                return Err(format!(
-                    "Unknown collection '{name}'; expected {}",
-                    catalog::COLLECTIONS.join(", ")
-                ));
-            }
-        }
+        let sources = names
+            .into_iter()
+            .map(|name| {
+                name.parse::<Collection>().map_err(|_| {
+                    format!(
+                        "Unknown collection '{name}'; expected {}",
+                        Collection::names()
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let stages = parts[1..]
             .iter()
             .enumerate()
@@ -272,7 +272,8 @@ struct WorkspaceBindings {
 }
 impl Bindings for WorkspaceBindings {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>> {
-        if name != "graph" && !catalog::COLLECTIONS.contains(&name) {
+        let collection = name.parse::<Collection>();
+        if name != "graph" && collection.is_err() {
             return None;
         }
         if let Some(value) = self.cache.lock().expect("query cache poisoned").get(name) {
@@ -283,7 +284,7 @@ impl Bindings for WorkspaceBindings {
         } else {
             catalog::collect_document(
                 engine.workspace,
-                name,
+                collection.expect("checked above"),
                 QueryContext::new(engine.now),
                 engine,
                 self.only.as_deref(),
@@ -351,7 +352,7 @@ pub fn execute_scoped_in(
     }
     for source in &query.sources {
         items.extend(
-            catalog::collect_document(ws, source, *ctx, &mut engine, only, true)?
+            catalog::collect_document(ws, *source, *ctx, &mut engine, only, true)?
                 .into_iter()
                 .map(Item::Record),
         );

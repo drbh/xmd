@@ -2,7 +2,7 @@
 use crate::{
     RequestContext,
     engine::Value,
-    modules::{Module, json},
+    modules::{Hook, Module, ModuleKind, json},
 };
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
@@ -13,7 +13,7 @@ fn call(
     request: &RequestContext<'_>,
     path: &Path,
     module: &Module,
-    hook: &str,
+    hook: Hook,
 ) -> Result<Vec<serde_json::Value>, String> {
     let input = super::module_inlays::input(module, &mut request.engine(), path)?;
     let Value::List(items) = module.call(hook, vec![input], request.now())? else {
@@ -37,11 +37,11 @@ pub fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic>
         .workspace()
         .modules
         .active()
-        .filter(|m| m.kind == "feature" && m.has("diagnostics"))
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Diagnostics))
     {
         let batch = (|| {
             let mut batch = vec![];
-            for item in call(request, path, module, "diagnostics")? {
+            for item in call(request, path, module, Hook::Diagnostics)? {
                 let mut diagnostic: Diagnostic =
                     serde_json::from_value(item).map_err(|e| e.to_string())?;
                 validate(request, path, diagnostic.range)?;
@@ -70,11 +70,11 @@ pub fn hover(request: &RequestContext<'_>, path: &Path, position: Position) -> O
         .workspace()
         .modules
         .active()
-        .filter(|m| m.kind == "feature" && m.has("hovers"))
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Hovers))
     {
         let batch = (|| {
             let mut batch = vec![];
-            for item in call(request, path, module, "hovers")? {
+            for item in call(request, path, module, Hook::Hovers)? {
                 let range: Range =
                     serde_json::from_value(item["range"].clone()).map_err(|e| e.to_string())?;
                 validate(request, path, range)?;
@@ -112,9 +112,9 @@ pub fn formatting(request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextE
         .workspace()
         .modules
         .active()
-        .filter(|m| m.kind == "feature" && m.has("format"))
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Format))
     {
-        for value in call(request, path, module, "format")? {
+        for value in call(request, path, module, Hook::Format)? {
             edits.push(serde_json::from_value(value).map_err(|e| e.to_string())?);
         }
     }

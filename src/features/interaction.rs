@@ -1,5 +1,6 @@
 use crate::commands::{Action, Capabilities, RowTarget};
 use crate::glyphs;
+use crate::modules::{Hook, ModuleKind};
 use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
@@ -197,7 +198,7 @@ pub fn lenses_for(
             if ws
                 .modules
                 .active()
-                .any(|m| m.kind == "feature" && m.has("actions"))
+                .any(|m| m.kind == ModuleKind::Feature && m.has(Hook::Actions))
             {
                 0..doc.text.lines().count()
             } else {

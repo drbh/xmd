@@ -1,0 +1,168 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "table.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "table.wtf",
+          "line": 4,
+          "character": 19,
+          "extra": {
+            "ch": "|",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "table.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "partial.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "partial.wtf",
+          "line": 4,
+          "character": 8,
+          "extra": {
+            "ch": "|",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "prose.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "prose.wtf",
+          "line": 0,
+          "character": 7,
+          "extra": {
+            "ch": "|",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "prose.wtf",
+          "line": 1,
+          "character": 5,
+          "extra": {
+            "ch": "x",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "list.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "list.wtf",
+          "line": 2,
+          "character": 0,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "indent.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "indent.wtf",
+          "line": 1,
+          "character": 2,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "endlist.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "endlist.wtf",
+          "line": 2,
+          "character": 0,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "words.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "words.wtf",
+          "line": 1,
+          "character": 0,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "open": "split.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "split.wtf",
+          "line": 1,
+          "character": 1,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        }
+      ]
+    }
+  ]
+}

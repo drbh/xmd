@@ -1,0 +1,199 @@
+### 0 lsp
+-- open table.wtf
+-- request textDocument/onTypeFormatting table.wtf 4:19
+[
+  {
+    "newText": "| item       | qty |",
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "newText": "| ---------- | --- |",
+    "range": {
+      "end": {
+        "character": 9,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| apple      | 2   |",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "newText": "  ",
+    "range": {
+      "end": {
+        "character": 18,
+        "line": 4
+      },
+      "start": {
+        "character": 17,
+        "line": 4
+      }
+    }
+  }
+]
+-- applied to table.wtf (version 2)
+[t] := table
+| item       | qty |
+| ---------- | --- |
+| apple      | 2   |
+| watermelon | 10  |
+-- request textDocument/formatting table.wtf
+[]
+-- open partial.wtf
+-- request textDocument/onTypeFormatting partial.wtf 4:8
+[
+  {
+    "newText": "| item  | qty |",
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "newText": "| ----- | --- |",
+    "range": {
+      "end": {
+        "character": 9,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| apple | 2   |",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+-- applied to partial.wtf (version 2)
+[t] := table
+| item  | qty |
+| ----- | --- |
+| apple | 2   |
+| pear |
+-- open prose.wtf
+-- request textDocument/onTypeFormatting prose.wtf 0:7
+[]
+-- applied to prose.wtf (version 2)
+Plain | prose
+- [ ] task
+-- request textDocument/onTypeFormatting prose.wtf 1:5
+[]
+-- applied to prose.wtf (version 3)
+Plain | prose
+- [ ] task
+-- open list.wtf
+-- request textDocument/onTypeFormatting list.wtf 2:0
+[
+  {
+    "newText": "  - [ ] ",
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  }
+]
+-- applied to list.wtf (version 2)
+# List
+  - [x] done :done
+  - [ ] 
+-- open indent.wtf
+-- request textDocument/onTypeFormatting indent.wtf 1:2
+[
+  {
+    "newText": "* [ ] ",
+    "range": {
+      "end": {
+        "character": 2,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  }
+]
+-- applied to indent.wtf (version 2)
+* [ ] first
+* [ ] 
+-- open endlist.wtf
+-- request textDocument/onTypeFormatting endlist.wtf 2:0
+[
+  {
+    "newText": "",
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  }
+]
+-- applied to endlist.wtf (version 2)
+- [ ] first
+
+-- open words.wtf
+-- request textDocument/onTypeFormatting words.wtf 1:0
+[]
+-- applied to words.wtf (version 2)
+Just words
+
+-- open split.wtf
+-- request textDocument/onTypeFormatting split.wtf 1:1
+[]
+-- applied to split.wtf (version 2)
+- [ ] ab
+cd
+

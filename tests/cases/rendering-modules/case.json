@@ -1,0 +1,21 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "clock.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "missing.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

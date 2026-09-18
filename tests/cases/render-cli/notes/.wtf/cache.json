@@ -1,0 +1,10 @@
+{
+  "https://github.com/o/r/pull/42": {
+    "title": "Cached pull request",
+    "state": "open",
+    "merged": false,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-18T12:00:00Z"
+  }
+}

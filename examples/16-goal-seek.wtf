@@ -1,0 +1,18 @@
+# Goal seek
+
+solve(constraint) makes the definition's own name the unknown and finds the
+boundary value through any chain of calculations.
+
+$1,200:saved
+9:months_left
+saved_by_june := monthly * months_left + saved
+monthly := solve(saved_by_june >= $5,000)
+
+Save [monthly] a month to reach [saved_by_june] by June.
+
+30m:per_call
+calls := solve(calls * per_call <= 4h)
+
+That is [calls] calls in an afternoon.
+
+<!-- Hover monthly to see which side of the boundary it sits on. -->

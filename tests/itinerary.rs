@@ -1,10 +1,10 @@
 use chrono::{DateTime, FixedOffset, NaiveDate};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     actions, cli, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
     tables, workspace::Workspace,
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
@@ -13,7 +13,7 @@ fn today() -> NaiveDate {
     now().date_naive()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/trip.jot")
+    Path::new("/notes/trip.wtf")
 }
 fn note(source: &str) -> Workspace {
     Workspace {
@@ -243,8 +243,8 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
             .unwrap_or_default()
     };
     assert_eq!(label(2), "5 stops · 07:04 AM – 07:20 PM · in 65 days");
-    assert_eq!(label(4), "4h 51m until Arrive at MEX");
-    assert_eq!(label(9), "2h 50m layover");
+    assert_eq!(label(4), "→ 4h 51m until Arrive at MEX");
+    assert_eq!(label(9), "↻ 2h 50m layover");
     assert_eq!(label(18), "cancel by Thu Nov 19, 07:20 PM");
     assert_eq!(label(22), "2 stops · 11:30 AM – 01:00 PM · in 66 days");
     let hover = intelligence::stop_hover(&ws, path(), Position::new(9, 3), today()).unwrap();
@@ -254,7 +254,7 @@ fn inlays_hover_outline_and_folding_describe_the_trip() {
     };
     assert!(
         text.starts_with(
-            "**Arrive at MEX**\n\nArrive · 11:55 AM, Friday, November 20, 2026\n\n2h 50m until"
+            "**Arrive at MEX**\n\nArrive · 11:55 AM, Friday, November 20, 2026\n\n→ 2h 50m until"
         ),
         "{text}"
     );

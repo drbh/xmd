@@ -1,0 +1,18 @@
+# Calculated cells
+
+A bracketed cell is a calculation that can read named values from any note.
+
+$1.50:unit_price
+6:bulk_qty
+
+extras := table
+| item | quantity   | cost             |
+| ---- | ---------- | ---------------- |
+| bulk | [bulk_qty] | [unit_price]     |
+| jam  | 1          | [unit_price * 3] |
+
+extras_total := sum(extras, quantity * cost)
+
+Extras cost [extras_total].
+
+<!-- Each calculated cell shows its value as an inlay. Try: change bulk_qty. -->

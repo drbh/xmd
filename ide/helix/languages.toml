@@ -1,0 +1,16 @@
+# Merge into ~/.config/helix/languages.toml, or a project's .helix/languages.toml.
+# Replace this with the absolute path to your cargo-built WTF binary.
+[language-server.wtf]
+command = "/absolute/path/to/wtf/target/debug/wtf"
+args = ["lsp"]
+
+[[language]]
+name = "wtf"
+scope = "text.wtf"
+file-types = ["wtf"]
+roots = [".wtf", ".git"]
+language-servers = ["wtf"]
+indent = { tab-width = 2, unit = "  " }
+block-comment-tokens = { start = "<!--", end = "-->" }
+# Reuse Markdown for basic highlighting; WTF semantics still come from the LSP.
+grammar = "markdown"

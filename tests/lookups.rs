@@ -1,19 +1,19 @@
 use chrono::{DateTime, FixedOffset, Utc};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     diagnostics,
     document::Document,
     engine::{Currency, Engine, Value},
     intelligence, lookups, presentation,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-17T14:00:00+00:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/money.jot")
+    Path::new("/notes/money.wtf")
 }
 fn store() -> lookups::Store {
     let fetched: DateTime<Utc> = "2026-09-17T12:00:00Z".parse().unwrap();
@@ -123,7 +123,7 @@ fn rates_conversions_quotes_and_forecasts_read_the_cache() {
         messages,
         [
             "Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days",
-            "No cached rate GBP→USD; run jot refresh or use Refresh lookups",
+            "No cached rate GBP→USD; run wtf refresh or use Refresh lookups",
         ]
     );
     // Hovers show what was read and how old it is; misses say so.
@@ -226,18 +226,18 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(bin.join(name), std::fs::Permissions::from_mode(0o755)).unwrap();
     }
-    std::fs::create_dir_all(root.join(".jot")).unwrap();
+    std::fs::create_dir_all(root.join(".wtf")).unwrap();
     std::fs::write(
-        root.join(".jot/providers.json"),
+        root.join(".wtf/providers.json"),
         "{\"quote\": \"my-quote {symbol}\"}",
     )
     .unwrap();
     std::fs::write(
-        root.join("trip.jot"),
+        root.join("trip.wtf"),
         "[€450]:hotel\n[usd] := to(hotel, USD)\n[nvda] := quote(NVDA)\n\n## Friday, November 20, 2026 · Oaxaca\n\n## Saturday, December 5, 2026 · Oaxaca\n",
     )
     .unwrap();
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_jot"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
         .env(
             "PATH",
@@ -256,7 +256,7 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
         String::from_utf8_lossy(&output.stderr)
     );
     let saved: lookups::Store =
-        serde_json::from_slice(&std::fs::read(root.join(".jot/lookups.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join(".wtf/lookups.json")).unwrap()).unwrap();
     assert_eq!(saved["rate:EUR:USD"].value["rate"], 1.09);
     assert_eq!(saved["rate:EUR:USD"].source, "frankfurter.dev");
     assert_eq!(
@@ -279,7 +279,7 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
             .starts_with("no forecast yet")
     );
     // The refreshed workspace evaluates with the new values.
-    let check = std::process::Command::new(env!("CARGO_BIN_EXE_jot"))
+    let check = std::process::Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
         .arg("check")
         .output()
@@ -293,14 +293,14 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
     let mut engine = Engine::at(&ws, now());
     assert_eq!(
         engine
-            .named(&root.join("trip.jot"), "usd")
+            .named(&root.join("trip.wtf"), "usd")
             .unwrap()
             .display(),
         "$490.50"
     );
     assert_eq!(
         engine
-            .named(&root.join("trip.jot"), "nvda")
+            .named(&root.join("trip.wtf"), "nvda")
             .unwrap()
             .display(),
         "€42.50"

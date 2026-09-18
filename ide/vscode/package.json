@@ -1,0 +1,90 @@
+{
+  "name": "wtf",
+  "displayName": "WTF",
+  "description": "Calculated notes, checklists, and timers powered by the WTF language server.",
+  "version": "0.1.0",
+  "publisher": "drbh",
+  "license": "UNLICENSED",
+  "repository": { "type": "git", "url": "https://github.com/drbh/wtf" },
+  "engines": { "vscode": "^1.91.0" },
+  "categories": ["Programming Languages"],
+  "main": "./extension.js",
+  "activationEvents": ["onLanguage:wtf"],
+  "extensionKind": ["workspace"],
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": false },
+    "virtualWorkspaces": { "supported": false }
+  },
+  "scripts": {
+    "check": "node --check extension.js && node --check test/suite.js && node --check test/run.js",
+    "test": "node test/run.js",
+    "package": "vsce package --allow-missing-repository --skip-license"
+  },
+  "dependencies": { "vscode-languageclient": "10.1.1" },
+  "devDependencies": {
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0"
+  },
+  "contributes": {
+    "languages": [{
+      "id": "wtf",
+      "aliases": ["WTF", "wtf"],
+      "extensions": [".wtf"],
+      "configuration": "./language-configuration.json"
+    }],
+    "commands": [{ "command": "wtf.restartServer", "title": "WTF: Restart Language Server" }],
+    "configuration": {
+      "title": "WTF",
+      "properties": {
+        "wtf.serverPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "description": "Absolute path to the WTF executable built with cargo build. The extension runs it with the lsp argument."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[wtf]": {
+        "editor.semanticHighlighting.enabled": true,
+        "editor.inlayHints.enabled": "on",
+        "editor.codeLens": true,
+        "editor.formatOnType": true,
+        "editor.tabSize": 2
+      }
+    },
+    "semanticTokenTypes": [
+      { "id": "heading", "description": "Note heading" },
+      { "id": "wtfMoney", "superType": "number", "description": "Money" },
+      { "id": "wtfDate", "superType": "string", "description": "Date" },
+      { "id": "wtfTime", "superType": "string", "description": "Time" },
+      { "id": "wtfDuration", "superType": "number", "description": "Duration" },
+      { "id": "wtfRatio", "superType": "number", "description": "Percentage or ratio" },
+      { "id": "wtfBoolean", "superType": "keyword", "description": "Boolean" },
+      { "id": "wtfPunctuation", "description": "WTF punctuation" },
+      { "id": "wtfCode", "superType": "string", "description": "Literal code" },
+      { "id": "wtfLink", "superType": "string", "description": "Resource link" },
+      { "id": "wtfCheckbox", "description": "Open checkbox" },
+      { "id": "wtfCheckboxChecked", "description": "Completed checkbox" },
+      { "id": "wtfTaskDone", "superType": "comment", "description": "Completed task" }
+    ],
+    "semanticTokenScopes": [{
+      "language": "wtf",
+      "scopes": {
+        "heading": ["markup.heading"],
+        "wtfMoney": ["constant.numeric"],
+        "wtfDate": ["constant.other.date", "constant.numeric"],
+        "wtfTime": ["constant.other.time", "constant.numeric"],
+        "wtfDuration": ["constant.numeric"],
+        "wtfRatio": ["constant.numeric"],
+        "wtfBoolean": ["constant.language.boolean"],
+        "wtfPunctuation": ["punctuation.separator"],
+        "wtfCode": ["markup.inline.raw"],
+        "wtfLink": ["markup.underline.link"],
+        "wtfCheckbox": ["markup.list.unnumbered", "keyword"],
+        "wtfCheckboxChecked": ["constant.language.boolean"],
+        "wtfTaskDone": ["comment"]
+      }
+    }]
+  }
+}

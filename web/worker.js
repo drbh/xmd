@@ -1,4 +1,4 @@
-import init, { BrowserWorkspace } from "./pkg/jot.js";
+import init, { BrowserWorkspace } from "./pkg/wtf.js";
 
 const ready = init().then(() => new BrowserWorkspace());
 // Keep mutations and queries in message order, including while Wasm is loading.

@@ -1,7 +1,7 @@
 // Optional source editing. The core view owns rendering and controls; the
 // workspace owns source. This adapter owns selection, composition and history.
 import { mount } from "../src/view.js";
-import { textOf, selectionOf, restoreSelection, setCaret, caretOffset, lineChar } from "../src/dom.js";
+import { textOf, selectionOf, restoreSelection, setCaret, caretOffset, offsetOfPoint, lineChar } from "../src/dom.js";
 import { applyTextEdits, indexOf } from "../src/workspace.js";
 
 export async function mountEditor(element, options = {}) {
@@ -9,6 +9,7 @@ export async function mountEditor(element, options = {}) {
   let lastSource, lastSelection, replaying = false, composing = false, compositionVersion;
   const view = await mount(element, {
     ...options,
+    trailingBreak: true,
     onChange(change) {
       if (lastSource !== undefined && change.source !== lastSource && !replaying) {
         undo.push({ source: lastSource, selection: lastSelection });
@@ -53,6 +54,23 @@ export async function mountEditor(element, options = {}) {
     await view.refresh();
     if (!view.destroyed) setCaret(target, caret);
   }
+  function selection() { return view.destroyed ? null : selectionOf(target); }
+  function select(anchor, focus = anchor) {
+    if (view.destroyed) return;
+    target.focus();
+    restoreSelection(target, { anchor, focus });
+  }
+  // Replace source[start, end) and leave the caret or selection where the caller asks.
+  async function replaceRange(start, end, text, after = { anchor: start + text.length }) {
+    if (view.destroyed) throw new Error("View was destroyed");
+    if (composing) return;
+    const source = view.getSource();
+    if (!(start >= 0 && start <= end && end <= source.length)) throw new Error("Invalid range");
+    lastSelection = selectionOf(target);
+    await view.setSource(source.slice(0, start) + text + source.slice(end));
+    await view.refresh();
+    if (!view.destroyed) select(after.anchor, after.focus ?? after.anchor);
+  }
   function insertAtCaret(text) {
     if (view.destroyed) return Promise.reject(new Error("View was destroyed"));
     target.focus();
@@ -63,8 +81,22 @@ export async function mountEditor(element, options = {}) {
     range.deleteContents();
     const node = target.ownerDocument.createTextNode(text);
     range.insertNode(node);
-    range.setStartAfter(node); range.collapse(true);
-    selection.removeAllRanges(); selection.addRange(range);
+    // Merge the split text nodes so the caret sits at the end of one text node;
+    // browsers cannot hold a caret between a newline node and an empty node.
+    const at = offsetOfPoint(target, node, node.data.length);
+    target.normalize();
+    setCaret(target, at);
+    if (text.endsWith("\n")) {
+      // Until the next repaint, give the new line its own editable span; the
+      // browser otherwise moves the caret back before the newline.
+      const line = selection.anchorNode?.parentElement?.closest(".line");
+      if (line && selection.anchorNode === line.lastChild && selection.anchorOffset === line.lastChild.length) {
+        const fresh = target.ownerDocument.createElement("span");
+        fresh.className = "line";
+        line.after(fresh);
+        selection.collapse(fresh, 0);
+      }
+    }
     return commit();
   }
   listen("beforeinput", event => {
@@ -111,7 +143,9 @@ export async function mountEditor(element, options = {}) {
   return Object.assign(view, {
     insertAtCaret,
     caret: () => caretOffset(target),
-    select(offset) { target.focus(); setCaret(target, offset); },
+    selection,
+    select,
+    replaceRange,
     undo: () => history(undo, redo),
     redo: () => history(redo, undo),
     destroy() { abort.abort(); target.contentEditable = "false"; destroy(); },

@@ -1,12 +1,18 @@
 <script>
-  // Document symbols from the engine, as a nested list.
-  let { symbols = [], onJump } = $props();
-  const kinds = { 3: "section", 17: "task", 13: "value", 14: "value", 23: "table", 8: "column", 24: "event" };
+  // Document symbols from the engine, as a nested list; the caret's symbol is marked.
+  let { symbols = [], line = -1, onJump } = $props();
+  const within = s => s.range.start.line <= line && line <= s.range.end.line;
+  const current = $derived.by(() => {
+    let best = null;
+    const walk = items => { for (const s of items) { if (within(s)) { best = s; walk(s.children || []); } } };
+    walk(symbols);
+    return best;
+  });
 </script>
 
 {#snippet tree(items, depth)}
   {#each items as symbol}
-    <button class="row" style={`padding-left:${8 + depth * 12}px`} onclick={() => onJump?.(symbol)}>
+    <button type="button" class="row" aria-current={symbol === current ? "location" : undefined} style={`padding-left:${12 + depth * 14}px`} onclick={() => onJump?.(symbol)}>
       <span class="name">{symbol.name}</span>
       {#if symbol.detail}<span class="detail">{symbol.detail}</span>{/if}
     </button>
@@ -15,5 +21,5 @@
 {/snippet}
 
 <nav class="outline" aria-label="Outline">
-  {#if symbols.length}{@render tree(symbols, 0)}{:else}<p class="empty">Nothing to outline yet.</p>{/if}
+  {#if symbols.length}{@render tree(symbols, 0)}{:else}<p class="empty">Headings, values, and tasks you add will appear here.</p>{/if}
 </nav>

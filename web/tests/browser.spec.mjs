@@ -41,9 +41,10 @@ test("Rust semantic tokens render distinct types, declarations, columns and comp
   await expect(token("tomorrow")).toHaveCSS("color", "rgb(242, 179, 218)");
   await expect(token("tomorrow")).toHaveCSS("font-weight", "700");
   await expect(token("[ ]")).toHaveCSS("color", "rgb(255, 213, 128)");
-  await expect(token("[ ]")).toHaveCSS("font-weight", "700");
+  // Checkboxes keep the surrounding weight so the font's `- [ ]` ligature can shape across the marker.
+  await expect(token("[ ]")).toHaveCSS("font-weight", "400");
   await expect(token("[x]")).toHaveCSS("color", "rgb(145, 230, 172)");
-  await expect(token("[x]")).toHaveCSS("font-weight", "700");
+  await expect(token("[x]")).toHaveCSS("font-weight", "400");
   await expect(token("[x]")).toHaveCSS("text-decoration-line", "none");
   await expect(token("[")).toHaveCSS("color", "rgb(133, 147, 139)");
   const packed = page.locator(".view-lines span").filter({ hasText: "Packed" }).last();
@@ -444,17 +445,34 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/docs/?test");
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  // The app opens on a home screen listing templates and documents.
+  await expect(page.locator(".template")).toHaveCount(5);
+  await page.locator(".doc-row .open", { hasText: "Trip budget" }).click();
+  await page.waitForFunction(() => window.wtfDocs.controller);
   const view = page.locator(".view");
   await expect(view).toContainText("= $556");
   await expect(view.locator(".line.h1").first()).toHaveText(/Trip budget/);
+  await expect(page.locator("input.title-input")).toHaveValue("Trip budget");
   // Clicking a checkbox flips it in the text and the engine repaints.
   const box = view.locator(".t-wtfCheckbox").first();
   await box.click();
   await expect(view).toContainText("[x] Book the hotel");
   await expect(page.locator(".status")).toContainText("Saved in this browser");
+  // Code lenses are chips at the end of their lines rather than a control bar under the page.
+  await expect(page.locator(".wtf-controls")).toHaveCount(0);
+  const lens = page.locator(".lens", { hasText: "Reopen task" }).first();
+  await expect(lens).toBeVisible();
+  await lens.click();
+  await expect(view).toContainText("[ ] Book the hotel");
+  await expect(page.locator(".lens", { hasText: "Reopen task" })).toHaveCount(1);
+  // The bundled font ships its checkbox ligature: the marker and box shape as one run.
+  await expect(view).toHaveCSS("font-family", /Ioskeley Mono/);
+  expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
+  // The sidebar is hidden by default.
+  await expect(page.locator(".sidebar")).toBeHidden();
   // A second document must import the first explicitly.
   await page.evaluate(() => window.wtfDocs.newDocument());
-  await page.waitForFunction(() => window.wtfDocs.controller);
+  await page.waitForFunction(() => window.wtfDocs.controller && window.wtfDocs.active.name === "Untitled document");
   await page.evaluate(() => window.wtfDocs.controller.setSource("# Second\n\nStill [remaining] to spend.\n"));
   await expect(view).toContainText("Still [remaining]");
   await expect(view).not.toContainText("$556");
@@ -464,12 +482,104 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   });
   await expect(view).toContainText("$556");
   // The title follows the first heading, and saves are debounced briefly.
-  await expect(page.locator(".files nav")).toContainText("Second");
+  await expect(page.locator("input.title-input")).toHaveValue("Second");
   await page.waitForTimeout(600);
-  // Documents survive a reload.
+  // Documents survive a reload; the URL reopens the same document.
   await page.reload();
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
-  await expect(page.locator(".files nav")).toContainText("Second");
-  await expect(page.locator(".files nav")).toContainText("Trip budget");
+  await page.waitForFunction(() => window.wtfDocs.controller);
+  await expect(page.locator("input.title-input")).toHaveValue("Second");
+  await page.locator(".logo").click();
+  await expect(page.locator(".doc-list")).toContainText("Second");
+  await expect(page.locator(".doc-list")).toContainText("Trip budget");
+  expect(errors).toEqual([]);
+});
+
+test("the document app writes like a document editor: typing, formatting, find, menus, and themes", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/docs/?test");
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  await page.locator(".template", { hasText: "Blank" }).click();
+  await page.waitForFunction(() => window.wtfDocs.controller);
+  const source = () => page.evaluate(() => window.wtfDocs.controller.getSource());
+  const view = page.locator(".view");
+  // A blank document accepts prose immediately, including Enter at the end of the text.
+  await page.waitForTimeout(200);
+  await page.keyboard.type("First line");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("rent is $900:rent");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("we pay [rent]");
+  await expect.poll(source).toBe("# Untitled document\n\nFirst line\nrent is $900:rent\nwe pay [rent]");
+  await expect(view).toContainText("$900");
+  // Keyboard formatting wraps the word at the caret and toggles line styles.
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect.poll(source).toContain("we pay **[rent]**");
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect.poll(source).toContain("we pay [rent]\n".trimEnd());
+  await page.locator(".select.style").selectOption("h2");
+  await expect.poll(source).toContain("## we pay [rent]");
+  await expect(page.locator(".select.style")).toHaveValue("h2");
+  await page.keyboard.press("ControlOrMeta+Shift+9");
+  await expect.poll(source).toContain("- [ ] we pay [rent]");
+  await expect(page.locator(".toolbar [aria-label=Checklist]")).toHaveAttribute("aria-pressed", "true");
+  // Find walks forward from the caret; replace works on the source and keeps the document consistent.
+  await page.evaluate(() => window.wtfDocs.controller.select(0));
+  await page.keyboard.press("ControlOrMeta+Shift+h");
+  await page.locator(".findbar input[type=search]").fill("rent");
+  await expect(page.locator(".findbar .count")).toHaveText("1 of 3");
+  await page.locator(".findbar input[name=replacement]").fill("lease");
+  await page.locator(".findbar button", { hasText: "Replace all" }).click();
+  await expect.poll(source).toContain("lease is $900:lease");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".findbar")).toHaveCount(0);
+  // Menus run the same commands with the same labels.
+  await page.locator(".menubar > .menu > button", { hasText: "Format" }).click();
+  await page.locator(".dropdown [role=menuitem]", { hasText: "Normal text" }).click();
+  await expect.poll(source).toContain("\nwe pay [lease]");
+  // Renaming through the title edits the first heading.
+  await page.locator("input.title-input").fill("Housing");
+  await page.keyboard.press("Enter");
+  await expect.poll(source).toMatch(/^# Housing\n/);
+  // Word count and theme preferences.
+  await page.keyboard.press("ControlOrMeta+Shift+c");
+  await expect(page.locator(".dialog")).toContainText("Words");
+  await page.keyboard.press("Escape");
+  // The console runs read-only queries against the resolved document.
+  await page.keyboard.press("ControlOrMeta+Alt+j");
+  const query = page.locator(".console input");
+  await query.fill("lease * 2");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".console .entry").last()).toContainText("$1,800");
+  // Typeahead knows collections, pipeline stages, learned record fields, and functions.
+  await query.fill("");
+  await query.pressSequentially("val");
+  await expect(page.locator(".typeahead li .label")).toHaveText(["values"]);
+  await page.keyboard.press("Tab");
+  await expect(query).toHaveValue("values");
+  await query.pressSequentially(" | ");
+  await expect(page.locator(".typeahead li .label").first()).toHaveText("where");
+  await page.keyboard.press("Escape");
+  await query.fill("");
+  await query.pressSequentially("map(values, fn(v) => v.");
+  await expect(page.locator(".typeahead li .label", { hasText: /^name$/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await query.fill("values | select {name, type}");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".console .entry").last().locator("table")).toContainText("lease");
+  await query.fill("oops(");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".console .entry").last().locator(".error")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".console")).toHaveCount(0);
+  await expect.poll(source).toMatch(/^# Housing\n/);
+  await page.locator(".menubar > .menu > button", { hasText: "View" }).click();
+  await page.locator(".dropdown [role=menuitemcheckbox]", { hasText: "Dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("wtf.docs.prefs.v1")).theme)).toBe("dark");
+  await page.locator(".menubar > .menu > button", { hasText: "View" }).click();
+  await page.locator(".dropdown [role=menuitemcheckbox]", { hasText: "Light theme" }).click();
+  await expect(page.locator("html")).toHaveClass(/wtf-light/);
   expect(errors).toEqual([]);
 });

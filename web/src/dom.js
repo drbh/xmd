@@ -19,8 +19,8 @@ export function textOf(view) {
   const walk = node => {
     for (const child of node.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) out += child.data;
+      else if (child.classList?.contains("inlay") || child.classList?.contains("eol")) continue;
       else if (child.nodeName === "BR") out += "\n";
-      else if (child.classList?.contains("inlay")) continue;
       else {
         if (/^(DIV|P)$/.test(child.nodeName) && out.length && !out.endsWith("\n")) out += "\n";
         walk(child);
@@ -47,7 +47,7 @@ export function caretOffset(view) {
 export function setCaret(view, offset) {
   let remaining = offset;
   const walker = document.createTreeWalker(view, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
-    acceptNode: node => node.nodeType === Node.ELEMENT_NODE && node.classList.contains("inlay") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+    acceptNode: node => node.nodeType === Node.ELEMENT_NODE && (node.classList.contains("inlay") || node.classList.contains("eol")) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
   });
   const place = (node, at) => {
     const range = document.createRange();

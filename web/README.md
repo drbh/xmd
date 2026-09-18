@@ -15,7 +15,11 @@ node web/serve.mjs
 ```
 
 Open http://127.0.0.1:4173 for the Monaco workspace, `/docs/` for the Svelte
-document app, and `/book/` for the live examples. The server serves only
+document app, and `/book/` for the live examples. The document app is a
+writing tool in the style of a hosted document editor: a home screen with
+templates and recent documents, a menu bar and formatting toolbar, an outline,
+find and replace, word count, keyboard shortcuts, light and dark paper, and
+engine actions in a side panel. It stores documents in the browser. The server serves only
 `web/dist/`; it does not launch a language server or mount sibling directories.
 Deploy that entire directory to any static server, including beneath a URL
 prefix. Serve `.wasm` as `application/wasm`. `WTF_WEB_PORT` changes the local
@@ -131,7 +135,12 @@ editor.destroy();
 ```
 
 This optional adapter preserves selections, pauses repainting during composition,
-inserts plain text, and owns source undo/redo. Monaco remains the full IDE adapter
+inserts plain text, and owns source undo/redo. `selection()` reports source
+offsets, `select(anchor, focus)` sets them, and `replaceRange(start, end, text,
+after)` edits a span and places the selection afterwards, so an application can
+implement formatting commands and find/replace as text transformations. The
+adapter keeps a zero-width, non-editable `.eol` sentinel after the text so the
+caret can sit after a final newline. Monaco remains the full IDE adapter
 at `@wtf/web/monaco`, with an optional `monaco-editor` peer dependency. Its
 `createEditor(element, client)` returns an editor, a per-instance `language` ID,
 and `destroy()`; use that ID for its models. The workspace app shows the complete
@@ -143,10 +152,17 @@ do not depend on that CDN.
 `--wtf-foreground`, `--wtf-font`, `--wtf-font-size`, `--wtf-inlay-background`, and
 `--wtf-inlay-foreground` on the host. `layout: "source"` preserves unwrapped
 source lines; `"document"` wraps lines and sizes headings using parser metadata.
+Token colors are tuned for dark paper; add the `wtf-light` class to an ancestor
+for the generated light-paper palette.
 Optionally import `@wtf/web/fonts.css` for the bundled Ioskeley Mono fonts.
+They are subset from the Ioskeley Mono CB family with its OpenType features
+kept, so `- [ ]`, `- [x]`, `:=`, and `->` shape as ligatures exactly as in Zed;
+`scripts/subset-fonts.sh` regenerates them. Checkbox tokens keep the
+surrounding weight because a bold span would split the shaping run.
 
 `theme/palette.json` is the source for HTML, Monaco, and generated Zed token
-styles. Regenerate adapters with `node web/scripts/theme.mjs`. Application CSS
+styles; the light-paper variant is derived from it. Regenerate adapters with
+`node web/scripts/theme.mjs`. Application CSS
 owns page layout; it does not maintain separate semantic token palettes.
 
 ## Boundaries and verification

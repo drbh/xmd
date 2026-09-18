@@ -54,8 +54,7 @@
       <article class="page prose">
         <header class="title">
           <h1>The WTF Book</h1>
-          <p class="lead">WTF, the written text format, is a language for notes: plain text that stays readable and starts to calculate, count, plan, and remember. This book walks through every feature with a live example. Each block below is a real note running on the same Rust engine as the editor; edit it and the inlays, colors, and diagnostics update as you type. Hover a name to see how its value was made.</p>
-          <p>The examples are the files in <code>examples/</code>. Open them in the editor or in Zed for the full experience, including completion, rename, code actions, and the command line.</p>
+          <p class="lead">Plain text that calculates, counts, plans, and remembers. Every feature below is a live note on the same engine as the editor: edit it, hover a name, tick a box.</p>
         </header>
         {#each parts as part, p}
           <section class="part" id={`part-${p + 1}`}>
@@ -81,7 +80,7 @@
             {/each}
           </section>
         {/each}
-        <footer><p>Generated from <code>examples/</code> at build time. Every block runs on the same engine as your documents.</p></footer>
+        <footer><p>The blocks are the files in <code>examples/</code>.</p></footer>
       </article>
     </main>
   </div>

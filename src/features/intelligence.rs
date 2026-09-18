@@ -572,13 +572,14 @@ fn property_names_with_links(
             names
         }
         Value::Resource(r) => {
-            let mut names = vec!["url"];
+            let mut names = vec!["url".to_owned()];
             names.extend(links.property_names(&r.target));
             if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
-                names.push("exists");
+                names.push("exists".into());
             }
-            names
+            return names;
         }
+        Value::Record(fields) => return fields.keys().cloned().collect(),
         Value::Plan(p) => return p.property_names(),
         _ => vec![],
     };

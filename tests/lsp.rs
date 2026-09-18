@@ -329,6 +329,7 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
         documents: [(path.clone(), wtf::document::Document::parse(text.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     let shared = wtf::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());
@@ -1236,4 +1237,103 @@ fn native_actions_reject_the_same_malformed_commands_as_the_shared_codec() {
     assert!(lsp.applied_edits.is_empty());
     assert!(lsp.opened_documents.is_empty());
     assert!(!root.join(".wtf").exists());
+}
+
+#[test]
+fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
+    let dir = tempfile::tempdir().unwrap();
+    let plugin_dir = dir.path().join(".wtf/plugins");
+    std::fs::create_dir_all(&plugin_dir).unwrap();
+    let plugin = plugin_dir.join("docs.wtf");
+    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"first\"\n";
+    std::fs::write(&plugin, source).unwrap();
+    let note = dir.path().join("main.wtf");
+    std::fs::write(&note, "https://docs.example/start\n").unwrap();
+    let uri = Url::from_file_path(&note).unwrap();
+    let plugin_uri = Url::from_file_path(&plugin).unwrap();
+    let mut client = Lsp::start(dir.path());
+    client.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"https://docs.example/start\n"}}));
+    let params = json!({"textDocument":{"uri":uri},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
+    client.diagnostics(1);
+    client.wait_for_request("workspace/inlayHint/refresh");
+    assert_eq!(
+        client.request("textDocument/inlayHint", params.clone())[0]["label"],
+        "first"
+    );
+    for (source, label) in [
+        (source.replace("first", "second"), "second"),
+        ("plugin := {".into(), "second"),
+    ] {
+        std::fs::write(&plugin, source).unwrap();
+        client.notify(
+            "workspace/didChangeWatchedFiles",
+            json!({"changes":[{"uri":plugin_uri,"type":2}]}),
+        );
+        client.wait_for_request("workspace/inlayHint/refresh");
+        assert_eq!(
+            client.request("textDocument/inlayHint", params.clone())[0]["label"],
+            label
+        );
+    }
+    std::fs::remove_file(&plugin).unwrap();
+    client.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({"changes":[{"uri":plugin_uri,"type":3}]}),
+    );
+    client.wait_for_request("workspace/inlayHint/refresh");
+    assert_eq!(client.request("textDocument/inlayHint", params), json!([]));
+}
+
+#[test]
+fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
+    let dir = tempfile::tempdir().unwrap();
+    let plugin_dir = dir.path().join(".wtf/plugins");
+    std::fs::create_dir_all(&plugin_dir).unwrap();
+    let plugin = plugin_dir.join("docs.wtf");
+    let script = dir.path().join("resolve.sh");
+    std::fs::write(&script,"touch \"$1/started\"\nwhile [ ! -e \"$1/finish\" ]; do sleep 0.02; done\nprintf '{\"title\":\"stale\"}'\n").unwrap();
+    let source = format!(
+        "plugin := {{api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}}\ninlay := fn(ctx) => \"first\"\nrefresh := fn(url) => {{program: \"/bin/sh\", args: [{}, {}]}}\ndecode := fn(url, data) => data\n",
+        json!(script),
+        json!(dir.path())
+    );
+    std::fs::write(&plugin, &source).unwrap();
+    std::fs::write(dir.path().join("main.wtf"), "https://docs.example/start\n").unwrap();
+    let mut client = Lsp::start(dir.path());
+    client.request("wtf/query", json!({"query":"notes | count"}));
+    client.next += 1;
+    let id = client.next;
+    client.send(json!({"jsonrpc":"2.0","id":id,"method":"workspace/executeCommand","params":{"command":"wtf.refresh","arguments":[]}}));
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while !dir.path().join("started").exists() {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "Refresh never started"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    std::fs::write(&plugin, source.replace("first", "second")).unwrap();
+    client.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({"changes":[{"uri":Url::from_file_path(&plugin).unwrap(),"type":2}]}),
+    );
+    client.wait_for_request("workspace/inlayHint/refresh");
+    std::fs::write(dir.path().join("finish"), "").unwrap();
+    loop {
+        let response = client.receive();
+        if response["id"] == id {
+            assert!(
+                response["error"]["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("Plugins changed"),
+                "{response}"
+            );
+            break;
+        }
+    }
+    assert!(
+        !dir.path().join(".wtf/cache.json").exists(),
+        "An outdated refresh wrote the resource cache"
+    );
 }

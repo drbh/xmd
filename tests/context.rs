@@ -24,6 +24,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn all() -> Range {
@@ -37,8 +38,8 @@ impl LinkFeature for Counter {
     fn inlay(&self, _: &LinkContext<'_>) -> String {
         "counter".into()
     }
-    fn property_names(&self, _: &Url) -> &'static [&'static str] {
-        &["answer"]
+    fn property_names(&self, _: &Url) -> Vec<String> {
+        ["answer"].into_iter().map(str::to_owned).collect()
     }
     fn property(&self, _: &LinkContext<'_>, name: &str) -> Result<Value, String> {
         assert_eq!(name, "answer");

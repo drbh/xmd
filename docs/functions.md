@@ -32,5 +32,6 @@ the accumulator and next item. Functions and structured expressions also work
 inside query stages. Query lambdas capture the current record's fields.
 
 Evaluation has a step budget and a 32-call function depth limit. Text and
-collection results are bounded. There are no mutable variables or implicit I/O.
-Host operations such as fetching data remain explicit actions.
+collection results are bounded. Functions introduce no mutable variables or effectful calls.
+Fetching data remains an explicit host action. Plugin evaluation also disables
+the existing local-resource `exists` property. See [Functional plugins](plugins.md).

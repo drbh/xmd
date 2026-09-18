@@ -18,6 +18,7 @@ pub const BUILTINS: &[&dyn InlayFeature] = &[
     &CalculationInlays,
     &ReferenceInlays,
     &LinkInlays,
+    &super::plugin_inlays::PluginInlays,
 ];
 
 /// Countdown labels carry a live gauge; stopwatches have no end to measure against.

@@ -12,6 +12,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [("/notes/test.wtf".into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn engine(ws: &Workspace) -> Engine<'_> {
@@ -84,4 +85,37 @@ fn function_failures_restore_scope_and_limits_stop_recursion() {
     ] {
         assert!(e.eval(path(), source).is_err(), "{source}");
     }
+}
+
+#[test]
+fn errors_point_into_the_function_and_collection_growth_is_bounded() {
+    let ws = workspace("bad := fn(x) => x / 0\ngrow := fn(x) => [x, x]\n");
+    let mut e = engine(&ws);
+    assert!(e.eval(path(), "bad(1)").is_err());
+    let failure = e.failure.take().unwrap();
+    assert_eq!(failure.path, path());
+    assert_eq!(failure.span.line, 0);
+    assert_eq!(
+        &ws.documents[path()].line(0)[failure.span.start..failure.span.end],
+        "0"
+    );
+    let error = e
+        .eval(
+            path(),
+            "fold([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0, fn(a, x) => grow(a))",
+        )
+        .unwrap_err();
+    assert!(error.contains("size limit"), "{error}");
+    assert!(e.eval(path(),"join([\"a\", \"b\", \"c\"], replace(\"xxxxxxxxxx\", \"x\", replace(\"xxxxxxxxxx\", \"x\", \"small\")))").is_ok());
+}
+
+#[test]
+fn existing_builtins_keep_their_meaning_when_notes_use_the_same_name() {
+    let ws = workspace("now := 1\nread_clock := fn() => now()\n");
+    let mut e = engine(&ws);
+    assert_eq!(
+        e.eval(path(), "read_clock()").unwrap(),
+        Value::DateTime(e.now)
+    );
+    assert_eq!(e.named(path(), "now").unwrap(), Value::Number(1.0));
 }

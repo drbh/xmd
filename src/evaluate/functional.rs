@@ -7,6 +7,7 @@ pub struct Function {
     pub(crate) params: Vec<String>,
     pub(crate) body: Expr,
     pub(crate) path: PathBuf,
+    pub(crate) source: Option<(PathBuf, crate::document::Span)>,
     pub(crate) captured: BTreeMap<String, Value>,
 }
 
@@ -52,18 +53,31 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         ("starts_with", [Text(text), Text(part)]) => Bool(text.starts_with(part)),
         ("ends_with", [Text(text), Text(part)]) => Bool(text.ends_with(part)),
         ("split", [Text(text), Text(separator)]) => {
-            List(text.split(separator).map(|s| Text(s.into())).collect())
+            let parts = text.split(separator).take(8193).collect::<Vec<_>>();
+            if parts.len() > 8192 {
+                return Err("List exceeds the collection size limit".into());
+            }
+            List(parts.into_iter().map(|s| Text(s.into())).collect())
         }
-        ("join", [List(items), Text(separator)]) => Text(
-            items
+        ("join", [List(items), Text(separator)]) => {
+            let parts = items
                 .iter()
                 .map(|v| match v {
                     Text(s) => Ok(s.as_str()),
                     _ => Err("join requires a list of text"),
                 })
-                .collect::<Result<Vec<_>, _>>()?
-                .join(separator),
-        ),
+                .collect::<Result<Vec<_>, _>>()?;
+            let size = parts.iter().map(|s| s.len()).sum::<usize>().saturating_add(
+                parts
+                    .len()
+                    .saturating_sub(1)
+                    .saturating_mul(separator.len()),
+            );
+            if size > 1_048_576 {
+                return Err("Text exceeds 1 MiB".into());
+            }
+            Text(parts.join(separator))
+        }
         ("lower", [Text(text)]) => Text(text.to_lowercase()),
         ("upper", [Text(text)]) => Text(text.to_uppercase()),
         ("replace", [Text(text), Text(from), Text(to)]) => {

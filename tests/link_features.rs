@@ -23,6 +23,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Cache::new(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn all() -> Range {
@@ -67,8 +68,11 @@ impl LinkFeature for Build {
     fn time_dependent(&self, _: &LinkContext<'_>) -> bool {
         true
     }
-    fn property_names(&self, _: &Url) -> &'static [&'static str] {
-        &["state", "observed"]
+    fn property_names(&self, _: &Url) -> Vec<String> {
+        ["state", "observed"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
     }
     fn property(&self, ctx: &LinkContext<'_>, name: &str) -> Result<Value, String> {
         match name {
@@ -141,6 +145,8 @@ fn provider_properties_and_tooltips_share_the_cache_and_request_clock() {
             checks: None,
             review: None,
             fetched_at: now().to_utc(),
+            provider: None,
+            data: None,
         },
     );
     let mut engine = Engine::at(&ws, now()).with_link_features(features);
@@ -313,6 +319,8 @@ async fn explicit_refresh_executes_a_provider_request_and_requires_decodable_suc
                 checks: None,
                 review: None,
                 fetched_at: now,
+                provider: None,
+                data: None,
             })
         }
     }

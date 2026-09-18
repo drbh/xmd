@@ -3,7 +3,6 @@ use crate::{
     document::Document,
     engine::Engine,
     query::{self, QueryContext, QueryValue},
-    resources,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
@@ -105,6 +104,14 @@ pub struct QueryOptions {
     pub fail_on_match: bool,
 }
 pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
+    let mut errors = refresh_in_memory(workspace).await;
+    if let Err(e) = workspace.save_cache() {
+        errors.push(e);
+    }
+    errors
+}
+/// The editor validates its registry snapshot before persisting resource results.
+pub(crate) async fn refresh_in_memory(workspace: &mut Workspace) -> Vec<String> {
     let targets: BTreeSet<_> = workspace
         .documents
         .values()
@@ -115,20 +122,17 @@ pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
                 .map(|d| d.source.as_str())
                 .chain(doc.links.iter().map(|l| l.target.as_str()))
         })
-        .filter(|s| crate::link_features::BUILTINS.refresh_request(s).is_some())
+        .filter(|s| workspace.link_features().refresh_request(s).is_some())
         .map(str::to_owned)
         .collect();
     let mut errors = Vec::new();
     for target in targets {
-        match resources::fetch(&target).await {
+        match workspace.link_features().fetch(&target).await {
             Ok(metadata) => {
                 workspace.cache.insert(target, metadata);
             }
             Err(e) => errors.push(format!("{target}: {e}")),
         }
-    }
-    if let Err(e) = workspace.save_cache() {
-        errors.push(e);
     }
     errors.extend(crate::lookups::native::refresh(workspace).await);
     errors

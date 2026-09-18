@@ -78,6 +78,7 @@ impl Backend {
                     documents: BTreeMap::new(),
                     cache: BTreeMap::new(),
                     lookups: BTreeMap::new(),
+                    plugins: Default::default(),
                 },
                 open: BTreeMap::new(),
                 hint_refresh: false,
@@ -226,6 +227,10 @@ impl Backend {
             if state.open.get(&path).is_some_and(|v| *v > version) {
                 return;
             }
+            if crate::plugins::is_plugin_path(&path) {
+                // Plugin files reload from disk on save or watched-file events.
+                return;
+            }
             state
                 .workspace
                 .documents
@@ -235,10 +240,25 @@ impl Backend {
         self.notify_changes().await;
     }
     async fn rescan(&self) {
-        let roots = self.state.read().await.workspace.roots.clone();
-        let result = tokio::task::spawn_blocking(move || Workspace::load(roots)).await;
+        let (roots, plugins) = {
+            let state = self.state.read().await;
+            (
+                state.workspace.roots.clone(),
+                state.workspace.plugins.clone(),
+            )
+        };
+        let result = tokio::task::spawn_blocking(move || {
+            let mut workspace = Workspace::load_notes(roots)?;
+            workspace.plugins = plugins;
+            let error = workspace.reload_plugins().err();
+            Ok::<_, String>((workspace, error))
+        })
+        .await;
         match result {
-            Ok(Ok(mut workspace)) => {
+            Ok(Ok((mut workspace, error))) => {
+                if let Some(error) = error {
+                    self.client.log_message(MessageType::ERROR, error).await;
+                }
                 let mut state = self.state.write().await;
                 for path in state.open.keys() {
                     if let Some(doc) = state.workspace.documents.get(path) {
@@ -411,7 +431,7 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"}]}))}]).await;
+            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/plugins/*.wtf"}]}))}]).await;
         }
         let backend = self.clone();
         tokio::spawn(async move {
@@ -906,11 +926,19 @@ impl LanguageServer for Backend {
                 }
             }
             PreparedAction::RefreshResource { resource } => {
-                let metadata = crate::resources::fetch(&resource.target)
+                let snapshot = self.state.read().await.workspace.clone();
+                let metadata = snapshot
+                    .link_features()
+                    .fetch(&resource.target)
                     .await
                     .map_err(Error::invalid_params)?;
                 let workspace = {
                     let mut state = self.state.write().await;
+                    if !Arc::ptr_eq(&snapshot.plugins, &state.workspace.plugins) {
+                        return Err(Error::invalid_params(
+                            "Plugins changed during refresh; refresh again",
+                        ));
+                    }
                     state.workspace.cache.insert(resource.target, metadata);
                     state.workspace.clone()
                 };
@@ -922,11 +950,22 @@ impl LanguageServer for Backend {
             }
             PreparedAction::Refresh => {
                 let mut workspace = self.state.read().await.workspace.clone();
-                let errors = crate::cli::refresh(&mut workspace).await;
-                {
+                let mut errors = crate::cli::refresh_in_memory(&mut workspace).await;
+                let workspace = {
                     let mut state = self.state.write().await;
+                    if !Arc::ptr_eq(&workspace.plugins, &state.workspace.plugins) {
+                        return Err(Error::invalid_params(
+                            "Plugins changed during refresh; refresh again",
+                        ));
+                    }
                     state.workspace.cache = workspace.cache;
                     state.workspace.lookups = workspace.lookups;
+                    state.workspace.clone()
+                };
+                match tokio::task::spawn_blocking(move || workspace.save_cache()).await {
+                    Ok(Ok(())) => (),
+                    Ok(Err(e)) => errors.push(e),
+                    Err(e) => errors.push(e.to_string()),
                 }
                 self.notify_changes().await;
                 self.client

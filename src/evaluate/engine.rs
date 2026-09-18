@@ -1702,6 +1702,7 @@ impl<'a> Engine<'a> {
                         params: params.clone(),
                         body: *body.clone(),
                         path: path.into(),
+                        source: self.contexts.last().cloned(),
                         captured,
                     },
                 )))
@@ -1764,8 +1765,24 @@ impl<'a> Engine<'a> {
                         .collect::<Result<Vec<_>, _>>()?;
                     return self.functional(n, values);
                 }
-                if self.locals.last().is_some_and(|s| s.contains_key(n))
-                    || self.workspace.resolve(path, n).is_ok()
+                if !matches!(
+                    n.as_str(),
+                    "sum"
+                        | "now"
+                        | "today"
+                        | "stopwatch"
+                        | "countdown"
+                        | "rate"
+                        | "to"
+                        | "forecast"
+                        | "quote"
+                        | "date"
+                        | "total"
+                        | "completed"
+                        | "remaining"
+                        | "effort"
+                ) && (self.locals.last().is_some_and(|s| s.contains_key(n))
+                    || self.workspace.resolve(path, n).is_ok())
                 {
                     let function = self
                         .locals
@@ -1965,7 +1982,13 @@ impl<'a> Engine<'a> {
         self.locals.push(locals);
         let rows = std::mem::take(&mut self.row_values);
         self.calls += 1;
+        if let Some(source) = &function.source {
+            self.contexts.push(source.clone());
+        }
         let result = self.expr(&function.path, &function.body);
+        if function.source.is_some() {
+            self.contexts.pop();
+        }
         self.calls -= 1;
         self.row_values = rows;
         self.locals.pop();

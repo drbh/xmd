@@ -21,6 +21,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {

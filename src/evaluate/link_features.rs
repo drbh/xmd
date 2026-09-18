@@ -25,11 +25,14 @@ pub trait LinkFeature: Send + Sync {
     fn time_dependent(&self, _context: &LinkContext<'_>) -> bool {
         false
     }
-    fn property_names(&self, _url: &Url) -> &'static [&'static str] {
-        &[]
+    fn property_names(&self, _url: &Url) -> Vec<String> {
+        vec![]
     }
     fn property(&self, _context: &LinkContext<'_>, name: &str) -> Result<Value, String> {
         Err(format!("Unknown resource property '{name}'"))
+    }
+    fn cache_namespace(&self) -> Option<&str> {
+        None
     }
     /// Return a command specification, never execute it while rendering a feature.
     fn refresh_request(&self, _url: &Url) -> Option<RefreshRequest> {
@@ -63,18 +66,28 @@ pub struct RefreshRequest {
 #[derive(Clone, Copy)]
 pub struct LinkFeatures<'a> {
     features: &'a [&'a dyn LinkFeature],
+    plugins: &'a [crate::evaluate::plugins::Module],
 }
 pub const BUILTINS: LinkFeatures<'static> = LinkFeatures::new(&[&crate::github::GitHub]);
 impl<'a> LinkFeatures<'a> {
     pub const fn new(features: &'a [&'a dyn LinkFeature]) -> Self {
-        Self { features }
+        Self {
+            features,
+            plugins: &[],
+        }
+    }
+    pub fn with_plugins(mut self, plugins: &'a [crate::evaluate::plugins::Module]) -> Self {
+        self.plugins = plugins;
+        self
     }
     fn matching(&self, target: &str) -> Option<(&'a dyn LinkFeature, Url)> {
         let url = Url::parse(target).ok()?;
-        self.features
+        self.plugins
             .iter()
+            .map(|p| p as &dyn LinkFeature)
+            .chain(self.features.iter().copied())
             .find(|feature| feature.matches(&url))
-            .map(|feature| (*feature, url))
+            .map(|feature| (feature, url))
     }
     pub fn presentation(
         &self,
@@ -85,7 +98,9 @@ impl<'a> LinkFeatures<'a> {
         let (feature, url) = self.matching(target)?;
         let context = LinkContext {
             url: &url,
-            cached: cache.get(target),
+            cached: cache
+                .get(target)
+                .filter(|m| m.provider.as_deref() == feature.cache_namespace()),
             now,
         };
         Some(LinkPresentation {
@@ -94,16 +109,18 @@ impl<'a> LinkFeatures<'a> {
             time_dependent: feature.time_dependent(&context),
         })
     }
-    pub fn property_names(&self, target: &str) -> &'static [&'static str] {
+    pub fn property_names(&self, target: &str) -> Vec<String> {
         self.matching(target)
             .map(|(feature, url)| feature.property_names(&url))
-            .unwrap_or(&[])
+            .unwrap_or_default()
     }
     pub fn time_dependent(&self, target: &str, cache: &Cache, now: DateTime<Utc>) -> bool {
         self.matching(target).is_some_and(|(feature, url)| {
             feature.time_dependent(&LinkContext {
                 url: &url,
-                cached: cache.get(target),
+                cached: cache
+                    .get(target)
+                    .filter(|m| m.provider.as_deref() == feature.cache_namespace()),
                 now,
             })
         })
@@ -121,7 +138,9 @@ impl<'a> LinkFeatures<'a> {
         feature.property(
             &LinkContext {
                 url: &url,
-                cached: cache.get(target),
+                cached: cache
+                    .get(target)
+                    .filter(|m| m.provider.as_deref() == feature.cache_namespace()),
                 now,
             },
             name,
@@ -130,6 +149,17 @@ impl<'a> LinkFeatures<'a> {
     pub fn refresh_request(&self, target: &str) -> Option<RefreshRequest> {
         let (feature, url) = self.matching(target)?;
         feature.refresh_request(&url)
+    }
+    pub fn decode_refresh(
+        &self,
+        target: &str,
+        data: &serde_json::Value,
+        now: DateTime<Utc>,
+    ) -> Result<Metadata, String> {
+        let (feature, url) = self
+            .matching(target)
+            .ok_or("No feature recognizes this link")?;
+        feature.decode_refresh(&url, data, now)
     }
     #[cfg(feature = "native")]
     pub async fn fetch(&self, target: &str) -> Result<Metadata, String> {

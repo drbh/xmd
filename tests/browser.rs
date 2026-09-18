@@ -16,6 +16,7 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     let expected = serde_json::to_value(wtf::presentation::document_links(
         &shared,
@@ -106,6 +107,7 @@ fn browser_document_symbols_are_the_standard_shared_lsp_data() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     assert_eq!(
         result,
@@ -347,6 +349,7 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     let expected = wtf::query::execute(
         &ws,
@@ -384,6 +387,7 @@ fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     let now = chrono::DateTime::parse_from_rfc3339(NOW).unwrap();
     let expected = wtf::inlays::collect(
@@ -475,6 +479,7 @@ fn browser_actions_use_the_shared_codec_and_prepared_effects() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     };
     let ctx = wtf::RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap());
     for lens in analysis["lenses"].as_array().unwrap() {

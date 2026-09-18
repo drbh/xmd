@@ -20,6 +20,10 @@ pub struct Metadata {
     pub checks: Option<String>,
     pub review: Option<String>,
     pub fetched_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
 }
 pub type Cache = BTreeMap<String, Metadata>;
 

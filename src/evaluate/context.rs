@@ -1,7 +1,7 @@
 //! Immutable request inputs and a cache shared by independent evaluator sessions.
 use crate::{
     engine::{Engine, MemoEntry, MemoKey, Value},
-    link_features::{self, LinkFeatures},
+    link_features::LinkFeatures,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
@@ -52,7 +52,7 @@ impl<'a> RequestContext<'a> {
             workspace,
             clock: Clock::new(now),
             today: now.date_naive(),
-            links: link_features::BUILTINS,
+            links: workspace.link_features(),
             memo: Default::default(),
         }
     }

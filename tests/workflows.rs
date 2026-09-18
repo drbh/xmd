@@ -31,6 +31,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             .collect(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn evaluate(ws: &Workspace, name: &str) -> Value {

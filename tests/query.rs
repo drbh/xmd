@@ -20,6 +20,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             .collect(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn context() -> QueryContext {
@@ -253,6 +254,8 @@ fn unions_and_cached_resources_work_without_io() {
             checks: None,
             review: None,
             fetched_at: context().now.into(),
+            provider: None,
+            data: None,
         },
     );
     assert_eq!(

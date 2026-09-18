@@ -46,15 +46,18 @@ impl LinkFeature for GitHub {
     fn time_dependent(&self, context: &LinkContext<'_>) -> bool {
         context.cached.is_some()
     }
-    fn property_names(&self, url: &Url) -> &'static [&'static str] {
+    fn property_names(&self, url: &Url) -> Vec<String> {
         if parse_url(url).is_some_and(|(_, kind, _)| kind == "pull") {
-            &["title", "state", "merged", "checks_passed"]
+            ["title", "state", "merged", "checks_passed"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect()
         } else {
-            &["title", "state"]
+            ["title", "state"].into_iter().map(str::to_owned).collect()
         }
     }
     fn property(&self, context: &LinkContext<'_>, name: &str) -> Result<Value, String> {
-        if !self.property_names(context.url).contains(&name) {
+        if !self.property_names(context.url).iter().any(|p| p == name) {
             return Err(format!("Unknown resource property '{name}'"));
         }
         let m = context
@@ -267,5 +270,7 @@ pub fn metadata(
         checks,
         review: data["reviewDecision"].as_str().map(str::to_owned),
         fetched_at: now,
+        provider: None,
+        data: None,
     })
 }

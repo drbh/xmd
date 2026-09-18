@@ -345,6 +345,7 @@ fn eval(
                     params: params.clone(),
                     body: *body.clone(),
                     path: item.path().into(),
+                    source: None,
                     captured,
                 },
             ))))

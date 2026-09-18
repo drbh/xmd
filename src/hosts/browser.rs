@@ -39,6 +39,7 @@ impl BrowserWorkspace {
                 documents: BTreeMap::new(),
                 cache: BTreeMap::new(),
                 lookups: Default::default(),
+                plugins: Default::default(),
             },
             versions: BTreeMap::new(),
         }
@@ -116,6 +117,38 @@ impl BrowserWorkspace {
             return Ok(
                 json!({"tokenTypes": presentation::TOKEN_TYPES, "tokenModifiers": presentation::TOKEN_MODIFIERS}),
             );
+        }
+        if method == "setResourceData" {
+            let target: String = field(&params, "url")?;
+            let data: Value = field(&params, "data")?;
+            let metadata =
+                self.workspace
+                    .link_features()
+                    .decode_refresh(&target, &data, now.to_utc())?;
+            self.workspace.cache.insert(target, metadata);
+            return Ok(Value::Null);
+        }
+        if method == "setPlugins" {
+            let sources: BTreeMap<String, String> = field(&params, "sources")?;
+            let sources = sources
+                .into_iter()
+                .map(|(name, source)| {
+                    if Path::new(&name).components().count() != 1
+                        || !matches!(
+                            Path::new(&name).components().next(),
+                            Some(Component::Normal(_))
+                        )
+                        || !name.ends_with(".wtf")
+                        || name.contains(['\\', '\0'])
+                    {
+                        return Err("Plugin names must be .wtf filenames".to_string());
+                    }
+                    Ok((Path::new("/workspace/.wtf/plugins").join(name), source))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            let plugins = crate::plugins::Plugins::compile(sources)?;
+            self.workspace.plugins = std::sync::Arc::new(plugins);
+            return Ok(Value::Null);
         }
         if method == "setDocument" {
             let path = virtual_path(&field::<String>(&params, "uri")?)?;

@@ -1,5 +1,8 @@
 # Extending inlays
 
+For hot-reloadable extensions written in WTF itself, see [Functional plugins](plugins.md).
+The Rust contracts below serve both built-ins and functional module adapters.
+
 All inlays use one `InlayFeature` trait. The core runs registered producers with
 one document, evaluator and clock snapshot, filters their output to the requested
 range, and stably sorts it by position. The native LSP and browser use this same
@@ -91,8 +94,10 @@ Optional methods extend the same provider:
 `url` and local-file `exists` remain common resource properties. Providers should
 use other names for their own properties. `LinkContext` contains the parsed URL,
 its cached metadata (if present), and the request clock. Existing
-`.wtf/cache.json` files keep their format: providers with refresh support normalize
-responses into `Metadata`, leaving inapplicable optional fields unset.
+`.wtf/cache.json` entries remain compatible. Functional providers add a provider
+namespace and a JSON data record; Rust providers can return `cache_namespace`
+to participate in the same cache isolation. `property_names` returns owned strings
+so runtime modules can declare properties without static lifetimes.
 
 A refresh request supplies a program, separate arguments, environment overrides
 and an action title. The native host executes it only on an explicit refresh,
@@ -107,8 +112,8 @@ CLI discovery, property completion and editor actions consult the common registr
 For isolated tests, construct `LinkFeatures::new(&[&MyProvider])` and inject it
 with `Engine::at(&workspace, now).with_link_features(features)` before calling
 `inlays::collect`. The override applies to evaluation and inlay tooltips; the
-standard host entry points use the built-in registry. There is no mutable global
-registration state.
+standard host entry points use the workspace registry, including loaded modules.
+There is no mutable global registration state.
 
 See [`tests/inlays.rs`](../tests/inlays.rs) for an independent non-link producer
 and [`tests/link_features.rs`](../tests/link_features.rs) for static links,

@@ -1,0 +1,311 @@
+### 0 cli render focus.wtf --format text
+$ wtf render focus.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2)) = ◷ ░░░░░░░░ 03:00 remaining · ○ idle
+Time left: [focus.remaining] 3m.
+- [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
+
+### 1 cli render focus.wtf --now 2026-09-17T14:00:00-04:00 --format text
+$ wtf render focus.wtf --now 2026-09-17T14:00:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2)) = ◷ ░░░░░░░░ 03:00 remaining · ○ idle
+Time left: [focus.remaining] 3m.
+- [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
+
+### 2 cli query focus.wtf timers | select {name, line, value} --json
+$ wtf query focus.wtf timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "name": "focus",
+    "value": {
+      "elapsed": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "idle": true,
+      "limit": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "started": null
+    }
+  },
+  {
+    "line": 2,
+    "name": "focus",
+    "value": {
+      "elapsed": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "idle": true,
+      "limit": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "started": null
+    }
+  },
+  {
+    "line": 3,
+    "name": "focus",
+    "value": {
+      "elapsed": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "idle": true,
+      "limit": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "started": null
+    }
+  }
+]
+
+### 3 cli render running.wtf --format text
+$ wtf render running.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ███░░░░░ 02:00 remaining · ▸ running
+Time left: [focus.remaining] 2m.
+
+### 4 cli render running.wtf --now 2026-09-16T14:01:59-04:00 --format text
+$ wtf render running.wtf --now 2026-09-16T14:01:59-04:00 --format text --root <root>
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:01 remaining · ▸ running
+Time left: [focus.remaining] 1s.
+
+### 5 cli render running.wtf --now 2026-09-16T14:02:00-04:00 --format text
+$ wtf render running.wtf --now 2026-09-16T14:02:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:00 remaining · ✓ done
+Time left: [focus.remaining] 0s.
+
+### 6 cli render running.wtf --now 2026-09-16T16:30:00-04:00 --format text
+$ wtf render running.wtf --now 2026-09-16T16:30:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+[session] := 2m = 2m
+[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:00 remaining · ✓ done
+Time left: [focus.remaining] 0s.
+
+### 7 cli query running.wtf timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00
+$ wtf query running.wtf timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
+exit 0
+--- stdout
+[
+  {
+    "name": "focus",
+    "value": {
+      "elapsed": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "idle": false,
+      "limit": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "started": {
+        "type": "datetime",
+        "value": "2026-09-16T13:59:00-04:00"
+      }
+    }
+  },
+  {
+    "name": "focus",
+    "value": {
+      "elapsed": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "idle": false,
+      "limit": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "started": {
+        "type": "datetime",
+        "value": "2026-09-16T13:59:00-04:00"
+      }
+    }
+  }
+]
+
+### 8 lsp
+-- open multiline.wtf
+-- await textDocument/publishDiagnostics multiline.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/multiline.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":["${uri:multiline.wtf}","focus","start"],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 1,
+                "line": 4
+              },
+              "start": {
+                "character": 10,
+                "line": 2
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/multiline.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- open multiline-crlf.wtf
+-- request workspace/executeCommand {"arguments":["${uri:multiline-crlf.wtf}","focus","start"],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 1,
+                "line": 4
+              },
+              "start": {
+                "character": 10,
+                "line": 2
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/multiline-crlf.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- open grouped.wtf
+-- request workspace/executeCommand {"arguments":["${uri:grouped.wtf}","watch","start"],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " countdown(limit, 0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 31,
+                "line": 1
+              },
+              "start": {
+                "character": 10,
+                "line": 1
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/grouped.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- request textDocument/inlayHint grouped.wtf {"end":{"character":0,"line":99},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= 30s",
+    "paddingLeft": true,
+    "position": {
+      "character": 14,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**limit · Duration**\n\n30s\n\n```text\n30s\n= 30s\n```\n\nDefinition: [limit](<file://<root>/grouped.wtf#L1>) · <root>/grouped.wtf:1"
+    }
+  },
+  {
+    "label": "= ◷ ░░░░░░░░ 00:30 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 31,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**watch · Countdown**\n\n◷ 00:30 remaining · ○ idle\n\n```text\n((countdown(limit)))\n= ((countdown(30s)))\n= ◷ 00:30 remaining · ○ idle\n```\n\nInputs: [limit](<file://<root>/grouped.wtf#L1>)\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/grouped.wtf#L2>) · <root>/grouped.wtf:2"
+    }
+  },
+  {
+    "label": "30s",
+    "paddingLeft": true,
+    "position": {
+      "character": 27,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "watch.remaining"
+    }
+  }
+]
+
+### 9 cli render cycle.wtf --format text
+$ wtf render cycle.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[a] := countdown(b.remaining)
+[b] := countdown(a.remaining)
+--- stderr
+<root>/cycle.wtf:1:2: error: Dependency cycle: a → b → a
+wtf: 1 error(s) while rendering
+
+### 10 cli query cycle.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query cycle.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "cycle",
+    "line": 0,
+    "message": "Dependency cycle: a → b → a",
+    "severity": "error"
+  }
+]
+

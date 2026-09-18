@@ -1,0 +1,175 @@
+### 0 cli render trip.wtf --format text
+$ wtf render trip.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+## Friday, November 20, 2026 · New York | Oaxaca 1 stops · 07:04 AM – 07:04 AM · in 64 days · 24°C / 12°C · light rain · 40% rain
+
+07:04 AM  > Depart JFK
+
+## Saturday, November 21 · Oaxaca 0 stops · in 65 days · no forecast yet; forecasts cover about 16 days
+
+[weather] := forecast("Oaxaca", 2026-11-20, F) = 76°F / 53°F · light rain · 40% rain
+[rain] := weather.rain = 40%
+[celsius] := forecast("Oaxaca", 2026-11-20) = 24°C / 12°C · light rain · 40% rain
+[later] := forecast("Oaxaca", 2026-11-21)
+--- stderr
+<root>/trip.wtf:10:12: warning: Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days
+
+### 1 cli query trip.wtf map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json
+$ wtf query trip.wtf map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "forecast": {
+      "display": "24°C / 12°C · light rain · 40% rain",
+      "fetched_at": {
+        "type": "datetime",
+        "value": "2026-09-17T12:00:00+00:00"
+      },
+      "place": "Oaxaca",
+      "source": "open-meteo.com"
+    },
+    "line": 0,
+    "places": "New York | Oaxaca"
+  },
+  {
+    "forecast": {
+      "display": "no forecast yet; forecasts cover about 16 days",
+      "fetched_at": {
+        "type": "datetime",
+        "value": "2026-09-17T12:00:00+00:00"
+      },
+      "place": "Oaxaca",
+      "source": "open-meteo.com"
+    },
+    "line": 4,
+    "places": "Oaxaca"
+  }
+]
+
+### 2 cli query trip.wtf values | select {name, display} --json
+$ wtf query trip.wtf values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "display": "76°F / 53°F · light rain · 40% rain",
+    "name": "weather"
+  },
+  {
+    "display": "40%",
+    "name": "rain"
+  },
+  {
+    "display": "24°C / 12°C · light rain · 40% rain",
+    "name": "celsius"
+  },
+  {
+    "display": null,
+    "name": "later"
+  }
+]
+
+### 3 cli query trip.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query trip.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 9,
+    "message": "Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days",
+    "severity": "warning"
+  }
+]
+
+### 4 lsp
+-- open trip.wtf
+-- await textDocument/publishDiagnostics trip.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days",
+      "range": {
+        "end": {
+          "character": 41,
+          "line": 9
+        },
+        "start": {
+          "character": 11,
+          "line": 9
+        }
+      },
+      "severity": 2,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/trip.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint trip.wtf {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "1 stops · 07:04 AM – 07:04 AM · in 64 days · 24°C / 12°C · light rain · 40% rain",
+    "paddingLeft": true,
+    "position": {
+      "character": 48,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Friday, November 20, 2026 · 2026-11-20\n\nForecast for Oaxaca · 2h ago · open-meteo.com"
+    }
+  },
+  {
+    "label": "0 stops · in 65 days · no forecast yet; forecasts cover about 16 days",
+    "paddingLeft": true,
+    "position": {
+      "character": 33,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Saturday, November 21, 2026 · 2026-11-21\n\nForecast for Oaxaca · 2h ago · open-meteo.com"
+    }
+  },
+  {
+    "label": "= 76°F / 53°F · light rain · 40% rain",
+    "paddingLeft": true,
+    "position": {
+      "character": 46,
+      "line": 6
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**weather · Forecast**\n\n76°F / 53°F · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 76°F / 53°F · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [weather](<file://<root>/trip.wtf#L7>) · <root>/trip.wtf:7"
+    }
+  },
+  {
+    "label": "= 40%",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 7
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**rain · Ratio**\n\n40%\n\n```text\nweather.rain\n= 40%\n= 40%\n```\n\nInputs: [weather](<file://<root>/trip.wtf#L7>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [rain](<file://<root>/trip.wtf#L8>) · <root>/trip.wtf:8"
+    }
+  },
+  {
+    "label": "= 24°C / 12°C · light rain · 40% rain",
+    "paddingLeft": true,
+    "position": {
+      "character": 43,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**celsius · Forecast**\n\n24°C / 12°C · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20)\n= 24°C / 12°C · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [celsius](<file://<root>/trip.wtf#L9>) · <root>/trip.wtf:9"
+    }
+  }
+]
+

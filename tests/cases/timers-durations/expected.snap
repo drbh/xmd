@@ -1,0 +1,163 @@
+### 0 cli render durations.wtf --format text
+$ wtf render durations.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Chores :chores ░░░░░░░░ 0/3 complete · 31m 30s estimated left
+- [ ] First @estimate(90s)
+- [ ] Second @estimate(30m)
+- [ ] Water plants @every(2w) @due(2026-09-16) → due today · ↻ every 2w
+[watch] := stopwatch(31s) = ◴ 00:31 elapsed · ‖ paused
+[alias] := watch = ◴ 00:31 elapsed · ‖ paused
+[gap] := 1122s = 18m 42s
+[total] := effort(chores) = 31m 30s
+
+### 1 cli query durations.wtf [30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed] --json --now 2026-09-16T14:00:45-04:00
+$ wtf query durations.wtf [30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed] --json --now 2026-09-16T14:00:45-04:00 --root <root>
+exit 0
+--- stdout
+[
+  {
+    "seconds": 90,
+    "type": "duration"
+  },
+  {
+    "seconds": 30,
+    "type": "duration"
+  },
+  {
+    "seconds": 30,
+    "type": "duration"
+  },
+  true,
+  {
+    "type": "datetime",
+    "value": "2026-09-16T14:00:45-04:00"
+  },
+  {
+    "seconds": 45,
+    "type": "duration"
+  },
+  {
+    "seconds": 86400,
+    "type": "duration"
+  },
+  {
+    "seconds": 1890,
+    "type": "duration"
+  },
+  {
+    "seconds": 0,
+    "type": "duration"
+  },
+  {
+    "type": "datetime",
+    "value": "2026-09-16T14:00:45-04:00"
+  },
+  {
+    "seconds": 0,
+    "type": "duration"
+  }
+]
+
+### 2 cli query durations.wtf 2026-09-16 + 1s --json
+$ wtf query durations.wtf 2026-09-16 + 1s --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: A date requires whole-day durations; use a date/time for hours (Date + Duration)
+
+### 3 cli query durations.wtf tasks | where leaf | select {title, estimate, due} --json
+$ wtf query durations.wtf tasks | where leaf | select {title, estimate, due} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "due": null,
+    "estimate": {
+      "seconds": 90,
+      "type": "duration"
+    },
+    "title": "First"
+  },
+  {
+    "due": null,
+    "estimate": {
+      "seconds": 1800,
+      "type": "duration"
+    },
+    "title": "Second"
+  },
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-16"
+    },
+    "estimate": null,
+    "title": "Water plants"
+  }
+]
+
+### 4 lsp
+-- open durations.wtf
+-- await textDocument/publishDiagnostics durations.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/durations.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":["${uri:durations.wtf}",3,"- [ ] Water plants @every(2w) @due(2026-09-16)"],"command":"wtf.task"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "2026-09-30",
+            "range": {
+              "end": {
+                "character": 45,
+                "line": 3
+              },
+              "start": {
+                "character": 35,
+                "line": 3
+              }
+            }
+          },
+          {
+            "newText": " @repeat_from(2026-09-16)",
+            "range": {
+              "end": {
+                "character": 46,
+                "line": 3
+              },
+              "start": {
+                "character": 46,
+                "line": 3
+              }
+            }
+          },
+          {
+            "newText": "<!-- wtf-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Water plants\"} -->\n",
+            "range": {
+              "end": {
+                "character": 0,
+                "line": 8
+              },
+              "start": {
+                "character": 0,
+                "line": 8
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/durations.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+

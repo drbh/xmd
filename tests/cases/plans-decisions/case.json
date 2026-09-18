@@ -1,0 +1,43 @@
+{
+  "steps": [
+    { "cli": ["render", "gear.wtf", "--format", "text"] },
+    { "cli": ["query", "gear.wtf", "plans | select {name, display}", "--json"] },
+    { "cli": ["query", "gear.wtf", "decisions | select {title, plan, line, value}", "--json"] },
+    { "cli": ["query", "gear.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "gear.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "gear.wtf" },
+        { "request": "textDocument/hover", "file": "gear.wtf", "line": 1, "character": 29 },
+        { "request": "textDocument/hover", "file": "gear.wtf", "line": 7, "character": 2 },
+        { "request": "textDocument/hover", "file": "gear.wtf", "line": 16, "character": 2 },
+        {
+          "request": "textDocument/codeAction",
+          "file": "gear.wtf",
+          "range": { "start": { "line": 7, "character": 2 }, "end": { "line": 7, "character": 2 } },
+          "extra": { "context": { "diagnostics": [] } }
+        }
+      ]
+    },
+    { "cli": ["render", "packed.wtf", "--format", "text"] },
+    { "cli": ["query", "packed.wtf", "plans | select {name, display}", "--json"] },
+    { "cli": ["query", "packed.wtf", "rows | select {table, line, cells}", "--json"] },
+    {
+      "lsp": [
+        { "open": "packed.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "packed.wtf" },
+        {
+          "request": "textDocument/formatting",
+          "file": "packed.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "packed.wtf",
+          "range": { "start": { "line": 7, "character": 2 }, "end": { "line": 7, "character": 2 } },
+          "extra": { "context": { "diagnostics": [] } }
+        }
+      ]
+    }
+  ]
+}

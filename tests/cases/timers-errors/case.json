@@ -1,0 +1,13 @@
+{
+  "steps": [
+    { "cli": ["query", "bad.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "attributes.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "attributes.wtf", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "attributes.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "attributes.wtf" }
+      ]
+    }
+  ]
+}

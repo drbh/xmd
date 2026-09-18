@@ -1,0 +1,154 @@
+### 0 cli render savings.wtf --format text
+$ wtf render savings.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[$1,200]:saved
+[9]:months_left
+[saved_by_june] := monthly * months_left + saved = $5,000
+[monthly] := solve(saved_by_june >= $5,000) = $422.22
+Save [monthly] $422.22 a month.
+
+### 1 cli query savings.wtf values | select {name, display} --json
+$ wtf query savings.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$1,200",
+    "name": "saved"
+  },
+  {
+    "display": "9",
+    "name": "months_left"
+  },
+  {
+    "display": "$5,000",
+    "name": "saved_by_june"
+  },
+  {
+    "display": "$422.22",
+    "name": "monthly"
+  }
+]
+
+### 2 cli query savings.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query savings.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 3 lsp
+-- open savings.wtf
+-- await textDocument/publishDiagnostics savings.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/savings.wtf",
+  "version": 1
+}
+-- request textDocument/hover savings.wtf 3:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**monthly · Money**\n\n$422.22\n\n```text\nsolve(saved_by_june >= $5,000)\n= solve($5,000 >= $5,000)\n= $422.22\n```\n\nGoal seek: the smallest value that satisfies `saved_by_june >= $5,000`.\n\nInputs: [saved_by_june](<file://<root>/savings.wtf#L3>)\n\nDefinition: [monthly](<file://<root>/savings.wtf#L4>) · <root>/savings.wtf:4"
+  },
+  "range": {
+    "end": {
+      "character": 8,
+      "line": 3
+    },
+    "start": {
+      "character": 1,
+      "line": 3
+    }
+  }
+}
+
+### 4 cli render units.wtf --format text
+$ wtf render units.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[30m]:per_call
+[calls] := solve(calls * per_call <= 4h) = 8
+[price] := solve(price * 40 == $1,000) = $25
+
+### 5 cli query units.wtf values | select {name, display} --json
+$ wtf query units.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "30m",
+    "name": "per_call"
+  },
+  {
+    "display": "8",
+    "name": "calls"
+  },
+  {
+    "display": "$25",
+    "name": "price"
+  }
+]
+
+### 6 cli query unknowns.wtf values | select {name, display} --json
+$ wtf query unknowns.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "1",
+    "name": "y"
+  },
+  {
+    "display": "1",
+    "name": "x"
+  }
+]
+
+### 7 cli render broken.wtf --format text
+$ wtf render broken.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[unrelated] := solve(3 >= 2)
+[loose] := solve(loose + missing >= 2)
+[a] := b
+[b] := a
+[cyclic] := solve(a >= 1)
+--- stderr
+<root>/broken.wtf:1:22: error: The constraint does not depend on unrelated
+<root>/broken.wtf:2:26: error: Unknown name 'missing'
+<root>/broken.wtf:3:2: error: Dependency cycle: a → b → a
+<root>/broken.wtf:4:8: error: Dependency cycle through a
+wtf: 4 error(s) while rendering
+
+### 8 cli query broken.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query broken.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "The constraint does not depend on unrelated",
+    "severity": "error"
+  },
+  {
+    "code": "unknown-name",
+    "line": 1,
+    "message": "Unknown name 'missing'",
+    "severity": "error"
+  },
+  {
+    "code": "cycle",
+    "line": 2,
+    "message": "Dependency cycle: a → b → a",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 3,
+    "message": "Dependency cycle through a",
+    "severity": "error"
+  }
+]
+

@@ -1,0 +1,35 @@
+{
+  "steps": [
+    { "cli": ["render", "calc.wtf", "--format", "text"] },
+    { "cli": ["query", "calc.wtf", "cells | select {title, line, value}", "--json"] },
+    { "cli": ["query", "calc.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "calc.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "calc.wtf" },
+        { "request": "textDocument/hover", "file": "calc.wtf", "line": 6, "character": 11 },
+        {
+          "request": "textDocument/references",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 7,
+          "extra": { "context": { "includeDeclaration": true } }
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "calc.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        }
+      ]
+    },
+    { "cli": ["query", "wrong.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "wrong.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "wrong.wtf" }
+      ]
+    },
+    { "cli": ["query", "unknown.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "empty.wtf", "diagnostics | select {line, severity, code, message}", "--json"] }
+  ]
+}

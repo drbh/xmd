@@ -1,0 +1,77 @@
+{
+  "steps": [
+    { "cli": ["render", "groceries.wtf", "--format", "text"] },
+    { "cli": ["query", "groceries.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "groceries.wtf", "tables | select {name, display}", "--json"] },
+    { "cli": ["query", "groceries.wtf", "rows | select {table, line, cells}", "--json"] },
+    { "cli": ["query", "groceries.wtf", "cells | select {title, line, value}", "--json"] },
+    { "cli": ["query", "groceries.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "groceries.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "groceries.wtf" },
+        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 6, "character": 2 },
+        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 1, "character": 21 },
+        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 3, "character": 15 },
+        { "request": "textDocument/documentSymbol", "file": "groceries.wtf" },
+        {
+          "change": {
+            "file": "groceries.wtf",
+            "text": "[groceries] := table\n| item | quantity | price |\n| --- | --- | --- |\n| apple | 2 | $3.30 |\n| pear | 5 | $4.30 |\n| peach | 1 | $2.00 |\n\n[total] := sum(groceries, quantity * price)\n[units] := sum(groceries, quantity)\n[average] := total / units\nCost [total].\n"
+          }
+        },
+        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 7, "character": 2 }
+      ]
+    },
+    { "cli": ["render", "scoped.wtf", "--format", "text"] },
+    { "cli": ["query", "scoped.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "scoped.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "scoped.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "scoped.wtf" },
+        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 13, "character": 38 },
+        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 13, "character": 2 },
+        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 18, "character": 33 },
+        {
+          "request": "textDocument/rename",
+          "file": "scoped.wtf",
+          "line": 1,
+          "character": 21,
+          "extra": { "newName": "quantity" }
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "scoped.wtf",
+          "line": 1,
+          "character": 21,
+          "extra": { "newName": "true" }
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "scoped.wtf",
+          "line": 1,
+          "character": 21,
+          "extra": { "newName": "unit_price" }
+        }
+      ]
+    },
+    { "cli": ["render", "alias.wtf", "--format", "text"] },
+    { "cli": ["query", "alias.wtf", "values | select {name, display}", "--json"] },
+    {
+      "lsp": [
+        { "open": "alias.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "alias.wtf" },
+        { "request": "textDocument/definition", "file": "alias.wtf", "line": 1, "character": 33 },
+        { "request": "textDocument/hover", "file": "alias.wtf", "line": 1, "character": 33 }
+      ]
+    },
+    {
+      "lsp": [
+        { "open": "partial.wtf" },
+        { "request": "textDocument/completion", "file": "partial.wtf", "line": 6, "character": 39 },
+        { "request": "textDocument/signatureHelp", "file": "partial.wtf", "line": 6, "character": 39 }
+      ]
+    }
+  ]
+}

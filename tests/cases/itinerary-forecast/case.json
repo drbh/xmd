@@ -1,0 +1,27 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    { "cli": ["render", "trip.wtf", "--format", "text"] },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast})",
+        "--json"
+      ]
+    },
+    { "cli": ["query", "trip.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "trip.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "trip.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "trip.wtf" },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "trip.wtf",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 20, "character": 0 } }
+        }
+      ]
+    }
+  ]
+}

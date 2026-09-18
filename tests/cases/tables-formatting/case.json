@@ -1,0 +1,51 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        { "open": "ragged.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "ragged.wtf" },
+        {
+          "request": "textDocument/formatting",
+          "file": "ragged.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "ragged.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        },
+        { "open": "ragged-ontype.wtf" },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "ragged-ontype.wtf",
+          "line": 4,
+          "character": 10,
+          "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        }
+      ]
+    },
+    {
+      "lsp": [
+        { "open": "crlf.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "crlf.wtf" },
+        {
+          "request": "textDocument/formatting",
+          "file": "crlf.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "crlf.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        }
+      ]
+    },
+    { "cli": ["query", "crlf.wtf", "sum(t, n)", "--json"] },
+    { "cli": ["query", "crlf.wtf", "tables | select {name, display}", "--json"] },
+    { "cli": ["query", "inert.wtf", "tables | select {name, display}", "--json"] },
+    { "cli": ["render", "inert.wtf", "--format", "text"] }
+  ]
+}

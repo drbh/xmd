@@ -31,4 +31,4 @@ migrations_dir = "migrations"
 # configured. The AUD tag is on the application's page in Zero Trust, and also
 # appears as `kid`/`aud` in the login redirect for the hostname.
 ACCESS_TEAM_DOMAIN = "drbh.cloudflareaccess.com"
-ACCESS_AUD = "c73995dc56687b4e81889766b268984df36e415a97d85f7f93ea4a89a0dc3ef5"
+ACCESS_AUD = "8f3623199c0d1ee9ab946c638bb9cb63b9b8dbfcbdd1b69ff352b58afa7834a2"

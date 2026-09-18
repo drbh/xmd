@@ -372,3 +372,50 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
     assert_eq!(bad["ok"], false);
     assert!(bad["error"].as_str().unwrap().contains("Unclosed"));
 }
+
+#[test]
+fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
+    let source = "# Review\n[focus] := countdown(2s)\n- [ ] Ship @timer(focus) @due(tomorrow)\n[https://github.com/acme/app/pull/42]:pr\nSee [pr] and https://github.com/acme/app/pull/42.\n[total] := 3 + 4\nTotal [total].\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 7);
+    let path = std::path::Path::new("/workspace/trip.wtf");
+    let ws = wtf::workspace::Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+    };
+    let now = chrono::DateTime::parse_from_rfc3339(NOW).unwrap();
+    let expected = wtf::inlays::collect(
+        &mut wtf::engine::Engine::at(&ws, now),
+        path,
+        lsp_types::Range::new(
+            lsp_types::Position::new(0, 0),
+            lsp_types::Position::new(u32::MAX, 0),
+        ),
+        wtf::inlay_providers::BUILTINS,
+    );
+    let result = request(&mut browser, "analyze", json!({"uri":URI}));
+    assert_eq!(result["version"], 7);
+    assert_eq!(
+        result["hints"],
+        serde_json::to_value(&expected.hints).unwrap()
+    );
+    assert_eq!(result["live"], expected.time_dependent);
+    assert_eq!(
+        result["hints"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|hint| hint["label"] == "◌ PR #42 · refresh for status")
+            .count(),
+        3
+    );
+    assert!(
+        result["lenses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|lens| lens["command"]["command"] != "wtf.refreshResource")
+    );
+}

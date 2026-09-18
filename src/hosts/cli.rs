@@ -56,7 +56,7 @@ pub enum Command {
         #[arg(long)]
         on: Option<NaiveDate>,
     },
-    /// Explicitly refresh cached GitHub status and external lookups.
+    /// Explicitly refresh cached resource status and external lookups.
     Refresh {
         #[arg(long, default_value = ".")]
         root: PathBuf,
@@ -115,7 +115,7 @@ pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
                 .map(|d| d.source.as_str())
                 .chain(doc.links.iter().map(|l| l.target.as_str()))
         })
-        .filter(|s| resources::github(s).is_some())
+        .filter(|s| crate::link_features::BUILTINS.refresh_request(s).is_some())
         .map(str::to_owned)
         .collect();
     let mut errors = Vec::new();
@@ -246,7 +246,10 @@ pub async fn run(command: Command) -> Result<(), String> {
             if !errors.is_empty() {
                 return Err(errors.join("\n"));
             }
-            println!("GitHub cache updated ({} resources)", workspace.cache.len());
+            println!(
+                "Resource cache updated ({} resources)",
+                workspace.cache.len()
+            );
             Ok(())
         }
         Command::Convert {

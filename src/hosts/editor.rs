@@ -532,7 +532,7 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let now = Local::now().fixed_offset();
-        if let Some(hover) = crate::intelligence::link_hover(ws, &path, at.position) {
+        if let Some(hover) = crate::intelligence::link_hover_at(ws, &path, at.position, now) {
             return Ok(Some(hover));
         }
         if let Some(hover) = crate::intelligence::cell_hover(ws, &path, at.position) {
@@ -1019,7 +1019,7 @@ impl LanguageServer for Backend {
                             MessageType::WARNING
                         },
                         if errors.is_empty() {
-                            "GitHub status and lookups refreshed".into()
+                            "Resource status and lookups refreshed".into()
                         } else {
                             errors.join("\n")
                         },

@@ -882,6 +882,7 @@ pub struct Engine<'a> {
     pub today: NaiveDate,
     pub now: DateTime<FixedOffset>,
     pub time_dependent: bool,
+    link_features: crate::link_features::LinkFeatures<'a>,
     pub failure: Option<EvalFailure>,
     contexts: Vec<(PathBuf, Span)>,
     memo: BTreeMap<Symbol, Result<Value, String>>,
@@ -924,6 +925,7 @@ impl<'a> Engine<'a> {
             today: now.with_timezone(&Local).date_naive(),
             now,
             time_dependent: false,
+            link_features: crate::link_features::BUILTINS,
             failure: None,
             contexts: Vec::new(),
             memo: BTreeMap::new(),
@@ -934,6 +936,15 @@ impl<'a> Engine<'a> {
             linear_stack: Vec::new(),
             steps: 0,
         }
+    }
+    pub fn link_features(&self) -> crate::link_features::LinkFeatures<'a> {
+        self.link_features
+    }
+    /// Override the registry for an embedded host or test before evaluation begins.
+    pub fn with_link_features(mut self, features: crate::link_features::LinkFeatures<'a>) -> Self {
+        self.link_features = features;
+        self.memo.clear();
+        self
     }
     pub fn eval(&mut self, path: &Path, expression: &str) -> Result<Value, String> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
@@ -1468,25 +1479,17 @@ impl<'a> Engine<'a> {
                                     .unwrap_or(false),
                             ));
                         }
-                        let m = self
-                            .workspace
-                            .cache
-                            .get(&resource.target)
-                            .ok_or("No cached GitHub status; run wtf refresh")?;
-                        match key.as_str() {
-                            "merged" => m
-                                .merged
-                                .map(Value::Bool)
-                                .ok_or("merged is only available on pull requests".into()),
-                            "state" => Ok(Value::Text(m.state.clone())),
-                            "title" => Ok(Value::Text(m.title.clone())),
-                            "checks_passed" => m
-                                .checks
-                                .as_ref()
-                                .map(|c| Value::Bool(c == "passing"))
-                                .ok_or("No checks reported".into()),
-                            _ => Err(format!("Unknown resource property '{key}'")),
-                        }
+                        self.time_dependent |= self.link_features.time_dependent(
+                            &resource.target,
+                            &self.workspace.cache,
+                            self.now.to_utc(),
+                        );
+                        self.link_features.property(
+                            &resource.target,
+                            &self.workspace.cache,
+                            self.now.to_utc(),
+                            key,
+                        )
                     }
                     _ => Err("Only resource and timer values have properties".into()),
                 }

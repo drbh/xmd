@@ -48,11 +48,8 @@ impl InlayFeature for DefinitionInlays {
                 path: path.to_path_buf(),
                 kind: SymbolKind::Definition(i),
             }) {
-                Ok(Value::Resource(resource)) => push(
-                    def.end.range(&doc.text).start,
-                    resource.label(&workspace.cache, engine.now.to_utc()),
-                    resource.hover(path, &workspace.cache),
-                ),
+                // Resource values are rendered by the LinkInlays adapter.
+                Ok(Value::Resource(_)) => {}
                 Ok(value) if def.expression => push(
                     def.end.range(&doc.text).start,
                     match &value {
@@ -97,13 +94,14 @@ impl InlayFeature for DefinitionInlays {
                         }
                         value => format!("= {}", value.display()),
                     },
-                    crate::intelligence::hover(
+                    crate::intelligence::hover_with_links(
                         workspace,
                         &Symbol {
                             path: path.into(),
                             kind: SymbolKind::Definition(i),
                         },
                         engine.now,
+                        engine.link_features(),
                     ),
                 ),
                 _ => {}
@@ -497,10 +495,6 @@ impl InlayFeature for ReferenceInlays {
         let mut push = |position, label, tooltip| output.push(position, label, tooltip);
         for reference in doc.references.iter().filter(|r| r.bracket) {
             if let Ok(value) = engine.eval(path, &reference.expression()) {
-                let target = workspace
-                    .resolve(path, &reference.name)
-                    .map(|s| s.path)
-                    .unwrap_or_else(|_| path.into());
                 let end = reference.end()
                     + doc.line(reference.span.line)[reference.end()..]
                         .find(']')
@@ -510,11 +504,7 @@ impl InlayFeature for ReferenceInlays {
                     .range(&doc.text)
                     .start;
                 match value {
-                    Value::Resource(resource) => push(
-                        after,
-                        resource.label(&workspace.cache, engine.now.to_utc()),
-                        resource.hover(&target, &workspace.cache),
-                    ),
+                    Value::Resource(_) => {}
                     Value::Timer(timer) => push(
                         after,
                         timer_label(&timer),
@@ -527,7 +517,12 @@ impl InlayFeature for ReferenceInlays {
                         let tooltip = workspace
                             .resolve(path, &reference.name)
                             .map(|symbol| {
-                                crate::intelligence::hover(workspace, &symbol, engine.now)
+                                crate::intelligence::hover_with_links(
+                                    workspace,
+                                    &symbol,
+                                    engine.now,
+                                    engine.link_features(),
+                                )
                             })
                             .unwrap_or_else(|_| reference.expression());
                         push(after, value.display(), tooltip);
@@ -538,6 +533,8 @@ impl InlayFeature for ReferenceInlays {
     }
 }
 
+/// Adapts URL semantics to prose links, definitions and references in the shared pipeline.
+/// Providers need no knowledge of definitions, references, UTF-16 or editor hosts.
 pub struct LinkInlays;
 impl InlayFeature for LinkInlays {
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
@@ -545,21 +542,46 @@ impl InlayFeature for LinkInlays {
         let workspace = engine.workspace;
         let path = context.path;
         let doc = context.document;
-        let mut push = |position, label, tooltip| output.push(position, label, tooltip);
-        // Raw and Markdown links to GitHub get the same status badge as named resources.
-        for link in &doc.links {
-            if crate::resources::github(&link.target).is_none() {
-                continue;
+        let now = engine.now.to_utc();
+        let features = engine.link_features();
+        let mut time_dependent = false;
+        let mut push = |resource: &crate::resources::Resource, position, only_known| {
+            let view = resource.presentation(path, &workspace.cache, now, features);
+            if only_known && !view.known_link {
+                return;
             }
+            time_dependent |= view.time_dependent;
+            output.push(position, view.label, view.hover);
+        };
+        for (i, def) in doc.definitions.iter().enumerate() {
+            if let Ok(Value::Resource(resource)) = engine.symbol(&Symbol {
+                path: path.into(),
+                kind: SymbolKind::Definition(i),
+            }) {
+                push(&resource, def.end.range(&doc.text).start, false);
+            }
+        }
+        for reference in doc.references.iter().filter(|r| r.bracket) {
+            if let Ok(Value::Resource(resource)) = engine.eval(path, &reference.expression()) {
+                let end = reference.end()
+                    + doc.line(reference.span.line)[reference.end()..]
+                        .find(']')
+                        .unwrap_or(0)
+                    + 1;
+                let position = Span::new(reference.span.line, end, end)
+                    .range(&doc.text)
+                    .start;
+                push(&resource, position, false);
+            }
+        }
+        // Prose links get badges only when a provider recognizes them.
+        for link in &doc.links {
             let resource = crate::resources::Resource {
                 target: link.target.clone(),
                 origin: Some(path.into()),
             };
-            push(
-                link.span.range(&doc.text).end,
-                resource.label(&workspace.cache, engine.now.to_utc()),
-                resource.hover(path, &workspace.cache),
-            );
+            push(&resource, link.span.range(&doc.text).end, true);
         }
+        engine.time_dependent |= time_dependent;
     }
 }

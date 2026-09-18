@@ -3,7 +3,9 @@
 //! vocabulary every label draws from.
 pub mod charts;
 pub mod engine;
+pub mod github;
 pub mod glyphs;
+pub mod link_features;
 pub mod lookups;
 pub mod plans;
 pub mod resources;

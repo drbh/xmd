@@ -222,7 +222,7 @@ impl BrowserWorkspace {
             }
             "signature" => serialized(intelligence::signature(doc, position()?)),
             "hover" => {
-                if let Some(hover) = intelligence::link_hover(ws, &path, position()?) {
+                if let Some(hover) = intelligence::link_hover_at(ws, &path, position()?, now) {
                     return serialized(hover);
                 }
                 if let Some(hover) = intelligence::cell_hover(ws, &path, position()?) {

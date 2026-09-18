@@ -1,7 +1,7 @@
 use crate::{
     actions,
     engine::{Engine, Value},
-    resources::{self, Resource},
+    resources::Resource,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset};
@@ -142,9 +142,9 @@ pub fn row_commands(
             command: "wtf.openResource".into(),
             arguments: Some(args.clone()),
         });
-        if resources::github(&resource.target).is_some() {
+        if let Some(request) = crate::link_features::BUILTINS.refresh_request(&resource.target) {
             result.push(Command {
-                title: "Refresh GitHub status".into(),
+                title: request.title.into(),
                 command: "wtf.refreshResource".into(),
                 arguments: Some(args),
             });

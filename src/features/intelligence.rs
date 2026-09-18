@@ -16,6 +16,14 @@ pub fn markup(value: String) -> MarkupContent {
     }
 }
 pub fn link_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
+    link_hover_at(ws, path, position, chrono::Utc::now().fixed_offset())
+}
+pub fn link_hover_at(
+    ws: &Workspace,
+    path: &Path,
+    position: Position,
+    now: DateTime<FixedOffset>,
+) -> Option<Hover> {
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let link = doc.links.iter().find(|l| {
@@ -26,7 +34,7 @@ pub fn link_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hov
         origin: None,
     };
     Some(Hover {
-        contents: HoverContents::Markup(markup(resource.hover(path, &ws.cache))),
+        contents: HoverContents::Markup(markup(resource.hover_at(path, &ws.cache, now.to_utc()))),
         range: Some(link.span.range(&doc.text)),
     })
 }
@@ -429,12 +437,8 @@ pub fn property_names(value: &Value) -> Vec<String> {
         }
         Value::Resource(r) => {
             let mut names = vec!["url"];
-            if let Some((_, kind, _)) = resources::github(&r.target) {
-                names.extend(["title", "state"]);
-                if kind == "pull" {
-                    names.extend(["merged", "checks_passed"]);
-                }
-            } else if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
+            names.extend(crate::link_features::BUILTINS.property_names(&r.target));
+            if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
                 names.push("exists");
             }
             names
@@ -761,7 +765,15 @@ pub fn stop_hover(
     })
 }
 pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
-    let mut engine = Engine::at(ws, now);
+    hover_with_links(ws, symbol, now, crate::link_features::BUILTINS)
+}
+pub(crate) fn hover_with_links(
+    ws: &Workspace,
+    symbol: &Symbol,
+    now: DateTime<FixedOffset>,
+    features: crate::link_features::LinkFeatures<'_>,
+) -> String {
+    let mut engine = Engine::at(ws, now).with_link_features(features);
     let named = ws.named(symbol);
     if let SymbolKind::Column(t, c) = symbol.kind {
         let doc = &ws.documents[&symbol.path];
@@ -977,9 +989,11 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
         }
     }
     match value {
-        Ok(Value::Resource(r)) => {
-            out.push_str(&format!("\n\n{}", r.hover(&symbol.path, &ws.cache)))
-        }
+        Ok(Value::Resource(r)) => out.push_str(&format!(
+            "\n\n{}",
+            r.presentation(&symbol.path, &ws.cache, now.to_utc(), features)
+                .hover
+        )),
         Ok(Value::Timer(t)) => {
             if let Some(limit) = t.limit {
                 out.push_str(&format!(

@@ -1,7 +1,7 @@
+use crate::link_features::{self, LinkFeatures};
 use chrono::{DateTime, Utc};
 use lsp_types::Url;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -22,6 +22,14 @@ pub struct Metadata {
     pub fetched_at: DateTime<Utc>,
 }
 pub type Cache = BTreeMap<String, Metadata>;
+
+/// Common presentation for a URL or local resource in any syntactic position.
+pub struct ResourcePresentation {
+    pub label: String,
+    pub hover: String,
+    pub known_link: bool,
+    pub time_dependent: bool,
+}
 
 impl Resource {
     pub fn parse(s: &str) -> Option<Self> {
@@ -104,36 +112,56 @@ impl Resource {
             .iter()
             .any(|e| target.ends_with(e))
     }
-    /// The inline status shown next to a resource: cached GitHub state with
-    /// its age, or what kind of thing the link opens.
+    /// Resolve provider semantics once for both the inline label and tooltip.
+    pub fn presentation(
+        &self,
+        document: &Path,
+        cache: &Cache,
+        now: DateTime<Utc>,
+        features: LinkFeatures<'_>,
+    ) -> ResourcePresentation {
+        let known = features.presentation(&self.target, cache, now);
+        let label = known
+            .as_ref()
+            .map(|p| p.label.clone())
+            .unwrap_or_else(|| self.fallback_label());
+        let mut hover = self.open_hover(document);
+        if let Some(details) = known.as_ref().and_then(|p| p.hover.as_ref()) {
+            hover.push_str("\n\n");
+            hover.push_str(details);
+        }
+        ResourcePresentation {
+            label,
+            hover,
+            known_link: known.is_some(),
+            time_dependent: known.is_some_and(|p| p.time_dependent),
+        }
+    }
     pub fn label(&self, cache: &Cache, now: DateTime<Utc>) -> String {
-        if let Some(m) = cache.get(&self.target) {
-            return m.badge(now);
-        }
+        link_features::BUILTINS
+            .presentation(&self.target, cache, now)
+            .map(|p| p.label)
+            .unwrap_or_else(|| self.fallback_label())
+    }
+    fn fallback_label(&self) -> String {
         if self.target.starts_with("geo:") {
-            return "place · open map".into();
-        }
-        if let Some((_, kind, number)) = github(&self.target) {
-            return format!(
-                "{} {} · refresh for status",
-                crate::glyphs::PENDING,
-                match kind.as_str() {
-                    "pull" => format!("PR #{number}"),
-                    "issues" => format!("issue #{number}"),
-                    _ => format!("commit {}", &number[..number.len().min(7)]),
-                }
-            );
-        }
-        if self.is_image() {
-            return "image · open preview".into();
-        }
-        if self.target.starts_with("http") {
+            "place · open map".into()
+        } else if self.is_image() {
+            "image · open preview".into()
+        } else if self.target.starts_with("http") {
             "link".into()
         } else {
             "file".into()
         }
     }
     pub fn hover(&self, document: &Path, cache: &Cache) -> String {
+        self.hover_at(document, cache, Utc::now())
+    }
+    pub fn hover_at(&self, document: &Path, cache: &Cache, now: DateTime<Utc>) -> String {
+        self.presentation(document, cache, now, link_features::BUILTINS)
+            .hover
+    }
+    fn open_hover(&self, document: &Path) -> String {
         let mut out = match self.url(document) {
             Ok(url) => format!(
                 "[Open {}](<{}>)",
@@ -150,19 +178,6 @@ impl Resource {
             && let Ok(url) = self.url(document)
         {
             out.push_str(&format!("\n\n![Preview](<{url}>)"));
-        }
-        if let Some(m) = cache.get(&self.target) {
-            out.push_str(&format!(
-                "\n\n**{}**\n\n{}\n\nLast refreshed: {}. Use **Refresh GitHub status** to update.",
-                m.title,
-                m.summary(),
-                m.fetched_at.to_rfc3339()
-            ));
-        } else if github(&self.target).is_some() {
-            #[cfg(target_arch = "wasm32")]
-            out.push_str("\n\nGitHub status refresh is available in the native WTF app, not this browser workspace.");
-            #[cfg(not(target_arch = "wasm32"))]
-            out.push_str("\n\nNo cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).");
         }
         out
     }
@@ -313,82 +328,8 @@ pub fn ago(from: DateTime<Utc>, now: DateTime<Utc>) -> String {
         s => format!("{}w ago", s / (7 * 86_400)),
     }
 }
-impl Metadata {
-    /// A compact, scannable status: `✓ merged · ● checks · ✓ approved · 2h ago`.
-    /// Failing checks and requested changes shout in caps; stale caches say so.
-    pub fn badge(&self, now: DateTime<Utc>) -> String {
-        use crate::glyphs::*;
-        let state = match self.state.as_str() {
-            "merged" => format!("{DONE} merged"),
-            "open" => format!("{OFF} open"),
-            "draft" => format!("{HALF} draft"),
-            "closed" => format!("{FAIL} closed"),
-            other => other.to_string(),
-        };
-        let mut parts = vec![state];
-        if let Some(checks) = &self.checks {
-            parts.push(match checks.as_str() {
-                "passing" => format!("{ON} checks"),
-                "failing" => format!("{FAIL} checks FAILING"),
-                _ => format!("{PENDING} checks pending"),
-            });
-        }
-        if let Some(review) = &self.review
-            && !review.is_empty()
-        {
-            parts.push(match review.as_str() {
-                "APPROVED" => format!("{DONE} approved"),
-                "CHANGES_REQUESTED" => format!("{FLAG} CHANGES REQUESTED"),
-                "REVIEW_REQUIRED" => format!("{FLAG} review needed"),
-                other => other.to_lowercase().replace('_', " "),
-            });
-        }
-        let age = ago(self.fetched_at, now);
-        parts.push(if (now - self.fetched_at).num_days() >= 7 {
-            format!("{ALERT} stale · {age}")
-        } else {
-            age
-        });
-        parts.join(" · ")
-    }
-    pub fn summary(&self) -> String {
-        let mut s = self.state.clone();
-        if let Some(checks) = &self.checks {
-            s.push_str(&format!(" · checks {checks}"));
-        }
-        if let Some(review) = &self.review
-            && !review.is_empty()
-        {
-            s.push_str(&format!(" · {}", review.to_lowercase().replace('_', " ")));
-        }
-        // Always identify cached information; never suggest it is a fresh remote observation.
-        s.push_str(&format!(
-            " · cached {}",
-            self.fetched_at.format("%Y-%m-%d %H:%M UTC")
-        ));
-        s
-    }
-}
-pub fn github(target: &str) -> Option<(String, String, String)> {
-    let url = Url::parse(target).ok()?;
-    if url.scheme() != "https" || url.host_str() != Some("github.com") {
-        return None;
-    }
-    let p: Vec<_> = url.path_segments()?.filter(|s| !s.is_empty()).collect();
-    if p.len() != 4 || !matches!(p[2], "pull" | "issues" | "commit") {
-        return None;
-    }
-    if !p.iter().all(|s| {
-        s.bytes()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_' | b'.'))
-    }) {
-        return None;
-    }
-    if p[2] != "commit" && !p[3].bytes().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    Some((format!("{}/{}", p[0], p[1]), p[2].into(), p[3].into()))
-}
+// Preserve the existing public helpers while keeping GitHub semantics in its provider.
+pub use crate::github::{metadata, parse as github};
 #[cfg(feature = "native")]
 pub fn load_cache(root: &Path) -> Cache {
     std::fs::read(root.join(".wtf/cache.json"))
@@ -398,112 +339,5 @@ pub fn load_cache(root: &Path) -> Cache {
 }
 #[cfg(feature = "native")]
 pub async fn fetch(target: &str) -> Result<Metadata, String> {
-    let (repo, kind, id) = github(target).ok_or("Not a supported GitHub link")?;
-    let args = match kind.as_str() {
-        "pull" => vec![
-            "pr".into(),
-            "view".into(),
-            id,
-            "--repo".into(),
-            repo,
-            "--json".into(),
-            "title,state,isDraft,mergedAt,reviewDecision,statusCheckRollup".into(),
-        ],
-        "issues" => vec![
-            "issue".into(),
-            "view".into(),
-            id,
-            "--repo".into(),
-            repo,
-            "--json".into(),
-            "title,state".into(),
-        ],
-        _ => vec!["api".into(), format!("repos/{repo}/commits/{id}")],
-    };
-    let mut command = tokio::process::Command::new("gh");
-    command
-        .args(args)
-        .env("GH_PROMPT_DISABLED", "1")
-        .env("GH_NO_UPDATE_NOTIFIER", "1")
-        .kill_on_drop(true);
-    let output = tokio::time::timeout(std::time::Duration::from_secs(20), command.output())
-        .await
-        .map_err(|_| "GitHub request timed out")?
-        .map_err(|e| format!("Cannot run gh: {e}"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "gh failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
-    }
-    let data: Value = serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
-    metadata(&kind, &data, Utc::now())
-}
-pub fn metadata(kind: &str, data: &Value, now: DateTime<Utc>) -> Result<Metadata, String> {
-    let title = if kind == "commit" {
-        data["commit"]["message"].as_str()
-    } else {
-        data["title"].as_str()
-    }
-    .ok_or("Missing GitHub title")?
-    .lines()
-    .next()
-    .unwrap_or("")
-    .to_string();
-    let merged =
-        (kind == "pull").then(|| data["state"] == "MERGED" || data["mergedAt"].as_str().is_some());
-    let state = if kind == "commit" {
-        "commit".into()
-    } else if merged == Some(true) {
-        "merged".into()
-    } else if data["isDraft"] == true {
-        "draft".into()
-    } else {
-        data["state"].as_str().unwrap_or("unknown").to_lowercase()
-    };
-    let checks = data["statusCheckRollup"]
-        .as_array()
-        .filter(|a| !a.is_empty())
-        .map(|checks| {
-            let statuses: Vec<_> = checks
-                .iter()
-                .map(|c| {
-                    c["conclusion"]
-                        .as_str()
-                        .filter(|s| !s.is_empty())
-                        .or(c["state"].as_str())
-                        .unwrap_or("PENDING")
-                })
-                .collect();
-            if statuses.iter().any(|s| {
-                matches!(
-                    *s,
-                    "FAILURE"
-                        | "ERROR"
-                        | "CANCELLED"
-                        | "TIMED_OUT"
-                        | "ACTION_REQUIRED"
-                        | "STARTUP_FAILURE"
-                        | "STALE"
-                )
-            }) {
-                "failing"
-            } else if statuses
-                .iter()
-                .all(|s| matches!(*s, "SUCCESS" | "NEUTRAL" | "SKIPPED"))
-            {
-                "passing"
-            } else {
-                "pending"
-            }
-            .to_string()
-        });
-    Ok(Metadata {
-        title,
-        state,
-        merged,
-        checks,
-        review: data["reviewDecision"].as_str().map(str::to_owned),
-        fetched_at: now,
-    })
+    link_features::BUILTINS.fetch(target).await
 }

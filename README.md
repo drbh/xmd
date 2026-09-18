@@ -1,17 +1,17 @@
-# Jot
+# WTF, the written text format
 
 Plain-text notes with calculated values, checklists, timers, reusable links, and dates.
 The same Rust engine powers the language server and terminal commands.
 Use it in **Zed, VS Code, Neovim, or Helix**; see [editor setup](docs/editors.md)
 for the extension/configuration and a shared smoke test.
 
-Jot is **LSP-first**: language/editor features belong in the shared Rust core and
+WTF is **LSP-first**: language/editor features belong in the shared Rust core and
 native language server first. Browser clients consume the same LSP data and
 operations; they must not introduce browser-only language behavior.
 
 There is also a **browser-only, dark-mode editor**: vanilla HTML/JavaScript,
 CDN-loaded Monaco, and the same Rust engine compiled to WebAssembly in a worker.
-No native Jot process or language-server backend is needed. See [browser setup](web/README.md).
+No native WTF process or language-server backend is needed. See [browser setup](web/README.md).
 
 ```sh
 bash web/build.sh
@@ -21,33 +21,39 @@ node web/serve.mjs
 
 ## Try it
 
+Every feature has a short example note in [`examples/`](examples/README.md);
+open one in Zed or the browser editor and follow the comment at the end.
+[The WTF Book](book/README.md) inlines all of them as live blocks on one page:
+`node book/build.mjs && node web/serve.mjs`, then open
+http://127.0.0.1:4173/book/.
+
 ```sh
 cargo build
-./target/debug/jot today
-./target/debug/jot agenda --week
-./target/debug/jot tasks --tag errands --json
-./target/debug/jot check
-./target/debug/jot plan bakery
+./target/debug/wtf today
+./target/debug/wtf agenda --week
+./target/debug/wtf tasks --tag errands --json
+./target/debug/wtf check
+./target/debug/wtf plan bakery
 ```
 
-Open `jots/interactions.jot`, `jots/daily.jot`, or `jots/timers.jot` in Zed. If you already installed the dev
-extension, restart the Jot language server after rebuilding the binary. The
-extension uses `target/debug/jot` in the project root. To install it initially,
-use **Install Dev Extension** and choose `zed-extension`.
+Open `notes/interactions.wtf`, `notes/daily.wtf`, or `notes/timers.wtf` in Zed. If you already installed the dev
+extension, restart the WTF language server after rebuilding the binary. The
+extension uses `target/debug/wtf` in the project root. To install it initially,
+use **Install Dev Extension** and choose `ide/zed`.
 
-For notes in other projects, set `lsp.jot.binary.path` in your Zed user settings
-to this repository's absolute `target/debug/jot` path and `arguments` to `["lsp"]`.
+For notes in other projects, set `lsp.wtf.binary.path` in your Zed user settings
+to this repository's absolute `target/debug/wtf` path and `arguments` to `["lsp"]`.
 The extension honors that override and otherwise uses the project's debug build.
 
 Enable CodeLens and automatic signature help in your Zed user settings, alongside
-Jot's highlighting and inlay hints:
+WTF's highlighting and inlay hints:
 
 ```json
 {
   "code_lens": "on",
   "auto_signature_help": true,
   "languages": {
-    "Jot": {
+    "WTF": {
       "semantic_tokens": "full",
       "document_symbols": "on",
       "inlay_hints": { "enabled": true, "show_other_hints": true }
@@ -57,17 +63,40 @@ Jot's highlighting and inlay hints:
 ```
 
 `code_lens` and `auto_signature_help` are top-level, editor-wide settings, not
-Jot language overrides. CodeLens displays clickable labels above relevant lines.
+WTF language overrides. CodeLens displays clickable labels above relevant lines.
 Use `"code_lens": "menu"` if you prefer controls in the code actions menu.
 See [Zed's settings reference](https://zed.dev/docs/reference/all-settings#code-lens).
 
-`languages.Jot.document_symbols: "on"` makes Zed use Jot's LSP symbols for its
+`languages.WTF.document_symbols: "on"` makes Zed use WTF's LSP symbols for its
 outline and breadcrumbs instead of tree-sitter. After restarting the language
 server, open Zed's outline or Go to Symbol in Editor to navigate the note.
 
 Rebuild the dev extension after changing its language configuration or token
-rules. On macOS, `/usr/bin/jot` is an unrelated command; the examples deliberately
-use `./target/debug/jot` or `cargo run -- ...`.
+rules. On macOS, `/usr/bin/wtf` is an unrelated command; the examples deliberately
+use `./target/debug/wtf` or `cargo run -- ...`.
+
+## Symbols
+
+Every label the engine produces, in inlays, badges, hovers, the outline and the
+CLI, draws from one small vocabulary. Only glyphs that every monospace font
+covers and that have no emoji form, so Zed, VS Code, the terminal, the browser
+and the book show the same thing at the same width. No emoji, no icon font to
+install.
+
+| Glyph | Meaning | Seen on |
+| --- | --- | --- |
+| `✓` | done, merged, approved, passing | pull requests, reviews, finished timers |
+| `✗` | failed, closed | failing checks, closed pull requests |
+| `●` `○` `◐` `◌` | on, off, partial, pending | open and draft pull requests, checks, binding constraints and slack, timers |
+| `⚑` | needs a person | review needed, changes requested |
+| `!` | warning | overdue tasks, stale caches, passed cancellation deadlines |
+| `⊘` | blocked | tasks waiting on a dependency |
+| `→` | leads to | due dates, time until the next stop, counted decision cells |
+| `↻` | repeats | recurring tasks, layovers |
+| `◷` `◴` | countdown, stopwatch | timer labels |
+| `▸` `‖` | running, paused | timer state |
+| `☑` `☐` | chosen, not chosen | decision cells |
+| `█ ░` `▁▂▃▅▇` | gauges, sparklines | checklists, countdowns, columns, sums |
 
 ## Editor interactions
 
@@ -76,7 +105,7 @@ Three features ride on standard LSP requests that most editors already send:
 - **Plain-text charts.** Inlay hints, hovers and tooltips draw with Unicode
   blocks, so they render in any editor without image support. Checklist
   headings, parent tasks and countdowns carry a live gauge in their inlay
-  (`███░░░░░ 2/5 complete`, `⏳ ████░░░░ 12:00 remaining · running`); hovers
+  (`███░░░░░ 2/5 complete`, `◷ ████░░░░ 12:00 remaining · ▸ running`); hovers
   add the percentage (`████░░░░░░ 40%`). Numeric table columns and `sum(...)`
   row contributions show a sparkline with their range (`▁█▅ 2 → 6`).
 - **Format on type.** Typing the closing `|` of a table row realigns the whole
@@ -88,10 +117,10 @@ Three features ride on standard LSP requests that most editors already send:
 - **GitHub status badges.** Every link to a GitHub pull request, issue, or
   commit gets an inlay, whether it is a named resource, a Markdown link, or a
   bare URL in a task. With a cached status it reads
-  `merged · checks ok · approved · 2h ago`; failing checks and requested
+  `✓ merged · ● checks · ✓ approved · 2h ago`; failing checks and requested
   changes are in caps, and a cache older than a week says `stale`. Without one
-  it reads `PR #606 · refresh for status`. Hover for the title, and use the
-  Refresh GitHub status lens or `jot refresh` to update.
+  it reads `◌ PR #606 · refresh for status`. Hover for the title, and use the
+  Refresh GitHub status lens or `wtf refresh` to update.
 - **Currencies, weather, and quotes.** Money carries a currency: `$3`,
   `€450`, `£12`, `¥1000`, or `700 MXN`. Different currencies never add up
   silently; convert with `to(hotel, USD)`, or read the rate with
@@ -99,13 +128,13 @@ Three features ride on standard LSP requests that most editors already send:
   with `.high`, `.low`, `.summary` and `.rain` (add `F` for Fahrenheit), and
   itinerary days with a place show theirs in the day inlay. `quote(NVDA)` is
   the last price as money. Uppercase names such as `USD` or `NVDA` are codes,
-  not references. All of this reads a cache in `.jot/lookups.json` that only
-  `jot refresh` or the Refresh lookups lens fills, through keyless sources
+  not references. All of this reads a cache in `.wtf/lookups.json` that only
+  `wtf refresh` or the Refresh lookups lens fills, through keyless sources
   (frankfurter.dev for rates, open-meteo.com for weather, and Yahoo's
   unofficial chart endpoint for quotes) or commands
-  you name in `.jot/providers.json`, such as `{"quote": "my-quote {symbol}"}`
+  you name in `.wtf/providers.json`, such as `{"quote": "my-quote {symbol}"}`
   printing `{"price": 42.5, "currency": "EUR"}`. Hovers list every lookup a
-  value used with its age and source. See `jots/lookups.jot`.
+  value used with its age and source. See `notes/lookups.wtf`.
 - **Linear plans.** `[bakery] := maximize(3 * bagels + 1.25 * doughnuts)`
   followed by a `| constraint | expression |` table declares an optimization.
   Names no note defines are decision variables (never negative); every other
@@ -114,10 +143,21 @@ Three features ride on standard LSP requests that most editors already send:
   per-constraint usage with binding or slack; hovers add usage bars; infeasible
   or unbounded plans are diagnostics on the objective. `bakery.bagels` reads a
   variable and `bakery.flour` a constraint's slack. On the command line,
-  `jot plan bakery` prints the solution, `--export` writes an
+  `wtf plan bakery` prints the solution, `--export` writes an
   [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
-  prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
-  also runs in the browser. See `jots/plans.jot`.
+  prints WTF source. The solver is pure Rust (`good_lp` with `microlp`), so it
+  also runs in the browser. See `notes/plans.wtf`.
+- **Definitions without brackets.** A value followed by `:name` defines it:
+  `$3,000:budget`, `2026-11-20:departure`, `"Oaxaca City":city`,
+  `https://github.com/o/r/pull/1:pr`. A line starting with `name := expr`
+  is a calculation. Brackets still work and are the way to name text with
+  spaces; `\:` keeps a colon from defining anything. Times like `10:30am`
+  and prose like `note:budget` are left alone.
+- **Calculations in prose.** Brackets around an expression that reads a name
+  or calls a function, such as `[remaining / budget]` or `[today()]`, show the
+  result in place without defining anything. Bare literals like `[$25]` stay
+  prose. A line that is only math with its variables in brackets, such as
+  `[budget] - [spent]` or `2 + 2`, shows `= value` at the end of the line.
 - **Calculated cells.** A table cell in brackets is a calculation, just like
   `[cash]` in prose: `| bulk | [unit * qty] |` reads named values from any note
   and shows its result as an inlay. Columns keep one type, and a calculated
@@ -150,9 +190,9 @@ Three features ride on standard LSP requests that most editors already send:
   a departure), `Cancel by: 24h before`
   or a datetime shows the deadline, `Address:` lines open in Maps, the outline
   lists days and stops, days and stops fold, completion offers stop kinds
-  after a time and detail keys inside a stop, and `jot agenda` includes stops.
+  after a time and detail keys inside a stop, and `wtf agenda` includes stops.
   Diagnostics catch a weekday that does not match the date, days out of order,
-  stops out of order, and impossible dates. See `jots/oaxaca.jot`.
+  stops out of order, and impossible dates. See `notes/oaxaca.wtf`.
 - **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
   column, task, or checklist as a node. *Incoming calls* list everything that
   reads it (calculations, `@after`, `@estimate`, parent tasks, checklists);
@@ -160,7 +200,7 @@ Three features ride on standard LSP requests that most editors already send:
   Hierarchy tree; Zed does not expose call hierarchy yet.
 
 
-Open `jots/interactions.jot` to try these without changing any language syntax:
+Open `notes/interactions.wtf` to try these without changing any language syntax:
 
 - **Semantic highlighting.** Shared Rust tokens distinguish function calls, bold
   declarations, table columns, money, dates, durations, percentages, and metadata.
@@ -172,9 +212,9 @@ Open `jots/interactions.jot` to try these without changing any language syntax:
   pink/cyan. This is highlighting only: prose does not create symbols or schedule
   tasks, and calculations still use ISO date syntax. Code/comments, links, and
   identifiers keep their own colors. The Zed extension supplies a
-  Jot-only dark palette (without replacing your editor theme); the browser uses
+  WTF-only dark palette (without replacing your editor theme); the browser uses
   the same colors and fetches its token legend from Rust. Rebuild the dev extension
-  and restart the Jot language server to load new token rules.
+  and restart the WTF language server to load new token rules.
 - **Document symbols.** Standard `textDocument/documentSymbol` supplies nested
   headings, tasks/subtasks, named literals, calculations, timers, and events.
   Definitions include their evaluated type/value in `detail`; task details show
@@ -210,11 +250,11 @@ Open `jots/interactions.jot` to try these without changing any language syntax:
 - **Actionable diagnostics.** Errors point at offending operands; unknown names
   offer nearby-name corrections and an explicit TODO definition. Ambiguous names
   and dependency cycles link to relevant declarations. While editing incomplete
-  expressions, their errors and dependent cascades are suppressed; `jot check`
+  expressions, their errors and dependent cascades are suppressed; `wtf check`
   remains strict. Clock-dependent diagnostics update without typing. Timer
   controls refresh at expiry, and ticking never rewrites source.
 
-These use standard LSP requests; no Jot-specific document viewer is required.
+These use standard LSP requests; no WTF-specific document viewer is required.
 Editor support determines presentation. All source changes go through undoable
 workspace edits, with document versions attached for open buffers. Opening or
 hovering a GitHub resource never fetches metadata; refresh remains explicit.
@@ -258,11 +298,11 @@ percentages. Ordinary numeric division stays numeric. Durations use `s`, `m`, `h
 `d`, or `w` and are stored as whole seconds. Fractional units such as `0.5m` are
 accepted when they resolve to whole seconds. Strings use double quotes inside
 expressions. Markdown links, images, inline code, fenced code, and HTML comments
-are distinguished from Jot names. Example syntax inside code/comments is inert.
+are distinguished from WTF names. Example syntax inside code/comments is inert.
 
 ## Computational tables
 
-Open `jots/tables.jot` to try a table with named columns and row-wise sums:
+Open `notes/tables.wtf` to try a table with named columns and row-wise sums:
 
 ```text
 [groceries] := table
@@ -307,7 +347,7 @@ files never receive calculated results unless you explicitly apply a refactoring
   scope are not offered. Very expensive nested calculations have a step limit.
 
 These are shared engine/LSP features. Reload the browser after rebuilding Wasm
-and import `jots/tables.jot` to use the same features there, including undoable
+and import `notes/tables.wtf` to use the same features there, including undoable
 Format Document. Existing browser-saved notes are not replaced.
 
 ## Stopwatches and countdowns
@@ -406,10 +446,10 @@ comments stay inert. Relative paths are based on the containing note; `~/`
 resolves to your home directory in the native editor.
 
 The browser uses the same Rust document links and can navigate to imported
-`.jot` files or open HTTP(S) URLs. It cannot read arbitrary local files or expand
-your home directory. Try `jots/highlighting.jot` for the full palette and links.
+`.wtf` files or open HTTP(S) URLs. It cannot read arbitrary local files or expand
+your home directory. Try `notes/highlighting.wtf` for the full palette and links.
 
-The workspace indexes `.jot` files recursively, respects ignore files, and skips
+The workspace indexes `.wtf` files recursively, respects ignore files, and skips
 hidden/build directories and symlinks. Open editor buffers override disk content.
 Names resolve in the current file first, then to a unique workspace definition.
 Ambiguous names are reported; there are no implicit namespace guesses. Completion,
@@ -421,7 +461,7 @@ dependencies and date formulas. Duplicate target names are rejected by rename.
 Install/authenticate the GitHub CLI (`gh`), then run:
 
 ```sh
-./target/debug/jot refresh
+./target/debug/wtf refresh
 ```
 
 Or use **Refresh GitHub status** on a resource's CodeLens or code actions to
@@ -429,7 +469,7 @@ refresh just that resource. The CLI refreshes all indexed GitHub resources. This
 GitHub; it never merges PRs or changes issues. It supports GitHub.com PRs, issues,
 and commits. PRs expose title, state, merged status, reviews, and check summaries.
 Links show the cache timestamp. Failed refreshes preserve the previous cache;
-missing checks are unknown, not passing. The ignored `.jot/cache.json` contains
+missing checks are unknown, not passing. The ignored `.wtf/cache.json` contains
 cached metadata and timestamps, never credentials. Remote status does not update
 until you explicitly refresh it again.
 
@@ -467,9 +507,9 @@ occurrence, strictly after today. `date("next Friday")` is an explicitly dynamic
 expression.
 
 Recurrence supports `day`, `week`, `month`, `year`, or whole-day durations such
-as `2w`. Complete it through a code action or `jot complete`: the task remains
+as `2w`. Complete it through a code action or `wtf complete`: the task remains
 unchecked, its due date advances past the completed occurrence, and an HTML
-`jot-history` comment records the title, completion date, original due date, and
+`wtf-history` comment records the title, completion date, original due date, and
 next date. `@repeat_from` preserves the recurrence anchor, including month-end
 behavior (January 31 → February 28 → March 31). Missed instances advance to the
 next future occurrence rather than creating a backlog. Recurrence on parent tasks
@@ -477,13 +517,13 @@ is rejected; complete recurring leaves individually. Hand-editing `[x]` does not
 run recurrence/history actions.
 
 ```sh
-./target/debug/jot today
-./target/debug/jot agenda --week
-./target/debug/jot tasks --tag errands --json
-./target/debug/jot tasks --all
-./target/debug/jot capture "Call the dentist" --due "next Friday" --tag errands
-./target/debug/jot capture "Review notes" --journal
-./target/debug/jot complete inbox.jot:1
+./target/debug/wtf today
+./target/debug/wtf agenda --week
+./target/debug/wtf tasks --tag errands --json
+./target/debug/wtf tasks --all
+./target/debug/wtf capture "Call the dentist" --due "next Friday" --tag errands
+./target/debug/wtf capture "Review notes" --journal
+./target/debug/wtf complete inbox.wtf:1
 ```
 
 All commands accept `--root PATH`. Agenda/task commands also accept `--on
@@ -497,11 +537,29 @@ completed leaves. Results contain source paths and one-based line numbers; JSON
 includes URI, dates, tags, estimates, blocked reasons, and evaluation errors.
 JSON includes exact `estimate_seconds` and `estimate_minutes` (which can be fractional).
 
-**Show today's agenda** in Zed opens a generated `.jot/today.md` with links back
+**Show today's agenda** in Zed opens a generated `.wtf/today.md` with links back
 to source notes. Re-run the action to refresh the view. Capture appends to
-`inbox.jot`, `--journal` uses `journal/YYYY-MM-DD.jot`, and `--file` chooses a note.
+`inbox.wtf`, `--journal` uses `journal/YYYY-MM-DD.wtf`, and `--file` chooses a note.
 CLI commands read saved files, so save editor changes before completing tasks
 from the terminal. Editor actions use versioned edits against the live buffer.
+
+## Layout
+
+```
+src/
+  model/      what a note is: document (parser), workspace, paths, tables, itinerary
+  evaluate/   what it computes: engine, timers, resources, lookups, plans, charts, glyphs
+  features/   what an editor shows and does: intelligence, presentation, diagnostics,
+              symbols, highlighting, prose, hierarchy, refactor, actions, interaction, typing
+  hosts/      how it is delivered: editor (LSP over stdio), browser (WebAssembly), cli
+ide/          editor integrations: zed, vscode, neovim, helix
+web/          the browser editor; book/ the guide; examples/ one note per feature
+```
+
+Each layer only reaches down: hosts call features, features read the model and
+ask the evaluator, and the evaluator reads the model. Every module inside a
+layer is a sibling of the others, and each leaf is also exported at the crate
+root, so `wtf::engine` and `wtf::evaluate::engine` name the same module.
 
 ## Development
 
@@ -511,5 +569,5 @@ cargo clippy --all-targets -- -D warnings
 cargo build
 ```
 
-With no subcommand (or `lsp`), Jot speaks standard LSP on stdio. Do not run that
+With no subcommand (or `lsp`), WTF speaks standard LSP on stdio. Do not run that
 process separately when using Zed; the editor starts and owns the connection.

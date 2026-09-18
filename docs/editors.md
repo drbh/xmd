@@ -1,29 +1,29 @@
 # Editor setup and smoke test
 
-All native editors launch the same `jot lsp` executable over stdio. Build it
+All native editors launch the same `wtf lsp` executable over stdio. Build it
 once with `cargo build --locked`, then configure its absolute path in each
 editor. The editor starts and stops the process; no separate server is needed.
 
 | Editor | Setup |
 | --- | --- |
 | Zed | [Existing dev extension and settings](../README.md#try-it) |
-| VS Code | [Local extension](../vscode-extension/README.md) |
-| Neovim 0.11+ | [Lua configuration](../neovim/README.md) |
-| Helix 25.07.1+ | [TOML configuration and Markdown queries](../helix/README.md) |
+| VS Code | [Local extension](../ide/vscode/README.md) |
+| Neovim 0.11+ | [Lua configuration](../ide/neovim/README.md) |
+| Helix 25.07.1+ | [TOML configuration and Markdown queries](../ide/helix/README.md) |
 
 Open a notes folder so cross-file lookup has a clear root. For Neovim and Helix,
-an empty `.jot` directory identifies the root of notes that are not in Git.
+an empty `.wtf` directory identifies the root of notes that are not in Git.
 Initial support uses an explicitly configured binary; there is no automatic
 download or marketplace installation.
 
 ## Shared smoke test
 
-Copy `examples/editor-smoke` to a scratch folder, create an empty `.jot`
-directory inside it, and open that folder in the editor. Use `main.jot`:
+Copy `examples/editor-smoke` to a scratch folder, create an empty `.wtf`
+directory inside it, and open that folder in the editor. Use `main.wtf`:
 
 1. Confirm the remaining value is **$75**. Change `$125` to `$150` and confirm
    it becomes **$100** without saving. Hover the calculation for its explanation.
-2. Go to definition on `smoke_spent` in the formula; it should open `values.jot`.
+2. Go to definition on `smoke_spent` in the formula; it should open `values.wtf`.
    Rename it to `smoke_expenses` and check both files, including unsaved buffers.
 3. Use a code action to complete the task. Undo it and confirm it is open again.
 4. Start the 30-second timer using a code action or CodeLens. Pause, resume, and
@@ -42,8 +42,8 @@ of any editor, including clients without snippet or refresh support.
 
 ## Adding another editor
 
-Configure `.jot` and `jot lsp`, select a workspace root, enable supported inlay
+Configure `.wtf` and `wtf lsp`, select a workspace root, enable supported inlay
 hints and actions, and map semantic tokens if the editor supports them. Reuse
 the smoke notes. Language behavior, command validation, calculations, and source
 edits belong in Rust. Editor adapters handle launching, configuration, and
-presentation; they do not parse or evaluate Jot.
+presentation; they do not parse or evaluate WTF.

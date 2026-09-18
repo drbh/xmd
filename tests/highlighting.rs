@@ -1,4 +1,4 @@
-use jot::{
+use wtf::{
     document::{Document, byte_at},
     highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens},
 };
@@ -62,22 +62,22 @@ fn assert_kind(source: &str, row: usize, text: &str, kind: &str, modifiers: u32)
 fn types_calls_properties_and_declarations_are_distinct() {
     let source = "# Trip :trip\n🧳 [$3,000]:budget and [2026-09-16]:depart.\n[focus] := countdown(25m)\n[used] := 47%\n[ok] := true\n[label] := \"hello 🦀\"\nHave [budget] and [focus.remaining].\n";
     for (row, text, kind, modifiers) in [
-        (0, "#", "jotPunctuation", 0),
+        (0, "#", "wtfPunctuation", 0),
         (0, "Trip", "heading", 0),
         (0, "trip", "variable", 1),
-        (1, "$3,000", "jotMoney", 0),
+        (1, "$3,000", "wtfMoney", 0),
         (1, "budget", "variable", 1),
-        (1, "2026-09-16", "jotDate", 0),
+        (1, "2026-09-16", "wtfDate", 0),
         (2, "focus", "variable", 1),
         (2, "countdown", "function", 2),
-        (2, "25m", "jotDuration", 0),
+        (2, "25m", "wtfDuration", 0),
         (2, ":=", "operator", 0),
-        (3, "47%", "jotRatio", 0),
-        (4, "true", "jotBoolean", 0),
+        (3, "47%", "wtfRatio", 0),
+        (4, "true", "wtfBoolean", 0),
         (5, "\"hello 🦀\"", "string", 0),
         (6, "budget", "variable", 0),
         (6, "remaining", "property", 0),
-        (6, ".", "jotPunctuation", 0),
+        (6, ".", "wtfPunctuation", 0),
     ] {
         assert_kind(source, row, text, kind, modifiers);
     }
@@ -94,12 +94,12 @@ fn table_headers_and_scoped_columns_share_property_colors() {
     for (row, text, kind, modifiers) in [
         (0, "table", "keyword", 0),
         (1, "quantity", "property", 1),
-        (1, "|", "jotPunctuation", 0),
-        (2, "---:", "jotPunctuation", 0),
+        (1, "|", "wtfPunctuation", 0),
+        (2, "---:", "wtfPunctuation", 0),
         (3, "\"apple|pear 🦀\"", "string", 0),
         (3, "2", "number", 0),
-        (3, "$3.30", "jotMoney", 0),
-        (3, "2026-09-16", "jotDate", 0),
+        (3, "$3.30", "wtfMoney", 0),
+        (3, "2026-09-16", "wtfDate", 0),
         (4, "sum", "function", 2),
         (4, "fruit", "variable", 0),
         (4, "quantity", "property", 0),
@@ -113,23 +113,23 @@ fn table_headers_and_scoped_columns_share_property_colors() {
 
 #[test]
 fn checklists_metadata_links_and_code_have_readable_hierarchy() {
-    let source = "- [x] Pack passport :pack @due(tomorrow) @estimate(30m)\n- [ ] Review @after(pack) @tag(trip)\nMeet @at(2026-09-16T15:00:00-04:00)\n[docs](https://example.com) and [https://example.com]:site\nInline `[bogus] := countdown(3m)` stays inert.\n```jot\n[bogus] := countdown(3m)\n```\n<!-- @due(tomorrow) [bogus] -->\n";
+    let source = "- [x] Pack passport :pack @due(tomorrow) @estimate(30m)\n- [ ] Review @after(pack) @tag(trip)\nMeet @at(2026-09-16T15:00:00-04:00)\n[docs](https://example.com) and [https://example.com]:site\nInline `[bogus] := countdown(3m)` stays inert.\n```wtf\n[bogus] := countdown(3m)\n```\n<!-- @due(tomorrow) [bogus] -->\n";
     for (row, text, kind, modifiers) in [
-        (0, "[x]", "jotCheckboxChecked", 0),
-        (0, "Pack passport", "jotTaskDone", 0),
+        (0, "[x]", "wtfCheckboxChecked", 0),
+        (0, "Pack passport", "wtfTaskDone", 0),
         (0, "pack", "variable", 1),
         (0, "@due", "decorator", 0),
-        (0, "tomorrow", "jotDate", 0),
-        (0, "30m", "jotDuration", 0),
-        (1, "[ ]", "jotCheckbox", 0),
+        (0, "tomorrow", "wtfDate", 0),
+        (0, "30m", "wtfDuration", 0),
+        (1, "[ ]", "wtfCheckbox", 0),
         (1, "@after", "decorator", 0),
         (1, "pack", "variable", 0),
         (1, "trip", "string", 0),
-        (2, "2026-09-16T15:00:00-04:00", "jotDate", 0),
-        (3, "docs", "jotLink", 0),
-        (3, "https://example.com", "jotLink", 0),
-        (4, "countdown", "jotCode", 0),
-        (6, "countdown", "jotCode", 0),
+        (2, "2026-09-16T15:00:00-04:00", "wtfDate", 0),
+        (3, "docs", "wtfLink", 0),
+        (3, "https://example.com", "wtfLink", 0),
+        (4, "countdown", "wtfCode", 0),
+        (6, "countdown", "wtfCode", 0),
         (8, "@due", "comment", 0),
     ] {
         assert_kind(source, row, text, kind, modifiers);
@@ -156,7 +156,7 @@ fn unicode_crlf_empty_and_malformed_documents_produce_valid_nonoverlapping_token
 #[test]
 fn zed_rules_cover_the_shared_legend_and_match_browser_palette() {
     let rules: Vec<serde_json::Value> = serde_json::from_str(include_str!(
-        "../zed-extension/languages/jot/semantic_token_rules.json"
+        "../ide/zed/languages/wtf/semantic_token_rules.json"
     ))
     .unwrap();
     let browser = include_str!("../web/editor.js");
@@ -189,13 +189,13 @@ fn raw_urls_and_paths_are_highlighted_without_swallowing_prose_punctuation() {
         "../src/main.rs",
         "~/.config/zed/settings.json",
     ] {
-        assert_kind(source, 0, target, "jotLink", 0);
+        assert_kind(source, 0, target, "wtfLink", 0);
     }
-    assert_kind(source, 1, "README.md", "jotLink", 0);
+    assert_kind(source, 1, "README.md", "wtfLink", 0);
     let all = tokens(source);
     assert!(
         all.iter()
-            .filter(|t| t.kind == "jotLink")
+            .filter(|t| t.kind == "wtfLink")
             .all(|t| !t.text.ends_with([',', '.']))
     );
 }
@@ -204,28 +204,28 @@ fn raw_urls_and_paths_are_highlighted_without_swallowing_prose_punctuation() {
 fn recognizable_prose_values_and_heading_times_are_highlighted() {
     let source = "# 9:38 AM\r\n🦀 Interview 09/17/2026 10:00 AM – 10:45 AM.\r\nStart 7AM; return 14:30 or 11:59:59pm.\r\nTomorrow: pay ($3,000), allow 30m, finish 80% with 2 copies.\r\nMeet next Monday; confirm true or false.\r\nOn 2026-09-17, timestamp 2026-09-17T10:00:00-04:00.\r\nNumbers -3.5 and +.25; durations 1.5h and -30s; refund -$25.\r\n";
     for (row, text, kind) in [
-        (0, "9:38 AM", "jotTime"),
-        (1, "09/17/2026", "jotDate"),
-        (1, "10:00 AM", "jotTime"),
-        (1, "10:45 AM", "jotTime"),
-        (2, "7AM", "jotTime"),
-        (2, "14:30", "jotTime"),
-        (2, "11:59:59pm", "jotTime"),
-        (3, "Tomorrow", "jotDate"),
-        (3, "$3,000", "jotMoney"),
-        (3, "30m", "jotDuration"),
-        (3, "80%", "jotRatio"),
+        (0, "9:38 AM", "wtfTime"),
+        (1, "09/17/2026", "wtfDate"),
+        (1, "10:00 AM", "wtfTime"),
+        (1, "10:45 AM", "wtfTime"),
+        (2, "7AM", "wtfTime"),
+        (2, "14:30", "wtfTime"),
+        (2, "11:59:59pm", "wtfTime"),
+        (3, "Tomorrow", "wtfDate"),
+        (3, "$3,000", "wtfMoney"),
+        (3, "30m", "wtfDuration"),
+        (3, "80%", "wtfRatio"),
         (3, "2", "number"),
-        (4, "next Monday", "jotDate"),
-        (4, "true", "jotBoolean"),
-        (4, "false", "jotBoolean"),
-        (5, "2026-09-17", "jotDate"),
-        (5, "2026-09-17T10:00:00-04:00", "jotDate"),
+        (4, "next Monday", "wtfDate"),
+        (4, "true", "wtfBoolean"),
+        (4, "false", "wtfBoolean"),
+        (5, "2026-09-17", "wtfDate"),
+        (5, "2026-09-17T10:00:00-04:00", "wtfDate"),
         (6, "-3.5", "number"),
         (6, "+.25", "number"),
-        (6, "1.5h", "jotDuration"),
-        (6, "-30s", "jotDuration"),
-        (6, "-$25", "jotMoney"),
+        (6, "1.5h", "wtfDuration"),
+        (6, "-30s", "wtfDuration"),
+        (6, "-$25", "wtfMoney"),
     ] {
         assert_kind(source, row, text, kind, 0);
     }
@@ -242,14 +242,14 @@ fn prose_recognition_respects_inert_text_symbols_links_and_invalid_values() {
         "Invalid values should not get partial matches: {all:#?}"
     );
     for (row, text, kind, modifiers) in [
-        (1, "7AM", "jotCode", 0),
+        (1, "7AM", "wtfCode", 0),
         (2, "Tomorrow", "comment", 0),
-        (4, "30m", "jotCode", 0),
+        (4, "30m", "wtfCode", 0),
         (6, "tomorrow", "variable", 1),
         (7, "tomorrow", "variable", 0),
         (8, "09/17/2026", "string", 0),
-        (9, "2026-09-17", "jotLink", 0),
-        (10, "2026-09-17", "jotLink", 0),
+        (9, "2026-09-17", "wtfLink", 0),
+        (10, "2026-09-17", "wtfLink", 0),
     ] {
         assert_kind(source, row, text, kind, modifiers);
     }
@@ -275,9 +275,9 @@ fn checkbox_state_is_distinct_from_the_completed_task_title() {
             assert_eq!(
                 checkbox.kind,
                 if task.checked {
-                    "jotCheckboxChecked"
+                    "wtfCheckboxChecked"
                 } else {
-                    "jotCheckbox"
+                    "wtfCheckbox"
                 }
             );
         }
@@ -287,16 +287,16 @@ fn checkbox_state_is_distinct_from_the_completed_task_title() {
 #[test]
 fn itinerary_stops_paint_one_hue_per_kind_with_bold_markers() {
     let source = "## Friday, November 20, 2026 · New York | Oaxaca\n\n07:04 AM  > Depart JFK for MEX\n    Reservation Number: LPSNKQ\n    Cancel by: 24h before\n11:55 AM  < Arrive at MEX\n02:45 PM  🍽️ Dinner at Casa\n03:00 PM  Something else\n";
-    assert_kind(source, 0, "Friday", "jotDay", 1);
-    assert_kind(source, 0, "November 20, 2026", "jotDay", 1);
-    assert_kind(source, 0, "New York | Oaxaca", "jotPlace", 0);
-    assert_kind(source, 2, "07:04 AM", "jotTime", 0);
-    assert_kind(source, 2, ">", "jotDepart", 1);
-    assert_kind(source, 2, "Depart JFK for MEX", "jotDepart", 0);
-    assert_kind(source, 3, "Reservation Number", "jotDetailKey", 0);
-    assert_kind(source, 3, "LPSNKQ", "jotCode", 0);
-    assert_kind(source, 4, "24h before", "jotDate", 0);
-    assert_kind(source, 5, "<", "jotArrive", 1);
-    assert_kind(source, 6, "Dinner at Casa", "jotMeal", 0);
+    assert_kind(source, 0, "Friday", "wtfDay", 1);
+    assert_kind(source, 0, "November 20, 2026", "wtfDay", 1);
+    assert_kind(source, 0, "New York | Oaxaca", "wtfPlace", 0);
+    assert_kind(source, 2, "07:04 AM", "wtfTime", 0);
+    assert_kind(source, 2, ">", "wtfDepart", 1);
+    assert_kind(source, 2, "Depart JFK for MEX", "wtfDepart", 0);
+    assert_kind(source, 3, "Reservation Number", "wtfDetailKey", 0);
+    assert_kind(source, 3, "LPSNKQ", "wtfCode", 0);
+    assert_kind(source, 4, "24h before", "wtfDate", 0);
+    assert_kind(source, 5, "<", "wtfArrive", 1);
+    assert_kind(source, 6, "Dinner at Casa", "wtfMeal", 0);
     assert_kind(source, 7, "Something else", "heading", 0);
 }

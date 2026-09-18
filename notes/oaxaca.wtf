@@ -1,0 +1,74 @@
+# New York | Oaxaca
+
+A trip itinerary is prose that WTF understands. A line with a weekday, month
+and day starts a day; a line starting with a clock time is a stop; indented
+`Key: value` lines under a stop are its details. One ASCII marker after the
+time says what kind of stop it is: > depart, < arrive, ~ transit, @ stay,
+* meal, + visit, ? explore. Format Document pads times, writes markers for
+stops it recognizes from words or emoji, and indents details. Hover a stop,
+open the outline, fold a day, or run `wtf agenda --week` while traveling.
+
+## Friday, November 20, 2026 · New York | Oaxaca
+
+07:04 AM  > Depart JFK for MEX on AM 405
+    Reservation Number: LPSNKQ
+    Seats: 22B, 22C
+    Note: Flight duration is 5h 51m. 1 free carry on.
+
+11:55 AM  < Arrive at MEX
+    Note: 2h 50m layover.
+
+02:45 PM  > Depart MEX for OAX on AM 1050
+    Reservation Number: MVIBDC
+    Seats: Available to purchase for a fee
+    Note: Flight duration is 1h 28m.
+
+04:06 PM  < Arrive at OAX
+
+05:00 PM  ~ Transit
+    Note: Roughly 30 minutes.
+
+06:00 PM  @ Check in to Majagua Hotel
+    Address: 523 Calle de José María Pino Suárez, Centro histórico, Oaxaca, Mexico, 68000
+    Confirmation Number: EXP-2550163618
+    Cancel by: 2026-11-06 18:00
+    Note: A 2 night cancellation fee applies after November 6.
+
+07:55 PM  ~ Walk to dinner
+    Note: Roughly 5 minutes from the hotel.
+
+08:00 PM  * Dinner at La Quince Letras
+    Address: C. de Mariano Abasolo 300, Centro, 68000 Oaxaca de Juárez, Oax., Mexico
+    Note: Reservation is confirmed. No cancellation policy.
+
+## Saturday, November 21 · Oaxaca
+
+08:00 AM  * Breakfast at the hotel
+
+09:45 AM  ~ Walk to the garden
+    Note: Roughly 5 minutes.
+
+10:00 AM  + Visit Jardín Etnobotánico de Oaxaca
+
+11:30 AM  ? Explore Oaxaca
+    Museum of Cultures of Oaxaca
+    Oaxaca Textile Museum
+    Templo de Santo Domingo de Guzmán
+    Zócalo
+
+01:00 PM  * Grab food at Mercado 20 de Noviembre
+    Address: 20 de Noviembre 512, Centro, 68000 Oaxaca de Juárez, Oax., Mexico
+
+07:15 PM  ~ Walk to dinner
+    Note: Roughly 12 minutes from the hotel.
+
+07:20 PM  * Dinner at Levadura de Olla
+    Address: García Vigil 304, Centro, Oaxaca de Juárez, Oaxaca, México
+    Cancel by: 24h before
+    Cost: $700 MXN cancellation fee (roughly $40 USD)
+    Note: Reservation confirmed for the chef's tasting menu.
+
+<!-- Try it: change Saturday to Sunday and a diagnostic names the real weekday.
+Move a stop earlier than the one above it and WTF flags the order. Type a time,
+two spaces, and the first letters of Depart to complete a stop with its marker.
+A stop without a recognizable kind gets a warning. -->

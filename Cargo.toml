@@ -1,5 +1,5 @@
 [package]
-name = "jot"
+name = "wtf"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,7 +7,7 @@ edition = "2024"
 crate-type = ["rlib", "cdylib"]
 
 [[bin]]
-name = "jot"
+name = "wtf"
 path = "src/main.rs"
 required-features = ["native"]
 

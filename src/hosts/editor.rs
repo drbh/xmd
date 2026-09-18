@@ -527,6 +527,9 @@ impl LanguageServer for Backend {
         };
         let now = Local::now().fixed_offset();
         let request = crate::RequestContext::new(ws, now);
+        if let Some(hover) = crate::features::module_features::hover(&request, &path, at.position) {
+            return Ok(Some(hover));
+        }
         if let Some(hover) = crate::intelligence::link_hover_in(&request, &path, at.position) {
             return Ok(Some(hover));
         }
@@ -1191,11 +1194,10 @@ impl LanguageServer for Backend {
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state
-            .workspace
-            .documents
-            .get(&path)
-            .map(crate::tables::formatting))
+        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        crate::features::module_features::formatting(&request, &path)
+            .map(Some)
+            .map_err(Error::invalid_params)
     }
 }
 pub async fn serve() {

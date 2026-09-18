@@ -21,7 +21,11 @@ impl InlayFeature for PluginInlays {
 fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
     record(fields.into_iter().map(|(k, v)| (k.into(), v)))
 }
-fn input(module: &Module, engine: &mut Engine<'_>, path: &Path) -> Result<Value, String> {
+pub(crate) fn input(
+    module: &Module,
+    engine: &mut Engine<'_>,
+    path: &Path,
+) -> Result<Value, String> {
     let doc = &engine.workspace.documents[path];
     let Value::Record(mut document) = object([
         ("path", Value::Text(path.to_string_lossy().into())),
@@ -78,7 +82,16 @@ fn input(module: &Module, engine: &mut Engine<'_>, path: &Path) -> Result<Value,
         }
         document.insert(collection.clone(), values);
     }
-    Ok(object([("document", Value::Record(document))]))
+    Ok(object([
+        ("document", Value::Record(document)),
+        (
+            "plugin",
+            object([
+                ("id", Value::Text(module.id.clone())),
+                ("revision", Value::Text(module.revision())),
+            ]),
+        ),
+    ]))
 }
 fn validate_position(text: &str, position: Position) -> Result<(), String> {
     crate::actions::apply_edits(
@@ -202,7 +215,11 @@ pub fn commands(
                 if !capabilities.supports(&action) {
                     continue;
                 }
-                action.prepare(request, capabilities)?;
+                if matches!(action, Action::Invoke { .. }) {
+                    action.validate_invocation(request)?;
+                } else {
+                    action.prepare(request, capabilities)?;
+                }
                 validated.push(action.command(title));
             }
             Ok::<_, String>(validated)
@@ -212,4 +229,33 @@ pub fn commands(
         }
     }
     commands
+}
+
+pub(crate) fn reduce(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    module: &Module,
+    event: &serde_json::Value,
+    capabilities: Capabilities,
+) -> Result<Action, String> {
+    let Value::Record(mut context) = input(module, &mut request.engine(), path)? else {
+        unreachable!()
+    };
+    context.insert(
+        "capabilities".into(),
+        object([
+            ("refresh", Value::Bool(capabilities.refresh)),
+            ("views", Value::Bool(capabilities.views)),
+        ]),
+    );
+    let result = module.call(
+        "reduce",
+        vec![Value::Record(context), from_json(event)],
+        request.now(),
+    )?;
+    let action: Action = serde_json::from_value(json(&result)?).map_err(|e| e.to_string())?;
+    if matches!(action, Action::Invoke { .. }) {
+        return Err("A reducer must return a concrete action".into());
+    }
+    Ok(action)
 }

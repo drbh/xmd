@@ -195,3 +195,50 @@ and link policies. Existing solver, itinerary, task, timer, and reference
 semantics still have native implementations; they expose reusable values and
 validated actions rather than a separate plugin language. There is currently no
 plugin callback for adding custom diagnostics or parser syntax.
+
+## Libraries, reducers, and additional hooks
+
+A `kind: "library"` module exports its definitions (except `plugin` and names
+starting with `_`). Declare dependencies with `imports: ["format"]`, then write
+`fmt := import("format")`. Imports form an acyclic graph, linked atomically with
+the registry. Functions retain their module's lexical environment, including
+when they return closures. Calls across modules share the same evaluation step
+and call-depth limits. Module expressions are parsed once per compiled snapshot.
+Notes and queries can also call `import("format").human(125m)`.
+
+For an action that needs fresh state, return this action shape from `actions`:
+
+```wtf
+{kind: "invoke", document: ctx.document.uri, expected: ctx.document.text, plugin: ctx.plugin.id, revision: ctx.plugin.revision, event: {operation: "start"}}
+```
+
+`reduce(ctx, event)` runs when the action is executed and returns one concrete
+shared action, such as `edit`. Its clock and semantic inputs belong to that
+execution request. The host checks the expected source and the module/dependency
+revision before calling it, then validates the returned effect. Reducers cannot
+return another invocation. Listing controls does not run reducers.
+
+Inlay modules may implement any of these callbacks without `collect`:
+
+| Callback | Output |
+| --- | --- |
+| `hovers(ctx)` | `[{range, contents: "Markdown"}]` |
+| `diagnostics(ctx)` | LSP diagnostic records, with `range`, `message`, and optional numeric `severity` / `code` |
+| `format(ctx)` | LSP text edits |
+
+All use the same selected catalog inputs as `collect`. Positions and edit ranges
+are validated; an invalid batch is rejected. Formatting rejects overlaps across
+providers, including native table formatting. User hovers take precedence over
+native fallbacks. The `diagnostics` input collection contains native diagnostics,
+so a diagnostic provider cannot recursively request its own output.
+
+Pure computational primitives include `solve_linear(model)` (raw linear solver
+status and values), `date_parts`, `make_date`, `at_time`, `parse_time`, and
+`parse_duration`. `entries`, `number`, `source`, `pad_start`, and `pad_end` support
+ordinary structured transformations and formatting. These primitives are equally
+available in notes, queries, and modules. `solve_linear` accepts named variables
+with explicit continuous/integer/binary kinds, optional lower/upper bounds, a
+linear objective `{constant, terms}`, and constraints `{lhs, op, rhs}`. Its
+statuses are `optimal`, `infeasible`, and `unbounded`; optimal results include a
+`values` record. Models are limited to 512 variables and 2048 constraints, within
+the language's existing value-size limit.

@@ -763,7 +763,7 @@ pub(crate) fn collect_document(
             }
         }
         if collection == "diagnostics" {
-            for d in crate::diagnostics::collect_in(&engine.request(), path, false) {
+            for d in crate::diagnostics::collect_native_in(&engine.request(), path, false) {
                 let mut r = base(
                     ws,
                     path,

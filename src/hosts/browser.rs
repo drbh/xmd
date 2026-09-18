@@ -211,7 +211,9 @@ impl BrowserWorkspace {
         match method {
             "documentLinks" => serialized(presentation::document_links_in(&request, &path)),
             "documentSymbols" => serialized(crate::symbols::document_symbols_in(&request, &path)),
-            "formatting" => serialized(crate::tables::formatting(doc)),
+            "formatting" => serialized(crate::features::module_features::formatting(
+                &request, &path,
+            )?),
             "folding" => serialized(crate::symbols::folding_ranges(doc)),
             "onTypeFormatting" => serialized(crate::typing::on_type(
                 doc,
@@ -252,6 +254,11 @@ impl BrowserWorkspace {
             )),
             "signature" => serialized(intelligence::signature(doc, position()?)),
             "hover" => {
+                if let Some(hover) =
+                    crate::features::module_features::hover(&request, &path, position()?)
+                {
+                    return serialized(hover);
+                }
                 if let Some(hover) = intelligence::link_hover_in(&request, &path, position()?) {
                     return serialized(hover);
                 }

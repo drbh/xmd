@@ -60,7 +60,7 @@ pub fn collect(
         editing,
     )
 }
-pub fn collect_in(
+pub(crate) fn collect_native_in(
     request: &crate::RequestContext<'_>,
     path: &Path,
     editing: bool,
@@ -389,4 +389,14 @@ pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
             }
         })
         .collect()
+}
+
+pub fn collect_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    editing: bool,
+) -> Vec<Diagnostic> {
+    let mut result = collect_native_in(request, path, editing);
+    result.extend(super::module_features::diagnostics(request, path));
+    result
 }

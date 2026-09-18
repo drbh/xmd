@@ -18,3 +18,5 @@ pub mod query;
 pub mod refactor;
 pub mod symbols;
 pub mod typing;
+
+pub mod module_features;

@@ -13,3 +13,5 @@ pub mod plans;
 pub mod plugins;
 pub mod resources;
 pub mod timers;
+
+pub mod solver;

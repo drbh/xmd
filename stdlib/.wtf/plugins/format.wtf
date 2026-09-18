@@ -1,0 +1,8 @@
+# Shared presentation functions are ordinary library exports.
+plugin := {api: 1, id: "format", kind: "library", inputs: []}
+clamp := fn(value, low, high) => if(value < low, low, if(value > high, high, value))
+gauge := fn(fraction, width) => repeat("█", round(clamp(fraction, 0, 1) * width)) + repeat("░", width - round(clamp(fraction, 0, 1) * width))
+bar := fn(fraction) => gauge(fraction, 10) + " " + text(round(clamp(fraction, 0, 1) * 100)) + "%"
+clock := fn(duration) => if(duration < 1h, pad_start(text(floor(duration / 1m)), 2, "0"), pad_start(text(floor(duration / 1h)), 2, "0") + ":" + pad_start(text(floor(duration / 1m) - floor(duration / 1h) * 60), 2, "0")) + ":" + pad_start(text(number(duration) - floor(duration / 1m) * 60), 2, "0")
+human := fn(duration) => if(duration < 1h, text(floor(duration / 1m)) + "m", text(floor(duration / 1h)) + "h" + if(floor(duration / 1m) - floor(duration / 1h) * 60 == 0, "", " " + text(floor(duration / 1m) - floor(duration / 1h) * 60) + "m"))
+age := fn(elapsed) => if(elapsed < 1m, "just now", if(elapsed < 1h, text(floor(elapsed / 1m)) + "m ago", if(elapsed < 1d, text(floor(elapsed / 1h)) + "h ago", if(elapsed < 14d, text(floor(elapsed / 1d)) + "d ago", text(floor(elapsed / 7d)) + "w ago"))))

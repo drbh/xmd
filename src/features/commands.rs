@@ -33,6 +33,13 @@ impl RowTarget {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Action {
+    Invoke {
+        document: Url,
+        expected: String,
+        plugin: String,
+        revision: String,
+        event: Value,
+    },
     Edit {
         document: Url,
         expected: String,
@@ -92,6 +99,7 @@ pub enum PreparedAction {
 
 impl Action {
     pub const COMMANDS: &'static [&'static str] = &[
+        "wtf.invoke",
         "wtf.applyEdits",
         "wtf.task",
         "wtf.timer",
@@ -105,7 +113,9 @@ impl Action {
             Self::ToggleTask(target)
             | Self::OpenResource { target, .. }
             | Self::RefreshResource { target, .. } => Some(&target.document),
-            Self::Timer { document, .. } | Self::Edit { document, .. } => Some(document),
+            Self::Timer { document, .. }
+            | Self::Edit { document, .. }
+            | Self::Invoke { document, .. } => Some(document),
             Self::Refresh { document } => document.as_ref(),
             Self::ShowToday => None,
         }
@@ -113,6 +123,7 @@ impl Action {
     /// Retain the existing LSP command IDs and argument arrays at the boundary.
     pub fn command(&self, title: impl Into<String>) -> Command {
         let (command, arguments) = match self {
+            Self::Invoke { .. } => ("wtf.invoke", vec![json!(self)]),
             Self::Edit { .. } => ("wtf.applyEdits", vec![json!(self)]),
             Self::ToggleTask(target) => ("wtf.task", target.arguments()),
             Self::Timer {
@@ -176,6 +187,15 @@ impl Action {
             })
         };
         match command {
+            "wtf.invoke" => {
+                exact(1)?;
+                let action: Self =
+                    serde_json::from_value(args[0].clone()).map_err(|e| e.to_string())?;
+                if !matches!(action, Self::Invoke { .. }) {
+                    return Err("Expected an invocation action".into());
+                }
+                Ok(action)
+            }
             "wtf.applyEdits" => {
                 exact(1)?;
                 let action: Self =
@@ -226,6 +246,40 @@ impl Action {
             _ => Err(format!("Unknown command: {command}")),
         }
     }
+    pub(crate) fn validate_invocation(&self, request: &RequestContext<'_>) -> Result<(), String> {
+        let Self::Invoke {
+            document,
+            expected,
+            plugin,
+            revision,
+            ..
+        } = self
+        else {
+            return Err("Expected a plugin invocation".into());
+        };
+        let path = document_path(document)?;
+        let doc = request
+            .workspace()
+            .documents
+            .get(&path)
+            .ok_or("Document is no longer in the workspace")?;
+        if doc.text != *expected {
+            return Err("Source changed; request fresh controls".into());
+        }
+        let module = request
+            .workspace()
+            .plugins
+            .active()
+            .find(|m| m.id == *plugin)
+            .ok_or("Plugin is no longer available")?;
+        if module.revision() != *revision {
+            return Err("Plugin changed; request fresh controls".into());
+        }
+        if !module.has("reduce") {
+            return Err("Plugin has no reducer".into());
+        }
+        Ok(())
+    }
     /// Validate against the current workspace and execution-time clock. The host
     /// still owns version checks, applying edits, opening URLs and refreshing data.
     pub fn prepare(
@@ -243,6 +297,28 @@ impl Action {
             }
         }
         match self {
+            Self::Invoke {
+                document,
+                plugin,
+                event,
+                ..
+            } => {
+                self.validate_invocation(request)?;
+                let module = request
+                    .workspace()
+                    .plugins
+                    .active()
+                    .find(|m| m.id == *plugin)
+                    .ok_or("Plugin is no longer available")?;
+                super::plugin_inlays::reduce(
+                    request,
+                    &document_path(document)?,
+                    module,
+                    event,
+                    capabilities,
+                )?
+                .prepare(request, capabilities)
+            }
             Self::Edit {
                 document,
                 expected,

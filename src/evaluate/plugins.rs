@@ -27,6 +27,8 @@ pub struct Module {
     pub enabled: bool,
     pub inputs: Vec<String>,
     pub fields: BTreeMap<String, Vec<String>>,
+    pub imports: Vec<String>,
+    pub(crate) expressions: Arc<BTreeMap<String, crate::engine::Expr>>,
     hosts: Vec<String>,
     prefix: String,
     properties: Vec<String>,
@@ -116,6 +118,7 @@ impl Module {
         }
         let mut names = BTreeSet::new();
         let mut live = false;
+        let mut expressions = BTreeMap::new();
         for def in &document.definitions {
             if !names.insert(def.named.name.clone()) {
                 return Err(format!("Duplicate definition '{}'", def.named.name));
@@ -123,8 +126,11 @@ impl Module {
             if !def.expression {
                 return Err("Plugin definitions must use :=".into());
             }
-            crate::engine::Parser::parse(&def.source)
-                .map_err(|e| format!("{}:{}: {e}", path.display(), def.value_span.line + 1))?;
+            expressions.insert(
+                def.source.clone(),
+                crate::engine::Parser::parse(&def.source)
+                    .map_err(|e| format!("{}:{}: {e}", path.display(), def.value_span.line + 1))?,
+            );
             live |= crate::engine::lex(&def.source)?
                 .iter()
                 .any(|t| matches!(&t.kind,Lexeme::Name(n) if n=="now" || n=="today"));
@@ -183,7 +189,8 @@ impl Module {
         let required = match kind.as_str() {
             "link" => "inlay",
             "inlay" => "collect",
-            _ => return Err("plugin.kind must be link or inlay".into()),
+            "library" => "",
+            _ => return Err("plugin.kind must be link, inlay, or library".into()),
         };
         let hosts = config
             .get("hosts")
@@ -227,13 +234,26 @@ impl Module {
             ("property_names", 1),
             ("time_dependent", 1),
             ("actions", 1),
+            ("reduce", 2),
+            ("hovers", 1),
+            ("diagnostics", 1),
+            ("format", 1),
         ] {
+            if kind == "library" {
+                break;
+            }
             if names.contains(name) {
                 if !matches!(engine.named(&path,name)?,Value::Function(f) if f.params.len()==arity)
                 {
                     return Err(format!("{name} must be a function with {arity} parameters"));
                 }
-            } else if name == required && enabled && (kind == "link" || !names.contains("actions"))
+            } else if name == required
+                && enabled
+                && kind != "library"
+                && (kind == "link"
+                    || !["actions", "hovers", "diagnostics", "format"]
+                        .iter()
+                        .any(|n| names.contains(*n)))
             {
                 return Err(format!("Missing {required} function"));
             }
@@ -261,13 +281,31 @@ impl Module {
             live,
             enabled,
             inputs,
+            imports: config
+                .get("imports")
+                .map(strings)
+                .transpose()?
+                .unwrap_or_default(),
             fields,
             hosts,
             prefix,
             properties,
             cache_key,
+            expressions: Arc::new(expressions),
             workspace,
         })
+    }
+    pub(crate) fn environment(&self) -> Arc<Workspace> {
+        self.workspace.clone()
+    }
+    pub fn revision(&self) -> String {
+        use std::hash::{Hash, Hasher};
+        let mut hash = std::collections::hash_map::DefaultHasher::new();
+        self.workspace.documents[&self.path].text.hash(&mut hash);
+        for module in &self.workspace.plugins.modules {
+            module.revision().hash(&mut hash);
+        }
+        format!("{:016x}", hash.finish())
     }
     pub fn has(&self, name: &str) -> bool {
         self.workspace.resolve(&self.path, name).is_ok()
@@ -283,7 +321,9 @@ impl Module {
         }
         let mut engine = Engine::at(&self.workspace, now)
             .pure()
-            .with_link_features(crate::link_features::LinkFeatures::new(&[]));
+            .with_link_features(crate::link_features::LinkFeatures::new(&[]))
+            .with_environment(self.workspace.clone())
+            .with_expressions(self.expressions.clone());
         let function = engine.named(&self.path, name)?;
         engine
             .call(function, args)
@@ -481,7 +521,9 @@ impl Plugins {
             }
             modules.push(module);
         }
-        Ok(Self { modules })
+        Ok(Self {
+            modules: link(modules, true)?,
+        })
     }
     #[cfg(feature = "native")]
     pub fn load(roots: &[PathBuf]) -> Result<Self, String> {
@@ -517,7 +559,11 @@ impl Plugins {
 pub fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
-        [
+        let modules = [
+            (
+                "format",
+                include_str!("../../stdlib/.wtf/plugins/format.wtf"),
+            ),
             (
                 "github",
                 include_str!("../../stdlib/.wtf/plugins/github.wtf"),
@@ -543,6 +589,69 @@ pub fn bundled() -> &'static [Module] {
             )
             .expect("valid bundled module")
         })
-        .collect()
+        .collect();
+        link(modules, false).expect("valid standard imports")
     })
+}
+
+fn link(modules: Vec<Module>, fallback: bool) -> Result<Vec<Module>, String> {
+    fn resolve(
+        id: &str,
+        sources: &BTreeMap<String, Module>,
+        ready: &mut BTreeMap<String, Module>,
+        stack: &mut Vec<String>,
+        fallback: bool,
+    ) -> Result<Module, String> {
+        if let Some(module) = ready.get(id) {
+            return Ok(module.clone());
+        }
+        if stack.iter().any(|s| s == id) {
+            return Err(format!(
+                "Module import cycle: {} -> {id}",
+                stack.join(" -> ")
+            ));
+        }
+        let mut module = match sources.get(id) {
+            Some(m) => m.clone(),
+            None if fallback => bundled()
+                .iter()
+                .find(|m| m.id == id)
+                .cloned()
+                .ok_or_else(|| format!("Unknown module import '{id}'"))?,
+            None => return Err(format!("Unknown module import '{id}'")),
+        };
+        stack.push(id.into());
+        let dependencies = module
+            .imports
+            .iter()
+            .map(|id| resolve(id, sources, ready, stack, fallback))
+            .collect::<Result<Vec<_>, _>>()?;
+        stack.pop();
+        module.live |= dependencies.iter().any(|m| m.live);
+        Arc::make_mut(&mut module.workspace).plugins = Arc::new(Plugins {
+            modules: dependencies,
+        });
+        ready.insert(id.into(), module.clone());
+        Ok(module)
+    }
+    let order: Vec<_> = modules.iter().map(|m| m.id.clone()).collect();
+    let sources = modules.into_iter().map(|m| (m.id.clone(), m)).collect();
+    let mut ready = BTreeMap::new();
+    order
+        .into_iter()
+        .map(|id| resolve(&id, &sources, &mut ready, &mut vec![], fallback))
+        .collect()
+}
+/// Run shared standard-library behavior with an explicit request clock.
+pub fn standard(
+    id: &str,
+    name: &str,
+    args: Vec<Value>,
+    now: DateTime<FixedOffset>,
+) -> Result<Value, String> {
+    bundled()
+        .iter()
+        .find(|m| m.id == id)
+        .ok_or_else(|| format!("Unknown standard module '{id}'"))?
+        .call(name, args, now)
 }

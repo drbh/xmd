@@ -1152,6 +1152,8 @@ pub struct Engine<'a> {
     locals: Vec<BTreeMap<String, Value>>,
     calls: usize,
     pure: bool,
+    environment: Option<std::sync::Arc<Workspace>>,
+    expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
 }
 /// Column values for one table row while a `sum` row expression runs.
 struct RowScope {
@@ -1197,6 +1199,8 @@ impl<'a> Engine<'a> {
             locals: Vec::new(),
             calls: 0,
             pure: false,
+            environment: None,
+            expressions: None,
         }
     }
     /// Share immutable inputs and memoized results with another feature session.
@@ -1236,7 +1240,14 @@ impl<'a> Engine<'a> {
             self.steps = 0;
         }
         self.contexts.push((path.into(), span));
-        let result = match Parser::parse(expression) {
+        let parsed = self
+            .expressions
+            .as_ref()
+            .and_then(|m| m.get(expression))
+            .cloned()
+            .map(Ok)
+            .unwrap_or_else(|| Parser::parse(expression));
+        let result = match parsed {
             Ok(expr) => self.expr(path, &expr),
             Err(message) => {
                 let tokens = lex(expression).unwrap_or_default();
@@ -1699,6 +1710,8 @@ impl<'a> Engine<'a> {
                 }
                 Ok(Value::Function(std::sync::Arc::new(
                     crate::evaluate::functional::Function {
+                        environment: self.environment.clone(),
+                        expressions: self.expressions.clone(),
                         params: params.clone(),
                         body: *body.clone(),
                         path: path.into(),
@@ -1963,10 +1976,75 @@ impl<'a> Engine<'a> {
         self.pure = true;
         self
     }
+    pub(crate) fn with_expressions(
+        mut self,
+        expressions: std::sync::Arc<BTreeMap<String, Expr>>,
+    ) -> Self {
+        self.expressions = Some(expressions);
+        self
+    }
+    pub(crate) fn with_environment(mut self, environment: std::sync::Arc<Workspace>) -> Self {
+        self.environment = Some(environment);
+        self
+    }
+    fn module_engine<'b>(&self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
+        let mut engine = Engine::at(workspace, self.now)
+            .pure()
+            .with_link_features(crate::link_features::LinkFeatures::new(&[]))
+            .with_environment(workspace.clone());
+        engine.steps = self.steps;
+        engine.calls = self.calls;
+        engine.today = self.today;
+        engine.memo = self.memo.clone();
+        engine
+    }
+    fn absorb_module(&mut self, other: &Engine<'_>) {
+        self.steps = other.steps;
+        self.time_dependent |= other.time_dependent;
+        if self.failure.is_none() {
+            self.failure = other.failure.clone();
+        }
+    }
+    fn import(&mut self, id: &str) -> Result<Value, String> {
+        let module = if self.pure {
+            self.workspace.plugins.modules.iter().find(|m| m.id == id)
+        } else {
+            self.workspace.plugins.active().find(|m| m.id == id)
+        }
+        .ok_or_else(|| format!("Unknown or undeclared import '{id}'"))?
+        .clone();
+        let workspace = module.environment();
+        let mut engine = self
+            .module_engine(&workspace)
+            .with_expressions(module.expressions.clone());
+        let result = workspace.documents[&module.path]
+            .definitions
+            .iter()
+            .filter(|d| d.named.name != "plugin" && !d.named.name.starts_with('_'))
+            .map(|d| {
+                Ok((
+                    d.named.name.clone(),
+                    engine.named(&module.path, &d.named.name)?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>, String>>()
+            .map(Value::Record);
+        self.absorb_module(&engine);
+        result
+    }
     pub fn call(&mut self, function: Value, args: Vec<Value>) -> Result<Value, String> {
         let Value::Function(function) = function else {
             return Err("Expected a function".into());
         };
+        if let Some(workspace) = &function.environment
+            && !std::ptr::eq(self.workspace, workspace.as_ref())
+        {
+            let mut engine = self.module_engine(workspace);
+            engine.expressions = function.expressions.clone();
+            let result = engine.call(Value::Function(function.clone()), args);
+            self.absorb_module(&engine);
+            return result;
+        }
         if args.len() != function.params.len() {
             return Err(format!(
                 "Function expects {} arguments, got {}",
@@ -1999,6 +2077,7 @@ impl<'a> Engine<'a> {
     pub(crate) fn functional(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
         use Value::*;
         let value = match (name, args.as_slice()) {
+            ("import", [Text(id)]) => self.import(id)?,
             ("map" | "filter", [List(items), function @ Function(_)]) => {
                 let mut output = Vec::new();
                 for item in items {

@@ -2,8 +2,10 @@
 use super::engine::{Expr, Value};
 use std::{collections::BTreeMap, path::PathBuf};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Function {
+    pub(crate) expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
+    pub(crate) environment: Option<std::sync::Arc<crate::workspace::Workspace>>,
     pub(crate) params: Vec<String>,
     pub(crate) body: Expr,
     pub(crate) path: PathBuf,
@@ -11,10 +13,37 @@ pub struct Function {
     pub(crate) captured: BTreeMap<String, Value>,
 }
 
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.params == other.params
+            && self.body == other.body
+            && self.path == other.path
+            && self.source == other.source
+            && self.captured == other.captured
+            && match (&self.environment, &other.environment) {
+                (None, None) => true,
+                (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
+                _ => false,
+            }
+    }
+}
+
 pub fn is_builtin(name: &str) -> bool {
     matches!(
         name,
-        "map"
+        "import"
+            | "solve_linear"
+            | "entries"
+            | "number"
+            | "source"
+            | "date_parts"
+            | "make_date"
+            | "at_time"
+            | "parse_time"
+            | "parse_duration"
+            | "pad_start"
+            | "pad_end"
+            | "map"
             | "filter"
             | "fold"
             | "get"
@@ -43,6 +72,113 @@ pub fn is_builtin(name: &str) -> bool {
 pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     use Value::*;
     Ok(match (name, args) {
+        ("solve_linear", [model]) => crate::evaluate::solver::solve(model)?,
+        ("entries", [Record(fields)]) => List(
+            fields
+                .iter()
+                .map(|(key, value)| {
+                    Record(
+                        [
+                            ("key".into(), Text(key.clone())),
+                            ("value".into(), value.clone()),
+                        ]
+                        .into(),
+                    )
+                })
+                .collect(),
+        ),
+        ("number", [value]) => {
+            Number(crate::charts::magnitude(value).ok_or("Expected a numeric value")?)
+        }
+        ("source", [value]) => Text(
+            value
+                .source()
+                .ok_or("Value cannot be written as an expression")?,
+        ),
+        ("parse_duration", [Text(value)]) => {
+            crate::engine::duration(value).map(Duration).unwrap_or(Null)
+        }
+        ("parse_time", [Text(value), Text(format)]) => {
+            use chrono::Timelike;
+            chrono::NaiveTime::parse_from_str(value, format)
+                .ok()
+                .map(|t| Duration(t.num_seconds_from_midnight() as i64))
+                .unwrap_or(Null)
+        }
+        ("make_date", [year, month, day]) => {
+            let y = number(year)?;
+            let m = number(month)?;
+            let d = number(day)?;
+            if y.fract() != 0.0
+                || m.fract() != 0.0
+                || d.fract() != 0.0
+                || y < i32::MIN as f64
+                || y > i32::MAX as f64
+                || !(1.0..=12.0).contains(&m)
+                || !(1.0..=31.0).contains(&d)
+            {
+                Null
+            } else {
+                chrono::NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32)
+                    .map(Date)
+                    .unwrap_or(Null)
+            }
+        }
+        ("date_parts", [value]) => {
+            use chrono::Datelike;
+            let date = match value {
+                Date(d) => *d,
+                DateTime(d) => d.date_naive(),
+                _ => return Err("date_parts requires a date or timestamp".into()),
+            };
+            Record(
+                [
+                    ("year".into(), Number(date.year() as f64)),
+                    ("month".into(), Number(date.month() as f64)),
+                    ("day".into(), Number(date.day() as f64)),
+                    (
+                        "weekday".into(),
+                        Number(date.weekday().num_days_from_monday() as f64),
+                    ),
+                ]
+                .into(),
+            )
+        }
+        ("at_time", [Date(date), Duration(seconds), DateTime(reference)]) => {
+            use chrono::TimeZone;
+            if !(0..86400).contains(seconds) {
+                return Err("Time must be within a calendar day".into());
+            }
+            DateTime(
+                reference
+                    .offset()
+                    .from_local_datetime(
+                        &date
+                            .and_hms_opt(0, 0, 0)
+                            .ok_or("Invalid midnight")?
+                            .checked_add_signed(chrono::Duration::seconds(*seconds))
+                            .ok_or("Date overflow")?,
+                    )
+                    .single()
+                    .ok_or("Invalid timestamp")?,
+            )
+        }
+        ("pad_start" | "pad_end", [Text(value), width, Text(fill)]) => {
+            if fill.chars().count() != 1 {
+                return Err("Padding must be one character".into());
+            }
+            let count = index(width)?.saturating_sub(value.chars().count());
+            if count > 8192
+                || count.saturating_mul(fill.len()).saturating_add(value.len()) > 1_048_576
+            {
+                return Err("Padding exceeds the size limit".into());
+            }
+            Text(if name == "pad_start" {
+                fill.repeat(count) + value
+            } else {
+                value.clone() + &fill.repeat(count)
+            })
+        }
         ("type", [value]) => Text(value.type_name().into()),
         ("error", [Text(message)]) => return Err(message.clone()),
         ("trim", [Text(text)]) => Text(text.trim().into()),
@@ -196,5 +332,13 @@ fn index(value: &Value) -> Result<usize, String> {
             Ok(*n as usize)
         }
         _ => Err("Expected a nonnegative integer".into()),
+    }
+}
+
+fn number(value: &Value) -> Result<f64, String> {
+    match value {
+        Value::Number(n) if n.is_finite() => Ok(*n),
+        Value::Count(n) => Ok(*n as f64),
+        _ => Err("Expected a finite number".into()),
     }
 }

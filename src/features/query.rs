@@ -342,6 +342,8 @@ fn eval(
             };
             Ok(Q::Scalar(Value::Function(std::sync::Arc::new(
                 crate::evaluate::functional::Function {
+                    environment: None,
+                    expressions: None,
                     params: params.clone(),
                     body: *body.clone(),
                     path: item.path().into(),

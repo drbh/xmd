@@ -250,18 +250,19 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
             None => edges.push((target, vec![span])),
         }
     };
-    let mut references = |within: Span| {
-        for reference in doc.references.iter().filter(|r| {
-            r.span.line == within.line && r.span.start >= within.start && r.end() <= within.end
-        }) {
-            if let Ok(target) = crate::tables::resolve_reference(ws, &symbol.path, reference) {
-                add(
-                    target,
-                    Span::new(reference.span.line, reference.span.start, reference.end()),
-                );
+    let mut references =
+        |within: Span| {
+            for reference in doc.references.iter().filter(|r| {
+                within.contains(&doc.text, Span::new(r.span.line, r.span.start, r.end()))
+            }) {
+                if let Ok(target) = crate::tables::resolve_reference(ws, &symbol.path, reference) {
+                    add(
+                        target,
+                        Span::new(reference.span.line, reference.span.start, reference.end()),
+                    );
+                }
             }
-        }
-    };
+        };
     match symbol.kind {
         SymbolKind::Definition(i) => {
             let def = &doc.definitions[i];

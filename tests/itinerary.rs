@@ -2,7 +2,7 @@ use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
 use wtf::{
-    actions, cli, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
+    actions, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
     tables, workspace::Workspace,
 };
 
@@ -21,6 +21,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn messages(ws: &Workspace) -> Vec<String> {
@@ -334,17 +335,30 @@ fn completion_offers_stop_kinds_after_a_time_and_keys_inside_a_stop() {
 #[test]
 fn stops_join_the_agenda_in_time_order() {
     let ws = note(TRIP);
-    let entries: Vec<_> = cli::entries(&ws, today())
-        .into_iter()
-        .filter(|e| e.kind == "stop")
-        .collect();
-    assert_eq!(entries.len(), 7);
-    assert_eq!(entries[0].at.as_deref(), Some("2026-11-20 07:04"));
-    assert_eq!(entries[0].at_date, NaiveDate::from_ymd_opt(2026, 11, 20));
-    assert!(cli::agenda_entry(
-        &entries[0],
-        NaiveDate::from_ymd_opt(2026, 11, 20).unwrap(),
-        NaiveDate::from_ymd_opt(2026, 11, 26).unwrap()
-    ));
-    assert!(!cli::agenda_entry(&entries[0], today(), today()));
+    let entries = wtf::query::execute(
+        &ws,
+        &wtf::query::Query::parse("stops | sort at").unwrap(),
+        &wtf::query::QueryContext::new(now()),
+    )
+    .unwrap();
+    assert_eq!(entries.rows.len(), 7);
+    let first = entries.rows[0].json();
+    assert_eq!(first["at"]["value"], "2026-11-20T07:04:00-04:00");
+    assert_eq!(first["at_date"]["value"], "2026-11-20");
+    let query = wtf::query::Query::parse("@week | where kind == \"stop\"").unwrap();
+    let trip = wtf::query::QueryContext::new(
+        DateTime::parse_from_rfc3339("2026-11-20T12:00:00-05:00").unwrap(),
+    );
+    assert!(
+        !wtf::query::execute(&ws, &query, &trip)
+            .unwrap()
+            .rows
+            .is_empty()
+    );
+    assert!(
+        wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now()))
+            .unwrap()
+            .rows
+            .is_empty()
+    );
 }

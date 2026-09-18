@@ -166,7 +166,7 @@ Attributes are `@key(value)` at the end of a task.
 
 &lt;!-- @due and @scheduled show relative dates in inlays; @after blocks a task;
 @every advances the due date when completed; a line with @at is an appointment.
-Try: wtf agenda --week on the command line. --&gt;
+Try: wtf query @week on the command line. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
@@ -205,11 +205,11 @@ completion; month repeats keep the day of month. Try: tick one. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="appointments"><h2><span class="number">2.5</span> Appointments</h2><p>A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf today</code> and <code>wtf agenda</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.</p><figure class="wtf-block" data-file="10-events.wtf">
+</figure></section><section class="chapter" id="appointments"><h2><span class="number">2.5</span> Appointments</h2><p>A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf query @today</code> and <code>wtf query @today</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.</p><figure class="wtf-block" data-file="10-events.wtf">
   <figcaption><span>examples/10-events.wtf</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/10-events.wtf"># Appointments
 
-A line with @at is an appointment; wtf agenda and wtf today list it.
+A line with @at is an appointment; wtf query @today and wtf query @today list it.
 
 - Dentist @at(2026-09-25T09:30-04:00)
 - Team lunch @at(2026-09-26T12:30-04:00)
@@ -219,7 +219,7 @@ next := 2026-09-25T09:30-04:00 - now()
 
 The dentist is in [next].
 
-&lt;!-- Include an explicit UTC offset for times. Try: wtf agenda --week. --&gt;
+&lt;!-- Include an explicit UTC offset for times. Try: wtf query @week. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
@@ -310,7 +310,7 @@ Bake [bakery.bagels] bagels and [bakery.doughnuts] doughnuts for [bakery].
 Flour to spare: [bakery.flour].
 
 &lt;!-- Constraint rows show usage and binding or slack. Try: change flour_stock
-to 300, or wtf plan bakery on the command line. --&gt;
+to 300, or wtf query 'plans | where name == "bakery" | select solution' on the command line. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
@@ -617,7 +617,7 @@ The outline lists sections, tasks, values, tables and columns in source order. -
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="diagnostics"><h2><span class="number">7.7</span> Diagnostics</h2><p>Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf check</code>.</p><p>The example below is valid as written; uncomment one of the suggested lines to see the diagnostic appear.</p><figure class="wtf-block" data-file="30-diagnostics.wtf">
+</figure></section><section class="chapter" id="diagnostics"><h2><span class="number">7.7</span> Diagnostics</h2><p>Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf query @check --fail-on-match</code>.</p><p>The example below is valid as written; uncomment one of the suggested lines to see the diagnostic appear.</p><figure class="wtf-block" data-file="30-diagnostics.wtf">
   <figcaption><span>examples/30-diagnostics.wtf</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/30-diagnostics.wtf"># Diagnostics
 
@@ -684,21 +684,21 @@ $95:shared_rate
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="agenda-and-the-command-line"><h2><span class="number">8.3</span> Agenda and the Command Line</h2><p><code>wtf today</code>, <code>wtf agenda --week</code>, and <code>wtf tasks</code> read every note. <code>wtf capture</code> appends a task, <code>wtf complete</code> ticks one, <code>wtf check</code> reports problems, <code>wtf plan</code> solves a plan, and <code>wtf refresh</code> fills the caches. Add <code>--json</code> to any listing.</p><figure class="wtf-block" data-file="29-agenda-and-cli.wtf">
+</figure></section><section class="chapter" id="agenda-and-the-command-line"><h2><span class="number">8.3</span> Agenda and the Command Line</h2><p><code>wtf query @today</code>, <code>wtf query @week</code>, and <code>wtf query @tasks</code> read every note. <code>wtf capture</code> appends a task, <code>wtf complete</code> ticks one, <code>wtf query @check --fail-on-match</code> reports problems, <code>wtf query plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Pipelines filter, project, sort, and group results. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.</p><figure class="wtf-block" data-file="29-agenda-and-cli.wtf">
   <figcaption><span>examples/29-agenda-and-cli.wtf</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/29-agenda-and-cli.wtf"># Agenda and the command line
 
-Every note feeds wtf today, wtf agenda --week, and wtf tasks.
+Every note feeds wtf query @today, wtf query @week, and wtf query @tasks.
 
 - [ ] Send the invoice @due(2026-09-18) #finance
 - [ ] Renew the domain @due(2026-09-30) @every(year) #admin
 - [ ] Draft the talk @scheduled(2026-09-19) @estimate(2h)
 - Standup @at(2026-09-18T09:00-04:00)
 
-&lt;!-- wtf tasks --tag finance filters by tag; wtf complete 29-agenda-and-cli.wtf:4
+&lt;!-- wtf query '@tasks | where contains(tags, "finance")' filters by tag; wtf complete 29-agenda-and-cli.wtf:5
 ticks a box; wtf capture "Call the dentist" --due "next Friday" appends to
-inbox.wtf; wtf check reports problems; wtf plan and wtf refresh serve plans
-and lookups. Add --json to any listing. --&gt;
+inbox.wtf; wtf query @check --fail-on-match reports errors. Query plans for
+solutions, and use wtf refresh to fill caches. Add --json to a query. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>

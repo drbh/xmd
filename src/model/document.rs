@@ -2,7 +2,8 @@ use crate::resources::Resource;
 use lsp_types::{Position, Range};
 use std::collections::BTreeMap;
 
-/// Source spans are byte offsets within a line. Convert only at the LSP boundary.
+/// Byte offsets from the start of `line`; `end` may extend across later lines.
+/// Convert to line/UTF-16 coordinates only at the LSP boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Span {
     pub line: usize,
@@ -14,11 +15,71 @@ impl Span {
         Self { line, start, end }
     }
     pub fn range(self, text: &str) -> Range {
-        let line = text.lines().nth(self.line).unwrap_or("");
-        Range::new(
-            Position::new(self.line as u32, utf16(line, self.start)),
-            Position::new(self.line as u32, utf16(line, self.end)),
-        )
+        let point = |offset| {
+            let tail = self.tail(text);
+            let prefix = tail.get(..offset).unwrap_or(tail);
+            let row = self.line + prefix.bytes().filter(|b| *b == b'\n').count();
+            let column = prefix
+                .rsplit('\n')
+                .next()
+                .unwrap_or("")
+                .trim_end_matches('\r');
+            Position::new(row as u32, column.encode_utf16().count() as u32)
+        };
+        Range::new(point(self.start), point(self.end))
+    }
+    fn tail(self, text: &str) -> &str {
+        let offset: usize = text
+            .split_inclusive('\n')
+            .take(self.line)
+            .map(str::len)
+            .sum();
+        &text[offset..]
+    }
+    pub fn source(self, text: &str) -> &str {
+        self.tail(text).get(self.start..self.end).unwrap_or("")
+    }
+    /// Map expression-relative byte offsets back to their original source line.
+    pub fn relative(self, text: &str, start: usize, end: usize) -> Self {
+        let tail = self.tail(text);
+        let prefix = tail.get(..self.start + start).unwrap_or(tail);
+        let line = self.line + prefix.bytes().filter(|b| *b == b'\n').count();
+        let column = prefix.rsplit('\n').next().unwrap_or("").len();
+        Self::new(line, column, column + end.saturating_sub(start))
+    }
+    pub fn contains(self, text: &str, other: Self) -> bool {
+        let outer = self.range(text);
+        let inner = other.range(text);
+        outer.start <= inner.start && inner.end <= outer.end
+    }
+    pub fn offset_of(self, text: &str, other: Self) -> Option<usize> {
+        self.contains(text, other).then(|| {
+            let lines: usize = self
+                .tail(text)
+                .split_inclusive('\n')
+                .take(other.line - self.line)
+                .map(str::len)
+                .sum();
+            lines + other.start - self.start
+        })
+    }
+    /// Single-line fragments for semantic tokens, excluding newline bytes.
+    pub fn fragments(self, text: &str) -> Vec<Self> {
+        let mut offset = 0;
+        let mut spans = vec![];
+        for (row, line) in self.tail(text).split_inclusive('\n').enumerate() {
+            if offset >= self.end {
+                break;
+            }
+            let length = line.trim_end_matches(['\r', '\n']).len();
+            let start = self.start.saturating_sub(offset);
+            let end = self.end.saturating_sub(offset).min(length);
+            if start < end {
+                spans.push(Self::new(self.line + row, start, end));
+            }
+            offset += line.len();
+        }
+        spans
     }
 }
 pub fn utf16(line: &str, byte: usize) -> u32 {
@@ -191,6 +252,10 @@ impl Document {
                 doc.mark(row, start, line.len(), "comment");
                 continue;
             }
+            if trimmed.starts_with("//") {
+                doc.mark(row, start, line.len(), "comment");
+                continue;
+            }
             let heading = marker == '#'
                 && run <= 6
                 && trimmed
@@ -292,6 +357,33 @@ impl Document {
                 });
             }
             doc.inline(line, row, content_start, &attrs);
+            if let Some(index) = doc.definitions.len().checked_sub(1)
+                && doc.definitions[index].expression
+                && doc.definitions[index].named.span.line == row
+            {
+                let span = doc.definitions[index].value_span;
+                let end_row = expression_end(&lines, row, span.start);
+                if end_row > row {
+                    let prefix: usize = text.split_inclusive('\n').take(row).map(str::len).sum();
+                    let length: usize = text[prefix..]
+                        .split_inclusive('\n')
+                        .take(end_row - row)
+                        .map(str::len)
+                        .sum();
+                    let end = length + lines[end_row].len();
+                    let block = &text[prefix..prefix + end];
+                    doc.references
+                        .retain(|r| r.span.line != row || r.span.start < span.start);
+                    doc.highlights
+                        .retain(|h| h.span.line != row || h.span.end <= span.start);
+                    doc.definitions[index].source = block[span.start..].trim().into();
+                    doc.definitions[index].value_span.end = end;
+                    doc.definitions[index].end =
+                        Span::new(end_row, lines[end_row].len(), lines[end_row].len());
+                    doc.expression(block, row, span.start, end);
+                    table_end = end_row + 1;
+                }
+            }
             // A line that is only math, with its variables in brackets, shows its
             // result at the end: `[budget] - [spent]`.
             if is_task.is_none()
@@ -332,16 +424,14 @@ impl Document {
                 for reference in &doc.references {
                     // Column names inside sum(table, ...) belong to the table.
                     let in_sum = crate::plans::regions(&plan).any(|region| {
-                        region.line == reference.span.line
-                            && reference.span.start >= region.start
-                            && reference.span.end <= region.end
+                        region.contains(&doc.text, reference.span)
                             && crate::engine::sum_scope_at(
-                                &lines[region.line][region.start..region.end],
-                                reference.span.start - region.start,
+                                region.source(&doc.text),
+                                region.offset_of(&doc.text, reference.span).unwrap_or(0),
                             )
                             .is_some()
                     });
-                    if crate::plans::contains(&plan, reference.span)
+                    if crate::plans::contains(&plan, reference.span, &doc.text)
                         && reference.property.is_none()
                         && !in_sum
                         && !plan.names.iter().any(|n| n.name == reference.name)
@@ -737,17 +827,22 @@ impl Document {
 
     fn expression(&mut self, line: &str, row: usize, start: usize, end: usize) {
         // Use the evaluator's lexer, so identifiers and dates have identical boundaries.
-        match crate::engine::lex(&line[start..end]) {
+        match crate::engine::lex_with_comments(&line[start..end]) {
             Ok(tokens) => {
+                let free_names = crate::engine::expression_names(&line[start..end]);
                 for token in tokens {
-                    let span = Span::new(row, start + token.start, start + token.end);
+                    let span =
+                        Span::new(row, start, end).relative(&self.text, token.start, token.end);
                     let kind = match &token.kind {
                         crate::engine::Lexeme::Name(name) => {
-                            if !line[start + token.end..end].trim_start().starts_with('(')
+                            if free_names
+                                .as_ref()
+                                .is_none_or(|names| names.contains(&token.start))
+                                && !line[start + token.end..end].trim_start().starts_with('(')
                                 && !crate::engine::is_code(name)
                                 && (token.start == 0
                                     || !line[start..start + token.start].trim_end().ends_with('.'))
-                                && !matches!(name.as_str(), "true" | "false")
+                                && !matches!(name.as_str(), "true" | "false" | "null" | "fn")
                                 && (!matches!(name.as_str(), "tomorrow" | "today")
                                     || crate::engine::sum_scope_at(&line[start..end], token.start)
                                         .is_some())
@@ -762,13 +857,18 @@ impl Document {
                             "variable"
                         }
                         crate::engine::Lexeme::Value(_) => "number",
+                        crate::engine::Lexeme::Comment => "comment",
                         _ => "operator",
                     };
-                    self.mark(row, span.start, span.end, kind);
+                    for part in span.fragments(&self.text) {
+                        self.mark(part.line, part.start, part.end, kind);
+                    }
                 }
             }
             Err(_) => {
-                self.mark(row, start, end, "string");
+                for part in Span::new(row, start, end).fragments(&self.text) {
+                    self.mark(part.line, part.start, part.end, "string");
+                }
             }
         }
     }
@@ -935,6 +1035,60 @@ fn bare_literal(line: &str, row: usize, at: usize) -> Option<Definition> {
         end: Span::new(row, at + name_end, at + name_end),
     })
 }
+/// Continue an expression inside delimiters or after an unfinished operator.
+/// An outdented declaration/prose line remains a separate document item, even
+/// when the preceding expression is missing its closing delimiter.
+fn expression_end(lines: &[&str], row: usize, start: usize) -> usize {
+    use crate::engine::Lexeme;
+    let indent = lines[row].len() - lines[row].trim_start().len();
+    let mut depth = 0i32;
+    let mut last = row;
+    for (index, line) in lines.iter().enumerate().skip(row) {
+        let source = if index == row {
+            &line[start..]
+        } else {
+            line.trim_start()
+        };
+        if index > row {
+            let padding = line.len() - line.trim_start().len();
+            if !source.is_empty() && padding <= indent && !source.starts_with([')', ']', '}']) {
+                break;
+            }
+            if bare_calculation(line, index, padding).is_some()
+                || source
+                    .strip_prefix('[')
+                    .and_then(|s| s.split_once(']'))
+                    .is_some_and(|(_, tail)| tail.trim_start().starts_with(":="))
+            {
+                break;
+            }
+        }
+        let Ok(tokens) = crate::engine::lex(source) else {
+            break;
+        };
+        for token in &tokens {
+            match token.kind {
+                Lexeme::Left | Lexeme::OpenList | Lexeme::OpenRecord => depth += 1,
+                Lexeme::Right | Lexeme::CloseList | Lexeme::CloseRecord => depth -= 1,
+                _ => (),
+            }
+        }
+        if !source.is_empty() {
+            last = index;
+        }
+        let unfinished = tokens.last().is_none_or(|t| {
+            matches!(
+                t.kind,
+                Lexeme::Op(_) | Lexeme::Comma | Lexeme::Dot | Lexeme::Colon
+            )
+        });
+        if depth <= 0 && !unfinished {
+            break;
+        }
+    }
+    last
+}
+
 /// `name := expression` at the start of a line, without brackets.
 fn bare_calculation(line: &str, row: usize, start: usize) -> Option<Definition> {
     let rest = &line[start..];

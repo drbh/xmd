@@ -27,15 +27,34 @@ pub struct Workspace {
     pub documents: BTreeMap<PathBuf, Document>,
     pub cache: Cache,
     pub lookups: crate::lookups::Store,
+    pub plugins: std::sync::Arc<crate::evaluate::plugins::Plugins>,
 }
 impl Workspace {
     #[cfg(feature = "native")]
     pub fn load(roots: Vec<PathBuf>) -> Result<Self, String> {
+        let mut workspace = Self::load_notes(roots)?;
+        workspace.reload_plugins()?;
+        Ok(workspace)
+    }
+    #[cfg(feature = "native")]
+    pub fn reload_plugins(&mut self) -> Result<(), String> {
+        let plugins = crate::evaluate::plugins::Plugins::load(&self.roots)?;
+        if !self.plugins.same_sources(&plugins) {
+            self.plugins = std::sync::Arc::new(plugins);
+        }
+        Ok(())
+    }
+    pub fn link_features(&self) -> crate::link_features::LinkFeatures<'_> {
+        crate::link_features::BUILTINS.with_plugins(&self.plugins.modules)
+    }
+    #[cfg(feature = "native")]
+    pub(crate) fn load_notes(roots: Vec<PathBuf>) -> Result<Self, String> {
         let mut result = Self {
             roots,
             documents: BTreeMap::new(),
             cache: BTreeMap::new(),
             lookups: BTreeMap::new(),
+            plugins: Default::default(),
         };
         for root in &result.roots {
             result.cache.extend(crate::resources::load_cache(root));

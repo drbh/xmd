@@ -1,9 +1,5 @@
-use crate::{
-    actions,
-    engine::{Engine, Value},
-    resources::{self, Resource},
-    workspace::Workspace,
-};
+use crate::commands::{Action, Capabilities, RowTarget};
+use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
 use std::{
@@ -17,10 +13,19 @@ pub fn resources_at(
     row: usize,
     now: DateTime<FixedOffset>,
 ) -> Vec<Resource> {
+    resources_at_in(&crate::RequestContext::new(ws, now), path, row)
+}
+pub fn resources_at_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+) -> Vec<Resource> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let mut found = BTreeMap::new();
     let mut add = |resource: Resource| {
         if let Ok(url) = resource.url(path) {
@@ -58,50 +63,48 @@ pub fn row_commands(
     now: DateTime<FixedOffset>,
     include_task: bool,
 ) -> Vec<Command> {
+    row_commands_in(
+        &crate::RequestContext::new(ws, now),
+        path,
+        row,
+        include_task,
+    )
+}
+pub fn row_commands_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    include_task: bool,
+) -> Vec<Command> {
+    row_commands_for(request, path, row, include_task, Capabilities::NATIVE)
+}
+pub fn row_commands_for(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    include_task: bool,
+    capabilities: Capabilities,
+) -> Vec<Command> {
+    let ws = request.workspace();
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
     let uri = crate::paths::file_url(path).unwrap();
+    let target = RowTarget {
+        document: uri.clone(),
+        row,
+        expected: doc.line(row).into(),
+    };
     let mut result = vec![];
-    let mut seen = BTreeSet::new();
-    let mut engine = Engine::at(ws, now);
-    for name in doc
-        .definitions
-        .iter()
-        .filter(|d| d.named.span.line == row)
-        .map(|d| d.named.name.as_str())
-        .chain(
-            doc.references
-                .iter()
-                .filter(|r| r.span.line == row)
-                .map(|r| r.name.as_str()),
-        )
-    {
-        if let Ok(Value::Timer(t)) = engine.named(path, name)
-            && let Some(origin) = &t.origin
-            && seen.insert(origin.clone())
-        {
-            for action in t.actions() {
-                let name = &ws.named(origin).name;
-                result.push(Command {
-                    title: format!(
-                        "{}{} timer '{name}'",
-                        action[..1].to_uppercase(),
-                        &action[1..]
-                    ),
-                    command: "wtf.timer".into(),
-                    arguments: Some(vec![
-                        serde_json::json!(crate::paths::file_url(&origin.path).unwrap()),
-                        serde_json::json!(name),
-                        serde_json::json!(action),
-                    ]),
-                });
-            }
+    let mut push = |action: Action, title: String| {
+        if capabilities.supports(&action) {
+            result.push(action.command(title));
         }
-    }
+    };
+    let engine = request.engine();
     if include_task
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
-        && actions::toggle_task(ws, path, index, now.date_naive()).is_ok()
+        && actions::toggle_task_in(request, path, index).is_ok()
     {
         let title = if task.attributes.contains_key("every") {
             "Complete occurrence and schedule next"
@@ -110,44 +113,32 @@ pub fn row_commands(
         } else {
             "Complete task"
         };
-        result.push(Command {
-            title: title.into(),
-            command: "wtf.task".into(),
-            arguments: Some(vec![
-                serde_json::json!(uri),
-                serde_json::json!(row),
-                serde_json::json!(doc.line(row)),
-            ]),
-        });
+        push(Action::ToggleTask(target.clone()), title.into());
     }
-    for resource in resources_at(ws, path, row, now) {
+    for resource in resources_at_in(request, path, row) {
         let url = resource.url(path).unwrap();
-        let args = vec![
-            serde_json::json!(uri),
-            serde_json::json!(row),
-            serde_json::json!(doc.line(row)),
-            serde_json::json!(url),
-        ];
-        result.push(Command {
-            title: format!(
-                "Open {}",
-                if resource.is_image() {
-                    "image"
-                } else if resource.target.starts_with("geo:") {
-                    "map"
-                } else {
-                    "resource"
-                }
-            ),
-            command: "wtf.openResource".into(),
-            arguments: Some(args.clone()),
-        });
-        if resources::github(&resource.target).is_some() {
-            result.push(Command {
-                title: "Refresh GitHub status".into(),
-                command: "wtf.refreshResource".into(),
-                arguments: Some(args),
-            });
+        let kind = if resource.is_image() {
+            "image"
+        } else if resource.target.starts_with("geo:") {
+            "map"
+        } else {
+            "resource"
+        };
+        push(
+            Action::OpenResource {
+                target: target.clone(),
+                url: url.clone(),
+            },
+            format!("Open {kind}"),
+        );
+        if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
+            push(
+                Action::RefreshResource {
+                    target: target.clone(),
+                    url,
+                },
+                refresh.title,
+            );
         }
     }
     let line = doc.line(row);
@@ -156,15 +147,34 @@ pub fn row_commands(
         .any(|call| line.contains(call))
         || doc.days.iter().any(|d| d.line == row && d.places.is_some());
     if wants_lookup {
-        result.push(Command {
-            title: "Refresh lookups".into(),
-            command: "wtf.refresh".into(),
-            arguments: Some(vec![serde_json::json!(uri)]),
-        });
+        push(
+            Action::Refresh {
+                document: Some(uri),
+            },
+            "Refresh lookups".into(),
+        );
     }
+    result.extend(super::plugin_inlays::commands(
+        request,
+        path,
+        row,
+        capabilities,
+    ));
     result
 }
 pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {
+    lenses_in(&crate::RequestContext::new(ws, now), path)
+}
+pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLens> {
+    lenses_for(request, path, Capabilities::NATIVE)
+}
+pub fn lenses_for(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    capabilities: Capabilities,
+) -> Vec<CodeLens> {
+    let ws = request.workspace();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -175,10 +185,21 @@ pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<Co
         .chain(doc.tasks.iter().map(|t| t.line))
         .chain(doc.references.iter().map(|r| r.span.line))
         .chain(doc.links.iter().map(|l| l.span.line))
+        .chain(
+            if ws
+                .plugins
+                .active()
+                .any(|m| m.kind == "inlay" && m.has("actions"))
+            {
+                0..doc.text.lines().count()
+            } else {
+                0..0
+            },
+        )
         .collect();
     rows.into_iter()
         .flat_map(|row| {
-            row_commands(ws, path, row, now, true)
+            row_commands_for(request, path, row, true, capabilities)
                 .into_iter()
                 .map(move |command| CodeLens {
                     range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),

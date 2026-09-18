@@ -1,5 +1,5 @@
 {
-  "comments": { "blockComment": ["<!--", "-->"] },
+  "comments": { "lineComment": "//", "blockComment": ["<!--", "-->"] },
   "brackets": [["[", "]"], ["(", ")"]],
   "autoClosingPairs": [
     { "open": "[", "close": "]" },

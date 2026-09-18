@@ -1,8 +1,12 @@
 //! Trip itineraries: day headings, timed stops, and their details, parsed from
 //! prose that reads naturally on its own. Shared by the native server,
 //! browser adapter and CLI.
-use crate::document::{Document, Span, utf16};
-use chrono::{Datelike, Duration, NaiveDate, NaiveTime, Weekday};
+use crate::document::{Document, Span};
+use crate::{
+    engine::Value,
+    plugins::{from_json, record, standard},
+};
+use chrono::{NaiveDate, NaiveTime, Timelike, Weekday};
 use lsp_types::{Position, Range, TextEdit};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -511,51 +515,29 @@ pub fn parse(lines: &[&str]) -> Vec<Day> {
 /// Calendar dates for each day. Years carry forward from the previous day or
 /// an explicit year, and a first day without one is the next occurrence.
 pub fn dates(days: &[Day], today: NaiveDate) -> Vec<Option<NaiveDate>> {
-    let mut previous: Option<NaiveDate> = None;
-    let mut year = days.iter().find_map(|d| d.year).unwrap_or(today.year());
-    days.iter()
-        .map(|day| {
-            if let Some(y) = day.year {
-                year = y;
-            }
-            let mut date = NaiveDate::from_ymd_opt(year, day.month, day.day);
-            if day.year.is_none() {
-                if let Some(prev) = previous
-                    && let Some(d) = date
-                    && d < prev
-                {
-                    year += 1;
-                    date = NaiveDate::from_ymd_opt(year, day.month, day.day);
-                } else if previous.is_none()
-                    && let Some(d) = date
-                    && d < today - Duration::days(30)
-                {
-                    year += 1;
-                    date = NaiveDate::from_ymd_opt(year, day.month, day.day);
-                }
-            }
-            if let Some(d) = date {
-                previous = Some(d);
-            }
-            date
+    try_dates(days, today).unwrap_or_else(|_| vec![None; days.len()])
+}
+pub(crate) fn try_dates(days: &[Day], today: NaiveDate) -> Result<Vec<Option<NaiveDate>>, String> {
+    let input = Value::List(days.iter().map(day_parts).collect());
+    let result = call("dates", vec![input, Value::Date(today)])?;
+    Ok(crate::plugins::list(&result)?
+        .iter()
+        .map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
         })
-        .collect()
+        .collect())
 }
 pub fn display_time(stop: &Stop) -> String {
-    if stop.twelve_hour {
-        stop.time.format("%I:%M %p").to_string()
-    } else {
-        stop.time.format("%H:%M").to_string()
-    }
+    call("time_text", vec![stop_record(stop, None)])
+        .map(|v| v.display())
+        .unwrap_or_else(|e| e)
 }
-/// `4h 51m`, `2h`, or `45m`: the way a traveler says it.
+/// Human-readable travel duration, shared with user modules.
 pub fn human(seconds: i64) -> String {
-    let minutes = seconds / 60;
-    match (minutes / 60, minutes % 60) {
-        (0, m) => format!("{m}m"),
-        (h, 0) => format!("{h}h"),
-        (h, m) => format!("{h}h {m}m"),
-    }
+    standard("format", "human", vec![Value::Duration(seconds)], epoch())
+        .expect("valid duration")
+        .display()
 }
 pub fn month_name(month: u32) -> &'static str {
     let name = MONTHS[(month as usize).saturating_sub(1).min(11)];
@@ -576,8 +558,13 @@ pub fn month_name(month: u32) -> &'static str {
 }
 /// Seconds from one stop to the next on the same day, when in order.
 pub fn gap(stop: &Stop, next: &Stop) -> Option<i64> {
-    let seconds = (next.time - stop.time).num_seconds();
-    (seconds >= 0).then_some(seconds)
+    match call(
+        "gap",
+        vec![stop_record(stop, None), stop_record(next, None)],
+    ) {
+        Ok(Value::Duration(n)) => Some(n),
+        _ => None,
+    }
 }
 /// A Google Maps search for an address; every platform opens it.
 pub fn map_url(address: &str) -> String {
@@ -586,69 +573,183 @@ pub fn map_url(address: &str) -> String {
 }
 /// `Cancel by: 24h before` or an explicit datetime, resolved against the stop.
 pub fn cancel_by(day: NaiveDate, stop: &Stop) -> Option<(chrono::NaiveDateTime, bool)> {
-    let detail = stop
-        .details
-        .iter()
-        .find(|d| d.key.eq_ignore_ascii_case("cancel by"))?;
-    let value = detail.value.trim();
-    if let Some(offset) = value
-        .strip_suffix("before")
-        .or_else(|| value.strip_suffix("in advance"))
-        .or_else(|| value.strip_suffix("ahead"))
-    {
-        let seconds = crate::engine::duration(offset.trim())?;
-        return Some((day.and_time(stop.time) - Duration::seconds(seconds), true));
-    }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M") {
-        return Some((dt, false));
-    }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M") {
-        return Some((dt, false));
-    }
-    let date = NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()?;
-    Some((date.and_hms_opt(23, 59, 0)?, false))
+    let value = call(
+        "cancel",
+        vec![
+            Value::Date(day),
+            stop_record(stop, None),
+            Value::DateTime(epoch()),
+        ],
+    )
+    .ok()?;
+    let at = crate::plugins::field(&value, "at").ok()?;
+    let Value::DateTime(at) = at else { return None };
+    let relative = crate::plugins::field(&value, "relative").ok()? == &Value::Bool(true);
+    Some((at.naive_local(), relative))
 }
-
-/// `07:04 AM  > Title`: time, two spaces, marker when known, title without emoji.
 pub fn canonical_line(stop: &Stop) -> String {
-    match stop.kind {
-        Some(kind) => format!("{}  {} {}", display_time(stop), kind.marker, stop.title),
-        None => format!("{}  {}", display_time(stop), stop.title),
-    }
+    call("canonical", vec![stop_record(stop, None)])
+        .map(|v| v.display())
+        .unwrap_or_else(|e| e)
 }
-/// `> Depart JFK`: the marker and title, for agendas and hovers.
 pub fn label(stop: &Stop) -> String {
-    match stop.kind {
-        Some(kind) => format!("{} {}", kind.marker, stop.title),
-        None => stop.title.clone(),
-    }
+    call("label", vec![stop_record(stop, None)])
+        .map(|v| v.display())
+        .unwrap_or_else(|e| e)
 }
-/// Normalize stop lines to `07:04 AM  > Title` and indent details by four.
 pub fn formatting(doc: &Document, days: &[Day]) -> Vec<TextEdit> {
-    let mut edits = Vec::new();
-    let mut replace = |row: usize, text: String| {
-        let line = doc.line(row);
-        if line != text {
-            edits.push(TextEdit::new(
-                Range::new(
+    call(
+        "format_days",
+        vec![Value::List(
+            days.iter().map(|d| day_record(d, doc)).collect(),
+        )],
+    )
+    .and_then(|v| crate::plugins::json(&v))
+    .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
+    .unwrap_or_default()
+}
+fn epoch() -> chrono::DateTime<chrono::FixedOffset> {
+    chrono::DateTime::from_timestamp(0, 0)
+        .unwrap()
+        .fixed_offset()
+}
+pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value, String> {
+    standard("itinerary_core", name, args, epoch())
+}
+fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
+    record(fields.into_iter().map(|(k, v)| (k.into(), v)))
+}
+fn range(doc: Option<&Document>, span: Span) -> Value {
+    doc.map(|d| from_json(&serde_json::json!(span.range(&d.text))))
+        .unwrap_or(Value::Null)
+}
+fn line_fields(doc: Option<&Document>, row: usize) -> Vec<(String, Value)> {
+    vec![
+        ("line".into(), Value::Count(row)),
+        (
+            "raw".into(),
+            Value::Text(doc.map(|d| d.line(row)).unwrap_or("").into()),
+        ),
+        (
+            "line_range".into(),
+            doc.map(|d| {
+                from_json(&serde_json::json!(Range::new(
                     Position::new(row as u32, 0),
-                    Position::new(row as u32, utf16(line, line.len())),
-                ),
-                text,
-            ));
-        }
+                    d.line_end(row)
+                )))
+            })
+            .unwrap_or(Value::Null),
+        ),
+        (
+            "anchor".into(),
+            doc.map(|d| from_json(&serde_json::json!(d.line_end(row))))
+                .unwrap_or(Value::Null),
+        ),
+    ]
+}
+fn day_parts(day: &Day) -> Value {
+    object([
+        ("month", Value::Count(day.month as usize)),
+        ("day", Value::Count(day.day as usize)),
+        (
+            "year",
+            day.year
+                .map(|y| Value::Number(y as f64))
+                .unwrap_or(Value::Null),
+        ),
+    ])
+}
+pub(crate) fn day_record(day: &Day, doc: &Document) -> Value {
+    let Value::Record(mut fields) = day_parts(day) else {
+        unreachable!()
     };
-    for day in days {
-        for stop in &day.stops {
-            replace(stop.line, canonical_line(stop));
-            for detail in &stop.details {
-                replace(detail.line, format!("    {}: {}", detail.key, detail.value));
-            }
-            for note in &stop.notes {
-                let text = doc.line(note.line)[note.start..note.end].trim().to_string();
-                replace(note.line, format!("    {text}"));
-            }
-        }
-    }
-    edits
+    fields.extend(line_fields(Some(doc), day.line));
+    fields.extend([
+        (
+            "weekday".into(),
+            day.weekday
+                .map(|(w, _)| Value::Count(w.num_days_from_monday() as usize))
+                .unwrap_or(Value::Null),
+        ),
+        (
+            "weekday_range".into(),
+            day.weekday
+                .map(|(_, span)| range(Some(doc), span))
+                .unwrap_or(Value::Null),
+        ),
+        ("date_range".into(), range(Some(doc), day.date_span)),
+        (
+            "places".into(),
+            day.places
+                .as_ref()
+                .map(|(p, _)| Value::Text(p.clone()))
+                .unwrap_or(Value::Null),
+        ),
+        ("forecast".into(), Value::Null),
+        (
+            "stops".into(),
+            Value::List(
+                day.stops
+                    .iter()
+                    .map(|s| stop_record(s, Some(doc)))
+                    .collect(),
+            ),
+        ),
+    ]);
+    Value::Record(fields)
+}
+pub(crate) fn stop_record(stop: &Stop, doc: Option<&Document>) -> Value {
+    record(
+        line_fields(doc, stop.line).into_iter().chain([
+            (
+                "kind".into(),
+                stop.kind
+                    .map(|k| {
+                        object([
+                            ("marker", Value::Text(k.marker.to_string())),
+                            ("name", Value::Text(k.name.into())),
+                        ])
+                    })
+                    .unwrap_or(Value::Null),
+            ),
+            (
+                "time".into(),
+                Value::Duration(stop.time.num_seconds_from_midnight() as i64),
+            ),
+            ("twelve_hour".into(), Value::Bool(stop.twelve_hour)),
+            ("title".into(), Value::Text(stop.title.clone())),
+            ("time_range".into(), range(doc, stop.time_span)),
+            ("title_range".into(), range(doc, stop.title_span)),
+            (
+                "range".into(),
+                range(
+                    doc,
+                    Span::new(stop.line, stop.time_span.start, stop.title_span.end),
+                ),
+            ),
+            (
+                "details".into(),
+                Value::List(
+                    stop.details
+                        .iter()
+                        .map(|d| {
+                            record(line_fields(doc, d.line).into_iter().chain([
+                                ("key".into(), Value::Text(d.key.clone())),
+                                ("value".into(), Value::Text(d.value.clone())),
+                            ]))
+                        })
+                        .collect(),
+                ),
+            ),
+            (
+                "notes".into(),
+                Value::List(
+                    stop.notes
+                        .iter()
+                        .map(|s| record(line_fields(doc, s.line)))
+                        .collect(),
+                ),
+            ),
+        ]),
+    )
 }

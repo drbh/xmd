@@ -38,6 +38,37 @@ impl std::str::FromStr for TimerAction {
     }
 }
 
+/// Where a timer stands, as the timer module reports it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TimerState {
+    Idle,
+    Running,
+    Paused,
+    Done,
+}
+impl TimerState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Idle => "idle",
+            Self::Running => "running",
+            Self::Paused => "paused",
+            Self::Done => "done",
+        }
+    }
+}
+impl std::str::FromStr for TimerState {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "idle" => Ok(Self::Idle),
+            "running" => Ok(Self::Running),
+            "paused" => Ok(Self::Paused),
+            "done" => Ok(Self::Done),
+            _ => Err(format!("Unknown timer state '{s}'")),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Timer {
     pub limit: Option<i64>,
@@ -146,10 +177,12 @@ impl Timer {
             _ => Err("timer.time_dependent must return a boolean".into()),
         }
     }
-    pub fn state(&self) -> String {
+    /// An unreadable state reads as idle: the glyphs and labels stay drawable.
+    pub fn state(&self) -> TimerState {
         self.call("state")
-            .map(|v| v.display())
-            .unwrap_or_else(|e| e)
+            .ok()
+            .and_then(|v| v.display().parse().ok())
+            .unwrap_or(TimerState::Idle)
     }
     pub fn display(&self) -> String {
         self.call("display")
@@ -173,19 +206,13 @@ impl Timer {
             self.now,
         )
     }
-    pub fn available_actions(&self) -> Vec<TimerAction> {
+    pub fn actions(&self) -> Vec<TimerAction> {
         let Ok(Value::List(actions)) = self.call("actions") else {
             return vec![];
         };
         actions
             .into_iter()
             .filter_map(|v| v.display().parse().ok())
-            .collect()
-    }
-    pub fn actions(&self) -> Vec<&'static str> {
-        self.available_actions()
-            .into_iter()
-            .map(TimerAction::as_str)
             .collect()
     }
 }
@@ -195,7 +222,7 @@ pub fn edit(
     workspace: &Workspace,
     path: &Path,
     name: &str,
-    action: &str,
+    action: TimerAction,
     now: DateTime<FixedOffset>,
 ) -> Result<(Symbol, TextEdit), String> {
     edit_in(
@@ -209,7 +236,7 @@ pub fn edit_in(
     request: &crate::RequestContext<'_>,
     path: &Path,
     name: &str,
-    action: &str,
+    action: TimerAction,
 ) -> Result<(Symbol, TextEdit), String> {
     let workspace = request.workspace();
     let now = request.now();
@@ -234,7 +261,7 @@ pub fn edit_in(
             "transition",
             vec![
                 timer.record(),
-                Value::Text(action.into()),
+                Value::Text(action.as_str().into()),
                 Value::Text(original.first().copied().unwrap_or_default().into()),
             ],
             now,

@@ -2,7 +2,7 @@
 //! shared language features, not browser-side Markdown interpretation.
 use crate::{
     document::{Document, Named, Problem, Reference, Span, identifier},
-    engine::{self, Value},
+    engine::{self, Value, ValueType},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use lsp_types::{Range, TextEdit};
@@ -38,10 +38,11 @@ impl Domain {
             Self::Count => '#',
         }
     }
-    pub fn type_name(self) -> &'static str {
+    /// The column type a decision column reports, like any other column.
+    pub fn value_type(self) -> ValueType {
         match self {
-            Self::Choice => "Choice",
-            Self::Count => "Count",
+            Self::Choice => ValueType::Choice,
+            Self::Count => ValueType::Count,
         }
     }
 }
@@ -52,7 +53,7 @@ pub struct Table {
     pub end_line: usize,
     pub columns: Vec<Named>,
     pub rows: Vec<Vec<Cell>>,
-    pub types: Vec<Option<&'static str>>,
+    pub types: Vec<Option<ValueType>>,
     pub separators: Vec<String>,
     pub problems: Vec<Problem>,
     /// One entry per column; `Some` marks a decision column a plan fills in.
@@ -255,7 +256,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
     table.types = table
         .domains
         .iter()
-        .map(|d| d.map(Domain::type_name))
+        .map(|d| d.map(Domain::value_type))
         .collect();
     for row in &table.rows {
         for (column, cell) in row.iter().enumerate().take(table.columns.len()) {
@@ -269,7 +270,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
             match &cell.value {
                 Err(message) => problem(cell.span, message.clone()),
                 Ok(value) => {
-                    let kind = value.type_name();
+                    let kind = value.kind();
                     if let Some(expected) = table.types[column] {
                         if expected != kind {
                             problem(

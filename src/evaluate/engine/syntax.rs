@@ -1,13 +1,13 @@
 //! Syntax: the lexer, the expression tree, and the tolerant source scans the
 //! editor features read without evaluating anything.
-use super::{Currency, Value, date_value, is_code, literal};
+use super::{BinaryOp, Currency, Operator, UnaryOp, Value, date_value, is_code, literal};
 use std::collections::BTreeSet;
 #[derive(Clone, Debug)]
 pub enum Lexeme {
     Comment,
     Value(Value),
     Name(String),
-    Op(String),
+    Op(Operator),
     Left,
     Right,
     Comma,
@@ -142,7 +142,10 @@ pub(crate) fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                         }) {
                             i += 1;
                         }
-                        Lexeme::Op(s[start..i].into())
+                        Lexeme::Op(
+                            Operator::lex(&s[start..i])
+                                .ok_or_else(|| format!("Unexpected character '{c}'"))?,
+                        )
                     }
                     _ => return Err(format!("Unexpected character '{c}'")),
                 }
@@ -164,8 +167,8 @@ pub(crate) enum Expr {
     Value(Value),
     Name(String),
     Call(String, Vec<Expr>),
-    Unary(String, Box<Expr>),
-    Binary(String, Box<Expr>, Box<Expr>),
+    Unary(UnaryOp, Box<Expr>),
+    Binary(BinaryOp, Box<Expr>, Box<Expr>),
     Property(Box<Expr>, String),
     List(Vec<Expr>),
     Record(Vec<(String, Expr)>),
@@ -437,8 +440,10 @@ impl Parser {
                     self.at += 1;
                 }
                 self.close()?;
-                if !matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Op(op)) if op == "=>")
-                {
+                if !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::Op(Operator::Arrow))
+                ) {
                     return Err("Expected '=>'".into());
                 }
                 self.at += 1;
@@ -477,8 +482,8 @@ impl Parser {
                 self.close()?;
                 v
             }
-            Lexeme::Op(op) if matches!(op.as_str(), "-" | "+" | "!") => {
-                Expr::Unary(op, Box::new(self.expression(7)?))
+            Lexeme::Op(op) if op.unary().is_some() => {
+                Expr::Unary(op.unary().unwrap(), Box::new(self.expression(7)?))
             }
             _ => return Err("Expected a value, name, or function".into()),
         };
@@ -521,19 +526,13 @@ impl Parser {
             else {
                 break;
             };
-            let bp = match op.as_str() {
-                "||" => 1,
-                "&&" => 2,
-                "==" | "!=" => 3,
-                "<" | "<=" | ">" | ">=" => 4,
-                "+" | "-" => 5,
-                "*" | "/" => 6,
-                _ => return Err(format!("Unknown operator {op}")),
+            let Some(op) = op.binary() else {
+                return Err(format!("Unknown operator {op}"));
             };
+            let bp = op.precedence();
             if bp < min {
                 break;
             }
-            let op = op.clone();
             self.at += 1;
             let rhs = self.expression(bp + 1)?;
             lhs = Expr::Spanned(

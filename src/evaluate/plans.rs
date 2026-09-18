@@ -3,7 +3,7 @@
 //! variables solved with a pure-Rust simplex, so plans re-solve as notes change.
 use crate::{
     document::{Document, Named, Problem, Span, identifier},
-    engine::{Engine, Linear, Value},
+    engine::{Comparison, Engine, Linear, Unit, Value},
     tables::{Cell, Table},
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -46,7 +46,7 @@ pub struct Plan {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstraintResult {
     pub name: String,
-    pub op: String,
+    pub op: Comparison,
     pub lhs: Value,
     pub rhs: Value,
     pub slack: Value,
@@ -143,7 +143,7 @@ impl PlanValue {
             .map(|(i, c)| {
                 let mut fields = std::collections::BTreeMap::from([
                     ("name".into(), Value::Text(c.name.clone())),
-                    ("op".into(), Value::Text(c.op.clone())),
+                    ("op".into(), Value::Text(c.op.as_str().into())),
                     ("lhs".into(), c.lhs.clone()),
                     ("rhs".into(), c.rhs.clone()),
                     ("slack".into(), c.slack.clone()),
@@ -407,7 +407,7 @@ pub fn grid(plan: &Plan) -> Table {
                     .collect()
             })
             .collect(),
-        types: vec![Some("Text"); 2],
+        types: vec![Some(crate::engine::ValueType::Text); 2],
         problems: plan.problems.clone(),
         domains: vec![None; 2],
     }
@@ -489,10 +489,10 @@ pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)>
     }
 }
 
-fn typed_in(kind: &str, currency: Option<crate::engine::Currency>, n: f64) -> Value {
+fn typed_in(kind: Unit, currency: Option<crate::engine::Currency>, n: f64) -> Value {
     match kind {
-        "Money" => Value::Money(n, currency.unwrap_or(crate::engine::Currency::USD)),
-        "Duration" => Value::Duration(n.round() as i64),
+        Unit::Money => Value::Money(n, currency.unwrap_or(crate::engine::Currency::USD)),
+        Unit::Duration => Value::Duration(n.round() as i64),
         _ => Value::Number(n),
     }
 }
@@ -586,7 +586,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
                             ("name".into(), Value::Text(constraint.named.name.clone())),
                             ("lhs".into(), form_value(lhs)),
                             ("rhs".into(), form_value(rhs)),
-                            ("op".into(), Value::Text(op.clone())),
+                            ("op".into(), Value::Text(op.as_str().into())),
                         ])
                     })
                     .collect(),
@@ -612,7 +612,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         .map(|c| {
             Ok(ConstraintResult {
                 name: field(c, "name")?.display(),
-                op: field(c, "op")?.display(),
+                op: field(c, "op")?.display().parse()?,
                 lhs: field(c, "lhs")?.clone(),
                 rhs: field(c, "rhs")?.clone(),
                 slack: field(c, "slack")?.clone(),

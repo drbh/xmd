@@ -1,5 +1,5 @@
 //! Small, pure additions to the shared expression language.
-use super::engine::{Expr, Value};
+use super::engine::{BinaryOp, Expr, Value};
 use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug)]
@@ -305,7 +305,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         ("text", [value]) => Text(value.display()),
         ("contains", [Text(text), Text(part)]) => Bool(text.contains(part)),
         ("contains", [List(items), value]) => Bool(items.iter().any(|item| {
-            super::engine::binary("==", item.clone(), value.clone()) == Ok(Bool(true))
+            super::engine::binary(BinaryOp::Equal, item.clone(), value.clone()) == Ok(Bool(true))
         })),
         ("starts_with", [Text(text), Text(part)]) => Bool(text.starts_with(part)),
         ("ends_with", [Text(text), Text(part)]) => Bool(text.ends_with(part)),
@@ -399,10 +399,10 @@ pub(crate) fn compare(a: &Value, b: &Value) -> Result<std::cmp::Ordering, String
         (Null, _) => Ok(Ordering::Greater),
         (_, Null) => Ok(Ordering::Less),
         _ => {
-            let less = super::engine::binary("<", a.clone(), b.clone())?;
+            let less = super::engine::binary(BinaryOp::Less, a.clone(), b.clone())?;
             if less == Bool(true) {
                 Ok(Ordering::Less)
-            } else if super::engine::binary("==", a.clone(), b.clone())? == Bool(true) {
+            } else if super::engine::binary(BinaryOp::Equal, a.clone(), b.clone())? == Bool(true) {
                 Ok(Ordering::Equal)
             } else {
                 Ok(Ordering::Greater)
@@ -426,7 +426,7 @@ pub(crate) fn sum(values: impl IntoIterator<Item = Value>) -> Result<Value, Stri
             return Err("sum requires numbers, money or durations".into());
         }
         total = Some(match total {
-            Some(previous) => super::engine::binary("+", previous, value)?,
+            Some(previous) => super::engine::binary(BinaryOp::Add, previous, value)?,
             None => value,
         });
     }

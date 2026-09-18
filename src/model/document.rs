@@ -189,10 +189,34 @@ pub struct Calculation {
     /// True for `[a / b]` in prose; false for a whole-line `[a] / [b]`.
     pub bracketed: bool,
 }
+/// The syntactic role of a span, as the parser sees it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HighlightKind {
+    String,
+    Comment,
+    Heading,
+    Variable,
+    Keyword,
+    Number,
+    Operator,
+}
+impl HighlightKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::String => "string",
+            Self::Comment => "comment",
+            Self::Heading => "heading",
+            Self::Variable => "variable",
+            Self::Keyword => "keyword",
+            Self::Number => "number",
+            Self::Operator => "operator",
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Highlight {
     pub span: Span,
-    pub kind: &'static str,
+    pub kind: HighlightKind,
 }
 #[derive(Clone, Debug)]
 pub struct Problem {
@@ -241,21 +265,21 @@ impl Document {
                 if marker == kind && run >= count && trimmed[run..].trim().is_empty() {
                     fence = None;
                 }
-                doc.mark(row, start, line.len(), "string");
+                doc.mark(row, start, line.len(), HighlightKind::String);
                 continue;
             }
             if (marker == '`' || marker == '~') && run >= 3 {
                 fence = Some((marker, run));
-                doc.mark(row, start, line.len(), "string");
+                doc.mark(row, start, line.len(), HighlightKind::String);
                 continue;
             }
             if comment || trimmed.starts_with("<!--") {
                 comment = !trimmed.contains("-->");
-                doc.mark(row, start, line.len(), "comment");
+                doc.mark(row, start, line.len(), HighlightKind::Comment);
                 continue;
             }
             if trimmed.starts_with("//") {
-                doc.mark(row, start, line.len(), "comment");
+                doc.mark(row, start, line.len(), HighlightKind::Comment);
                 continue;
             }
             let heading = marker == '#'
@@ -283,9 +307,9 @@ impl Document {
                     title: line[start + run..title_end].trim().into(),
                     named: named.clone(),
                 });
-                doc.mark(row, start, title_end, "heading");
+                doc.mark(row, start, title_end, HighlightKind::Heading);
                 if let Some(n) = named {
-                    doc.mark(row, n.span.start, n.span.end, "variable");
+                    doc.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
                 }
                 doc.raw_links(line, row, start + run, title_end);
                 continue;
@@ -342,9 +366,9 @@ impl Document {
                     tags,
                 });
                 parents.push(doc.tasks.len() - 1);
-                doc.mark(row, s, s + 3, "keyword");
+                doc.mark(row, s, s + 3, HighlightKind::Keyword);
                 if let Some(n) = named {
-                    doc.mark(row, n.span.start, n.span.end, "variable");
+                    doc.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
                 }
             } else if attrs.contains_key("at") {
                 let end = attrs
@@ -412,12 +436,17 @@ impl Document {
                         column.span.line,
                         column.span.start,
                         column.span.end,
-                        "keyword",
+                        HighlightKind::Keyword,
                     );
                 }
                 for constraint in &plan.constraints {
                     let n = &constraint.named;
-                    doc.mark(n.span.line, n.span.start, n.span.end, "variable");
+                    doc.mark(
+                        n.span.line,
+                        n.span.start,
+                        n.span.end,
+                        HighlightKind::Variable,
+                    );
                     doc.expression(
                         lines[constraint.span.line],
                         constraint.span.line,
@@ -464,7 +493,7 @@ impl Document {
                         column.span.line,
                         column.span.start,
                         column.span.end,
-                        "variable",
+                        HighlightKind::Variable,
                     );
                 }
                 for cells in &table.rows {
@@ -474,9 +503,14 @@ impl Document {
                                 cell.span.line,
                                 cell.span.start,
                                 cell.span.start + 1,
-                                "operator",
+                                HighlightKind::Operator,
                             );
-                            doc.mark(cell.span.line, cell.span.end - 1, cell.span.end, "operator");
+                            doc.mark(
+                                cell.span.line,
+                                cell.span.end - 1,
+                                cell.span.end,
+                                HighlightKind::Operator,
+                            );
                             doc.expression(lines[span.line], span.line, span.start, span.end);
                             continue;
                         }
@@ -495,9 +529,9 @@ impl Document {
                                 Ok(crate::engine::Value::Text(_)
                                     | crate::engine::Value::Resource(_))
                             ) {
-                                "string"
+                                HighlightKind::String
                             } else {
-                                "number"
+                                HighlightKind::Number
                             },
                         );
                     }
@@ -531,7 +565,7 @@ impl Document {
         doc
     }
 
-    fn mark(&mut self, line: usize, start: usize, end: usize, kind: &'static str) {
+    fn mark(&mut self, line: usize, start: usize, end: usize, kind: HighlightKind) {
         if end > start {
             self.highlights.push(Highlight {
                 span: Span::new(line, start, end),
@@ -546,7 +580,7 @@ impl Document {
             span: Span::new(row, start, end),
             target: line[start..end].into(),
         });
-        self.mark(row, start, end, "string");
+        self.mark(row, start, end, HighlightKind::String);
         Some(end)
     }
     fn raw_links(&mut self, line: &str, row: usize, mut start: usize, end: usize) {
@@ -612,20 +646,20 @@ impl Document {
                 span: Span::new(row, i, end),
                 value_span: Span::new(row, open + 1, end - 1),
             };
-            self.mark(row, i, open + 1, "keyword");
-            self.mark(row, end - 1, end, "operator");
+            self.mark(row, i, open + 1, HighlightKind::Keyword);
+            self.mark(row, end - 1, end, HighlightKind::Operator);
             if matches!(key, "due" | "scheduled" | "at")
                 && crate::engine::relative_date(&attr.value, chrono::Local::now().date_naive())
                     .is_some()
             {
-                self.mark(row, open + 1, end - 1, "number");
+                self.mark(row, open + 1, end - 1, HighlightKind::Number);
             } else if matches!(
                 key,
                 "due" | "scheduled" | "at" | "estimate" | "after" | "timer"
             ) {
                 self.expression(line, row, open + 1, end - 1);
             } else {
-                self.mark(row, open + 1, end - 1, "string");
+                self.mark(row, open + 1, end - 1, HighlightKind::String);
             }
             if attrs.insert(key.into(), attr).is_some() {
                 self.problems.push(Problem {
@@ -668,12 +702,12 @@ impl Document {
         if let Some(def) = bare_calculation(line, row, start) {
             let named = def.named.span;
             let source = def.value_span;
-            self.mark(row, named.start, named.end, "variable");
+            self.mark(row, named.start, named.end, HighlightKind::Variable);
             self.mark(
                 row,
                 source.start.saturating_sub(3),
                 source.start,
-                "operator",
+                HighlightKind::Operator,
             );
             self.definitions.push(def);
             self.expression(line, row, source.start, source.end);
@@ -694,13 +728,13 @@ impl Document {
                     value.start,
                     value.end,
                     if def.source.starts_with('"') || Resource::parse(&def.source).is_some() {
-                        "string"
+                        HighlightKind::String
                     } else {
-                        "number"
+                        HighlightKind::Number
                     },
                 );
-                self.mark(row, value.end, value.end + 1, "operator");
-                self.mark(row, named.start, named.end, "variable");
+                self.mark(row, value.end, value.end + 1, HighlightKind::Operator);
+                self.mark(row, named.start, named.end, HighlightKind::Variable);
                 if let Some(r) = Resource::parse(&def.source) {
                     self.links.push(Link {
                         span: value,
@@ -716,13 +750,13 @@ impl Document {
                     .find("-->")
                     .map(|o| i + o + 3)
                     .unwrap_or(line.len());
-                self.mark(row, i, end, "comment");
+                self.mark(row, i, end, HighlightKind::Comment);
                 i = end;
                 continue;
             }
             if line.as_bytes()[i] == b'`' {
                 let end = skip_code(line, i);
-                self.mark(row, i, end, "string");
+                self.mark(row, i, end, HighlightKind::String);
                 i = end;
                 continue;
             }
@@ -746,7 +780,7 @@ impl Document {
                     span: Span::new(row, i, end + 1),
                     target: line[close + 2..end].to_string(),
                 });
-                self.mark(row, i, end + 1, "string");
+                self.mark(row, i, end + 1, HighlightKind::String);
                 i = end + 1;
                 continue;
             }
@@ -764,8 +798,8 @@ impl Document {
                     value_span: Span::new(row, expr_start, line.len()),
                     end: Span::new(row, line.len(), line.len()),
                 });
-                self.mark(row, i, close + 1, "variable");
-                self.mark(row, after, after + 2, "operator");
+                self.mark(row, i, close + 1, HighlightKind::Variable);
+                self.mark(row, after, after + 2, HighlightKind::Operator);
                 self.expression(line, row, expr_start, line.len());
                 break;
             }
@@ -791,13 +825,13 @@ impl Document {
                         if inner.starts_with('$')
                             || inner.chars().next().is_some_and(|c| c.is_ascii_digit())
                         {
-                            "number"
+                            HighlightKind::Number
                         } else {
-                            "string"
+                            HighlightKind::String
                         },
                     );
-                    self.mark(row, close + 1, close + 2, "operator");
-                    self.mark(row, close + 2, close + 2 + len, "variable");
+                    self.mark(row, close + 1, close + 2, HighlightKind::Operator);
+                    self.mark(row, close + 2, close + 2 + len, HighlightKind::Variable);
                     i = close + 2 + len;
                     continue;
                 }
@@ -821,7 +855,7 @@ impl Document {
                     bracket: true,
                     property: property.map(str::to_string),
                 });
-                self.mark(row, i, close + 1, "variable");
+                self.mark(row, i, close + 1, HighlightKind::Variable);
             } else if is_calculation(inner) {
                 let span = Span::new(row, inner_start, inner_start + inner.len());
                 self.calculations.push(Calculation {
@@ -829,8 +863,8 @@ impl Document {
                     source: inner.into(),
                     bracketed: true,
                 });
-                self.mark(row, i, i + 1, "operator");
-                self.mark(row, close, close + 1, "operator");
+                self.mark(row, i, i + 1, HighlightKind::Operator);
+                self.mark(row, close, close + 1, HighlightKind::Operator);
                 self.expression(line, row, span.start, span.end);
             }
             i = close + 1;
@@ -875,11 +909,11 @@ impl Document {
                                     property: None,
                                 });
                             }
-                            "variable"
+                            HighlightKind::Variable
                         }
-                        crate::engine::Lexeme::Value(_) => "number",
-                        crate::engine::Lexeme::Comment => "comment",
-                        _ => "operator",
+                        crate::engine::Lexeme::Value(_) => HighlightKind::Number,
+                        crate::engine::Lexeme::Comment => HighlightKind::Comment,
+                        _ => HighlightKind::Operator,
                     };
                     for part in span.fragments(&self.text) {
                         self.mark(part.line, part.start, part.end, kind);
@@ -888,7 +922,7 @@ impl Document {
             }
             Err(_) => {
                 for part in Span::new(row, start, end).fragments(&self.text) {
-                    self.mark(part.line, part.start, part.end, "string");
+                    self.mark(part.line, part.start, part.end, HighlightKind::String);
                 }
             }
         }

@@ -10,15 +10,17 @@ use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
+mod arithmetic;
 mod linear;
 mod syntax;
 mod value;
-pub use linear::{Linear, RowVariable};
+pub(crate) use arithmetic::binary;
+pub use arithmetic::{BinaryOp, Comparison, Operator, UnaryOp};
+pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};
-pub(crate) use value::binary;
 pub use value::{
-    Currency, Forecast, TaskKey, Value, date_value, decimal, duration, is_code, literal,
+    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code, literal,
     next_occurrence, relative_date,
 };
 #[derive(Clone, Debug)]
@@ -683,30 +685,30 @@ impl<'a> Engine<'a> {
             }
             Expr::Unary(op, v) => {
                 let v = self.expr(path, v)?;
-                match (op.as_str(), v) {
-                    ("!", Value::Bool(b)) => Ok(Value::Bool(!b)),
-                    ("-", Value::Number(n)) => Ok(Value::Number(-n)),
-                    ("-", Value::Money(n, c)) => Ok(Value::Money(-n, c)),
-                    ("-", Value::Ratio(n)) => Ok(Value::Ratio(-n)),
-                    ("-", Value::Duration(n)) => n
+                match (op, v) {
+                    (UnaryOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
+                    (UnaryOp::Negate, Value::Number(n)) => Ok(Value::Number(-n)),
+                    (UnaryOp::Negate, Value::Money(n, c)) => Ok(Value::Money(-n, c)),
+                    (UnaryOp::Negate, Value::Ratio(n)) => Ok(Value::Ratio(-n)),
+                    (UnaryOp::Negate, Value::Duration(n)) => n
                         .checked_neg()
                         .map(Value::Duration)
                         .ok_or("Duration overflow".into()),
-                    ("+", v) if v.scalar().is_some() => Ok(v),
+                    (UnaryOp::Plus, v) if v.scalar().is_some() => Ok(v),
                     _ => Err("Invalid unary operation".into()),
                 }
             }
             Expr::Binary(op, a, b) => {
                 let a = self.expr(path, a)?;
-                if op == "&&" && a == Value::Bool(false) {
+                if *op == BinaryOp::And && a == Value::Bool(false) {
                     return Ok(a);
                 }
-                if op == "||" && a == Value::Bool(true) {
+                if *op == BinaryOp::Or && a == Value::Bool(true) {
                     return Ok(a);
                 }
                 let right = self.expr(path, b)?;
                 let types = format!("{} {op} {}", a.type_name(), right.type_name());
-                binary(op, a, right).map_err(|message| {
+                binary(*op, a, right).map_err(|message| {
                     let message = format!("{message} ({types})");
                     self.fail(b.bounds(), &message);
                     message
@@ -957,10 +959,9 @@ impl<'a> Engine<'a> {
                 for item in items {
                     let key = self.call(function.clone(), vec![item.clone()])?;
                     crate::evaluate::functional::compare(&key, &key)?;
-                    if let Some((_, rows)) = groups
-                        .iter_mut()
-                        .find(|(k, _)| binary("==", k.clone(), key.clone()) == Ok(Bool(true)))
-                    {
+                    if let Some((_, rows)) = groups.iter_mut().find(|(k, _)| {
+                        binary(BinaryOp::Equal, k.clone(), key.clone()) == Ok(Bool(true))
+                    }) {
                         rows.push(item.clone());
                     } else {
                         groups.push((key, vec![item.clone()]));
@@ -1066,7 +1067,7 @@ impl<'a> Engine<'a> {
             total = Some(if let Some(previous) = total {
                 let ratios =
                     matches!(previous, Value::Ratio(_)) && matches!(value, Value::Ratio(_));
-                let added = binary("+", previous, value.clone())?;
+                let added = binary(BinaryOp::Add, previous, value.clone())?;
                 if ratios && let Value::Number(n) = added {
                     Value::Ratio(n)
                 } else {
@@ -1089,7 +1090,7 @@ impl<'a> Engine<'a> {
         symbol: &Symbol,
         table: &crate::tables::Table,
     ) -> Result<Value, String> {
-        let mut types: Vec<Option<&'static str>> = table.types.clone();
+        let mut types: Vec<Option<ValueType>> = table.types.clone();
         let mut rows = Vec::with_capacity(table.rows.len());
         for row in &table.rows {
             let mut values = Vec::with_capacity(row.len());
@@ -1114,7 +1115,7 @@ impl<'a> Engine<'a> {
                             return Err(message);
                         }
                         if let Some(expected) = types.get(column).copied().flatten() {
-                            if expected != value.type_name() {
+                            if expected != value.kind() {
                                 let message = format!(
                                     "Column '{}' expects {expected}, found {}",
                                     table.columns[column].name,
@@ -1129,7 +1130,7 @@ impl<'a> Engine<'a> {
                                 return Err(message);
                             }
                         } else if let Some(slot) = types.get_mut(column) {
-                            *slot = Some(value.type_name());
+                            *slot = Some(value.kind());
                         }
                         value
                     }

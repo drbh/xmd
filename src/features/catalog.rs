@@ -88,7 +88,7 @@ impl QueryValue {
                             .map(|c| {
                                 Self::object([
                                     ("name", Self::text(&c.name)),
-                                    ("op", Self::text(&c.op)),
+                                    ("op", Self::text(c.op.as_str())),
                                     ("lhs", Self::from_value(c.lhs.clone())),
                                     ("rhs", Self::from_value(c.rhs.clone())),
                                     ("slack", Self::from_value(c.slack.clone())),
@@ -114,7 +114,7 @@ impl QueryValue {
                     .collect(),
             ),
             Value::Timer(t) => Self::object([
-                ("state", Self::text(t.state())),
+                ("state", Self::text(t.state().as_str())),
                 ("elapsed", Self::Scalar(Value::Duration(t.elapsed))),
                 (
                     "limit",

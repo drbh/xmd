@@ -285,7 +285,10 @@ pub fn document_symbols_in(
                 let range = named.span.range(&doc.text);
                 entries.push(symbol(
                     named.name.clone(),
-                    table.types[column].unwrap_or("Unknown").into(),
+                    table.types[column]
+                        .map(|t| t.as_str())
+                        .unwrap_or("Unknown")
+                        .into(),
                     lsp_types::SymbolKind::FIELD,
                     range,
                     range,

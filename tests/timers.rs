@@ -36,7 +36,8 @@ fn eval(ws: &Workspace, expr: &str, seconds: i64) -> Value {
     Engine::at(ws, at(seconds)).eval(path(), expr).unwrap()
 }
 fn change(ws: &mut Workspace, name: &str, action: &str, seconds: i64) {
-    let (origin, edit) = timers::edit(ws, path(), name, action, at(seconds)).unwrap();
+    let (origin, edit) =
+        timers::edit(ws, path(), name, action.parse().unwrap(), at(seconds)).unwrap();
     let text = actions::apply_edits(&ws.documents[&origin.path].text, &[edit]).unwrap();
     ws.documents.insert(origin.path, Document::parse(text));
 }
@@ -83,7 +84,7 @@ fn declarations_are_idle_and_reading_never_starts_or_changes_them() {
 #[test]
 fn stopwatch_start_pause_resume_reset_and_reload() {
     let mut ws = notes("🦀 [watch] := stopwatch()\r\nKeep this prose.\r\n");
-    assert!(timers::edit(&ws, path(), "watch", "pause", at(0)).is_err());
+    assert!(timers::edit(&ws, path(), "watch", "pause".parse().unwrap(), at(0)).is_err());
     change(&mut ws, "watch", "start", 0);
     assert!(
         ws.documents[path()]
@@ -97,7 +98,7 @@ fn stopwatch_start_pause_resume_reset_and_reload() {
     ws = notes(&ws.documents[path()].text);
     assert_eq!(eval(&ws, "watch.elapsed", 999), Value::Duration(73));
     assert_eq!(eval(&ws, "watch.state", 999), Value::Text("paused".into()));
-    assert!(timers::edit(&ws, path(), "watch", "start", at(999)).is_err());
+    assert!(timers::edit(&ws, path(), "watch", "start".parse().unwrap(), at(999)).is_err());
     change(&mut ws, "watch", "resume", 1000);
     assert_eq!(eval(&ws, "watch.elapsed", 1009), Value::Duration(82));
     ws = notes(&ws.documents[path()].text);
@@ -131,7 +132,7 @@ fn countdown_clamps_at_zero_and_preserves_duration_expression() {
             .contains("00:00 remaining · ✓ done")
     );
     assert!(!engine.time_dependent);
-    assert!(timers::edit(&ws, path(), "focus", "resume", at(9000)).is_err());
+    assert!(timers::edit(&ws, path(), "focus", "resume".parse().unwrap(), at(9000)).is_err());
     change(&mut ws, "focus", "reset", 9000);
     assert_eq!(
         ws.documents[path()].text,

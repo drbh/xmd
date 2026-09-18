@@ -1,14 +1,42 @@
 //! The numerical boundary: a bounded, unit-free linear model in, raw values out.
 use crate::{
-    engine::Value,
+    engine::{Comparison, Value},
     modules::{from_json, json},
 };
 use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
 use serde::Deserialize;
 use std::collections::BTreeMap;
+/// What a solver may choose for one variable.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VariableKind {
+    Continuous,
+    Integer,
+    Binary,
+}
+impl VariableKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Continuous => "continuous",
+            Self::Integer => "integer",
+            Self::Binary => "binary",
+        }
+    }
+}
+impl std::str::FromStr for VariableKind {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "continuous" => Ok(Self::Continuous),
+            "integer" => Ok(Self::Integer),
+            "binary" => Ok(Self::Binary),
+            _ => Err(format!("Unknown variable kind '{s}'")),
+        }
+    }
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Variable {
+    /// The record's own spelling; `VariableKind` gives it meaning.
     kind: String,
     #[serde(default)]
     lower: Option<f64>,
@@ -25,6 +53,7 @@ struct Form {
 #[serde(deny_unknown_fields)]
 struct Constraint {
     lhs: Form,
+    /// The record's own spelling; `Comparison` gives it meaning.
     op: String,
     rhs: Form,
 }
@@ -58,11 +87,10 @@ pub fn solve(value: &Value) -> Result<Value, String> {
     }
     for name in &order {
         let v = &model.variables[name];
-        let mut definition = match v.kind.as_str() {
-            "continuous" => variable(),
-            "integer" => variable().integer(),
-            "binary" => variable().binary(),
-            _ => return Err(format!("Unknown variable kind '{}'", v.kind)),
+        let mut definition = match v.kind.parse()? {
+            VariableKind::Continuous => variable(),
+            VariableKind::Integer => variable().integer(),
+            VariableKind::Binary => variable().binary(),
         };
         if v.lower.zip(v.upper).is_some_and(|(l, u)| l > u) {
             return Err(format!("Reversed bounds for '{name}'"));
@@ -95,11 +123,10 @@ pub fn solve(value: &Value) -> Result<Value, String> {
     for constraint in &model.constraints {
         let lhs = expression(&constraint.lhs)?;
         let rhs = expression(&constraint.rhs)?;
-        solver = solver.with(match constraint.op.as_str() {
-            "<=" => lhs.leq(rhs),
-            ">=" => lhs.geq(rhs),
-            "==" => lhs.eq(rhs),
-            _ => return Err("Linear comparison must be <=, >=, or ==".into()),
+        solver = solver.with(match constraint.op.parse()? {
+            Comparison::LessEqual => lhs.leq(rhs),
+            Comparison::GreaterEqual => lhs.geq(rhs),
+            Comparison::Equal => lhs.eq(rhs),
         });
     }
     let result = match solver.solve() {

@@ -28,12 +28,12 @@ pub const RESET: &str = "↺";
 pub const CHOSEN: &str = "☑";
 pub const UNCHOSEN: &str = "☐";
 
-/// The glyph for a timer state name.
-pub fn timer_state(state: &str) -> &'static str {
+/// The glyph for a timer's state.
+pub fn timer_state(state: crate::timers::TimerState) -> &'static str {
     match state {
-        "running" => RUNNING,
-        "paused" => PAUSED,
-        "done" => DONE,
-        _ => OFF,
+        crate::timers::TimerState::Running => RUNNING,
+        crate::timers::TimerState::Paused => PAUSED,
+        crate::timers::TimerState::Done => DONE,
+        crate::timers::TimerState::Idle => OFF,
     }
 }

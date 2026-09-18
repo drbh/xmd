@@ -350,12 +350,8 @@ impl Action {
                 name,
                 action,
             } => {
-                let (origin, edit) = crate::timers::edit_in(
-                    request,
-                    &document_path(document)?,
-                    name,
-                    action.as_str(),
-                )?;
+                let (origin, edit) =
+                    crate::timers::edit_in(request, &document_path(document)?, name, *action)?;
                 Ok(PreparedAction::Edit {
                     path: origin.path,
                     edits: vec![edit],

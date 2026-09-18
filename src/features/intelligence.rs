@@ -155,8 +155,8 @@ pub fn inert(doc: &Document, position: Position) -> bool {
         h.span.line == row
             && byte >= h.span.start
             && byte < h.span.end
-            && (h.kind == "comment"
-                || h.kind == "string"
+            && (h.kind == crate::document::HighlightKind::Comment
+                || h.kind == crate::document::HighlightKind::String
                     && !doc
                         .tasks
                         .iter()
@@ -849,7 +849,7 @@ pub fn completions_in(
                 kind: Some(CompletionItemKind::FIELD),
                 detail: Some(format!(
                     "{} · column of {table_name}",
-                    table.types[i].unwrap_or("Unknown")
+                    table.types[i].map(|t| t.as_str()).unwrap_or("Unknown")
                 )),
                 text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
                     replacement,
@@ -1124,7 +1124,7 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
             return format!(
                 "**{} · {}**\n\nDecision column of `{name}` ({}): a plan that sums over it chooses {} for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: {}",
                 named.name,
-                domain.type_name(),
+                domain.value_type(),
                 match domain {
                     crate::tables::Domain::Choice => "name?",
                     crate::tables::Domain::Count => "name#",
@@ -1142,7 +1142,7 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
         return format!(
             "**{} · {}**\n\nColumn of `{name}` · {} rows{chart}\n\nValues: {samples}\n\nDefinition: {}",
             named.name,
-            table.types[c].unwrap_or("Unknown"),
+            table.types[c].map(|t| t.as_str()).unwrap_or("Unknown"),
             table.rows.len(),
             source_link(ws, symbol)
         );
@@ -1192,7 +1192,10 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
                             .call_module(
                                 "plan",
                                 "seek_summary",
-                                vec![Value::Text(op), Value::Bool(coefficient > 0.0)]
+                                vec![
+                                    Value::Text(op.as_str().into()),
+                                    Value::Bool(coefficient > 0.0)
+                                ]
                             )
                             .map(|v| v.display())
                             .unwrap_or_else(|e| e)

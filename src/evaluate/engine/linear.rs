@@ -1,6 +1,6 @@
-//! Linearization: a definition read symbolically as `terms Â· variables +
+//! Linearization: a definition read symbolically as `terms · variables +
 //! constant`, so plans and goal seeks can reason about an unknown.
-use super::{Currency, Engine, Expr, Parser, RowScope, Value};
+use super::{BinaryOp, Comparison, Currency, Engine, Expr, Parser, RowScope, UnaryOp, Value};
 use crate::{
     document::Span,
     workspace::{Symbol, SymbolKind},
@@ -9,6 +9,31 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
+/// The unit a linear form carries, so money, durations and plain numbers never
+/// mix silently.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Unit {
+    /// Not yet known: the form is only bare variables.
+    Any,
+    Number,
+    Money,
+    Duration,
+}
+impl Unit {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Any => "Any",
+            Self::Number => "Number",
+            Self::Money => "Money",
+            Self::Duration => "Duration",
+        }
+    }
+}
+impl std::fmt::Display for Unit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 /// `terms · variables + constant`, carrying a unit so money and durations
 /// never mix silently.
 #[derive(Clone, Debug, PartialEq)]
@@ -17,20 +42,20 @@ pub struct Linear {
     pub constant: f64,
     /// Set when `kind` is Money, so euros and dollars never add up silently.
     pub currency: Option<Currency>,
-    /// Unit of the whole form; "Any" while it is only bare variables.
-    pub kind: &'static str,
+    /// Unit of the whole form; `Any` while it is only bare variables.
+    pub kind: Unit,
     /// Unit the variables were multiplied by, so a goal seek can tell whether
     /// its unknown is money, a duration, or a plain number.
-    pub scale: &'static str,
+    pub scale: Unit,
 }
 impl Linear {
-    fn constant(kind: &'static str, value: f64) -> Self {
+    fn constant(kind: Unit, value: f64) -> Self {
         Self {
             terms: BTreeMap::new(),
             constant: value,
             currency: None,
             kind,
-            scale: "Number",
+            scale: Unit::Number,
         }
     }
     fn variable(name: &str) -> Self {
@@ -38,23 +63,23 @@ impl Linear {
             terms: [(name.to_string(), 1.0)].into(),
             constant: 0.0,
             currency: None,
-            kind: "Any",
-            scale: "Number",
+            kind: Unit::Any,
+            scale: Unit::Number,
         }
     }
     fn is_zero(&self) -> bool {
         self.constant == 0.0 && self.terms.values().all(|c| *c == 0.0)
     }
     /// The shared unit of two forms, treating a bare zero as unitless.
-    fn combined(a: &Self, b: &Self) -> Option<&'static str> {
+    fn combined(a: &Self, b: &Self) -> Option<Unit> {
         if a.kind == b.kind {
-            if a.kind == "Money" && a.currency != b.currency && !a.is_zero() && !b.is_zero() {
+            if a.kind == Unit::Money && a.currency != b.currency && !a.is_zero() && !b.is_zero() {
                 return None;
             }
             Some(a.kind)
-        } else if a.is_zero() || a.kind == "Any" {
+        } else if a.is_zero() || a.kind == Unit::Any {
             Some(b.kind)
-        } else if b.is_zero() || b.kind == "Any" {
+        } else if b.is_zero() || b.kind == Unit::Any {
             Some(a.kind)
         } else {
             None
@@ -65,11 +90,11 @@ impl Linear {
     }
     /// The unit of a variable in this form, or `None` when it is scaled by
     /// two different units.
-    pub fn unknown_kind(&self) -> Option<&'static str> {
+    pub fn unknown_kind(&self) -> Option<Unit> {
         match (self.kind, self.scale) {
-            ("Any", _) => Some("Number"),
-            (kind, "Number") => Some(kind),
-            (kind, scale) if kind == scale => Some("Number"),
+            (Unit::Any, _) => Some(Unit::Number),
+            (kind, Unit::Number) => Some(kind),
+            (kind, scale) if kind == scale => Some(Unit::Number),
             _ => None,
         }
     }
@@ -115,15 +140,15 @@ impl Linear {
             return Err("Plans must stay linear: multiply variables by constants only".into());
         };
         let kind = match (form.kind, factor.kind) {
-            (k, "Number") | ("Number", k) => k,
-            ("Any", k) => k,
+            (k, Unit::Number) | (Unit::Number, k) => k,
+            (Unit::Any, k) => k,
             (a, b) => return Err(format!("Cannot multiply {a} by {b}")),
         };
         let mut result = form.clone().scaled(factor.constant);
         result.kind = kind;
         result.currency = form.currency.or(factor.currency);
-        if factor.kind != "Number" && !form.terms.is_empty() {
-            if form.scale != "Number" {
+        if factor.kind != Unit::Number && !form.terms.is_empty() {
+            if form.scale != Unit::Number {
                 return Err(format!("Cannot multiply {} by {}", form.scale, factor.kind));
             }
             result.scale = factor.kind;
@@ -138,18 +163,18 @@ impl Linear {
             return Err("Division by zero".into());
         }
         let kind = match (self.kind, other.kind) {
-            (k, "Number") => k,
-            (a, b) if a == b => "Number",
+            (k, Unit::Number) => k,
+            (a, b) if a == b => Unit::Number,
             (a, b) => return Err(format!("Cannot divide {a} by {b}")),
         };
         let mut result = self.clone().scaled(1.0 / other.constant);
         result.kind = kind;
-        if kind != "Money" {
+        if kind != Unit::Money {
             result.currency = None;
         }
-        if other.kind != "Number" && !self.terms.is_empty() {
+        if other.kind != Unit::Number && !self.terms.is_empty() {
             result.scale = if self.scale == other.kind {
-                "Number"
+                Unit::Number
             } else {
                 return Err(format!("Cannot divide {} by {}", self.scale, other.kind));
             };
@@ -192,7 +217,7 @@ impl Engine<'_> {
         source: &str,
         span: Span,
         vars: &BTreeSet<String>,
-    ) -> Result<(Linear, String, Linear), String> {
+    ) -> Result<(Linear, Comparison, Linear), String> {
         self.contexts.push((path.into(), span));
         let result = (|| {
             let expr = Parser::parse(source).inspect_err(|m| self.fail((0, source.len()), m))?;
@@ -202,11 +227,11 @@ impl Engine<'_> {
                 self.fail((0, source.len()), message);
                 return Err(message.into());
             };
-            if !matches!(op.as_str(), "<=" | ">=" | "==") {
+            let Some(op) = Comparison::from_op(*op) else {
                 let message = format!("Constraints use <=, >=, or ==, not {op}");
                 self.fail((0, source.len()), &message);
                 return Err(message);
-            }
+            };
             let lhs = self.linear_expr(path, lhs, vars)?;
             let rhs = self.linear_expr(path, rhs, vars)?;
             if Linear::combined(&lhs, &rhs).is_none() {
@@ -214,7 +239,7 @@ impl Engine<'_> {
                 self.fail((0, source.len()), &message);
                 return Err(message);
             }
-            Ok((lhs, op.clone(), rhs))
+            Ok((lhs, op, rhs))
         })();
         self.contexts.pop();
         result
@@ -256,14 +281,14 @@ impl Engine<'_> {
     ) -> Result<Linear, String> {
         let constant = |value: Value| -> Result<Linear, String> {
             match value {
-                Value::Number(n) | Value::Ratio(n) => Ok(Linear::constant("Number", n)),
-                Value::Count(n) => Ok(Linear::constant("Number", n as f64)),
+                Value::Number(n) | Value::Ratio(n) => Ok(Linear::constant(Unit::Number, n)),
+                Value::Count(n) => Ok(Linear::constant(Unit::Number, n as f64)),
                 Value::Money(n, currency) => {
-                    let mut form = Linear::constant("Money", n);
+                    let mut form = Linear::constant(Unit::Money, n);
                     form.currency = Some(currency);
                     Ok(form)
                 }
-                Value::Duration(s) => Ok(Linear::constant("Duration", s as f64)),
+                Value::Duration(s) => Ok(Linear::constant(Unit::Duration, s as f64)),
                 other => Err(format!(
                     "Plans work with numbers, money, and durations, not {}",
                     other.type_name()
@@ -314,19 +339,24 @@ impl Engine<'_> {
             }
             Expr::Unary(op, inner) => {
                 let form = self.linear_expr(path, inner, vars)?;
-                match op.as_str() {
-                    "-" => Ok(form.scaled(-1.0)),
-                    "+" => Ok(form),
-                    _ => Err("Plans cannot negate booleans".into()),
+                match op {
+                    UnaryOp::Negate => Ok(form.scaled(-1.0)),
+                    UnaryOp::Plus => Ok(form),
+                    UnaryOp::Not => Err("Plans cannot negate booleans".into()),
                 }
             }
-            Expr::Binary(op, a, b) if matches!(op.as_str(), "+" | "-" | "*" | "/") => {
+            Expr::Binary(op, a, b)
+                if matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Subtract | BinaryOp::Multiply | BinaryOp::Divide
+                ) =>
+            {
                 let a = self.linear_expr(path, a, vars)?;
                 let b = self.linear_expr(path, b, vars)?;
-                match op.as_str() {
-                    "+" => a.add(&b, 1.0),
-                    "-" => a.add(&b, -1.0),
-                    "*" => a.multiply(&b),
+                match op {
+                    BinaryOp::Add => a.add(&b, 1.0),
+                    BinaryOp::Subtract => a.add(&b, -1.0),
+                    BinaryOp::Multiply => a.multiply(&b),
                     _ => a.divide(&b),
                 }
             }
@@ -366,7 +396,7 @@ impl Engine<'_> {
             return Err(format!("'{name}' is not a table"));
         };
         let decisions = self.decision_columns(&table);
-        let mut total = Linear::constant("Any", 0.0);
+        let mut total = Linear::constant(Unit::Any, 0.0);
         for (index, row) in table.rows.iter().enumerate() {
             let mut names = BTreeMap::new();
             for (column, (c, domain)) in &decisions {

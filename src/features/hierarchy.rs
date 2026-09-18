@@ -149,7 +149,9 @@ pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Call
             lsp_types::SymbolKind::FIELD,
             format!(
                 "{} · column of {}",
-                doc.tables[t].types[c].unwrap_or("Unknown"),
+                doc.tables[t].types[c]
+                    .map(|t| t.as_str())
+                    .unwrap_or("Unknown"),
                 doc.definitions[doc.tables[t].definition].named.name
             ),
         ),

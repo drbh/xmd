@@ -76,7 +76,9 @@ fn split(source: &str, separator: char) -> Result<Vec<&str>, String> {
                     return Err(format!("Unmatched delimiter at byte {}", token.start));
                 }
             }
-            Lexeme::Op(ref op) if separator == '|' && op == "|" && stack.is_empty() => {
+            Lexeme::Op(op)
+                if separator == '|' && op == crate::engine::Operator::Pipe && stack.is_empty() =>
+            {
                 parts.push(source[start..token.start].trim());
                 start = token.end;
             }

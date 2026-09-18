@@ -78,8 +78,8 @@ impl Syntax<'_> {
             Expr::Value(value) => ("literal", json!({"value":Q::from_value(value.clone())})),
             Expr::Name(name) => ("name", json!({"name":name})),
             Expr::Call(name, _) => ("call", json!({"name":name})),
-            Expr::Unary(op, _) => ("unary", json!({"operator":op})),
-            Expr::Binary(op, _, _) => ("binary", json!({"operator":op})),
+            Expr::Unary(op, _) => ("unary", json!({"operator":op.as_str()})),
+            Expr::Binary(op, _, _) => ("binary", json!({"operator":op.as_str()})),
             Expr::Property(_, key) => ("property", json!({"name":key})),
             Expr::List(_) => ("list", json!({})),
             Expr::Record(_) => ("record", json!({})),
@@ -264,7 +264,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             json!({}),
         );
         for (i, column) in table.columns.iter().enumerate() {
-            syntax.add("column", column.span, Some(node), json!({"name":column.name,"index":i,"type":table.types[i],"domain":table.domains[i].map(|d| d.type_name())}));
+            syntax.add("column", column.span, Some(node), json!({"name":column.name,"index":i,"type":table.types[i].map(|t| t.as_str()),"domain":table.domains[i].map(|d| d.value_type().as_str())}));
         }
         for (i, row) in table.rows.iter().enumerate() {
             let Some(first) = row.first() else {

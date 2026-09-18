@@ -111,7 +111,7 @@ fn timer_constructor_properties_display_and_edits_use_the_replaced_library() {
         Value::Duration(42)
     );
     assert_eq!(
-        wtf::timers::edit_in(&request, path(), "watch", "resume")
+        wtf::timers::edit_in(&request, path(), "watch", wtf::timers::TimerAction::Resume)
             .unwrap()
             .1
             .new_text,

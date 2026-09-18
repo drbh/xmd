@@ -88,6 +88,66 @@ pub fn is_code(name: &str) -> bool {
     (name.len() == 1 || (3..=5).contains(&name.len()))
         && name.bytes().all(|b| b.is_ascii_uppercase())
 }
+/// The kind of a value, named exactly as a note or query sees it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ValueType {
+    Null,
+    List,
+    Record,
+    Function,
+    Namespace,
+    Number,
+    Count,
+    Money,
+    Forecast,
+    Ratio,
+    Duration,
+    Date,
+    DateTime,
+    Boolean,
+    Text,
+    Resource,
+    Checklist,
+    Countdown,
+    Stopwatch,
+    Table,
+    Plan,
+    /// No value has this kind: it types a table's yes/no decision column.
+    Choice,
+}
+impl ValueType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Null => "Null",
+            Self::List => "List",
+            Self::Record => "Record",
+            Self::Function => "Function",
+            Self::Namespace => "Namespace",
+            Self::Number => "Number",
+            Self::Count => "Count",
+            Self::Money => "Money",
+            Self::Forecast => "Forecast",
+            Self::Ratio => "Ratio",
+            Self::Duration => "Duration",
+            Self::Date => "Date",
+            Self::DateTime => "DateTime",
+            Self::Boolean => "Boolean",
+            Self::Text => "Text",
+            Self::Resource => "Resource",
+            Self::Checklist => "Checklist",
+            Self::Countdown => "Countdown",
+            Self::Stopwatch => "Stopwatch",
+            Self::Table => "Table",
+            Self::Plan => "Plan",
+            Self::Choice => "Choice",
+        }
+    }
+}
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Null,
@@ -145,30 +205,34 @@ impl Value {
             _ => Err(format!("Unknown field '{key}' on {}", self.type_name())),
         }
     }
-    pub fn type_name(&self) -> &'static str {
+    pub fn kind(&self) -> ValueType {
         match self {
-            Self::Null => "Null",
-            Self::List(_) => "List",
-            Self::Record(_) => "Record",
-            Self::Function(_) => "Function",
-            Self::Namespace(_) => "Namespace",
-            Self::Number(_) => "Number",
-            Self::Count(_) => "Count",
-            Self::Money(..) => "Money",
-            Self::Forecast(_) => "Forecast",
-            Self::Ratio(_) => "Ratio",
-            Self::Duration(_) => "Duration",
-            Self::Date(_) => "Date",
-            Self::DateTime(_) => "DateTime",
-            Self::Bool(_) => "Boolean",
-            Self::Text(_) => "Text",
-            Self::Resource(_) => "Resource",
-            Self::Tasks(_) => "Checklist",
-            Self::Timer(t) if t.limit.is_some() => "Countdown",
-            Self::Timer(_) => "Stopwatch",
-            Self::Table(_) => "Table",
-            Self::Plan(_) => "Plan",
+            Self::Null => ValueType::Null,
+            Self::List(_) => ValueType::List,
+            Self::Record(_) => ValueType::Record,
+            Self::Function(_) => ValueType::Function,
+            Self::Namespace(_) => ValueType::Namespace,
+            Self::Number(_) => ValueType::Number,
+            Self::Count(_) => ValueType::Count,
+            Self::Money(..) => ValueType::Money,
+            Self::Forecast(_) => ValueType::Forecast,
+            Self::Ratio(_) => ValueType::Ratio,
+            Self::Duration(_) => ValueType::Duration,
+            Self::Date(_) => ValueType::Date,
+            Self::DateTime(_) => ValueType::DateTime,
+            Self::Bool(_) => ValueType::Boolean,
+            Self::Text(_) => ValueType::Text,
+            Self::Resource(_) => ValueType::Resource,
+            Self::Tasks(_) => ValueType::Checklist,
+            Self::Timer(t) if t.limit.is_some() => ValueType::Countdown,
+            Self::Timer(_) => ValueType::Stopwatch,
+            Self::Table(_) => ValueType::Table,
+            Self::Plan(_) => ValueType::Plan,
         }
+    }
+    /// The language-level name of this kind, as notes and queries compare it.
+    pub fn type_name(&self) -> &'static str {
+        self.kind().as_str()
     }
     /// A round-trippable expression, unlike the human-readable display label.
     pub fn source(&self) -> Option<String> {
@@ -399,181 +463,6 @@ pub fn literal(s: &str) -> Result<Value, String> {
             .map_err(|e| e.to_string());
     }
     Ok(Value::Text(s.into()))
-}
-
-pub(crate) fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
-    use Value::*;
-    if matches!(op, "==" | "!=") {
-        let equal = a
-            .scalar()
-            .zip(b.scalar())
-            .map(|(a, b)| a == b)
-            .unwrap_or(a == b);
-        return Ok(Bool(equal == (op == "==")));
-    }
-    if let (Bool(a), Bool(b)) = (&a, &b)
-        && matches!(op, "&&" | "||")
-    {
-        return match op {
-            "&&" => Ok(Bool(*a && *b)),
-            "||" => Ok(Bool(*a || *b)),
-            _ => Err("Invalid boolean operator".into()),
-        };
-    }
-    if matches!(op, "<" | "<=" | ">" | ">=") {
-        if a == Null || b == Null {
-            return Ok(Bool(false));
-        }
-        let cmp = match (&a, &b) {
-            (Text(a), Text(b)) => a.partial_cmp(b),
-            (Bool(a), Bool(b)) => a.partial_cmp(b),
-            (Date(a), Date(b)) => a.partial_cmp(b),
-            (DateTime(a), DateTime(b)) => a.partial_cmp(b),
-            (Duration(a), Duration(b)) => a.partial_cmp(b),
-            (Money(a, ca), Money(b, cb)) => {
-                if ca != cb {
-                    return Err(format!(
-                        "Cannot compare {ca} with {cb}; convert with to(value, {cb})"
-                    ));
-                }
-                a.partial_cmp(b)
-            }
-            _ => a
-                .scalar()
-                .zip(b.scalar())
-                .and_then(|(a, b)| a.partial_cmp(&b)),
-        }
-        .ok_or("Cannot compare these value types")?;
-        return Ok(Bool(match op {
-            "<" => cmp.is_lt(),
-            "<=" => cmp.is_le(),
-            ">" => cmp.is_gt(),
-            _ => cmp.is_ge(),
-        }));
-    }
-    match (op, &a, &b) {
-        ("-", Date(a), Date(b)) => return Ok(Duration((*a - *b).num_seconds())),
-        ("+" | "-", Date(a), Duration(m)) => {
-            if m % 86400 != 0 {
-                return Err(
-                    "A date requires whole-day durations; use a date/time for hours".into(),
-                );
-            }
-            let delta = chrono::Duration::try_seconds(*m).ok_or("Duration overflow")?;
-            return if op == "+" {
-                a.checked_add_signed(delta)
-            } else {
-                a.checked_sub_signed(delta)
-            }
-            .map(Date)
-            .ok_or("Date overflow".into());
-        }
-        ("+" | "-", DateTime(a), Duration(m)) => {
-            let delta = chrono::Duration::try_seconds(*m).ok_or("Duration overflow")?;
-            return if op == "+" {
-                a.checked_add_signed(delta)
-            } else {
-                a.checked_sub_signed(delta)
-            }
-            .map(DateTime)
-            .ok_or("Date/time overflow".into());
-        }
-        ("-", DateTime(a), DateTime(b)) => return Ok(Duration((*a - *b).num_seconds())),
-        ("+" | "-", Duration(a), Duration(b)) => {
-            return if op == "+" {
-                a.checked_add(*b)
-            } else {
-                a.checked_sub(*b)
-            }
-            .map(Duration)
-            .ok_or("Duration overflow".into());
-        }
-        ("/", Duration(a), Duration(b)) => {
-            return if *b == 0 {
-                Err("Division by zero".into())
-            } else {
-                Ok(Ratio(*a as f64 / *b as f64))
-            };
-        }
-        ("+", Text(a), Text(b)) => {
-            if a.len().saturating_add(b.len()) > 1_048_576 {
-                return Err("Text exceeds 1 MiB".into());
-            }
-            return Ok(Text(format!("{a}{b}")));
-        }
-        _ => {}
-    }
-    let currency_a = if let Money(_, c) = &a { Some(*c) } else { None };
-    let currency_b = if let Money(_, c) = &b { Some(*c) } else { None };
-    if let (Some(ca), Some(cb)) = (currency_a, currency_b)
-        && ca != cb
-    {
-        return Err(format!(
-            "Cannot combine {ca} and {cb}; convert with to(value, {cb})"
-        ));
-    }
-    let money_a = currency_a.is_some();
-    let money_b = currency_b.is_some();
-    let counts = matches!((&a, &b), (Count(_), Count(_)));
-    if matches!(op, "*" | "/") {
-        let scaled = match (&a, &b) {
-            (Duration(m), v) => v.scalar().map(|n| {
-                if op == "*" {
-                    *m as f64 * n
-                } else {
-                    *m as f64 / n
-                }
-            }),
-            (v, Duration(m)) if op == "*" => v.scalar().map(|n| *m as f64 * n),
-            _ => None,
-        };
-        if let Some(m) = scaled {
-            if !m.is_finite() || m.fract() != 0.0 || m.abs() >= i64::MAX as f64 {
-                return Err("Duration must fit in whole seconds".into());
-            }
-            return Ok(Duration(m as i64));
-        }
-    }
-    let x = if let Money(n, _) = a {
-        Some(n)
-    } else {
-        a.scalar()
-    }
-    .ok_or("Unsupported arithmetic types")?;
-    let y = if let Money(n, _) = b {
-        Some(n)
-    } else {
-        b.scalar()
-    }
-    .ok_or("Unsupported arithmetic types")?;
-    let n = match op {
-        "+" => x + y,
-        "-" => x - y,
-        "*" => x * y,
-        "/" => {
-            if y == 0.0 {
-                return Err("Division by zero".into());
-            }
-            x / y
-        }
-        _ => return Err(format!("Unknown operator {op}")),
-    };
-    if !n.is_finite() {
-        return Err("Number overflow".into());
-    }
-    if op == "*" && money_a && money_b {
-        return Err("Cannot multiply two money values".into());
-    }
-    if op == "/" && !money_a && money_b {
-        return Err("Cannot divide a scalar by money".into());
-    }
-    if op == "/" && (money_a && money_b || counts) {
-        return Ok(Ratio(n));
-    }
-    Ok(match currency_a.or(currency_b) {
-        Some(currency) => Money(n, currency),
-        None => Number(n),
-    })
 }
 
 /// Repeat from the previous due date, advancing beyond completion; month repeats

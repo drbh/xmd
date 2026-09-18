@@ -1,3 +1,4 @@
+use crate::resources::Resource;
 use lsp_types::{Position, Range};
 use std::collections::BTreeMap;
 
@@ -569,9 +570,51 @@ impl Document {
         attrs: &BTreeMap<String, Attribute>,
     ) {
         let mut i = start;
+        // `total := units * price` needs no brackets: the := says it all.
+        if let Some(def) = bare_calculation(line, row, start) {
+            let named = def.named.span;
+            let source = def.value_span;
+            self.mark(row, named.start, named.end, "variable");
+            self.mark(
+                row,
+                source.start.saturating_sub(3),
+                source.start,
+                "operator",
+            );
+            self.definitions.push(def);
+            self.expression(line, row, source.start, source.end);
+            return;
+        }
         while i < line.len() {
             if let Some(attr) = attrs.values().find(|a| a.span.start == i) {
                 i = attr.span.end;
+                continue;
+            }
+            // `$3,000:budget`, `"Oaxaca City":city`, `https://…/pull/1:pr`: a
+            // value followed by :name defines it without brackets.
+            if let Some(def) = bare_literal(line, row, i) {
+                let value = def.value_span;
+                let named = def.named.span;
+                self.mark(
+                    row,
+                    value.start,
+                    value.end,
+                    if def.source.starts_with('"') || Resource::parse(&def.source).is_some() {
+                        "string"
+                    } else {
+                        "number"
+                    },
+                );
+                self.mark(row, value.end, value.end + 1, "operator");
+                self.mark(row, named.start, named.end, "variable");
+                if let Some(r) = Resource::parse(&def.source) {
+                    self.links.push(Link {
+                        span: value,
+                        target: r.target,
+                    });
+                }
+                i = named.end;
+                self.definitions.push(def);
                 continue;
             }
             if line[i..].starts_with("<!--") {
@@ -812,6 +855,110 @@ fn line_calculation(trimmed: &str) -> Option<String> {
         }
     }
     (meaningful && crate::engine::Engine::valid_expression(&masked)).then_some(masked)
+}
+/// A whitespace-delimited word at `at` of the form `value:name`, where the
+/// value is a scalar literal, a quoted string, or a resource. `\:` escapes
+/// the colon. `10:30am` is a time, and `note:budget` is prose.
+fn bare_literal(line: &str, row: usize, at: usize) -> Option<Definition> {
+    if at > 0 && !line.as_bytes()[at - 1].is_ascii_whitespace() && line.as_bytes()[at - 1] != b'(' {
+        return None;
+    }
+    let rest = &line[at..];
+    let first = rest.chars().next()?;
+    if first.is_whitespace() || matches!(first, '[' | '`' | '<' | '\\') {
+        return None;
+    }
+    let value_end = if first == '"' {
+        let mut escaped = false;
+        let mut close = None;
+        for (i, c) in rest.char_indices().skip(1) {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == '"' {
+                close = Some(i + 1);
+                break;
+            }
+        }
+        close?
+    } else {
+        // The colon before the name is the last one in the word; earlier ones
+        // belong to URLs, geo: coordinates, and times.
+        let word_end = rest.find(char::is_whitespace).unwrap_or(rest.len());
+        let word = &rest[..word_end];
+        let mut cut = None;
+        let mut search = word.len();
+        while let Some(colon) = word[..search].rfind(':') {
+            let name = name_len(&word[colon + 1..]);
+            if name > 0 && identifier(&word[colon + 1..colon + 1 + name]) {
+                cut = Some(colon);
+                break;
+            }
+            search = colon;
+        }
+        cut?
+    };
+    let colon = value_end;
+    if rest.as_bytes().get(colon) != Some(&b':')
+        || colon == 0
+        || rest.as_bytes()[colon - 1] == b'\\'
+    {
+        return None;
+    }
+    let name_end = colon + 1 + name_len(&rest[colon + 1..]);
+    let name = &rest[colon + 1..name_end];
+    if !identifier(name) || matches!(name, "true" | "false") {
+        return None;
+    }
+    let value = &rest[..colon];
+    let scalar = matches!(
+        crate::engine::literal(value),
+        Ok(v) if !matches!(v, crate::engine::Value::Text(_)) || value.starts_with('"')
+    );
+    let resource = Resource::parse(value).is_some();
+    if !(scalar || resource) {
+        return None;
+    }
+    // `10:30am`, `3:1pm`: a number before am/pm is a time, not a value.
+    if name.eq_ignore_ascii_case("am") || name.eq_ignore_ascii_case("pm") {
+        return None;
+    }
+    Some(Definition {
+        named: Named {
+            name: name.into(),
+            span: Span::new(row, at + colon + 1, at + name_end),
+        },
+        source: value.into(),
+        expression: false,
+        value_span: Span::new(row, at, at + colon),
+        end: Span::new(row, at + name_end, at + name_end),
+    })
+}
+/// `name := expression` at the start of a line, without brackets.
+fn bare_calculation(line: &str, row: usize, start: usize) -> Option<Definition> {
+    let rest = &line[start..];
+    let len = name_len(rest);
+    let name = &rest[..len];
+    if len == 0 || !identifier(name) || matches!(name, "true" | "false") {
+        return None;
+    }
+    let after = &rest[len..];
+    let gap = after.len() - after.trim_start().len();
+    if !after[gap..].starts_with(":=") {
+        return None;
+    }
+    let expr_start = start + len + gap + 2;
+    Some(Definition {
+        named: Named {
+            name: name.into(),
+            span: Span::new(row, start, start + len),
+        },
+        source: line[expr_start..].trim().into(),
+        expression: true,
+        value_span: Span::new(row, expr_start, line.len()),
+        end: Span::new(row, line.len(), line.len()),
+    })
 }
 fn skip_code(line: &str, start: usize) -> usize {
     let count = line[start..].bytes().take_while(|c| *c == b'`').count();

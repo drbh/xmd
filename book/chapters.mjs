@@ -9,7 +9,7 @@ export const parts = [
         file: "01-values.jot",
         title: "Naming Values",
         prose: [
-          "Every Jot program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>[$3,000]:budget</code>. The brackets say \"this is a value\", the name says what to call it.",
+          "Every Jot program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>$3,000:budget</code>. Brackets are optional when you define something; <code>[$3,000]:budget</code> means the same, and they are the way to name text with spaces, as in <code>\"Oaxaca City\":city</code>. Write <code>\\:</code> for a colon that should not define anything.",
           "Once a value has a name, <code>[budget]</code> reads it anywhere, in this note or any other note in the workspace. The editor shows the current value right after the reference, so a sentence like \"we have [remaining] left\" always reads with the number filled in.",
           "Try editing the amount spent below. Every reference updates as you type, because they are reading the value rather than copying it.",
         ],
@@ -18,7 +18,7 @@ export const parts = [
         file: "02-calculations.jot",
         title: "Calculations",
         prose: [
-          "A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.",
+          "A calculation is a name defined with <code>:=</code> and an expression, on a line of its own: <code>remaining := budget - spent</code>. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.",
           "The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.",
           "A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed. A line that is nothing but math, with each variable in brackets, works too: <code>[subtotal] + [tax]</code> on its own line shows its result at the end, the way a scratchpad would.",
         ],

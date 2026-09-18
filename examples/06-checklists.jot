@@ -11,9 +11,9 @@ A heading with :name is a checklist; tasks beneath it count.
   - [ ] Capture the recording
 - [ ] Update the changelog @estimate(20m)
 
-[done] := completed(launch)
-[left] := remaining(launch)
-[work] := effort(launch)
+done := completed(launch)
+left := remaining(launch)
+work := effort(launch)
 
 [done] of [total(launch)] steps are done, [left] remain, about [work] of work.
 Named tasks are booleans: the demo is [demo].

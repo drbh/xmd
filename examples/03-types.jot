@@ -2,13 +2,13 @@
 
 Every literal has a type, and arithmetic respects it.
 
-[42]:count
-[$19.99]:price
-[47%]:share
-[150m]:duration
-[2026-11-20]:date
-[true]:flag
-["Oaxaca"]:city
+42:count
+$19.99:price
+47%:share
+150m:duration
+2026-11-20:date
+true:flag
+"Oaxaca":city
 
 Money times a number is money: [price * 3].
 A ratio scales anything: [price * share].

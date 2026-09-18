@@ -3,14 +3,14 @@
 External data lives in a cache that only jot refresh or the Refresh lookups
 lens fills; nothing is fetched while you type.
 
-[oaxaca] := forecast("Oaxaca", 2026-11-20)
-[oaxaca_f] := forecast("Oaxaca", 2026-11-20, F)
-[pack_rain_jacket] := oaxaca.rain > 30%
+oaxaca := forecast("Oaxaca", 2026-11-20)
+oaxaca_f := forecast("Oaxaca", 2026-11-20, F)
+pack_rain_jacket := oaxaca.rain > 30%
 
 Landing day looks like [oaxaca], or [oaxaca_f] in Fahrenheit.
 
-[12]:shares
-[nvda] := quote(NVDA) * shares
+12:shares
+nvda := quote(NVDA) * shares
 
 Holding [shares] shares is worth [nvda].
 

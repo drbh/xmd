@@ -124,14 +124,19 @@ impl<'a> Painter<'a> {
             self.mark(colon, "jotPunctuation");
         }
     }
+    /// Dim the brackets around a span, when there are any: bare definitions
+    /// such as `$3,000:budget` have none.
     fn brackets(&mut self, span: Span) {
         let line = self.lines[span.line];
-        if let Some(open) = line[..span.start].rfind('[') {
-            self.mark(Span::new(span.line, open, span.start), "jotPunctuation");
-        }
-        if let Some(close) = line[span.end..].find(']') {
+        if line[..span.start].ends_with('[') {
             self.mark(
-                Span::new(span.line, span.end, span.end + close + 1),
+                Span::new(span.line, span.start - 1, span.start),
+                "jotPunctuation",
+            );
+        }
+        if line[span.end..].starts_with(']') {
+            self.mark(
+                Span::new(span.line, span.end, span.end + 1),
                 "jotPunctuation",
             );
         }

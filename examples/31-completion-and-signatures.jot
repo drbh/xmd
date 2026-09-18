@@ -1,12 +1,12 @@
 # Completion and signature help
 
-[groceries] := table
+groceries := table
 | item  | quantity | price |
 | ----- | -------- | ----- |
 | apple | 2        | $3.30 |
 
-[total] := sum(groceries, quantity * price)
-[focus] := countdown(25m)
+total := sum(groceries, quantity * price)
+focus := countdown(25m)
 
 - [ ] Prep @timer(focus) @due(tomorrow)
 

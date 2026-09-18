@@ -124,6 +124,12 @@ Three features ride on standard LSP requests that most editors already send:
   [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
   prints Jot source. The solver is pure Rust (`good_lp` with `microlp`), so it
   also runs in the browser. See `jots/plans.jot`.
+- **Definitions without brackets.** A value followed by `:name` defines it:
+  `$3,000:budget`, `2026-11-20:departure`, `"Oaxaca City":city`,
+  `https://github.com/o/r/pull/1:pr`. A line starting with `name := expr`
+  is a calculation. Brackets still work and are the way to name text with
+  spaces; `\:` keeps a colon from defining anything. Times like `10:30am`
+  and prose like `note:budget` are left alone.
 - **Calculations in prose.** Brackets around an expression that reads a name
   or calls a function, such as `[remaining / budget]` or `[today()]`, show the
   result in place without defining anything. Bare literals like `[$25]` stay

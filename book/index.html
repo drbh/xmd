@@ -21,33 +21,35 @@
       <p class="lead">Jot is a language for notes: plain text that stays readable and starts to calculate, count, plan, and remember. This book walks through every feature with a live example. Each block below is a real note running on the same Rust engine as the editor, compiled to WebAssembly; edit it and the inlays, colors, and diagnostics update as you type. Click a name to see its hover.</p>
       <p>The examples are the files in <code>examples/</code>. Open them in Zed for the full experience, including completion, rename, code actions, and the command line.</p>
     </header>
-    <section class="part" id="part-1"><p class="kicker">Part 1</p><h1>Getting Started</h1><p class="lead">Jot is plain text that can count. You write notes the way you already do, and the parts that look like values start to behave like values. This part introduces the four ideas everything else builds on: literals with names, calculations, types, and dates.</p><section class="chapter" id="naming-values"><h2><span class="number">1.1</span> Naming Values</h2><p>Every Jot program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>[$3,000]:budget</code>. The brackets say "this is a value", the name says what to call it.</p><p>Once a value has a name, <code>[budget]</code> reads it anywhere, in this note or any other note in the workspace. The editor shows the current value right after the reference, so a sentence like "we have [remaining] left" always reads with the number filled in.</p><p>Try editing the amount spent below. Every reference updates as you type, because they are reading the value rather than copying it.</p><figure class="jot-block" data-file="01-values.jot">
+    <section class="part" id="part-1"><p class="kicker">Part 1</p><h1>Getting Started</h1><p class="lead">Jot is plain text that can count. You write notes the way you already do, and the parts that look like values start to behave like values. This part introduces the four ideas everything else builds on: literals with names, calculations, types, and dates.</p><section class="chapter" id="naming-values"><h2><span class="number">1.1</span> Naming Values</h2><p>Every Jot program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>$3,000:budget</code>. Brackets are optional when you define something; <code>[$3,000]:budget</code> means the same, and they are the way to name text with spaces, as in <code>"Oaxaca City":city</code>. Write <code>\:</code> for a colon that should not define anything.</p><p>Once a value has a name, <code>[budget]</code> reads it anywhere, in this note or any other note in the workspace. The editor shows the current value right after the reference, so a sentence like "we have [remaining] left" always reads with the number filled in.</p><p>Try editing the amount spent below. Every reference updates as you type, because they are reading the value rather than copying it.</p><figure class="jot-block" data-file="01-values.jot">
   <figcaption><span>examples/01-values.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/01-values.jot"># Values
 
-A bracketed literal followed by `:name` defines a value; `[name]` reads it anywhere.
+A value followed by `:name` defines it; `[name]` reads it anywhere.
 
-Our budget is [$3,000]:budget and we've spent [$2,444]:spent.
+Our budget is $3,000:budget and we've spent $2,444:spent.
 
-[remaining] := budget - spent
+remaining := budget - spent
 
 We have [remaining] left, which is [remaining / budget] of the budget.
 
-&lt;!-- Try: change $2,444 and watch every reference update. Hover remaining. --&gt;
+&lt;!-- Brackets are optional when defining: $3,000:budget means the same and
+is handy for text with spaces, as is "Oaxaca City":city. Write \: for a colon
+that should not define anything. Try: change $2,444 and hover remaining. --&gt;
 </pre></div>
   <div class="hover" hidden></div>
   <ul class="problems" hidden></ul>
-</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><p>A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed. A line that is nothing but math, with each variable in brackets, works too: <code>[subtotal] + [tax]</code> on its own line shows its result at the end, the way a scratchpad would.</p><figure class="jot-block" data-file="02-calculations.jot">
+</figure></section><section class="chapter" id="calculations"><h2><span class="number">1.2</span> Calculations</h2><p>A calculation is a name defined with <code>:=</code> and an expression, on a line of its own: <code>remaining := budget - spent</code>. Expressions use the operators you expect, and they can read any named value or other calculation. Jot keeps track of what depends on what, so changing one number updates everything downstream.</p><p>The result appears as an inlay after the definition. If you hover a calculated name, Jot shows the expression with every input substituted, then the result, then links to the inputs. It is a small thing, but it means a note never hides how a number was made.</p><p>A calculation does not need a name. Brackets around an expression in prose, such as <code>[remaining / budget]</code>, show the result right there, and hovering the brackets shows how it was computed. A line that is nothing but math, with each variable in brackets, works too: <code>[subtotal] + [tax]</code> on its own line shows its result at the end, the way a scratchpad would.</p><figure class="jot-block" data-file="02-calculations.jot">
   <figcaption><span>examples/02-calculations.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/02-calculations.jot"># Calculations
 
 `[name] := expression` defines a calculated value. Inlays show the result.
 
-[12]:units
-[$8.50]:unit_price
-[subtotal] := units * unit_price
-[tax] := subtotal * 8.875%
-[total] := subtotal + tax
+12:units
+$8.50:unit_price
+subtotal := units * unit_price
+tax := subtotal * 8.875%
+total := subtotal + tax
 
 [total] for [units] units, including [tax] tax.
 
@@ -65,13 +67,13 @@ A line that is only math shows its result at the end:
 
 Every literal has a type, and arithmetic respects it.
 
-[42]:count
-[$19.99]:price
-[47%]:share
-[150m]:duration
-[2026-11-20]:date
-[true]:flag
-["Oaxaca"]:city
+42:count
+$19.99:price
+47%:share
+150m:duration
+2026-11-20:date
+true:flag
+"Oaxaca":city
 
 Money times a number is money: [price * 3].
 A ratio scales anything: [price * share].
@@ -87,9 +89,9 @@ Comparisons give booleans: [price &gt; $10 &amp;&amp; flag].
   <figcaption><span>examples/04-dates.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/04-dates.jot"># Dates and relative dates
 
-[2026-11-20]:departure
-[days_left] := departure - today()
-[return_date] := departure + 10d
+2026-11-20:departure
+days_left := departure - today()
+return_date := departure + 10d
 
 Leaving in [days_left], back on [return_date].
 today() is [today()] and date("next Friday") is [date("next Friday")].
@@ -107,13 +109,13 @@ today() is [today()] and date("next Friday") is [date("next Friday")].
 
 Money carries its currency: a symbol before the number or a code after it.
 
-[€450]:hotel
+€450:hotel
 [700 MXN]:fee
-[$1,200]:flights
+$1,200:flights
 
-[hotel_usd] := to(hotel, USD)
-[fee_usd] := to(fee, USD)
-[trip] := flights + hotel_usd + fee_usd
+hotel_usd := to(hotel, USD)
+fee_usd := to(fee, USD)
+trip := flights + hotel_usd + fee_usd
 
 The hotel is [hotel], about [hotel_usd]; the trip totals [trip].
 One euro is [rate(EUR, USD)] dollars.
@@ -138,9 +140,9 @@ A heading with :name is a checklist; tasks beneath it count.
   - [ ] Capture the recording
 - [ ] Update the changelog @estimate(20m)
 
-[done] := completed(launch)
-[left] := remaining(launch)
-[work] := effort(launch)
+done := completed(launch)
+left := remaining(launch)
+work := effort(launch)
 
 [done] of [total(launch)] steps are done, [left] remain, about [work] of work.
 Named tasks are booleans: the demo is [demo].
@@ -179,9 +181,9 @@ Try: jot agenda --week on the command line. --&gt;
 - [ ] Test @after(assemble)
 - [ ] Ship @after(assemble, budget_ok)
 
-[$500]:budget
-[$420]:spent
-[budget_ok] := spent &lt;= budget
+$500:budget
+$420:spent
+budget_ok := spent &lt;= budget
 
 &lt;!-- Blocked tasks say what they wait for. Cycles are reported with locations.
 Try: complete Assemble and watch Test and Ship unblock. --&gt;
@@ -213,7 +215,7 @@ A line with @at is an appointment; jot agenda and jot today list it.
 - Team lunch @at(2026-09-26T12:30-04:00)
 - Flight home @at(2026-11-30T16:45-06:00)
 
-[next] := 2026-09-25T09:30-04:00 - now()
+next := 2026-09-25T09:30-04:00 - now()
 
 The dentist is in [next].
 
@@ -227,8 +229,8 @@ The dentist is in [next].
 
 Timers are values; controls save state in the note, ticking never edits it.
 
-[focus] := countdown(25m)
-[work] := stopwatch()
+focus := countdown(25m)
+work := stopwatch()
 
 - [ ] One focused session @timer(focus) @estimate(25m)
 - [ ] Investigate the flaky test @timer(work)
@@ -246,15 +248,15 @@ inlay shows a live gauge. Completing a task does not stop its timer. --&gt;
 
 `[name] := table` followed by a Markdown table gives typed columns.
 
-[groceries] := table
+groceries := table
 | item  | quantity | price |
 | ----- | -------- | ----- |
 | apple | 2        | $3.30 |
 | pear  | 4        | $4.30 |
 
-[total] := sum(groceries, quantity * price)
-[units] := sum(groceries, quantity)
-[average] := total / units
+total := sum(groceries, quantity * price)
+units := sum(groceries, quantity)
+average := total / units
 
 Groceries cost [total] for [units] items, [average] each.
 
@@ -270,16 +272,16 @@ formulas. Try: Format Document to align the table. --&gt;
 
 A bracketed cell is a calculation that can read named values from any note.
 
-[$1.50]:unit_price
-[6]:bulk_qty
+$1.50:unit_price
+6:bulk_qty
 
-[extras] := table
+extras := table
 | item | quantity   | cost             |
 | ---- | ---------- | ---------------- |
 | bulk | [bulk_qty] | [unit_price]     |
 | jam  | 1          | [unit_price * 3] |
 
-[extras_total] := sum(extras, quantity * cost)
+extras_total := sum(extras, quantity * cost)
 
 Extras cost [extras_total].
 
@@ -294,9 +296,9 @@ Extras cost [extras_total].
 maximize or minimize an expression subject to a constraint table. Names no
 note defines are decision variables; everything else is a constant.
 
-[400]:flour_stock
+400:flour_stock
 
-[bakery] := maximize($3 * bagels + $1.25 * doughnuts)
+bakery := maximize($3 * bagels + $1.25 * doughnuts)
 | constraint   | expression                                   |
 | ------------ | -------------------------------------------- |
 | flour        | 12 * bagels + 6.5 * doughnuts &lt;= flour_stock |
@@ -319,7 +321,7 @@ to 300, or jot plan bakery on the command line. --&gt;
 A column named take? is a yes/no choice per row; servings# is a whole number.
 A plan that sums over the column decides every row.
 
-[gear] := table
+gear := table
 | item   | weight | value | take? |
 | ------ | ------ | ----- | ----- |
 | tent   | 3      | 9     |       |
@@ -327,7 +329,7 @@ A plan that sums over the column decides every row.
 | camera | 2      | 7     |       |
 | books  | 4      | 3     |       |
 
-[pack] := maximize(sum(gear, value * take))
+pack := maximize(sum(gear, value * take))
 | constraint | expression                    |
 | ---------- | ----------------------------- |
 | weight     | sum(gear, weight * take) &lt;= 6 |
@@ -346,15 +348,15 @@ into the table. Try: raise the weight limit to 8. --&gt;
 solve(constraint) makes the definition's own name the unknown and finds the
 boundary value through any chain of calculations.
 
-[$1,200]:saved
-[9]:months_left
-[saved_by_june] := monthly * months_left + saved
-[monthly] := solve(saved_by_june &gt;= $5,000)
+$1,200:saved
+9:months_left
+saved_by_june := monthly * months_left + saved
+monthly := solve(saved_by_june &gt;= $5,000)
 
 Save [monthly] a month to reach [saved_by_june] by June.
 
-[30m]:per_call
-[calls] := solve(calls * per_call &lt;= 4h)
+30m:per_call
+calls := solve(calls * per_call &lt;= 4h)
 
 That is [calls] calls in an afternoon.
 
@@ -368,16 +370,16 @@ That is [calls] calls in an afternoon.
 
 Links, files, places and GitHub items are values with an Open lens.
 
-[https://github.com/zed-industries/zed/pull/1]:zed_pr
-[geo:17.0654,-96.7236]:zocalo
-[../README.md]:readme
+https://github.com/zed-industries/zed/pull/1:zed_pr
+geo:17.0654,-96.7236:zocalo
+../README.md:readme
 [Zed](https://zed.dev) and https://github.com/drbh/alps also work inline.
 
 - [ ] Review [zed_pr] @estimate(30m)
 - [ ] Read the [readme] before the trip
 - [ ] Meet at [zocalo] @at(2026-11-21T10:00-06:00)
 
-[merged] := zed_pr.merged
+merged := zed_pr.merged
 
 &lt;!-- GitHub links get a status badge once refreshed: jot refresh, or the
 Refresh GitHub status lens. Then zed_pr.merged and .checks_passed work. --&gt;
@@ -391,14 +393,14 @@ Refresh GitHub status lens. Then zed_pr.merged and .checks_passed work. --&gt;
 External data lives in a cache that only jot refresh or the Refresh lookups
 lens fills; nothing is fetched while you type.
 
-[oaxaca] := forecast("Oaxaca", 2026-11-20)
-[oaxaca_f] := forecast("Oaxaca", 2026-11-20, F)
-[pack_rain_jacket] := oaxaca.rain &gt; 30%
+oaxaca := forecast("Oaxaca", 2026-11-20)
+oaxaca_f := forecast("Oaxaca", 2026-11-20, F)
+pack_rain_jacket := oaxaca.rain &gt; 30%
 
 Landing day looks like [oaxaca], or [oaxaca_f] in Fahrenheit.
 
-[12]:shares
-[nvda] := quote(NVDA) * shares
+12:shares
+nvda := quote(NVDA) * shares
 
 Holding [shares] shares is worth [nvda].
 
@@ -451,7 +453,7 @@ Document, fold a day, or change Saturday to Sunday. --&gt;
 
 Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 
-[review] := countdown(40m, 16m)
+review := countdown(40m, 16m)
 
 ## Launch :launch
 - [x] Draft
@@ -459,7 +461,7 @@ Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 - [ ] Demo
 - [ ] Changelog
 
-[sales] := table
+sales := table
 | month | units |
 | ----- | ----- |
 | Jan   | 12    |
@@ -467,7 +469,7 @@ Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 | Mar   | 9     |
 | Apr   | 24    |
 
-[total_units] := sum(sales, units)
+total_units := sum(sales, units)
 
 &lt;!-- The countdown and heading inlays carry a gauge; hover them for the bar with
 a percentage. Hover the units column or total_units for a sparkline. --&gt;
@@ -484,7 +486,7 @@ Interview 09/17/2026 from 10:00 AM to 10:45 AM; start at 7AM tomorrow.
 Budget $120, allow 30m, aim for 80%, bring 2 copies, and yes, it is true.
 Declared names are bold; references, functions and table columns have their own colors.
 
-[demo_share] := 47%
+demo_share := 47%
 - [x] Done tasks are struck through
 - [ ] Open boxes are amber
 
@@ -499,7 +501,7 @@ Declared names are bold; references, functions and table columns have their own 
 Typing the closing pipe of a table row realigns the table; Enter after a
 checkbox continues the list, and Enter on an empty checkbox ends it.
 
-[inventory] := table
+inventory := table
 | item   | count |
 | ------ | ----- |
 | pencil | 40    |
@@ -518,9 +520,9 @@ checkbox continues the list, and Enter on an empty checkbox ends it.
 
 Lunch budget: $25 today, and the meeting is next Friday.
 
-[$3,000]:cash
-[half] := cash / 2
-[quarter] := half / 2
+$3,000:cash
+half := cash / 2
+quarter := half / 2
 
 &lt;!-- Select $25 above, then Extract named value. Select next Friday and Freeze
 relative date. On the half reference in quarter, try Inline expression or
@@ -532,9 +534,9 @@ Freeze current value. Misspell cash as cahs to see the spelling quick fix. --&gt
   <figcaption><span>examples/23-rename-and-navigation.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/23-rename-and-navigation.jot"># Rename, references and navigation
 
-[$3,000]:budget
-[budget_left] := budget - $1,410
-[fits] := budget_left &gt; $1,000
+$3,000:budget
+budget_left := budget - $1,410
+fits := budget_left &gt; $1,000
 
 We have [budget_left]; it fits: [fits].
 
@@ -553,12 +555,12 @@ The outline lists every value and task; breadcrumbs follow the cursor. --&gt;
 Show Call Hierarchy on a name: outgoing calls are what it reads, incoming
 calls are what reads it.
 
-[$4,800]:income
-[$1,900]:rent
-[$650]:groceries
-[fixed_costs] := rent + groceries
-[free_cash] := income - fixed_costs
-[savings_goal] := free_cash * 0.4
+$4,800:income
+$1,900:rent
+$650:groceries
+fixed_costs := rent + groceries
+free_cash := income - fixed_costs
+savings_goal := free_cash * 0.4
 
 - [ ] Confirm the budget :budget_ok @after(free_cash &gt; $1000)
 - [ ] Set up the transfer @after(budget_ok)
@@ -572,13 +574,13 @@ savings_goal and the tasks that depend on it. --&gt;
   <figcaption><span>examples/31-completion-and-signatures.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/31-completion-and-signatures.jot"># Completion and signature help
 
-[groceries] := table
+groceries := table
 | item  | quantity | price |
 | ----- | -------- | ----- |
 | apple | 2        | $3.30 |
 
-[total] := sum(groceries, quantity * price)
-[focus] := countdown(25m)
+total := sum(groceries, quantity * price)
+focus := countdown(25m)
 
 - [ ] Prep @timer(focus) @due(tomorrow)
 
@@ -602,13 +604,13 @@ On an itinerary line, a time then two spaces offers stop kinds. --&gt;
 
 ## Budget
 
-[chapters] := table
+chapters := table
 | chapter | pages |
 | ------- | ----- |
 | one     | 12    |
 | two     | 18    |
 
-[pages] := sum(chapters, pages)
+pages := sum(chapters, pages)
 
 &lt;!-- Sections, tables, plans, itinerary days, stops and comment blocks fold.
 The outline lists sections, tasks, values, tables and columns in source order. --&gt;
@@ -621,12 +623,12 @@ The outline lists sections, tasks, values, tables and columns in source order. -
 
 Problems point at the exact token, across notes.
 
-[$3,000]:budget
-[cash] := budget - $1,410
+$3,000:budget
+cash := budget - $1,410
 
 &lt;!-- Try one at a time:
-  [oops] := budgett - 1        unknown name, with a spelling quick fix
-  [loop_a] := loop_b and [loop_b] := loop_a   a dependency cycle with both locations
+  oops := budgett - 1        unknown name, with a spelling quick fix
+  loop_a := loop_b and [loop_b] := loop_a   a dependency cycle with both locations
   - [ ] Late @due(yesterdayy)  an invalid date
   | apple | two | $3 |  in a table: a typed cell error
 Unfetched lookups and unrecognized itinerary stops are warnings, not errors. --&gt;
@@ -640,13 +642,13 @@ Unfetched lookups and unrecognized itinerary stops are warnings, not errors. --&
 &lt;!-- [ignored] := 1 + 1 is not a definition inside a comment. --&gt;
 
 ```
-[also_ignored] := countdown(25m)
+also_ignored := countdown(25m)
 - [ ] Not a task inside a fence
 ```
 
 `[inline_code] := skipped` in prose is literal too.
 
-[real] := 2 + 2
+real := 2 + 2
 
 Only [real] exists. Multi-line comment blocks fold.
 &lt;!--
@@ -662,7 +664,7 @@ including @due(tomorrow).
 
 Names resolve across every note in the workspace; local names win ties.
 
-[shared_budget] := shared_rate * shared_hours
+shared_budget := shared_rate * shared_hours
 
 We can spend [shared_budget] this week.
 
@@ -675,8 +677,8 @@ Go to definition jumps there; rename updates both notes. --&gt;
   <figcaption><span>examples/28-cross-note-source.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/28-cross-note-source.jot"># Source of shared values
 
-[$95]:shared_rate
-[32]:shared_hours
+$95:shared_rate
+32:shared_hours
 
 &lt;!-- Read from 27-cross-note-values.jot. Find references shows both notes. --&gt;
 </pre></div>
@@ -704,9 +706,9 @@ and lookups. Add --json to any listing. --&gt;
   <figcaption><span>examples/33-images-and-files.jot</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="examples/33-images-and-files.jot"># Images and files
 
-[../jots/assets/sample-receipt.svg]:receipt_image
+../jots/assets/sample-receipt.svg:receipt_image
 ![Sample receipt](../jots/assets/sample-receipt.svg)
-[./01-values.jot]:first_example
+./01-values.jot:first_example
 
 - [ ] Expense lunch using [receipt_image]
 - [ ] Reread [first_example]

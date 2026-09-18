@@ -2,7 +2,7 @@
 
 Names resolve across every note in the workspace; local names win ties.
 
-[shared_budget] := shared_rate * shared_hours
+shared_budget := shared_rate * shared_hours
 
 We can spend [shared_budget] this week.
 

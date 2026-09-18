@@ -2,15 +2,15 @@
 
 `[name] := table` followed by a Markdown table gives typed columns.
 
-[groceries] := table
+groceries := table
 | item  | quantity | price |
 | ----- | -------- | ----- |
 | apple | 2        | $3.30 |
 | pear  | 4        | $4.30 |
 
-[total] := sum(groceries, quantity * price)
-[units] := sum(groceries, quantity)
-[average] := total / units
+total := sum(groceries, quantity * price)
+units := sum(groceries, quantity)
+average := total / units
 
 Groceries cost [total] for [units] items, [average] each.
 

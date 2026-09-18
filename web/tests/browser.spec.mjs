@@ -417,7 +417,7 @@ test("the book runs every example as a live block on the shared engine", async (
   await box.scrollIntoViewIfNeeded();
   const view = box.locator(".view");
   const text = await view.evaluate(el => el.textContent);
-  const line = text.split("\n").findIndex(l => l.startsWith("[total] :="));
+  const line = text.split("\n").findIndex(l => l.startsWith("total :="));
   const lineBox = await view.evaluate((el, line) => {
     const style = getComputedStyle(el);
     const r = el.getBoundingClientRect();

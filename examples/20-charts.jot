@@ -2,7 +2,7 @@
 
 Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 
-[review] := countdown(40m, 16m)
+review := countdown(40m, 16m)
 
 ## Launch :launch
 - [x] Draft
@@ -10,7 +10,7 @@ Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 - [ ] Demo
 - [ ] Changelog
 
-[sales] := table
+sales := table
 | month | units |
 | ----- | ----- |
 | Jan   | 12    |
@@ -18,7 +18,7 @@ Gauges and sparklines are drawn with Unicode blocks, so every editor shows them.
 | Mar   | 9     |
 | Apr   | 24    |
 
-[total_units] := sum(sales, units)
+total_units := sum(sales, units)
 
 <!-- The countdown and heading inlays carry a gauge; hover them for the bar with
 a percentage. Hover the units column or total_units for a sparkline. -->

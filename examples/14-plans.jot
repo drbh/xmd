@@ -3,9 +3,9 @@
 maximize or minimize an expression subject to a constraint table. Names no
 note defines are decision variables; everything else is a constant.
 
-[400]:flour_stock
+400:flour_stock
 
-[bakery] := maximize($3 * bagels + $1.25 * doughnuts)
+bakery := maximize($3 * bagels + $1.25 * doughnuts)
 | constraint   | expression                                   |
 | ------------ | -------------------------------------------- |
 | flour        | 12 * bagels + 6.5 * doughnuts <= flour_stock |

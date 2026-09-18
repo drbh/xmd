@@ -3,12 +3,12 @@
 Show Call Hierarchy on a name: outgoing calls are what it reads, incoming
 calls are what reads it.
 
-[$4,800]:income
-[$1,900]:rent
-[$650]:groceries
-[fixed_costs] := rent + groceries
-[free_cash] := income - fixed_costs
-[savings_goal] := free_cash * 0.4
+$4,800:income
+$1,900:rent
+$650:groceries
+fixed_costs := rent + groceries
+free_cash := income - fixed_costs
+savings_goal := free_cash * 0.4
 
 - [ ] Confirm the budget :budget_ok @after(free_cash > $1000)
 - [ ] Set up the transfer @after(budget_ok)

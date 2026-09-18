@@ -2,8 +2,8 @@
 
 Timers are values; controls save state in the note, ticking never edits it.
 
-[focus] := countdown(25m)
-[work] := stopwatch()
+focus := countdown(25m)
+work := stopwatch()
 
 - [ ] One focused session @timer(focus) @estimate(25m)
 - [ ] Investigate the flaky test @timer(work)

@@ -9,13 +9,13 @@
 
 ## Budget
 
-[chapters] := table
+chapters := table
 | chapter | pages |
 | ------- | ----- |
 | one     | 12    |
 | two     | 18    |
 
-[pages] := sum(chapters, pages)
+pages := sum(chapters, pages)
 
 <!-- Sections, tables, plans, itinerary days, stops and comment blocks fold.
 The outline lists sections, tasks, values, tables and columns in source order. -->

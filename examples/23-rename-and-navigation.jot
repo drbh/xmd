@@ -1,8 +1,8 @@
 # Rename, references and navigation
 
-[$3,000]:budget
-[budget_left] := budget - $1,410
-[fits] := budget_left > $1,000
+$3,000:budget
+budget_left := budget - $1,410
+fits := budget_left > $1,000
 
 We have [budget_left]; it fits: [fits].
 

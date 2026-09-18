@@ -2,9 +2,9 @@
 
 Lunch budget: $25 today, and the meeting is next Friday.
 
-[$3,000]:cash
-[half] := cash / 2
-[quarter] := half / 2
+$3,000:cash
+half := cash / 2
+quarter := half / 2
 
 <!-- Select $25 above, then Extract named value. Select next Friday and Freeze
 relative date. On the half reference in quarter, try Inline expression or

@@ -190,8 +190,6 @@ paths are relative to the process working directory, independently of `--root`.
 | `wtf tasks --tag errands` | `wtf query '@tasks \| where contains(tags, "errands")'` |
 | `wtf check` | `wtf query @check --fail-on-match` |
 | `wtf plan bakery --json` | `wtf query 'plans \| where name == "bakery" \| select solution' --json` |
-| `wtf plan bakery --export` | `wtf convert --to-alps bakery` |
-| `wtf plan --import problem.json` | `wtf convert --from-alps problem.json` |
 
 These are breaking CLI changes; the old read commands have been removed.
 `@tasks` selects unfinished leaves, while the `tasks` collection includes every

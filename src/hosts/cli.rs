@@ -1,5 +1,4 @@
 use crate::{
-    engine::Engine,
     query::{self, QueryValue},
     workspace::Workspace,
 };
@@ -37,18 +36,6 @@ pub enum Command {
     Graph(InspectOptions),
     /// Explicitly refresh cached resource status and external lookups.
     Refresh {
-        #[arg(long, default_value = ".")]
-        root: PathBuf,
-    },
-    /// Convert between WTF plans and alps problem files, writing to stdout.
-    Convert {
-        #[arg(long, required_unless_present = "to_alps", conflicts_with = "to_alps")]
-        from_alps: Option<PathBuf>,
-        #[arg(long, required_unless_present = "from_alps")]
-        to_alps: Option<String>,
-        /// The note defining --to-alps NAME.
-        #[arg(required_unless_present = "from_alps", conflicts_with = "from_alps")]
-        file: Option<PathBuf>,
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
@@ -184,42 +171,6 @@ pub async fn run(command: Command) -> Result<(), String> {
             println!(
                 "Resource cache updated ({} resources)",
                 workspace.cache.len()
-            );
-            Ok(())
-        }
-        Command::Convert {
-            from_alps,
-            to_alps,
-            file,
-            root,
-        } => {
-            if let Some(file) = from_alps {
-                let text = std::fs::read_to_string(&file)
-                    .map_err(|e| format!("{}: {e}", file.display()))?;
-                let problem: serde_json::Value =
-                    serde_json::from_str(&text).map_err(|e| format!("{}: {e}", file.display()))?;
-                let stem = file
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("plan")
-                    .replace(|c: char| !c.is_ascii_alphanumeric(), "_");
-                print!("{}", crate::plans::import(&stem, &problem)?);
-                return Ok(());
-            }
-            let name = to_alps.ok_or("Choose --from-alps FILE or --to-alps NAME")?;
-            let root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
-            let path = root.join(file.ok_or("Supply the note defining --to-alps NAME")?);
-            let path =
-                std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-            let workspace = Workspace::load_file(vec![root], &path)?;
-            let symbol = workspace.resolve(&path, &name)?;
-            let (_, plan) = crate::plans::plan(&workspace, &symbol)
-                .ok_or_else(|| format!("'{name}' is not a plan"))?;
-            let mut engine = Engine::new(&workspace, Local::now().date_naive());
-            let problem = crate::plans::export(&mut engine, &symbol, plan)?;
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&problem).map_err(|e| e.to_string())?
             );
             Ok(())
         }

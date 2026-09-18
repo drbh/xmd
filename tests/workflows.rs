@@ -421,7 +421,7 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
 }
 
 #[test]
-fn cli_queries_plans_and_converts_alps_problems() {
+fn cli_queries_plans() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(
@@ -460,32 +460,4 @@ fn cli_queries_plans_and_converts_alps_problems() {
         serde_json::json!({"type":"money","amount":94.75,"currency":"USD"})
     );
     assert_eq!(json[0]["constraints"][0]["binding"], true);
-    let exported = run(&["convert", "bakery.wtf", "--to-alps", "bakery"]);
-    let problem: serde_json::Value = serde_json::from_str(&exported).unwrap();
-    assert_eq!(
-        problem["constraints"][0]["expression"],
-        "12 * bagels + 6.5 * doughnuts <= 400"
-    );
-    std::fs::write(root.join("problem.json"), &exported).unwrap();
-    let imported = run(&["convert", "--from-alps", "problem.json"]);
-    assert!(
-        imported.starts_with("[problem] := maximize(3 * bagels + 1.25 * doughnuts)\n| constraint"),
-        "{imported}"
-    );
-    std::fs::write(root.join("imported.wtf"), &imported).unwrap();
-    assert!(
-        run(&[
-            "query",
-            "--workspace",
-            "plans | where name == \"problem\" | select solution"
-        ])
-        .contains("94.75")
-    );
-    let missing = Command::new(env!("CARGO_BIN_EXE_wtf"))
-        .current_dir(&root)
-        .args(["convert", "bakery.wtf", "--to-alps", "flour_stock"])
-        .output()
-        .unwrap();
-    assert!(!missing.status.success());
-    assert!(String::from_utf8_lossy(&missing.stderr).contains("not a plan"));
 }

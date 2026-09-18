@@ -333,34 +333,6 @@ fn the_dependency_graph_links_plans_constants_and_variables() {
 }
 
 #[test]
-fn alps_problem_files_round_trip() {
-    let ws = note(BAKERY);
-    let (_, p) = plans::plan(&ws, &def(1)).unwrap();
-    let exported = plans::export(&mut Engine::at(&ws, now()), &def(1), p).unwrap();
-    assert_eq!(
-        exported["objective"]["expression"],
-        "3 * bagels + 1.25 * doughnuts"
-    );
-    assert_eq!(
-        exported["constraints"][0]["expression"],
-        "12 * bagels + 6.5 * doughnuts <= 400"
-    );
-    assert_eq!(exported["variables"]["bagels"], serde_json::json!({}));
-    let source = plans::import("bakery", &exported).unwrap();
-    let reimported = note(&source);
-    assert_eq!(plan(&reimported, "bakery").objective, Value::Number(94.75));
-    assert!(
-        tables::formatting(&reimported.documents[path()]).is_empty(),
-        "{source}"
-    );
-    let bounded = serde_json::json!({"variables": {"x": {"min": 2, "max": 5}}, "objective": {"goal": "min", "expression": "x"}, "constraints": []});
-    let source = plans::import("tiny", &bounded).unwrap();
-    assert!(source.contains("| x_min      | x >= 2     |"), "{source}");
-    assert_eq!(plan(&note(&source), "tiny").objective, Value::Number(2.0));
-    assert!(plans::import("not valid", &bounded).is_err());
-}
-
-#[test]
 fn goal_seek_inverts_a_chain_of_calculations() {
     let ws = note(
         "[$1,200]:saved\n[9]:months_left\n[saved_by_june] := monthly * months_left + saved\n[monthly] := solve(saved_by_june >= $5,000)\nSave [monthly] a month.\n",

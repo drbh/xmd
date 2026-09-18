@@ -38,7 +38,6 @@ unevaluated branches do not fail the query.
 
 Workspace libraries and features activate only through the explicit
 [modules manifest](../../stdlib/README.md#loading-and-replacement).
-Plan export also names its source file: `wtf convert bakery.wtf --to-alps bakery`.
 
 `ast FILE` and `graph FILE` are shortcuts for `query FILE ast --json` and
 `query FILE graph --json`. Both accept `--query EXPRESSION`, `--root`,

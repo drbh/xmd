@@ -217,3 +217,246 @@ format := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, ch
         "HELLO\n"
     );
 }
+
+#[test]
+fn migrated_features_can_be_disabled_without_leaking_controls_or_hooks() {
+    let path = Path::new("/notes/features.wtf");
+    let mut ws = note("watch := stopwatch()\n## Monday, September 16, 2026\n9:00 > Leave\n");
+    let request = wtf::RequestContext::new(&ws, now());
+    assert!(
+        wtf::interaction::row_commands_in(&request, path, 0, false)
+            .iter()
+            .any(|c| c.title == "Start timer 'watch'")
+    );
+    assert!(!wtf::diagnostics::collect_in(&request, path, false).is_empty());
+    assert!(wtf::features::module_features::hover(&request, path, Position::new(2, 2)).is_some());
+    assert!(
+        !wtf::features::module_features::formatting(&request, path)
+            .unwrap()
+            .is_empty()
+    );
+    ws.plugins = std::sync::Arc::new(
+        wtf::plugins::Plugins::compile(
+            ["timers", "itinerary"]
+                .into_iter()
+                .map(|id| {
+                    (
+                        format!("/notes/.wtf/plugins/{id}.wtf").into(),
+                        format!(
+                            "plugin := {{api: 1, id: \"{id}\", kind: \"inlay\", enabled: false}}\n"
+                        ),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap(),
+    );
+    let request = wtf::RequestContext::new(&ws, now());
+    assert!(wtf::interaction::row_commands_in(&request, path, 0, false).is_empty());
+    assert!(wtf::diagnostics::collect_in(&request, path, false).is_empty());
+    assert!(wtf::features::module_features::hover(&request, path, Position::new(2, 2)).is_none());
+    assert!(
+        wtf::features::module_features::formatting(&request, path)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        wtf::presentation::hints_in(
+            &request,
+            path,
+            Range::new(Position::new(0, 0), Position::new(9, 0))
+        )
+        .hints
+        .is_empty()
+    );
+}
+
+#[test]
+fn language_diagnostics_reach_queries_and_imported_libraries_can_be_replaced() {
+    let path = Path::new("/notes/features.wtf");
+    let mut ws = note("## Monday, September 16, 2026\n9:00 > Leave\n");
+    let query = wtf::query::Query::parse("diagnostics | where code == \"itinerary\"").unwrap();
+    let rows = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(now())).unwrap();
+    assert_eq!(rows.rows.len(), 1);
+    // Copying a bundled provider and replacing its imported library works through
+    // the public registry, without registering a new Rust feature implementation.
+    ws.plugins = std::sync::Arc::new(wtf::plugins::Plugins::compile([
+        ("/notes/.wtf/plugins/timers.wtf".into(), include_str!("../stdlib/.wtf/plugins/timers.wtf").into()),
+        ("/notes/.wtf/plugins/timer.wtf".into(), "plugin := {api: 1, id: \"timer\", kind: \"library\", inputs: []}\nrunning := fn(t) => false\ninlay := fn(t) => \"custom timer\"\nactions := fn(t) => []\n".into()),
+    ].into()).unwrap());
+    ws.documents.insert(
+        path.into(),
+        Document::parse("watch := stopwatch()\n".into()),
+    );
+    let request = wtf::RequestContext::new(&ws, now());
+    let hints = wtf::presentation::hints_in(
+        &request,
+        path,
+        Range::new(Position::new(0, 0), Position::new(9, 0)),
+    );
+    assert!(
+        serde_json::to_string(&hints.hints)
+            .unwrap()
+            .contains("custom timer")
+    );
+    assert!(wtf::interaction::row_commands_in(&request, path, 0, false).is_empty());
+}
+
+#[test]
+fn solver_primitive_checks_models_and_keeps_integer_and_status_semantics() {
+    let ws = note("");
+    let path = Path::new("/notes/features.wtf");
+    let mut engine = Engine::at(&ws, now());
+    let model = r#"{goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}"#;
+    let solve = |model: &str| format!("solve_linear({model})");
+    let value = engine.eval(path, &solve(model)).unwrap();
+    let json = wtf::plugins::json(&value).unwrap();
+    assert_eq!(json["status"], "optimal");
+    assert_eq!(json["values"]["x"], 2);
+    let unbounded = model
+        .replace(", upper: 2.8", "")
+        .replace("integer", "continuous");
+    assert_eq!(
+        wtf::plugins::json(&engine.eval(path, &solve(&unbounded)).unwrap()).unwrap()["status"],
+        "unbounded"
+    );
+    let infeasible = model.replace("constraints: []", "constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: \">=\", rhs: {constant: 5, terms: {}}}]");
+    assert_eq!(
+        wtf::plugins::json(&engine.eval(path, &solve(&infeasible)).unwrap()).unwrap()["status"],
+        "infeasible"
+    );
+    for bad in [
+        model.replace("lower: 0", "lower: 5"),
+        model.replace("terms: {x: 1}", "terms: {missing: 1}"),
+        model.replace("integer", "imaginary"),
+        model.replace("maximize", "guess"),
+        model.replace("constraints: []", "constraints: [], order: [\"x\", \"x\"]"),
+    ] {
+        assert!(engine.eval(path, &solve(&bad)).is_err(), "{bad}");
+    }
+}
+
+#[test]
+fn timers_keep_argument_validation_and_calendar_primitives_handle_invalid_input() {
+    let ws = note("");
+    let path = Path::new("/notes/features.wtf");
+    let mut engine = Engine::at(&ws, now());
+    for source in [
+        "stopwatch(null)",
+        "stopwatch(0s, null)",
+        "countdown(1m, null)",
+        "countdown(1m, 0s, null)",
+    ] {
+        assert!(engine.eval(path, source).is_err(), "{source}");
+    }
+    for source in [
+        r#"parse_date("2026-02-29", "%F")"#,
+        r#"parse_datetime("2026-09-18 25:00", "%F %H:%M", now())"#,
+    ] {
+        assert_eq!(engine.eval(path, source).unwrap(), wtf::engine::Value::Null);
+    }
+    assert_eq!(
+        engine
+            .eval(
+                path,
+                r#"source(parse_datetime("2026-09-18 09:30", "%F %H:%M", now()))"#
+            )
+            .unwrap()
+            .display(),
+        "2026-09-18T09:30:00-04:00"
+    );
+}
+
+#[test]
+fn representative_document_stays_within_module_limits() {
+    let path = Path::new("/notes/features.wtf");
+    let mut source = (0..32)
+        .map(|n| format!("timer_{n} := countdown(25m, 0s, 2026-09-16T13:59:30-04:00)\n"))
+        .collect::<String>();
+    source.push_str("## Wednesday, September 16, 2026\n");
+    for n in 0..20 {
+        source.push_str(&format!("{:02}:00 > Stop {n}\n", n));
+    }
+    let ws = note(&source);
+    let request = wtf::RequestContext::new(&ws, now());
+    let started = std::time::Instant::now();
+    let hints = wtf::presentation::hints_in(
+        &request,
+        path,
+        Range::new(Position::new(0, 0), Position::new(100, 0)),
+    );
+    let diagnostics = wtf::diagnostics::collect_in(&request, path, false);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    assert_eq!(hints.hints.len(), 52, "{:?}", hints.hints);
+    assert!(
+        !serde_json::to_string(&hints.hints)
+            .unwrap()
+            .contains("plugin error")
+    );
+    eprintln!(
+        "32 timers + 20 stops: {:?} for inlays and diagnostics",
+        started.elapsed()
+    );
+}
+
+#[test]
+fn oversized_itinerary_reports_a_module_error_instead_of_panicking() {
+    let mut source = "## September 16, 2026\n09:00 > Leave\n".to_string();
+    source.push_str(&"Note: extra detail\n".repeat(2000));
+    let ws = note(&source);
+    let path = Path::new("/notes/features.wtf");
+    let request = wtf::RequestContext::new(&ws, now());
+    let issues = wtf::diagnostics::collect_in(&request, path, false);
+    assert!(
+        issues.iter().any(|d| d.message.contains("size limit")),
+        "{issues:?}"
+    );
+    assert!(wtf::features::module_features::formatting(&request, path).is_err());
+    assert!(
+        wtf::intelligence::stop_hover(&ws, path, Position::new(1, 0), now().date_naive()).is_none()
+    );
+}
+
+#[test]
+fn timer_clock_preserves_integer_second_precision() {
+    for seconds in [59, 3600, 9_007_199_254_741_003, i64::MAX] {
+        let timer =
+            wtf::timers::Timer::new("stopwatch", &[wtf::engine::Value::Duration(seconds)], now())
+                .unwrap();
+        let expected = if seconds < 3600 {
+            format!("{:02}:{:02}", seconds / 60, seconds % 60)
+        } else {
+            format!(
+                "{:02}:{:02}:{:02}",
+                seconds / 3600,
+                seconds / 60 % 60,
+                seconds % 60
+            )
+        };
+        assert!(
+            timer.display().contains(&expected),
+            "{} vs {expected}",
+            timer.display()
+        );
+    }
+}
+
+#[test]
+fn plans_preserve_source_variable_order() {
+    let ws = note(
+        "result := maximize(zebra + apple)\n| constraint | expression |\n| --- | --- |\n| z | zebra <= 1 |\n| a | apple <= 2 |\n",
+    );
+    let path = Path::new("/notes/features.wtf");
+    let request = wtf::RequestContext::new(&ws, now());
+    let hints = wtf::presentation::hints_in(
+        &request,
+        path,
+        Range::new(Position::new(0, 0), Position::new(9, 0)),
+    );
+    let json = serde_json::to_value(hints.hints).unwrap();
+    assert_eq!(json[0]["label"], "= 3 · zebra 1 · apple 2");
+    let symbol = ws.resolve(path, "result").unwrap();
+    assert!(
+        wtf::intelligence::hover_in(&request, &symbol).contains("Variables: zebra = 1, apple = 2")
+    );
+}

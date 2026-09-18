@@ -561,6 +561,21 @@ pub fn bundled() -> &'static [Module] {
     MODULES.get_or_init(|| {
         let modules = [
             (
+                "itinerary_core",
+                include_str!("../../stdlib/.wtf/plugins/itinerary_core.wtf"),
+            ),
+            (
+                "itinerary",
+                include_str!("../../stdlib/.wtf/plugins/itinerary.wtf"),
+            ),
+            (
+                "timers",
+                include_str!("../../stdlib/.wtf/plugins/timers.wtf"),
+            ),
+            ("plans", include_str!("../../stdlib/.wtf/plugins/plans.wtf")),
+            ("plan", include_str!("../../stdlib/.wtf/plugins/plan.wtf")),
+            ("timer", include_str!("../../stdlib/.wtf/plugins/timer.wtf")),
+            (
                 "format",
                 include_str!("../../stdlib/.wtf/plugins/format.wtf"),
             ),
@@ -654,4 +669,26 @@ pub fn standard(
         .find(|m| m.id == id)
         .ok_or_else(|| format!("Unknown standard module '{id}'"))?
         .call(name, args, now)
+        .map_err(|e| {
+            e.strip_prefix(&format!("Plugin {id}.{name}: "))
+                .unwrap_or(&e)
+                .to_owned()
+        })
+}
+
+pub(crate) fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
+    if let Value::Record(fields) = value {
+        fields
+            .get(key)
+            .ok_or_else(|| format!("Missing field '{key}'"))
+    } else {
+        Err("Expected a record".into())
+    }
+}
+pub(crate) fn list(value: &Value) -> Result<&[Value], String> {
+    if let Value::List(items) = value {
+        Ok(items)
+    } else {
+        Err("Expected a list".into())
+    }
 }

@@ -103,43 +103,23 @@ pub fn actions_for_in(
             kind: SymbolKind::Definition(plan.definition),
         };
         if let Ok(Value::Plan(solved)) = request.engine().symbol(&symbol) {
-            let edits: Vec<TextEdit> = solved
-                .rows
-                .iter()
-                .filter(|(r, _)| r.table.path == path)
-                .filter_map(|(r, value)| {
-                    let cell = crate::tables::table(ws, &r.table)?
-                        .rows
-                        .get(r.row)?
-                        .get(r.column)?;
-                    let text = match value {
-                        Value::Bool(true) => "yes".to_string(),
-                        Value::Bool(false) => "no".to_string(),
-                        v => v.display(),
-                    };
-                    if cell.source == text {
-                        return None;
-                    }
-                    // An empty cell's span sits at the end of its padding; fill the
-                    // whole gap between the pipes and keep the column width.
-                    let line = doc.line(cell.span.line).as_bytes();
-                    let (mut a, mut b) = (cell.span.start, cell.span.end);
-                    while a > 0 && line[a - 1] == b' ' {
-                        a -= 1;
-                    }
-                    while b < line.len() && line[b] == b' ' {
-                        b += 1;
-                    }
-                    let width = (b - a).saturating_sub(2).max(text.len());
-                    Some(TextEdit::new(
-                        Span::new(cell.span.line, a, b).range(&doc.text),
-                        format!(" {text:<width$} "),
-                    ))
-                })
-                .collect();
+            let edits: Vec<TextEdit> = crate::plugins::standard(
+                "plan",
+                "write_edits",
+                vec![
+                    solved.record(ws),
+                    Value::Text(crate::paths::file_url(path).unwrap().to_string()),
+                ],
+                request.now(),
+            )
+            .and_then(|v| crate::plugins::json(&v))
+            .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
+            .unwrap_or_default();
             if !edits.is_empty() {
                 result.push(Refactor {
-                    title: "Write the plan's choices into the table".into(),
+                    title: crate::plugins::standard("plan", "write_title", vec![], request.now())
+                        .map(|v| v.display())
+                        .unwrap_or_default(),
                     kind: CodeActionKind::REFACTOR_REWRITE,
                     edits,
                 });

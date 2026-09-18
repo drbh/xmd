@@ -100,8 +100,8 @@ the registered provider decodes it. The browser never executes refresh programs.
 The interpreter restricts plugin evaluation to supplied data and the request
 clock. There is no filesystem or process access from expressions. Modules are
 limited to 64 KiB, with at most 64 modules, bounded text/collections, evaluation
-steps, expression depth and function call depth. The first version has no imports,
-mutable variables, asynchronous expressions, or third-party language runtime.
+steps, expression depth and function call depth. Libraries support explicit imports;
+there are no mutable variables, asynchronous expressions, or third-party runtime.
 
 A working workspace is in [`examples/plugins`](../examples/plugins/demo.wtf).
 
@@ -110,7 +110,7 @@ A working workspace is in [`examples/plugins`](../examples/plugins/demo.wtf).
 Set `inputs: ["sections", "tasks"]` to select the catalog collections needed by a
 module. They are exposed under `ctx.document` using exactly the same records as
 queries. Available collections include `values`, `plans`, `tables`, `rows`,
-`tasks`, `events`, `stops`, `entries`, `resources`, `notes`, `diagnostics`, `links`,
+`tasks`, `events`, `stops`, `days`, `timers`, `decisions`, `entries`, `resources`, `notes`, `diagnostics`, `links`,
 `sections`, `calculations`, `references`, and `cells`. Values retain their units;
 evaluated expression records also include `display`, `type`, and `errors`.
 Sections expose `end_line`; tasks expose evaluated `done`, `leaf`, and `estimate`.
@@ -120,11 +120,11 @@ its source text. Return `{at: record.anchor, label: "...", tooltip: "..."}` for 
 exactly positioned hint. Legacy `{line: n, label: "..."}` still means line end.
 Malformed positions, including split surrogate pairs, reject the whole batch.
 `ctx.range` is the requested hint range. `ctx.document` always supplies `path`,
-`uri`, `text`, and `lines`. Omitting `inputs` selects the original collections;
+`uri`, `text`, and `lines`; `ctx.today` is the request calendar date. Omitting `inputs` selects the original collections;
 `definitions` remains an alias for `values` with a nullable `error` field.
 
 A workspace module replaces a provider with the same ID. Inlay provider IDs are
-`definitions`, `decisions`, `constraints`, `table_cells`, `itinerary`, `checklists`,
+`definitions`, `plans`, `timers`, `table_cells`, `itinerary`, `checklists`,
 `tasks`, `calculations`, `references`, and `links`; the GitHub link provider is
 `github`. Replacement is by provider, independent of which records or URLs the
 replacement chooses to handle. To disable a provider, install only:
@@ -152,7 +152,7 @@ The context adds zero-based `row` and `capabilities: {refresh, views}`. Actions
 appear in the existing code actions, lenses, and browser controls. Return a list
 of `{title, action}` records; actions use the shared tagged action vocabulary:
 `toggle_task`, `timer`, `open_resource`, `refresh_resource`, `refresh`,
-`show_today`, and `edit`. Fields mirror `commands::Action`; for example:
+`show_today`, `edit`, and `invoke`. Fields mirror `commands::Action`; for example:
 
 ```wtf
 plugin := {api: 1, id: "greeting", kind: "inlay", inputs: []}
@@ -191,10 +191,10 @@ Field selection avoids copying unused catalog data into a module and leaves more
 room within the bounded value size. Unknown fields produce a module error.
 The kernel owns parsing, typed evaluation, semantic records, source coordinates,
 output validation, and effect delivery. Modules own the migrated presentation
-and link policies. Existing solver, itinerary, task, timer, and reference
-semantics still have native implementations; they expose reusable values and
-validated actions rather than a separate plugin language. There is currently no
-plugin callback for adding custom diagnostics or parser syntax.
+and link policies, timer transitions, plan construction and interpretation, and
+itinerary calendar rules. Rust retains typed symbolic lowering, numerical solving,
+calendar primitives, task/reference infrastructure, and source-safe host effects.
+There is no plugin callback for adding parser syntax.
 
 ## Libraries, reducers, and additional hooks
 
@@ -234,11 +234,58 @@ so a diagnostic provider cannot recursively request its own output.
 
 Pure computational primitives include `solve_linear(model)` (raw linear solver
 status and values), `date_parts`, `make_date`, `at_time`, `parse_time`, and
-`parse_duration`. `entries`, `number`, `source`, `pad_start`, and `pad_end` support
+`parse_duration`, `duration_parts`, `parse_date`, and `parse_datetime`. `entries`,
+`object`, `number`, `source`, `pad_start`, and `pad_end` support
 ordinary structured transformations and formatting. These primitives are equally
 available in notes, queries, and modules. `solve_linear` accepts named variables
 with explicit continuous/integer/binary kinds, optional lower/upper bounds, a
-linear objective `{constant, terms}`, and constraints `{lhs, op, rhs}`. Its
+linear objective `{constant, terms}`, and constraints `{lhs, op, rhs}`. An optional
+`order` lists every variable exactly once to preserve ordering when a model has
+multiple optimal solutions. Its
 statuses are `optimal`, `infeasible`, and `unbounded`; optimal results include a
 `values` record. Models are limited to 512 variables and 2048 constraints, within
 the language's existing value-size limit.
+
+## Solver, timer, and itinerary libraries
+
+The bundled features are built from ordinary libraries and inlay providers:
+
+| Library | Behavior | Provider |
+| --- | --- | --- |
+| [`plan`](../stdlib/.wtf/plugins/plan.wtf) | Variable defaults, model assembly, solver statuses, typed results, goal seeking, constraint/choice labels, hover and write-choice edits | [`plans`](../stdlib/.wtf/plugins/plans.wtf) |
+| [`timer`](../stdlib/.wtf/plugins/timer.wtf) | Constructor validation, elapsed time, state, properties, controls, transitions and presentation | [`timers`](../stdlib/.wtf/plugins/timers.wtf) |
+| [`itinerary_core`](../stdlib/.wtf/plugins/itinerary_core.wtf) | Year inference, cancellation deadlines, gaps, layovers, relative dates, hovers, diagnostics and formatting | [`itinerary`](../stdlib/.wtf/plugins/itinerary.wtf) |
+| [`format`](../stdlib/.wtf/plugins/format.wtf) | Gauges, elapsed clocks, travel durations and cache age | Shared by the other libraries |
+
+`plans` now owns the plan definition, decision-cell and constraint inlays together;
+these previously came from the `definitions`, `decisions` and `constraints`
+adapters. `timers` owns timer definition/reference inlays and controls. Task inlays
+also call the timer library when a task has `@timer(...)`.
+
+To customize one, copy its provider into your workspace and edit it. Copy an
+imported library too if you want to change its behavior. Dependency resolution
+prefers workspace libraries and falls back to bundled libraries. Native typed
+constructors use the embedded library versions to keep note value semantics
+stable; a workspace replacement customizes the importing provider or expression.
+This also lets user features reuse a library under a new ID without changing the
+standard feature. For example, a note can evaluate
+`import("format").clock(90m)` or `import("timer").create("stopwatch", [])`.
+
+The `timers` catalog supplies occurrence anchors, raw state, original declaration
+identity and optional hover text; `days` supplies parsed calendar parts, stop
+ranges, detail lines and cached forecasts. These are data adapters, shared with
+queries. Parser vocabulary and typed expression lowering remain native. A plan
+still uses the same mixed-integer numerical solver; modules never reimplement its
+numeric algorithm. Timer controls evaluate transitions at execution time and
+preserve the original declaration through aliases.
+
+Inlay modules may define `time_dependent(ctx)` to override conservative clock
+refresh detection. Bundled timers stop refreshing when paused or finished;
+itinerary refreshes run only for documents containing days. Diagnostic queries
+include module diagnostics, while a module's `diagnostics` input contains only
+native diagnostics to prevent recursion.
+
+The language's execution and value limits apply to bundled features too. Oversized
+inputs report module errors rather than emitting partial hints or edits. Baseline
+fixtures cover the previous solver, timer and itinerary output; additional tests
+cover source validation, replacement, integer-second precision and large inputs.

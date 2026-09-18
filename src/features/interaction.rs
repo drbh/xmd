@@ -101,38 +101,7 @@ pub fn row_commands_for(
             result.push(action.command(title));
         }
     };
-    let mut seen = BTreeSet::new();
-    let mut engine = request.engine();
-    for name in doc
-        .definitions
-        .iter()
-        .filter(|d| d.named.span.line == row)
-        .map(|d| d.named.name.as_str())
-        .chain(
-            doc.references
-                .iter()
-                .filter(|r| r.span.line == row)
-                .map(|r| r.name.as_str()),
-        )
-    {
-        if let Ok(Value::Timer(timer)) = engine.named(path, name)
-            && let Some(origin) = &timer.origin
-            && seen.insert(origin.clone())
-        {
-            for operation in timer.available_actions() {
-                let name = &ws.named(origin).name;
-                let verb = operation.as_str();
-                push(
-                    Action::Timer {
-                        document: crate::paths::file_url(&origin.path).unwrap(),
-                        name: name.clone(),
-                        action: operation,
-                    },
-                    format!("{}{} timer '{name}'", verb[..1].to_uppercase(), &verb[1..]),
-                );
-            }
-        }
-    }
+    let engine = request.engine();
     if include_task
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
         && actions::toggle_task_in(request, path, index).is_ok()
@@ -216,11 +185,17 @@ pub fn lenses_for(
         .chain(doc.tasks.iter().map(|t| t.line))
         .chain(doc.references.iter().map(|r| r.span.line))
         .chain(doc.links.iter().map(|l| l.span.line))
-        .chain(if ws.plugins.active().any(|m| m.has("actions")) {
-            0..doc.text.lines().count()
-        } else {
-            0..0
-        })
+        .chain(
+            if ws
+                .plugins
+                .active()
+                .any(|m| m.kind == "inlay" && m.has("actions"))
+            {
+                0..doc.text.lines().count()
+            } else {
+                0..0
+            },
+        )
         .collect();
     rows.into_iter()
         .flat_map(|row| {

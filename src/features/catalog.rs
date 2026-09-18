@@ -244,6 +244,15 @@ impl Record {
         }
     }
     pub fn field(&mut self, key: &str, engine: &mut Engine<'_>) -> Result<QueryValue, String> {
+        if key == "hover"
+            && let Some(QueryValue::Scalar(Value::Text(name))) = self.fields.get("name")
+        {
+            let symbol = engine.workspace.resolve(&self.path, name)?;
+            return Ok(QueryValue::text(crate::intelligence::hover_in(
+                &engine.request(),
+                &symbol,
+            )));
+        }
         if matches!(key, "value" | "type" | "solution" | "errors" | "display") {
             self.evaluate(engine);
         }
@@ -262,7 +271,10 @@ impl Record {
                     .insert("type".into(), QueryValue::text(value.type_name()));
                 self.fields
                     .insert("display".into(), QueryValue::text(value.display()));
-                let value = QueryValue::from_value(value);
+                let value = QueryValue::from_value(match value {
+                    Value::Plan(p) => p.record(engine.workspace),
+                    other => other,
+                });
                 if self.fields.contains_key("solution") {
                     self.fields.insert("solution".into(), value.clone());
                 }
@@ -332,6 +344,8 @@ fn date_field(value: Option<NaiveDate>) -> QueryValue {
 }
 
 pub const COLLECTIONS: &[&str] = &[
+    "days",
+    "timers",
     "links",
     "tasks",
     "events",
@@ -339,6 +353,7 @@ pub const COLLECTIONS: &[&str] = &[
     "entries",
     "values",
     "plans",
+    "decisions",
     "tables",
     "rows",
     "resources",
@@ -356,7 +371,7 @@ pub(crate) fn collect(
     ctx: QueryContext,
     engine: &mut Engine<'_>,
 ) -> Result<Vec<Record>, String> {
-    collect_document(ws, collection, ctx, engine, None)
+    collect_document(ws, collection, ctx, engine, None, true)
 }
 /// The query API and feature modules read the same semantic records.
 pub(crate) fn collect_document(
@@ -365,6 +380,7 @@ pub(crate) fn collect_document(
     ctx: QueryContext,
     engine: &mut Engine<'_>,
     only: Option<&Path>,
+    module_diagnostics: bool,
 ) -> Result<Vec<Record>, String> {
     if !COLLECTIONS.contains(&collection) {
         return Err(format!(
@@ -373,9 +389,151 @@ pub(crate) fn collect_document(
         ));
     }
     let mut records = Vec::new();
+    if collection == "decisions" {
+        for (plan_path, doc) in &ws.documents {
+            for plan in &doc.plans {
+                let symbol = Symbol {
+                    path: plan_path.clone(),
+                    kind: SymbolKind::Definition(plan.definition),
+                };
+                let Ok(Value::Plan(value)) = engine.symbol(&symbol) else {
+                    continue;
+                };
+                for (row, value) in &value.rows {
+                    if only.is_some_and(|path| path != row.table.path) {
+                        continue;
+                    }
+                    let Some(cell) = crate::tables::table(ws, &row.table)
+                        .and_then(|t| t.rows.get(row.row))
+                        .and_then(|r| r.get(row.column))
+                    else {
+                        continue;
+                    };
+                    let mut r = base(
+                        ws,
+                        &row.table.path,
+                        cell.span.line,
+                        "decision",
+                        &doc.definitions[plan.definition].named.name,
+                    );
+                    r.fields
+                        .insert("value".into(), QueryValue::from_value(value.clone()));
+                    r.fields.insert(
+                        "plan".into(),
+                        QueryValue::text(&doc.definitions[plan.definition].named.name),
+                    );
+                    r.fields.insert(
+                        "anchor".into(),
+                        QueryValue::from_json(json!(
+                            cell.span.range(&ws.documents[&row.table.path].text).end
+                        )),
+                    );
+                    records.push(r);
+                }
+            }
+        }
+        return Ok(records);
+    }
     for (path, doc) in &ws.documents {
         if only.is_some_and(|wanted| wanted != path) {
             continue;
+        }
+        if collection == "days" {
+            let dates = crate::itinerary::try_dates(&doc.days, engine.today)?;
+            for (day, date) in doc.days.iter().zip(dates) {
+                let mut value = crate::itinerary::day_record(day, doc);
+                if let Some(date) = date
+                    && let Some((places, _)) = &day.places
+                    && let Some(place) = crate::lookups::day_place(places)
+                    && let Some(lookup) =
+                        ws.lookups.get(&crate::lookups::forecast_key(&place, date))
+                    && let Value::Record(fields) = &mut value
+                {
+                    fields.insert(
+                        "forecast".into(),
+                        crate::plugins::record([
+                            ("place".into(), Value::Text(place)),
+                            (
+                                "display".into(),
+                                Value::Text(
+                                    crate::lookups::forecast_from(&lookup.value, false)
+                                        .map(|f| f.display())
+                                        .unwrap_or_else(|e| e),
+                                ),
+                            ),
+                            ("source".into(), Value::Text(lookup.source.clone())),
+                            (
+                                "fetched_at".into(),
+                                Value::DateTime(lookup.fetched_at.fixed_offset()),
+                            ),
+                        ]),
+                    );
+                }
+                let mut r = base(ws, path, day.line, "day", doc.line(day.line));
+                r.fields
+                    .insert("value".into(), QueryValue::from_value(value));
+                records.push(r);
+            }
+        }
+        if collection == "timers" {
+            let occurrences = doc
+                .definitions
+                .iter()
+                .map(|d| {
+                    (
+                        d.named.name.as_str(),
+                        d.named.span.line,
+                        d.end.range(&doc.text).start,
+                        true,
+                        d.expression,
+                    )
+                })
+                .chain(doc.references.iter().map(|r| {
+                    let end = if r.bracket {
+                        r.end() + doc.line(r.span.line)[r.end()..].find(']').unwrap_or(0) + 1
+                    } else {
+                        r.end()
+                    };
+                    (
+                        &*r.name,
+                        r.span.line,
+                        Span::new(r.span.line, end, end).range(&doc.text).end,
+                        false,
+                        r.bracket && r.property.is_none(),
+                    )
+                }));
+            for (name, line, anchor, definition, inlay) in occurrences {
+                let Ok(Value::Timer(timer)) = engine.named(path, name) else {
+                    continue;
+                };
+                let mut r = base(ws, path, line, "timer", name);
+                r.fields.extend([
+                    ("name".into(), QueryValue::text(name)),
+                    ("anchor".into(), QueryValue::from_json(json!(anchor))),
+                    ("definition".into(), QueryValue::boolean(definition)),
+                    ("inlay".into(), QueryValue::boolean(inlay)),
+                    ("value".into(), QueryValue::from_value(timer.record())),
+                    (
+                        "origin".into(),
+                        timer
+                            .origin
+                            .as_ref()
+                            .map(|origin| {
+                                QueryValue::object([
+                                    (
+                                        "document",
+                                        QueryValue::text(
+                                            crate::paths::file_url(&origin.path).unwrap().as_str(),
+                                        ),
+                                    ),
+                                    ("name", QueryValue::text(&ws.named(origin).name)),
+                                ])
+                            })
+                            .unwrap_or(QueryValue::Null),
+                    ),
+                ]);
+                records.push(r);
+            }
         }
         if collection == "links" {
             for link in &doc.links {
@@ -763,7 +921,12 @@ pub(crate) fn collect_document(
             }
         }
         if collection == "diagnostics" {
-            for d in crate::diagnostics::collect_native_in(&engine.request(), path, false) {
+            let diagnostics = if module_diagnostics {
+                crate::diagnostics::collect_in(&engine.request(), path, false)
+            } else {
+                crate::diagnostics::collect_native_in(&engine.request(), path, false)
+            };
+            for d in diagnostics {
                 let mut r = base(
                     ws,
                     path,

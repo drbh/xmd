@@ -265,11 +265,7 @@ impl BrowserWorkspace {
                 if let Some(hover) = intelligence::cell_hover_in(&request, &path, position()?) {
                     return serialized(hover);
                 }
-                if let Some(hover) =
-                    intelligence::stop_hover(ws, &path, position()?, now.date_naive())
-                {
-                    return serialized(hover);
-                }
+
                 if intelligence::symbol_at(ws, &path, position()?).is_none()
                     && let Some(hover) =
                         intelligence::calculation_hover_in(&request, &path, position()?)

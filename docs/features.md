@@ -154,3 +154,12 @@ document version captured with preparation before asking the client to apply an
 edit. The browser retains its workspace-version and virtual-path checks, returning
 edits for its client to apply. `Capabilities` determines both which controls appear
 and which actions can execute; the browser omits all native refresh/view actions.
+
+
+Solver, timer and itinerary policies now live in the [bundled WTF modules](plugins.md#solver-timer-and-itinerary-libraries).
+The Rust adapters expose typed records, numerical and calendar primitives,
+source coordinates and validated effects. The module adapter also supports
+hover, diagnostic, formatting and execution-time reducer callbacks, shared by
+both hosts. New features can import the same libraries without adding a Rust
+trait implementation; Rust implementations remain available for kernel-level
+integrations.

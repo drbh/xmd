@@ -28,9 +28,12 @@ on macOS `/usr/bin/wtf` is an unrelated program.
 | `tasks` | All tasks, including parents and completed tasks: `title`, `name`, `checked`, effective `done`, `leaf`, `parent`, `tags`, `due`, `scheduled`, `at`, `at_date`, `estimate`, `blocked_by`, raw `attributes` |
 | `events` | Appointments: `title`, `at`, `at_date` |
 | `stops` | Itinerary stops: `title`, `at`, `at_date` |
+| `days` | Parsed itinerary days: `value` contains calendar parts, stops/details, source ranges and cached forecast metadata |
+| `timers` | Timer occurrences: `value` contains limit/elapsed/start/idle state; `origin` identifies the declaration; `definition`, `inlay` and `anchor` describe placement |
 | `entries` | Leaf tasks, events, and stops, with common scheduling fields |
 | `values` | Named definitions: `name`, source `expression`, evaluated `type` and `value`; includes tables, timers, and plans |
-| `plans` | Plan definitions, with structured `solution` (also exposed as `value`) |
+| `plans` | Plan definitions, with structured `solution` (also exposed as `value`), including columns, choice cells and constraint source anchors |
+| `decisions` | Solved decision cells: typed `value`, owning `plan`, exact `anchor` |
 | `tables` | Table definitions; `value` is an array of objects keyed by column name |
 | `rows` | Evaluated table rows: `table`, `cells`, and the row's source location |
 | `resources` | Written links and literal resource definitions: `target`, cached `metadata` (or null) |

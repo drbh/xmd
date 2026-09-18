@@ -7,8 +7,6 @@ use crate::{
     tables::{Cell, Table},
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
-use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Goal {
@@ -67,6 +65,123 @@ pub struct PlanValue {
     pub rows: Vec<(crate::engine::RowVariable, Value)>,
 }
 impl PlanValue {
+    /// Typed result plus source geometry; presentation policy lives in plan.wtf.
+    pub fn record(&self, ws: &Workspace) -> Value {
+        use crate::plugins::{from_json, record};
+        let columns = self
+            .columns()
+            .into_iter()
+            .filter_map(|(symbol, column, cells)| {
+                let table = crate::tables::table(ws, &symbol)?;
+                let doc = &ws.documents[&symbol.path];
+                Some(record([
+                    (
+                        "name".into(),
+                        Value::Text(table.columns[column].name.clone()),
+                    ),
+                    (
+                        "cells".into(),
+                        Value::List(
+                            cells
+                                .into_iter()
+                                .filter_map(|(row, value)| {
+                                    let cell = table.rows.get(row)?.get(column)?;
+                                    let line = doc.line(cell.span.line).as_bytes();
+                                    let (mut a, mut b) = (cell.span.start, cell.span.end);
+                                    while a > 0 && line[a - 1] == b' ' {
+                                        a -= 1;
+                                    }
+                                    while b < line.len() && line[b] == b' ' {
+                                        b += 1;
+                                    }
+                                    Some(record([
+                                        ("value".into(), value),
+                                        (
+                                            "label".into(),
+                                            Value::Text(
+                                                table.rows[row]
+                                                    .first()
+                                                    .map(|c| c.source.clone())
+                                                    .unwrap_or_else(|| (row + 1).to_string()),
+                                            ),
+                                        ),
+                                        (
+                                            "document".into(),
+                                            Value::Text(
+                                                crate::paths::file_url(&symbol.path)
+                                                    .ok()?
+                                                    .to_string(),
+                                            ),
+                                        ),
+                                        ("source".into(), Value::Text(cell.source.clone())),
+                                        ("line".into(), Value::Count(cell.span.line)),
+                                        (
+                                            "anchor".into(),
+                                            from_json(&serde_json::json!(
+                                                cell.span.range(&doc.text).end
+                                            )),
+                                        ),
+                                        (
+                                            "range".into(),
+                                            from_json(&serde_json::json!(
+                                                Span::new(cell.span.line, a, b).range(&doc.text)
+                                            )),
+                                        ),
+                                        ("width".into(), Value::Count((b - a).saturating_sub(2))),
+                                    ]))
+                                })
+                                .collect(),
+                        ),
+                    ),
+                ]))
+            })
+            .collect();
+        let constraints = self
+            .constraints
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                let mut fields = std::collections::BTreeMap::from([
+                    ("name".into(), Value::Text(c.name.clone())),
+                    ("op".into(), Value::Text(c.op.clone())),
+                    ("lhs".into(), c.lhs.clone()),
+                    ("rhs".into(), c.rhs.clone()),
+                    ("slack".into(), c.slack.clone()),
+                    ("binding".into(), Value::Bool(c.binding)),
+                ]);
+                if let Some((_, plan)) = plan(ws, &self.origin)
+                    && let Some(constraint) = plan.constraints.get(i)
+                {
+                    let doc = &ws.documents[&self.origin.path];
+                    fields.insert(
+                        "anchor".into(),
+                        from_json(&serde_json::json!(doc.line_end(constraint.span.line))),
+                    );
+                    fields.insert(
+                        "range".into(),
+                        from_json(&serde_json::json!(constraint.span.range(&doc.text))),
+                    );
+                }
+                Value::Record(fields)
+            })
+            .collect();
+        record([
+            ("goal".into(), Value::Text(self.goal.keyword().into())),
+            ("objective".into(), self.objective.clone()),
+            ("variables".into(), record(self.variables.iter().cloned())),
+            (
+                "variable_order".into(),
+                Value::List(
+                    self.variables
+                        .iter()
+                        .map(|(name, _)| Value::Text(name.clone()))
+                        .collect(),
+                ),
+            ),
+            ("constraints".into(), Value::List(constraints)),
+            ("columns".into(), Value::List(columns)),
+        ])
+    }
     pub fn property(&self, name: &str) -> Result<Value, String> {
         if name == "objective" {
             return Ok(self.objective.clone());
@@ -333,7 +448,6 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
     let vars = [name.clone()].into_iter().collect();
     let (lhs, op, rhs) = engine.constraint(&symbol.path, body, span, &vars)?;
     let difference = lhs.minus(&rhs)?;
-    let coefficient = difference.terms.get(&name).copied().unwrap_or(0.0);
     let fail = |engine: &mut Engine<'_>, message: String| {
         engine.failure.get_or_insert(crate::engine::EvalFailure {
             path: symbol.path.clone(),
@@ -343,45 +457,29 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
         });
         message
     };
-    if coefficient == 0.0 {
-        return Err(fail(
-            engine,
-            format!("The constraint does not depend on {name}"),
-        ));
-    }
-    if difference.terms.len() > 1 {
-        let others: Vec<_> = difference
-            .terms
-            .keys()
-            .filter(|k| **k != name)
-            .cloned()
-            .collect();
-        return Err(fail(
-            engine,
-            format!(
-                "solve() finds one value; {} would need a plan",
-                others.join(", ")
-            ),
-        ));
-    }
-    let value = -difference.constant / coefficient;
-    let kind = difference.unknown_kind().ok_or_else(|| {
-        fail(
-            engine,
-            "Cannot tell the unit of the answer; the unknown is scaled by two different units"
-                .into(),
-        )
-    })?;
     let _ = op;
-    Ok(typed_in(kind, difference.currency, value))
+    let unit = difference
+        .unknown_kind()
+        .map(|k| typed_in(k, difference.currency, 1.0))
+        .unwrap_or(Value::Null);
+    crate::plugins::standard(
+        "plan",
+        "seek_boundary",
+        vec![Value::Text(name), form_value(&difference), unit],
+        engine.now,
+    )
+    .map_err(|message| fail(engine, message))
 }
-/// Human-readable direction for a goal seek: what the boundary value means.
-pub fn seek_summary(op: &str, coefficient_positive: bool) -> &'static str {
-    match (op, coefficient_positive) {
-        ("==", _) => "the exact value that satisfies",
-        (">=", true) | ("<=", false) => "the smallest value that satisfies",
-        _ => "the largest value that satisfies",
-    }
+/// Human-readable direction for a goal seek.
+pub fn seek_summary(op: &str, coefficient_positive: bool) -> String {
+    crate::plugins::standard(
+        "plan",
+        "seek_summary",
+        vec![Value::Text(op.into()), Value::Bool(coefficient_positive)],
+        chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.fixed_offset(),
+    )
+    .expect("valid comparison")
+    .display()
 }
 pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)> {
     if let SymbolKind::Definition(index) = symbol.kind {
@@ -402,20 +500,20 @@ fn typed_in(kind: &str, currency: Option<crate::engine::Currency>, n: f64) -> Va
         _ => Value::Number(n),
     }
 }
-fn evaluate(form: &Linear, values: &BTreeMap<String, f64>) -> f64 {
-    form.constant
-        + form
-            .terms
-            .iter()
-            .map(|(name, coef)| coef * values.get(name).copied().unwrap_or(0.0))
-            .sum::<f64>()
+fn form_value(form: &Linear) -> Value {
+    crate::plugins::record([
+        ("constant".into(), Value::Number(form.constant)),
+        (
+            "terms".into(),
+            crate::plugins::record(
+                form.terms
+                    .iter()
+                    .map(|(k, n)| (k.clone(), Value::Number(*n))),
+            ),
+        ),
+        ("unit".into(), typed_in(form.kind, form.currency, 1.0)),
+    ])
 }
-fn tidy(n: f64) -> f64 {
-    // Simplex results carry ~1e-6 noise; four decimals is also the display precision.
-    let rounded = (n * 1e4).round() / 1e4;
-    if rounded == 0.0 { 0.0 } else { rounded }
-}
-
 pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Value, String> {
     let ws = engine.workspace;
     let path = symbol.path.clone();
@@ -451,118 +549,92 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         return Err("A plan needs at least one unknown name to solve for".into());
     }
     let rows = std::mem::take(&mut engine.row_variables);
-    let mut problem = ProblemVariables::new();
-    let mut variables: BTreeMap<String, good_lp::Variable> = names
-        .iter()
-        .map(|name| (name.clone(), problem.add(variable().min(0.0))))
-        .collect();
-    for row in &rows {
-        let definition = match row.domain {
-            crate::tables::Domain::Choice => variable().binary(),
-            crate::tables::Domain::Count => variable().integer().min(0),
-        };
-        variables.insert(row.name.clone(), problem.add(definition));
-    }
-    let expression = |form: &Linear| {
-        let mut e = Expression::from(form.constant);
-        for (name, coef) in &form.terms {
-            e += *coef * variables[name];
-        }
-        e
-    };
-    let unsolved = match plan.goal {
-        Goal::Maximize => problem.maximise(expression(&objective)),
-        Goal::Minimize => problem.minimise(expression(&objective)),
-    };
-    let mut model = unsolved.using(good_lp::microlp);
-    for (lhs, op, rhs) in &constraints {
-        let (l, r) = (expression(lhs), expression(rhs));
-        model = model.with(match op.as_str() {
-            "<=" => l.leq(r),
-            ">=" => l.geq(r),
-            _ => l.eq(r),
-        });
-    }
-    let solution = model.solve().map_err(|e| {
-        let message = match e {
-            ResolutionError::Infeasible => {
-                "No values satisfy every constraint; relax one of them".to_string()
-            }
-            ResolutionError::Unbounded => format!(
-                "The objective can be {} without limit; add a constraint that bounds it",
-                match plan.goal {
-                    Goal::Maximize => "raised",
-                    Goal::Minimize => "lowered",
-                }
+    use crate::plugins::{field, list, record};
+    let input = record([
+        ("goal".into(), Value::Text(plan.goal.keyword().into())),
+        (
+            "names".into(),
+            Value::List(names.iter().cloned().map(Value::Text).collect()),
+        ),
+        (
+            "decisions".into(),
+            Value::List(
+                rows.iter()
+                    .map(|row| {
+                        record([
+                            ("name".into(), Value::Text(row.name.clone())),
+                            (
+                                "kind".into(),
+                                Value::Text(
+                                    match row.domain {
+                                        crate::tables::Domain::Choice => "binary",
+                                        crate::tables::Domain::Count => "integer",
+                                    }
+                                    .into(),
+                                ),
+                            ),
+                        ])
+                    })
+                    .collect(),
             ),
-            other => format!("Solver error: {other}"),
-        };
-        engine.failure.get_or_insert(crate::engine::EvalFailure {
-            path: path.clone(),
-            span: plan.objective_span,
-            message: message.clone(),
-            related: vec![],
-        });
-        message
-    })?;
-    // Evaluate objective and constraints from the raw solution so rounding the
-    // displayed variables never shifts the reported totals.
-    let values: BTreeMap<String, f64> = variables
+        ),
+        ("objective".into(), form_value(&objective)),
+        (
+            "constraints".into(),
+            Value::List(
+                plan.constraints
+                    .iter()
+                    .zip(&constraints)
+                    .map(|(constraint, (lhs, op, rhs))| {
+                        record([
+                            ("name".into(), Value::Text(constraint.named.name.clone())),
+                            ("lhs".into(), form_value(lhs)),
+                            ("rhs".into(), form_value(rhs)),
+                            ("op".into(), Value::Text(op.clone())),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+    ]);
+    let result = crate::plugins::standard("plan", "solve_model", vec![input], engine.now)
+        .inspect_err(|message| {
+            engine.failure.get_or_insert(crate::engine::EvalFailure {
+                path: path.clone(),
+                span: plan.objective_span,
+                message: message.clone(),
+                related: vec![],
+            });
+        })?;
+    let variables = list(field(&result, "variables")?)?
         .iter()
-        .map(|(name, var)| (name.clone(), solution.value(*var)))
-        .collect();
-    let _ = &rows;
-    let results = plan
-        .constraints
+        .map(|v| Ok((field(v, "name")?.display(), field(v, "value")?.clone())))
+        .collect::<Result<_, String>>()?;
+    let results = list(field(&result, "constraints")?)?
         .iter()
-        .zip(&constraints)
-        .map(|(constraint, (lhs, op, rhs))| {
-            let (l, r) = (tidy(evaluate(lhs, &values)), tidy(evaluate(rhs, &values)));
-            let kind = if lhs.kind == "Number" {
-                rhs.kind
-            } else {
-                lhs.kind
-            };
-            let currency = lhs.currency.or(rhs.currency);
-            let slack = match op.as_str() {
-                "<=" => r - l,
-                ">=" => l - r,
-                _ => 0.0,
-            };
-            ConstraintResult {
-                name: constraint.named.name.clone(),
-                op: op.clone(),
-                lhs: typed_in(kind, currency, l),
-                rhs: typed_in(kind, currency, r),
-                slack: typed_in(kind, currency, tidy(slack)),
-                binding: tidy(slack) == 0.0,
-            }
+        .map(|c| {
+            Ok(ConstraintResult {
+                name: field(c, "name")?.display(),
+                op: field(c, "op")?.display(),
+                lhs: field(c, "lhs")?.clone(),
+                rhs: field(c, "rhs")?.clone(),
+                slack: field(c, "slack")?.clone(),
+                binding: matches!(field(c, "binding")?, Value::Bool(true)),
+            })
         })
-        .collect();
+        .collect::<Result<_, String>>()?;
+    let choices = field(&result, "rows")?;
+    let rows = rows
+        .into_iter()
+        .map(|row| Ok((row.clone(), field(choices, &row.name)?.clone())))
+        .collect::<Result<_, String>>()?;
     Ok(Value::Plan(std::sync::Arc::new(PlanValue {
         origin: symbol.clone(),
         goal: plan.goal,
-        objective: typed_in(
-            objective.kind,
-            objective.currency,
-            tidy(evaluate(&objective, &values)),
-        ),
-        variables: names
-            .iter()
-            .map(|n| (n.clone(), Value::Number(tidy(values[n]))))
-            .collect(),
+        objective: field(&result, "objective")?.clone(),
+        variables,
         constraints: results,
-        rows: rows
-            .into_iter()
-            .map(|row| {
-                let value = tidy(values[&row.name]);
-                let value = match row.domain {
-                    crate::tables::Domain::Choice => Value::Bool(value >= 0.5),
-                    crate::tables::Domain::Count => Value::Number(value.round()),
-                };
-                (row, value)
-            })
-            .collect(),
+        rows,
     })))
 }
 

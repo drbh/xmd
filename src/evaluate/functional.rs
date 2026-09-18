@@ -31,11 +31,15 @@ impl PartialEq for Function {
 pub fn is_builtin(name: &str) -> bool {
     matches!(
         name,
-        "import"
+        "parse_date"
+            | "parse_datetime"
+            | "object"
+            | "import"
             | "solve_linear"
             | "entries"
             | "number"
             | "source"
+            | "duration_parts"
             | "date_parts"
             | "make_date"
             | "at_time"
@@ -73,6 +77,22 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     use Value::*;
     Ok(match (name, args) {
         ("solve_linear", [model]) => crate::evaluate::solver::solve(model)?,
+        ("object", [List(entries)]) => {
+            let mut fields = BTreeMap::new();
+            for entry in entries {
+                let Record(entry) = entry else {
+                    return Err("object requires key/value records".into());
+                };
+                let Some(Text(key)) = entry.get("key") else {
+                    return Err("object keys must be text".into());
+                };
+                let value = entry.get("value").ok_or("object entry needs value")?;
+                if fields.insert(key.clone(), value.clone()).is_some() {
+                    return Err(format!("Duplicate object key '{key}'"));
+                }
+            }
+            Record(fields)
+        }
         ("entries", [Record(fields)]) => List(
             fields
                 .iter()
@@ -95,6 +115,20 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 .source()
                 .ok_or("Value cannot be written as an expression")?,
         ),
+        ("parse_date", [Text(value), Text(format)]) => {
+            chrono::NaiveDate::parse_from_str(value, format)
+                .ok()
+                .map(Date)
+                .unwrap_or(Null)
+        }
+        ("parse_datetime", [Text(value), Text(format), DateTime(reference)]) => {
+            use chrono::TimeZone;
+            chrono::NaiveDateTime::parse_from_str(value, format)
+                .ok()
+                .and_then(|d| reference.offset().from_local_datetime(&d).single())
+                .map(DateTime)
+                .unwrap_or(Null)
+        }
         ("parse_duration", [Text(value)]) => {
             crate::engine::duration(value).map(Duration).unwrap_or(Null)
         }
@@ -124,6 +158,14 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                     .unwrap_or(Null)
             }
         }
+        ("duration_parts", [Duration(seconds)]) => Record(
+            [
+                ("hours".into(), Number((seconds / 3600) as f64)),
+                ("minutes".into(), Number((seconds / 60 % 60) as f64)),
+                ("seconds".into(), Number((seconds % 60) as f64)),
+            ]
+            .into(),
+        ),
         ("date_parts", [value]) => {
             use chrono::Datelike;
             let date = match value {

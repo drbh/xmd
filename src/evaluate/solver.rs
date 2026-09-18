@@ -33,6 +33,8 @@ struct Constraint {
 struct Model {
     goal: String,
     variables: BTreeMap<String, Variable>,
+    #[serde(default)]
+    order: Option<Vec<String>>,
     objective: Form,
     constraints: Vec<Constraint>,
 }
@@ -44,7 +46,18 @@ pub fn solve(value: &Value) -> Result<Value, String> {
     }
     let mut problem = ProblemVariables::new();
     let mut variables = BTreeMap::new();
-    for (name, v) in &model.variables {
+    let order = model
+        .order
+        .unwrap_or_else(|| model.variables.keys().cloned().collect());
+    let ordered: std::collections::BTreeSet<_> = order.iter().collect();
+    if order.len() != model.variables.len()
+        || ordered.len() != order.len()
+        || order.iter().any(|n| !model.variables.contains_key(n))
+    {
+        return Err("Variable order must name every variable exactly once".into());
+    }
+    for name in &order {
+        let v = &model.variables[name];
         let mut definition = match v.kind.as_str() {
             "continuous" => variable(),
             "integer" => variable().integer(),
@@ -91,7 +104,14 @@ pub fn solve(value: &Value) -> Result<Value, String> {
     }
     let result = match solver.solve() {
         Ok(solution) => {
-            serde_json::json!({"status":"optimal","values":variables.iter().map(|(name,var)|(name.clone(),solution.value(*var))).collect::<BTreeMap<_,_>>() })
+            let values: BTreeMap<_, _> = variables
+                .iter()
+                .map(|(name, var)| (name.clone(), solution.value(*var)))
+                .collect();
+            if values.values().any(|v| !v.is_finite()) {
+                return Err("Solver returned a nonfinite value".into());
+            }
+            serde_json::json!({"status":"optimal","values":values})
         }
         Err(ResolutionError::Infeasible) => serde_json::json!({"status":"infeasible"}),
         Err(ResolutionError::Unbounded) => serde_json::json!({"status":"unbounded"}),

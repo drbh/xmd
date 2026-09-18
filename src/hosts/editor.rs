@@ -536,11 +536,7 @@ impl LanguageServer for Backend {
         if let Some(hover) = crate::intelligence::cell_hover_in(&request, &path, at.position) {
             return Ok(Some(hover));
         }
-        if let Some(hover) =
-            crate::intelligence::stop_hover(ws, &path, at.position, now.date_naive())
-        {
-            return Ok(Some(hover));
-        }
+
         if symbol_at(ws, &path, at.position).is_none()
             && let Some(hover) =
                 crate::intelligence::calculation_hover_in(&request, &path, at.position)

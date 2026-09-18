@@ -183,6 +183,27 @@ const FUNCTIONS: &[Function] = &[
         example: "model",
     },
     Function {
+        name: "object",
+        params: &["entries: List"],
+        result: "Record",
+        documentation: "Build a record from key/value pairs; duplicate keys are rejected.",
+        example: "[{key: \"x\", value: 1}]",
+    },
+    Function {
+        name: "parse_date",
+        params: &["text: Text", "format: Text"],
+        result: "Date or Null",
+        documentation: "Parse a calendar date with a strftime format; invalid input returns null.",
+        example: "\"2026-09-18\", \"%F\"",
+    },
+    Function {
+        name: "parse_datetime",
+        params: &["text: Text", "format: Text", "offset: DateTime"],
+        result: "DateTime or Null",
+        documentation: "Parse a local timestamp using a reference timestamp's offset.",
+        example: "\"2026-09-18 09:30\", \"%F %H:%M\", now()",
+    },
+    Function {
         name: "entries",
         params: &["record: Record"],
         result: "List",
@@ -209,6 +230,13 @@ const FUNCTIONS: &[Function] = &[
         result: "Date or Null",
         documentation: "Construct a calendar date; invalid dates return null.",
         example: "2026, 9, 18",
+    },
+    Function {
+        name: "duration_parts",
+        params: &["duration: Duration"],
+        result: "Record",
+        documentation: "Split integer seconds into total hours, remaining minutes and seconds without rounding.",
+        example: "90m",
     },
     Function {
         name: "date_parts",
@@ -1035,30 +1063,19 @@ pub fn stop_hover(
         .find(|(d, _)| d.stops.iter().any(|s| s.line == row))?;
     let index = day.stops.iter().position(|s| s.line == row)?;
     let stop = &day.stops[index];
-    let mut text = format!(
-        "**{}**\n\n{}{}",
-        stop.title,
-        stop.kind
-            .map(|k| format!("{} · ", k.name))
-            .unwrap_or_default(),
-        crate::itinerary::display_time(stop)
-    );
-    if let Some(date) = date {
-        text.push_str(&format!(", {}", date.format("%A, %B %-d, %Y")));
-    }
-    if let Some(next) = day.stops.get(index + 1)
-        && let Some(seconds) = crate::itinerary::gap(stop, next)
-    {
-        text.push_str(&format!(
-            "\n\n{} {} until {}",
-            crate::glyphs::ARROW,
-            crate::itinerary::human(seconds),
-            next.title
-        ));
-    }
-    for detail in &stop.details {
-        text.push_str(&format!("\n\n**{}:** {}", detail.key, detail.value));
-    }
+    let text = crate::itinerary::call(
+        "stop_hover",
+        vec![
+            crate::itinerary::stop_record(stop, None),
+            day.stops
+                .get(index + 1)
+                .map(|s| crate::itinerary::stop_record(s, None))
+                .unwrap_or(Value::Null),
+            date.map(Value::Date).unwrap_or(Value::Null),
+        ],
+    )
+    .ok()?
+    .display();
     Some(Hover {
         contents: HoverContents::Markup(markup(text)),
         range: Some(Span::new(row, stop.time_span.start, stop.title_span.end).range(&doc.text)),
@@ -1168,73 +1185,11 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
                     ));
                 }
             }
-            if let Ok(Value::Plan(plan)) = &value {
-                for (table, column, cells) in plan.columns() {
-                    if let Some(t) = crate::tables::table(ws, &table) {
-                        let chosen: Vec<String> = cells
-                            .iter()
-                            .map(|(row, v)| {
-                                let label = t.rows[*row]
-                                    .first()
-                                    .map(|c| c.source.clone())
-                                    .unwrap_or_else(|| (row + 1).to_string());
-                                match v {
-                                    Value::Bool(true) => label,
-                                    Value::Bool(false) => format!("~~{label}~~"),
-                                    v => format!("{label} × {}", v.display()),
-                                }
-                            })
-                            .collect();
-                        out.push_str(&format!(
-                            "\n\n{}: {}",
-                            t.columns[column].name,
-                            chosen.join(", ")
-                        ));
-                    }
-                }
-                out.push_str(&format!(
-                    "\n\n{} the objective. Variables: {}",
-                    if plan.goal == crate::plans::Goal::Maximize {
-                        "Maximizes"
-                    } else {
-                        "Minimizes"
-                    },
-                    plan.variables
-                        .iter()
-                        .map(|(n, v)| format!("{n} = {}", v.display()))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ));
-                out.push_str("\n\nConstraints:\n");
-                for c in &plan.constraints {
-                    let symbol = match c.op.as_str() {
-                        "<=" => "≤",
-                        ">=" => "≥",
-                        _ => "=",
-                    };
-                    let usage = match (
-                        c.op.as_str(),
-                        crate::charts::magnitude(&c.rhs),
-                        crate::charts::magnitude(&c.lhs),
-                    ) {
-                        ("<=", Some(rhs), Some(lhs)) if rhs > 0.0 => {
-                            format!("`{}` ", crate::charts::bar_fraction(lhs / rhs))
-                        }
-                        _ => String::new(),
-                    };
-                    out.push_str(&format!(
-                        "\n- {}: {usage}{} {symbol} {} · {}",
-                        c.name,
-                        c.lhs.display(),
-                        c.rhs.display(),
-                        if c.binding {
-                            format!("{} binding", crate::glyphs::ON)
-                        } else {
-                            format!("{} slack {}", crate::glyphs::OFF, c.slack.display())
-                        }
-                    ));
-                }
-                out.push_str("\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.");
+            if let Ok(Value::Plan(plan)) = &value
+                && let Ok(text) =
+                    crate::plugins::standard("plan", "hover", vec![plan.record(ws)], now)
+            {
+                out.push_str(&text.display());
             }
             if let Some(contributions) = engine.sum_contributions(&symbol.path, &def.source) {
                 out.push_str("\n\nRow contributions:\n");
@@ -1292,26 +1247,7 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
             r.presentation(&symbol.path, &ws.cache, now.to_utc(), features)
                 .hover
         )),
-        Ok(Value::Timer(t)) => {
-            if let Some(limit) = t.limit {
-                out.push_str(&format!(
-                    "\n\n`{}`",
-                    crate::charts::bar_fraction(t.elapsed as f64 / limit as f64)
-                ));
-            }
-            out.push_str(&format!(
-                "\n\nElapsed: {}. State: {}.",
-                Value::Duration(t.elapsed).display(),
-                t.state()
-            ));
-            if let Some(started) = t.started {
-                out.push_str(&format!(
-                    " Current segment started: {}.",
-                    started.to_rfc3339()
-                ));
-            }
-            out.push_str("\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.");
-        }
+        Ok(Value::Timer(t)) => out.push_str(&t.hover()),
         Ok(Value::Tasks(tasks)) => {
             let done = tasks
                 .iter()

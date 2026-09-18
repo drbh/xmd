@@ -45,6 +45,7 @@ pub(crate) fn input(
             QueryContext::new(engine.now),
             engine,
             Some(path),
+            false,
         )?;
         let values = Value::List(
             records
@@ -83,6 +84,7 @@ pub(crate) fn input(
         document.insert(collection.clone(), values);
     }
     Ok(object([
+        ("today", Value::Date(engine.today)),
         ("document", Value::Record(document)),
         (
             "plugin",
@@ -116,6 +118,15 @@ impl InlayFeature for Module {
             let mut input = input(self, context.engine, context.path)?;
             if let Value::Record(fields) = &mut input {
                 fields.insert("range".into(), from_json(&serde_json::json!(context.range)));
+            }
+            if self.has("time_dependent") {
+                if self.call("time_dependent", vec![input.clone()], context.engine.now)?
+                    == Value::Bool(true)
+                {
+                    context.mark_time_dependent();
+                }
+            } else if self.live {
+                context.mark_time_dependent();
             }
             let Value::List(hints) = self.call("collect", vec![input], context.engine.now)? else {
                 return Err("collect must return a list".into());
@@ -163,9 +174,6 @@ impl InlayFeature for Module {
                 error,
             ),
         }
-        if self.live {
-            context.mark_time_dependent();
-        }
     }
 }
 /// Actions are proposals. Preparation validates capabilities and source before
@@ -182,7 +190,7 @@ pub fn commands(
         .workspace()
         .plugins
         .active()
-        .filter(|m| m.has("actions"))
+        .filter(|m| m.kind == "inlay" && m.has("actions"))
     {
         let result = (|| {
             let Value::Record(mut ctx) = input(module, &mut engine, path)? else {

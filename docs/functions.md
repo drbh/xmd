@@ -48,3 +48,28 @@ Presentation and transformation primitives also include:
 | `repeat(text, count)` | Repeat text within the evaluation size limits. |
 | `format_date(date, format)` | Format a date or timestamp with strftime directives. |
 | `error(message)` | Return an explicit evaluation error. |
+
+
+Reusable libraries and kernel operations use these same expressions in notes,
+queries and [plugins](plugins.md):
+
+| Function | Meaning |
+| --- | --- |
+| `import(id)` | Exported definitions from a linked module; plugins declare their `imports`. |
+| `entries(record)` / `object(pairs)` | Convert records to/from `{key, value}` pairs; duplicate keys are rejected. |
+| `number(value)` | Numeric magnitude; durations use seconds. |
+| `source(value)` | Round-trippable expression text instead of human display formatting. |
+| `pad_start(text, width, fill)` / `pad_end(...)` | Pad by Unicode character count with one fill character. |
+| `date_parts(value)` | Calendar year, month, day, and Monday-based weekday index. |
+| `duration_parts(duration)` | Total hours, remaining minutes and seconds, retaining integer-second precision. |
+| `make_date(year, month, day)` | Date or `null` when invalid. |
+| `at_time(date, duration, reference)` | Combine date and time of day using the reference timestamp's offset. |
+| `parse_time(text, format)` | Time of day as a duration, or `null`. |
+| `parse_date(text, format)` | Calendar date, or `null`. |
+| `parse_datetime(text, format, reference)` | Local timestamp using the reference's offset, or `null`. |
+| `parse_duration(text)` | Duration, or `null`. |
+| `solve_linear(model)` | Unit-free continuous/integer/binary model; returns status and raw values. See the model schema in [plugins](plugins.md). |
+
+Examples: `import("format").clock(90m)` returns `"01:30:00"`;
+`import("timer").create("countdown", [25m])` returns an idle state record.
+These library records can be transformed with `map`, `filter`, and `fold`.

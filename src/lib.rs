@@ -11,8 +11,8 @@ pub mod model;
 // and `wtf::document` name the same things the layers do.
 pub use evaluate::{charts, engine, glyphs, lookups, plans, resources, timers};
 pub use features::{
-    actions, diagnostics, hierarchy, highlighting, intelligence, interaction, presentation, prose,
-    refactor, symbols, typing,
+    actions, catalog, diagnostics, hierarchy, highlighting, intelligence, interaction,
+    presentation, prose, query, refactor, symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

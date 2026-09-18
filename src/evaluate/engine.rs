@@ -477,7 +477,7 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
     Ok(out)
 }
 #[derive(Clone, Debug)]
-enum Expr {
+pub(crate) enum Expr {
     Spanned(usize, usize, Box<Expr>),
     Value(Value),
     Name(String),
@@ -502,7 +502,7 @@ impl Expr {
         }
     }
 }
-struct Parser {
+pub(crate) struct Parser {
     tokens: Vec<Token>,
     at: usize,
     depth: usize,
@@ -556,7 +556,7 @@ pub fn sum_scope_at(source: &str, position: usize) -> Option<String> {
     result
 }
 impl Parser {
-    fn parse(s: &str) -> Result<Expr, String> {
+    pub(crate) fn parse(s: &str) -> Result<Expr, String> {
         let mut p = Self {
             tokens: lex(s)?,
             at: 0,
@@ -1864,7 +1864,7 @@ impl<'a> Engine<'a> {
         Ok(value)
     }
 }
-fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
+pub(crate) fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
     use Value::*;
     if matches!(op, "==" | "!=") {
         let equal = a

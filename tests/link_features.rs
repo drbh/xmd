@@ -272,7 +272,7 @@ fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age()
         .filter(|c| c.command == "wtf.refreshResource")
         .collect();
     assert_eq!(refresh.len(), 1); // duplicate appearances on a row share a command
-    assert_eq!(refresh[0].title, "Refresh GitHub status");
+    assert_eq!(refresh[0].title, "⟳ github");
     let request = wtf::link_features::BUILTINS.refresh_request(url).unwrap();
     assert_eq!(request.program, "gh");
     assert_eq!(

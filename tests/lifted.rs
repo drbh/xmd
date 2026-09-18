@@ -225,7 +225,7 @@ fn migrated_features_can_be_disabled_without_leaking_controls_or_hooks() {
     assert!(
         wtf::interaction::row_commands_in(&request, path, 0, false)
             .iter()
-            .any(|c| c.title == "Start timer 'watch'")
+            .any(|c| c.title == "▸ start watch")
     );
     assert!(!wtf::diagnostics::collect_in(&request, path, false).is_empty());
     assert!(wtf::features::module_features::hover(&request, path, Position::new(2, 2)).is_some());

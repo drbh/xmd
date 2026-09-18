@@ -798,10 +798,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
         .iter()
         .map(|l| l["command"].clone())
         .collect();
-    let open = commands
-        .iter()
-        .find(|c| c["title"] == "Open image")
-        .unwrap();
+    let open = commands.iter().find(|c| c["title"] == "↗ image").unwrap();
     lsp.request("workspace/executeCommand", open.clone());
     assert_eq!(lsp.opened_documents.len(), 1);
     assert_eq!(
@@ -811,10 +808,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
             .as_str()
     );
     assert_eq!(lsp.opened_documents[0]["external"], false);
-    let complete = commands
-        .iter()
-        .find(|c| c["title"] == "Complete task")
-        .unwrap();
+    let complete = commands.iter().find(|c| c["title"] == "✓ done").unwrap();
     lsp.request("workspace/executeCommand", complete.clone());
     let edit = lsp.applied_edits.pop().unwrap();
     assert_eq!(edit["documentChanges"][0]["textDocument"]["version"], 1);
@@ -832,7 +826,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
         .as_array()
         .unwrap()
         .iter()
-        .find(|l| l["command"]["title"] == "Reopen task")
+        .find(|l| l["command"]["title"] == "○ reopen")
         .unwrap()["command"]
         .clone();
     let moved = format!("- [ ] Different task\n{completed}");
@@ -889,8 +883,8 @@ fn live_diagnostics_and_codelenses_refresh_without_source_edits() {
         previous + 1
     );
     let lenses = lsp.request("textDocument/codeLens", json!({"textDocument":{"uri":uri}}));
-    assert!(!lenses.to_string().contains("Pause timer"));
-    assert!(lenses.to_string().contains("Reset timer"));
+    assert!(!lenses.to_string().contains("‖ pause"));
+    assert!(lenses.to_string().contains("↺ reset"));
     assert!(lsp.applied_edits.is_empty());
     assert_eq!(std::fs::read_to_string(&path).unwrap(), text);
 }
@@ -982,7 +976,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|v| v["title"] == "Complete task")
+        .find(|v| v["title"] == "✓ done")
         .unwrap();
     assert_eq!(
         complete["edit"]["documentChanges"][0]["textDocument"]["version"],
@@ -1069,7 +1063,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
             .contains("[debugging.elapsed]")
     );
     // Start from the checklist reference, not the timer declaration.
-    let running = lsp.timer_action(&uri, initial, 2, 1, "Start timer 'watch'");
+    let running = lsp.timer_action(&uri, initial, 2, 1, "▸ start watch");
     assert!(running.contains("stopwatch(0s,"));
     // This request drains source-change refreshes; following requests are timer ticks.
     lsp.request(
@@ -1090,16 +1084,16 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
         .find(|h| h["position"]["line"] == 3)
         .unwrap();
     assert_ne!(elapsed["label"], "0s");
-    let paused = lsp.timer_action(&uri, &running, 0, 2, "Pause timer");
+    let paused = lsp.timer_action(&uri, &running, 0, 2, "‖ pause");
     let hints = lsp.request(
         "textDocument/inlayHint",
         json!({"textDocument":{"uri":uri},"range":range}),
     );
     assert!(hints.to_string().contains("elapsed · ‖ paused"));
-    let resumed = lsp.timer_action(&uri, &paused, 0, 3, "Resume timer");
-    let reset = lsp.timer_action(&uri, &resumed, 0, 4, "Reset timer");
+    let resumed = lsp.timer_action(&uri, &paused, 0, 3, "▸ resume");
+    let reset = lsp.timer_action(&uri, &resumed, 0, 4, "↺ reset");
     assert_eq!(reset, initial);
-    let countdown = lsp.timer_action(&uri, &reset, 1, 5, "Start timer 'focus'");
+    let countdown = lsp.timer_action(&uri, &reset, 1, 5, "▸ start focus");
     assert!(countdown.contains("countdown(2s, 0s,"));
     let deadline = std::time::Instant::now() + Duration::from_secs(8);
     loop {

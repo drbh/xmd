@@ -1,4 +1,5 @@
 use crate::commands::{Action, Capabilities, RowTarget};
+use crate::glyphs;
 use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
@@ -78,6 +79,16 @@ pub fn row_commands_in(
 ) -> Vec<Command> {
     row_commands_for(request, path, row, include_task, Capabilities::NATIVE)
 }
+/// The shared label for the task toggle lens and code action.
+pub fn task_toggle_title(recurring: bool, done: bool) -> String {
+    if recurring {
+        format!("{} next", glyphs::REPEAT)
+    } else if done {
+        format!("{} reopen", glyphs::OFF)
+    } else {
+        format!("{} done", glyphs::DONE)
+    }
+}
 pub fn row_commands_for(
     request: &crate::RequestContext<'_>,
     path: &Path,
@@ -106,14 +117,11 @@ pub fn row_commands_for(
         && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
         && actions::toggle_task_in(request, path, index).is_ok()
     {
-        let title = if task.attributes.contains_key("every") {
-            "Complete occurrence and schedule next"
-        } else if engine.task_done(path, index) {
-            "Reopen task"
-        } else {
-            "Complete task"
-        };
-        push(Action::ToggleTask(target.clone()), title.into());
+        let title = task_toggle_title(
+            task.attributes.contains_key("every"),
+            engine.task_done(path, index),
+        );
+        push(Action::ToggleTask(target.clone()), title);
     }
     for resource in resources_at_in(request, path, row) {
         let url = resource.url(path).unwrap();
@@ -122,14 +130,14 @@ pub fn row_commands_for(
         } else if resource.target.starts_with("geo:") {
             "map"
         } else {
-            "resource"
+            "open"
         };
         push(
             Action::OpenResource {
                 target: target.clone(),
                 url: url.clone(),
             },
-            format!("Open {kind}"),
+            format!("{} {kind}", glyphs::OPEN),
         );
         if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
             push(
@@ -151,7 +159,7 @@ pub fn row_commands_for(
             Action::Refresh {
                 document: Some(uri),
             },
-            "Refresh lookups".into(),
+            format!("{} lookups", glyphs::REFRESH),
         );
     }
     result.extend(super::module_inlays::commands(

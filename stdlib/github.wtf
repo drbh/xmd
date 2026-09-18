@@ -178,7 +178,7 @@ hover := fn(ctx) => (
     ctx.cached == null,
     if(
       ctx.native,
-      "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+      "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
       "GitHub status refresh is available in the native WTF app, not this browser workspace."
     ),
     "**"
@@ -187,7 +187,7 @@ hover := fn(ctx) => (
     + summary(ctx.cached, ctx.fetched_at)
     + "\n\nLast refreshed: "
     + format_date(ctx.fetched_at, "%+")
-    + ". Use **Refresh GitHub status** to update."
+    + ". Use **⟳ github** to update."
   )
 )
 
@@ -221,7 +221,7 @@ property := fn(ctx, name) => (
 // Describe an explicit gh request without executing it here.
 refresh := fn(url) => (
   {
-    title: "Refresh GitHub status",
+    title: "⟳ github",
     program: "gh",
     env: {GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1"},
     args: if(

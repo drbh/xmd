@@ -552,7 +552,7 @@ const FUNCTIONS: &[Function] = &[
         name: "rate",
         params: &["from: currency code", "to: currency code"],
         result: "Number",
-        documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with wtf refresh or the Refresh lookups lens; hovers show the age.",
+        documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with wtf refresh or the ⟳ lookups lens; hovers show the age.",
         example: "EUR, USD",
     },
     Function {

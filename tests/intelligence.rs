@@ -325,17 +325,17 @@ fn codelenses_are_contextual_and_change_at_timer_expiry() {
     assert!(
         lenses
             .iter()
-            .any(|l| l.command.as_ref().unwrap().title == "Pause timer 'tea'")
+            .any(|l| l.command.as_ref().unwrap().title == "‖ pause tea")
     );
     assert!(
         lenses
             .iter()
-            .any(|l| l.command.as_ref().unwrap().title == "Complete task")
+            .any(|l| l.command.as_ref().unwrap().title == "✓ done")
     );
     assert!(
         lenses
             .iter()
-            .any(|l| l.command.as_ref().unwrap().title == "Open image")
+            .any(|l| l.command.as_ref().unwrap().title == "↗ image")
     );
     assert!(!lenses.iter().any(|l| l.range.start.line == 2));
     let lenses = interaction::lenses(&ws, path(), now() + chrono::Duration::seconds(2));
@@ -347,7 +347,7 @@ fn codelenses_are_contextual_and_change_at_timer_expiry() {
     assert!(
         lenses
             .iter()
-            .any(|l| l.command.as_ref().unwrap().title == "Reset timer 'tea'")
+            .any(|l| l.command.as_ref().unwrap().title == "↺ reset tea")
     );
 }
 #[test]

@@ -195,7 +195,7 @@ These are breaking CLI changes; the old read commands have been removed.
 `@tasks` selects unfinished leaves, while the `tasks` collection includes every
 task. `@today` and `@week` preserve overdue/undated tasks and malformed appointment
 visibility. `@week` covers today through six days later. `@check` selects errors
-and excludes warnings. The editor's **Show today's agenda** uses `@today` too.
+and excludes warnings. The editor's **⚑ today** uses `@today` too.
 
 `capture`, `complete`, and `refresh` remain explicit operations. Completion still
 checks blockers, handles descendants, and advances recurring tasks with history.

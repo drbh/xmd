@@ -861,15 +861,12 @@ impl LanguageServer for Backend {
             .map(CodeActionOrCommand::Command)
             .collect();
         if let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row) {
-            let title = if task.attributes.contains_key("every") {
-                "Complete occurrence and schedule next"
-            } else if request.engine().task_done(&path, i) {
-                "Reopen task"
-            } else {
-                "Complete task"
-            };
+            let title = crate::interaction::task_toggle_title(
+                task.attributes.contains_key("every"),
+                request.engine().task_done(&path, i),
+            );
             let mut action = CodeAction {
-                title: title.into(),
+                title,
                 kind: Some(CodeActionKind::REFACTOR_REWRITE),
                 ..Default::default()
             };
@@ -904,7 +901,7 @@ impl LanguageServer for Backend {
         }
         if row == 0 && doc.line(0).trim_start().starts_with('#') {
             result.push(CodeActionOrCommand::Command(
-                Action::ShowToday.command("Show today's agenda"),
+                Action::ShowToday.command(format!("{} today", crate::glyphs::FLAG)),
             ));
         }
         if let Some(only) = params.context.only {

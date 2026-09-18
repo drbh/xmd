@@ -242,7 +242,7 @@ fn browser_controls_are_undoable_snapshots_and_reject_stale_versions() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|l| l["command"]["title"] == "Start timer 'focus'")
+        .find(|l| l["command"]["title"] == "▸ start focus")
         .unwrap()["command"]
         .clone();
     let result = request(

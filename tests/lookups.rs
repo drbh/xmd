@@ -124,7 +124,7 @@ fn rates_conversions_quotes_and_forecasts_read_the_cache() {
         messages,
         [
             "Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days",
-            "No cached rate GBP→USD; run wtf refresh or use Refresh lookups",
+            "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
         ]
     );
     // Hovers show what was read and how old it is; misses say so.

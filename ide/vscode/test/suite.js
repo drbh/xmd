@@ -65,19 +65,19 @@ exports.run = async function() {
 
   const originalTask = "- [ ] Try task completion and undo";
   editor.selection = new vscode.Selection(span(document, originalTask).start, span(document, originalTask).start);
-  await runAction(document, originalTask, "Complete task");
+  await runAction(document, originalTask, "✓ done");
   await until("task edit", () => document.getText().includes("- [x] Try task completion and undo"));
   await command("undo");
   await until("task undo", () => document.getText().includes(originalTask));
 
   const lenses = await command("vscode.executeCodeLensProvider", document.uri);
-  assert(lenses.some(l => l.command?.title.startsWith("Start timer")), "Timer CodeLens");
-  await runAction(document, "[smoke_clock] :=", "Start timer");
+  assert(lenses.some(l => l.command?.title.startsWith("▸ start")), "Timer CodeLens");
+  await runAction(document, "[smoke_clock] :=", "▸ start");
   await until("timer edit", () => document.getText().includes("countdown(30s,"));
   const first = (await hints(document)).map(label).join(" ");
   await until("timer value changes without editing", async () => (await hints(document)).map(label).join(" ") !== first);
-  await runAction(document, "[smoke_clock] :=", "Pause timer");
-  await runAction(document, "[smoke_clock] :=", "Reset timer");
+  await runAction(document, "[smoke_clock] :=", "‖ pause");
+  await runAction(document, "[smoke_clock] :=", "↺ reset");
 
   const rename = await command("vscode.executeDocumentRenameProvider", document.uri, span(document, "smoke_spent\n").start, "smoke_expenses");
   assert(await vscode.workspace.applyEdit(rename));

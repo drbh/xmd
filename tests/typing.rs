@@ -1,5 +1,5 @@
-use jot::{actions, document::Document, typing};
 use tower_lsp::lsp_types::Position;
+use wtf::{actions, document::Document, typing};
 
 fn after(text: &str, line: u32, character: u32, ch: &str) -> String {
     let doc = Document::parse(text.into());
@@ -26,7 +26,7 @@ fn typing_a_closing_pipe_realigns_the_table_without_touching_cell_text() {
         formatted,
         "[t] := table\n| item       | qty |\n| ---------- | --- |\n| apple      | 2   |\n| watermelon | 10  |\n"
     );
-    assert!(jot::tables::formatting(&Document::parse(formatted)).is_empty());
+    assert!(wtf::tables::formatting(&Document::parse(formatted)).is_empty());
 }
 
 #[test]

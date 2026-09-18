@@ -1,0 +1,13 @@
+# Agenda and the command line
+
+Every note feeds wtf today, wtf agenda --week, and wtf tasks.
+
+- [ ] Send the invoice @due(2026-09-18) #finance
+- [ ] Renew the domain @due(2026-09-30) @every(year) #admin
+- [ ] Draft the talk @scheduled(2026-09-19) @estimate(2h)
+- Standup @at(2026-09-18T09:00-04:00)
+
+<!-- wtf tasks --tag finance filters by tag; wtf complete 29-agenda-and-cli.wtf:4
+ticks a box; wtf capture "Call the dentist" --due "next Friday" appends to
+inbox.wtf; wtf check reports problems; wtf plan and wtf refresh serve plans
+and lookups. Add --json to any listing. -->

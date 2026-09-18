@@ -1,0 +1,11 @@
+id = "wtf"
+name = "WTF"
+version = "0.0.1"
+schema_version = 1
+authors = ["WTF"]
+description = "Language support for WTF documents."
+repository = "https://github.com/drbh/wtf"
+
+[language_servers.wtf]
+name = "WTF Language Server"
+languages = ["WTF"]

@@ -1,5 +1,10 @@
 use chrono::{DateTime, Duration, FixedOffset};
-use jot::{
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
+use tower_lsp::lsp_types::{Position, Range};
+use wtf::{
     actions, cli,
     document::Document,
     editor,
@@ -7,11 +12,6 @@ use jot::{
     timers,
     workspace::Workspace,
 };
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
-use tower_lsp::lsp_types::{Position, Range};
 
 fn at(seconds: i64) -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap() + Duration::seconds(seconds)
@@ -20,7 +20,7 @@ fn notes(text: &str) -> Workspace {
     Workspace {
         roots: vec![PathBuf::from("/notes")],
         documents: [(
-            PathBuf::from("/notes/timers.jot"),
+            PathBuf::from("/notes/timers.wtf"),
             Document::parse(text.into()),
         )]
         .into(),
@@ -29,7 +29,7 @@ fn notes(text: &str) -> Workspace {
     }
 }
 fn path() -> &'static Path {
-    Path::new("/notes/timers.jot")
+    Path::new("/notes/timers.wtf")
 }
 fn eval(ws: &Workspace, expr: &str, seconds: i64) -> Value {
     Engine::at(ws, at(seconds)).eval(path(), expr).unwrap()
@@ -105,7 +105,7 @@ fn countdown_clamps_at_zero_and_preserves_duration_expression() {
             .eval(path(), "focus")
             .unwrap()
             .display()
-            .contains("00:00 remaining · done")
+            .contains("00:00 remaining · ✓ done")
     );
     assert!(!engine.time_dependent);
     assert!(timers::edit(&ws, path(), "focus", "resume", at(9000)).is_err());
@@ -146,7 +146,7 @@ fn seconds_work_through_dates_effort_cli_and_comparisons() {
     assert_eq!(entries[0].estimate_minutes, Some(1.5));
     assert_eq!(entries[1].estimate_minutes, Some(30.0));
     assert_eq!(
-        jot::engine::next_occurrence("2w", at(0).date_naive(), at(0).date_naive()).unwrap(),
+        wtf::engine::next_occurrence("2w", at(0).date_naive(), at(0).date_naive()).unwrap(),
         at(14 * 86400).date_naive()
     );
 }
@@ -186,7 +186,7 @@ fn timers_reject_invalid_arguments_and_unsupported_properties() {
 fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_properties() {
     let mut ws =
         notes("[alias] := focus\nRemaining [alias.remaining].\n- [ ] Work @timer(alias)\n");
-    let origin = PathBuf::from("/notes/shared.jot");
+    let origin = PathBuf::from("/notes/shared.wtf");
     ws.documents.insert(
         origin.clone(),
         Document::parse("[focus] := countdown(25m)\n".into()),

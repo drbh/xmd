@@ -1,5 +1,5 @@
 // Client UI only. Hierarchy, values, and ranges arrive as LSP DocumentSymbol[];
-// there is deliberately no Jot parser or evaluator in this module.
+// there is deliberately no WTF parser or evaluator in this module.
 export function createOutline(editor, elements) {
   const { list, filter, empty } = elements;
   const collapsed = new Map();

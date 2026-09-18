@@ -1,0 +1,21 @@
+# Checklists
+
+A heading with :name is a checklist; tasks beneath it count.
+
+## Launch :launch
+
+- [x] Draft the announcement
+- [x] Collect screenshots
+- [ ] Record the demo :demo
+  - [x] Write the script
+  - [ ] Capture the recording
+- [ ] Update the changelog @estimate(20m)
+
+done := completed(launch)
+left := remaining(launch)
+work := effort(launch)
+
+[done] of [total(launch)] steps are done, [left] remain, about [work] of work.
+Named tasks are booleans: the demo is [demo].
+
+<!-- Try: tick a box. The heading inlay shows a progress gauge. -->

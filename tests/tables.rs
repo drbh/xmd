@@ -1,16 +1,16 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use lsp_types::{Position, Range};
+use std::path::Path;
+use wtf::{
     actions, diagnostics,
     document::{Document, Span},
     engine::{Engine, Value},
     intelligence, tables,
     workspace::{SymbolKind, Workspace},
 };
-use lsp_types::{Position, Range};
-use std::path::Path;
 const SOURCE: &str = "[groceries] := table\n| item | quantity | price |\n| --- | --- | --- |\n| apple | 2 | $3.30 |\n| pear | 4 | $4.30 |\n\n[total] := sum(groceries, quantity * price)\n[units] := sum(groceries, quantity)\n[average] := total / units\nCost [total].\n";
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
@@ -47,7 +47,7 @@ fn tables_evaluate_typed_row_formulas_and_reactive_totals() {
             .display(),
         "$30.10"
     );
-    let hints = jot::presentation::hints_at(
+    let hints = wtf::presentation::hints_at(
         &ws,
         path(),
         now(),
@@ -91,7 +91,7 @@ fn columns_are_scoped_even_with_same_named_globals_and_other_tables() {
 fn table_aliases_and_columns_resolve_across_notes_without_capturing_globals() {
     let mut ws = ws("[alias] := groceries\n[cost] := sum(alias, quantity * price)\n");
     ws.documents
-        .insert("/notes/data.jot".into(), Document::parse(SOURCE.into()));
+        .insert("/notes/data.wtf".into(), Document::parse(SOURCE.into()));
     assert_eq!(
         Engine::at(&ws, now())
             .named(path(), "cost")
@@ -105,7 +105,7 @@ fn table_aliases_and_columns_resolve_across_notes_without_capturing_globals() {
         .find(|r| r.name == "price")
         .unwrap();
     let symbol = tables::resolve_reference(&ws, path(), reference).unwrap();
-    assert_eq!(symbol.path, Path::new("/notes/data.jot"));
+    assert_eq!(symbol.path, Path::new("/notes/data.wtf"));
     assert_eq!(symbol.kind, SymbolKind::Column(0, 2));
 }
 
@@ -191,7 +191,7 @@ fn quoted_pipes_unicode_crlf_and_ordinary_markdown_survive_formatting() {
         Ok(Value::Number(6.0))
     );
     let inert = Document::parse(
-        "```jot\n[t] := table\n|n|\n|---|\n|1|\n```\n<!--\n[t] := table\n-->\n".into(),
+        "```wtf\n[t] := table\n|n|\n|---|\n|1|\n```\n<!--\n[t] := table\n-->\n".into(),
     );
     assert!(inert.tables.is_empty());
 }
@@ -213,7 +213,7 @@ fn lsp_column_intelligence_works_for_incomplete_formulas_and_table_symbols() {
     let position = span(doc, 1, "price").range(&doc.text).start;
     let (symbol, _) = intelligence::symbol_at(&ws, path(), position).unwrap();
     assert!(intelligence::hover(&ws, &symbol, now()).contains("Column of `groceries`"));
-    let symbols = jot::symbols::document_symbols(&ws, path(), now());
+    let symbols = wtf::symbols::document_symbols(&ws, path(), now());
     assert_eq!(symbols[0].name, "groceries");
     assert_eq!(
         symbols[0]
@@ -245,7 +245,7 @@ fn hovers_explain_cells_and_row_contributions_and_refactors_keep_row_scope() {
             .contains("groceries.price · Money")
     );
     let range = span(doc, 6, "quantity * price").range(&doc.text);
-    assert!(jot::refactor::actions_for(&ws, path(), range, now()).is_empty());
+    assert!(wtf::refactor::actions_for(&ws, path(), range, now()).is_empty());
 }
 
 #[test]
@@ -316,10 +316,10 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     let mut engine = Engine::at(&notes, now());
     assert_eq!(
         engine.named(path(), "total").unwrap(),
-        Value::Money(43.3, jot::engine::Currency::USD)
+        Value::Money(43.3, wtf::engine::Currency::USD)
     );
     assert_eq!(
-        jot::diagnostics::collect(&notes, path(), now().date_naive(), now(), false).len(),
+        wtf::diagnostics::collect(&notes, path(), now().date_naive(), now(), false).len(),
         0
     );
     let doc = &notes.documents[path()];
@@ -328,10 +328,10 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     assert_eq!(cell.expression.as_ref().unwrap().0, "unit * qty");
     // References inside the cell resolve, so rename and navigation see them.
     let unit = notes.resolve(path(), "unit").unwrap();
-    let uses = jot::intelligence::occurrences(&notes, &unit);
+    let uses = wtf::intelligence::occurrences(&notes, &unit);
     assert_eq!(uses.len(), 3, "{uses:?}");
     assert_eq!(uses[1].1, span(doc, 6, "unit"));
-    let hover = jot::intelligence::cell_hover(
+    let hover = wtf::intelligence::cell_hover(
         &notes,
         path(),
         Position::new(6, span(doc, 6, "unit").range(&doc.text).start.character),
@@ -345,7 +345,7 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
         text.contains("Row 2: $30\n\nCalculated from `unit * qty`"),
         "{text}"
     );
-    let hints = jot::presentation::hints_at(
+    let hints = wtf::presentation::hints_at(
         &notes,
         path(),
         now(),
@@ -364,7 +364,7 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     assert_eq!(label(7).as_deref(), Some("$10"));
     // A calculated cell of the wrong type is reported at the cell, not the table.
     let wrong = ws(&source.replace("| one   | [unit]       |", "| one   | [qty]        |"));
-    let issues = jot::diagnostics::collect(&wrong, path(), now().date_naive(), now(), false);
+    let issues = wtf::diagnostics::collect(&wrong, path(), now().date_naive(), now(), false);
     let messages: Vec<_> = issues.iter().map(|d| d.message.as_str()).collect();
     assert!(
         messages.contains(&"Column 'price' expects Money, found Number"),
@@ -374,7 +374,7 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
     // Unknown names and empty brackets are ordinary diagnostics.
     let unknown = ws("[t] := table\n| a |\n| --- |\n| [nope] |\n");
     let messages: Vec<_> =
-        jot::diagnostics::collect(&unknown, path(), now().date_naive(), now(), false)
+        wtf::diagnostics::collect(&unknown, path(), now().date_naive(), now(), false)
             .into_iter()
             .map(|d| d.message)
             .collect();
@@ -385,5 +385,5 @@ fn bracketed_cells_are_calculations_read_from_any_note() {
             .message
             .starts_with("Empty calculation")
     );
-    assert!(jot::tables::formatting(&notes.documents[path()]).is_empty());
+    assert!(wtf::tables::formatting(&notes.documents[path()]).is_empty());
 }

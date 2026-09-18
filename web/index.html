@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Jot — browser workspace</title>
+  <title>WTF — browser workspace</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://esm.sh/monaco-editor@0.56.0/es2022/monaco-editor.bundle.css">
   <link rel="stylesheet" href="./style.css">
@@ -20,10 +20,10 @@
 </head>
 <body>
   <header>
-    <div class="brand">jot<span>notes that think with you</span></div>
+    <div class="brand">wtf<span>notes that think with you</span></div>
     <div class="actions">
       <button id="new-note">New note</button>
-      <button id="import-notes">Import .jot</button>
+      <button id="import-notes">Import .wtf</button>
       <button id="download">Download</button>
     </div>
   </header>
@@ -44,7 +44,7 @@
         <details><summary>Browser limits</summary><p>No access to your disk or GitHub CLI. Import related notes together for cross-file references. Local image previews are not included. Timers catch up when this tab wakes; there are no background alarms.</p><p>The editor loads from a CDN. Language evaluation happens locally in Rust/WebAssembly.</p></details>
       </div>
     </aside>
-    <section class="document" aria-label="Jot editor">
+    <section class="document" aria-label="WTF editor">
       <div class="document-bar"><span id="filename">Starting workspace…</span><span id="engine">Loading Rust / WebAssembly</span></div>
       <div id="notice" role="status" hidden></div>
       <div id="editor" aria-label="Note contents"></div>
@@ -52,8 +52,8 @@
       <footer><span id="save-status">Loading editor…</span><span id="language-status"></span></footer>
     </section>
   </main>
-  <input id="file-input" type="file" accept=".jot,text/plain" multiple hidden>
-  <noscript>Jot requires JavaScript and WebAssembly.</noscript>
+  <input id="file-input" type="file" accept=".wtf,text/plain" multiple hidden>
+  <noscript>WTF requires JavaScript and WebAssembly.</noscript>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

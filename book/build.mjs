@@ -11,7 +11,7 @@ const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g
 
 const block = (file, label) => {
   const text = readFileSync(resolve(examples, file), "utf8");
-  return `<figure class="jot-block" data-file="${file}">
+  return `<figure class="wtf-block" data-file="${file}">
   <figcaption><span>${escape(label)}</span><span class="status" aria-live="polite">loading engine…</span></figcaption>
   <div class="editor"><pre class="view" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="${escape(label)}">${escape(text)}</pre></div>
   <div class="hover" hidden></div>
@@ -44,21 +44,21 @@ const html = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>The Jot Book</title>
+  <title>The WTF Book</title>
   <link rel="icon" href="data:,">
   <link rel="preload" href="../fonts/IoskeleyMono-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./book.css">
 </head>
 <body>
   <nav class="toc" aria-label="Table of contents">
-    <a class="home" href="#top">The Jot Book</a>
+    <a class="home" href="#top">The WTF Book</a>
     <ol>${toc}</ol>
     <p class="engine" id="engine">Starting the engine…</p>
   </nav>
   <main id="top">
     <header class="title">
-      <h1>The Jot Book</h1>
-      <p class="lead">Jot is a language for notes: plain text that stays readable and starts to calculate, count, plan, and remember. This book walks through every feature with a live example. Each block below is a real note running on the same Rust engine as the editor, compiled to WebAssembly; edit it and the inlays, colors, and diagnostics update as you type. Click a name to see its hover.</p>
+      <h1>The WTF Book</h1>
+      <p class="lead">WTF, the written text format, is a language for notes: plain text that stays readable and starts to calculate, count, plan, and remember. This book walks through every feature with a live example. Each block below is a real note running on the same Rust engine as the editor, compiled to WebAssembly; edit it and the inlays, colors, and diagnostics update as you type. Click a name to see its hover.</p>
       <p>The examples are the files in <code>examples/</code>. Open them in Zed for the full experience, including completion, rename, code actions, and the command line.</p>
     </header>
     ${body}

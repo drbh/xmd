@@ -39,9 +39,9 @@ pub(super) fn values(line: &str) -> Vec<(usize, usize, &'static str)> {
         {
             let combined = format!("{} {}", word.text, next.text);
             let kind = if clock_time(&combined) {
-                Some("jotTime")
+                Some("wtfTime")
             } else if word.text.eq_ignore_ascii_case("next") && relative_date(&combined) {
-                Some("jotDate")
+                Some("wtfDate")
             } else {
                 None
             };
@@ -109,20 +109,20 @@ fn clock_time(text: &str) -> bool {
 }
 fn kind(text: &str) -> Option<&'static str> {
     if relative_date(text) {
-        return Some("jotDate");
+        return Some("wtfDate");
     }
     if matches!(text, "true" | "false") {
-        return Some("jotBoolean");
+        return Some("wtfBoolean");
     }
     let first = text.chars().next()?;
     if !first.is_ascii_digit() && !matches!(first, '$' | '-' | '+' | '.') {
         return None;
     }
     if calendar_date(text) {
-        return Some("jotDate");
+        return Some("wtfDate");
     }
     if clock_time(text) {
-        return Some("jotTime");
+        return Some("wtfTime");
     }
     let unsigned = text.strip_prefix(['-', '+']).unwrap_or(text);
     let tokens = engine::lex(unsigned).ok()?;
@@ -133,9 +133,9 @@ fn kind(text: &str) -> Option<&'static str> {
         return None;
     }
     match token.kind {
-        Lexeme::Value(Value::Money(..)) => Some("jotMoney"),
-        Lexeme::Value(Value::Ratio(_)) => Some("jotRatio"),
-        Lexeme::Value(Value::Duration(_)) => Some("jotDuration"),
+        Lexeme::Value(Value::Money(..)) => Some("wtfMoney"),
+        Lexeme::Value(Value::Ratio(_)) => Some("wtfRatio"),
+        Lexeme::Value(Value::Duration(_)) => Some("wtfDuration"),
         Lexeme::Value(Value::Number(_)) => Some("number"),
         _ => None,
     }

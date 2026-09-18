@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Parser)]
 #[command(
-    name = "jot",
+    name = "wtf",
     version,
     about = "Reactive notes, checklists, resources, and a daily agenda. No arguments starts the language server."
 )]
@@ -36,7 +36,7 @@ pub enum Command {
         #[arg(long)]
         week: bool,
     },
-    /// List tasks across all .jot notes.
+    /// List tasks across all .wtf notes.
     Tasks {
         #[command(flatten)]
         query: Query,
@@ -45,7 +45,7 @@ pub enum Command {
         #[arg(long)]
         all: bool,
     },
-    /// Append a task to inbox.jot, or to journal/YYYY-MM-DD.jot.
+    /// Append a task to inbox.wtf, or to journal/YYYY-MM-DD.wtf.
     Capture {
         #[arg(required=true,num_args=1..)]
         text: Vec<String>,
@@ -62,7 +62,7 @@ pub enum Command {
         #[arg(long)]
         tag: Option<String>,
     },
-    /// Toggle a task at file.jot:LINE (one-based); recurring tasks advance.
+    /// Toggle a task at file.wtf:LINE (one-based); recurring tasks advance.
     Complete {
         target: String,
         #[arg(long, default_value = ".")]
@@ -87,7 +87,7 @@ pub enum Command {
         /// Print the plan as an alps problem file, with note values substituted.
         #[arg(long)]
         export: bool,
-        /// Print Jot source for an alps problem file, named after the file.
+        /// Print WTF source for an alps problem file, named after the file.
         #[arg(long)]
         import: Option<PathBuf>,
     },
@@ -325,9 +325,9 @@ pub async fn run(command: Command) -> Result<(), String> {
             }
             let path = root.join(file.unwrap_or_else(|| {
                 if journal {
-                    PathBuf::from(format!("journal/{today}.jot"))
+                    PathBuf::from(format!("journal/{today}.wtf"))
                 } else {
-                    PathBuf::from("inbox.jot")
+                    PathBuf::from("inbox.wtf")
                 }
             }));
             let mut title = text.join(" ");
@@ -383,14 +383,14 @@ pub async fn run(command: Command) -> Result<(), String> {
         }
         Command::Complete { target, root, on } => {
             let workspace = load(root)?;
-            let (file, row) = target.rsplit_once(':').ok_or("Use file.jot:LINE")?;
+            let (file, row) = target.rsplit_once(':').ok_or("Use file.wtf:LINE")?;
             let row: usize = row.parse().map_err(|_| "Invalid line number")?;
             let path =
                 std::fs::canonicalize(workspace.root().join(file)).map_err(|e| e.to_string())?;
             let doc = workspace
                 .documents
                 .get(&path)
-                .ok_or("File is not in this workspace's indexed .jot notes")?;
+                .ok_or("File is not in this workspace's indexed .wtf notes")?;
             let i = doc
                 .tasks
                 .iter()
@@ -598,7 +598,7 @@ fn write_note(path: &Path, previous: &str, next: &str) -> Result<(), String> {
     }
     let parent = path.parent().ok_or("Invalid note path")?;
     std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    let tmp = parent.join(format!(".jot-write-{}.tmp", std::process::id()));
+    let tmp = parent.join(format!(".wtf-write-{}.tmp", std::process::id()));
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);
     let mut file = options.open(&tmp).map_err(|e| e.to_string())?;

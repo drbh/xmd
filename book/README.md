@@ -1,4 +1,4 @@
-# The Jot Book
+# The WTF Book
 
 A single-page guide to every feature, with each note from `examples/` inlined
 as a live block. The blocks run the same Rust engine as the editor, compiled to

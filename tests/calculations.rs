@@ -1,5 +1,7 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     diagnostics,
     document::Document,
     engine::{Currency, Value},
@@ -7,14 +9,12 @@ use jot::{
     intelligence, presentation,
     workspace::Workspace,
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn note(source: &str) -> Workspace {
     Workspace {
@@ -81,7 +81,7 @@ fn bracketed_expressions_in_prose_are_calculations_shown_in_place() {
         .iter()
         .map(|t| TOKEN_TYPES[t.token_type as usize])
         .collect();
-    assert!(kinds.contains(&"jotPunctuation") && kinds.contains(&"variable"));
+    assert!(kinds.contains(&"wtfPunctuation") && kinds.contains(&"variable"));
     assert!(doc.references.iter().filter(|r| r.name == "budget").count() >= 3);
     let _ = Value::Money(1.0, Currency::USD);
 }

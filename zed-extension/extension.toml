@@ -1,11 +1,11 @@
-id = "jot"
-name = "Jot"
+id = "wtf"
+name = "WTF"
 version = "0.0.1"
 schema_version = 1
-authors = ["Jot"]
-description = "Language support for Jot documents."
-repository = "https://github.com/drbh/jot"
+authors = ["WTF"]
+description = "Language support for WTF documents."
+repository = "https://github.com/drbh/wtf"
 
-[language_servers.jot]
-name = "Jot Language Server"
-languages = ["Jot"]
+[language_servers.wtf]
+name = "WTF Language Server"
+languages = ["WTF"]

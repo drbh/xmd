@@ -17,4 +17,4 @@ Bake [bakery.bagels] bagels and [bakery.doughnuts] doughnuts for [bakery].
 Flour to spare: [bakery.flour].
 
 <!-- Constraint rows show usage and binding or slack. Try: change flour_stock
-to 300, or jot plan bakery on the command line. -->
+to 300, or wtf plan bakery on the command line. -->

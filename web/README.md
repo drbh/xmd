@@ -1,8 +1,8 @@
-# Jot in the browser
+# WTF in the browser
 
 A dark-mode, vanilla HTML/JavaScript client. Monaco loads from a pinned ESM CDN;
-Jot's existing Rust engine runs inside a dedicated Web Worker as WebAssembly.
-The page does not launch or connect to a native Jot language server.
+WTF's existing Rust engine runs inside a dedicated Web Worker as WebAssembly.
+The page does not launch or connect to a native WTF language server.
 
 ## Build and run
 
@@ -16,13 +16,13 @@ node web/serve.mjs
 ```
 
 Open **http://127.0.0.1:4173**. Node only serves static files; any HTTP static-file
-server can replace it. Set `JOT_WEB_PORT` to change the development port.
+server can replace it. Set `WTF_WEB_PORT` to change the development port.
 Opening `index.html` through `file://` is not supported because the app uses
 module workers and fetches its Wasm module.
 
 The build uses `--no-default-features --features browser` to exclude the CLI,
 native filesystem scanning, subprocesses, and Tokio/LSP transport. It creates
-`web/pkg/jot.js` and `web/pkg/jot_bg.wasm` (plus generated package metadata).
+`web/pkg/wtf.js` and `web/pkg/wtf_bg.wasm` (plus generated package metadata).
 These generated artifacts are ignored by Git; rebuild after changing Rust.
 `wasm-pack` selects/caches a matching wasm-bindgen tool version for Cargo.lock.
 
@@ -35,7 +35,7 @@ package.json is for development commands and browser tests only.
 - Rust-generated semantic highlighting, diagnostics, completion, and signatures.
 - Computational tables and `sum(table, row_expression)`, with typed cells,
   scoped column completion/rename, hovers, and undoable Format Document. Import
-  `jots/tables.jot` from the repository for an example; all logic is shared with LSP.
+  `notes/tables.wtf` from the repository for an example; all logic is shared with LSP.
 - Definition/reference navigation, rename, and read/write highlights across notes.
 - Searchable, collapsible document outline and Monaco's Go to Symbol navigation.
   Both consume the same standard document symbols as the native language server:
@@ -43,9 +43,9 @@ package.json is for development commands and browser tests only.
 - Contextual task/timer CodeLens controls, including start/pause/resume/reset.
 - Extract, inline, freeze-value, and typo-fix code actions.
 - Live timer values and clock-dependent diagnostics; ticking never edits source.
-- New notes, multi-file import/drop, browser-local autosave, and plain `.jot` downloads.
+- New notes, multi-file import/drop, browser-local autosave, and plain `.wtf` downloads.
 
-`trip.jot` and `today.jot` seed a new browser workspace. Existing saved notes are
+`trip.wtf` and `today.wtf` seed a new browser workspace. Existing saved notes are
 restored on reload. Duplicate import filenames get a numeric suffix rather than
 overwriting an existing note. The storage is per browser profile and origin;
 different ports/hosts have different workspaces. Download backups: private-mode
@@ -62,7 +62,7 @@ the latest source before execution, and edits are reported back to Rust.
 
 ## Browser differences
 
-- No native filesystem access or folder watching. Import related `.jot` notes
+- No native filesystem access or folder watching. Import related `.wtf` notes
   together; names resolve among those notes. Local resource links only navigate
   to notes already imported. Local image previews are not implemented.
 - GitHub URLs/maps can open in another tab, but GitHub CLI metadata refresh is

@@ -6,5 +6,5 @@ shared_budget := shared_rate * shared_hours
 
 We can spend [shared_budget] this week.
 
-<!-- shared_rate and shared_hours are defined in 28-cross-note-source.jot.
+<!-- shared_rate and shared_hours are defined in 28-cross-note-source.wtf.
 Go to definition jumps there; rename updates both notes. -->

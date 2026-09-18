@@ -76,13 +76,13 @@ fn virtual_path(uri: &str) -> Result<PathBuf, String> {
     }
     let path = paths::file_path(&url)?;
     if !path.starts_with("/workspace")
-        || path.extension().is_none_or(|s| s != "jot")
+        || path.extension().is_none_or(|s| s != "wtf")
         || path
             .components()
             .any(|c| !matches!(c, Component::RootDir | Component::Normal(_)))
         || path.to_string_lossy().contains(['\0', '\\'])
     {
-        return Err("Expected a .jot file within the browser's /workspace".into());
+        return Err("Expected a .wtf file within the browser's /workspace".into());
     }
     Ok(path)
 }
@@ -196,7 +196,7 @@ impl BrowserWorkspace {
                     .filter(|l| {
                         l.command
                             .as_ref()
-                            .is_none_or(|c| c.command != "jot.refreshResource")
+                            .is_none_or(|c| c.command != "wtf.refreshResource")
                     })
                     .collect();
                 let links = presentation::document_links(ws, &path, now);
@@ -315,7 +315,7 @@ impl BrowserWorkspace {
                 for command in
                     interaction::row_commands(ws, &path, range.start.line as usize, now, true)
                         .into_iter()
-                        .filter(|c| c.command != "jot.refreshResource")
+                        .filter(|c| c.command != "wtf.refreshResource")
                 {
                     choices.push(json!({"title":command.title,"command":command}));
                 }
@@ -346,7 +346,7 @@ impl BrowserWorkspace {
             .documents
             .get(&path)
             .ok_or("Note is no longer open")?;
-        if command.command == "jot.timer" {
+        if command.command == "wtf.timer" {
             let name = args
                 .get(1)
                 .and_then(Value::as_str)
@@ -369,7 +369,7 @@ impl BrowserWorkspace {
             return Err("Source changed; request fresh controls".into());
         }
         match command.command.as_str() {
-            "jot.task" => {
+            "wtf.task" => {
                 let index = doc
                     .tasks
                     .iter()
@@ -379,7 +379,7 @@ impl BrowserWorkspace {
                     json!({"edit":self.single_edit(&path,actions::toggle_task(&self.workspace,&path,index,now.date_naive())?)}),
                 )
             }
-            "jot.openResource" => {
+            "wtf.openResource" => {
                 let target = args
                     .get(3)
                     .and_then(Value::as_str)

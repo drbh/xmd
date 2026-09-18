@@ -1,39 +1,39 @@
-# Jot for VS Code
+# WTF for VS Code
 
-Language support for `.jot` notes using the same Rust language server as Zed,
-Neovim, and Helix. Requires VS Code 1.91+ and a locally installed Jot binary.
+Language support for `.wtf` notes using the same Rust language server as Zed,
+Neovim, and Helix. Requires VS Code 1.91+ and a locally installed WTF binary.
 
 ## Install locally
 
-From the repository root, build Jot and package the extension (Node.js 22+):
+From the repository root, build WTF and package the extension (Node.js 22+):
 
 ```sh
 cargo build --locked
 cd vscode-extension
 npm ci
 npm run package
-code --install-extension jot-0.1.0.vsix
+code --install-extension wtf-0.1.0.vsix
 ```
 
-Set **Jot: Server Path** in VS Code Settings to the absolute executable path:
+Set **WTF: Server Path** in VS Code Settings to the absolute executable path:
 
 ```json
 {
-  "jot.serverPath": "/absolute/path/to/jot/target/debug/jot"
+  "wtf.serverPath": "/absolute/path/to/wtf/target/debug/wtf"
 }
 ```
 
-On Windows, use the absolute path to `target/debug/jot.exe`. In a remote
+On Windows, use the absolute path to `target/debug/wtf.exe`. In a remote
 workspace, the executable must be installed on that remote host. On macOS,
-`/usr/bin/jot` is an unrelated program; use the binary you built.
+`/usr/bin/wtf` is an unrelated program; use the binary you built.
 
-Open your notes folder, then a `.jot` file. Changing the server path restarts
-the server. After rebuilding Rust, run **Jot: Restart Language Server**.
-Errors and server messages appear in the **Jot** Output channel.
+Open your notes folder, then a `.wtf` file. Changing the server path restarts
+the server. After rebuilding Rust, run **WTF: Restart Language Server**.
+Errors and server messages appear in the **WTF** Output channel.
 
 The extension requires a trusted workspace because it launches a native
 executable. It supports saved file locations, including unsaved edits to those
-files; save a new untitled note as `.jot` to attach the server. A window uses one
+files; save a new untitled note as `.wtf` to attach the server. A window uses one
 server for its workspace folders and the first folder's server-path setting.
 
 ## Features
@@ -42,17 +42,17 @@ server for its workspace folders and the first folder's server-path setting.
 - Hover explanations, definitions/references, rename, outline, and call hierarchy.
 - Task and timer controls through CodeLens and code actions, with undoable edits.
 - Table formatting and format-on-type for table rows and checklist continuation.
-- Semantic highlighting with custom Jot tokens mapped to your current theme.
+- Semantic highlighting with custom WTF tokens mapped to your current theme.
 
-Jot enables hints, CodeLens, semantic highlighting, two-space indentation, and
+WTF enables hints, CodeLens, semantic highlighting, two-space indentation, and
 format-on-type for its language by default. Your settings can override these.
 Colors follow the active theme; the extension does not replace it with Zed's
-dark palette. All language features and edits are computed by `jot lsp`.
+dark palette. All language features and edits are computed by `wtf lsp`.
 
 ## Development and verification
 
 Open this directory in VS Code and press F5 to launch an Extension Development
-Host, then configure `jot.serverPath` there. JavaScript is loaded directly;
+Host, then configure `wtf.serverPath` there. JavaScript is loaded directly;
 there is no compilation or bundling step.
 
 After building the Rust binary, run:
@@ -64,6 +64,6 @@ npm test
 
 The test runner downloads a separate VS Code instance by default. Set
 `VSCODE_EXECUTABLE_PATH` to an installed VS Code executable to use it instead,
-and optionally set `JOT_SERVER_PATH` to a different Jot binary. Tests use a
+and optionally set `WTF_SERVER_PATH` to a different WTF binary. Tests use a
 temporary profile and copies of `examples/editor-smoke`, leaving user settings
 and notes untouched. On failure, the runner prints the retained logs directory.

@@ -159,9 +159,9 @@ impl Resource {
             ));
         } else if github(&self.target).is_some() {
             #[cfg(target_arch = "wasm32")]
-            out.push_str("\n\nGitHub status refresh is available in the native Jot app, not this browser workspace.");
+            out.push_str("\n\nGitHub status refresh is available in the native WTF app, not this browser workspace.");
             #[cfg(not(target_arch = "wasm32"))]
-            out.push_str("\n\nNo cached status. Run `jot refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).");
+            out.push_str("\n\nNo cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).");
         }
         out
     }
@@ -205,7 +205,7 @@ fn bare_file_path(s: &str) -> bool {
     s.contains('/')
         || matches!(
             extension.to_ascii_lowercase().as_str(),
-            "jot"
+            "wtf"
                 | "md"
                 | "txt"
                 | "pdf"
@@ -296,7 +296,7 @@ pub(crate) fn raw_link_end(line: &str, start: usize) -> Option<usize> {
     }
     let resource = Resource::parse(candidate)?;
     // A browser has no home directory, but can still recognize and highlight ~/.
-    if !candidate.starts_with("~/") && resource.url(Path::new("/workspace/note.jot")).is_err() {
+    if !candidate.starts_with("~/") && resource.url(Path::new("/workspace/note.wtf")).is_err() {
         return None;
     }
     Some(start + candidate.len())
@@ -382,7 +382,7 @@ pub fn github(target: &str) -> Option<(String, String, String)> {
 }
 #[cfg(feature = "native")]
 pub fn load_cache(root: &Path) -> Cache {
-    std::fs::read(root.join(".jot/cache.json"))
+    std::fs::read(root.join(".wtf/cache.json"))
         .ok()
         .and_then(|b| serde_json::from_slice(&b).ok())
         .unwrap_or_default()

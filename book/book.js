@@ -173,7 +173,7 @@ function paint(block, snapshot, text) {
   block.querySelector(".status").textContent = snapshot.live ? "live" : "";
 }
 
-const blocks = [...document.querySelectorAll(".jot-block")];
+const blocks = [...document.querySelectorAll(".wtf-block")];
 let syncing = Promise.resolve();
 for (const block of blocks) {
   const view = block.querySelector(".view");
@@ -293,4 +293,4 @@ for (const block of blocks) {
 try { await syncing; } catch (e) { $engine.textContent = `Engine failed: ${e.message}`; throw e; }
 for (const block of blocks) block.publish().catch(e => { block.querySelector(".status").textContent = e.message; });
 $engine.textContent = "Rust / WebAssembly · running in this page";
-if (new URLSearchParams(location.search).has("test")) window.jotBook = { blocks, rpc, ready: true };
+if (new URLSearchParams(location.search).has("test")) window.wtfBook = { blocks, rpc, ready: true };

@@ -11,4 +11,4 @@ Attributes are `@key(value)` at the end of a task.
 
 <!-- @due and @scheduled show relative dates in inlays; @after blocks a task;
 @every advances the due date when completed; a line with @at is an appointment.
-Try: jot agenda --week on the command line. -->
+Try: wtf agenda --week on the command line. -->

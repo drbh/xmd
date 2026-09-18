@@ -6,13 +6,13 @@ async function ready(page) {
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/?test");
   await expect(page.locator("#engine")).toHaveText("Rust / WebAssembly · local", { timeout: 45_000 });
-  await page.waitForFunction(() => window.jotTest?.ready);
+  await page.waitForFunction(() => window.wtfTest?.ready);
   expect(errors).toEqual([]);
   return errors;
 }
 async function replace(page, before, after) {
   await page.evaluate(({ before, after }) => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     const match = editor.getModel().findMatches(before, false, false, true, null, false)[0];
     editor.executeEdits("test", [{ range: match.range, text: after }]);
   }, { before, after });
@@ -27,7 +27,7 @@ function renderedToken(page, text) {
 test("Rust semantic tokens render distinct types, declarations, columns and completed tasks", async ({ page }) => {
   const errors = await ready(page);
   await page.evaluate(() => {
-    window.jotTest.editor.setValue("# Highlighting\n[$3.30]:cash\n[clock] := countdown(25m)\n[rows] := table\n|qty|price|\n|---|---|\n|2|$4.30|\n[result] := sum(rows, qty * price)\n- [x] Packed\n- [ ] Book @due(tomorrow)\n");
+    window.wtfTest.editor.setValue("# Highlighting\n[$3.30]:cash\n[clock] := countdown(25m)\n[rows] := table\n|qty|price|\n|---|---|\n|2|$4.30|\n[result] := sum(rows, qty * price)\n- [x] Packed\n- [ ] Book @due(tomorrow)\n");
   });
   // Inspect rendered DOM styles, not just the worker's token arrays.
   const token = text => renderedToken(page, text);
@@ -53,7 +53,7 @@ test("Rust semantic tokens render distinct types, declarations, columns and comp
 
 test("plain prose dates, times and values have shared semantic colors and checkbox edits update", async ({ page }) => {
   const errors = await ready(page);
-  await page.evaluate(() => window.jotTest.editor.setValue("# 9:38 AM\nInterview 09/17/2026 10:00 AM – 10:45 AM.\n- [ ] Start at 7AM; allow 30m and $120.\nProgress 80% with 2 copies tomorrow.\n"));
+  await page.evaluate(() => window.wtfTest.editor.setValue("# 9:38 AM\nInterview 09/17/2026 10:00 AM – 10:45 AM.\n- [ ] Start at 7AM; allow 30m and $120.\nProgress 80% with 2 copies tomorrow.\n"));
   const token = text => renderedToken(page, text);
   for (const text of ["9:38 AM", "7AM", "10:00 AM", "10:45 AM"]) {
     const label = token(text);
@@ -68,22 +68,22 @@ test("plain prose dates, times and values have shared semantic colors and checkb
   await replace(page, "[ ]", "[x]");
   await expect(token("[x]")).toHaveCSS("color", "rgb(145, 230, 172)");
   await expect(token("[x]")).toHaveCSS("text-decoration-line", "none");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
   await expect(token("[ ]")).toHaveCSS("color", "rgb(255, 213, 128)");
   expect(errors).toEqual([]);
 });
 
 test("raw file links are styled and clicking opens an imported note via the shared LSP target", async ({ page }) => {
   const errors = await ready(page);
-  await page.evaluate(() => window.jotTest.editor.setValue("# Raw links\nOpen ./today.jot and https://example.com/docs.\n"));
-  const local = page.locator(".view-lines .detected-link").filter({ hasText: "./today.jot" }).first();
+  await page.evaluate(() => window.wtfTest.editor.setValue("# Raw links\nOpen ./today.wtf and https://example.com/docs.\n"));
+  const local = page.locator(".view-lines .detected-link").filter({ hasText: "./today.wtf" }).first();
   await expect(local).toHaveCSS("color", "rgb(144, 190, 216)");
-  const links = await page.evaluate(() => window.jotTest.query(window.jotTest.editor.getModel(), "documentLinks"));
-  expect(links.map(l => l.target)).toEqual(["file:///workspace/today.jot", "https://example.com/docs"]);
+  const links = await page.evaluate(() => window.wtfTest.query(window.wtfTest.editor.getModel(), "documentLinks"));
+  expect(links.map(l => l.target)).toEqual(["file:///workspace/today.wtf", "https://example.com/docs"]);
   // CodeLens adds a line above the links; wait for its layout before clicking.
   await expect(page.locator(".codelens-decoration").getByText("Open resource", { exact: true }).first()).toBeVisible();
   await local.click({ modifiers: ["ControlOrMeta"] });
-  await expect(page.locator("#filename")).toHaveText("today.jot");
+  await expect(page.locator("#filename")).toHaveText("today.wtf");
   expect(errors).toEqual([]);
 });
 
@@ -94,11 +94,11 @@ test("real Wasm worker renders reactive inlays, saves locally, and downloads pla
   await expect(page.locator(".view-lines")).toContainText("$556");
   await replace(page, "$2,444", "$1,410");
   await expect(page.locator(".view-lines")).toContainText("$1,590");
-  const hover = await page.evaluate(() => window.jotTest.query(window.jotTest.editor.getModel(), "hover", { position: { line: 8, character: 10 } }));
+  const hover = await page.evaluate(() => window.wtfTest.query(window.wtfTest.editor.getModel(), "hover", { position: { line: 8, character: 10 } }));
   expect(hover.contents.value).toContain("$3,000 - $1,410");
   await expect(page.locator("#save-status")).toHaveText("Saved in this browser");
   await page.reload();
-  await page.waitForFunction(() => window.jotTest?.ready);
+  await page.waitForFunction(() => window.wtfTest?.ready);
   await expect(page.locator(".view-lines")).toContainText("$1,590");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
@@ -113,24 +113,24 @@ test("real Wasm worker renders reactive inlays, saves locally, and downloads pla
 
 test("clickable timer and task controls produce undoable source edits", async ({ page }) => {
   await ready(page);
-  await page.getByRole("button", { name: "today.jot", exact: true }).click();
+  await page.getByRole("button", { name: "today.wtf", exact: true }).click();
   await expect(page.locator(".codelens-decoration").filter({ hasText: "Start timer 'focus'" }).first()).toBeVisible();
   await page.locator(".codelens-decoration").getByText("Start timer 'focus'", { exact: true }).first().click();
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("countdown(25m, 0s,");
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("countdown(25m, 0s,");
   await expect(page.locator(".view-lines")).toContainText("remaining · running");
   await page.locator(".codelens-decoration").getByText("Pause timer 'focus'", { exact: true }).first().click();
   await expect(page.locator(".view-lines")).toContainText("remaining · paused");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
   await expect(page.locator(".view-lines")).toContainText("remaining · running");
   await page.locator(".codelens-decoration").getByText("Complete task", { exact: true }).first().click();
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("- [x] Investigate");
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("- [x] Investigate");
 });
 
 test("completion, signature, diagnostics and cross-note refactorings reuse Rust", async ({ page }) => {
   await ready(page);
-  await page.getByRole("button", { name: "today.jot", exact: true }).click();
+  await page.getByRole("button", { name: "today.wtf", exact: true }).click();
   const results = await page.evaluate(async () => {
-    const { editor, query } = window.jotTest;
+    const { editor, query } = window.wtfTest;
     const model = editor.getModel();
     const line = model.getLineContent(6);
     return {
@@ -141,20 +141,20 @@ test("completion, signature, diagnostics and cross-note refactorings reuse Rust"
   });
   expect(results.completion.map(c => c.label).sort()).toEqual(["debugging", "focus"]);
   expect(results.signature.signatures[0].label).toContain("countdown(");
-  expect(results.definition.uri).toBe("file:///workspace/trip.jot");
-  await page.getByRole("button", { name: "trip.jot", exact: true }).click();
+  expect(results.definition.uri).toBe("file:///workspace/trip.wtf");
+  await page.getByRole("button", { name: "trip.wtf", exact: true }).click();
   await replace(page, "budget - spent", "budget - 5m");
   await expect(page.locator("#problems")).toContainText("Money - Duration");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
   await expect(page.locator("#problems")).toBeHidden();
   const rename = await page.evaluate(async () => {
-    const { editor, query, ui } = window.jotTest;
+    const { editor, query, ui } = window.wtfTest;
     const edit = await query(editor.getModel(), "rename", { position: { line: 6, character: 4 }, newName: "trip_cash" });
     ui.applyEdit(edit); return edit;
   });
   expect(rename.documentChanges).toHaveLength(2);
   await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
-  await page.getByRole("button", { name: "today.jot", exact: true }).click();
+  await page.getByRole("button", { name: "today.wtf", exact: true }).click();
   await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
 });
 
@@ -162,10 +162,10 @@ test("imports are local, duplicate filenames never overwrite, no backend connect
   const connections = [];
   page.on("websocket", ws => connections.push(ws.url()));
   await ready(page);
-  await page.locator("#file-input").setInputFiles({ name: "trip.jot", mimeType: "text/plain", buffer: Buffer.from("# Imported\n[7]:days\nWe have [days] days.\n") });
-  await expect(page.locator("#filename")).toHaveText("trip-2.jot");
+  await page.locator("#file-input").setInputFiles({ name: "trip.wtf", mimeType: "text/plain", buffer: Buffer.from("# Imported\n[7]:days\nWe have [days] days.\n") });
+  await expect(page.locator("#filename")).toHaveText("trip-2.wtf");
   await expect(page.locator(".view-lines")).toContainText("7 days.");
-  await page.getByRole("button", { name: "trip.jot", exact: true }).click();
+  await page.getByRole("button", { name: "trip.wtf", exact: true }).click();
   await expect(page.locator(".view-lines")).toContainText("$556");
   expect(connections).toEqual([]);
 });
@@ -173,7 +173,7 @@ test("imports are local, duplicate filenames never overwrite, no backend connect
 test("Monaco renders contextual suggestions and signature help", async ({ page }) => {
   const errors = await ready(page);
   await page.evaluate(() => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     editor.getModel().setValue("[focus] := countdown(25m)\n[watch] := stopwatch()\n- [ ] Work @timer()\n");
     editor.setPosition({ lineNumber: 3, column: editor.getModel().getLineContent(3).indexOf("@timer(") + 8 });
     editor.trigger("test", "editor.action.triggerSuggest", {});
@@ -182,7 +182,7 @@ test("Monaco renders contextual suggestions and signature help", async ({ page }
   await expect(page.locator(".suggest-widget.visible")).toContainText("watch");
   await page.keyboard.press("Escape");
   await page.evaluate(() => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     editor.setPosition({ lineNumber: 1, column: editor.getModel().getLineContent(1).indexOf("25m") + 1 });
     editor.trigger("test", "editor.action.triggerParameterHints", {});
   });
@@ -192,42 +192,42 @@ test("Monaco renders contextual suggestions and signature help", async ({ page }
 
 test("countdown expiry refreshes inlays and controls without source edits", async ({ page }) => {
   await ready(page);
-  await page.evaluate(() => window.jotTest.editor.getModel().setValue("[tea] := countdown(2s)\nTime left: [tea.remaining].\n"));
+  await page.evaluate(() => window.wtfTest.editor.getModel().setValue("[tea] := countdown(2s)\nTime left: [tea.remaining].\n"));
   await page.locator(".codelens-decoration").getByText("Start timer 'tea'", { exact: true }).first().click();
   await expect(page.locator(".view-lines")).toContainText("remaining · running");
-  const running = await page.evaluate(() => window.jotTest.editor.getValue());
+  const running = await page.evaluate(() => window.wtfTest.editor.getValue());
   await expect(page.locator(".view-lines")).toContainText("00:00 remaining · done", { timeout: 6000 });
   await expect(page.locator(".codelens-decoration").getByText("Pause timer 'tea'", { exact: true })).toHaveCount(0);
   await expect(page.locator(".codelens-decoration").getByText("Reset timer 'tea'", { exact: true }).first()).toBeVisible();
-  expect(await page.evaluate(() => window.jotTest.editor.getValue())).toBe(running);
+  expect(await page.evaluate(() => window.wtfTest.editor.getValue())).toBe(running);
 });
 
 test("virtual Unicode filenames round-trip and invalid saved data is preserved", async ({ page }) => {
   await ready(page);
-  await page.locator("#file-input").setInputFiles({ name: "🦀 values.jot", mimeType: "text/plain", buffer: Buffer.from("[42]:answer\nAnswer [answer].\n") });
+  await page.locator("#file-input").setInputFiles({ name: "🦀 values.wtf", mimeType: "text/plain", buffer: Buffer.from("[42]:answer\nAnswer [answer].\n") });
   await expect(page.locator(".view-lines")).toContainText("42.");
-  const definition = await page.evaluate(() => window.jotTest.query(window.jotTest.editor.getModel(), "definition", { position: { line: 1, character: 10 } }));
-  expect(decodeURI(definition.uri)).toBe("file:///workspace/🦀 values.jot");
-  await page.addInitScript(() => localStorage.setItem("jot.browser.workspace.v1", "broken-json"));
+  const definition = await page.evaluate(() => window.wtfTest.query(window.wtfTest.editor.getModel(), "definition", { position: { line: 1, character: 10 } }));
+  expect(decodeURI(definition.uri)).toBe("file:///workspace/🦀 values.wtf");
+  await page.addInitScript(() => localStorage.setItem("wtf.browser.workspace.v1", "broken-json"));
   await page.reload();
-  await page.waitForFunction(() => window.jotTest?.ready);
+  await page.waitForFunction(() => window.wtfTest?.ready);
   await expect(page.locator("#notice")).toContainText("Original storage has been preserved");
-  expect(await page.evaluate(() => localStorage.getItem("jot.browser.workspace.v1"))).toBe("broken-json");
+  expect(await page.evaluate(() => localStorage.getItem("wtf.browser.workspace.v1"))).toBe("broken-json");
 });
 
 test("Monaco selection refactor applies the shared versioned workspace edit", async ({ page }) => {
   await ready(page);
   await page.evaluate(() => {
-    const { editor, monaco } = window.jotTest;
+    const { editor, monaco } = window.wtfTest;
     const line = editor.getModel().getLineContent(7);
     const start = line.indexOf("budget - spent") + 1;
     editor.setSelection(new monaco.Range(7, start, 7, start + "budget - spent".length));
     editor.trigger("test", "editor.action.codeAction", { kind: "refactor.extract", apply: "first" });
   });
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("[calculation] := budget - spent\n[remaining] := calculation");
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("[calculation] := budget - spent\n[remaining] := calculation");
   await expect(page.locator(".view-lines")).toContainText("$556");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).not.toContain("[calculation]");
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).not.toContain("[calculation]");
 });
 
 test("another tab cannot silently overwrite this tab's unsaved changes", async ({ page, context }) => {
@@ -239,7 +239,7 @@ test("another tab cannot silently overwrite this tab's unsaved changes", async (
   await expect(page.locator("#notice")).toContainText("Another tab changed the saved workspace");
   await replace(page, "$2,444", "$1,111");
   await expect(page.locator(".view-lines")).toContainText("$1,889");
-  expect(await page.evaluate(() => localStorage.getItem("jot.browser.workspace.v1"))).toContain("$2,000");
+  expect(await page.evaluate(() => localStorage.getItem("wtf.browser.workspace.v1"))).toContain("$2,000");
   await other.close();
 });
 
@@ -248,7 +248,7 @@ test("LSP outline displays values, navigates exact names, and filters collapsed 
   const outline = page.getByRole("navigation", { name: "Document outline" });
   await expect(outline).toContainText("Money · $556");
   await outline.getByRole("button", { name: "remaining", exact: true }).click();
-  expect(await page.evaluate(() => window.jotTest.editor.getModel().getValueInRange(window.jotTest.editor.getSelection()))).toBe("remaining");
+  expect(await page.evaluate(() => window.wtfTest.editor.getModel().getValueInRange(window.wtfTest.editor.getSelection()))).toBe("remaining");
   await expect(outline.getByRole("button", { name: "remaining", exact: true })).toHaveAttribute("aria-current", "location");
   await outline.getByRole("button", { name: "Collapse Trip" }).click();
   await expect(outline.getByRole("button", { name: "remaining", exact: true })).toHaveCount(0);
@@ -268,23 +268,23 @@ test("LSP outline displays values, navigates exact names, and filters collapsed 
 
 test("document symbols feed Monaco's actual Go to Symbol picker", async ({ page }) => {
   await ready(page);
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "editor.action.quickOutline", {}));
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "editor.action.quickOutline", {}));
   const picker = page.locator(".quick-input-widget");
   await expect(picker).toBeVisible();
   await picker.locator("input").fill("@remaining");
   await expect(picker.locator(".monaco-list-row").filter({ hasText: "remaining" })).toBeVisible();
   await picker.locator("input").press("Enter");
   await expect(picker).toBeHidden();
-  expect(await page.evaluate(() => window.jotTest.editor.getPosition().lineNumber)).toBe(7);
+  expect(await page.evaluate(() => window.wtfTest.editor.getPosition().lineNumber)).toBe(7);
 });
 
 test("outline switches notes, preserves hierarchy, and follows task and source edits", async ({ page }) => {
   await ready(page);
   const outline = page.getByRole("navigation", { name: "Document outline" });
-  await page.getByRole("button", { name: "today.jot", exact: true }).click();
+  await page.getByRole("button", { name: "today.wtf", exact: true }).click();
   await expect(outline.getByRole("button", { name: "Today", exact: true })).toBeVisible();
   await expect(outline.getByRole("button", { name: "budget", exact: true })).toHaveCount(0);
-  await page.evaluate(() => window.jotTest.editor.getModel().setValue("# Trip\n## Packing\n- [ ] Pack :pack\n  - [x] Passport\n  - [ ] Tickets\n## Money\n[42]:cash\n"));
+  await page.evaluate(() => window.wtfTest.editor.getModel().setValue("# Trip\n## Packing\n- [ ] Pack :pack\n  - [x] Passport\n  - [ ] Tickets\n## Money\n[42]:cash\n"));
   await expect(outline.getByRole("button", { name: "Pack", exact: true })).toContainText("Incomplete");
   await outline.getByRole("button", { name: "Collapse Pack", exact: true }).click();
   await expect(outline.getByRole("button", { name: "Tickets", exact: true })).toHaveCount(0);
@@ -292,43 +292,43 @@ test("outline switches notes, preserves hierarchy, and follows task and source e
   await replace(page, "- [ ] Tickets", "- [x] Tickets");
   await expect(outline.getByRole("button", { name: "Pack", exact: true })).toContainText("Complete");
   await expect(outline.getByRole("button", { name: "Expand Pack", exact: true })).toBeVisible();
-  await page.evaluate(() => window.jotTest.editor.getModel().setValue("Just prose, no symbols.\n"));
+  await page.evaluate(() => window.wtfTest.editor.getModel().setValue("Just prose, no symbols.\n"));
   await expect(page.locator("#outline-empty")).toContainText("Add a heading");
   await expect(outline.getByRole("button")).toHaveCount(0);
 });
 
 test("tables run in Wasm with reactive totals, column completion, rename, and diagnostics", async ({ page }) => {
   const errors = await ready(page);
-  const source = readFileSync(new URL("../../jots/tables.jot", import.meta.url));
-  await page.locator("#file-input").setInputFiles({ name: "tables.jot", mimeType: "text/plain", buffer: source });
+  const source = readFileSync(new URL("../../notes/tables.wtf", import.meta.url));
+  await page.locator("#file-input").setInputFiles({ name: "tables.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("$23.80");
   await expect(page.locator("#problems")).toBeHidden();
   const outline = page.getByRole("navigation", { name: "Document outline" });
   await expect(outline.getByRole("button", { name: "groceries", exact: true })).toContainText("Table · 2 rows · 3 columns");
   await expect(outline.getByRole("button", { name: "price", exact: true })).toContainText("Money");
   await page.evaluate(() => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     editor.setPosition({ lineNumber: 9, column: editor.getModel().getLineContent(9).indexOf("price") + 3 });
     editor.trigger("test", "editor.action.triggerSuggest", {});
   });
   await expect(page.locator(".suggest-widget.visible")).toContainText("price");
   await page.keyboard.press("Escape");
   await outline.getByRole("button", { name: "price", exact: true }).click();
-  expect(await page.evaluate(() => window.jotTest.editor.getSelection().startLineNumber)).toBe(4);
+  expect(await page.evaluate(() => window.wtfTest.editor.getSelection().startLineNumber)).toBe(4);
   await page.evaluate(async () => {
-    const { editor, query, ui } = window.jotTest;
+    const { editor, query, ui } = window.wtfTest;
     const p = editor.getPosition();
     const edit = await query(editor.getModel(), "rename", { position: { line: p.lineNumber - 1, character: p.column - 1 }, newName: "unit_price" });
     ui.applyEdit(edit);
   });
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("quantity * unit_price");
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("quantity * unit_price");
   await expect(outline.getByRole("button", { name: "unit_price", exact: true })).toBeVisible();
   await expect(page.locator(".view-lines")).toContainText("$23.80");
   await replace(page, "$4.30", "$5.30");
   await expect(page.locator(".view-lines")).toContainText("$27.80");
   await replace(page, "$5.30", "oops");
   await expect(page.locator("#problems")).toContainText("Column 'unit_price' expects Money, found Text");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
   await expect(page.locator("#problems")).toBeHidden();
   expect(errors).toEqual([]);
 });
@@ -336,40 +336,40 @@ test("tables run in Wasm with reactive totals, column completion, rename, and di
 test("Monaco Format Document applies shared table formatting and remains undoable", async ({ page }) => {
   await ready(page);
   const source = "[fruit] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|4|$4.30|\n[total] := sum(fruit, quantity * price)\n\n| ordinary | table |\n|---|---|\n|leave|alone|\n";
-  await page.evaluate(source => window.jotTest.editor.getModel().setValue(source), source);
+  await page.evaluate(source => window.wtfTest.editor.getModel().setValue(source), source);
   await expect(page.locator(".view-lines")).toContainText("$23.80");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "editor.action.formatDocument", {}));
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("| item  | quantity | price |");
-  expect(await page.evaluate(() => window.jotTest.editor.getValue())).toContain("| ordinary | table |\n|---|---|\n|leave|alone|\n");
-  await page.evaluate(() => window.jotTest.editor.trigger("test", "undo", null));
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toBe(source);
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "editor.action.formatDocument", {}));
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("| item  | quantity | price |");
+  expect(await page.evaluate(() => window.wtfTest.editor.getValue())).toContain("| ordinary | table |\n|---|---|\n|leave|alone|\n");
+  await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toBe(source);
 });
 
 test("Typing a closing pipe or Enter after a task formats on type through the shared engine", async ({ page }) => {
   await ready(page);
   const source = "[fruit] := table\n|item|qty|\n|---|---|\n|apple|2|\n|watermelon|10\n- [ ] first";
-  await page.evaluate(source => window.jotTest.editor.getModel().setValue(source), source);
+  await page.evaluate(source => window.wtfTest.editor.getModel().setValue(source), source);
   await page.evaluate(() => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     editor.setPosition({ lineNumber: 5, column: 15 });
     editor.focus();
   });
   await page.keyboard.type("|");
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toContain("| item       | qty |\n| ---------- | --- |\n| apple      | 2   |\n| watermelon | 10  |\n");
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("| item       | qty |\n| ---------- | --- |\n| apple      | 2   |\n| watermelon | 10  |\n");
   await page.evaluate(() => {
-    const { editor } = window.jotTest;
+    const { editor } = window.wtfTest;
     editor.setPosition({ lineNumber: 6, column: 12 });
   });
   await page.keyboard.press("Enter");
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toMatch(/- \[ \] first\n- \[ \] $/);
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toMatch(/- \[ \] first\n- \[ \] $/);
   await page.keyboard.press("Enter");
-  await expect.poll(() => page.evaluate(() => window.jotTest.editor.getValue())).toMatch(/- \[ \] first\n$/);
+  await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toMatch(/- \[ \] first\n$/);
 });
 
 test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits", async ({ page }) => {
   await ready(page);
-  const source = readFileSync(new URL("../../jots/plans.jot", import.meta.url));
-  await page.locator("#file-input").setInputFiles({ name: "plans.jot", mimeType: "text/plain", buffer: source });
+  const source = readFileSync(new URL("../../notes/plans.wtf", import.meta.url));
+  await page.locator("#file-input").setInputFiles({ name: "plans.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("= $94.75 · bagels 25.75 · doughnuts 14");
   await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · binding");
   await expect(page.locator("#problems")).toBeHidden();
@@ -380,7 +380,7 @@ test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits
 test("itinerary stops render one hue per kind with bold markers", async ({ page }) => {
   await ready(page);
   await page.evaluate(() => {
-    window.jotTest.editor.setValue("## Friday, November 20, 2026 · Oaxaca\n\n07:04 AM  > Depart JFK for MEX\n11:55 AM  < Arrive at MEX\n06:00 PM  @ Check in to Majagua\n");
+    window.wtfTest.editor.setValue("## Friday, November 20, 2026 · Oaxaca\n\n07:04 AM  > Depart JFK for MEX\n11:55 AM  < Arrive at MEX\n06:00 PM  @ Check in to Majagua\n");
   });
   const token = text => renderedToken(page, text);
   await expect(token("Depart JFK for MEX")).toHaveCSS("color", "rgb(255, 176, 112)");
@@ -396,24 +396,24 @@ test("the book runs every example as a live block on the shared engine", async (
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/book/?test");
   await expect(page.locator("#engine")).toHaveText("Rust / WebAssembly · running in this page", { timeout: 45_000 });
-  await page.waitForFunction(() => window.jotBook?.ready);
-  const first = page.locator('.jot-block[data-file="01-values.jot"]');
+  await page.waitForFunction(() => window.wtfBook?.ready);
+  const first = page.locator('.wtf-block[data-file="01-values.wtf"]');
   await expect(first.locator(".view")).toContainText("$556");
-  await expect(first.locator(".view .t-jotMoney").first()).toHaveCSS("color", "rgb(180, 217, 138)");
+  await expect(first.locator(".view .t-wtfMoney").first()).toHaveCSS("color", "rgb(180, 217, 138)");
   // Editing a block re-solves it on the engine.
-  await first.evaluate(el => window.jotBook.blocks.find(b => b === el).setText("[$10]:a\n[$4]:b\n[c] := a + b\n"));
+  await first.evaluate(el => window.wtfBook.blocks.find(b => b === el).setText("[$10]:a\n[$4]:b\n[c] := a + b\n"));
   await expect(first.locator(".view")).toContainText("= $14");
   // Inlays sit inline at their anchor, right after the definition, not at the line end.
   const inlay = first.locator(".view .inlay").first();
   await expect(inlay).toHaveText("= $14");
   expect(await inlay.evaluate(el => el.previousSibling?.textContent?.endsWith("a + b") || el.previousSibling?.textContent?.endsWith("b"))).toBe(true);
   // Cross-note values resolve because every block shares one workspace.
-  await expect(page.locator('.jot-block[data-file="27-cross-note-values.jot"] .view')).toContainText("$3,040");
+  await expect(page.locator('.wtf-block[data-file="27-cross-note-values.wtf"] .view')).toContainText("$3,040");
   // Plans solve in the page, and itineraries paint their kinds.
-  await expect(page.locator('.jot-block[data-file="14-plans.jot"] .view')).toContainText("= $94.75");
-  await expect(page.locator('.jot-block[data-file="19-itinerary.jot"] .view .t-jotDepart').first()).toBeVisible();
+  await expect(page.locator('.wtf-block[data-file="14-plans.wtf"] .view')).toContainText("= $94.75");
+  await expect(page.locator('.wtf-block[data-file="19-itinerary.wtf"] .view .t-wtfDepart').first()).toBeVisible();
   // Hovering a name shows a floating box with the engine's hover, not a panel below.
-  const box = page.locator('.jot-block[data-file="02-calculations.jot"]');
+  const box = page.locator('.wtf-block[data-file="02-calculations.wtf"]');
   await box.scrollIntoViewIfNeeded();
   const view = box.locator(".view");
   const text = await view.evaluate(el => el.textContent);
@@ -435,6 +435,6 @@ test("the book runs every example as a live block on the shared engine", async (
   await expect(first.locator(".view")).toHaveCSS("font-family", /Ioskeley Mono/);
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
   // Unfetched lookups are warnings, listed under the block.
-  await expect(page.locator('.jot-block[data-file="05-currencies.jot"] .problems .warn').first()).toContainText("No cached rate");
+  await expect(page.locator('.wtf-block[data-file="05-currencies.wtf"] .problems .warn').first()).toContainText("No cached rate");
   expect(errors).toEqual([]);
 });

@@ -618,7 +618,7 @@ pub fn export(
         "constraints": constraints,
     }))
 }
-/// Jot source for an alps problem file.
+/// WTF source for an alps problem file.
 pub fn import(name: &str, problem: &serde_json::Value) -> Result<String, String> {
     if !identifier(name) {
         return Err("Plan names use letters, digits, and underscores".into());

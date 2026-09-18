@@ -1,5 +1,11 @@
 use chrono::NaiveDate;
-use jot::{
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    process::Command,
+};
+use tower_lsp::lsp_types::{Position, Range};
+use wtf::{
     actions, cli,
     document::Document,
     editor,
@@ -7,12 +13,6 @@ use jot::{
     resources,
     workspace::Workspace,
 };
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    process::Command,
-};
-use tower_lsp::lsp_types::{Position, Range};
 
 fn today() -> NaiveDate {
     NaiveDate::from_ymd_opt(2026, 9, 16).unwrap()
@@ -35,7 +35,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
 }
 fn evaluate(ws: &Workspace, name: &str) -> Value {
     Engine::new(ws, today())
-        .named(Path::new("/notes/daily.jot"), name)
+        .named(Path::new("/notes/daily.wtf"), name)
         .unwrap()
 }
 fn replace(ws: &mut Workspace, path: &Path, edits: &[tower_lsp::lsp_types::TextEdit]) {
@@ -46,21 +46,21 @@ fn replace(ws: &mut Workspace, path: &Path, edits: &[tower_lsp::lsp_types::TextE
 #[test]
 fn parser_distinguishes_markdown_tasks_code_and_multiple_literals() {
     let ws = workspace(&[(
-        "daily.jot",
-        "# Heading\nBudget [$3,000]:budget. Spent [$1,410]:spent.\n[remaining] := budget-spent\n- [ ] Review [remaining] @estimate(20m)\n[Website](https://example.com) ![pic](./image.png)\n`[ignored] := 44`\n```jot\n[also_ignored] := 9\n```\n<!-- [hidden] := 5 -->\n[日本語]:label\n",
+        "daily.wtf",
+        "# Heading\nBudget [$3,000]:budget. Spent [$1,410]:spent.\n[remaining] := budget-spent\n- [ ] Review [remaining] @estimate(20m)\n[Website](https://example.com) ![pic](./image.png)\n`[ignored] := 44`\n```wtf\n[also_ignored] := 9\n```\n<!-- [hidden] := 5 -->\n[日本語]:label\n",
     )]);
-    let doc = &ws.documents[Path::new("/notes/daily.jot")];
+    let doc = &ws.documents[Path::new("/notes/daily.wtf")];
     assert_eq!(doc.definitions.len(), 4);
     assert_eq!(doc.tasks.len(), 1);
     assert_eq!(doc.links.len(), 2);
     assert_eq!(evaluate(&ws, "remaining").display(), "$1,590");
     assert_eq!(evaluate(&ws, "label").display(), "日本語");
-    assert!(editor::problems(&ws, Path::new("/notes/daily.jot"), today()).is_empty());
+    assert!(editor::problems(&ws, Path::new("/notes/daily.wtf"), today()).is_empty());
 }
 #[test]
 fn expressions_have_precedence_dates_durations_and_boolean_properties() {
     let ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "[n] := 2+3*4\n[grouped] := (2+3)*4\n[division] := 10 / 2\n[ratio] := $60 / $100\n[2026-09-25]:departure\n[due] := departure-7d\n[time] := 30m*2+1h\n[ok] := n == 14 && grouped > n\n[short] := false && missing.merged\n",
     )]);
     for (name, expected) in [
@@ -76,10 +76,10 @@ fn expressions_have_precedence_dates_durations_and_boolean_properties() {
         assert_eq!(evaluate(&ws, name).display(), expected);
     }
     let mut engine = Engine::new(&ws, today());
-    assert!(engine.eval(Path::new("/notes/daily.jot"), "1/0").is_err());
+    assert!(engine.eval(Path::new("/notes/daily.wtf"), "1/0").is_err());
     assert!(
         engine
-            .eval(Path::new("/notes/daily.jot"), "2026-09-25 + 1h")
+            .eval(Path::new("/notes/daily.wtf"), "2026-09-25 + 1h")
             .is_err()
     );
 }
@@ -87,35 +87,35 @@ fn expressions_have_precedence_dates_durations_and_boolean_properties() {
 fn forward_references_cross_files_and_cycles() {
     let ws = workspace(&[
         (
-            "daily.jot",
+            "daily.wtf",
             "[remaining] := budget - spent\n[spent] := 1410\n[a] := b\n[b] := a\n",
         ),
-        ("resources.jot", "[$3,000]:budget\n"),
+        ("resources.wtf", "[$3,000]:budget\n"),
     ]);
     assert_eq!(evaluate(&ws, "remaining").display(), "$1,590");
     assert!(
         Engine::new(&ws, today())
-            .named(Path::new("/notes/daily.jot"), "a")
+            .named(Path::new("/notes/daily.wtf"), "a")
             .unwrap_err()
             .contains("cycle")
     );
     let ws = workspace(&[
-        ("daily.jot", "Use [budget]."),
-        ("one.jot", "[10]:budget"),
-        ("two.jot", "[20]:budget"),
+        ("daily.wtf", "Use [budget]."),
+        ("one.wtf", "[10]:budget"),
+        ("two.wtf", "[20]:budget"),
     ]);
     assert!(
         Engine::new(&ws, today())
-            .named(Path::new("/notes/daily.jot"), "budget")
+            .named(Path::new("/notes/daily.wtf"), "budget")
             .unwrap_err()
             .contains("Ambiguous")
     );
 }
 #[test]
 fn checklist_counts_leaves_and_completes_hierarchy() {
-    let path = Path::new("/notes/daily.jot");
+    let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "## Release :release\n- [ ] Parent\n  - [x] First\n  - [ ] Second @estimate(30m)\n- [ ] Third @estimate(10m)\n- [ ] Fourth @estimate(20m)\n[progress] := completed(release)/total(release)\n[work] := effort(release)\n",
     )]);
     assert_eq!(evaluate(&ws, "progress").display(), "25%");
@@ -142,9 +142,9 @@ fn checklist_counts_leaves_and_completes_hierarchy() {
 }
 #[test]
 fn task_dependencies_block_and_detect_cycles() {
-    let path = Path::new("/notes/daily.jot");
+    let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "- [ ] Review :review\n- [ ] Publish @after(review)\n",
     )]);
     assert!(
@@ -155,7 +155,7 @@ fn task_dependencies_block_and_detect_cycles() {
     let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
     replace(&mut ws, path, &edits);
     assert!(actions::toggle_task(&ws, path, 1, today()).is_ok());
-    let ws = workspace(&[("daily.jot", "- [ ] A :a @after(b)\n- [ ] B :b @after(a)\n")]);
+    let ws = workspace(&[("daily.wtf", "- [ ] A :a @after(b)\n- [ ] B :b @after(a)\n")]);
     assert!(
         Engine::new(&ws, today())
             .blocked(path, 0)
@@ -165,9 +165,9 @@ fn task_dependencies_block_and_detect_cycles() {
 }
 #[test]
 fn recurrence_preserves_month_end_and_completion_history() {
-    let path = Path::new("/notes/daily.jot");
+    let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "- [ ] Pay bill :bill @every(month) @due(2026-01-31)\n",
     )]);
     let jan = NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
@@ -179,29 +179,29 @@ fn recurrence_preserves_month_end_and_completion_history() {
     let edits = actions::toggle_task(&ws, path, 0, feb).unwrap();
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-03-31)"));
-    assert_eq!(ws.documents[path].text.matches("jot-history").count(), 2);
+    assert_eq!(ws.documents[path].text.matches("wtf-history").count(), 2);
     assert!(!ws.documents[path].tasks[0].checked);
     assert_eq!(ws.documents[path].tasks.len(), 1);
     assert!(editor::problems(&ws, path, feb).is_empty());
 }
 #[test]
 fn recurring_unscheduled_task_and_crlf_no_trailing_newline() {
-    let path = Path::new("/notes/daily.jot");
-    let mut ws = workspace(&[("daily.jot", "# Life\r\n- [ ] Walk @every(day)")]);
+    let path = Path::new("/notes/daily.wtf");
+    let mut ws = workspace(&[("daily.wtf", "# Life\r\n- [ ] Walk @every(day)")]);
     let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
     replace(&mut ws, path, &edits);
     assert!(
         ws.documents[path]
             .text
-            .contains("@due(2026-09-17) @repeat_from(2026-09-16)\r\n<!-- jot-history")
+            .contains("@due(2026-09-17) @repeat_from(2026-09-16)\r\n<!-- wtf-history")
     );
     assert_eq!(ws.documents[path].tasks.len(), 1);
 }
 #[test]
 fn relative_dates_freeze_and_appointments_are_separate() {
-    let path = Path::new("/notes/daily.jot");
+    let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "- [ ] Call @due(next Friday)\n- [ ] Plan @scheduled(tomorrow)\n- Coffee @at(2026-09-16T14:00-04:00)\n",
     )]);
     assert!(editor::problems(&ws, path, today()).is_empty());
@@ -222,9 +222,9 @@ fn relative_dates_freeze_and_appointments_are_separate() {
 }
 #[test]
 fn unicode_highlights_and_edits_use_utf16_positions() {
-    let path = Path::new("/notes/daily.jot");
+    let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "# café 🌴\r\n- [ ] 日本語 🌴 [$30]:cost @due(tomorrow)\r\n[cost_plus] := cost+5\r\n",
     )]);
     let doc = &ws.documents[path];
@@ -256,15 +256,15 @@ fn unicode_highlights_and_edits_use_utf16_positions() {
 #[test]
 fn resources_keep_definition_origin_through_cross_file_aliases() {
     let ws = workspace(&[
-        ("daily.jot", "[alias] := receipt\n"),
-        ("project/resources.jot", "[./assets/receipt.png]:receipt\n"),
+        ("daily.wtf", "[alias] := receipt\n"),
+        ("project/resources.wtf", "[./assets/receipt.png]:receipt\n"),
     ]);
     let Value::Resource(resource) = evaluate(&ws, "alias") else {
         panic!()
     };
     assert_eq!(
         resource
-            .url(Path::new("/notes/daily.jot"))
+            .url(Path::new("/notes/daily.wtf"))
             .unwrap()
             .as_str(),
         "file:///notes/project/assets/receipt.png"
@@ -272,7 +272,7 @@ fn resources_keep_definition_origin_through_cross_file_aliases() {
     assert!(
         resources::Resource::parse("geo:40.73,-73.98")
             .unwrap()
-            .url(Path::new("/notes/daily.jot"))
+            .url(Path::new("/notes/daily.wtf"))
             .unwrap()
             .as_str()
             .contains("openstreetmap")
@@ -280,19 +280,19 @@ fn resources_keep_definition_origin_through_cross_file_aliases() {
     assert!(
         resources::Resource::parse("geo:91,0")
             .unwrap()
-            .url(Path::new("/notes/daily.jot"))
+            .url(Path::new("/notes/daily.wtf"))
             .is_err()
     );
 }
 #[test]
 fn cached_github_status_is_typed_and_absent_checks_are_unknown() {
     let mut ws = workspace(&[(
-        "daily.jot",
+        "daily.wtf",
         "[https://github.com/acme/app/pull/42]:pr\n[ready] := pr.merged && pr.checks_passed\n",
     )]);
     assert!(
         Engine::new(&ws, today())
-            .named(Path::new("/notes/daily.jot"), "ready")
+            .named(Path::new("/notes/daily.wtf"), "ready")
             .is_err()
     );
     let now = chrono::DateTime::parse_from_rfc3339("2026-09-16T12:00:00Z")
@@ -316,12 +316,12 @@ fn cached_github_status_is_typed_and_absent_checks_are_unknown() {
 fn cli_capture_agenda_complete_and_ignored_notes() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
-    std::fs::write(root.join(".gitignore"), "ignored.jot\n").unwrap();
-    std::fs::write(root.join("ignored.jot"), "- [ ] invisible\n").unwrap();
+    std::fs::write(root.join(".gitignore"), "ignored.wtf\n").unwrap();
+    std::fs::write(root.join("ignored.wtf"), "- [ ] invisible\n").unwrap();
     std::fs::create_dir(root.join("target")).unwrap();
-    std::fs::write(root.join("target/build.jot"), "- [ ] also invisible\n").unwrap();
+    std::fs::write(root.join("target/build.wtf"), "- [ ] also invisible\n").unwrap();
     let run = |args: &[&str]| {
-        let output = Command::new(env!("CARGO_BIN_EXE_jot"))
+        let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
             .current_dir(&root)
             .args(args)
             .output()
@@ -343,7 +343,7 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
         "--on",
         "2026-09-16",
     ]);
-    let note = std::fs::read_to_string(root.join("inbox.jot")).unwrap();
+    let note = std::fs::read_to_string(root.join("inbox.wtf")).unwrap();
     assert!(note.contains("@due(2026-09-18)"));
     let tasks: serde_json::Value =
         serde_json::from_str(&run(&["tasks", "--tag", "errands", "--json"])).unwrap();
@@ -352,9 +352,9 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
     let agenda: serde_json::Value =
         serde_json::from_str(&run(&["agenda", "--week", "--on", "2026-09-16", "--json"])).unwrap();
     assert_eq!(agenda.as_array().unwrap().len(), 1);
-    run(&["complete", "inbox.jot:1", "--on", "2026-09-18"]);
+    run(&["complete", "inbox.wtf:1", "--on", "2026-09-18"]);
     assert!(
-        std::fs::read_to_string(root.join("inbox.jot"))
+        std::fs::read_to_string(root.join("inbox.wtf"))
             .unwrap()
             .contains("[x]")
     );
@@ -367,8 +367,8 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
 fn capture_keeps_existing_content_and_can_reference_same_note() {
     let temp = tempfile::tempdir().unwrap();
     let original = "[2026-09-25]:departure\n- [ ] Existing @due(tomorrow)\n";
-    std::fs::write(temp.path().join("inbox.jot"), original).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_jot"))
+    std::fs::write(temp.path().join("inbox.wtf"), original).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(temp.path())
         .args([
             "capture",
@@ -385,7 +385,7 @@ fn capture_keeps_existing_content_and_can_reference_same_note() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let saved = std::fs::read_to_string(temp.path().join("inbox.jot")).unwrap();
+    let saved = std::fs::read_to_string(temp.path().join("inbox.wtf")).unwrap();
     assert!(saved.starts_with(original));
     assert!(saved.contains("Book hotel @due(departure-7d)"));
 }
@@ -399,14 +399,14 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
     let bin = root.join("bin");
     std::fs::create_dir(&bin).unwrap();
     let gh = bin.join("gh");
-    std::fs::write(&gh,"#!/bin/sh\nif [ \"${JOT_TEST_FAIL:-}\" = 1 ]; then printf '%s\\n' 'fixture failure' >&2; exit 1; fi\nprintf '%s\\n' '{\"title\":\"Fixture PR\",\"state\":\"MERGED\",\"mergedAt\":\"2026-09-16T12:00:00Z\",\"statusCheckRollup\":[{\"conclusion\":\"SUCCESS\"}]}'\n").unwrap();
+    std::fs::write(&gh,"#!/bin/sh\nif [ \"${WTF_TEST_FAIL:-}\" = 1 ]; then printf '%s\\n' 'fixture failure' >&2; exit 1; fi\nprintf '%s\\n' '{\"title\":\"Fixture PR\",\"state\":\"MERGED\",\"mergedAt\":\"2026-09-16T12:00:00Z\",\"statusCheckRollup\":[{\"conclusion\":\"SUCCESS\"}]}'\n").unwrap();
     std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
     std::fs::write(
-        root.join("links.jot"),
+        root.join("links.wtf"),
         "[https://github.com/acme/app/pull/42]:pr\n[ready] := pr.merged && pr.checks_passed\n",
     )
     .unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_jot"))
+    let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(root)
         .env("PATH", &bin)
         .arg("refresh")
@@ -417,23 +417,23 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let cache = std::fs::read(root.join(".jot/cache.json")).unwrap();
+    let cache = std::fs::read(root.join(".wtf/cache.json")).unwrap();
     let ws = Workspace::load(vec![root.canonicalize().unwrap()]).unwrap();
     assert_eq!(
         Engine::new(&ws, today())
-            .named(&root.canonicalize().unwrap().join("links.jot"), "ready")
+            .named(&root.canonicalize().unwrap().join("links.wtf"), "ready")
             .unwrap(),
         Value::Bool(true)
     );
-    let failed = Command::new(env!("CARGO_BIN_EXE_jot"))
+    let failed = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(root)
         .env("PATH", &bin)
-        .env("JOT_TEST_FAIL", "1")
+        .env("WTF_TEST_FAIL", "1")
         .arg("refresh")
         .output()
         .unwrap();
     assert!(!failed.status.success());
-    assert_eq!(std::fs::read(root.join(".jot/cache.json")).unwrap(), cache);
+    assert_eq!(std::fs::read(root.join(".wtf/cache.json")).unwrap(), cache);
 }
 
 #[test]
@@ -441,12 +441,12 @@ fn cli_plan_solves_exports_and_imports_alps_problems() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(
-        root.join("bakery.jot"),
+        root.join("bakery.wtf"),
         "[400]:flour_stock\n[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| --- | --- |\n| flour | 12 * bagels + 6.5 * doughnuts <= flour_stock |\n| bagel_min | bagels >= 12 |\n| doughnut_min | doughnuts >= 14 |\n",
     )
     .unwrap();
     let run = |args: &[&str]| {
-        let output = Command::new(env!("CARGO_BIN_EXE_jot"))
+        let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
             .current_dir(&root)
             .args(args)
             .output()
@@ -480,9 +480,9 @@ fn cli_plan_solves_exports_and_imports_alps_problems() {
         imported.starts_with("[problem] := maximize(3 * bagels + 1.25 * doughnuts)\n| constraint"),
         "{imported}"
     );
-    std::fs::write(root.join("imported.jot"), &imported).unwrap();
+    std::fs::write(root.join("imported.wtf"), &imported).unwrap();
     assert!(run(&["plan", "problem"]).contains("94.75"));
-    let missing = Command::new(env!("CARGO_BIN_EXE_jot"))
+    let missing = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
         .args(["plan", "flour_stock"])
         .output()

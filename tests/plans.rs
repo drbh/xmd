@@ -1,19 +1,19 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     actions, diagnostics,
     document::Document,
     engine::{Engine, Value},
     hierarchy, intelligence, plans, presentation, symbols, tables, typing,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn note(source: &str) -> Workspace {
     Workspace {
@@ -65,7 +65,7 @@ fn a_plan_solves_reactively_with_note_values_as_constants() {
     let solved = plan(&ws, "bakery");
     assert_eq!(
         solved.objective,
-        Value::Money(94.75, jot::engine::Currency::USD)
+        Value::Money(94.75, wtf::engine::Currency::USD)
     );
     assert_eq!(
         solved.variables,
@@ -99,7 +99,7 @@ fn a_plan_solves_reactively_with_note_values_as_constants() {
     let less = note(&BAKERY.replace("[400]:flour_stock", "[300]:flour_stock"));
     assert_eq!(
         plan(&less, "bakery").objective,
-        Value::Money(69.75, jot::engine::Currency::USD)
+        Value::Money(69.75, wtf::engine::Currency::USD)
     );
 }
 
@@ -273,7 +273,7 @@ fn inlays_symbols_and_formatting_cover_the_constraint_table() {
 #[test]
 fn the_dependency_graph_links_plans_constants_and_variables() {
     let ws = note(BAKERY);
-    let names = |edges: Vec<(Symbol, Vec<jot::document::Span>)>| {
+    let names = |edges: Vec<(Symbol, Vec<wtf::document::Span>)>| {
         edges
             .into_iter()
             .map(|(s, _)| hierarchy::label(&ws, &s))
@@ -358,7 +358,7 @@ fn goal_seek_inverts_a_chain_of_calculations() {
     let exact = note("[price] := solve(price * 40 == $1,000)\n");
     assert_eq!(
         Engine::at(&exact, now()).named(path(), "price").unwrap(),
-        Value::Money(25.0, jot::engine::Currency::USD)
+        Value::Money(25.0, wtf::engine::Currency::USD)
     );
     let unrelated = note("[x] := solve(3 >= 2)\n");
     assert_eq!(
@@ -432,7 +432,7 @@ fn decision_columns_become_per_row_choices_and_counts() {
     let diet = plan(&ws, "diet");
     assert_eq!(
         diet.objective,
-        Value::Money(8.0, jot::engine::Currency::USD)
+        Value::Money(8.0, wtf::engine::Currency::USD)
     );
     assert_eq!(diet.rows[0].1, Value::Number(4.0));
     assert_eq!(diet.rows[1].1, Value::Number(0.0));
@@ -489,7 +489,7 @@ fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
     assert_eq!(labels(14), ["→ 4"]);
     assert_eq!(labels(16), ["= $8 · servings 4"]);
     let line = Position::new(7, 2);
-    let actions = jot::refactor::actions_for(&ws, path(), Range::new(line, line), now());
+    let actions = wtf::refactor::actions_for(&ws, path(), Range::new(line, line), now());
     let fill = actions
         .iter()
         .find(|a| a.title == "Write the plan's choices into the table")
@@ -508,6 +508,6 @@ fn decision_cells_get_inlays_and_a_code_action_writes_them_back() {
     let rewritten = note(&written);
     assert_eq!(plan(&rewritten, "pack").objective, Value::Number(20.0));
     assert!(tables::formatting(&rewritten.documents[path()]).is_empty());
-    let none = jot::refactor::actions_for(&rewritten, path(), Range::new(line, line), now());
+    let none = wtf::refactor::actions_for(&rewritten, path(), Range::new(line, line), now());
     assert!(none.iter().all(|a| !a.title.starts_with("Write the plan")));
 }

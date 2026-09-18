@@ -1,17 +1,17 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use lsp_types::DocumentSymbol;
+use std::path::Path;
+use wtf::{
     document::{Document, Span},
     symbols::document_symbols,
     workspace::Workspace,
 };
-use lsp_types::DocumentSymbol;
-use std::path::Path;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn workspace(source: &str) -> Workspace {
     Workspace {
@@ -41,7 +41,7 @@ fn valid_ranges(symbols: &[DocumentSymbol], doc: &Document) {
             s.selection_range.end,
         ] {
             assert!((p.line as usize) < doc.text.lines().count());
-            assert!(jot::document::byte_at(doc.line(p.line as usize), p.character).is_some());
+            assert!(wtf::document::byte_at(doc.line(p.line as usize), p.character).is_some());
         }
         for child in children(s) {
             assert!(
@@ -87,7 +87,7 @@ fn symbols_nest_sections_subtasks_values_and_events_in_source_order() {
 
 #[test]
 fn symbols_preserve_utf16_crlf_and_ignore_prose_references_code_and_comments() {
-    let source = "# 🦀 Trip\r\n🦀 [2026-09-20]:departure and [2]:days.\r\n[finish] := departure + 2d   \r\nUse [finish].\r\n`[3]:hidden` <!-- [4]:hidden2 -->\r\n```jot\r\n# Hidden\r\n[9]:hidden3\r\n```\r\n";
+    let source = "# 🦀 Trip\r\n🦀 [2026-09-20]:departure and [2]:days.\r\n[finish] := departure + 2d   \r\nUse [finish].\r\n`[3]:hidden` <!-- [4]:hidden2 -->\r\n```wtf\r\n# Hidden\r\n[9]:hidden3\r\n```\r\n";
     let ws = workspace(source);
     let result = document_symbols(&ws, path(), now());
     assert_eq!(names(&result), ["🦀 Trip"]);
@@ -108,7 +108,7 @@ fn symbols_preserve_utf16_crlf_and_ignore_prose_references_code_and_comments() {
 fn symbols_work_without_headings_and_report_errors_without_disappearing() {
     let mut ws = workspace("[cost] := budget + $10\n[bad] := missing + 1\n- [ ] \n# \n");
     ws.documents.insert(
-        "/notes/other.jot".into(),
+        "/notes/other.wtf".into(),
         Document::parse("[$90]:budget\n".into()),
     );
     let result = document_symbols(&ws, path(), now());

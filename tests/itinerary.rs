@@ -1,10 +1,10 @@
 use chrono::{DateTime, FixedOffset, NaiveDate};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     actions, cli, diagnostics, document::Document, intelligence, itinerary, presentation, symbols,
     tables, workspace::Workspace,
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
@@ -13,7 +13,7 @@ fn today() -> NaiveDate {
     now().date_naive()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/trip.jot")
+    Path::new("/notes/trip.wtf")
 }
 fn note(source: &str) -> Workspace {
     Workspace {

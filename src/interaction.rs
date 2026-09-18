@@ -89,7 +89,7 @@ pub fn row_commands(
                         action[..1].to_uppercase(),
                         &action[1..]
                     ),
-                    command: "jot.timer".into(),
+                    command: "wtf.timer".into(),
                     arguments: Some(vec![
                         serde_json::json!(crate::paths::file_url(&origin.path).unwrap()),
                         serde_json::json!(name),
@@ -112,7 +112,7 @@ pub fn row_commands(
         };
         result.push(Command {
             title: title.into(),
-            command: "jot.task".into(),
+            command: "wtf.task".into(),
             arguments: Some(vec![
                 serde_json::json!(uri),
                 serde_json::json!(row),
@@ -139,13 +139,13 @@ pub fn row_commands(
                     "resource"
                 }
             ),
-            command: "jot.openResource".into(),
+            command: "wtf.openResource".into(),
             arguments: Some(args.clone()),
         });
         if resources::github(&resource.target).is_some() {
             result.push(Command {
                 title: "Refresh GitHub status".into(),
-                command: "jot.refreshResource".into(),
+                command: "wtf.refreshResource".into(),
                 arguments: Some(args),
             });
         }
@@ -158,7 +158,7 @@ pub fn row_commands(
     if wants_lookup {
         result.push(Command {
             title: "Refresh lookups".into(),
-            command: "jot.refresh".into(),
+            command: "wtf.refresh".into(),
             arguments: Some(vec![serde_json::json!(uri)]),
         });
     }

@@ -1,23 +1,23 @@
 #![cfg(feature = "browser")]
-use jot::browser::BrowserWorkspace;
 use serde_json::{Value, json};
+use wtf::browser::BrowserWorkspace;
 
-const URI: &str = "file:///workspace/trip.jot";
+const URI: &str = "file:///workspace/trip.wtf";
 const NOW: &str = "2026-09-16T14:00:00-04:00";
 
 #[test]
 fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
     let mut ws = BrowserWorkspace::new();
-    let source = "🦀 ./today.jot and https://example.com/docs.\n";
+    let source = "🦀 ./today.wtf and https://example.com/docs.\n";
     set(&mut ws, URI, source, 1);
-    let path = std::path::Path::new("/workspace/trip.jot");
-    let shared = jot::workspace::Workspace {
+    let path = std::path::Path::new("/workspace/trip.wtf");
+    let shared = wtf::workspace::Workspace {
         roots: vec!["/workspace".into()],
-        documents: [(path.into(), jot::document::Document::parse(source.into()))].into(),
+        documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
     };
-    let expected = serde_json::to_value(jot::presentation::document_links(
+    let expected = serde_json::to_value(wtf::presentation::document_links(
         &shared,
         path,
         chrono::DateTime::parse_from_rfc3339(NOW).unwrap(),
@@ -29,7 +29,7 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         request(&mut ws, "analyze", json!({"uri":URI}))["links"],
         expected
     );
-    assert_eq!(links[0]["target"], "file:///workspace/today.jot");
+    assert_eq!(links[0]["target"], "file:///workspace/today.wtf");
     assert_eq!(links[0]["range"]["start"]["character"], 3);
     let hover = request(
         &mut ws,
@@ -40,7 +40,7 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         hover["contents"]["value"]
             .as_str()
             .unwrap()
-            .contains("file:///workspace/today.jot")
+            .contains("file:///workspace/today.wtf")
     );
 }
 fn raw(ws: &mut BrowserWorkspace, method: &str, params: Value, now: &str) -> Value {
@@ -63,10 +63,10 @@ fn set(ws: &mut BrowserWorkspace, uri: &str, text: &str, version: i32) {
 fn browser_highlighting_uses_shared_lsp_legend_modifiers_and_tokens() {
     let mut ws = BrowserWorkspace::new();
     let legend = request(&mut ws, "semanticLegend", json!({}));
-    assert_eq!(legend["tokenTypes"], json!(jot::highlighting::TOKEN_TYPES));
+    assert_eq!(legend["tokenTypes"], json!(wtf::highlighting::TOKEN_TYPES));
     assert_eq!(
         legend["tokenModifiers"],
-        json!(jot::highlighting::TOKEN_MODIFIERS)
+        json!(wtf::highlighting::TOKEN_MODIFIERS)
     );
     for (i, source) in [
         "[value] := $3.30\nHave [value].",
@@ -77,8 +77,8 @@ fn browser_highlighting_uses_shared_lsp_legend_modifiers_and_tokens() {
     {
         set(&mut ws, URI, source, i as i32 + 1);
         let snapshot = request(&mut ws, "analyze", json!({"uri":URI}));
-        let doc = jot::document::Document::parse((*source).into());
-        let expected: Vec<_> = jot::highlighting::semantic_tokens(&doc)
+        let doc = wtf::document::Document::parse((*source).into());
+        let expected: Vec<_> = wtf::highlighting::semantic_tokens(&doc)
             .into_iter()
             .flat_map(|t| {
                 [
@@ -100,16 +100,16 @@ fn browser_document_symbols_are_the_standard_shared_lsp_data() {
     let mut ws = BrowserWorkspace::new();
     set(&mut ws, URI, source, 1);
     let result = request(&mut ws, "documentSymbols", json!({"uri":URI}));
-    let path = std::path::Path::new("/workspace/trip.jot");
-    let shared = jot::workspace::Workspace {
+    let path = std::path::Path::new("/workspace/trip.wtf");
+    let shared = wtf::workspace::Workspace {
         roots: vec!["/workspace".into()],
-        documents: [(path.into(), jot::document::Document::parse(source.into()))].into(),
+        documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
     };
     assert_eq!(
         result,
-        serde_json::to_value(jot::symbols::document_symbols(
+        serde_json::to_value(wtf::symbols::document_symbols(
             &shared,
             path,
             chrono::DateTime::parse_from_rfc3339(NOW).unwrap()
@@ -147,7 +147,7 @@ fn browser_tables_share_types_column_targets_and_formatting_edits() {
     let formatted = request(&mut ws, "formatting", json!({"uri":URI}));
     assert_eq!(
         formatted,
-        serde_json::to_value(jot::tables::formatting(&jot::document::Document::parse(
+        serde_json::to_value(wtf::tables::formatting(&wtf::document::Document::parse(
             text.into()
         )))
         .unwrap()
@@ -165,7 +165,7 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
     );
     set(
         &mut ws,
-        "file:///workspace/values.jot",
+        "file:///workspace/values.wtf",
         "[$3,000]:budget\n[$2,444]:spent\n",
         1,
     );
@@ -180,7 +180,7 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
         "definition",
         json!({"uri":URI,"position":{"line":0,"character":12}}),
     );
-    assert_eq!(definition["uri"], "file:///workspace/values.jot");
+    assert_eq!(definition["uri"], "file:///workspace/values.wtf");
     let renamed = request(
         &mut ws,
         "rename",
@@ -216,7 +216,7 @@ fn browser_controls_are_undoable_snapshots_and_reject_stale_versions() {
     );
     let edits: Vec<lsp_types::TextEdit> =
         serde_json::from_value(result["edit"]["documentChanges"][0]["edits"].clone()).unwrap();
-    let running = jot::actions::apply_edits(text, &edits).unwrap();
+    let running = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(running.contains("countdown(2s, 0s, 2026-09-16T14:00:00-04:00)"));
     // Returning an edit does not mutate source until the editor applies/reports it.
     assert_eq!(
@@ -246,10 +246,10 @@ fn browser_controls_are_undoable_snapshots_and_reject_stale_versions() {
 fn browser_input_validation_never_escapes_virtual_workspace() {
     let mut ws = BrowserWorkspace::new();
     for uri in [
-        "file:///etc/secrets.jot",
-        "https://example.com/note.jot",
-        "file:///workspace/../secret.jot",
-        "file:///workspace/test.jot#L1",
+        "file:///etc/secrets.wtf",
+        "https://example.com/note.wtf",
+        "file:///workspace/../secret.wtf",
+        "file:///workspace/test.wtf#L1",
     ] {
         assert_eq!(
             raw(
@@ -277,7 +277,7 @@ fn browser_input_validation_never_escapes_virtual_workspace() {
         false
     );
     let snapshot = request(&mut ws, "analyze", json!({"uri":URI}));
-    assert!(!snapshot.to_string().contains("jot.refreshResource"));
+    assert!(!snapshot.to_string().contains("wtf.refreshResource"));
     assert_eq!(
         serde_json::from_str::<Value>(&ws.request("analyze", "not JSON", NOW)).unwrap()["ok"],
         false
@@ -295,7 +295,7 @@ fn browser_on_type_formatting_shares_table_alignment_and_checklist_continuation(
         json!({"uri":URI,"position":{"line":3,"character":9},"ch":"|"}),
     );
     let edits: Vec<lsp_types::TextEdit> = serde_json::from_value(edits).unwrap();
-    let aligned = jot::actions::apply_edits(text, &edits).unwrap();
+    let aligned = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(
         aligned.contains("| name  | qty |\n| ----- | --- |\n| apple | 2   |\n"),
         "{aligned}"
@@ -307,7 +307,7 @@ fn browser_on_type_formatting_shares_table_alignment_and_checklist_continuation(
     );
     let edits: Vec<lsp_types::TextEdit> = serde_json::from_value(edits).unwrap();
     assert_eq!(
-        jot::actions::apply_edits(text, &edits).unwrap(),
+        wtf::actions::apply_edits(text, &edits).unwrap(),
         "[fruit] := table\n|name|qty|\n|---|---|\n|apple|2|\n- [ ] first\n- [ ] \n"
     );
 }

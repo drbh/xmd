@@ -1,5 +1,6 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use wtf::{
     diagnostics,
     document::Document,
     engine::{Currency, Engine, Value},
@@ -7,13 +8,12 @@ use jot::{
     intelligence,
     workspace::Workspace,
 };
-use std::{collections::BTreeMap, path::Path};
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn note(source: &str) -> Workspace {
     Workspace {
@@ -92,7 +92,7 @@ fn scalars_quoted_text_and_resources_define_without_brackets() {
         .map(|t| TOKEN_TYPES[t.token_type as usize])
         .collect();
     assert!(
-        kinds.contains(&"jotMoney") && kinds.contains(&"variable") && kinds.contains(&"jotLink")
+        kinds.contains(&"wtfMoney") && kinds.contains(&"variable") && kinds.contains(&"wtfLink")
     );
     // Bare resources are links too, so the Open lens and hover work.
     assert!(doc.links.iter().any(|l| l.target.contains("/pull/1")));

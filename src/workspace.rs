@@ -48,14 +48,14 @@ impl Workspace {
                     !e.file_type().is_some_and(|t| t.is_dir())
                         || !matches!(
                             e.file_name().to_str(),
-                            Some("target" | "node_modules" | ".git" | ".jot")
+                            Some("target" | "node_modules" | ".git" | ".wtf")
                         )
                 })
                 .build();
             for entry in walker {
                 let entry = entry.map_err(|e| e.to_string())?;
                 if entry.file_type().is_some_and(|t| t.is_file())
-                    && entry.path().extension().is_some_and(|s| s == "jot")
+                    && entry.path().extension().is_some_and(|s| s == "wtf")
                 {
                     let text = std::fs::read_to_string(entry.path())
                         .map_err(|e| format!("{}: {e}", entry.path().display()))?;
@@ -167,7 +167,7 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub fn save_cache(&self) -> Result<(), String> {
-        let dir = self.root().join(".jot");
+        let dir = self.root().join(".wtf");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let bytes = serde_json::to_vec_pretty(&self.cache).map_err(|e| e.to_string())?;
         // Atomic replacement avoids partially written cache data after a crash.

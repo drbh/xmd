@@ -1,22 +1,22 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
+use tower_lsp::lsp_types::*;
+use wtf::{
     actions, diagnostics,
     document::{Document, Span},
     engine::{Engine, Value},
     intelligence, interaction, refactor,
     workspace::Workspace,
 };
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn ws(source: &str) -> Workspace {
     Workspace {
@@ -44,10 +44,10 @@ fn prose_value_inlays_respect_unicode_ranges_and_ignore_code_and_links() {
         "🦀 [amount] and [amount].\n`[amount]` <!-- [amount] --> [amount](https://example.com)\nMissing [unknown].\n",
     );
     ws.documents.insert(
-        PathBuf::from("/notes/values.jot"),
+        PathBuf::from("/notes/values.wtf"),
         Document::parse("[$556]:amount\n".into()),
     );
-    let all = jot::editor::hints_at(
+    let all = wtf::editor::hints_at(
         &ws,
         path(),
         now(),
@@ -67,7 +67,7 @@ fn prose_value_inlays_respect_unicode_ranges_and_ignore_code_and_links() {
             .start
     );
     assert!(all.iter().all(|h| h.text_edits.is_none()));
-    let only_second = jot::editor::hints_at(
+    let only_second = wtf::editor::hints_at(
         &ws,
         path(),
         now(),
@@ -165,7 +165,7 @@ fn hovers_explain_provenance_and_link_inputs_without_rounding_the_source() {
     assert!(text.contains("remaining_cash · Money"));
     assert!(text.contains("$3,000 - $1,410"));
     assert!(text.contains("$1,590"));
-    assert!(text.contains("[budget](<file:///notes/test.jot#L1>)"));
+    assert!(text.contains("[budget](<file:///notes/test.wtf#L1>)"));
 }
 #[test]
 fn extract_preserves_precedence_prose_unicode_and_existing_names() {
@@ -200,7 +200,7 @@ fn extract_preserves_precedence_prose_unicode_and_existing_names() {
 fn inline_guards_cross_file_capture_and_freeze_is_explicit() {
     let mut ws = ws("[base] := 5\n[result] := subtotal * 2\nUse [subtotal].\n");
     ws.documents.insert(
-        PathBuf::from("/notes/other.jot"),
+        PathBuf::from("/notes/other.wtf"),
         Document::parse("[base] := 10\n[subtotal] := base + 2\n".into()),
     );
     let range = selection(&ws, 1, "subtotal");
@@ -261,7 +261,7 @@ fn unknown_name_fixes_and_ambiguity_locations_are_specific() {
             .contains("[\"TODO\"]:budegt")
     );
     let mut ws = self::ws("Use [amount].\n");
-    for file in ["a.jot", "b.jot"] {
+    for file in ["a.wtf", "b.wtf"] {
         ws.documents.insert(
             PathBuf::from(format!("/notes/{file}")),
             Document::parse("[12]:amount".into()),
@@ -339,7 +339,7 @@ fn source_literals_roundtrip_types_and_precision_for_freeze() {
     let ws = ws("");
     for value in [
         Value::Number(1.0 / 3.0),
-        Value::Money(-123.45, jot::engine::Currency::USD),
+        Value::Money(-123.45, wtf::engine::Currency::USD),
         Value::Ratio(-0.47),
         Value::Duration(73),
         Value::Text("a\"b\n".into()),

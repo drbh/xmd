@@ -1,8 +1,8 @@
 # Rates, weather, and quotes
 
-External data behind an explicit refresh. Run `jot refresh` or use the
+External data behind an explicit refresh. Run `wtf refresh` or use the
 Refresh lookups lens; nothing is fetched while you type. Values are cached in
-.jot/lookups.json with their age, so notes keep working offline.
+.wtf/lookups.json with their age, so notes keep working offline.
 
 ## Currencies
 
@@ -43,5 +43,5 @@ Itinerary days with a place get a forecast in their inlay automatically:
 Holding [shares] shares is worth [nvda].
 
 <!-- The built-in quote source is Yahoo's unofficial chart endpoint. Point
-.jot/providers.json at your own command to use something else:
+.wtf/providers.json at your own command to use something else:
 { "quote": "my-quote {symbol}" }  printing {"price": 42.5, "currency": "EUR"} -->

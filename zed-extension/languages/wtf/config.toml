@@ -1,6 +1,6 @@
-name = "Jot"
+name = "WTF"
 grammar = "markdown"
-path_suffixes = ["jot"]
+path_suffixes = ["wtf"]
 block_comment = ["<!-- ", " -->"]
 tab_size = 2
 unordered_list = ["- ", "* ", "+ "]

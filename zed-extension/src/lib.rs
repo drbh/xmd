@@ -1,8 +1,8 @@
 use zed_extension_api as zed;
 
-struct JotExtension;
+struct WtfExtension;
 
-impl zed::Extension for JotExtension {
+impl zed::Extension for WtfExtension {
     fn new() -> Self {
         Self
     }
@@ -12,7 +12,7 @@ impl zed::Extension for JotExtension {
         _language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
-        if let Some(binary) = zed::settings::LspSettings::for_worktree("jot", worktree)?.binary {
+        if let Some(binary) = zed::settings::LspSettings::for_worktree("wtf", worktree)?.binary {
             if let Some(path) = binary.path {
                 return Ok(zed::Command {
                     command: path,
@@ -22,7 +22,7 @@ impl zed::Extension for JotExtension {
             }
         }
         let root = worktree.root_path();
-        let binary = format!("{root}/target/debug/jot");
+        let binary = format!("{root}/target/debug/wtf");
 
         Ok(zed::Command {
             command: binary,
@@ -32,4 +32,4 @@ impl zed::Extension for JotExtension {
     }
 }
 
-zed::register_extension!(JotExtension);
+zed::register_extension!(WtfExtension);

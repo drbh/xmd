@@ -219,7 +219,7 @@ impl Backend {
 }
 fn file(uri: &Url) -> Result<PathBuf> {
     uri.to_file_path()
-        .map_err(|_| Error::invalid_params("Jot needs a local file URI"))
+        .map_err(|_| Error::invalid_params("WTF needs a local file URI"))
 }
 use crate::intelligence::symbol_at;
 fn edit_for(state: &State, path: &Path, edits: Vec<TextEdit>) -> WorkspaceEdit {
@@ -315,7 +315,7 @@ impl LanguageServer for Backend {
         self.rescan().await;
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
-                name: "Jot".into(),
+                name: "WTF".into(),
                 version: Some(env!("CARGO_PKG_VERSION").into()),
             }),
             capabilities: ServerCapabilities {
@@ -350,12 +350,12 @@ impl LanguageServer for Backend {
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: [
-                        "jot.refresh",
-                        "jot.today",
-                        "jot.timer",
-                        "jot.task",
-                        "jot.openResource",
-                        "jot.refreshResource",
+                        "wtf.refresh",
+                        "wtf.today",
+                        "wtf.timer",
+                        "wtf.task",
+                        "wtf.openResource",
+                        "wtf.refreshResource",
                     ]
                     .into_iter()
                     .map(str::to_string)
@@ -401,11 +401,11 @@ impl LanguageServer for Backend {
         self.client
             .log_message(
                 MessageType::INFO,
-                "Jot: tasks, timers, resources, dates, and workspace navigation ready",
+                "WTF: tasks, timers, resources, dates, and workspace navigation ready",
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"jot-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.jot"},{"globPattern":"**/.jot/cache.json"}]}))}]).await;
+            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"}]}))}]).await;
         }
         let backend = self.clone();
         tokio::spawn(async move {
@@ -834,7 +834,7 @@ impl LanguageServer for Backend {
         if row == 0 && doc.line(0).trim_start().starts_with('#') {
             result.push(CodeActionOrCommand::Command(Command {
                 title: "Show today's agenda".into(),
-                command: "jot.today".into(),
+                command: "wtf.today".into(),
                 arguments: None,
             }));
         }
@@ -856,7 +856,7 @@ impl LanguageServer for Backend {
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
         match params.command.as_str() {
-            "jot.task" => {
+            "wtf.task" => {
                 self.rescan().await;
                 let edit = {
                     let state = self.state.read().await;
@@ -884,7 +884,7 @@ impl LanguageServer for Backend {
                     ));
                 }
             }
-            "jot.openResource" | "jot.refreshResource" => {
+            "wtf.openResource" | "wtf.refreshResource" => {
                 self.rescan().await;
                 let (resource, url) = {
                     let state = self.state.read().await;
@@ -908,7 +908,7 @@ impl LanguageServer for Backend {
                     let url = resource.url(&path).map_err(Error::invalid_params)?;
                     (resource, url)
                 };
-                if params.command == "jot.openResource" {
+                if params.command == "wtf.openResource" {
                     let opened = self
                         .client
                         .show_document(ShowDocumentParams {
@@ -937,7 +937,7 @@ impl LanguageServer for Backend {
                     self.notify_changes().await;
                 }
             }
-            "jot.timer" => {
+            "wtf.timer" => {
                 let args = &params.arguments;
                 let strings: Option<Vec<_>> = args.iter().map(|v| v.as_str()).collect();
                 let strings = strings.filter(|v| v.len() == 3).ok_or_else(|| {
@@ -970,7 +970,7 @@ impl LanguageServer for Backend {
                 }
                 // The client's didChange/didSave reports the applied edit and starts/stops refreshes.
             }
-            "jot.refresh" => {
+            "wtf.refresh" => {
                 let mut workspace = self.state.read().await.workspace.clone();
                 let errors = crate::cli::refresh(&mut workspace).await;
                 {
@@ -994,7 +994,7 @@ impl LanguageServer for Backend {
                     )
                     .await;
             }
-            "jot.today" => {
+            "wtf.today" => {
                 self.rescan().await;
                 let today = Local::now().date_naive();
                 let workspace = self.state.read().await.workspace.clone();
@@ -1025,7 +1025,7 @@ impl LanguageServer for Backend {
                         lines.join("\n")
                     }
                 );
-                let dir = workspace.root().join(".jot");
+                let dir = workspace.root().join(".wtf");
                 tokio::task::spawn_blocking({
                     let dir = dir.clone();
                     move || {
@@ -1046,7 +1046,7 @@ impl LanguageServer for Backend {
                     })
                     .await;
             }
-            _ => return Err(Error::invalid_params("Unknown Jot command")),
+            _ => return Err(Error::invalid_params("Unknown WTF command")),
         }
         Ok(None)
     }

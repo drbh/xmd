@@ -43,8 +43,8 @@ Cheapest coverage takes [coverage] with [coverage.visits] visits.
 <!-- Units are checked: mixing money and durations in one expression is an
 error, and so is multiplying two variables together. Try either. -->
 
-<!-- On the command line: jot plan bakery, jot plan bakery --export > bakery.json,
-and jot plan --import bakery.json to get the Jot source back. -->
+<!-- On the command line: wtf plan bakery, wtf plan bakery --export > bakery.json,
+and wtf plan --import bakery.json to get the WTF source back. -->
 
 ## Goal seek
 

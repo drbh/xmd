@@ -1,14 +1,14 @@
-# Jot in Helix
+# WTF in Helix
 
-Helix uses the same native `jot lsp` as the other editors. No editor plugin is
+Helix uses the same native `wtf lsp` as the other editors. No editor plugin is
 required. This configuration targets Helix 25.07.1+.
 
-1. Build Jot with `cargo build --locked` from the repository root.
+1. Build WTF with `cargo build --locked` from the repository root.
 2. Merge `helix/languages.toml` into `~/.config/helix/languages.toml`, or into
    `.helix/languages.toml` in your notes project. Replace the placeholder command
-   with the absolute path to `target/debug/jot` (`jot.exe` on Windows).
-3. Copy `helix/runtime/queries/jot` into
-   `~/.config/helix/runtime/queries/jot`. The two query files inherit Helix's
+   with the absolute path to `target/debug/wtf` (`wtf.exe` on Windows).
+3. Copy `helix/runtime/queries/wtf` into
+   `~/.config/helix/runtime/queries/wtf`. The two query files inherit Helix's
    bundled Markdown highlighting and inline-language handling; no new grammar
    needs compiling. Adapt the paths if you use a different Helix config directory.
 4. Enable inlay hints in your Helix `config.toml`:
@@ -18,15 +18,15 @@ required. This configuration targets Helix 25.07.1+.
 display-inlay-hints = true
 ```
 
-Open a `.jot` file and run `hx --health jot` to check the server and Markdown
+Open a `.wtf` file and run `hx --health wtf` to check the server and Markdown
 parser/query setup. Standard Helix actions provide hover (`Space k`), go to
 definition (`gd`), rename (`Space r`), code actions (`Space a`), and formatting
 (`:format`). Task completion and timer start/pause/reset appear in code actions.
 Use `u` to undo an action and `:lsp-restart` after rebuilding the binary.
 
-The `.jot` or `.git` root marker scopes cross-file lookup. For a standalone notes
-collection, create an empty `.jot` directory at its root. Use the cargo-built
-executable; macOS's `/usr/bin/jot` is a different program.
+The `.wtf` or `.git` root marker scopes cross-file lookup. For a standalone notes
+collection, create an empty `.wtf` directory at its root. Use the cargo-built
+executable; macOS's `/usr/bin/wtf` is a different program.
 
 ## Presentation limits
 
@@ -42,5 +42,5 @@ navigation facilities. Core calculations, diagnostics, formatting, navigation,
 rename, and task/timer edits remain in Rust.
 
 Use `examples/editor-smoke` and the checklist in `docs/editors.md` for an
-interactive verification. Basic Markdown colors will differ from Jot's richer
+interactive verification. Basic Markdown colors will differ from WTF's richer
 semantic colors in the other editors.

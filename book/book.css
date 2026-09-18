@@ -28,9 +28,9 @@ p { font-size: 15px; line-height: 1.75; margin: 0 0 16px; }
 p code, li code { font: 0.9em var(--mono); background: var(--code-inline); color: #e6e6e6; padding: 1px 5px; border-radius: 0; }
 footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px; color: var(--muted); font-size: 12px; }
 
-.jot-block { margin: 24px 0 32px; border-radius: 0; overflow: hidden; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--rule); }
-.jot-block figcaption { display: flex; justify-content: space-between; padding: 8px 16px; font: 11px var(--mono); color: var(--muted); background: #121212; border-bottom: 1px solid var(--rule); }
-.jot-block .status { color: var(--muted); }
+.wtf-block { margin: 24px 0 32px; border-radius: 0; overflow: hidden; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--rule); }
+.wtf-block figcaption { display: flex; justify-content: space-between; padding: 8px 16px; font: 11px var(--mono); color: var(--muted); background: #121212; border-bottom: 1px solid var(--rule); }
+.wtf-block .status { color: var(--muted); }
 .editor { overflow-x: auto; font: 14px/1.7 var(--mono); }
 .editor .view { margin: 0; padding: 14px 18px; white-space: pre; font: inherit; tab-size: 4; min-height: 40px; color: var(--code-ink); outline: none; caret-color: #e6e6e6; }
 .editor .view:focus { box-shadow: inset 0 0 0 1px #4a4a4a; }
@@ -60,26 +60,26 @@ footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px;
 .t-operator { color: #EDB486; }
 .t-string { color: #CAD19B; }
 .t-heading { color: #D6E8C2; font-weight: 700; }
-.t-jotMoney { color: #B4D98A; font-weight: 700; }
-.t-jotDate { color: #F2B3DA; font-weight: 700; }
-.t-jotTime { color: #91DCE8; font-weight: 700; }
-.t-jotDuration { color: #F4BA7A; }
-.t-jotRatio { color: #EAC080; }
-.t-jotBoolean { color: #C6A0F6; }
-.t-jotPunctuation { color: #85938B; }
-.t-jotCode { color: #A1AE9B; }
-.t-jotLink { color: #90BED8; text-decoration: underline; }
-.t-jotCheckbox { color: #FFD580; font-weight: 700; }
-.t-jotCheckboxChecked { color: #91E6AC; font-weight: 700; }
-.t-jotTaskDone { color: #87A788; text-decoration: line-through; }
-.t-jotDay { color: #FF9ECF; font-weight: 700; }
-.t-jotPlace { color: #E2C4FF; }
-.t-jotDetailKey { color: #9DB3A6; font-style: italic; }
-.t-jotDepart { color: #FFB070; }
-.t-jotArrive { color: #9CE8A0; }
-.t-jotTransit { color: #8FCBFF; }
-.t-jotStay { color: #C9A4FF; }
-.t-jotMeal { color: #FF8FA3; }
-.t-jotVisit { color: #F6E38A; }
-.t-jotExplore { color: #7FE3D0; }
+.t-wtfMoney { color: #B4D98A; font-weight: 700; }
+.t-wtfDate { color: #F2B3DA; font-weight: 700; }
+.t-wtfTime { color: #91DCE8; font-weight: 700; }
+.t-wtfDuration { color: #F4BA7A; }
+.t-wtfRatio { color: #EAC080; }
+.t-wtfBoolean { color: #C6A0F6; }
+.t-wtfPunctuation { color: #85938B; }
+.t-wtfCode { color: #A1AE9B; }
+.t-wtfLink { color: #90BED8; text-decoration: underline; }
+.t-wtfCheckbox { color: #FFD580; font-weight: 700; }
+.t-wtfCheckboxChecked { color: #91E6AC; font-weight: 700; }
+.t-wtfTaskDone { color: #87A788; text-decoration: line-through; }
+.t-wtfDay { color: #FF9ECF; font-weight: 700; }
+.t-wtfPlace { color: #E2C4FF; }
+.t-wtfDetailKey { color: #9DB3A6; font-style: italic; }
+.t-wtfDepart { color: #FFB070; }
+.t-wtfArrive { color: #9CE8A0; }
+.t-wtfTransit { color: #8FCBFF; }
+.t-wtfStay { color: #C9A4FF; }
+.t-wtfMeal { color: #FF8FA3; }
+.t-wtfVisit { color: #F6E38A; }
+.t-wtfExplore { color: #7FE3D0; }
 @media (max-width: 900px) { body { grid-template-columns: 1fr; } .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); } main { padding: 24px 20px 64px; } }

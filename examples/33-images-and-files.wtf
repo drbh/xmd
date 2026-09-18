@@ -1,8 +1,8 @@
 # Images and files
 
-../jots/assets/sample-receipt.svg:receipt_image
-![Sample receipt](../jots/assets/sample-receipt.svg)
-./01-values.jot:first_example
+../notes/assets/sample-receipt.svg:receipt_image
+![Sample receipt](../notes/assets/sample-receipt.svg)
+./01-values.wtf:first_example
 
 - [ ] Expense lunch using [receipt_image]
 - [ ] Reread [first_example]

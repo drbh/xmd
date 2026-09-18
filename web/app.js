@@ -1,10 +1,10 @@
 import { createOutline } from "./outline.js";
 
 const $ = id => document.getElementById(id);
-const STORAGE_KEY = "jot.browser.workspace.v1";
+const STORAGE_KEY = "wtf.browser.workspace.v1";
 const initialNotes = [
-  { name: "trip.jot", text: "# Trip\n\nOur budget is [$3,000]:budget.\n\nWe've spent [$2,444]:spent.\n\n[remaining] := budget - spent\n\nWe have [remaining] remaining.\n\n<!-- Hover a value for its calculation. Edit spending to watch both hints update. -->\n" },
-  { name: "today.jot", text: "# Today :today_tasks\n\n[focus] := countdown(25m)\n[debugging] := stopwatch()\n\n- [ ] Investigate a flaky test :investigate @timer(debugging) @estimate(30m)\n- [ ] Review the fix @after(investigate) @timer(focus) @due(tomorrow)\n\nTime left: [focus.remaining].\n[progress] := completed(today_tasks) / total(today_tasks)\nProgress: [progress].\n\n<!-- References work across every note imported into this workspace. -->\nTrip money left: [remaining].\n\n[https://github.com/zed-industries/zed]:editor_source\nEditor source: [editor_source].\n" },
+  { name: "trip.wtf", text: "# Trip\n\nOur budget is [$3,000]:budget.\n\nWe've spent [$2,444]:spent.\n\n[remaining] := budget - spent\n\nWe have [remaining] remaining.\n\n<!-- Hover a value for its calculation. Edit spending to watch both hints update. -->\n" },
+  { name: "today.wtf", text: "# Today :today_tasks\n\n[focus] := countdown(25m)\n[debugging] := stopwatch()\n\n- [ ] Investigate a flaky test :investigate @timer(debugging) @estimate(30m)\n- [ ] Review the fix @after(investigate) @timer(focus) @due(tomorrow)\n\nTime left: [focus.remaining].\n[progress] := completed(today_tasks) / total(today_tasks)\nProgress: [progress].\n\n<!-- References work across every note imported into this workspace. -->\nTrip money left: [remaining].\n\n[https://github.com/zed-industries/zed]:editor_source\nEditor source: [editor_source].\n" },
 ];
 function notice(message) { $("notice").textContent = String(message); $("notice").hidden = false; }
 window.addEventListener("unhandledrejection", event => notice(event.reason?.message || event.reason));
@@ -88,20 +88,20 @@ async function boot() {
     if (active) return analyze(active.model, force).catch(error);
   }
   function nameIsValid(name) {
-    return typeof name === "string" && name.endsWith(".jot") && !name.startsWith("/") && !name.includes("\\") && !name.includes("\0")
+    return typeof name === "string" && name.endsWith(".wtf") && !name.startsWith("/") && !name.includes("\\") && !name.includes("\0")
       && name.split("/").every(part => part && part !== "." && part !== "..");
   }
   function uniqueName(name) {
     let result = name, n = 2;
-    while ([...notes.values()].some(note => note.name === result)) result = name.replace(/\.jot$/, `-${n++}.jot`);
+    while ([...notes.values()].some(note => note.name === result)) result = name.replace(/\.wtf$/, `-${n++}.wtf`);
     return result;
   }
   function addNote(name, text) {
-    if (!nameIsValid(name)) throw new Error("Use a relative .jot filename without '..' or backslashes.");
+    if (!nameIsValid(name)) throw new Error("Use a relative .wtf filename without '..' or backslashes.");
     if (new TextEncoder().encode(text).length > 1_000_000) throw new Error("Notes are limited to 1 MB in the browser.");
     name = uniqueName(name);
     const uri = monaco.Uri.file(`/workspace/${name}`);
-    const model = monaco.editor.createModel(text, "jot", uri);
+    const model = monaco.editor.createModel(text, "wtf", uri);
     // Models are created separately from the editor; suppress their automatic
     // bracket rainbow so Rust's punctuation and inert-code colors stay intact.
     model.updateOptions({ bracketColorizationOptions: { enabled: false, independentColorPoolPerBracketType: false } });
@@ -167,7 +167,7 @@ async function boot() {
       url.hash = "";
       const key = monaco.Uri.parse(url.href).toString();
       const note = notes.get(key);
-      if (!note) { notice("This file is not in the browser workspace. Import linked .jot files first; local image files are not supported yet."); return true; }
+      if (!note) { notice("This file is not in the browser workspace. Import linked .wtf files first; local image files are not supported yet."); return true; }
       choose(note, selection || (line && { lineNumber: Number(line[1]), column: 1 }));
       return true;
     }
@@ -190,9 +190,9 @@ async function boot() {
   else $("save-status").textContent = "Local saving unavailable — download a backup";
 
   $("new-note").onclick = () => {
-    const input = prompt("Note filename", "untitled.jot");
+    const input = prompt("Note filename", "untitled.wtf");
     if (input === null || !input.trim()) return;
-    try { choose(addNote(input.endsWith(".jot") ? input : `${input}.jot`, "# New note\n\n")); save(); } catch (e) { error(e); }
+    try { choose(addNote(input.endsWith(".wtf") ? input : `${input}.wtf`, "# New note\n\n")); save(); } catch (e) { error(e); }
   };
   $("import-notes").onclick = () => $("file-input").click();
   async function importFiles(files) {
@@ -228,10 +228,10 @@ async function boot() {
     day = current;
   }, 1000);
   // Opt-in test harness; the normal page does not expose editor/worker internals globally.
-  if (new URLSearchParams(location.search).has("test")) window.jotTest = { editor, monaco, notes, query, analyze, rpc, ui, choose, ready: true };
+  if (new URLSearchParams(location.search).has("test")) window.wtfTest = { editor, monaco, notes, query, analyze, rpc, ui, choose, ready: true };
 }
 
 boot().catch(error => {
   $("engine").textContent = "Could not start";
-  notice(`Could not start Jot: ${error.message}. Run bash web/build.sh, serve web/ over HTTP, and check CDN access.`);
+  notice(`Could not start WTF: ${error.message}. Run bash web/build.sh, serve web/ over HTTP, and check CDN access.`);
 });

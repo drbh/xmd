@@ -1,20 +1,20 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
-    document::Document,
-    hierarchy,
-    workspace::{Symbol, SymbolKind, Workspace},
-};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
 use tower_lsp::lsp_types::Position;
+use wtf::{
+    document::Document,
+    hierarchy,
+    workspace::{Symbol, SymbolKind, Workspace},
+};
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn ws(source: &str) -> Workspace {
     Workspace {
@@ -29,7 +29,7 @@ fn point(ws: &Workspace, row: usize, needle: &str) -> Position {
     let end = line.find(needle).unwrap() + needle.len();
     Position::new(row as u32, line[..end].encode_utf16().count() as u32)
 }
-fn names(ws: &Workspace, edges: Vec<(Symbol, Vec<jot::document::Span>)>) -> Vec<String> {
+fn names(ws: &Workspace, edges: Vec<(Symbol, Vec<wtf::document::Span>)>) -> Vec<String> {
     edges
         .into_iter()
         .map(|(s, spans)| format!("{}×{}", hierarchy::label(ws, &s), spans.len()))
@@ -135,7 +135,7 @@ fn stale_or_foreign_items_are_rejected() {
         now(),
     );
     item.data = Some(
-        serde_json::json!({"path": PathBuf::from("/notes/other.jot"), "kind": "task", "index": 0, "column": 0}),
+        serde_json::json!({"path": PathBuf::from("/notes/other.wtf"), "kind": "task", "index": 0, "column": 0}),
     );
     assert_eq!(hierarchy::decode(&ws, &item), None);
     item.data = Some(serde_json::json!({"path": path(), "kind": "task", "index": 99, "column": 0}));

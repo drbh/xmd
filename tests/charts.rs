@@ -1,19 +1,19 @@
 use chrono::{DateTime, FixedOffset};
-use jot::{
+use std::{collections::BTreeMap, path::Path};
+use tower_lsp::lsp_types::*;
+use wtf::{
     charts,
     document::Document,
     engine::Value,
     intelligence, presentation,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use std::{collections::BTreeMap, path::Path};
-use tower_lsp::lsp_types::*;
 
 fn now() -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339("2026-09-16T14:00:00-04:00").unwrap()
 }
 fn path() -> &'static Path {
-    Path::new("/notes/test.jot")
+    Path::new("/notes/test.wtf")
 }
 fn ws(source: &str) -> Workspace {
     Workspace {
@@ -40,9 +40,9 @@ fn bars_and_sparklines_are_plain_text() {
     assert_eq!(charts::sparkline(&[]), "");
     assert_eq!(
         charts::series(&[
-            Value::Money(3.0, jot::engine::Currency::USD),
-            Value::Money(9.0, jot::engine::Currency::USD),
-            Value::Money(6.0, jot::engine::Currency::USD)
+            Value::Money(3.0, wtf::engine::Currency::USD),
+            Value::Money(9.0, wtf::engine::Currency::USD),
+            Value::Money(6.0, wtf::engine::Currency::USD)
         ])
         .unwrap(),
         "`▁█▅` $3 → $9"

@@ -206,7 +206,7 @@ const FUNCTIONS: &[Function] = &[
         name: "rate",
         params: &["from: currency code", "to: currency code"],
         result: "Number",
-        documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with jot refresh or the Refresh lookups lens; hovers show the age.",
+        documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with wtf refresh or the Refresh lookups lens; hovers show the age.",
         example: "EUR, USD",
     },
     Function {
@@ -227,7 +227,7 @@ const FUNCTIONS: &[Function] = &[
         name: "quote",
         params: &["symbol: ticker code"],
         result: "Money",
-        documentation: "The cached last price for a ticker, e.g. quote(NVDA). The built-in source covers US tickers; set a quote provider in .jot/providers.json for others.",
+        documentation: "The cached last price for a ticker, e.g. quote(NVDA). The built-in source covers US tickers; set a quote provider in .wtf/providers.json for others.",
         example: "NVDA",
     },
     Function {

@@ -18,7 +18,7 @@ fn diagnostic(
     Diagnostic {
         range: span.range(&ws.documents[path].text),
         severity: Some(DiagnosticSeverity::ERROR),
-        source: Some("jot".into()),
+        source: Some("wtf".into()),
         message,
         code: Some(NumberOrString::String(code.into())),
         related_information: (!related.is_empty()).then(|| {
@@ -336,7 +336,7 @@ pub fn collect(
     // Data that has not been fetched yet is a state, not a mistake in the note.
     for issue in &mut issues {
         if issue.message.starts_with("No cached")
-            || issue.message.contains("; run jot refresh")
+            || issue.message.contains("; run wtf refresh")
             || issue.message.contains("no forecast yet")
         {
             issue.severity = Some(DiagnosticSeverity::WARNING);
@@ -361,7 +361,7 @@ fn weekday_name(weekday: chrono::Weekday) -> String {
     }
     .to_string()
 }
-/// Errors only: `jot check` passes on warnings such as unfetched lookups.
+/// Errors only: `wtf check` passes on warnings such as unfetched lookups.
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)
         .into_iter()

@@ -12,14 +12,14 @@ function emitter() {
 }
 
 export function createEditor(element, client) {
-  monaco.languages.register({ id: "jot", extensions: [".jot"] });
-  monaco.languages.setLanguageConfiguration("jot", {
+  monaco.languages.register({ id: "wtf", extensions: [".wtf"] });
+  monaco.languages.setLanguageConfiguration("wtf", {
     brackets: [["[", "]"], ["(", ")"]],
     autoClosingPairs: [{ open: "[", close: "]" }, { open: "(", close: ")" }, { open: '"', close: '"' }],
     comments: { blockComment: ["<!--", "-->"] },
   });
   // The semantic tokens below come from Rust, not a second parser in JavaScript.
-  monaco.editor.defineTheme("jot-night", {
+  monaco.editor.defineTheme("wtf-night", {
     base: "vs-dark", inherit: true,
     rules: [
       { token: "comment", foreground: "889781", fontStyle: "italic" },
@@ -33,28 +33,28 @@ export function createEditor(element, client) {
       { token: "operator", foreground: "EDB486" },
       { token: "string", foreground: "CAD19B" },
       { token: "heading", foreground: "D6E8C2", fontStyle: "bold" },
-      { token: "jotMoney", foreground: "B4D98A", fontStyle: "bold" },
-      { token: "jotDate", foreground: "F2B3DA", fontStyle: "bold" },
-      { token: "jotTime", foreground: "91DCE8", fontStyle: "bold" },
-      { token: "jotDuration", foreground: "F4BA7A" },
-      { token: "jotRatio", foreground: "EAC080" },
-      { token: "jotBoolean", foreground: "C6A0F6" },
-      { token: "jotPunctuation", foreground: "85938B" },
-      { token: "jotCode", foreground: "A1AE9B" },
-      { token: "jotLink", foreground: "90BED8", fontStyle: "underline" },
-      { token: "jotCheckbox", foreground: "FFD580", fontStyle: "bold" },
-      { token: "jotCheckboxChecked", foreground: "91E6AC", fontStyle: "bold" },
-      { token: "jotTaskDone", foreground: "87A788", fontStyle: "strikethrough" },
-      { token: "jotDay", foreground: "FF9ECF", fontStyle: "bold" },
-      { token: "jotPlace", foreground: "E2C4FF" },
-      { token: "jotDetailKey", foreground: "9DB3A6", fontStyle: "italic" },
-      { token: "jotDepart", foreground: "FFB070" }, { token: "jotDepart.declaration", foreground: "FFB070", fontStyle: "bold" },
-      { token: "jotArrive", foreground: "9CE8A0" }, { token: "jotArrive.declaration", foreground: "9CE8A0", fontStyle: "bold" },
-      { token: "jotTransit", foreground: "8FCBFF" }, { token: "jotTransit.declaration", foreground: "8FCBFF", fontStyle: "bold" },
-      { token: "jotStay", foreground: "C9A4FF" }, { token: "jotStay.declaration", foreground: "C9A4FF", fontStyle: "bold" },
-      { token: "jotMeal", foreground: "FF8FA3" }, { token: "jotMeal.declaration", foreground: "FF8FA3", fontStyle: "bold" },
-      { token: "jotVisit", foreground: "F6E38A" }, { token: "jotVisit.declaration", foreground: "F6E38A", fontStyle: "bold" },
-      { token: "jotExplore", foreground: "7FE3D0" }, { token: "jotExplore.declaration", foreground: "7FE3D0", fontStyle: "bold" },
+      { token: "wtfMoney", foreground: "B4D98A", fontStyle: "bold" },
+      { token: "wtfDate", foreground: "F2B3DA", fontStyle: "bold" },
+      { token: "wtfTime", foreground: "91DCE8", fontStyle: "bold" },
+      { token: "wtfDuration", foreground: "F4BA7A" },
+      { token: "wtfRatio", foreground: "EAC080" },
+      { token: "wtfBoolean", foreground: "C6A0F6" },
+      { token: "wtfPunctuation", foreground: "85938B" },
+      { token: "wtfCode", foreground: "A1AE9B" },
+      { token: "wtfLink", foreground: "90BED8", fontStyle: "underline" },
+      { token: "wtfCheckbox", foreground: "FFD580", fontStyle: "bold" },
+      { token: "wtfCheckboxChecked", foreground: "91E6AC", fontStyle: "bold" },
+      { token: "wtfTaskDone", foreground: "87A788", fontStyle: "strikethrough" },
+      { token: "wtfDay", foreground: "FF9ECF", fontStyle: "bold" },
+      { token: "wtfPlace", foreground: "E2C4FF" },
+      { token: "wtfDetailKey", foreground: "9DB3A6", fontStyle: "italic" },
+      { token: "wtfDepart", foreground: "FFB070" }, { token: "wtfDepart.declaration", foreground: "FFB070", fontStyle: "bold" },
+      { token: "wtfArrive", foreground: "9CE8A0" }, { token: "wtfArrive.declaration", foreground: "9CE8A0", fontStyle: "bold" },
+      { token: "wtfTransit", foreground: "8FCBFF" }, { token: "wtfTransit.declaration", foreground: "8FCBFF", fontStyle: "bold" },
+      { token: "wtfStay", foreground: "C9A4FF" }, { token: "wtfStay.declaration", foreground: "C9A4FF", fontStyle: "bold" },
+      { token: "wtfMeal", foreground: "FF8FA3" }, { token: "wtfMeal.declaration", foreground: "FF8FA3", fontStyle: "bold" },
+      { token: "wtfVisit", foreground: "F6E38A" }, { token: "wtfVisit.declaration", foreground: "F6E38A", fontStyle: "bold" },
+      { token: "wtfExplore", foreground: "7FE3D0" }, { token: "wtfExplore.declaration", foreground: "7FE3D0", fontStyle: "bold" },
     ],
     colors: {
       "editor.background": "#171b19", "editor.foreground": "#d4ded4", "editorLineNumber.foreground": "#66735f",
@@ -70,7 +70,7 @@ export function createEditor(element, client) {
     },
   });
   const editor = monaco.editor.create(element, {
-    theme: "jot-night", automaticLayout: true, fontSize: 15, lineHeight: 27,
+    theme: "wtf-night", automaticLayout: true, fontSize: 15, lineHeight: 27,
     fontFamily: '"Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     minimap: { enabled: false }, scrollBeyondLastLine: false, wordWrap: "on",
     padding: { top: 24, bottom: 24 }, renderLineHighlight: "line", lineNumbersMinChars: 3,
@@ -83,8 +83,8 @@ export function createEditor(element, client) {
     try { return await fn(...args); }
     catch (error) { client.error(error); return undefined; }
   };
-  const command = (c, versions) => ({ id: "jot.browser.execute", title: c.title, arguments: [c, versions] });
-  monaco.editor.registerCommand("jot.browser.execute", guarded(async (_accessor, c, versions) => {
+  const command = (c, versions) => ({ id: "wtf.browser.execute", title: c.title, arguments: [c, versions] });
+  monaco.editor.registerCommand("wtf.browser.execute", guarded(async (_accessor, c, versions) => {
     const result = await client.execute(c, versions);
     if (result?.edit) applyEdit(result.edit);
     if (result?.open) client.open(result.open);
@@ -104,12 +104,12 @@ export function createEditor(element, client) {
     // Validate every target before making any changes. Monaco owns each note's undo history.
     for (const { model, edits } of changes) {
       model.pushStackElement();
-      if (editor.getModel() === model) editor.executeEdits("jot", edits);
+      if (editor.getModel() === model) editor.executeEdits("wtf", edits);
       else model.pushEditOperations([], edits, () => null);
       model.pushStackElement();
     }
   }
-  monaco.languages.registerInlayHintsProvider("jot", {
+  monaco.languages.registerInlayHintsProvider("wtf", {
     onDidChangeInlayHints: hintChange.event,
     provideInlayHints: guarded(async (model, requestedRange) => {
       const result = await client.analyze(model);
@@ -119,27 +119,27 @@ export function createEditor(element, client) {
       })), dispose() {} };
     }),
   });
-  monaco.languages.registerDocumentSemanticTokensProvider("jot", {
+  monaco.languages.registerDocumentSemanticTokensProvider("wtf", {
     onDidChange: tokenChange.event,
     getLegend: () => client.legend,
     provideDocumentSemanticTokens: guarded(async model => ({ data: new Uint32Array((await client.analyze(model))?.tokens || []) })),
     releaseDocumentSemanticTokens() {},
   });
-  monaco.languages.registerCodeLensProvider("jot", {
+  monaco.languages.registerCodeLensProvider("wtf", {
     onDidChange: lensChange.event,
     provideCodeLenses: guarded(async model => {
       const result = await client.analyze(model);
       return { lenses: (result?.lenses || []).map(l => ({ range: range(l.range), command: command(l.command, result.versions) })), dispose() {} };
     }),
   });
-  monaco.languages.registerHoverProvider("jot", {
+  monaco.languages.registerHoverProvider("wtf", {
     provideHover: guarded(async (model, p) => {
       const result = await client.query(model, "hover", { position: position(p) });
       return result && { range: range(result.range), contents: [markdown(result.contents)] };
     }),
   });
   const kinds = ["Text", "Text", "Method", "Function", "Constructor", "Field", "Variable", "Class", "Interface", "Module", "Property", "Unit", "Value", "Enum", "Keyword", "Snippet", "Color", "File", "Reference", "Folder", "EnumMember", "Constant", "Struct", "Event", "Operator", "TypeParameter"];
-  monaco.languages.registerCompletionItemProvider("jot", {
+  monaco.languages.registerCompletionItemProvider("wtf", {
     triggerCharacters: ["[", "@", "."],
     provideCompletionItems: guarded(async (model, p) => {
       const items = await client.query(model, "completion", { position: position(p) });
@@ -152,7 +152,7 @@ export function createEditor(element, client) {
       })) };
     }),
   });
-  monaco.languages.registerSignatureHelpProvider("jot", {
+  monaco.languages.registerSignatureHelpProvider("wtf", {
     signatureHelpTriggerCharacters: ["(", ","], signatureHelpRetriggerCharacters: [")"],
     provideSignatureHelp: guarded(async (model, p) => {
       const result = await client.query(model, "signature", { position: position(p) });
@@ -160,7 +160,7 @@ export function createEditor(element, client) {
         signatures: result.signatures.map(s => ({ ...s, documentation: markdown(s.documentation) })) }, dispose() {} };
     }),
   });
-  monaco.languages.registerDocumentHighlightProvider("jot", {
+  monaco.languages.registerDocumentHighlightProvider("wtf", {
     provideDocumentHighlights: guarded(async (model, p) => (await client.query(model, "highlights", { position: position(p) }) || []).map(h => ({ ...h, range: range(h.range) }))),
   });
   const documentSymbol = s => ({
@@ -168,31 +168,31 @@ export function createEditor(element, client) {
     range: range(s.range), selectionRange: range(s.selectionRange),
     children: s.children?.map(documentSymbol),
   });
-  monaco.languages.registerFoldingRangeProvider("jot", {
+  monaco.languages.registerFoldingRangeProvider("wtf", {
     provideFoldingRanges: guarded(async model => ((await client.query(model, "folding")) || []).map(r => ({ start: r.startLine + 1, end: r.endLine + 1, kind: r.kind === "comment" ? monaco.languages.FoldingRangeKind.Comment : monaco.languages.FoldingRangeKind.Region }))),
   });
-  monaco.languages.registerDocumentSymbolProvider("jot", {
-    displayName: "Jot",
+  monaco.languages.registerDocumentSymbolProvider("wtf", {
+    displayName: "WTF",
     provideDocumentSymbols: guarded(async model => ((await client.query(model, "documentSymbols")) || []).map(documentSymbol)),
   });
-  monaco.languages.registerDocumentFormattingEditProvider("jot", {
+  monaco.languages.registerDocumentFormattingEditProvider("wtf", {
     provideDocumentFormattingEdits: guarded(async model => ((await client.query(model, "formatting")) || []).map(e => ({ range: range(e.range), text: e.newText }))),
   });
-  monaco.languages.registerOnTypeFormattingEditProvider("jot", {
+  monaco.languages.registerOnTypeFormattingEditProvider("wtf", {
     autoFormatTriggerCharacters: ["\n", "|"],
     provideOnTypeFormattingEdits: guarded(async (model, p, ch) => ((await client.query(model, "onTypeFormatting", { position: position(p), ch })) || []).map(e => ({ range: range(e.range), text: e.newText }))),
   });
   const location = l => ({ uri: monaco.Uri.parse(l.uri), range: range(l.range) });
-  monaco.languages.registerDefinitionProvider("jot", {
+  monaco.languages.registerDefinitionProvider("wtf", {
     provideDefinition: guarded(async (model, p) => { const result = await client.query(model, "definition", { position: position(p) }); return result && location(result); }),
   });
-  monaco.languages.registerReferenceProvider("jot", {
+  monaco.languages.registerReferenceProvider("wtf", {
     provideReferences: guarded(async (model, p, context) => {
       const result = await client.query(model, "references", { position: position(p) });
       return (context.includeDeclaration ? result || [] : (result || []).slice(1)).map(location);
     }),
   });
-  monaco.languages.registerRenameProvider("jot", {
+  monaco.languages.registerRenameProvider("wtf", {
     resolveRenameLocation: guarded(async (model, p) => {
       const result = await client.query(model, "prepareRename", { position: position(p) });
       return result && { range: range(result.range), text: result.placeholder };
@@ -202,7 +202,7 @@ export function createEditor(element, client) {
       catch (error) { return { edits: [], rejectReason: error.message }; }
     },
   });
-  monaco.languages.registerCodeActionProvider("jot", {
+  monaco.languages.registerCodeActionProvider("wtf", {
     provideCodeActions: guarded(async (model, r, context) => {
       const result = await client.query(model, "actions", { range: lspRange(r) });
       return { actions: (result?.actions || []).filter(a => !context.only || a.kind === context.only || a.kind?.startsWith(context.only + ".")).map(a => ({
@@ -211,15 +211,15 @@ export function createEditor(element, client) {
       })), dispose() {} };
     }),
   }, { providedCodeActionKinds: ["quickfix", "refactor"] });
-  monaco.languages.registerLinkProvider("jot", {
+  monaco.languages.registerLinkProvider("wtf", {
     provideLinks: guarded(async model => ({ links: ((await client.analyze(model))?.links || []).map(l => ({ range: range(l.range), url: l.target, tooltip: l.tooltip })) })),
   });
   monaco.editor.registerLinkOpener({ open: resource => client.open(resource.toString()) });
   monaco.editor.registerEditorOpener({ openCodeEditor: (_source, resource, selection) => client.open(resource.toString(), selection) });
   let lastTokens = "", lastLenses = "", lastHints = "";
   function publish(model, snapshot) {
-    monaco.editor.setModelMarkers(model, "jot", snapshot.diagnostics.map(d => ({
-      ...range(d.range), message: d.message, source: "jot", code: d.code,
+    monaco.editor.setModelMarkers(model, "wtf", snapshot.diagnostics.map(d => ({
+      ...range(d.range), message: d.message, source: "wtf", code: d.code,
       severity: d.severity === 2 ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Error,
       relatedInformation: d.relatedInformation?.map(r => ({ resource: monaco.Uri.parse(r.location.uri), ...range(r.location.range), message: r.message })),
     })));

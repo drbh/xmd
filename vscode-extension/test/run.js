@@ -6,16 +6,16 @@ const os = require("node:os");
 async function main() {
   const extension = path.resolve(__dirname, "..");
   const repo = path.dirname(extension);
-  const binary = process.env.JOT_SERVER_PATH || path.join(repo, "target", "debug", process.platform === "win32" ? "jot.exe" : "jot");
+  const binary = process.env.WTF_SERVER_PATH || path.join(repo, "target", "debug", process.platform === "win32" ? "wtf.exe" : "wtf");
   await fs.access(binary);
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "jot-vscode-"));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "wtf-vscode-"));
   const workspace = path.join(temporary, "notes");
   let passed = false;
   try {
     await fs.cp(path.join(repo, "examples", "editor-smoke"), workspace, { recursive: true });
     await fs.mkdir(path.join(workspace, ".vscode"));
     await fs.writeFile(path.join(workspace, ".vscode", "settings.json"), JSON.stringify({
-      "jot.serverPath": binary,
+      "wtf.serverPath": binary,
       "files.autoSave": "off",
       "workbench.startupEditor": "none",
       "chat.disableAIFeatures": true,

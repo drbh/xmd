@@ -33,7 +33,7 @@ impl Lsp {
         )
     }
     fn start_with_capabilities(root: &std::path::Path, capabilities: Value) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_jot"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_wtf"))
             .arg("lsp")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -96,11 +96,11 @@ impl Lsp {
         );
         assert_eq!(
             result["capabilities"]["semanticTokensProvider"]["legend"]["tokenTypes"],
-            json!(jot::highlighting::TOKEN_TYPES)
+            json!(wtf::highlighting::TOKEN_TYPES)
         );
         assert_eq!(
             result["capabilities"]["semanticTokensProvider"]["legend"]["tokenModifiers"],
-            json!(jot::highlighting::TOKEN_MODIFIERS)
+            json!(wtf::highlighting::TOKEN_MODIFIERS)
         );
         client.notify("initialized", json!({}));
         client
@@ -188,7 +188,7 @@ impl Lsp {
         );
         let edits: Vec<TextEdit> =
             serde_json::from_value(edit["documentChanges"][0]["edits"].clone()).unwrap();
-        let text = jot::actions::apply_edits(text, &edits).unwrap();
+        let text = wtf::actions::apply_edits(text, &edits).unwrap();
         self.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":version + 1},"contentChanges":[{"text":text}]}));
         assert_eq!(self.diagnostics(version as i32 + 1), json!([]));
         text
@@ -233,7 +233,7 @@ impl Drop for Lsp {
 fn selected(text: &str, row: usize, needle: &str) -> Value {
     let line = text.lines().nth(row).unwrap();
     let start = line.find(needle).unwrap();
-    serde_json::to_value(jot::document::Span::new(row, start, start + needle.len()).range(text))
+    serde_json::to_value(wtf::document::Span::new(row, start, start + needle.len()).range(text))
         .unwrap()
 }
 
@@ -241,13 +241,13 @@ fn selected(text: &str, row: usize, needle: &str) -> Value {
 fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("links.jot");
+    let path = root.join("links.wtf");
     let uri = Url::from_file_path(&path).unwrap();
-    let source = "🦀 ./packing.jot and https://example.com/docs.\n[focus] := countdown(25m)\n- [ ] Interview 09/17/2026 at 7AM\n";
+    let source = "🦀 ./packing.wtf and https://example.com/docs.\n[focus] := countdown(25m)\n- [ ] Interview 09/17/2026 at 7AM\n";
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":source}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":source}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let links = lsp.request(
@@ -257,7 +257,7 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
     assert_eq!(links.as_array().unwrap().len(), 2);
     assert_eq!(
         links[0]["target"],
-        json!(Url::from_file_path(root.join("packing.jot")).unwrap())
+        json!(Url::from_file_path(root.join("packing.wtf")).unwrap())
     );
     let hover = lsp.request(
         "textDocument/hover",
@@ -269,7 +269,7 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
         json!({"textDocument":{"uri":uri}}),
     );
     let expected =
-        jot::highlighting::semantic_tokens(&jot::document::Document::parse(source.into()));
+        wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(source.into()));
     assert_eq!(
         data,
         serde_json::to_value(lsp_types::SemanticTokens {
@@ -278,7 +278,7 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
         })
         .unwrap()
     );
-    let changed = "🦀 ../other.jot\n[focus] := $3.30\n- [x] Interview 09/17/2026 at 7AM\n";
+    let changed = "🦀 ../other.wtf\n[focus] := $3.30\n- [x] Interview 09/17/2026 at 7AM\n";
     lsp.notify(
         "textDocument/didChange",
         json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":changed}]}),
@@ -289,13 +289,13 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
         json!({"textDocument":{"uri":uri}}),
     );
     assert_eq!(links.as_array().unwrap().len(), 1);
-    assert!(links[0]["target"].as_str().unwrap().ends_with("/other.jot"));
+    assert!(links[0]["target"].as_str().unwrap().ends_with("/other.wtf"));
     let data = lsp.request(
         "textDocument/semanticTokens/full",
         json!({"textDocument":{"uri":uri}}),
     );
     let expected =
-        jot::highlighting::semantic_tokens(&jot::document::Document::parse(changed.into()));
+        wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(changed.into()));
     assert_eq!(
         data,
         serde_json::to_value(lsp_types::SemanticTokens {
@@ -310,27 +310,27 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
 fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("symbols.jot");
+    let path = root.join("symbols.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "# Trip\n[$3,000]:budget\n## Money\n[remaining] := budget - $2,444\n- [ ] Pack :pack\n  - [x] Passport\n[focus] := countdown(25m)\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let symbols = lsp.request(
         "textDocument/documentSymbol",
         json!({"textDocument":{"uri":uri}}),
     );
-    let ws = jot::workspace::Workspace {
+    let ws = wtf::workspace::Workspace {
         roots: vec![root],
-        documents: [(path.clone(), jot::document::Document::parse(text.into()))].into(),
+        documents: [(path.clone(), wtf::document::Document::parse(text.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
     };
-    let shared = jot::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
+    let shared = wtf::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());
     assert_eq!(
         symbols[0]["children"][1]["children"][0]["detail"],
@@ -361,7 +361,7 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
 fn document_symbols_fall_back_to_flat_locations_for_older_clients() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("symbols.jot");
+    let path = root.join("symbols.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "# Trip\n[42]:answer\n## Packing\n- [ ] Passport\n";
     std::fs::write(&path, text).unwrap();
@@ -383,8 +383,8 @@ fn document_symbols_fall_back_to_flat_locations_for_older_clients() {
 fn tables_and_column_interactions_work_over_standard_lsp() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let data_path = root.join("data.jot");
-    let calc_path = root.join("calc.jot");
+    let data_path = root.join("data.wtf");
+    let calc_path = root.join("calc.wtf");
     let data_uri = Url::from_file_path(&data_path).unwrap();
     let calc_uri = Url::from_file_path(&calc_path).unwrap();
     let data = "# Groceries\n[groceries] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|4|$4.30|\n";
@@ -394,12 +394,12 @@ fn tables_and_column_interactions_work_over_standard_lsp() {
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":data_uri,"languageId":"jot","version":1,"text":data}}),
+        json!({"textDocument":{"uri":data_uri,"languageId":"wtf","version":1,"text":data}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":calc_uri,"languageId":"jot","version":1,"text":calc}}),
+        json!({"textDocument":{"uri":calc_uri,"languageId":"wtf","version":1,"text":calc}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let at = json!({"textDocument":{"uri":calc_uri},"position":selected(calc,0,"price")["start"]});
@@ -447,7 +447,7 @@ fn tables_and_column_interactions_work_over_standard_lsp() {
         json!({"textDocument":{"uri":data_uri},"options":{"tabSize":2,"insertSpaces":true}}),
     );
     let edits: Vec<TextEdit> = serde_json::from_value(formatted).unwrap();
-    let formatted = jot::actions::apply_edits(data, &edits).unwrap();
+    let formatted = wtf::actions::apply_edits(data, &edits).unwrap();
     assert!(formatted.contains("| item  | quantity | price |"));
     let symbols = lsp.request(
         "textDocument/documentSymbol",
@@ -486,14 +486,14 @@ fn tables_and_column_interactions_work_over_standard_lsp() {
 fn prose_value_inlays_follow_calculations_and_update_after_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("trip.jot");
+    let path = root.join("trip.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "# Trip\n\nOur budget is [$3,000]:budget.\n\nWe've spent [$2,444]:spent.\n\n[remaining] := budget - spent\n\nWe have [remaining] remaining.\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let range = json!({"start":{"line":0,"character":0},"end":{"line":9,"character":0}});
@@ -537,14 +537,14 @@ fn prose_value_inlays_follow_calculations_and_update_after_edits() {
 fn rich_editor_interactions_work_over_stdio() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("interactions.jot");
+    let path = root.join("interactions.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "[$3,000]:budget\n[$1,410]:spent\n[cash] := budget - spent\nUse [cash].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let symbol = json!({"textDocument":{"uri":uri},"position":selected(text, 3, "cash")["start"]});
@@ -603,7 +603,7 @@ fn rich_editor_interactions_work_over_stdio() {
     let edit = &actions[0]["edit"]["documentChanges"][0];
     assert_eq!(edit["textDocument"]["version"], 1);
     let edits: Vec<TextEdit> = serde_json::from_value(edit["edits"].clone()).unwrap();
-    let extracted = jot::actions::apply_edits(text, &edits).unwrap();
+    let extracted = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(extracted.contains("[calculation] := budget - spent\n[cash] := calculation"));
     lsp.notify(
         "textDocument/didChange",
@@ -635,7 +635,7 @@ fn rich_editor_interactions_work_over_stdio() {
         .unwrap();
     let edits: Vec<TextEdit> =
         serde_json::from_value(fix["edit"]["documentChanges"][0]["edits"].clone()).unwrap();
-    let fixed = jot::actions::apply_edits(&typo, &edits).unwrap();
+    let fixed = wtf::actions::apply_edits(&typo, &edits).unwrap();
     assert_eq!(fixed, extracted);
     lsp.notify(
         "textDocument/didChange",
@@ -648,14 +648,14 @@ fn rich_editor_interactions_work_over_stdio() {
 fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targets() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("controls.jot");
+    let path = root.join("controls.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "- [ ] First :first\n[./receipt.png]:receipt\nUse [receipt].\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let lenses = lsp.request("textDocument/codeLens", json!({"textDocument":{"uri":uri}}));
@@ -687,7 +687,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
     assert_eq!(edit["documentChanges"][0]["textDocument"]["version"], 1);
     let edits: Vec<TextEdit> =
         serde_json::from_value(edit["documentChanges"][0]["edits"].clone()).unwrap();
-    let completed = jot::actions::apply_edits(text, &edits).unwrap();
+    let completed = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(completed.starts_with("- [x] First"));
     lsp.notify(
         "textDocument/didChange",
@@ -720,7 +720,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
         "Stale controls must not modify a different task"
     );
     assert!(
-        !root.join(".jot").exists(),
+        !root.join(".wtf").exists(),
         "Opening resources must not trigger a GitHub fetch/cache write"
     );
 }
@@ -729,7 +729,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
 fn live_diagnostics_and_codelenses_refresh_without_source_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("live.jot");
+    let path = root.join("live.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let start = (chrono::Local::now() + chrono::Duration::seconds(1)).to_rfc3339();
     let text = format!("[focus] := countdown(3s, 0s, {start})\n[rate] := 1s / focus.elapsed\n");
@@ -737,7 +737,7 @@ fn live_diagnostics_and_codelenses_refresh_without_source_edits() {
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert!(lsp.diagnostics(1).to_string().contains("Division by zero"));
     // A clock tick, not didChange, clears the diagnostic at the same document version.
@@ -766,14 +766,14 @@ fn live_diagnostics_and_codelenses_refresh_without_source_edits() {
 fn clients_without_snippet_or_refresh_support_receive_plain_completions() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("plain.jot");
+    let path = root.join("plain.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "[value] := cou\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start_with_capabilities(&root, json!({}));
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     lsp.diagnostics(1);
     let items = lsp.request(
@@ -795,20 +795,20 @@ fn clients_without_snippet_or_refresh_support_receive_plain_completions() {
 fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let resource = root.join("resources.jot");
+    let resource = root.join("resources.wtf");
     std::fs::write(
         &resource,
         "[./receipt.png]:receipt\n[2026-09-25]:departure\n",
     )
     .unwrap();
-    let path = root.join("daily.jot");
+    let path = root.join("daily.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "# Release :release\n- [x] Parser\n- [ ] Review [receipt] :review @estimate(30m)\n- [ ] Publish @after(review) @due(departure-7d)\n[progress] := completed(release)/total(release)\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let range = json!({"start":{"line":0,"character":0},"end":{"line":5,"character":0}});
@@ -857,7 +857,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     );
     let edits: Vec<TextEdit> =
         serde_json::from_value(complete["edit"]["documentChanges"][0]["edits"].clone()).unwrap();
-    let changed = jot::actions::apply_edits(text, &edits).unwrap();
+    let changed = wtf::actions::apply_edits(text, &edits).unwrap();
     lsp.notify(
         "textDocument/didChange",
         json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":changed}]}),
@@ -893,14 +893,14 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
 fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("timers.jot");
+    let path = root.join("timers.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let initial = "[watch] := stopwatch()\n[focus] := countdown(2s)\n- [ ] Work @timer(watch)\nSpent [watch.elapsed].\n";
     std::fs::write(&path, initial).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":initial}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":initial}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let range = json!({"start":{"line":0,"character":0},"end":{"line":99,"character":0}});
@@ -931,7 +931,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
     let edits: Vec<TextEdit> =
         serde_json::from_value(renamed["documentChanges"][0]["edits"].clone()).unwrap();
     assert!(
-        jot::actions::apply_edits(initial, &edits)
+        wtf::actions::apply_edits(initial, &edits)
             .unwrap()
             .contains("[debugging.elapsed]")
     );
@@ -1022,14 +1022,14 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
 fn on_type_formatting_and_call_hierarchy_expose_the_dependency_graph() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("plan.jot");
+    let path = root.join("plan.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "[$3,000]:budget\n[$1,410]:spent\n[cash] := budget - spent\n[half] := cash / 2\n[t] := table\n| item | qty |\n|---|---|\n| apple | 2 |\n# Plan :plan\n- [ ] Buy :buy @after(cash > spent)\n\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
 
@@ -1039,7 +1039,7 @@ fn on_type_formatting_and_call_hierarchy_expose_the_dependency_graph() {
         json!({"textDocument":{"uri":uri},"position":{"line":10,"character":0},"ch":"\n","options":{"tabSize":2,"insertSpaces":true}}),
     );
     let edits: Vec<TextEdit> = serde_json::from_value(edits).unwrap();
-    let continued = jot::actions::apply_edits(text, &edits).unwrap();
+    let continued = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(
         continued.ends_with("@after(cash > spent)\n- [ ] \n"),
         "{continued}"
@@ -1051,7 +1051,7 @@ fn on_type_formatting_and_call_hierarchy_expose_the_dependency_graph() {
         json!({"textDocument":{"uri":uri},"position":{"line":7,"character":13},"ch":"|","options":{"tabSize":2,"insertSpaces":true}}),
     );
     let edits: Vec<TextEdit> = serde_json::from_value(edits).unwrap();
-    let aligned = jot::actions::apply_edits(text, &edits).unwrap();
+    let aligned = wtf::actions::apply_edits(text, &edits).unwrap();
     assert!(
         aligned.contains("| item  | qty |\n| ----- | --- |\n| apple | 2   |\n"),
         "{aligned}"
@@ -1104,14 +1104,14 @@ fn on_type_formatting_and_call_hierarchy_expose_the_dependency_graph() {
 fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let path = root.join("bakery.jot");
+    let path = root.join("bakery.wtf");
     let uri = Url::from_file_path(&path).unwrap();
     let text = "[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| ---------- | ---------- |\n| flour | 12 * bagels + 6.5 * doughnuts <= 400 |\n| bagel_min | bagels >= 12 |\n| doughnut_min | doughnuts >= 14 |\nBake [bakery.bagels] bagels.\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
         "textDocument/didOpen",
-        json!({"textDocument":{"uri":uri,"languageId":"jot","version":1,"text":text}}),
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
     );
     assert_eq!(lsp.diagnostics(1), json!([]));
     let range = json!({"start":{"line":0,"character":0},"end":{"line":20,"character":0}});
@@ -1137,7 +1137,7 @@ fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
         serde_json::from_value(edit["documentChanges"][0]["edits"].clone()).unwrap();
     // Objective, two constraint rows, one property access: four distinct ranges.
     assert_eq!(edits.len(), 4, "{edits:?}");
-    let renamed = jot::actions::apply_edits(text, &edits).unwrap();
+    let renamed = wtf::actions::apply_edits(text, &edits).unwrap();
     assert_eq!(
         renamed.matches("bagels").count(),
         1,

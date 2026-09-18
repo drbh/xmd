@@ -5,7 +5,7 @@
 [smoke_remaining] := smoke_budget - smoke_spent
 Remaining: [smoke_remaining].
 
-<!-- Go to definition on smoke_spent above to open values.jot. -->
+<!-- Go to definition on smoke_spent above to open values.wtf. -->
 <!-- Rename smoke_spent from either file and verify both files change. -->
 
 [smoke_clock] := countdown(30s)

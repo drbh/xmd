@@ -1472,7 +1472,7 @@ impl<'a> Engine<'a> {
                             .workspace
                             .cache
                             .get(&resource.target)
-                            .ok_or("No cached GitHub status; run jot refresh")?;
+                            .ok_or("No cached GitHub status; run wtf refresh")?;
                         match key.as_str() {
                             "merged" => m
                                 .merged

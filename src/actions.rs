@@ -93,7 +93,7 @@ pub fn toggle_task(
         edits.push(TextEdit::new(
             Range::new(end, end),
             format!(
-                "{prefix}<!-- jot-history {} -->{newline}",
+                "{prefix}<!-- wtf-history {} -->{newline}",
                 history.to_string().replace("-->", "--\\u003e")
             ),
         ));

@@ -1,9 +1,9 @@
 //! External data behind explicit refreshes: exchange rates, weather forecasts
-//! and stock quotes. Values live in `.jot/lookups.json` with the time they were
+//! and stock quotes. Values live in `.wtf/lookups.json` with the time they were
 //! fetched, so notes keep working offline and every badge can show its age.
-//! Fetching happens only in the native app, on `jot refresh` or the Refresh
+//! Fetching happens only in the native app, on `wtf refresh` or the Refresh
 //! lens, through built-in keyless providers or commands from
-//! `.jot/providers.json`.
+//! `.wtf/providers.json`.
 use crate::engine::{Currency, Forecast, Value};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> 
     }
     let key = rate_key(from, to);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached rate {from}→{to}; run jot refresh or use Refresh lookups")
+        format!("No cached rate {from}→{to}; run wtf refresh or use Refresh lookups")
     })?;
     lookup.value["rate"]
         .as_f64()
@@ -70,7 +70,7 @@ pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> 
 pub fn quote(store: &Store, symbol: &str) -> Result<Value, String> {
     let key = quote_key(symbol);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached quote for {symbol}; run jot refresh or use Refresh lookups")
+        format!("No cached quote for {symbol}; run wtf refresh or use Refresh lookups")
     })?;
     let price = lookup.value["price"]
         .as_f64()
@@ -95,7 +95,7 @@ pub fn forecast(
 ) -> Result<Forecast, String> {
     let key = forecast_key(place, date);
     let lookup = store.get(&key).ok_or_else(|| {
-        format!("No cached forecast for {place} on {date}; run jot refresh or use Refresh lookups")
+        format!("No cached forecast for {place} on {date}; run wtf refresh or use Refresh lookups")
     })?;
     forecast_from(&lookup.value, fahrenheit)
         .map_err(|e| format!("Forecast for {place} on {date}: {e}"))
@@ -184,23 +184,23 @@ pub mod native {
     use std::path::Path;
 
     pub fn load(root: &Path) -> Store {
-        std::fs::read(root.join(".jot/lookups.json"))
+        std::fs::read(root.join(".wtf/lookups.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default()
     }
     pub fn save(root: &Path, store: &Store) -> Result<(), String> {
-        let dir = root.join(".jot");
+        let dir = root.join(".wtf");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let bytes = serde_json::to_vec_pretty(store).map_err(|e| e.to_string())?;
         let tmp = dir.join(format!("lookups-{}.tmp", std::process::id()));
         std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
         std::fs::rename(tmp, dir.join("lookups.json")).map_err(|e| e.to_string())
     }
-    /// `.jot/providers.json` maps a lookup kind to a command printing JSON,
+    /// `.wtf/providers.json` maps a lookup kind to a command printing JSON,
     /// with `{from}`, `{to}`, `{symbol}`, `{place}`, `{date}` placeholders.
     fn providers(root: &Path) -> BTreeMap<String, String> {
-        std::fs::read(root.join(".jot/providers.json"))
+        std::fs::read(root.join(".wtf/providers.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default()
@@ -237,7 +237,7 @@ pub mod native {
                 "--max-time",
                 "15",
                 "-A",
-                "Mozilla/5.0 jot",
+                "Mozilla/5.0 wtf",
                 url,
             ])
             .kill_on_drop(true);
@@ -302,7 +302,7 @@ pub mod native {
                     ));
                 }
                 // Yahoo's chart endpoint is unofficial but keyless; a provider
-                // command in .jot/providers.json replaces it.
+                // command in .wtf/providers.json replaces it.
                 let body = get(&format!(
                     "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d",
                     encode(symbol)
@@ -312,7 +312,7 @@ pub mod native {
                     serde_json::from_str(&body).map_err(|e| e.to_string())?;
                 let meta = &data["chart"]["result"][0]["meta"];
                 let price = meta["regularMarketPrice"].as_f64().ok_or_else(|| {
-                    format!("No quote for {symbol} from finance.yahoo.com; set a quote provider in .jot/providers.json")
+                    format!("No quote for {symbol} from finance.yahoo.com; set a quote provider in .wtf/providers.json")
                 })?;
                 Ok((
                     serde_json::json!({

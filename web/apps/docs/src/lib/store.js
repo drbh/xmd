@@ -1,5 +1,5 @@
-// Documents live in this browser. One workspace holds all of them, so names
-// resolve across documents the way they do across notes on disk.
+// Documents live in this browser. Names are local to each document; explicit
+// imports connect virtual files using their URIs, just as with notes on disk.
 const KEY = "wtf.docs.v1";
 let writable = true;
 const STARTER = `# Trip budget

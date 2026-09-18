@@ -1,8 +1,9 @@
 # Values from other notes
 
-Names resolve across every note in the workspace; local names win ties.
+Names belong to this note. Import another note to read its values explicitly.
 
-shared_budget := shared_rate * shared_hours
+source := import("./28-cross-note-source.wtf")
+shared_budget := source.shared_rate * source.shared_hours
 
 We can spend [shared_budget] this week.
 

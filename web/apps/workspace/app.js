@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 const STORAGE_KEY = "wtf.browser.workspace.v1";
 const initialNotes = [
   { name: "trip.wtf", text: "# Trip\n\nOur budget is [$3,000]:budget.\n\nWe've spent [$2,444]:spent.\n\n[remaining] := budget - spent\n\nWe have [remaining] remaining.\n\n<!-- Hover a value for its calculation. Edit spending to watch both hints update. -->\n" },
-  { name: "today.wtf", text: "# Today :today_tasks\n\n[focus] := countdown(25m)\n[debugging] := stopwatch()\n\n- [ ] Investigate a flaky test :investigate @timer(debugging) @estimate(30m)\n- [ ] Review the fix @after(investigate) @timer(focus) @due(tomorrow)\n\nTime left: [focus.remaining].\n[progress] := completed(today_tasks) / total(today_tasks)\nProgress: [progress].\n\n<!-- References work across every note imported into this workspace. -->\nTrip money left: [remaining].\n\n[https://github.com/zed-industries/zed]:editor_source\nEditor source: [editor_source].\n" },
+  { name: "today.wtf", text: "# Today :today_tasks\n\n[focus] := countdown(25m)\n[debugging] := stopwatch()\n\n- [ ] Investigate a flaky test :investigate @timer(debugging) @estimate(30m)\n- [ ] Review the fix @after(investigate) @timer(focus) @due(tomorrow)\n\nTime left: [focus.remaining].\n[progress] := completed(today_tasks) / total(today_tasks)\nProgress: [progress].\n\n<!-- Import a note explicitly to read its values. -->\nTrip money left: [trip.remaining].\n\n[https://github.com/zed-industries/zed]:editor_source\nEditor source: [editor_source].\ntrip := import(\"./trip.wtf\")\n" },
 ];
 function notice(message) { $("notice").textContent = String(message); $("notice").hidden = false; }
 window.addEventListener("unhandledrejection", event => notice(event.reason?.message || event.reason));

@@ -136,7 +136,7 @@ test("completion, signature, diagnostics and cross-note refactorings reuse Rust"
     return {
       completion: await query(model, "completion", { position: { line: 5, character: line.indexOf("@timer(") + 7 } }),
       signature: await query(model, "signature", { position: { line: 2, character: model.getLineContent(3).indexOf("25m") } }),
-      definition: await query(model, "definition", { position: { line: 13, character: 20 } }),
+      definition: await query(model, "definition", { position: { line: 13, character: 24 } }),
     };
   });
   expect(results.completion.map(c => c.label).sort()).toEqual(["debugging", "focus"]);
@@ -155,7 +155,7 @@ test("completion, signature, diagnostics and cross-note refactorings reuse Rust"
   expect(rename.documentChanges).toHaveLength(2);
   await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
   await page.getByRole("button", { name: "today.wtf", exact: true }).click();
-  await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
+  await expect(page.locator(".view-lines")).toContainText("[trip.trip_cash]");
 });
 
 test("imports are local, duplicate filenames never overwrite, no backend connections", async ({ page }) => {
@@ -452,10 +452,16 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   await box.click();
   await expect(view).toContainText("[x] Book the hotel");
   await expect(page.locator(".status")).toContainText("Saved in this browser");
-  // A second document sees the first one's names.
+  // A second document must import the first explicitly.
   await page.evaluate(() => window.wtfDocs.newDocument());
   await page.waitForFunction(() => window.wtfDocs.controller);
   await page.evaluate(() => window.wtfDocs.controller.setSource("# Second\n\nStill [remaining] to spend.\n"));
+  await expect(view).toContainText("Still [remaining]");
+  await expect(view).not.toContainText("$556");
+  await page.evaluate(() => {
+    const first = window.wtfDocs.documents.find(d => d.name === "Trip budget");
+    return window.wtfDocs.controller.setSource(`# Second\n\nStill [source.remaining] to spend.\nsource := import("./${first.id}.wtf")\n`);
+  });
   await expect(view).toContainText("$556");
   // The title follows the first heading, and saves are debounced briefly.
   await expect(page.locator(".files nav")).toContainText("Second");

@@ -10,7 +10,7 @@ export const parts = [
         title: "Naming Values",
         prose: [
           "Every WTF program starts with a value you already had to write down anyway. A dollar amount in a sentence, a date, a count of something. To make it available elsewhere, follow it with a colon and a name: <code>$3,000:budget</code>. Brackets are optional when you define something; <code>[$3,000]:budget</code> means the same, and they are the way to name text with spaces, as in <code>\"Oaxaca City\":city</code>. Write <code>\\:</code> for a colon that should not define anything.",
-          "Once a value has a name, <code>[budget]</code> reads it anywhere, in this note or any other note in the workspace. The editor shows the current value right after the reference, so a sentence like \"we have [remaining] left\" always reads with the number filled in.",
+          "Once a value has a name, <code>[budget]</code> reads it anywhere in this note. Other notes use an explicit <code>import(&quot;./file.wtf&quot;)</code> to access it. The editor shows the current value right after the reference, so a sentence like \"we have [remaining] left\" always reads with the number filled in.",
           "Try editing the amount spent below. Every reference updates as you type, because they are reading the value rather than copying it.",
         ],
       },
@@ -259,7 +259,7 @@ export const parts = [
   },
   {
     title: "The Workspace",
-    intro: "A workspace is a folder of notes. Names resolve across all of them, comments and code stay inert, and the command line reads the same files the editor does.",
+    intro: "A workspace is a folder of notes. Names stay local to each note; explicit imports connect them. Comments and code stay inert, and the command line reads the same language as the editor.",
     chapters: [
       {
         file: "26-comments-and-code.wtf",
@@ -272,7 +272,7 @@ export const parts = [
         file: "27-cross-note-values.wtf",
         title: "Values From Other Notes",
         prose: [
-          "Names resolve across every note in the workspace, and a name defined in the current note wins a tie. The two notes below share a workspace on this page, so the first reads values defined in the second.",
+          "The first note explicitly imports the second with <code>source := import(&quot;./28-cross-note-source.wtf&quot;)</code>. Read <code>source.shared_rate</code> to make the value’s origin clear. Opening another note never adds names to this one.",
         ],
         companion: "28-cross-note-source.wtf",
       },

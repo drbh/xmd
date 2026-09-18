@@ -50,11 +50,11 @@ test("dependent views refresh for source and module changes, without spurious so
     window.ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
     await ws.setDocument("file:///workspace/a.wtf", "a := 1\n");
     window.edits = [];
-    window.one = await lib.mount(document.querySelector("#one"), { workspace: ws, uri: "file:///workspace/b.wtf", source: "Value [a].\n", onChange: e => edits.push(e) });
+    window.one = await lib.mount(document.querySelector("#one"), { workspace: ws, uri: "file:///workspace/b.wtf", source: 'Value [src.a].\nsrc := import("./a.wtf")\n', onChange: e => edits.push(e) });
     edits.length = 0;
     await ws.setDocument("file:///workspace/a.wtf", "a := 42\n");
   });
-  await expect(page.locator("#one .inlay")).toContainText("42");
+  await expect(page.locator("#one .inlay").first()).toContainText("42");
   await page.evaluate(() => ws.setModules({ "custom.wtf": 'module := {api: 1, id: "custom", kind: "feature", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: "CUSTOM"}]' }));
   await expect(page.locator("#one pre")).toContainText("CUSTOM");
   expect(await page.evaluate(() => edits)).toEqual([]);
@@ -66,7 +66,7 @@ test("optional editing preserves ranges, composition, task undo and redo", async
     const { mountEditor } = await import("/lib/adapters/contenteditable.js");
     window.ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
     await ws.setDocument("file:///workspace/a.wtf", "a := 1\n");
-    window.one = await mountEditor(document.querySelector("#one"), { workspace: ws, uri: "file:///workspace/b.wtf", source: "Value [a].\n- [ ] Parent\n  - [ ] Child\n" });
+    window.one = await mountEditor(document.querySelector("#one"), { workspace: ws, uri: "file:///workspace/b.wtf", source: 'Value [src.a].\n- [ ] Parent\n  - [ ] Child\nsrc := import("./a.wtf")\n' });
     one.select(0);
   });
   await page.keyboard.down("Shift");
@@ -88,7 +88,7 @@ test("optional editing preserves ranges, composition, task undo and redo", async
   await page.evaluate(() => one.element.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true })));
   await expect.poll(() => page.evaluate(() => one.getSource())).toBe("Composing 日本語");
   await page.evaluate(() => one.undo());
-  await expect(page.locator("#one pre")).toContainText("Value [a]");
+  await expect(page.locator("#one pre")).toContainText("Value [src.a]");
   await page.locator("#one .t-wtfCheckbox").first().click();
   await expect(page.locator("#one pre")).toContainText("[x] Child @completed(2026-09-18)");
   await page.evaluate(() => one.undo());
@@ -102,14 +102,14 @@ test("file queries share functional syntax, graph data and current workspace ver
   const result = await page.evaluate(async () => {
     const ws = lib.createWorkspace({ now: "2026-09-18T12:00:00Z" });
     const uri = "file:///workspace/query.wtf";
-    await ws.setDocument(uri, "answer := rate * 2\n- [ ] Local\n");
+    await ws.setDocument(uri, 'answer := import("./other.wtf").rate * 2\n- [ ] Local\n');
     await ws.setDocument("file:///workspace/other.wtf", "3:rate\n- [ ] Other\n");
     const local = await ws.query(uri, "query", {query: "map(tasks, fn(t) => t.title)"});
     const agenda = await ws.query(uri, "query", {query: 'map(import("agenda").between(entries, today(), today()), fn(e) => e.title)'});
     const all = await ws.request("query", {query: "length(tasks)"});
     const graph = await ws.query(uri, "query", {query: "graph.nodes | where external | select name"});
     const ast = await ws.query(uri, "query", {query: 'ast | where kind == "definition" | select name'});
-    await ws.setDocument(uri, "answer := rate * 3\n");
+    await ws.setDocument(uri, 'answer := import("./other.wtf").rate * 3\n');
     const changed = await ws.query(uri, "query", {query: 'ast | where kind == "document" | select text'});
     ws.destroy();
     return {local, agenda, all, graph, ast, changed, uri};
@@ -119,7 +119,7 @@ test("file queries share functional syntax, graph data and current workspace ver
   expect(result.all.rows).toEqual([2]);
   expect(result.graph.rows).toEqual(["rate"]);
   expect(result.ast.rows).toEqual(["answer"]);
-  expect(result.changed.rows).toEqual(["answer := rate * 3\n"]);
+  expect(result.changed.rows).toEqual(['answer := import("./other.wtf").rate * 3\n']);
   expect(result.changed.versions[result.uri]).toBeGreaterThan(result.local.versions[result.uri]);
 });
 

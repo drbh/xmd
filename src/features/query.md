@@ -12,13 +12,33 @@ wtf ast trip.wtf
 wtf graph trip.wtf
 ```
 
-`query FILE QUERY` restricts input records to an indexed note. Paths are relative to
-`--root` (default: the current directory), or absolute. References still resolve
-against the workspace, so a calculation in that note can read another file.
-Missing or unindexed files produce an error instead of falling back to all files.
+`query FILE QUERY` restricts input records to the specified note. Paths are relative
+to `--root` (default: the current directory), or absolute. The CLI reads that file
+and its explicit imports, including hidden, ignored, and external files. Names resolve within their own note; another file cannot
+supply an undeclared name. Missing files produce an error.
 Use `query --workspace QUERY` to query the whole workspace. The file is required
 unless `--workspace` is set; the scope never depends on whether an argument looks
 like a filename. The former `--in` option is no longer accepted.
+
+Cross-note values use ordinary imports with a literal path:
+
+```wtf
+source := import("./values.wtf")
+total := source.price * 2
+```
+
+Paths are relative to the importing note, including inside imported functions.
+Members are evaluated on demand, and definition, rename, hover, and dependency
+navigation retain their original source. Module IDs such as `import("agenda")`
+continue to select library modules. File imports in query expressions are also
+explicit: `wtf query trip.wtf 'import("./values.wtf").price' --json`.
+A workspace expression resolves paths relative to `--root`; a pipeline row uses
+its source note, and aggregate rows use the query scope. Missing imports in
+unevaluated branches do not fail the query.
+
+Workspace libraries and features activate only through the explicit
+[modules manifest](../../stdlib/README.md#loading-and-replacement).
+Plan export also names its source file: `wtf convert bakery.wtf --to-alps bakery`.
 
 `ast FILE` and `graph FILE` are shortcuts for `query FILE ast --json` and
 `query FILE graph --json`. Both accept `--query EXPRESSION`, `--root`,

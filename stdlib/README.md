@@ -17,17 +17,31 @@ Document inputs can select collections and individual fields, for example
 
 ## Loading and replacement
 
-The loader starts with the bundled library, overlays saved `stdlib/*.wtf` files
-from workspace roots, then overlays `.wtf/modules/*.wtf`. Matching IDs replace
-whole modules; all consumers are relinked against that same snapshot, including
-transitive imports. `enabled: false` disables an ID without falling back to the
-bundled version. Module files are kept out of the note index.
+The bundled library is available by default. Workspace files activate only when
+listed in `.wtf/modules.json`, an explicit JSON array of paths relative to that
+manifest:
 
-The language server reloads saved changes atomically and retains the last good
-snapshot on compilation errors. Unsaved module buffers receive highlighting
-without changing running features. Editing this repository's `stdlib/` therefore
-works immediately when it is opened as the workspace root; rebuilding embeds the
-changes for other workspaces and browser deployments.
+```json
+[
+  "./modules/headings.wtf",
+  "../stdlib/format.wtf"
+]
+```
+
+Neither `stdlib/` nor `.wtf/modules/` is scanned for activation. An unlisted file
+has no effect. Matching IDs replace whole bundled modules; all consumers are
+relinked against that same snapshot, including transitive imports. List each
+module once; duplicate IDs or paths are errors. `enabled: false` explicitly
+disables an ID without falling back to the bundled version. Activated module
+files are kept out of the note index, wherever they live.
+
+The language server reloads saved sources and manifest changes atomically and
+retains the last good snapshot on compilation, manifest, or missing-file errors.
+Unsaved module buffers receive highlighting without changing running features.
+Remove a path from the manifest to deactivate it; `[]` or deleting the manifest
+restores the bundled library. To develop this repository's stdlib without
+rebuilding, list the source files you want to override in the manifest. Rebuilding
+embeds source changes for all workspaces and browser deployments.
 
 Browser applications call `workspace.setModules({"name.wtf": source})`. This
 replaces the workspace module sources atomically over the embedded library. An
@@ -37,7 +51,8 @@ controls made for an older module or dependency revision.
 
 ## Example
 
-Save this as `.wtf/modules/headings.wtf`:
+Save this as `.wtf/modules/headings.wtf` and list `"./modules/headings.wtf"`
+in `.wtf/modules.json`:
 
 ```wtf
 module := {

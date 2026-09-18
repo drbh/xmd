@@ -74,7 +74,7 @@ import { createWorkspace, mount } from "@wtf/web";
 
 const workspace = createWorkspace({ onError: console.error });
 await workspace.setDocument("file:///workspace/budget.wtf", "budget := $100\n");
-await workspace.setDocument("file:///workspace/trip.wtf", "Available [budget].\n");
+await workspace.setDocument("file:///workspace/trip.wtf", 'Available [shared.budget].\nshared := import("./budget.wtf")\n');
 const view = await mount(element, {
   workspace,
   uri: "file:///workspace/trip.wtf",
@@ -86,6 +86,10 @@ view.destroy();       // Detach this view; documents and other views survive.
 unsubscribe();
 workspace.destroy();  // Stop the worker and all subscriptions.
 ```
+
+Names are local to each document. Imports use paths relative to that document;
+supply imported sources with `setDocument` before rendering. A missing source
+produces a diagnostic; the browser never fetches it automatically.
 
 Documents use file URIs beneath `/workspace/`, end in `.wtf`, and are limited to
 1 MB each. The controller allocates monotonically increasing document versions,

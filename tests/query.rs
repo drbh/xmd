@@ -308,8 +308,7 @@ fn malformed_queries_and_incompatible_values_return_errors() {
 }
 
 #[test]
-#[cfg(feature = "native")]
-fn saved_agendas_match_the_previous_cli_filters_and_order() {
+fn saved_agendas_preserve_task_event_and_itinerary_semantics() {
     let ws = workspace(&[(
         "n.wtf",
         concat!(
@@ -322,14 +321,35 @@ fn saved_agendas_match_the_previous_cli_filters_and_order() {
             "- Broken event @at(missing)\nWednesday, September 16, 2026\n10:00 AM + Museum\n"
         ),
     )]);
-    for (source, days) in [(query::TODAY, 0), (query::WEEK, 6)] {
-        let today = context().today();
-        let expected = wtf::cli::entries(&ws, today)
-            .into_iter()
-            .filter(|e| wtf::cli::agenda_entry(e, today, today + chrono::Duration::days(days)))
-            .map(|e| e.title)
-            .collect::<Vec<_>>();
-        let actual = run(&ws, &format!("{source} | select title"));
-        assert_eq!(actual, json!(expected));
-    }
+    let today = json!([
+        "Overdue",
+        "Undated",
+        "Today",
+        "Recurring",
+        "Broken",
+        "Broken event",
+        "Morning",
+        "+ Museum",
+        "Afternoon"
+    ]);
+    assert_eq!(run(&ws, "@today | select title"), today);
+    let mut week = today.as_array().unwrap().clone();
+    week.extend([json!("Tomorrow"), json!("Next")]);
+    assert_eq!(run(&ws, "@week | select title"), json!(week));
+    assert_eq!(run(&ws, "@today | count"), json!([9]));
+}
+
+#[test]
+fn mixed_sort_types_and_long_flat_expressions_fail_without_panics() {
+    let ws = workspace(&[("n.wtf", "1:a\n\"text\":b\n2:c\n")]);
+    let error = query::execute(
+        &ws,
+        &Query::parse("values | sort value").unwrap(),
+        &context(),
+    )
+    .unwrap_err();
+    assert!(error.contains("compare"), "{error}");
+    let long = format!("tasks | select {}", vec!["1"; 100].join(" + "));
+    assert!(Query::parse(&long).unwrap_err().contains("depth"));
+    assert!(Query::parse("@unknown").is_err());
 }

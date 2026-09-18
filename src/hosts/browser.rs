@@ -147,6 +147,17 @@ impl BrowserWorkspace {
             let command: Command = field(&params, "command")?;
             return self.execute(command, now);
         }
+        if method == "query" {
+            let compiled = crate::query::Query::parse(&field::<String>(&params, "query")?)?;
+            let result = crate::query::execute(
+                &self.workspace,
+                &compiled,
+                &crate::query::QueryContext::new(now),
+            )?;
+            return Ok(
+                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.versions_json()}),
+            );
+        }
         let path = virtual_path(&field::<String>(&params, "uri")?)?;
         let doc = self
             .workspace

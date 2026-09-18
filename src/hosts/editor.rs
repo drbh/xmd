@@ -39,7 +39,36 @@ pub struct Backend {
     client: Client,
     state: Arc<RwLock<State>>,
 }
+#[derive(serde::Deserialize)]
+struct QueryParams {
+    query: String,
+    now: Option<chrono::DateTime<chrono::FixedOffset>>,
+}
 impl Backend {
+    async fn query(&self, params: QueryParams) -> Result<serde_json::Value> {
+        let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
+        self.rescan().await;
+        let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
+        let state = self.state.read().await;
+        let result = crate::query::execute(
+            &state.workspace,
+            &compiled,
+            &crate::query::QueryContext::new(now),
+        )
+        .map_err(Error::invalid_params)?;
+        let versions = state
+            .open
+            .iter()
+            .filter_map(|(path, version)| {
+                crate::paths::file_url(path)
+                    .ok()
+                    .map(|uri| (uri.to_string(), serde_json::json!(version)))
+            })
+            .collect::<serde_json::Map<_, _>>();
+        Ok(
+            serde_json::json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":versions}),
+        )
+    }
     fn new(client: Client) -> Self {
         Self {
             client,
@@ -319,6 +348,9 @@ impl LanguageServer for Backend {
                 version: Some(env!("CARGO_PKG_VERSION").into()),
             }),
             capabilities: ServerCapabilities {
+                experimental: Some(
+                    serde_json::json!({"wtfQuery":{"method":"wtf/query","schemaVersion":1}}),
+                ),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
@@ -996,23 +1028,39 @@ impl LanguageServer for Backend {
             }
             "wtf.today" => {
                 self.rescan().await;
-                let today = Local::now().date_naive();
+                let now = Local::now().fixed_offset();
+                let today = now.date_naive();
                 let workspace = self.state.read().await.workspace.clone();
-                let rows = crate::cli::entries(&workspace, today);
-                let lines: Vec<_> = rows
+                let compiled =
+                    crate::query::Query::parse("@today").map_err(Error::invalid_params)?;
+                let result = crate::query::execute(
+                    &workspace,
+                    &compiled,
+                    &crate::query::QueryContext::new(now),
+                )
+                .map_err(Error::invalid_params)?;
+                let lines: Vec<_> = result
+                    .rows
                     .iter()
-                    .filter(|e| crate::cli::agenda_entry(e, today, today))
-                    .map(|e| {
+                    .map(|row| {
+                        let e = row.json();
+                        let path = Path::new(e["source"]["path"].as_str().unwrap_or(""));
+                        let blocked = e["blocked_by"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>();
                         format!(
                             "- [{}:{}](<{}>) — {}{}",
-                            e.path.file_name().unwrap_or_default().to_string_lossy(),
-                            e.line,
-                            e.uri,
-                            e.title,
-                            if e.blocked_by.is_empty() {
+                            path.file_name().unwrap_or_default().to_string_lossy(),
+                            e["source"]["line"],
+                            e["source"]["uri"].as_str().unwrap_or(""),
+                            e["title"].as_str().unwrap_or(""),
+                            if blocked.is_empty() {
                                 String::new()
                             } else {
-                                format!(" (blocked by {})", e.blocked_by.join(", "))
+                                format!(" (blocked by {})", blocked.join(", "))
                             }
                         )
                     })
@@ -1195,7 +1243,9 @@ impl LanguageServer for Backend {
     }
 }
 pub async fn serve() {
-    let (service, socket) = LspService::new(Backend::new);
+    let (service, socket) = LspService::build(Backend::new)
+        .custom_method("wtf/query", Backend::query)
+        .finish();
     Server::new(tokio::io::stdin(), tokio::io::stdout(), socket)
         .serve(service)
         .await;

@@ -327,3 +327,48 @@ fn browser_plans_solve_in_the_shared_engine() {
     let symbols = request(&mut ws, "documentSymbols", json!({"uri":URI}));
     assert_eq!(symbols[0]["children"][0]["name"], "bagels");
 }
+
+#[test]
+fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
+    let mut browser = BrowserWorkspace::new();
+    let source = "$5:price\ntotal := price * 2\n- [ ] Open @estimate(90s)\n";
+    set(&mut browser, URI, source, 1);
+    let query = "values | where name == \"total\" | select {name, value, source}";
+    let result = request(&mut browser, "query", json!({"query":query}));
+    assert_eq!(result["schemaVersion"], 1);
+    assert_eq!(result["versions"][URI], 1);
+    assert_eq!(result["now"], NOW);
+    let ws = wtf::workspace::Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [(
+            std::path::PathBuf::from("/workspace/trip.wtf"),
+            wtf::document::Document::parse(source.into()),
+        )]
+        .into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+    };
+    let expected = wtf::query::execute(
+        &ws,
+        &wtf::query::Query::parse(query).unwrap(),
+        &wtf::query::QueryContext::new(chrono::DateTime::parse_from_rfc3339(NOW).unwrap()),
+    )
+    .unwrap();
+    assert_eq!(result["rows"], json!(expected.rows));
+    set(&mut browser, URI, &source.replace("$5", "$9"), 2);
+    let updated = request(&mut browser, "query", json!({"query":query}));
+    assert_eq!(updated["versions"][URI], 2);
+    assert_eq!(updated["rows"][0]["value"]["amount"], 18.0);
+    assert_eq!(
+        request(&mut browser, "query", json!({"query":"@tasks | count"}))["rows"],
+        json!([1])
+    );
+    let bad = raw(
+        &mut browser,
+        "query",
+        json!({"query":"tasks | where ("}),
+        NOW,
+    );
+    assert_eq!(bad["ok"], false);
+    assert!(bad["error"].as_str().unwrap().contains("Unclosed"));
+}

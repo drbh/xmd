@@ -5,7 +5,7 @@ use std::{
 };
 use tower_lsp::lsp_types::{Position, Range};
 use wtf::{
-    actions, cli,
+    actions,
     document::Document,
     editor,
     engine::{Engine, Value},
@@ -141,10 +141,20 @@ fn seconds_work_through_dates_effort_cli_and_comparisons() {
             .eval(path(), "2026-09-16 + 1s")
             .is_err()
     );
-    let entries = cli::entries(&ws, at(0).date_naive());
-    assert_eq!(entries[0].estimate_seconds, Some(90));
-    assert_eq!(entries[0].estimate_minutes, Some(1.5));
-    assert_eq!(entries[1].estimate_minutes, Some(30.0));
+    let entries = wtf::query::execute(
+        &ws,
+        &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
+        &wtf::query::QueryContext::new(at(0)),
+    )
+    .unwrap();
+    assert_eq!(
+        entries.rows[0].json(),
+        serde_json::json!({"type":"duration","seconds":90})
+    );
+    assert_eq!(
+        entries.rows[1].json(),
+        serde_json::json!({"type":"duration","seconds":1800})
+    );
     assert_eq!(
         wtf::engine::next_occurrence("2w", at(0).date_naive(), at(0).date_naive()).unwrap(),
         at(14 * 86400).date_naive()

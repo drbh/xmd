@@ -1,15 +1,16 @@
 use crate::{
     actions,
     document::Document,
-    engine::{Engine, Value},
+    engine::Engine,
+    query::{self, QueryContext, QueryValue},
     resources,
     workspace::Workspace,
 };
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand};
-use serde::Serialize;
 use std::{
     collections::BTreeSet,
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -17,7 +18,7 @@ use std::{
 #[command(
     name = "wtf",
     version,
-    about = "Reactive notes, checklists, resources, and a daily agenda. No arguments starts the language server."
+    about = "Reactive notes with a typed workspace query API. No arguments starts the language server."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -27,24 +28,9 @@ pub struct Cli {
 pub enum Command {
     /// Start the language server over stdin/stdout (also the default).
     Lsp,
-    /// Today's tasks and appointments, including overdue and undated tasks.
-    Today(Query),
-    /// Show the agenda (use --week for seven days).
-    Agenda {
-        #[command(flatten)]
-        query: Query,
-        #[arg(long)]
-        week: bool,
-    },
-    /// List tasks across all .wtf notes.
-    Tasks {
-        #[command(flatten)]
-        query: Query,
-        #[arg(long)]
-        tag: Option<String>,
-        #[arg(long)]
-        all: bool,
-    },
+    /// Query tasks, values, tables, plans, resources and diagnostics.
+    #[command(alias = "q")]
+    Query(QueryOptions),
     /// Append a task to inbox.wtf, or to journal/YYYY-MM-DD.wtf.
     Capture {
         #[arg(required=true,num_args=1..)]
@@ -62,7 +48,7 @@ pub enum Command {
         #[arg(long)]
         tag: Option<String>,
     },
-    /// Toggle a task at file.wtf:LINE (one-based); recurring tasks advance.
+    /// Toggle a task at file.wtf:LINE; recurring tasks advance.
     Complete {
         target: String,
         #[arg(long, default_value = ".")]
@@ -70,204 +56,53 @@ pub enum Command {
         #[arg(long)]
         on: Option<NaiveDate>,
     },
-    /// Refresh cached GitHub status using your installed GitHub CLI (gh).
+    /// Explicitly refresh cached GitHub status and external lookups.
     Refresh {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
-    /// Solve a linear plan, or exchange it with an alps problem file.
-    Plan {
-        /// The plan's name; omit with --import.
-        name: Option<String>,
-        #[arg(long, default_value = ".")]
-        root: PathBuf,
-        /// Print the solution as JSON.
-        #[arg(long)]
-        json: bool,
-        /// Print the plan as an alps problem file, with note values substituted.
-        #[arg(long)]
-        export: bool,
-        /// Print WTF source for an alps problem file, named after the file.
-        #[arg(long)]
-        import: Option<PathBuf>,
-    },
-    /// Print syntax/evaluation problems, returning nonzero when any exist.
-    Check {
+    /// Convert between WTF plans and alps problem files, writing to stdout.
+    Convert {
+        #[arg(long, required_unless_present = "to_alps", conflicts_with = "to_alps")]
+        from_alps: Option<PathBuf>,
+        #[arg(long, required_unless_present = "from_alps")]
+        to_alps: Option<String>,
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
 }
 #[derive(Args)]
-pub struct Query {
+#[command(
+    after_help = "Collections: tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExample: wtf query 'tasks | where leaf && !done | select {title, due, source}'"
+)]
+pub struct QueryOptions {
+    /// A collection pipeline or a saved view such as @today.
+    #[arg(
+        value_name = "QUERY",
+        required_unless_present = "file",
+        conflicts_with = "file"
+    )]
+    pub source: Option<String>,
+    /// Read a query file; use - for stdin.
+    #[arg(short = 'f', long)]
+    pub file: Option<PathBuf>,
     #[arg(long, default_value = ".")]
     pub root: PathBuf,
-    #[arg(long)]
+    /// Emit a JSON array, preserving dates, currencies and units.
+    #[arg(long, conflicts_with = "jsonl")]
     pub json: bool,
+    /// Emit one JSON value per line.
     #[arg(long)]
+    pub jsonl: bool,
+    /// Evaluate at local midnight on this date.
+    #[arg(long, conflicts_with = "now")]
     pub on: Option<NaiveDate>,
-}
-#[derive(Debug, Serialize)]
-pub struct Entry {
-    pub path: PathBuf,
-    pub line: usize,
-    pub uri: String,
-    pub title: String,
-    pub kind: String,
-    pub done: bool,
-    pub due: Option<NaiveDate>,
-    pub scheduled: Option<NaiveDate>,
-    pub at: Option<String>,
-    pub tags: Vec<String>,
-    pub blocked_by: Vec<String>,
-    pub estimate_minutes: Option<f64>,
-    pub estimate_seconds: Option<i64>,
-    pub errors: Vec<String>,
-    #[serde(skip)]
-    pub at_date: Option<NaiveDate>,
-}
-pub fn entries(workspace: &Workspace, today: NaiveDate) -> Vec<Entry> {
-    let mut engine = Engine::new(workspace, today);
-    let mut entries = Vec::new();
-    for (path, doc) in &workspace.documents {
-        for (i, task) in doc.tasks.iter().enumerate() {
-            if doc.tasks.iter().any(|t| t.parent == Some(i)) {
-                continue;
-            }
-            let mut errors = Vec::new();
-            let mut when = |key: &str| {
-                task.attributes
-                    .get(key)
-                    .and_then(|a| match engine.when(path, &a.value) {
-                        Ok(v) => Some(v),
-                        Err(e) => {
-                            errors.push(format!("@{key}: {e}"));
-                            None
-                        }
-                    })
-            };
-            let due = when("due")
-                .and_then(|v| v.date().ok())
-                .or_else(|| task.attributes.contains_key("every").then_some(today));
-            let scheduled = when("scheduled").and_then(|v| v.date().ok());
-            let at = when("at");
-            let estimate =
-                task.attributes
-                    .get("estimate")
-                    .and_then(|a| match engine.eval(path, &a.value) {
-                        Ok(Value::Duration(m)) if m >= 0 => Some(m),
-                        _ => {
-                            errors.push("@estimate requires a positive duration".into());
-                            None
-                        }
-                    });
-            let blocked_by = match engine.blocked(path, i) {
-                Ok(b) => b,
-                Err(e) => {
-                    errors.push(e);
-                    Vec::new()
-                }
-            };
-            entries.push(Entry {
-                path: path.clone(),
-                line: task.line + 1,
-                uri: location_uri(path, task.line + 1),
-                title: task.title.clone(),
-                kind: "task".into(),
-                done: engine.task_done(path, i),
-                due,
-                scheduled,
-                at: at.as_ref().map(Value::display),
-                at_date: at.and_then(|v| v.date().ok()),
-                tags: task.tags.clone(),
-                blocked_by,
-                estimate_minutes: estimate.map(|s| s as f64 / 60.0),
-                estimate_seconds: estimate,
-                errors,
-            });
-        }
-        let dates = crate::itinerary::dates(&doc.days, today);
-        for (day, date) in doc.days.iter().zip(&dates) {
-            for stop in &day.stops {
-                entries.push(Entry {
-                    path: path.clone(),
-                    line: stop.line + 1,
-                    uri: location_uri(path, stop.line + 1),
-                    title: crate::itinerary::label(stop),
-                    kind: "stop".into(),
-                    done: false,
-                    due: None,
-                    scheduled: None,
-                    at: Some(match date {
-                        Some(d) => format!("{d} {}", stop.time.format("%H:%M")),
-                        None => stop.time.format("%H:%M").to_string(),
-                    }),
-                    at_date: *date,
-                    tags: Vec::new(),
-                    blocked_by: Vec::new(),
-                    estimate_minutes: None,
-                    estimate_seconds: None,
-                    errors: Vec::new(),
-                });
-            }
-        }
-        for event in &doc.events {
-            let result = engine.when(path, &event.attributes["at"].value);
-            let mut errors = Vec::new();
-            let at = match result {
-                Ok(v) => Some(v),
-                Err(e) => {
-                    errors.push(e);
-                    None
-                }
-            };
-            entries.push(Entry {
-                path: path.clone(),
-                line: event.line + 1,
-                uri: location_uri(path, event.line + 1),
-                title: event.title.clone(),
-                kind: "event".into(),
-                done: false,
-                due: None,
-                scheduled: None,
-                at: at.as_ref().map(Value::display),
-                at_date: at.and_then(|v| v.date().ok()),
-                tags: Vec::new(),
-                blocked_by: Vec::new(),
-                estimate_minutes: None,
-                estimate_seconds: None,
-                errors,
-            });
-        }
-    }
-    entries.sort_by_key(|e| {
-        (
-            e.due.or(e.at_date).or(e.scheduled).unwrap_or(today),
-            e.at.clone(),
-            e.path.clone(),
-            e.line,
-        )
-    });
-    entries
-}
-fn location_uri(path: &Path, line: usize) -> String {
-    let mut url = tower_lsp::lsp_types::Url::from_file_path(path).unwrap();
-    url.set_fragment(Some(&format!("L{line}")));
-    url.into()
-}
-pub fn agenda_entry(e: &Entry, today: NaiveDate, end: NaiveDate) -> bool {
-    if e.done {
-        return false;
-    }
-    if e.kind == "event" || e.kind == "stop" {
-        return e.at_date.is_some_and(|d| d >= today && d <= end) || !e.errors.is_empty();
-    }
-    if e.due.is_some_and(|d| d <= end)
-        || e.scheduled.is_some_and(|d| d <= end)
-        || e.at_date.is_some_and(|d| d <= end)
-    {
-        return true;
-    }
-    e.due.is_none() && e.scheduled.is_none() && e.at_date.is_none()
+    /// Freeze the clock and timezone offset using an RFC3339 timestamp.
+    #[arg(long)]
+    pub now: Option<DateTime<FixedOffset>>,
+    /// Return exit status 1 if the query returns any rows (useful for diagnostics).
+    #[arg(long)]
+    pub fail_on_match: bool,
 }
 pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
     let targets: BTreeSet<_> = workspace
@@ -306,9 +141,7 @@ fn load(root: PathBuf) -> Result<Workspace, String> {
 pub async fn run(command: Command) -> Result<(), String> {
     match command {
         Command::Lsp => unreachable!(),
-        Command::Today(query) => report(query, false, None, false, false),
-        Command::Agenda { query, week } => report(query, week, None, false, false),
-        Command::Tasks { query, tag, all } => report(query, false, tag, all, true),
+        Command::Query(options) => query_command(options),
         Command::Capture {
             text,
             root,
@@ -416,14 +249,12 @@ pub async fn run(command: Command) -> Result<(), String> {
             println!("GitHub cache updated ({} resources)", workspace.cache.len());
             Ok(())
         }
-        Command::Plan {
-            name,
+        Command::Convert {
+            from_alps,
+            to_alps,
             root,
-            json,
-            export,
-            import,
         } => {
-            if let Some(file) = import {
+            if let Some(file) = from_alps {
                 let text = std::fs::read_to_string(&file)
                     .map_err(|e| format!("{}: {e}", file.display()))?;
                 let problem: serde_json::Value =
@@ -436,160 +267,101 @@ pub async fn run(command: Command) -> Result<(), String> {
                 print!("{}", crate::plans::import(&stem, &problem)?);
                 return Ok(());
             }
-            let name = name.ok_or("Give a plan name, or --import a problem file")?;
+            let name = to_alps.ok_or("Choose --from-alps FILE or --to-alps NAME")?;
             let workspace = load(root)?;
-            let root = workspace.root().to_path_buf();
-            let symbol = workspace.resolve(&root, &name)?;
+            let symbol = workspace.resolve(workspace.root(), &name)?;
             let (_, plan) = crate::plans::plan(&workspace, &symbol)
                 .ok_or_else(|| format!("'{name}' is not a plan"))?;
             let mut engine = Engine::new(&workspace, Local::now().date_naive());
-            if export {
-                let problem = crate::plans::export(&mut engine, &symbol, plan)?;
-                println!("{}", serde_json::to_string_pretty(&problem).unwrap());
-                return Ok(());
-            }
-            let Value::Plan(solved) = engine.symbol(&symbol)? else {
-                return Err(format!("'{name}' is not a plan"));
-            };
-            if json {
-                let out = serde_json::json!({
-                    "goal": solved.goal.keyword(),
-                    "objective": solved.objective.display(),
-                    "variables": solved.variables.iter().map(|(n, v)| (n.clone(), serde_json::json!(v.display()))).collect::<serde_json::Map<_, _>>(),
-                    "constraints": solved.constraints.iter().map(|c| serde_json::json!({
-                        "name": c.name, "lhs": c.lhs.display(), "op": c.op, "rhs": c.rhs.display(),
-                        "slack": c.slack.display(), "binding": c.binding,
-                    })).collect::<Vec<_>>(),
-                });
-                println!("{}", serde_json::to_string_pretty(&out).unwrap());
-                return Ok(());
-            }
+            let problem = crate::plans::export(&mut engine, &symbol, plan)?;
             println!(
-                "{name}: {} {}",
-                solved.goal.keyword(),
-                solved.objective.display()
+                "{}",
+                serde_json::to_string_pretty(&problem).map_err(|e| e.to_string())?
             );
-            for (n, v) in &solved.variables {
-                println!("  {n} = {}", v.display());
-            }
-            for c in &solved.constraints {
-                println!(
-                    "  {}: {} {} {} · {}",
-                    c.name,
-                    c.lhs.display(),
-                    c.op,
-                    c.rhs.display(),
-                    if c.binding {
-                        format!("{} binding", crate::glyphs::ON)
-                    } else {
-                        format!("{} slack {}", crate::glyphs::OFF, c.slack.display())
-                    }
-                );
-            }
             Ok(())
-        }
-        Command::Check { root } => {
-            let workspace = load(root)?;
-            let mut count = 0;
-            for (path, doc) in &workspace.documents {
-                for p in crate::editor::problems(&workspace, path, Local::now().date_naive()) {
-                    count += 1;
-                    println!(
-                        "{}:{}:{}: {}",
-                        path.display(),
-                        p.span.line + 1,
-                        p.span.range(&doc.text).start.character + 1,
-                        p.message
-                    );
-                }
-            }
-            if count > 0 {
-                Err(format!("{count} problem(s)"))
-            } else {
-                println!("All notes are valid");
-                Ok(())
-            }
         }
     }
 }
-fn report(
-    query: Query,
-    week: bool,
-    tag: Option<String>,
-    all: bool,
-    tasks: bool,
-) -> Result<(), String> {
-    let workspace = load(query.root)?;
-    let today = query.on.unwrap_or_else(|| Local::now().date_naive());
-    let end = today
-        .checked_add_signed(Duration::days(if week { 6 } else { 0 }))
-        .ok_or("Date overflow")?;
-    let rows: Vec<_> = entries(&workspace, today)
-        .into_iter()
-        .filter(|e| {
-            if tasks {
-                e.kind == "task" && (all || !e.done)
-            } else {
-                agenda_entry(e, today, end)
+fn query_command(options: QueryOptions) -> Result<(), String> {
+    let source = match (options.source, options.file) {
+        (Some(source), None) => source,
+        (None, Some(path)) if path == Path::new("-") => {
+            let mut source = String::new();
+            io::stdin()
+                .take(65_537)
+                .read_to_string(&mut source)
+                .map_err(|e| e.to_string())?;
+            source
+        }
+        (None, Some(path)) => {
+            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?
+        }
+        _ => return Err("Supply a query or --file PATH".into()),
+    };
+    let compiled = query::Query::parse(&source)?;
+    let now = if let Some(now) = options.now {
+        now
+    } else if let Some(date) = options.on {
+        Local
+            .from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
+            .single()
+            .ok_or("Local midnight is ambiguous or nonexistent; use --now with an explicit offset")?
+            .fixed_offset()
+    } else {
+        Local::now().fixed_offset()
+    };
+    let workspace = load(options.root)?;
+    let result = query::execute(&workspace, &compiled, &QueryContext::new(now))?;
+    let stdout = io::stdout();
+    let mut output = io::BufWriter::new(stdout.lock());
+    let write_result = (|| -> io::Result<()> {
+        if options.json {
+            serde_json::to_writer_pretty(&mut output, &result.rows)?;
+            writeln!(output)?;
+        } else {
+            for row in &result.rows {
+                if options.jsonl {
+                    serde_json::to_writer(&mut output, row)?;
+                    writeln!(output)?;
+                } else {
+                    writeln!(output, "{}", render(row))?;
+                }
             }
-        })
-        .filter(|e| tag.as_ref().is_none_or(|tag| e.tags.contains(tag)))
-        .collect();
-    if query.json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?
-        );
-        return Ok(());
+        }
+        output.flush()
+    })();
+    if let Err(e) = write_result {
+        if e.kind() == io::ErrorKind::BrokenPipe {
+            return Ok(());
+        }
+        return Err(e.to_string());
     }
-    if rows.is_empty() {
-        println!("No matching tasks or appointments.");
-    }
-    for e in rows {
-        let mut labels = Vec::new();
-        if let Some(due) = e.due {
-            labels.push(format!(
-                "due {due}{}",
-                if due < today { " (overdue)" } else { "" }
-            ));
-        }
-        if let Some(s) = e.scheduled {
-            labels.push(format!("scheduled {s}"));
-        }
-        if let Some(at) = e.at {
-            labels.push(at);
-        }
-        if let Some(s) = e.estimate_seconds {
-            labels.push(Value::Duration(s).display());
-        }
-        if !e.blocked_by.is_empty() {
-            labels.push(format!(
-                "{} blocked by {}",
-                crate::glyphs::BLOCKED,
-                e.blocked_by.join(", ")
-            ));
-        }
-        labels.extend(e.errors);
-        println!(
-            "{}:{}  {} {}{}",
-            e.path.display(),
-            e.line,
-            if e.kind == "event" || e.kind == "stop" {
-                "•"
-            } else if e.done {
-                "[x]"
-            } else {
-                "[ ]"
-            },
-            e.title,
-            if labels.is_empty() {
-                String::new()
-            } else {
-                format!("  — {}", labels.join(" · "))
-            }
-        );
+    if options.fail_on_match && !result.rows.is_empty() {
+        return Err(format!("{} matching result(s)", result.rows.len()));
     }
     Ok(())
+}
+fn render(value: &QueryValue) -> String {
+    let QueryValue::Object(fields) = value else {
+        return value.display();
+    };
+    fields
+        .iter()
+        .map(|(name, value)| {
+            let text = if name == "source"
+                && let QueryValue::Object(source) = value
+                && let Some(QueryValue::Scalar(crate::engine::Value::Text(path))) =
+                    source.get("path")
+                && let Some(line) = source.get("line")
+            {
+                format!("{path}:{}", line.display())
+            } else {
+                value.display()
+            };
+            format!("{name}={text}")
+        })
+        .collect::<Vec<_>>()
+        .join("\t")
 }
 fn write_note(path: &Path, previous: &str, next: &str) -> Result<(), String> {
     let actual = match std::fs::read_to_string(path) {

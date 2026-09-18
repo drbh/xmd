@@ -361,7 +361,7 @@ fn weekday_name(weekday: chrono::Weekday) -> String {
     }
     .to_string()
 }
-/// Errors only: `wtf check` passes on warnings such as unfetched lookups.
+/// Errors only: the `@check` query view passes on warnings such as unfetched lookups.
 pub fn problems(ws: &Workspace, path: &Path, today: NaiveDate) -> Vec<Problem> {
     collect(ws, path, today, Local::now().fixed_offset(), false)
         .into_iter()

@@ -29,11 +29,11 @@ http://127.0.0.1:4173/book/.
 
 ```sh
 cargo build
-./target/debug/wtf today
-./target/debug/wtf agenda --week
-./target/debug/wtf tasks --tag errands --json
-./target/debug/wtf check
-./target/debug/wtf plan bakery
+./target/debug/wtf query @today
+./target/debug/wtf query @week
+./target/debug/wtf query '@tasks | where contains(tags, "errands")' --json
+./target/debug/wtf query @check --fail-on-match
+./target/debug/wtf query 'plans | where name == "bakery" | select solution'
 ```
 
 Open `notes/interactions.wtf`, `notes/daily.wtf`, or `notes/timers.wtf` in Zed. If you already installed the dev
@@ -143,9 +143,10 @@ Three features ride on standard LSP requests that most editors already send:
   per-constraint usage with binding or slack; hovers add usage bars; infeasible
   or unbounded plans are diagnostics on the objective. `bakery.bagels` reads a
   variable and `bakery.flour` a constraint's slack. On the command line,
-  `wtf plan bakery` prints the solution, `--export` writes an
-  [alps](https://github.com/drbh/alps) problem file, and `--import file.json`
-  prints WTF source. The solver is pure Rust (`good_lp` with `microlp`), so it
+  `wtf query 'plans | where name == "bakery" | select solution'` prints the solution.
+  `wtf convert --to-alps bakery` writes an
+  [alps](https://github.com/drbh/alps) problem file, and
+  `wtf convert --from-alps file.json` prints WTF source. The solver is pure Rust (`good_lp` with `microlp`), so it
   also runs in the browser. See `notes/plans.wtf`.
 - **Definitions without brackets.** A value followed by `:name` defines it:
   `$3,000:budget`, `2026-11-20:departure`, `"Oaxaca City":city`,
@@ -190,7 +191,7 @@ Three features ride on standard LSP requests that most editors already send:
   a departure), `Cancel by: 24h before`
   or a datetime shows the deadline, `Address:` lines open in Maps, the outline
   lists days and stops, days and stops fold, completion offers stop kinds
-  after a time and detail keys inside a stop, and `wtf agenda` includes stops.
+  after a time and detail keys inside a stop, and `wtf query @today` includes stops.
   Diagnostics catch a weekday that does not match the date, days out of order,
   stops out of order, and impossible dates. See `notes/oaxaca.wtf`.
 - **Dependency graph.** `textDocument/prepareCallHierarchy` treats a value,
@@ -250,7 +251,7 @@ Open `notes/interactions.wtf` to try these without changing any language syntax:
 - **Actionable diagnostics.** Errors point at offending operands; unknown names
   offer nearby-name corrections and an explicit TODO definition. Ambiguous names
   and dependency cycles link to relevant declarations. While editing incomplete
-  expressions, their errors and dependent cascades are suppressed; `wtf check`
+  expressions, their errors and dependent cascades are suppressed; `wtf query @check --fail-on-match`
   remains strict. Clock-dependent diagnostics update without typing. Timer
   controls refresh at expiry, and ticking never rewrites source.
 
@@ -517,25 +518,32 @@ is rejected; complete recurring leaves individually. Hand-editing `[x]` does not
 run recurrence/history actions.
 
 ```sh
-./target/debug/wtf today
-./target/debug/wtf agenda --week
-./target/debug/wtf tasks --tag errands --json
-./target/debug/wtf tasks --all
+./target/debug/wtf query @today
+./target/debug/wtf query @week
+./target/debug/wtf query '@tasks | where contains(tags, "errands")' --json
+./target/debug/wtf query 'tasks | where leaf'
 ./target/debug/wtf capture "Call the dentist" --due "next Friday" --tag errands
 ./target/debug/wtf capture "Review notes" --journal
 ./target/debug/wtf complete inbox.wtf:1
 ```
 
-All commands accept `--root PATH`. Agenda/task commands also accept `--on
-YYYY-MM-DD` for reproducible queries; capture/complete accept it for backdated
+Queries accept `--root PATH`, `--on YYYY-MM-DD` (local midnight), or an explicit
+`--now RFC3339` clock and offset. Capture/complete accept `--on` for backdated
 entries. Task tags use `#errands` or `@tag(errands)`.
 
-Today includes unfinished tasks that are overdue, due, scheduled, or undated,
-and today's appointments. The week view covers today through six days from now.
-`tasks` lists all unfinished leaves, including future tasks; `--all` includes
-completed leaves. Results contain source paths and one-based line numbers; JSON
-includes URI, dates, tags, estimates, blocked reasons, and evaluation errors.
-JSON includes exact `estimate_seconds` and `estimate_minutes` (which can be fractional).
+`@today` includes unfinished tasks that are overdue, due, scheduled, or undated,
+and today's appointments. `@week` covers today through six days from now.
+`@tasks` selects unfinished leaves, including future tasks; the `tasks` collection
+includes parents and completed tasks. JSON preserves typed dates, money, and
+exact duration seconds, with source locations and evaluation errors on records.
+
+The shared [query API](docs/query.md) also reads values, table rows, plans,
+resources, and diagnostics. Pipelines support filtering, projection, sorting,
+grouping, and typed sums. Read personal queries with `wtf query -f FILE`; add
+`--json` for arrays or `--jsonl` for one result per line. Built-in views live in
+[`queries/`](queries/). See the [command migration table](docs/query.md#saved-views-and-migration)
+for replacements for the removed `today`, `agenda`, `tasks`, `check`, and `plan`
+commands. Capture, completion, and cache refresh remain explicit operations.
 
 **Show today's agenda** in Zed opens a generated `.wtf/today.md` with links back
 to source notes. Re-run the action to refresh the view. Capture appends to
@@ -550,7 +558,8 @@ src/
   model/      what a note is: document (parser), workspace, paths, tables, itinerary
   evaluate/   what it computes: engine, timers, resources, lookups, plans, charts, glyphs
   features/   what an editor shows and does: intelligence, presentation, diagnostics,
-              symbols, highlighting, prose, hierarchy, refactor, actions, interaction, typing
+              symbols, highlighting, prose, hierarchy, refactor, actions, interaction, typing,
+              catalog, query
   hosts/      how it is delivered: editor (LSP over stdio), browser (WebAssembly), cli
 ide/          editor integrations: zed, vscode, neovim, helix
 web/          the browser editor; book/ the guide; examples/ one note per feature

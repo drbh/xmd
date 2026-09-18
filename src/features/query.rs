@@ -14,6 +14,8 @@ use std::{
 
 pub const TODAY: &str = include_str!("../../queries/today.wq");
 pub const WEEK: &str = include_str!("../../queries/week.wq");
+pub const TASKS: &str = include_str!("../../queries/tasks.wq");
+pub const CHECK: &str = include_str!("../../queries/check.wq");
 
 #[derive(Clone, Debug)]
 pub struct Query {
@@ -131,7 +133,25 @@ fn expression(source: &str) -> Result<Expr, String> {
     if engine::lex(source)?.len() > 512 {
         return Err("An expression may contain at most 512 tokens".into());
     }
-    Parser::parse(source)
+    let parsed = Parser::parse(source)?;
+    // Parenthesis depth alone does not bound a long left-associative expression.
+    let mut pending = vec![(&parsed, 0)];
+    while let Some((expr, depth)) = pending.pop() {
+        if depth > 64 {
+            return Err("Expression depth exceeds 64 levels".into());
+        }
+        match expr {
+            Expr::Spanned(_, _, inner) => pending.push((inner, depth)),
+            Expr::Unary(_, inner) | Expr::Property(inner, _) => pending.push((inner, depth + 1)),
+            Expr::Binary(_, left, right) => {
+                pending.push((left, depth + 1));
+                pending.push((right, depth + 1));
+            }
+            Expr::Call(_, args) => pending.extend(args.iter().map(|arg| (arg, depth + 1))),
+            _ => {}
+        }
+    }
+    Ok(parsed)
 }
 fn projection(source: &str) -> Result<Projection, String> {
     let Some(body) = source.strip_prefix('{').and_then(|s| s.strip_suffix('}')) else {
@@ -163,6 +183,25 @@ impl Query {
             return Err("Queries are limited to 64 KiB".into());
         }
         let parts = split(source, '|')?;
+        if let Some(name) = parts[0].strip_prefix('@') {
+            let view = match name {
+                "today" => TODAY,
+                "week" => WEEK,
+                "tasks" => TASKS,
+                "check" => CHECK,
+                _ => {
+                    return Err(format!(
+                        "Unknown saved view '@{name}'; use @today, @week, @tasks or @check"
+                    ));
+                }
+            };
+            let mut expanded = view.trim().to_owned();
+            for part in &parts[1..] {
+                expanded.push_str(" | ");
+                expanded.push_str(part);
+            }
+            return Self::parse(&expanded);
+        }
         if parts.len() > 129 {
             return Err("Queries are limited to 128 stages".into());
         }
@@ -471,6 +510,18 @@ pub fn execute(ws: &Workspace, query: &Query, ctx: &QueryContext) -> Result<Quer
                             compare(value, value)?;
                         }
                         keyed.push((values, item));
+                    }
+                    // Establish a common comparable type before invoking the sort comparator.
+                    for column in 0..keys.len() {
+                        if let Some(first) = keyed
+                            .iter()
+                            .map(|(values, _)| &values[column])
+                            .find(|v| **v != Q::Null)
+                        {
+                            for (values, _) in &keyed {
+                                compare(first, &values[column])?;
+                            }
+                        }
                     }
                     let mut failure = None;
                     keyed.sort_by(|(a, _), (b, _)| {

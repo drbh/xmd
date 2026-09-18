@@ -6,7 +6,7 @@ use std::{
 };
 use tower_lsp::lsp_types::{Position, Range};
 use wtf::{
-    actions, cli,
+    actions,
     document::Document,
     editor,
     engine::{Engine, Value},
@@ -210,15 +210,15 @@ fn relative_dates_freeze_and_appointments_are_separate() {
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-09-18)"));
     assert!(ws.documents[path].text.contains("@scheduled(2026-09-17)"));
-    let entries = cli::entries(&ws, today());
-    assert_eq!(entries.len(), 3);
-    assert_eq!(
-        entries
-            .iter()
-            .filter(|e| cli::agenda_entry(e, today(), today()))
-            .count(),
-        1
+    let ctx = wtf::query::QueryContext::new(
+        chrono::DateTime::parse_from_rfc3339("2026-09-16T12:00:00-04:00").unwrap(),
     );
+    let entries =
+        wtf::query::execute(&ws, &wtf::query::Query::parse("entries").unwrap(), &ctx).unwrap();
+    assert_eq!(entries.rows.len(), 3);
+    let agenda =
+        wtf::query::execute(&ws, &wtf::query::Query::parse("@today").unwrap(), &ctx).unwrap();
+    assert_eq!(agenda.rows.len(), 1);
 }
 #[test]
 fn unicode_highlights_and_edits_use_utf16_positions() {
@@ -345,12 +345,16 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
     ]);
     let note = std::fs::read_to_string(root.join("inbox.wtf")).unwrap();
     assert!(note.contains("@due(2026-09-18)"));
-    let tasks: serde_json::Value =
-        serde_json::from_str(&run(&["tasks", "--tag", "errands", "--json"])).unwrap();
+    let tasks: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        "@tasks | where contains(tags, \"errands\")",
+        "--json",
+    ]))
+    .unwrap();
     assert_eq!(tasks.as_array().unwrap().len(), 1);
-    assert_eq!(tasks[0]["line"], 1);
+    assert_eq!(tasks[0]["source"]["line"], 1);
     let agenda: serde_json::Value =
-        serde_json::from_str(&run(&["agenda", "--week", "--on", "2026-09-16", "--json"])).unwrap();
+        serde_json::from_str(&run(&["query", "@week", "--on", "2026-09-16", "--json"])).unwrap();
     assert_eq!(agenda.as_array().unwrap().len(), 1);
     run(&["complete", "inbox.wtf:1", "--on", "2026-09-18"]);
     assert!(
@@ -358,9 +362,10 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
             .unwrap()
             .contains("[x]")
     );
-    let tasks: serde_json::Value = serde_json::from_str(&run(&["tasks", "--json"])).unwrap();
+    let tasks: serde_json::Value =
+        serde_json::from_str(&run(&["query", "@tasks", "--json"])).unwrap();
     assert!(tasks.as_array().unwrap().is_empty());
-    run(&["check"]);
+    run(&["query", "@check", "--fail-on-match"]);
 }
 
 #[test]
@@ -437,7 +442,7 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
 }
 
 #[test]
-fn cli_plan_solves_exports_and_imports_alps_problems() {
+fn cli_queries_plans_and_converts_alps_problems() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(
@@ -458,33 +463,45 @@ fn cli_plan_solves_exports_and_imports_alps_problems() {
         );
         String::from_utf8(output.stdout).unwrap()
     };
-    let report = run(&["plan", "bakery"]);
-    assert!(
-        report.starts_with("bakery: maximize $94.75\n  bagels = 25.75\n  doughnuts = 14\n"),
-        "{report}"
+    let report = run(&[
+        "query",
+        "plans | where name == \"bakery\" | select solution",
+    ]);
+    assert!(report.contains("94.75"), "{report}");
+    let json: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        "plans | where name == \"bakery\" | select solution",
+        "--json",
+    ]))
+    .unwrap();
+    assert_eq!(
+        json[0]["objective"],
+        serde_json::json!({"type":"money","amount":94.75,"currency":"USD"})
     );
-    assert!(report.contains("flour: 400 <= 400 · ● binding"), "{report}");
-    let json: serde_json::Value =
-        serde_json::from_str(&run(&["plan", "bakery", "--json"])).unwrap();
-    assert_eq!(json["objective"], "$94.75");
-    assert_eq!(json["constraints"][0]["binding"], true);
-    let exported = run(&["plan", "bakery", "--export"]);
+    assert_eq!(json[0]["constraints"][0]["binding"], true);
+    let exported = run(&["convert", "--to-alps", "bakery"]);
     let problem: serde_json::Value = serde_json::from_str(&exported).unwrap();
     assert_eq!(
         problem["constraints"][0]["expression"],
         "12 * bagels + 6.5 * doughnuts <= 400"
     );
     std::fs::write(root.join("problem.json"), &exported).unwrap();
-    let imported = run(&["plan", "--import", "problem.json"]);
+    let imported = run(&["convert", "--from-alps", "problem.json"]);
     assert!(
         imported.starts_with("[problem] := maximize(3 * bagels + 1.25 * doughnuts)\n| constraint"),
         "{imported}"
     );
     std::fs::write(root.join("imported.wtf"), &imported).unwrap();
-    assert!(run(&["plan", "problem"]).contains("94.75"));
+    assert!(
+        run(&[
+            "query",
+            "plans | where name == \"problem\" | select solution"
+        ])
+        .contains("94.75")
+    );
     let missing = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
-        .args(["plan", "flour_stock"])
+        .args(["convert", "--to-alps", "flour_stock"])
         .output()
         .unwrap();
     assert!(!missing.status.success());

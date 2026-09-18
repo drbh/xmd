@@ -1165,3 +1165,44 @@ fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
             .starts_with("No values satisfy")
     );
 }
+
+#[test]
+fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let path = root.join("n.wtf");
+    let uri = Url::from_file_path(&path).unwrap();
+    let disk = "$5:price\n- [ ] Saved\n";
+    std::fs::write(&path, disk).unwrap();
+    let mut lsp = Lsp::start(&root);
+    lsp.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"$9:price\n- [ ] Unsaved\n"}}));
+    assert_eq!(lsp.diagnostics(1), json!([]));
+    let now = "2026-09-16T23:30:00-04:00";
+    let result = lsp.request(
+        "wtf/query",
+        json!({"query":"values | select {name, value, day:today(), clock:now()}","now":now}),
+    );
+    assert_eq!(result["schemaVersion"], 1);
+    assert_eq!(result["versions"][uri.as_str()], 1);
+    assert_eq!(
+        result["rows"][0]["value"],
+        json!({"type":"money","amount":9.0,"currency":"USD"})
+    );
+    assert_eq!(result["rows"][0]["day"]["value"], "2026-09-16");
+    assert_eq!(result["rows"][0]["clock"]["value"], now);
+    assert_eq!(
+        lsp.request(
+            "wtf/query",
+            json!({"query":"@tasks | select title","now":now})
+        )["rows"],
+        json!(["Unsaved"])
+    );
+    lsp.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"$12:price\n- [x] Finished\n"}]}));
+    assert_eq!(lsp.diagnostics(2), json!([]));
+    let changed = lsp.request("wtf/query", json!({"query":"@tasks","now":now}));
+    assert_eq!(changed["versions"][uri.as_str()], 2);
+    assert_eq!(changed["rows"], json!([]));
+    let invalid = lsp.request_raw("wtf/query", json!({"query":"tasks | where ("}));
+    assert_eq!(invalid["error"]["code"], -32602);
+    assert_eq!(std::fs::read_to_string(path).unwrap(), disk);
+}

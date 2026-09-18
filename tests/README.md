@@ -66,7 +66,11 @@ output. Two normalizations keep snapshots stable across machines:
 - every spelling of the temporary root (plain path and `file://` URI) becomes
   `<root>`;
 - carriage returns in recorded note text become `␍`, so a CRLF note cannot
-  silently turn into an LF one.
+  silently turn into an LF one;
+- sub-second wall-clock timestamps (a `refresh` stamping `fetched_at`) become
+  `<clock>`;
+- the body of every `<style>` element in an HTML export collapses to `…`: the
+  web theme is styling, not behaviour, and changes on its own schedule.
 
 ## Step kinds
 

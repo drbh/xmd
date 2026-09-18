@@ -180,7 +180,7 @@ impl World {
                 out = out.replace(&root, "<root>");
             }
         }
-        undate(&out)
+        unstyle(&undate(&out))
     }
 
     /// Raw note text goes into the transcript with carriage returns made
@@ -422,7 +422,12 @@ impl World {
                     json!({"textDocument":{"uri":self.uri(&name)}}),
                 );
                 let _ = writeln!(out, "-- save {name}");
-            } else if let Some(files) = item.get("write").and_then(Value::as_object) {
+            } else if let Some(files) = item
+                .get("write")
+                .and_then(Value::as_object)
+                .filter(|files| !(files.contains_key("file") && files.contains_key("text")))
+            {
+                // `{"write": {"path": "text"}}`; the `{"file", "text"}` form is below.
                 self.write(files, out);
             } else if let Some(paths) = item.get("watched").and_then(Value::as_array) {
                 let changes: Vec<Value> = paths
@@ -763,6 +768,27 @@ fn undate(text: &str) -> String {
         out.push_str("<clock>");
         i = end;
     }
+    out
+}
+
+/// A standalone HTML export embeds the whole web theme. The theme is styling,
+/// not behaviour, and it changes independently of the language, so every
+/// `<style>` body collapses to `…`; the markup around it stays verbatim.
+fn unstyle(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(open) = rest.find("<style") {
+        let Some(body) = rest[open..].find('>').map(|i| open + i + 1) else {
+            break;
+        };
+        let Some(close) = rest[body..].find("</style>").map(|i| body + i) else {
+            break;
+        };
+        out.push_str(&rest[..body]);
+        out.push('\u{2026}');
+        rest = &rest[close..];
+    }
+    out.push_str(rest);
     out
 }
 

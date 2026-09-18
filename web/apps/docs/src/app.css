@@ -169,6 +169,17 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .chip.console-chip { right: 16px; }
 .problems-chip ~ .console-chip, .chip.problems-chip + .chip.console-chip { right: 150px; }
 
+.read-only .toolbar :is(.tool, .select):not([aria-label="Show outline"], [aria-label="Print"], [aria-label="Find"], .zoom) { pointer-events: none; opacity: .4; }
+.read-only .lens { display: none; }
+.share-add { display: flex; gap: 8px; margin-bottom: 12px; }
+.share-add input { flex: 1; height: 36px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.share-add select { height: 36px; padding: 0 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.people { list-style: none; margin: 0 0 12px; padding: 0; }
+.people li { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule-soft); }
+.people .who { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.people .role { color: var(--muted); font-size: 12px; text-transform: capitalize; }
+.error-text { color: var(--error); margin: 0 0 8px; }
+
 /* Dialogs */
 .dialog { border: 0; border-radius: 12px; padding: 0; background: var(--chrome); color: var(--ink); box-shadow: 0 8px 32px rgba(0,0,0,.3); width: min(92vw, 440px); }
 .dialog.wide { width: min(92vw, 720px); }
@@ -185,6 +196,12 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .dialog .guide td:first-child { white-space: nowrap; padding-right: 16px; }
 .dialog kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); font-size: 11px; }
 .shortcut-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px; }
+
+.splash { height: 100vh; display: grid; place-items: center; color: var(--muted); }
+.account { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.avatar { width: 32px; height: 32px; border-radius: 16px; display: inline-grid; place-items: center; background: var(--accent); color: #fff; font-weight: 600; }
+.account .email { color: var(--muted); font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.notice.info { background: var(--active); color: var(--accent-ink); border-color: transparent; }
 
 /* Home */
 .home { height: 100vh; overflow: auto; }

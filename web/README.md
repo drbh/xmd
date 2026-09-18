@@ -19,7 +19,9 @@ document app, and `/book/` for the live examples. The document app is a
 writing tool in the style of a hosted document editor: a home screen with
 templates and recent documents, a menu bar and formatting toolbar, an outline,
 find and replace, word count, keyboard shortcuts, light and dark paper, and
-engine actions in a side panel. It stores documents in the browser. The server serves only
+engine actions in a side panel. It stores documents in the browser; the
+optional hosted deployment in `web/cloud/` adds accounts, remote storage, and
+sharing through a backend module the app loads only when present. The server serves only
 `web/dist/`; it does not launch a language server or mount sibling directories.
 Deploy that entire directory to any static server, including beneath a URL
 prefix. Serve `.wasm` as `application/wasm`. `WTF_WEB_PORT` changes the local

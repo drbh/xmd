@@ -1,0 +1,13 @@
+{
+  "name": "wtf-docs-cloud",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --site-only && wrangler dev --var DEV_AUTH:1 --port 8788",
+    "migrate": "wrangler d1 migrations apply wtf-docs --remote",
+    "migrate:local": "wrangler d1 migrations apply wtf-docs --local",
+    "deploy": "node build.mjs && wrangler d1 migrations apply wtf-docs --remote && wrangler deploy",
+    "test": "node --test test/*.test.mjs"
+  }
+}

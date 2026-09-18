@@ -3,7 +3,7 @@
   import { mountEditor } from "@wtf/web/contenteditable";
   import { lineOf } from "./editing.js";
   import Icon from "./Icon.svelte";
-  let { workspace, uri, text, onSnapshot, onCaret, onError, controller = $bindable() } = $props();
+  let { workspace, uri, text, readOnly = false, onSnapshot, onCaret, onError, controller = $bindable() } = $props();
   let view, hover, page;
   // Code lenses drawn as chips at the end of their line, positioned over the
   // page so the editable text itself is never modified.
@@ -39,7 +39,7 @@
       onError,
     }).then(result => {
       mounted = result;
-      if (stopped) result.destroy(); else { controller = result; report(); }
+      if (stopped) result.destroy(); else { controller = result; if (readOnly) result.element.contentEditable = "false"; report(); }
     }).catch(onError);
     const report = () => {
       if (!mounted || mounted.destroyed) return;

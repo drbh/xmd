@@ -30,7 +30,8 @@ export function createCommands(ctx) {
     { id: "open", menu: "File", label: "Open…", shortcut: "mod+o", run: ctx.home },
     { id: "copy", menu: "File", label: "Make a copy", run: ctx.duplicate },
     { id: "import", menu: "File", label: "Import .wtf files…", run: ctx.importFiles, separator: true },
-    { id: "rename", menu: "File", label: "Rename", run: ctx.rename, separator: true },
+    { id: "rename", menu: "File", label: "Rename", run: ctx.rename },
+    { id: "share", menu: "File", label: "Share…", when: ctx.canShare, run: () => ctx.dialog("share"), separator: true },
     { id: "download", menu: "File", label: "Download (.wtf)", shortcut: "mod+shift+s", run: ctx.download },
     { id: "print", menu: "File", label: "Print", shortcut: "mod+p", icon: "print", run: ctx.print, separator: true },
     { id: "delete", menu: "File", label: "Move to trash", run: ctx.remove, separator: true },
@@ -91,7 +92,7 @@ export function createCommands(ctx) {
     { id: "examples", menu: "Help", label: "Live examples", run: () => window.open("../book/", "_blank", "noopener") },
   ];
   const byId = Object.fromEntries(list.map(c => [c.id, c]));
-  return { list, byId, menus: ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, items: list.filter(c => c.menu === name) })) };
+  return { list, byId, menus: ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, get items() { return list.filter(c => c.menu === name && (!c.when || c.when())); } })) };
 }
 
 /** Human-readable shortcut label, e.g. "⌘⇧Z" or "Ctrl+Shift+Z". */

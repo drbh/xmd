@@ -1,7 +1,8 @@
 <script>
   import { onMount } from "svelte";
   import { createWorkspace } from "@wtf/web";
-  import { loadDocuments, saveDocuments, titleOf, uriOf, watchStorage, createDocument, loadPrefs, savePrefs, relativeTime, TEMPLATES } from "./lib/store.js";
+  import { titleOf, uriOf, createDocument, loadPrefs, savePrefs, relativeTime, TEMPLATES } from "./lib/store.js";
+  import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
   import { lineStyle, reveal, stats } from "./lib/editing.js";
   import Editor from "./lib/Editor.svelte";
@@ -13,11 +14,15 @@
   import Home from "./lib/Home.svelte";
   import Icon from "./lib/Icon.svelte";
   import Console from "./lib/Console.svelte";
+  import Share from "./lib/Share.svelte";
 
-  const initialDocuments = loadDocuments();
-  let documents = $state(initialDocuments);
+  let documents = $state([]);
+  let backends = $state.raw(null);
+  const backend = $derived(backends?.backend);
+  const account = $derived(backends?.cloud?.account ?? null);
+  let localCount = $state(0);
   let prefs = $state(loadPrefs());
-  let activeId = $state(idFromHash());
+  let activeId = $state(null);
   let engine = $state("Starting the engine…");
   let engineVersion = $state("");
   let saved = $state("");
@@ -33,6 +38,7 @@
   let titleInput = $state(null), sidebarOpenMobile = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
   const counts = $derived(active ? stats(active.text) : null);
+  const readOnly = $derived(active?.role === "viewer");
   const symbolNames = $derived.by(() => { const out = new Set(); const walk = list => { for (const s of list) { if (/^[A-Za-z_]\w*$/.test(s.name)) out.add(s.name); walk(s.children || []); } }; walk(symbols); return [...out]; });
   const systemDark = matchMedia("(prefers-color-scheme: dark)");
   let dark = $state(systemDark.matches);
@@ -45,21 +51,27 @@
   const rpc = workspace.request;
   onMount(() => {
     const unsubscribe = workspace.onChange(persist);
-    const stopWatching = watchStorage(message => { saved = message; notice = message; });
+    let unsubscribeBackend = () => {};
     const onScheme = e => (dark = e.matches);
     systemDark.addEventListener("change", onScheme);
     const tick = setInterval(() => (now = Date.now()), 30_000);
     (async () => {
+      backends = await resolveBackend();
+      unsubscribeBackend = backend.subscribe(event => { if (event.type === "paused") { saved = event.message; notice = event.message; paused = true; } });
+      documents = await backend.list();
+      if (backends.cloud?.account) localCount = (await backends.local.list()).length;
       for (const d of documents) await workspace.setDocument(uriOf(d.id), d.text);
+      activeId = idFromHash();
       ready = true;
       engine = "Rust / WebAssembly · runs in this tab";
-    })().catch(e => { engine = `Engine failed: ${e.message}`; });
-    return () => { unsubscribe(); stopWatching(); systemDark.removeEventListener("change", onScheme); clearInterval(tick); clearTimeout(saveTimer); saveDocuments(documents); workspace.destroy(); };
+    })().catch(e => { engine = `Engine failed: ${e.message}`; notice = e.message; });
+    return () => { unsubscribe(); unsubscribeBackend(); systemDark.removeEventListener("change", onScheme); clearInterval(tick); clearTimeout(saveTimer); workspace.destroy(); };
   });
 
   // Routing: the home screen is "#/", a document is "#/d/<id>".
-  function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && initialDocuments.some(d => d.id === m[1]) ? m[1] : null; }
+  function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
   $effect(() => {
+    if (!ready) return;
     const hash = activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
@@ -72,7 +84,11 @@
   }
   function home() { activeId = null; find = null; dialog = null; }
 
-  let saveTimer;
+  // Saving: edits are debounced, then handed to the backend one document at a
+  // time. A conflict or unavailable store pauses saving for that document and
+  // says so; the writer's text is never overwritten from here.
+  let saveTimer, paused = $state(false);
+  const dirty = new Set();
   function persist({ uri, source }) {
     const document = documents.find(d => uriOf(d.id) === uri);
     if (!document || document.text === source) return;
@@ -80,16 +96,37 @@
     document.name = titleOf(source, document.name);
     document.updated = Date.now();
     now = document.updated;
+    schedule(document);
+  }
+  function schedule(document) {
+    dirty.add(document.id);
     saved = "Saving…";
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { saved = saveDocuments(documents) ? "Saved in this browser" : "Saving paused; download your changes"; }, 300);
+    saveTimer = setTimeout(flush, 300);
   }
-  function flush() { clearTimeout(saveTimer); saved = saveDocuments(documents) ? "Saved in this browser" : "Saving paused; download your changes"; }
+  async function flush() {
+    clearTimeout(saveTimer);
+    if (!backend || paused) return;
+    const ids = [...dirty]; dirty.clear();
+    for (const id of ids) {
+      const document = documents.find(d => d.id === id);
+      if (!document || document.stale) continue;
+      try {
+        const result = await backend.save($state.snapshot(document));
+        if (result?.version !== undefined) document.version = result.version;
+        saved = backend.label;
+      } catch (e) {
+        if (e.code === "conflict") { document.stale = true; saved = "Changed elsewhere; download your edits, then reload to see the latest"; }
+        else saved = e.message || "Saving paused; download your changes";
+        notice = saved;
+      }
+    }
+  }
   async function newDocument(template = TEMPLATES[0]) {
     const d = createDocument(template, template.id === "blank" ? "Untitled document" : undefined);
     documents = [d, ...documents];
     await workspace.setDocument(uriOf(d.id), d.text);
-    saveDocuments(documents);
+    schedule(d);
     open(d.id);
     // Land the caret on the empty line after the heading so typing starts immediately.
     queueMicrotask(() => setTimeout(() => controller?.select(d.text.length), 50));
@@ -99,14 +136,15 @@
     const copy = { ...createDocument({ text: d.text }), name: `Copy of ${d.name}` };
     documents = [copy, ...documents];
     await workspace.setDocument(uriOf(copy.id), copy.text);
-    saveDocuments(documents);
+    schedule(copy);
     open(copy.id);
   }
   async function remove(d = active) {
     if (!d || !confirm(`Remove "${d.name}"? This cannot be undone.`)) return;
     documents = documents.filter(x => x.id !== d.id);
     if (activeId === d.id) home();
-    saveDocuments(documents);
+    dirty.delete(d.id);
+    backend.delete(d.id).catch(error);
     try { await rpc("removeDocument", { uri: uriOf(d.id) }); } catch { /* the workspace may not know it yet */ }
   }
   function download(d = active) {
@@ -125,9 +163,10 @@
       const d = createDocument({ text }, titleOf(text, file.name.replace(/\.wtf$/, "")));
       documents = [d, ...documents];
       await rpc("setDocument", { uri: uriOf(d.id), text, version: 1 });
+      dirty.add(d.id);
       last = d.id;
     }
-    saveDocuments(documents);
+    flush();
     event.target.value = "";
     if (last) open(last);
   }
@@ -152,7 +191,21 @@
       else { lines[at] = next; d.text = lines.join("\n"); await workspace.setDocument(uriOf(d.id), d.text); }
     }
     d.name = name; d.updated = Date.now();
+    dirty.add(d.id);
     flush();
+  }
+  // Documents saved in this browser before signing in can move to the account.
+  async function moveLocal() {
+    const local = await backends.local.list();
+    for (const d of local) {
+      if (documents.some(x => x.id === d.id)) continue;
+      await backends.cloud.save(d);
+      documents = [d, ...documents];
+      await workspace.setDocument(uriOf(d.id), d.text);
+    }
+    await backends.local.clear();
+    localCount = 0;
+    notice = `${local.length} document${local.length === 1 ? "" : "s"} moved to your account.`;
   }
   function jump(symbol) {
     if (!controller) return;
@@ -183,6 +236,7 @@
     print: () => print(),
     find: replace => (find = { replace }),
     dialog: name => (dialog = name),
+    canShare: () => !!backend?.acl,
   });
   function keydown(event) {
     if (!active) return;
@@ -204,27 +258,29 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, get ready() { return ready; } };
+    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, get ready() { return ready; } };
   }
 </script>
 
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} />
 <input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
 
-{#if !active}
-  <Home {documents} {engine} {notice} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+{#if !ready}
+  <div class="splash"><p>{engine}</p></div>
+{:else if !active}
+  <Home {documents} {engine} {notice} {theme} {account} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
-  <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} style={`--zoom:${prefs.zoom / 100}`}>
+  <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">
       <div class="titlebar">
         <button type="button" class="logo" title="Back to documents" aria-label="Documents home" onclick={home}><Icon name="doc" size={26} /></button>
         <div class="title-block">
           <div class="title-row">
-            <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false"
+            <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false" readonly={readOnly}
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
-              <span class="status-text">{saved || (ready ? "Saved in this browser" : engine)}</span>
+              <span class="status-text">{readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
           </div>
           <MenuBar menus={commands.menus} />
@@ -258,7 +314,7 @@
       <main class="canvas" onclick={e => { if (e.target === e.currentTarget && controller) { controller.select(controller.getSource().length); } }}>
         {#if ready}
           {#key active.id}
-            <Editor {workspace} uri={uriOf(active.id)} text={active.text}
+            <Editor {workspace} uri={uriOf(active.id)} text={active.text} {readOnly}
               onSnapshot={(snapshot, list) => { symbols = snapshot.symbols || []; problems = list; engineVersion = snapshot.engineVersion || ""; }}
               {onCaret} onError={error} bind:controller />
           {/key}
@@ -290,6 +346,8 @@
         </table>
         <label class="option"><input type="checkbox" bind:checked={prefs.wordCount}> Display word count while typing</label>
       </Dialog>
+    {:else if dialog === "share" && backend?.acl}
+      <Share acl={backend.acl(active.id)} name={active.name} onClose={() => (dialog = null)} />
     {:else if dialog === "problems"}
       <Dialog title="Problems" onClose={() => (dialog = null)}>
         {#if problems.length}

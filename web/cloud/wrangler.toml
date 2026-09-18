@@ -1,0 +1,24 @@
+# Hosted deployment of the docs app: static site plus an accounts API.
+# Everything Cloudflare-specific lives in this folder; the app itself only
+# knows the optional `backend.js` module that build.mjs places beside it.
+name = "wtf-docs"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+account_id = "1d9f1ba803a2b9c6118173364bde3155"
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+not_found_handling = "none"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wtf-docs"
+database_id = "7138a96c-8e07-42b7-8aae-a887571c67fc"
+migrations_dir = "migrations"
+
+[vars]
+# Cloudflare Access application protecting /api/*. Leave empty until the
+# application exists; sign-in is then reported as not configured.
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""

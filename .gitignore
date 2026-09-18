@@ -13,3 +13,7 @@
 /ide/vscode/node_modules/
 /ide/vscode/.vscode-test/
 /ide/vscode/*.vsix
+
+output
+.hidden
+/web/cloud/.wrangler/

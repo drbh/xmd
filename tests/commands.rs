@@ -25,7 +25,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn row(ws: &Workspace, row: usize) -> RowTarget {
@@ -166,7 +166,7 @@ fn task_preparation_is_undoable_and_rejects_stale_or_blocked_source() {
 
 #[test]
 fn timer_preparation_uses_current_state_clock_and_cross_note_origin() {
-    let mut ws = workspace("[alias] := focus\n");
+    let mut ws = workspace("[alias] := import(\"./timer.wtf\").focus\n");
     let timer_path = Path::new("/workspace/timer.wtf");
     let source = "[focus] := stopwatch()\n";
     ws.documents
@@ -212,7 +212,7 @@ fn timer_preparation_uses_current_state_clock_and_cross_note_origin() {
 
 #[test]
 fn resource_preparation_rechecks_aliases_and_refresh_support() {
-    let mut ws = workspace("See [site].\n");
+    let mut ws = workspace("See [site].\nsite := import(\"./links.wtf\").site\n");
     let other = Path::new("/workspace/links.wtf");
     let url = Url::parse("https://example.com/old").unwrap();
     ws.documents
@@ -268,8 +268,8 @@ fn capabilities_control_both_available_controls_and_execution() {
         "[focus] := stopwatch()\n- [ ] Task\nhttps://github.com/acme/app/pull/42\n[price] := quote(ACME)\n",
     );
     let request = RequestContext::new(&ws, now());
-    let native = wtf::interaction::lenses_for(&request, path(), Capabilities::NATIVE);
-    let browser = wtf::interaction::lenses_for(&request, path(), Capabilities::BROWSER);
+    let native = request.code_lenses(path(), Capabilities::NATIVE);
+    let browser = request.code_lenses(path(), Capabilities::BROWSER);
     assert!(
         native
             .iter()

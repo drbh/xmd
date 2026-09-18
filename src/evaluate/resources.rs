@@ -15,6 +15,8 @@ pub struct Resource {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Metadata {
     pub title: String,
+    /// Provider-defined, so it stays text: each link provider names its own
+    /// states, and the workspace only passes them through.
     pub state: String,
     pub merged: Option<bool>,
     pub checks: Option<String>,

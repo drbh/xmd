@@ -1,7 +1,6 @@
 use chrono::{DateTime, FixedOffset};
 use std::{collections::BTreeMap, path::Path};
 use wtf::{
-    diagnostics,
     document::Document,
     engine::{Currency, Engine, Value},
     highlighting::{TOKEN_TYPES, semantic_tokens},
@@ -21,7 +20,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn eval(ws: &Workspace, name: &str) -> Result<Value, String> {
@@ -73,7 +72,9 @@ fn scalars_quoted_text_and_resources_define_without_brackets() {
         matches!(eval(&ws, "zocalo").unwrap(), Value::Resource(r) if r.target == "geo:17.06,-96.72")
     );
     assert_eq!(
-        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
     // Spans: the value is highlighted as a literal, the name as a declaration.
@@ -107,10 +108,13 @@ fn calculations_define_without_brackets_and_prose_is_left_alone() {
     assert_eq!(eval(&ws, "remaining").unwrap().display(), "$556");
     assert_eq!(eval(&ws, "share").unwrap().display(), "18.5333%");
     assert_eq!(
-        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
-    let hover = intelligence::hover(&ws, &ws.resolve(path(), "remaining").unwrap(), now());
+    let hover = wtf::RequestContext::new(&ws, now())
+        .symbol_hover(&ws.resolve(path(), "remaining").unwrap());
     assert!(
         hover.contains("budget - spent\n= $3,000 - $2,444\n= $556"),
         "{hover}"

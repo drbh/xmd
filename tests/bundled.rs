@@ -101,7 +101,7 @@ fn github_matches_the_previous_provider_across_urls_cache_states_and_ages() {
                     cached: Some(&m),
                     now: now(),
                 };
-                let properties:Vec<_>=provider.property_names(&url).iter().map(|name|json!({"name":name,"value":provider.property(&ctx,name).map(|v|v.display()).map_err(|e|e.strip_prefix("Plugin github.property: ").unwrap_or(&e).to_owned())})).collect();
+                let properties:Vec<_>=provider.property_names(&url).iter().map(|name|json!({"name":name,"value":provider.property(&ctx,name).map(|v|v.display()).map_err(|e|e.strip_prefix("Module github.property: ").unwrap_or(&e).to_owned())})).collect();
                 states.push(json!({"age":age,"decoded":{"title":m.title,"state":m.state,"merged":m.merged,"checks":m.checks,"review":m.review},"inlay":provider.inlay(&ctx),"hover":provider.hover(&ctx),"live":provider.time_dependent(&ctx),"properties":properties}));
             }
         }
@@ -124,12 +124,12 @@ fn bundled_inlays_match_previous_positions_labels_tooltips_and_clock_dependencie
             documents: [(path.into(), Document::parse(source.into()))].into(),
             cache: Default::default(),
             lookups: Default::default(),
-            plugins: Default::default(),
+            modules: Default::default(),
         };
         let mut engine = Engine::at(&ws, now().fixed_offset());
-        let features: Vec<&dyn wtf::inlays::InlayFeature> = wtf::plugins::bundled()
+        let features: Vec<&dyn wtf::inlays::InlayFeature> = wtf::modules::bundled()
             .iter()
-            .filter(|m| m.kind == "inlay")
+            .filter(|m| matches!(m.id.as_str(), "checklists" | "table_cells" | "calculations"))
             .map(|m| m as &dyn wtf::inlays::InlayFeature)
             .collect();
         let result = wtf::inlays::collect(

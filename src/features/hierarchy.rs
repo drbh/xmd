@@ -3,11 +3,10 @@
 //! item itself depends on. Shared by the native server and deterministic tests.
 use crate::{
     document::{Document, Span},
-    engine::{Engine, Value},
+    engine::Value,
     intelligence::symbol_at,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::{CallHierarchyItem, Position, Range};
 use std::path::{Path, PathBuf};
 
@@ -54,7 +53,7 @@ pub fn label(ws: &Workspace, symbol: &Symbol) -> String {
         _ => ws.named(symbol).name.clone(),
     }
 }
-fn selection(doc: &Document, symbol: &Symbol) -> Span {
+pub(crate) fn selection(doc: &Document, symbol: &Symbol) -> Span {
     match symbol.kind {
         SymbolKind::Task(i) => {
             let task = &doc.tasks[i];
@@ -112,9 +111,10 @@ fn extent(doc: &Document, symbol: &Symbol) -> Range {
     }
 }
 
-pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> CallHierarchyItem {
+pub(crate) fn item(request: &crate::RequestContext<'_>, symbol: &Symbol) -> CallHierarchyItem {
+    let ws = request.workspace();
     let doc = &ws.documents[&symbol.path];
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let (kind, detail) = match symbol.kind {
         SymbolKind::Task(i) => {
             let done = engine.task_done(&symbol.path, i);
@@ -149,7 +149,9 @@ pub fn item(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Call
             lsp_types::SymbolKind::FIELD,
             format!(
                 "{} · column of {}",
-                doc.tables[t].types[c].unwrap_or("Unknown"),
+                doc.tables[t].types[c]
+                    .map(|t| t.as_str())
+                    .unwrap_or("Unknown"),
                 doc.definitions[doc.tables[t].definition].named.name
             ),
         ),
@@ -242,7 +244,7 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
     let mut edges: Vec<(Symbol, Vec<Span>)> = Vec::new();
     let own_variable = |target: &Symbol| matches!((&symbol.kind, &target.kind), (SymbolKind::Definition(i), SymbolKind::Variable(p, _)) if target.path == symbol.path && doc.plans[*p].definition == *i);
     let mut add = |target: Symbol, span: Span| {
-        if target == *symbol || own_variable(&target) {
+        if own_variable(&target) {
             return;
         }
         match edges.iter_mut().find(|(t, _)| *t == target) {
@@ -252,6 +254,17 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
     };
     let mut references =
         |within: Span| {
+            for member in doc
+                .members
+                .iter()
+                .filter(|m| within.contains(&doc.text, m.span))
+            {
+                if let Some(target) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &member.source)
+                {
+                    add(target, member.span);
+                }
+            }
             for reference in doc.references.iter().filter(|r| {
                 within.contains(&doc.text, Span::new(r.span.line, r.span.start, r.end()))
             }) {
@@ -270,7 +283,13 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
                 for region in crate::plans::regions(plan) {
                     references(region);
                 }
-            } else if def.expression && !doc.tables.iter().any(|t| t.definition == i) {
+            } else if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
+                for cell in table.rows.iter().flatten() {
+                    if let Some((_, span)) = &cell.expression {
+                        references(*span);
+                    }
+                }
+            } else if def.expression {
                 references(def.value_span);
             }
         }
@@ -337,7 +356,7 @@ pub fn dependents(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)> {
         .collect()
 }
 /// Every node that can hold an edge, including unnamed tasks and sections.
-fn nodes(ws: &Workspace) -> Vec<Symbol> {
+pub(crate) fn nodes(ws: &Workspace) -> Vec<Symbol> {
     ws.documents
         .iter()
         .flat_map(|(path, doc)| {

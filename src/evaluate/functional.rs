@@ -1,5 +1,5 @@
 //! Small, pure additions to the shared expression language.
-use super::engine::{Expr, Value};
+use super::engine::{BinaryOp, Expr, Value};
 use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug)]
@@ -49,6 +49,8 @@ pub fn is_builtin(name: &str) -> bool {
             | "pad_end"
             | "map"
             | "filter"
+            | "sort_by"
+            | "group_by"
             | "fold"
             | "get"
             | "length"
@@ -299,9 +301,12 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         ("length", [List(items)]) => Count(items.len()),
         ("length", [Record(fields)]) => Count(fields.len()),
         ("length", [Text(text)]) => Count(text.chars().count()),
+        ("text", [Null]) => Null,
         ("text", [value]) => Text(value.display()),
         ("contains", [Text(text), Text(part)]) => Bool(text.contains(part)),
-        ("contains", [List(items), value]) => Bool(items.contains(value)),
+        ("contains", [List(items), value]) => Bool(items.iter().any(|item| {
+            super::engine::binary(BinaryOp::Equal, item.clone(), value.clone()) == Ok(Bool(true))
+        })),
         ("starts_with", [Text(text), Text(part)]) => Bool(text.starts_with(part)),
         ("ends_with", [Text(text), Text(part)]) => Bool(text.ends_with(part)),
         ("split", [Text(text), Text(separator)]) => {
@@ -383,4 +388,47 @@ fn number(value: &Value) -> Result<f64, String> {
         Value::Count(n) => Ok(*n as f64),
         _ => Err("Expected a finite number".into()),
     }
+}
+
+/// Stable scalar ordering, with missing values last (also for descending sorts).
+pub(crate) fn compare(a: &Value, b: &Value) -> Result<std::cmp::Ordering, String> {
+    use Value::*;
+    use std::cmp::Ordering;
+    match (a, b) {
+        (Null, Null) => Ok(Ordering::Equal),
+        (Null, _) => Ok(Ordering::Greater),
+        (_, Null) => Ok(Ordering::Less),
+        _ => {
+            let less = super::engine::binary(BinaryOp::Less, a.clone(), b.clone())?;
+            if less == Bool(true) {
+                Ok(Ordering::Less)
+            } else if super::engine::binary(BinaryOp::Equal, a.clone(), b.clone())? == Bool(true) {
+                Ok(Ordering::Equal)
+            } else {
+                Ok(Ordering::Greater)
+            }
+        }
+    }
+}
+
+/// Sum compatible quantities without throwing away their units; missing values are skipped.
+pub(crate) fn sum(values: impl IntoIterator<Item = Value>) -> Result<Value, String> {
+    use Value::*;
+    let mut total = None;
+    for value in values {
+        if value == Null {
+            continue;
+        }
+        if !matches!(
+            value,
+            Number(_) | Count(_) | Ratio(_) | Money(..) | Duration(_)
+        ) {
+            return Err("sum requires numbers, money or durations".into());
+        }
+        total = Some(match total {
+            Some(previous) => super::engine::binary(BinaryOp::Add, previous, value)?,
+            None => value,
+        });
+    }
+    Ok(total.unwrap_or(Null))
 }

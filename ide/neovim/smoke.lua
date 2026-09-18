@@ -65,16 +65,16 @@ local function run()
   local function contains(text)
     return table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), '\n'):find(text, 1, true)
   end
-  action('- [ ] Try task', 'Complete task')
+  action('- [ ] Try task', '✓ done')
   wait('task completed', function() return contains('- [x] Try task') end)
   vim.cmd.undo()
   wait('task undo', function() return contains('- [ ] Try task') end)
-  action('[smoke_clock] :=', 'Start timer')
+  action('[smoke_clock] :=', '▸ start')
   wait('running timer displayed', function() return visible_hints():find('running', 1, true) end)
   local before = visible_hints()
   wait('timer refresh without typing', function() return visible_hints() ~= before end)
-  action('[smoke_clock] :=', 'Pause timer')
-  action('[smoke_clock] :=', 'Reset timer')
+  action('[smoke_clock] :=', '‖ pause')
+  action('[smoke_clock] :=', '↺ reset')
 
   local edits = request('textDocument/rename', {
     textDocument = { uri = uri }, position = at('smoke_spent'), newName = 'smoke_expenses',

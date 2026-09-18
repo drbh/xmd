@@ -1394,6 +1394,15 @@ dependencies = [
  "unicode-width",
  "url",
  "wasm-bindgen",
+ "wtf-renderer",
+]
+
+[[package]]
+name = "wtf-renderer"
+version = "0.1.0"
+dependencies = [
+ "lsp-types",
+ "serde_json",
 ]
 
 [[package]]

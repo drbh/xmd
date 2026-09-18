@@ -1,118 +1,172 @@
-# WTF in the browser
+# WTF web library and applications
 
-A dark-mode, vanilla HTML/JavaScript client. Monaco loads from a pinned ESM CDN;
-WTF's existing Rust engine runs inside a dedicated Web Worker as WebAssembly.
-The page does not launch or connect to a native WTF language server.
+All browser clients, HTML rendering, themes, fonts, and web build tooling live
+here. The CLI and browser use the same Rust HTML serializer in `renderer/`.
+Language parsing, evaluation, modules, and actions remain in the shared engine.
 
 ## Build and run
 
-Install Rust and `wasm-pack` if they are not already available, then from the
-repository root:
+Install Rust, the `wasm32-unknown-unknown` target, Node, and `wasm-pack`, then:
 
 ```sh
-rustup target add wasm32-unknown-unknown
-bash web/build.sh
+npm --prefix web ci
+npm --prefix web run build
 node web/serve.mjs
 ```
 
-Open **http://127.0.0.1:4173**. Node only serves static files; any HTTP static-file
-server can replace it. Set `WTF_WEB_PORT` to change the development port.
-Opening `index.html` through `file://` is not supported because the app uses
-module workers and fetches its Wasm module.
+Open http://127.0.0.1:4173 for the Monaco workspace, `/docs/` for the Svelte
+document app, and `/book/` for the live examples. The server serves only
+`web/dist/`; it does not launch a language server or mount sibling directories.
+Deploy that entire directory to any static server, including beneath a URL
+prefix. Serve `.wasm` as `application/wasm`. `WTF_WEB_PORT` changes the local
+port; `WTF_WEB_BASE=/notes` exercises a subdirectory deployment.
 
-The build uses `--no-default-features --features browser` to exclude the CLI,
-native filesystem scanning, subprocesses, and Tokio/LSP transport. It creates
-`web/pkg/wtf.js` and `web/pkg/wtf_bg.wasm` (plus generated package metadata).
-These generated artifacts are ignored by Git; rebuild after changing Rust.
-`wasm-pack` selects/caches a matching wasm-bindgen tool version for Cargo.lock.
+`npm --prefix web run build:site` rebuilds just the applications and themes using
+the existing WASM build. `bash web/build.sh` rebuilds just WASM. One npm lockfile
+covers the library and docs app. Every deployed app loads the same
+`lib/pkg/wtf_bg.wasm`; `dist/manifest.json` records its SHA-256 hash.
 
-No npm install or JavaScript bundling is required to run the page. The optional
-package.json is for development commands and browser tests only.
+## Use the library
 
-## What works
+The package is prepared for distribution, but publishing it is a separate step.
+Build a local package with `cd web && npm pack`, then install the resulting
+`wtf-web-0.1.0.tgz` in a consumer project. The framework-independent ESM API has
+TypeScript declarations and no required UI-framework or Monaco dependency.
 
-- Inlay values on calculations and prose references, with calculation tooltips.
-- Rust-generated semantic highlighting, diagnostics, completion, and signatures.
-- Computational tables and `sum(table, row_expression)`, with typed cells,
-  scoped column completion/rename, hovers, and undoable Format Document. Import
-  `notes/tables.wtf` from the repository for an example; all logic is shared with LSP.
-- Definition/reference navigation, rename, and read/write highlights across notes.
-- Searchable, collapsible document outline and Monaco's Go to Symbol navigation.
-  Both consume the same standard document symbols as the native language server:
-  headings, nested tasks, values, timers, and events, with type/value details.
-- Contextual task/timer CodeLens controls, including start/pause/resume/reset.
-- Extract, inline, freeze-value, and typo-fix code actions.
-- Live timer values and clock-dependent diagnostics; ticking never edits source.
-- New notes, multi-file import/drop, browser-local autosave, and plain `.wtf` downloads.
+```js
+import { render, mount } from "@wtf/web";
+import "@wtf/web/style.css";
 
-`trip.wtf` and `today.wtf` seed a new browser workspace. Existing saved notes are
-restored on reload. Duplicate import filenames get a numeric suffix rather than
-overwriting an existing note. The storage is per browser profile and origin;
-different ports/hosts have different workspaces. Download backups: private-mode
-storage, site-data clearing, and storage eviction can remove browser-local notes.
-If storage is unreadable, the original value is preserved and autosaving is
-disabled. Edits from another tab pause this tab's autosave to prevent silent
-overwrites. Downloads do not rewrite files in your Zed workspace.
+// A resolved HTML fragment. Displaying it requires only CSS, with no runtime JS.
+const html = await render("total := 2 + 3\n", {
+  now: "2026-09-18T12:00:00Z",
+});
 
-The worker owns a virtual `/workspace` containing the imported/open notes. Notes
-are limited to 1 MB each for language analysis. Source edits use Monaco's undo
-history and carry model versions. Multi-note edits validate their targets before
-applying; each note has its own undo history. Controls are revalidated against
-the latest source before execution, and edits are reported back to Rust.
+// Live inlays and core task/timer controls. Source editing is optional.
+const view = await mount(document.querySelector("#note"), {
+  source: "- [ ] Book the hotel\nfocus := countdown(25m)\n",
+  onChange({ uri, source, version }) { save(uri, source, version); },
+  onError(error) { console.error(error); },
+});
+await view.setSource("total := 4 + 5\n");
+view.destroy();
+```
 
-## Browser differences
+`render()` also works in Node without a DOM, loading the packaged WASM directly.
+It returns `<pre class="wtf"><code>…</code></pre>`; it does not embed a stylesheet.
+Use `wtf render FILE` for a complete standalone HTML document with embedded CSS.
+Resolving source requires the WASM engine; displaying already resolved HTML does
+not. A browser resolving source uses a module worker and needs an HTTP(S) origin.
 
-- No native filesystem access or folder watching. Import related `.wtf` notes
-  together; names resolve among those notes. Local resource links only navigate
-  to notes already imported. Local image previews are not implemented.
-- GitHub URLs/maps can open in another tab, but GitHub CLI metadata refresh is
-  unavailable. No credentials or notes are sent to a language-server backend.
-- A local resource's `.exists` produces an explicit unsupported diagnostic,
-  rather than pretending the file does not exist on your machine.
-- Timers use saved timestamps and catch up after reload or tab suspension.
-  Browser throttling can delay visual refreshes. There are no background alarms
-  or notifications after the page is closed.
-- Monaco assets come from `esm.sh` at version `0.56.0`; first load requires CDN
-  access. This is not an offline/PWA build. CDN JavaScript is trusted application
-  code; self-host those assets if you need a fully self-contained deployment.
-  Markdown hovers are untrusted (no HTML or command execution), and resource
-  opening permits only HTTP(S) and imported-note navigation.
+The default worker URL is relative to the library module, so bundlers can include
+it and its WASM dependency. A host with a separate asset pipeline can supply
+`workerFactory: () => new Worker(myWorkerURL, { type: "module" })`; deploy the
+shipped worker module with its relative imports intact. An advanced `transport`
+option supplies the same asynchronous request interface without a Worker.
 
-## Static deployment
+## Workspaces and views
 
-After building, deploy `index.html`, `style.css`, `app.js`, `editor.js`,
-`outline.js`, `worker.js`, `monaco-worker.js`, and the generated `pkg/` directory together.
-Paths are relative, so a subdirectory deployment works too. Serve `.wasm` as
-`application/wasm`. No WebSocket, API route, database, or Rust process is required.
-Use HTTPS outside localhost.
+A view without a supplied workspace owns an isolated workspace and destroys it
+on disposal. For cross-note resolution or multiple views, share one explicitly:
 
-The browser bridge uses a small JSON request API, not a second implementation of
-the language or a full LSP transport. `src/features/presentation.rs`, `src/features/intelligence.rs`,
-`src/features/diagnostics.rs`, and the parser/evaluator/refactor modules are shared with
-Zed. `src/hosts/browser.rs` adds virtual-document lifecycle and browser command dispatch.
-`editor.js` translates the shared LSP-shaped data into Monaco provider results.
-`src/features/symbols.rs` owns document symbols for both hosts. Language/editor features
-are LSP-first: implement them in the native server and shared core before exposing
-them in the browser. Browser UI must not introduce a separate language parser or
-exclusive language behavior. A calendar date-picker widget is not implemented,
-because standard LSP does not provide an equivalent portable picker interaction.
+```js
+import { createWorkspace, mount } from "@wtf/web";
 
-## Verification
+const workspace = createWorkspace({ onError: console.error });
+await workspace.setDocument("file:///workspace/budget.wtf", "budget := $100\n");
+await workspace.setDocument("file:///workspace/trip.wtf", 'Available [shared.budget].\nshared := import("./budget.wtf")\n');
+const view = await mount(element, {
+  workspace,
+  uri: "file:///workspace/trip.wtf",
+  layout: "document",
+});
+const unsubscribe = workspace.onChange(({ uri, source }) => save(uri, source));
+
+view.destroy();       // Detach this view; documents and other views survive.
+unsubscribe();
+workspace.destroy();  // Stop the worker and all subscriptions.
+```
+
+Names are local to each document. Imports use paths relative to that document;
+supply imported sources with `setDocument` before rendering. A missing source
+produces a diagnostic; the browser never fetches it automatically.
+
+Documents use file URIs beneath `/workspace/`, end in `.wtf`, and are limited to
+1 MB each. The controller allocates monotonically increasing document versions,
+serializes transport calls, rejects stale edits, invalidates dependent views,
+and runs one live-refresh scheduler per workspace. `onChange` fires for source
+transactions; `onRender` fires for presentation updates, including clock ticks.
+Persist by the callback's URI, never by the currently selected document.
+
+Use `setModules({ "custom.wtf": source })` for the shared language's module
+interface and `setResourceData(url, data)` for host-supplied resource metadata.
+Both invalidate presentation without emitting source changes. `query`,
+`analyze`, and `request` expose the existing browser engine protocol for advanced
+integrations. Snapshots carry their source, URI, document/workspace versions,
+clock, schema version, tokens, hints, diagnostics, links, controls, and HTML.
+Treat snapshots as read-only.
+
+A fixed RFC3339 `now` string freezes evaluation and disables ticking. A function
+can supply a custom live clock. Browser defaults use local time; Node rendering
+defaults to UTC. Use an explicit clock for reproducible output. `render()` uses
+strict diagnostics by default; editable views use the engine's editing mode,
+which suppresses some incomplete-expression diagnostics.
+
+## Editing and appearance
+
+`mount()` displays resolved content with clickable links and versioned core
+controls. Set `interactive: false` to omit controls, or `controls: false` to hide
+the control bar while retaining inline checkbox actions. `onOpen(url)` delegates
+navigation to the host; the default opens HTTP(S) links in another tab.
+
+For lightweight source editing:
+
+```js
+import { mountEditor } from "@wtf/web/contenteditable";
+const editor = await mountEditor(element, { workspace, uri, onError });
+await editor.insertAtCaret("\n- [ ] Next task\n");
+await editor.undo();
+await editor.redo();
+editor.destroy();
+```
+
+This optional adapter preserves selections, pauses repainting during composition,
+inserts plain text, and owns source undo/redo. Monaco remains the full IDE adapter
+at `@wtf/web/monaco`, with an optional `monaco-editor` peer dependency. Its
+`createEditor(element, client)` returns an editor, a per-instance `language` ID,
+and `destroy()`; use that ID for its models. The workspace app shows the complete
+client adapter, including mapping workspace versions to Monaco's undo versions.
+The demo loads pinned Monaco assets from a CDN; the base library, docs, and book
+do not depend on that CDN.
+
+`style.css` scopes semantic styling to `.wtf`. Customize `--wtf-background`,
+`--wtf-foreground`, `--wtf-font`, `--wtf-font-size`, `--wtf-inlay-background`, and
+`--wtf-inlay-foreground` on the host. `layout: "source"` preserves unwrapped
+source lines; `"document"` wraps lines and sizes headings using parser metadata.
+Optionally import `@wtf/web/fonts.css` for the bundled Ioskeley Mono fonts.
+
+`theme/palette.json` is the source for HTML, Monaco, and generated Zed token
+styles. Regenerate adapters with `node web/scripts/theme.mjs`. Application CSS
+owns page layout; it does not maintain separate semantic token palettes.
+
+## Boundaries and verification
+
+The browser workspace is virtual: it does not scan files, watch folders, invoke
+native commands, or fetch external metadata automatically. Import related notes
+and supply resource data explicitly. Features and actions are the same core
+implementations used by LSP, subject to the browser host's capabilities.
+App persistence, file pickers, navigation, and page layout remain outside the
+library. Both persistence demos preserve unreadable storage and pause saving
+when another tab changes it.
 
 ```sh
 cargo test --all-features
 cargo clippy --all-targets --all-features -- -D warnings
-bash web/build.sh
-cd web
-npm ci
-npm test
+npm --prefix web run build
+npm --prefix web test
 ```
 
-Browser tests use an installed Google Chrome via Playwright (`channel: chrome`)
-and exercise the real Wasm worker and rendered Monaco editor. They cover inlays,
-editing, reload/save/download, contextual completion/signatures, clickable
-controls and undo, timer expiry, cross-note navigation/rename, Unicode filenames,
-duplicate imports, and corrupt-storage preservation. Tests need CDN access.
-Outline tests cover hierarchy, filtering/collapse, source navigation, live edits,
-note switching, and Monaco's actual Go to Symbol picker. Rust tests check the
-native LSP response, flat-client fallback, Unicode ranges, and browser/core parity.
+Playwright uses installed Google Chrome. Monaco tests require CDN access.
+Tests cover native/browser rendering parity, core actions, editor operations,
+UTF-16 coordinates, worker failure, disposal, live document switching,
+subdirectory deployment, persistence, and static HTML without external requests.

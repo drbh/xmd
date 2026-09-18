@@ -263,10 +263,10 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     for h in &doc.highlights {
         p.mark(
             h.span,
-            if h.kind == "string" {
+            if h.kind == crate::document::HighlightKind::String {
                 "wtfCode"
             } else {
-                h.kind
+                h.kind.as_str()
             },
         );
     }
@@ -484,7 +484,11 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         }
     }
     // Metadata-looking text inside comments must never become active highlighting.
-    for h in doc.highlights.iter().filter(|h| h.kind == "comment") {
+    for h in doc
+        .highlights
+        .iter()
+        .filter(|h| h.kind == crate::document::HighlightKind::Comment)
+    {
         p.mark(h.span, "comment");
     }
     p.finish()

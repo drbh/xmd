@@ -23,7 +23,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Cache::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn all() -> Range {
@@ -88,7 +88,7 @@ impl LinkFeature for Build {
 
 #[test]
 fn one_link_impl_covers_raw_markdown_named_alias_and_cross_note_references() {
-    let source = "🦀 https://docs.example/intro\nSee [manual](https://docs.example/intro).\n[https://docs.example/intro]:guide\n[alias] := guide\nRead [guide], [alias], and [shared].\nOrdinary https://example.com/plain\n";
+    let source = "🦀 https://docs.example/intro\nSee [manual](https://docs.example/intro).\n[https://docs.example/intro]:guide\n[alias] := guide\nRead [guide], [alias], and [shared].\nOrdinary https://example.com/plain\nshared := import(\"./other.wtf\").shared\n";
     let mut ws = workspace(source);
     ws.documents.insert(
         "/notes/other.wtf".into(),
@@ -96,8 +96,8 @@ fn one_link_impl_covers_raw_markdown_named_alias_and_cross_note_references() {
     );
     let features = LinkFeatures::new(&[&Documentation]);
     let mut engine = Engine::at(&ws, now()).with_link_features(features);
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
-    assert_eq!(result.hints.len(), 7, "{:?}", result.hints);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
+    assert_eq!(result.hints.len(), 8, "{:?}", result.hints);
     assert!(result.hints.iter().all(|h| label(h) == "docs · intro"));
     assert_eq!(result.hints[0].position.character, 29); // crab is two UTF-16 units
     assert!(!result.time_dependent);
@@ -170,7 +170,7 @@ fn provider_properties_and_tooltips_share_the_cache_and_request_clock() {
         engine.eval(path(), "build.url").unwrap(),
         Value::Text(TARGET.into())
     );
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
     assert!(result.time_dependent);
     assert_eq!(label(&result.hints[0]), "build 42 · passed");
     assert_eq!(label(&result.hints[1]), "passed");
@@ -233,7 +233,7 @@ fn registry_priority_and_unrecognized_resources_have_predictable_fallbacks() {
 fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age() {
     let url = "https://github.com/acme/app/pull/42";
     let mut ws = workspace(&format!("[{url}]:pr\nSee [pr] and {url}.\n"));
-    assert!(!wtf::presentation::live_hints(&ws, path(), now()));
+    assert!(!wtf::RequestContext::new(&ws, now()).live_hints(path()));
     ws.cache.insert(
         url.into(),
         wtf::github::metadata(
@@ -256,7 +256,7 @@ fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age()
         wtf::intelligence::property_names(&resource),
         ["url", "title", "state", "merged", "checks_passed"]
     );
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
     assert_eq!(result.hints.len(), 3);
     assert!(
         result
@@ -265,14 +265,19 @@ fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age()
             .all(|h| label(h) == "✓ merged · ● checks · 2h ago")
     );
     assert!(result.time_dependent);
-    assert!(wtf::presentation::live_hints(&ws, path(), now()));
-    let commands = wtf::interaction::row_commands(&ws, path(), 1, now(), false);
+    assert!(wtf::RequestContext::new(&ws, now()).live_hints(path()));
+    let commands = wtf::RequestContext::new(&ws, now()).row_commands(
+        path(),
+        1,
+        false,
+        wtf::commands::Capabilities::NATIVE,
+    );
     let refresh: Vec<_> = commands
         .iter()
         .filter(|c| c.command == "wtf.refreshResource")
         .collect();
     assert_eq!(refresh.len(), 1); // duplicate appearances on a row share a command
-    assert_eq!(refresh[0].title, "Refresh GitHub status");
+    assert_eq!(refresh[0].title, "⟳ github");
     let request = wtf::link_features::BUILTINS.refresh_request(url).unwrap();
     assert_eq!(request.program, "gh");
     assert_eq!(

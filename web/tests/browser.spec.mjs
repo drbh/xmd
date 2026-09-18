@@ -81,7 +81,7 @@ test("raw file links are styled and clicking opens an imported note via the shar
   const links = await page.evaluate(() => window.wtfTest.query(window.wtfTest.editor.getModel(), "documentLinks"));
   expect(links.map(l => l.target)).toEqual(["file:///workspace/today.wtf", "https://example.com/docs"]);
   // CodeLens adds a line above the links; wait for its layout before clicking.
-  await expect(page.locator(".codelens-decoration").getByText("Open resource", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".codelens-decoration").getByText("↗ open", { exact: true }).first()).toBeVisible();
   await local.click({ modifiers: ["ControlOrMeta"] });
   await expect(page.locator("#filename")).toHaveText("today.wtf");
   expect(errors).toEqual([]);
@@ -114,15 +114,15 @@ test("real Wasm worker renders reactive inlays, saves locally, and downloads pla
 test("clickable timer and task controls produce undoable source edits", async ({ page }) => {
   await ready(page);
   await page.getByRole("button", { name: "today.wtf", exact: true }).click();
-  await expect(page.locator(".codelens-decoration").filter({ hasText: "Start timer 'focus'" }).first()).toBeVisible();
-  await page.locator(".codelens-decoration").getByText("Start timer 'focus'", { exact: true }).first().click();
+  await expect(page.locator(".codelens-decoration").filter({ hasText: "▸ start focus" }).first()).toBeVisible();
+  await page.locator(".codelens-decoration").getByText("▸ start focus", { exact: true }).first().click();
   await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("countdown(25m, 0s,");
   await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
-  await page.locator(".codelens-decoration").getByText("Pause timer 'focus'", { exact: true }).first().click();
+  await page.locator(".codelens-decoration").getByText("‖ pause focus", { exact: true }).first().click();
   await expect(page.locator(".view-lines")).toContainText("remaining · ‖ paused");
   await page.evaluate(() => window.wtfTest.editor.trigger("test", "undo", null));
   await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
-  await page.locator(".codelens-decoration").getByText("Complete task", { exact: true }).first().click();
+  await page.locator(".codelens-decoration").getByText("✓ done", { exact: true }).first().click();
   await expect.poll(() => page.evaluate(() => window.wtfTest.editor.getValue())).toContain("- [x] Investigate");
 });
 
@@ -136,7 +136,7 @@ test("completion, signature, diagnostics and cross-note refactorings reuse Rust"
     return {
       completion: await query(model, "completion", { position: { line: 5, character: line.indexOf("@timer(") + 7 } }),
       signature: await query(model, "signature", { position: { line: 2, character: model.getLineContent(3).indexOf("25m") } }),
-      definition: await query(model, "definition", { position: { line: 13, character: 20 } }),
+      definition: await query(model, "definition", { position: { line: 13, character: 24 } }),
     };
   });
   expect(results.completion.map(c => c.label).sort()).toEqual(["debugging", "focus"]);
@@ -155,7 +155,7 @@ test("completion, signature, diagnostics and cross-note refactorings reuse Rust"
   expect(rename.documentChanges).toHaveLength(2);
   await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
   await page.getByRole("button", { name: "today.wtf", exact: true }).click();
-  await expect(page.locator(".view-lines")).toContainText("[trip_cash]");
+  await expect(page.locator(".view-lines")).toContainText("[trip.trip_cash]");
 });
 
 test("imports are local, duplicate filenames never overwrite, no backend connections", async ({ page }) => {
@@ -193,12 +193,12 @@ test("Monaco renders contextual suggestions and signature help", async ({ page }
 test("countdown expiry refreshes inlays and controls without source edits", async ({ page }) => {
   await ready(page);
   await page.evaluate(() => window.wtfTest.editor.getModel().setValue("[tea] := countdown(2s)\nTime left: [tea.remaining].\n"));
-  await page.locator(".codelens-decoration").getByText("Start timer 'tea'", { exact: true }).first().click();
+  await page.locator(".codelens-decoration").getByText("▸ start tea", { exact: true }).first().click();
   await expect(page.locator(".view-lines")).toContainText("remaining · ▸ running");
   const running = await page.evaluate(() => window.wtfTest.editor.getValue());
   await expect(page.locator(".view-lines")).toContainText("00:00 remaining · ✓ done", { timeout: 6000 });
-  await expect(page.locator(".codelens-decoration").getByText("Pause timer 'tea'", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".codelens-decoration").getByText("Reset timer 'tea'", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".codelens-decoration").getByText("‖ pause tea", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".codelens-decoration").getByText("↺ reset tea", { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => window.wtfTest.editor.getValue())).toBe(running);
 });
 
@@ -299,7 +299,7 @@ test("outline switches notes, preserves hierarchy, and follows task and source e
 
 test("tables run in Wasm with reactive totals, column completion, rename, and diagnostics", async ({ page }) => {
   const errors = await ready(page);
-  const source = readFileSync(new URL("../../notes/tables.wtf", import.meta.url));
+  const source = readFileSync(new URL("./fixtures/tables.wtf", import.meta.url));
   await page.locator("#file-input").setInputFiles({ name: "tables.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("$23.80");
   await expect(page.locator("#problems")).toBeHidden();
@@ -368,7 +368,7 @@ test("Typing a closing pipe or Enter after a task formats on type through the sh
 
 test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits", async ({ page }) => {
   await ready(page);
-  const source = readFileSync(new URL("../../notes/plans.wtf", import.meta.url));
+  const source = readFileSync(new URL("./fixtures/plans.wtf", import.meta.url));
   await page.locator("#file-input").setInputFiles({ name: "plans.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("= $94.75 · bagels 25.75 · doughnuts 14");
   await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · ● binding");
@@ -436,5 +436,40 @@ test("the book runs every example as a live block on the shared engine", async (
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
   // Unfetched lookups are warnings, listed under the block.
   await expect(page.locator('.wtf-block[data-file="05-currencies.wtf"] .problems .warn').first()).toContainText("No cached rate");
+  expect(errors).toEqual([]);
+});
+
+test("the document view edits, toggles checkboxes, persists, and shares a workspace", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/docs/?test");
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  const view = page.locator(".view");
+  await expect(view).toContainText("= $556");
+  await expect(view.locator(".line.h1").first()).toHaveText(/Trip budget/);
+  // Clicking a checkbox flips it in the text and the engine repaints.
+  const box = view.locator(".t-wtfCheckbox").first();
+  await box.click();
+  await expect(view).toContainText("[x] Book the hotel");
+  await expect(page.locator(".status")).toContainText("Saved in this browser");
+  // A second document must import the first explicitly.
+  await page.evaluate(() => window.wtfDocs.newDocument());
+  await page.waitForFunction(() => window.wtfDocs.controller);
+  await page.evaluate(() => window.wtfDocs.controller.setSource("# Second\n\nStill [remaining] to spend.\n"));
+  await expect(view).toContainText("Still [remaining]");
+  await expect(view).not.toContainText("$556");
+  await page.evaluate(() => {
+    const first = window.wtfDocs.documents.find(d => d.name === "Trip budget");
+    return window.wtfDocs.controller.setSource(`# Second\n\nStill [source.remaining] to spend.\nsource := import("./${first.id}.wtf")\n`);
+  });
+  await expect(view).toContainText("$556");
+  // The title follows the first heading, and saves are debounced briefly.
+  await expect(page.locator(".files nav")).toContainText("Second");
+  await page.waitForTimeout(600);
+  // Documents survive a reload.
+  await page.reload();
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  await expect(page.locator(".files nav")).toContainText("Second");
+  await expect(page.locator(".files nav")).toContainText("Trip budget");
   expect(errors).toEqual([]);
 });

@@ -65,49 +65,50 @@ pub struct RefreshRequest {
     pub env: Vec<(String, String)>,
 }
 
-/// First matching registration wins. No mutable process-global plugin state.
+/// First matching registration wins. No mutable process-global module state.
 #[derive(Clone, Copy)]
 pub struct LinkFeatures<'a> {
     features: &'a [&'a dyn LinkFeature],
-    plugins: &'a [crate::evaluate::plugins::Module],
+    modules: &'a [crate::evaluate::modules::Module],
     bundled: bool,
 }
 pub const BUILTINS: LinkFeatures<'static> = LinkFeatures {
     features: &[],
-    plugins: &[],
+    modules: &[],
     bundled: true,
 };
 impl<'a> LinkFeatures<'a> {
     pub const fn new(features: &'a [&'a dyn LinkFeature]) -> Self {
         Self {
             features,
-            plugins: &[],
+            modules: &[],
             bundled: false,
         }
     }
-    pub fn with_plugins(mut self, plugins: &'a [crate::evaluate::plugins::Module]) -> Self {
-        self.plugins = plugins;
+    pub fn with_modules(mut self, modules: &'a [crate::evaluate::modules::Module]) -> Self {
+        self.modules = modules;
+        self.bundled = false;
         self
     }
     fn matching(&self, target: &str) -> Option<(&'a dyn LinkFeature, Url)> {
         let url = Url::parse(target).ok()?;
-        self.plugins
+        self.modules
             .iter()
             .map(|p| p as &dyn LinkFeature)
             .chain(
                 self.features
                     .iter()
                     .copied()
-                    .filter(|f| !self.plugins.iter().any(|m| m.id == f.id())),
+                    .filter(|f| !self.modules.iter().any(|m| m.id == f.id())),
             )
             .chain(
                 (if self.bundled {
-                    crate::plugins::bundled()
+                    crate::modules::bundled()
                 } else {
                     &[]
                 })
                 .iter()
-                .filter(|m| self.bundled && !self.plugins.iter().any(|p| p.id == m.id))
+                .filter(|m| self.bundled && !self.modules.iter().any(|p| p.id == m.id))
                 .map(|m| m as &dyn LinkFeature),
             )
             .find(|feature| feature.matches(&url))

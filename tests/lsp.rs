@@ -7,6 +7,15 @@ use std::{
 };
 use tower_lsp::lsp_types::{TextEdit, Url};
 
+fn activate_modules(root: &std::path::Path, files: &[&str]) {
+    std::fs::create_dir_all(root.join(".wtf")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules.json"),
+        serde_json::to_string(files).unwrap(),
+    )
+    .unwrap();
+}
+
 struct Lsp {
     child: Child,
     input: ChildStdin,
@@ -307,6 +316,129 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
 }
 
 #[test]
+fn open_notes_keep_highlighting_and_inlays_outside_discovery_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let parent = dir.path().canonicalize().unwrap();
+    let root = parent.join("workspace");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join(".gitignore"), ".hidden/\nignored/\n").unwrap();
+    for path in [
+        root.join(".hidden/TODOS.wtf"),
+        root.join(".local/TODOS.wtf"),
+        root.join("ignored/TODOS.wtf"),
+        root.join("node_modules/package/TODOS.wtf"),
+        root.join("target/TODOS.wtf"),
+        parent.join("outside/TODOS.wtf"),
+    ] {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let uri = Url::from_file_path(&path).unwrap();
+        let source = "# Notes\n\n## Checklist :launch\n\n- [ ] First @estimate(20m)\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n";
+        std::fs::write(&path, source).unwrap();
+        assert!(
+            !wtf::workspace::Workspace::load(vec![root.clone()])
+                .unwrap()
+                .documents
+                .contains_key(&path)
+        );
+        let mut lsp = Lsp::start(&root);
+        let assert_presentation = |lsp: &mut Lsp, text: &str, completed: usize| {
+            // Wait until all change notifications have been sent, including refresh requests.
+            lsp.wait_for_request("workspace/codeLens/refresh");
+            let tokens = lsp.request(
+                "textDocument/semanticTokens/full",
+                json!({"textDocument":{"uri":uri}}),
+            );
+            let expected =
+                wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(text.into()));
+            assert!(!expected.is_empty());
+            assert_eq!(
+                tokens["data"],
+                serde_json::to_value(lsp_types::SemanticTokens {
+                    result_id: None,
+                    data: expected
+                })
+                .unwrap()["data"]
+            );
+            let hints = lsp.request(
+                "textDocument/inlayHint",
+                json!({
+                    "textDocument": {"uri": uri},
+                    "range": {"start": {"line": 0, "character": 0}, "end": {"line": 99, "character": 0}}
+                }),
+            );
+            let labels: Vec<_> = hints
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|hint| hint["label"].as_str().unwrap())
+                .collect();
+            let progress = if completed == 2 {
+                "████████ 2/2 complete"
+            } else {
+                "████░░░░ 1/2 complete · 20m estimated left"
+            };
+            let done = format!("= {completed}");
+            let left = format!("= {}", 2 - completed);
+            let effort = if completed == 2 { "= 0s" } else { "= 20m" };
+            assert_eq!(
+                labels,
+                [progress, progress, done.as_str(), left.as_str(), effort],
+                "{uri}"
+            );
+            assert!(
+                !lsp.requests
+                    .iter()
+                    .any(|r| r == "workspace/semanticTokens/refresh"),
+                "Document edits must not invalidate highlighting across the workspace"
+            );
+        };
+        lsp.notify(
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":source}}),
+        );
+        assert_presentation(&mut lsp, source, 1);
+        for (i, (text, completed)) in [
+            (source.replace("First", "First 🦀"), 1),
+            (source.replace("- [ ]", "- [x]"), 2),
+            (source.replace("First", "First again"), 1),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            lsp.notify(
+                "textDocument/didChange",
+                json!({
+                    "textDocument": {"uri": uri, "version": i + 2},
+                    "contentChanges": [{"text": text}]
+                }),
+            );
+            assert_presentation(&mut lsp, &text, completed);
+            // Rescans retain open buffers and their evaluated hints regardless of path.
+            lsp.notify(
+                "workspace/didChangeWatchedFiles",
+                json!({"changes":[{"uri":uri,"type":2}]}),
+            );
+            assert_presentation(&mut lsp, &text, completed);
+            std::fs::write(&path, &text).unwrap();
+            lsp.notify("textDocument/didSave", json!({"textDocument":{"uri":uri}}));
+            assert_presentation(&mut lsp, &text, completed);
+        }
+        // Other documents' changes preserve this note's tokens and inlays too.
+        let other = Url::from_file_path(root.join("other.wtf")).unwrap();
+        lsp.notify(
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":other,"languageId":"wtf","version":1,"text":"1:value\n"}}),
+        );
+        assert_presentation(&mut lsp, &source.replace("First", "First again"), 1);
+        lsp.notify(
+            "textDocument/didClose",
+            json!({"textDocument":{"uri":other}}),
+        );
+        assert_presentation(&mut lsp, &source.replace("First", "First again"), 1);
+    }
+}
+
+#[test]
 fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
@@ -329,9 +461,10 @@ fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
         documents: [(path.clone(), wtf::document::Document::parse(text.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
-    let shared = wtf::symbols::document_symbols(&ws, &path, chrono::Local::now().fixed_offset());
+    let shared =
+        wtf::RequestContext::new(&ws, chrono::Local::now().fixed_offset()).document_symbols(&path);
     assert_eq!(symbols, serde_json::to_value(shared).unwrap());
     assert_eq!(
         symbols[0]["children"][1]["children"][0]["detail"],
@@ -389,7 +522,7 @@ fn tables_and_column_interactions_work_over_standard_lsp() {
     let data_uri = Url::from_file_path(&data_path).unwrap();
     let calc_uri = Url::from_file_path(&calc_path).unwrap();
     let data = "# Groceries\n[groceries] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|4|$4.30|\n";
-    let calc = "[total] := sum(groceries, quantity * price)\nCost [total].\n";
+    let calc = "[total] := sum(groceries, quantity * price)\nCost [total].\ngroceries := import(\"./data.wtf\").groceries\n";
     std::fs::write(&data_path, data).unwrap();
     std::fs::write(&calc_path, calc).unwrap();
     let mut lsp = Lsp::start(&root);
@@ -666,10 +799,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
         .iter()
         .map(|l| l["command"].clone())
         .collect();
-    let open = commands
-        .iter()
-        .find(|c| c["title"] == "Open image")
-        .unwrap();
+    let open = commands.iter().find(|c| c["title"] == "↗ image").unwrap();
     lsp.request("workspace/executeCommand", open.clone());
     assert_eq!(lsp.opened_documents.len(), 1);
     assert_eq!(
@@ -679,10 +809,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
             .as_str()
     );
     assert_eq!(lsp.opened_documents[0]["external"], false);
-    let complete = commands
-        .iter()
-        .find(|c| c["title"] == "Complete task")
-        .unwrap();
+    let complete = commands.iter().find(|c| c["title"] == "✓ done").unwrap();
     lsp.request("workspace/executeCommand", complete.clone());
     let edit = lsp.applied_edits.pop().unwrap();
     assert_eq!(edit["documentChanges"][0]["textDocument"]["version"], 1);
@@ -700,7 +827,7 @@ fn clickable_controls_apply_versioned_edits_open_resources_and_reject_stale_targ
         .as_array()
         .unwrap()
         .iter()
-        .find(|l| l["command"]["title"] == "Reopen task")
+        .find(|l| l["command"]["title"] == "○ reopen")
         .unwrap()["command"]
         .clone();
     let moved = format!("- [ ] Different task\n{completed}");
@@ -757,8 +884,8 @@ fn live_diagnostics_and_codelenses_refresh_without_source_edits() {
         previous + 1
     );
     let lenses = lsp.request("textDocument/codeLens", json!({"textDocument":{"uri":uri}}));
-    assert!(!lenses.to_string().contains("Pause timer"));
-    assert!(lenses.to_string().contains("Reset timer"));
+    assert!(!lenses.to_string().contains("‖ pause"));
+    assert!(lenses.to_string().contains("↺ reset"));
     assert!(lsp.applied_edits.is_empty());
     assert_eq!(std::fs::read_to_string(&path).unwrap(), text);
 }
@@ -804,7 +931,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     .unwrap();
     let path = root.join("daily.wtf");
     let uri = Url::from_file_path(&path).unwrap();
-    let text = "# Release :release\n- [x] Parser\n- [ ] Review [receipt] :review @estimate(30m)\n- [ ] Publish @after(review) @due(departure-7d)\n[progress] := completed(release)/total(release)\n";
+    let text = "# Release :release\n- [x] Parser\n- [ ] Review [src.receipt] :review @estimate(30m)\n- [ ] Publish @after(review) @due(src.departure-7d)\n[progress] := completed(release)/total(release)\nsrc := import(\"./resources.wtf\")\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
@@ -826,12 +953,12 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     assert!(!tokens["data"].as_array().unwrap().is_empty());
     let hover = lsp.request(
         "textDocument/hover",
-        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16}}),
+        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20}}),
     );
     assert!(hover.to_string().contains("receipt.png"));
     let definition = lsp.request(
         "textDocument/definition",
-        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16}}),
+        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20}}),
     );
     assert_eq!(
         definition["uri"],
@@ -842,7 +969,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
         json!({"textDocument":{"uri":uri}}),
     );
     assert!(links.to_string().contains("receipt.png"));
-    let rename=lsp.request("textDocument/rename",json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16},"newName":"lunch_receipt"}));
+    let rename=lsp.request("textDocument/rename",json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20},"newName":"lunch_receipt"}));
     assert_eq!(rename["documentChanges"].as_array().unwrap().len(), 2);
     assert!(rename.to_string().contains("lunch_receipt"));
     let actions=lsp.request("textDocument/codeAction",json!({"textDocument":{"uri":uri},"range":{"start":{"line":2,"character":0},"end":{"line":2,"character":0}},"context":{"diagnostics":[]}}));
@@ -850,7 +977,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|v| v["title"] == "Complete task")
+        .find(|v| v["title"] == "✓ done")
         .unwrap();
     assert_eq!(
         complete["edit"]["documentChanges"][0]["textDocument"]["version"],
@@ -883,7 +1010,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     assert!(hints.to_string().contains("2/3 complete"));
     assert!(lsp.requests.contains(&"workspace/inlayHint/refresh".into()));
     assert!(
-        lsp.requests
+        !lsp.requests
             .contains(&"workspace/semanticTokens/refresh".into())
     );
     lsp.request("shutdown", json!(null));
@@ -937,7 +1064,7 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
             .contains("[debugging.elapsed]")
     );
     // Start from the checklist reference, not the timer declaration.
-    let running = lsp.timer_action(&uri, initial, 2, 1, "Start timer 'watch'");
+    let running = lsp.timer_action(&uri, initial, 2, 1, "▸ start watch");
     assert!(running.contains("stopwatch(0s,"));
     // This request drains source-change refreshes; following requests are timer ticks.
     lsp.request(
@@ -958,16 +1085,16 @@ fn timers_apply_versioned_edits_refresh_without_typing_and_finish_countdowns() {
         .find(|h| h["position"]["line"] == 3)
         .unwrap();
     assert_ne!(elapsed["label"], "0s");
-    let paused = lsp.timer_action(&uri, &running, 0, 2, "Pause timer");
+    let paused = lsp.timer_action(&uri, &running, 0, 2, "‖ pause");
     let hints = lsp.request(
         "textDocument/inlayHint",
         json!({"textDocument":{"uri":uri},"range":range}),
     );
     assert!(hints.to_string().contains("elapsed · ‖ paused"));
-    let resumed = lsp.timer_action(&uri, &paused, 0, 3, "Resume timer");
-    let reset = lsp.timer_action(&uri, &resumed, 0, 4, "Reset timer");
+    let resumed = lsp.timer_action(&uri, &paused, 0, 3, "▸ resume");
+    let reset = lsp.timer_action(&uri, &resumed, 0, 4, "↺ reset");
     assert_eq!(reset, initial);
-    let countdown = lsp.timer_action(&uri, &reset, 1, 5, "Start timer 'focus'");
+    let countdown = lsp.timer_action(&uri, &reset, 1, 5, "▸ start focus");
     assert!(countdown.contains("countdown(2s, 0s,"));
     let deadline = std::time::Instant::now() + Duration::from_secs(8);
     loop {
@@ -1168,6 +1295,43 @@ fn plans_solve_over_lsp_and_variable_renames_touch_each_occurrence_once() {
 }
 
 #[test]
+fn editor_agenda_uses_the_replaceable_standard_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    std::fs::write(root.join("tasks.wtf"), "- [ ] Active\n- [x] Finished\n").unwrap();
+    let mut lsp = Lsp::start(&root);
+    let command = json!({"command":"wtf.today","arguments":[]});
+    lsp.request("workspace/executeCommand", command.clone());
+    let view = root.join(".wtf/today.md");
+    let original = std::fs::read_to_string(&view).unwrap();
+    assert!(original.contains("— Active"), "{original}");
+    assert!(!original.contains("— Finished"), "{original}");
+    assert_eq!(
+        lsp.opened_documents.last().unwrap()["uri"],
+        Url::from_file_path(&view).unwrap().as_str()
+    );
+
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules/agenda.wtf"),
+        r#"module := {api: 1, id: "agenda", kind: "library", inputs: []}
+between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
+"#,
+    )
+    .unwrap();
+    activate_modules(&root, &["./modules/agenda.wtf"]);
+    // The command rescans saved modules before evaluating the same import as a query.
+    lsp.request("workspace/executeCommand", command);
+    let replaced = std::fs::read_to_string(view).unwrap();
+    assert!(replaced.contains("— Finished"), "{replaced}");
+    assert!(!replaced.contains("— Active"), "{replaced}");
+    assert_eq!(
+        lsp.request("wtf/query", json!({"query":"map(import(\"agenda\").between(entries, today(), today()), fn(e) => e.title)"}))["rows"],
+        json!(["Finished"])
+    );
+}
+
+#[test]
 fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
@@ -1194,13 +1358,16 @@ fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
     assert_eq!(
         lsp.request(
             "wtf/query",
-            json!({"query":"@tasks | select title","now":now})
+            json!({"query":"tasks | where leaf && !done | sort source.path, source.line | select title","now":now})
         )["rows"],
         json!(["Unsaved"])
     );
     lsp.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"$12:price\n- [x] Finished\n"}]}));
     assert_eq!(lsp.diagnostics(2), json!([]));
-    let changed = lsp.request("wtf/query", json!({"query":"@tasks","now":now}));
+    let changed = lsp.request(
+        "wtf/query",
+        json!({"query":"tasks | where leaf && !done | sort source.path, source.line","now":now}),
+    );
     assert_eq!(changed["versions"][uri.as_str()], 2);
     assert_eq!(changed["rows"], json!([]));
     let invalid = lsp.request_raw("wtf/query", json!({"query":"tasks | where ("}));
@@ -1240,20 +1407,21 @@ fn native_actions_reject_the_same_malformed_commands_as_the_shared_codec() {
 }
 
 #[test]
-fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_source() {
+fn module_and_standard_library_buffers_highlight_without_activating_unsaved_source() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let plugin = root.join(".wtf/plugins/docs.wtf");
-    let library = root.join("stdlib/.wtf/plugins/format.wtf");
-    for path in [&plugin, &library] {
+    let module = root.join(".wtf/modules/docs.wtf");
+    let library = root.join("stdlib/format.wtf");
+    for path in [&module, &library] {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     }
-    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n";
-    let standard = include_str!("../stdlib/.wtf/plugins/format.wtf");
-    std::fs::write(&plugin, source).unwrap();
+    let source = "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n";
+    let standard = include_str!("../stdlib/format.wtf");
+    std::fs::write(&module, source).unwrap();
     std::fs::write(&library, standard).unwrap();
     let note = root.join("main.wtf");
     std::fs::write(&note, "https://docs.example/start\n").unwrap();
+    activate_modules(&root, &["./modules/docs.wtf", "../stdlib/format.wtf"]);
     let mut client = Lsp::start(&root);
     let hints = json!({"textDocument":{"uri":Url::from_file_path(&note).unwrap()},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
     let assert_tokens = |client: &mut Lsp, uri: &Url, text: &str| {
@@ -1272,13 +1440,13 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             .unwrap()
         );
     };
-    for (path, text) in [(&plugin, source), (&library, standard)] {
+    for (path, text) in [(&module, source), (&library, standard)] {
         let uri = Url::from_file_path(path).unwrap();
         client.notify(
             "textDocument/didOpen",
             json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
         );
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert_tokens(&mut client, &uri, text);
         let changed = format!(
             "{}\nunsaved := fn(value) => value + 1\n",
@@ -1288,7 +1456,7 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             "textDocument/didChange",
             json!({"textDocument":{"uri":uri,"version":3},"contentChanges":[{"text":changed}]}),
         );
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert_tokens(&mut client, &uri, &changed);
         // A stale notification cannot replace the newer editor buffer.
         client.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"old buffer"}]}));
@@ -1304,7 +1472,7 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             "saved"
         );
         client.notify("textDocument/didClose", json!({"textDocument":{"uri":uri}}));
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert!(
             client
                 .request(
@@ -1315,12 +1483,12 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
         );
     }
     // Saving still activates the disk version through the normal reload path.
-    std::fs::write(&plugin, source.replace("saved", "reloaded")).unwrap();
+    std::fs::write(&module, source.replace("saved", "reloaded")).unwrap();
     client.notify(
         "textDocument/didSave",
-        json!({"textDocument":{"uri":Url::from_file_path(&plugin).unwrap()}}),
+        json!({"textDocument":{"uri":Url::from_file_path(&module).unwrap()}}),
     );
-    client.wait_for_request("workspace/semanticTokens/refresh");
+    client.wait_for_request("workspace/codeLens/refresh");
     assert_eq!(
         client.request("textDocument/inlayHint", hints)[0]["label"],
         "reloaded"
@@ -1328,21 +1496,32 @@ fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_sour
 }
 
 #[test]
-fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
+fn functional_modules_hot_reload_over_lsp_and_keep_last_good_version() {
     let dir = tempfile::tempdir().unwrap();
-    let plugin_dir = dir.path().join(".wtf/plugins");
-    std::fs::create_dir_all(&plugin_dir).unwrap();
-    let plugin = plugin_dir.join("docs.wtf");
-    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"first\"\n";
-    std::fs::write(&plugin, source).unwrap();
+    let module_dir = dir.path().join(".wtf/modules");
+    std::fs::create_dir_all(&module_dir).unwrap();
+    let module = module_dir.join("docs.wtf");
+    let source = "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"first\"\n";
+    std::fs::write(&module, source).unwrap();
     let note = dir.path().join("main.wtf");
     std::fs::write(&note, "https://docs.example/start\n").unwrap();
     let uri = Url::from_file_path(&note).unwrap();
-    let plugin_uri = Url::from_file_path(&plugin).unwrap();
+    let module_uri = Url::from_file_path(&module).unwrap();
     let mut client = Lsp::start(dir.path());
     client.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"https://docs.example/start\n"}}));
     let params = json!({"textDocument":{"uri":uri},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
     client.diagnostics(1);
+    client.wait_for_request("workspace/inlayHint/refresh");
+    assert_eq!(
+        client.request("textDocument/inlayHint", params.clone()),
+        json!([])
+    );
+    activate_modules(dir.path(), &["./modules/docs.wtf"]);
+    let manifest_uri = Url::from_file_path(dir.path().join(".wtf/modules.json")).unwrap();
+    client.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({"changes":[{"uri":manifest_uri,"type":1}]}),
+    );
     client.wait_for_request("workspace/inlayHint/refresh");
     assert_eq!(
         client.request("textDocument/inlayHint", params.clone())[0]["label"],
@@ -1350,12 +1529,12 @@ fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
     );
     for (source, label) in [
         (source.replace("first", "second"), "second"),
-        ("plugin := {".into(), "second"),
+        ("module := {".into(), "second"),
     ] {
-        std::fs::write(&plugin, source).unwrap();
+        std::fs::write(&module, source).unwrap();
         client.notify(
             "workspace/didChangeWatchedFiles",
-            json!({"changes":[{"uri":plugin_uri,"type":2}]}),
+            json!({"changes":[{"uri":module_uri,"type":2}]}),
         );
         client.wait_for_request("workspace/inlayHint/refresh");
         assert_eq!(
@@ -1363,30 +1542,32 @@ fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
             label
         );
     }
-    std::fs::remove_file(&plugin).unwrap();
+    activate_modules(dir.path(), &[]);
+    std::fs::remove_file(&module).unwrap();
     client.notify(
         "workspace/didChangeWatchedFiles",
-        json!({"changes":[{"uri":plugin_uri,"type":3}]}),
+        json!({"changes":[{"uri":manifest_uri,"type":2}]}),
     );
     client.wait_for_request("workspace/inlayHint/refresh");
     assert_eq!(client.request("textDocument/inlayHint", params), json!([]));
 }
 
 #[test]
-fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
+fn module_reload_rejects_an_in_flight_refresh_before_saving_resources() {
     let dir = tempfile::tempdir().unwrap();
-    let plugin_dir = dir.path().join(".wtf/plugins");
-    std::fs::create_dir_all(&plugin_dir).unwrap();
-    let plugin = plugin_dir.join("docs.wtf");
+    let module_dir = dir.path().join(".wtf/modules");
+    std::fs::create_dir_all(&module_dir).unwrap();
+    let module = module_dir.join("docs.wtf");
     let script = dir.path().join("resolve.sh");
     std::fs::write(&script,"touch \"$1/started\"\nwhile [ ! -e \"$1/finish\" ]; do sleep 0.02; done\nprintf '{\"title\":\"stale\"}'\n").unwrap();
     let source = format!(
-        "plugin := {{api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}}\ninlay := fn(ctx) => \"first\"\nrefresh := fn(url) => {{program: \"/bin/sh\", args: [{}, {}]}}\ndecode := fn(url, data) => data\n",
+        "module := {{api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}}\ninlay := fn(ctx) => \"first\"\nrefresh := fn(url) => {{program: \"/bin/sh\", args: [{}, {}]}}\ndecode := fn(url, data) => data\n",
         json!(script),
         json!(dir.path())
     );
-    std::fs::write(&plugin, &source).unwrap();
+    std::fs::write(&module, &source).unwrap();
     std::fs::write(dir.path().join("main.wtf"), "https://docs.example/start\n").unwrap();
+    activate_modules(dir.path(), &["./modules/docs.wtf"]);
     let mut client = Lsp::start(dir.path());
     client.request("wtf/query", json!({"query":"notes | count"}));
     client.next += 1;
@@ -1400,10 +1581,10 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
         );
         std::thread::sleep(Duration::from_millis(10));
     }
-    std::fs::write(&plugin, source.replace("first", "second")).unwrap();
+    std::fs::write(&module, source.replace("first", "second")).unwrap();
     client.notify(
         "workspace/didChangeWatchedFiles",
-        json!({"changes":[{"uri":Url::from_file_path(&plugin).unwrap(),"type":2}]}),
+        json!({"changes":[{"uri":Url::from_file_path(&module).unwrap(),"type":2}]}),
     );
     client.wait_for_request("workspace/inlayHint/refresh");
     std::fs::write(dir.path().join("finish"), "").unwrap();
@@ -1414,7 +1595,7 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
                 response["error"]["message"]
                     .as_str()
                     .unwrap()
-                    .contains("Plugins changed"),
+                    .contains("Modules changed"),
                 "{response}"
             );
             break;
@@ -1430,14 +1611,15 @@ fn plugin_reload_rejects_an_in_flight_refresh_before_saving_resources() {
 fn module_edits_use_native_apply_edit_and_reject_stale_controls() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
-    let plugins = root.join(".wtf/plugins");
-    std::fs::create_dir_all(&plugins).unwrap();
-    std::fs::write(plugins.join("edit.wtf"),r#"plugin := {api: 1, id: "edit", kind: "inlay", inputs: []}
+    let modules = root.join(".wtf/modules");
+    std::fs::create_dir_all(&modules).unwrap();
+    std::fs::write(modules.join("edit.wtf"),r#"module := {api: 1, id: "edit", kind: "feature", inputs: []}
 actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
 "#).unwrap();
     let note = root.join("main.wtf");
     std::fs::write(&note, "Hello world\n").unwrap();
     let uri = Url::from_file_path(&note).unwrap();
+    activate_modules(&root, &["./modules/edit.wtf"]);
     let mut client = Lsp::start(&root);
     client.notify(
         "textDocument/didOpen",
@@ -1470,4 +1652,106 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit
         "{response}"
     );
     assert_eq!(client.applied_edits.len(), 1);
+}
+
+#[test]
+fn file_queries_read_unsaved_syntax_and_keep_cross_file_graph_endpoints() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let path = root.join("one.wtf");
+    let uri = Url::from_file_path(&path).unwrap();
+    std::fs::write(&path, "1:saved\n").unwrap();
+    std::fs::write(root.join("two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
+    let mut lsp = Lsp::start(&root);
+    lsp.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := import(\"./two.wtf\").rate * 2\n- [ ] Local\n"}}));
+    assert_eq!(lsp.diagnostics(1), json!([]));
+    let result = lsp.request("wtf/query", json!({"uri":uri,"query":"map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)"}));
+    assert_eq!(result["rows"], json!(["answer"]));
+    assert_eq!(result["versions"][uri.as_str()], 1);
+    assert_eq!(
+        lsp.request(
+            "wtf/query",
+            json!({"uri":uri,"query":"tasks | select title"})
+        )["rows"],
+        json!(["Local"])
+    );
+    assert_eq!(
+        lsp.request("wtf/query", json!({"query":"length(tasks)"}))["rows"],
+        json!([2])
+    );
+    assert_eq!(
+        lsp.request(
+            "wtf/query",
+            json!({"uri":uri,"query":"graph.nodes | where external | select name"})
+        )["rows"],
+        json!(["rate"])
+    );
+    for uri in [
+        "https://example.com/n.wtf".to_string(),
+        Url::from_file_path(root.join("missing.wtf"))
+            .unwrap()
+            .to_string(),
+    ] {
+        assert_eq!(
+            lsp.request_raw("wtf/query", json!({"uri":uri,"query":"ast"}))["error"]["code"],
+            -32602
+        );
+    }
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "1:saved\n");
+}
+
+#[test]
+fn note_imports_load_on_edit_and_keep_unsaved_hidden_dependencies() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap().join("notes");
+    std::fs::create_dir_all(root.join(".hidden")).unwrap();
+    std::fs::write(root.join(".gitignore"), ".hidden\n").unwrap();
+    std::fs::write(root.join("other.wtf"), "amount := 999\n").unwrap();
+    let imported = root.join(".hidden/values.wtf");
+    std::fs::write(
+        &imported,
+        "amount := import(\"../../external.wtf\").amount\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.parent().unwrap().join("external.wtf"),
+        "amount := 42\n",
+    )
+    .unwrap();
+    let path = root.join("main.wtf");
+    std::fs::write(&path, "answer := amount\n").unwrap();
+    let uri = Url::from_file_path(&path).unwrap();
+    let imported_uri = Url::from_file_path(&imported).unwrap();
+    let mut client = Lsp::start(&root);
+    client.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := amount\n"}}));
+    assert!(
+        client
+            .diagnostics(1)
+            .to_string()
+            .contains("Unknown name 'amount'")
+    );
+    let source = "src := import(\"./.hidden/values.wtf\")\nanswer := src.amount\n";
+    client.notify(
+        "textDocument/didChange",
+        json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":source}]}),
+    );
+    assert_eq!(client.diagnostics(2), json!([]));
+    let query = json!({"uri":uri,"query":"answer"});
+    assert_eq!(
+        client.request("wtf/query", query.clone())["rows"],
+        json!([42.0])
+    );
+    client.notify("textDocument/didOpen", json!({"textDocument":{"uri":imported_uri,"languageId":"wtf","version":3,"text":"amount := 77\n"}}));
+    assert_eq!(client.diagnostics(3), json!([]));
+    // A query rescans disk, but must retain both the importer and imported buffer.
+    assert_eq!(
+        client.request("wtf/query", query.clone())["rows"],
+        json!([77.0])
+    );
+    client.notify(
+        "textDocument/didClose",
+        json!({"textDocument":{"uri":imported_uri}}),
+    );
+    assert_eq!(client.request("wtf/query", query)["rows"], json!([42.0]));
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "answer := amount\n");
 }

@@ -1,0 +1,42 @@
+:root { --mono: "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --ink: #d6d6d6; --muted: #8a8a8a; --rule: #2a2a2a; --bg: #0f0f0f; --panel: #141414; --paper: #171717; font-family: var(--mono); font-synthesis: none; color: var(--ink); background: var(--bg); color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 260px; height: 100vh; }
+aside { background: var(--panel); border-right: 1px solid var(--rule); padding: 16px 12px; overflow: auto; font-size: 12px; }
+aside.side { border-right: 0; border-left: 1px solid var(--rule); }
+.brand { font-size: 18px; font-weight: 700; margin: 4px 8px 14px; }
+.brand span { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.actions { display: flex; gap: 6px; margin: 0 8px 12px; }
+button, .button { cursor: pointer; color: inherit; background: transparent; border: 1px solid #3a3a3a; padding: 6px 10px; font: inherit; font-size: 12px; }
+button:hover, .button:hover { background: #222; }
+.doc { display: flex; align-items: stretch; }
+.doc .open { flex: 1; text-align: left; border: 0; padding: 8px; display: grid; gap: 2px; }
+.doc.active .open { background: #222; }
+.doc .delete { border: 0; color: var(--muted); }
+.doc .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc .when { color: var(--muted); font-size: 10px; }
+.engine { margin: 16px 8px 0; color: var(--muted); font-size: 11px; }
+main { display: flex; flex-direction: column; min-width: 0; }
+.top { padding: 10px 24px; border-bottom: 1px solid var(--rule); display: grid; gap: 8px; }
+.name { font: inherit; font-size: 16px; font-weight: 700; color: inherit; background: transparent; border: 0; outline: none; padding: 4px 0; }
+.toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.toolbar .gap { flex: 1; }
+.toolbar .zoom { color: var(--muted); font-size: 11px; min-width: 36px; text-align: center; }
+.canvas { flex: 1; overflow: auto; padding: 32px 24px 96px; }
+.page { width: min(100%, 860px); min-height: 1100px; margin: 0 auto; background: var(--paper); border: 1px solid var(--rule); box-shadow: 0 8px 40px rgba(0,0,0,.45); }
+.view { margin: 0; padding: 64px 72px; white-space: pre-wrap; overflow-wrap: anywhere; font: calc(14px * var(--zoom)) / 1.75 var(--mono); tab-size: 4; min-height: 900px; outline: none; caret-color: #e6e6e6; }
+.view::selection, .view *::selection { background: rgba(255,255,255,.14); }
+.hover { position: fixed; z-index: 10; margin: 0; padding: 10px 14px; border: 1px solid #3a3a3a; background: #1d1d1d; color: #c8c8c8; font: 12px/1.6 var(--mono); box-shadow: 0 6px 24px rgba(0,0,0,.5); pointer-events: none; }
+.hover p { margin: 0 0 8px; } .hover p:last-child { margin-bottom: 0; } .hover strong { color: #fff; } .hover code { background: #262626; padding: 0 4px; } .hover pre { margin: 6px 0; padding: 8px 10px; background: #141414; white-space: pre-wrap; font: inherit; }
+.status { display: flex; gap: 20px; padding: 8px 24px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 11px; }
+aside h2 { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 8px 8px 10px; }
+.outline { display: grid; gap: 2px; }
+.outline .row { text-align: left; border: 0; display: grid; gap: 2px; padding: 6px 8px; }
+.outline .row:hover { background: #222; }
+.outline .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline .detail { color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline .empty { margin: 8px; color: var(--muted); }
+.problems { list-style: none; margin: 0; padding: 0 8px; display: grid; gap: 6px; font-size: 11px; }
+.problems .error { color: #efac9e; } .problems .warn { color: #edd8a3; }
+@media print { aside, .top, .status { display: none; } .shell { display: block; } .canvas { padding: 0; overflow: visible; } .page { border: 0; box-shadow: none; min-height: 0; } :root { background: #fff; color: #111; } .view { color: #111; } }
+@media (max-width: 1000px) { .shell { grid-template-columns: 1fr; } aside { display: none; } }

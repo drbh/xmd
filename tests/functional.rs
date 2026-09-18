@@ -12,7 +12,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [("/notes/test.wtf".into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn engine(ws: &Workspace) -> Engine<'_> {
@@ -37,7 +37,11 @@ fn functions_capture_lexical_scopes_and_keep_units() {
         e.eval(path(), "map([$2, $3], add_tax)").unwrap().display(),
         "[$2.2, $3.3]"
     );
-    assert!(wtf::diagnostics::collect(&ws, path(), e.today, e.now, false).is_empty());
+    assert!(
+        wtf::RequestContext::new(&ws, e.now)
+            .diagnostics(path(), false)
+            .is_empty()
+    );
 }
 
 #[test]
@@ -61,7 +65,9 @@ fn records_lists_and_lazy_branches_work_in_notes_and_queries() {
         "values | where name == \"result\" | select map([1, 2], fn(x) => x + value)",
     )
     .unwrap();
-    let result = wtf::query::execute(&ws, &query, &wtf::query::QueryContext::new(e.now)).unwrap();
+    let result = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(e.now).now)
+        .query(&query, None)
+        .unwrap();
     assert_eq!(
         serde_json::to_value(result).unwrap()["rows"],
         serde_json::json!([[11.0, 12.0]])
@@ -185,7 +191,11 @@ add := fn(x) =>
             e.eval(path(), "config.title").unwrap().display(),
             "https://example.com/)"
         );
-        assert!(wtf::diagnostics::collect(&ws, path(), e.today, e.now, false).is_empty());
+        assert!(
+            wtf::RequestContext::new(&ws, e.now)
+                .diagnostics(path(), false)
+                .is_empty()
+        );
         assert!(
             !doc.references
                 .iter()
@@ -194,7 +204,7 @@ add := fn(x) =>
         let definition = &doc.definitions[1];
         assert_eq!(definition.end.line, 11);
         assert_eq!(definition.value_span.range(&source).end.line, 11);
-        let outline = wtf::symbols::document_symbols(&ws, path(), e.now);
+        let outline = wtf::RequestContext::new(&ws, e.now).document_symbols(path());
         assert_eq!(outline[1].range.end.line, 11);
         assert!(
             wtf::symbols::folding_ranges(doc)
@@ -256,23 +266,23 @@ fn unfinished_multiline_expressions_do_not_consume_the_next_definition_or_prose(
 
 #[test]
 fn multiline_modules_compile_and_apply_the_same_limits() {
-    let source = "// Summarize headings.\nplugin := {\n  api: 1,\n  id: \"headings\",\n  kind: \"inlay\",\n  inputs: [\"sections\"]\n}\n// Use the selected section anchors.\ncollect := fn(ctx) => (\n  map(\n    ctx.document.sections,\n    fn(s) => {at: s.anchor, label: s.title}\n  )\n)\n";
+    let source = "// Summarize headings.\nmodule := {\n  api: 1,\n  id: \"headings\",\n  kind: \"feature\",\n  inputs: [\"sections\"]\n}\n// Use the selected section anchors.\ncollect := fn(ctx) => (\n  map(\n    ctx.document.sections,\n    fn(s) => {at: s.anchor, label: s.title}\n  )\n)\n";
     let mut ws = workspace("# Hello\n");
-    ws.plugins = std::sync::Arc::new(
-        wtf::plugins::Plugins::compile(
-            [("/notes/.wtf/plugins/headings.wtf".into(), source.into())].into(),
+    ws.modules = std::sync::Arc::new(
+        wtf::modules::ModuleRegistry::compile(
+            [("/notes/.wtf/modules/headings.wtf".into(), source.into())].into(),
         )
         .unwrap(),
     );
-    let result = wtf::presentation::hints_at(
-        &ws,
-        path(),
-        engine(&ws).now,
-        lsp_types::Range::new(
-            lsp_types::Position::new(0, 0),
-            lsp_types::Position::new(2, 0),
-        ),
-    );
+    let result = wtf::RequestContext::new(&ws, engine(&ws).now)
+        .hints(
+            path(),
+            lsp_types::Range::new(
+                lsp_types::Position::new(0, 0),
+                lsp_types::Position::new(2, 0),
+            ),
+        )
+        .hints;
     assert!(serde_json::to_string(&result).unwrap().contains("Hello"));
     let ws = workspace("loop := fn(x) => (\n  loop(x)\n)\n");
     assert!(
@@ -280,5 +290,69 @@ fn multiline_modules_compile_and_apply_the_same_limits() {
             .eval(path(), "loop(1)")
             .unwrap_err()
             .contains("depth")
+    );
+}
+
+#[test]
+fn query_data_operations_are_available_in_note_functions() {
+    let ws = workspace("money := $7\nname := \"Example\"\n");
+    let mut e = engine(&ws);
+    assert_eq!(
+        e.eval(path(), "{name, cost:money.amount}.name").unwrap(),
+        Value::Text("Example".into())
+    );
+    assert_eq!(
+        e.eval(path(), "sum([{x:30m}, {x:null}, {x:90s}].x)")
+            .unwrap(),
+        Value::Duration(1890)
+    );
+    assert_eq!(
+        e.eval(path(), "map(sort_by([3, null, 1], fn(x) => x), fn(x) => x)")
+            .unwrap(),
+        Value::List(vec![Value::Number(1.0), Value::Number(3.0), Value::Null])
+    );
+    assert_eq!(
+        e.eval(path(), "length(group_by([1, 2, 1], fn(x) => x))")
+            .unwrap(),
+        Value::Count(2)
+    );
+    assert_eq!(
+        e.eval(path(), "null < today()").unwrap(),
+        Value::Bool(false)
+    );
+    assert_eq!(e.eval(path(), "\"a\" < \"b\"").unwrap(), Value::Bool(true));
+    assert_eq!(e.eval(path(), "date(now())").unwrap(), Value::Date(e.today));
+    assert!(e.eval(path(), "sort_by([1, \"two\"], fn(x) => x)").is_err());
+}
+
+#[test]
+fn dynamic_evaluation_is_bounded_and_row_function_bindings_capture_lexically() {
+    let ws = workspace("code := \"eval(code)\"\n");
+    let mut e = engine(&ws);
+    assert!(e.eval(path(), "eval(code)").unwrap_err().contains("depth"));
+    assert_eq!(e.eval(path(), "1 + 2").unwrap(), Value::Number(3.0));
+    let query =
+        wtf::query::Query::parse("[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))").unwrap();
+    assert_eq!(
+        serde_json::json!(
+            wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(e.now).now)
+                .query(&query, None)
+                .unwrap()
+                .rows
+        ),
+        serde_json::json!([[2.0]])
+    );
+}
+
+#[test]
+fn unfinished_builtin_calls_do_not_become_unknown_function_references() {
+    let ws = workspace("broken := sum([1,\nnext := 2\n");
+    let e = engine(&ws);
+    let issues = wtf::RequestContext::new(&ws, e.now).diagnostics(path(), false);
+    assert!(!issues.is_empty());
+    assert!(
+        issues
+            .iter()
+            .all(|d| !d.message.contains("Unknown name 'sum'"))
     );
 }

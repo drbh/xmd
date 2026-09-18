@@ -6,6 +6,38 @@ const URI: &str = "file:///workspace/trip.wtf";
 const NOW: &str = "2026-09-16T14:00:00-04:00";
 
 #[test]
+fn browser_and_native_render_the_same_snapshot_with_an_explicit_clock_and_mode() {
+    use std::path::Path;
+    use wtf::{RequestContext, document::Document, workspace::Workspace};
+    let source = "# Real 🦀\r\na := 1 + 2\r\nValue [a].\r\n```\r\n# Inert\r\n```\r\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 1);
+    let snapshot = request(&mut browser, "render", json!({"uri":URI}));
+    let path = Path::new("/workspace/trip.wtf");
+    let ws = Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [(path.into(), Document::parse(source.into()))].into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+        modules: Default::default(),
+    };
+    let html = RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+        .render_html(path)
+        .unwrap();
+    assert!(html.contains(snapshot["html"].as_str().unwrap()));
+    assert_eq!(snapshot["schemaVersion"], 1);
+    assert_eq!(snapshot["source"], source);
+    assert_eq!(snapshot["now"], NOW);
+    assert_eq!(snapshot["editing"], false);
+    assert_eq!(snapshot["lineClasses"][0], "h1");
+    assert_eq!(snapshot["lineClasses"][4], "");
+    assert_eq!(
+        request(&mut browser, "analyze", json!({"uri":URI}))["editing"],
+        true
+    );
+}
+
+#[test]
 fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
     let mut ws = BrowserWorkspace::new();
     let source = "🦀 ./today.wtf and https://example.com/docs.\n";
@@ -16,13 +48,12 @@ fn browser_raw_links_use_shared_lsp_targets_and_hovers() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
-    let expected = serde_json::to_value(wtf::presentation::document_links(
-        &shared,
-        path,
-        chrono::DateTime::parse_from_rfc3339(NOW).unwrap(),
-    ))
+    let expected = serde_json::to_value(
+        wtf::RequestContext::new(&shared, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+            .document_links(path),
+    )
     .unwrap();
     let links = request(&mut ws, "documentLinks", json!({"uri":URI}));
     assert_eq!(links, expected);
@@ -107,15 +138,14 @@ fn browser_document_symbols_are_the_standard_shared_lsp_data() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     assert_eq!(
         result,
-        serde_json::to_value(wtf::symbols::document_symbols(
-            &shared,
-            path,
-            chrono::DateTime::parse_from_rfc3339(NOW).unwrap()
-        ))
+        serde_json::to_value(
+            wtf::RequestContext::new(&shared, chrono::DateTime::parse_from_rfc3339(NOW).unwrap())
+                .document_symbols(path)
+        )
         .unwrap()
     );
     assert_eq!(
@@ -162,7 +192,7 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
     set(
         &mut ws,
         URI,
-        "[cash] := budget - spent\n🦀 Have [cash].\n",
+        "[cash] := src.budget - src.spent\n🦀 Have [cash].\nsrc := import(\"./values.wtf\")\n",
         1,
     );
     set(
@@ -180,13 +210,13 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
     let definition = request(
         &mut ws,
         "definition",
-        json!({"uri":URI,"position":{"line":0,"character":12}}),
+        json!({"uri":URI,"position":{"line":0,"character":16}}),
     );
     assert_eq!(definition["uri"], "file:///workspace/values.wtf");
     let renamed = request(
         &mut ws,
         "rename",
-        json!({"uri":URI,"position":{"line":0,"character":12},"newName":"trip_budget"}),
+        json!({"uri":URI,"position":{"line":0,"character":16},"newName":"trip_budget"}),
     );
     assert_eq!(renamed["documentChanges"].as_array().unwrap().len(), 2);
     assert!(
@@ -208,7 +238,7 @@ fn browser_controls_are_undoable_snapshots_and_reject_stale_versions() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|l| l["command"]["title"] == "Start timer 'focus'")
+        .find(|l| l["command"]["title"] == "▸ start focus")
         .unwrap()["command"]
         .clone();
     let result = request(
@@ -349,13 +379,13 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
-    let expected = wtf::query::execute(
+    let expected = wtf::RequestContext::new(
         &ws,
-        &wtf::query::Query::parse(query).unwrap(),
-        &wtf::query::QueryContext::new(chrono::DateTime::parse_from_rfc3339(NOW).unwrap()),
+        wtf::query::QueryContext::new(chrono::DateTime::parse_from_rfc3339(NOW).unwrap()).now,
     )
+    .query(&wtf::query::Query::parse(query).unwrap(), None)
     .unwrap();
     assert_eq!(result["rows"], json!(expected.rows));
     set(&mut browser, URI, &source.replace("$5", "$9"), 2);
@@ -363,7 +393,11 @@ fn browser_queries_share_typed_results_and_follow_live_workspace_versions() {
     assert_eq!(updated["versions"][URI], 2);
     assert_eq!(updated["rows"][0]["value"]["amount"], 18.0);
     assert_eq!(
-        request(&mut browser, "query", json!({"query":"@tasks | count"}))["rows"],
+        request(
+            &mut browser,
+            "query",
+            json!({"query":"tasks | where leaf && !done | sort source.path, source.line | count"})
+        )["rows"],
         json!([1])
     );
     let bad = raw(
@@ -387,7 +421,7 @@ fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     let now = chrono::DateTime::parse_from_rfc3339(NOW).unwrap();
     let expected = wtf::inlays::collect(
@@ -397,7 +431,7 @@ fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
             lsp_types::Position::new(0, 0),
             lsp_types::Position::new(u32::MAX, 0),
         ),
-        wtf::inlay_providers::BUILTINS,
+        wtf::features::modules::BUILTINS,
     );
     let result = request(&mut browser, "analyze", json!({"uri":URI}));
     assert_eq!(result["version"], 7);
@@ -479,7 +513,7 @@ fn browser_actions_use_the_shared_codec_and_prepared_effects() {
         documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     };
     let ctx = wtf::RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap());
     for lens in analysis["lenses"].as_array().unwrap() {
@@ -564,5 +598,75 @@ fn browser_hides_and_rejects_every_native_refresh_action() {
                 .unwrap()
                 .contains("not available")
         );
+    }
+}
+
+#[test]
+fn browser_file_queries_inspect_live_syntax_and_dependencies_with_native_parity() {
+    let mut browser = BrowserWorkspace::new();
+    let other = "file:///workspace/other.wtf";
+    let source = "answer := rate * 2\n- [ ] Local\n";
+    set(&mut browser, URI, source, 4);
+    set(&mut browser, other, "3:rate\n- [ ] Other\n", 2);
+    assert_eq!(
+        request(
+            &mut browser,
+            "query",
+            json!({"uri":URI,"query":"tasks | select title"})
+        )["rows"],
+        json!(["Local"])
+    );
+    assert_eq!(
+        request(&mut browser, "query", json!({"query":"length(tasks)"}))["rows"],
+        json!([2])
+    );
+    let ws = wtf::workspace::Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [
+            (
+                std::path::PathBuf::from("/workspace/trip.wtf"),
+                wtf::document::Document::parse(source.into()),
+            ),
+            (
+                std::path::PathBuf::from("/workspace/other.wtf"),
+                wtf::document::Document::parse("3:rate\n- [ ] Other\n".into()),
+            ),
+        ]
+        .into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+        modules: Default::default(),
+    };
+    let context = wtf::RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap());
+    for source in [
+        "ast",
+        "graph",
+        "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)",
+    ] {
+        let result = request(&mut browser, "query", json!({"uri":URI,"query":source}));
+        let expected = context
+            .query(
+                &wtf::query::Query::parse(source).unwrap(),
+                Some(std::path::Path::new("/workspace/trip.wtf")),
+            )
+            .unwrap();
+        assert_eq!(result["rows"], json!(expected.rows));
+        assert_eq!(result["versions"][URI], 4);
+    }
+    set(&mut browser, URI, "answer := rate * 3\n", 5);
+    let updated = request(
+        &mut browser,
+        "query",
+        json!({"uri":URI,"query":"ast | where kind == \"document\" | select text"}),
+    );
+    assert_eq!(updated["rows"], json!(["answer := rate * 3\n"]));
+    assert_eq!(updated["versions"][URI], 5);
+    for uri in [
+        "file:///workspace/missing.wtf",
+        "file:///outside/private.wtf",
+        "https://example.com/n.wtf",
+    ] {
+        let result = raw(&mut browser, "query", json!({"uri":uri,"query":"ast"}), NOW);
+        assert_eq!(result["ok"], false, "{uri}");
     }
 }

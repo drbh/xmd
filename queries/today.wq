@@ -1,3 +1,0 @@
-entries
-| where !done && ((kind == "task" && (due <= today() || scheduled <= today() || at_date <= today() || (due == null && scheduled == null && at_date == null))) || (kind != "task" && ((at_date >= today() && at_date <= today()) || length(errors) > 0)))
-| sort coalesce(due, at_date, scheduled, today()), coalesce(text(at), ""), source.path, source.line

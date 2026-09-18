@@ -2,10 +2,9 @@ use chrono::{DateTime, FixedOffset, Utc};
 use std::{collections::BTreeMap, path::Path};
 use tower_lsp::lsp_types::*;
 use wtf::{
-    diagnostics,
     document::Document,
     engine::{Currency, Engine, Value},
-    intelligence, lookups, presentation,
+    lookups,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 
@@ -39,7 +38,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: store(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn eval(ws: &Workspace, expression: &str) -> Result<Value, String> {
@@ -86,7 +85,9 @@ fn uppercase_names_are_code_literals_not_references() {
     assert_eq!(eval(&ws, "USD").unwrap(), Value::Text("USD".into()));
     assert_eq!(eval(&ws, "NVDA").unwrap(), Value::Text("NVDA".into()));
     assert_eq!(
-        diagnostics::collect(&ws, path(), now().date_naive(), now(), false).len(),
+        wtf::RequestContext::new(&ws, now())
+            .diagnostics(path(), false)
+            .len(),
         0
     );
     assert!(
@@ -116,7 +117,8 @@ fn rates_conversions_quotes_and_forecasts_read_the_cache() {
             .display(),
         "24°C / 12°C · light rain · 40% rain"
     );
-    let messages: Vec<_> = diagnostics::collect(&ws, path(), now().date_naive(), now(), false)
+    let messages: Vec<_> = wtf::RequestContext::new(&ws, now())
+        .diagnostics(path(), false)
         .into_iter()
         .map(|d| d.message)
         .collect();
@@ -124,30 +126,22 @@ fn rates_conversions_quotes_and_forecasts_read_the_cache() {
         messages,
         [
             "Forecast for Oaxaca on 2026-11-21: no forecast yet; forecasts cover about 16 days",
-            "No cached rate GBP→USD; run wtf refresh or use Refresh lookups",
+            "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
         ]
     );
     // Hovers show what was read and how old it is; misses say so.
-    let hover = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Definition(1),
-        },
-        now(),
-    );
+    let hover = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Definition(1),
+    });
     assert!(
         hover.contains("Lookups:\n- rate EUR→USD · 2h ago · frankfurter.app"),
         "{hover}"
     );
-    let missing = intelligence::hover(
-        &ws,
-        &Symbol {
-            path: path().into(),
-            kind: SymbolKind::Definition(6),
-        },
-        now(),
-    );
+    let missing = wtf::RequestContext::new(&ws, now()).symbol_hover(&Symbol {
+        path: path().into(),
+        kind: SymbolKind::Definition(6),
+    });
     assert!(
         missing.contains("- rate GBP→USD · not fetched yet"),
         "{missing}"
@@ -159,12 +153,12 @@ fn itinerary_days_show_weather_and_notes_declare_what_they_want() {
     let ws = note(
         "## Friday, November 20, 2026 · New York | Oaxaca\n\n07:04 AM  > Depart JFK\n\n## Saturday, November 21 · Oaxaca\n\n[fx] := to(€10, USD)\n[stock] := quote(AAPL)\n",
     );
-    let hints = presentation::hints_at(
-        &ws,
-        path(),
-        now(),
-        Range::new(Position::new(0, 0), Position::new(20, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, now())
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(20, 0)),
+        )
+        .hints;
     let label = |line: u32| {
         hints
             .iter()
@@ -282,7 +276,12 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
     // The refreshed workspace evaluates with the new values.
     let check = std::process::Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
-        .args(["query", "@check", "--fail-on-match"])
+        .args([
+            "query",
+            "--workspace",
+            "diagnostics | where severity == \"error\"",
+            "--fail-on-match",
+        ])
         .output()
         .unwrap();
     assert!(

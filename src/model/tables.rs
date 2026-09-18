@@ -2,7 +2,7 @@
 //! shared language features, not browser-side Markdown interpretation.
 use crate::{
     document::{Document, Named, Problem, Reference, Span, identifier},
-    engine::{self, Value},
+    engine::{self, Value, ValueType},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use lsp_types::{Range, TextEdit};
@@ -15,7 +15,7 @@ pub struct Cell {
     pub span: Span,
     pub value: Result<Value, String>,
     /// `[name]` or `[a * b]`: a calculation evaluated with the table, so cells
-    /// can read named values from any note.
+    /// can read local names and explicitly imported values.
     pub expression: Option<(String, Span)>,
 }
 impl Cell {
@@ -38,10 +38,11 @@ impl Domain {
             Self::Count => '#',
         }
     }
-    pub fn type_name(self) -> &'static str {
+    /// The column type a decision column reports, like any other column.
+    pub fn value_type(self) -> ValueType {
         match self {
-            Self::Choice => "Choice",
-            Self::Count => "Count",
+            Self::Choice => ValueType::Choice,
+            Self::Count => ValueType::Count,
         }
     }
 }
@@ -52,7 +53,7 @@ pub struct Table {
     pub end_line: usize,
     pub columns: Vec<Named>,
     pub rows: Vec<Vec<Cell>>,
-    pub types: Vec<Option<&'static str>>,
+    pub types: Vec<Option<ValueType>>,
     pub separators: Vec<String>,
     pub problems: Vec<Problem>,
     /// One entry per column; `Some` marks a decision column a plan fills in.
@@ -255,7 +256,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
     table.types = table
         .domains
         .iter()
-        .map(|d| d.map(Domain::type_name))
+        .map(|d| d.map(Domain::value_type))
         .collect();
     for row in &table.rows {
         for (column, cell) in row.iter().enumerate().take(table.columns.len()) {
@@ -269,7 +270,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
             match &cell.value {
                 Err(message) => problem(cell.span, message.clone()),
                 Ok(value) => {
-                    let kind = value.type_name();
+                    let kind = value.kind();
                     if let Some(expected) = table.types[column] {
                         if expected != kind {
                             problem(
@@ -300,9 +301,10 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> Result<Symbol, String>
             }
             let def = &doc.definitions[index];
             if def.expression
-                && let Some(alias) = engine::simple_name(&def.source)
+                && let Some(alias) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &def.source)
             {
-                symbol = ws.resolve(&symbol.path, &alias)?;
+                symbol = alias;
                 continue;
             }
         }
@@ -380,7 +382,7 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     } else {
         ws.symbols()
             .iter()
-            .any(|s| s != symbol && ws.named(s).name == name)
+            .any(|s| s.path == symbol.path && s != symbol && ws.named(s).name == name)
     };
     if conflict {
         Err("That name already exists in this scope".into())
@@ -389,13 +391,8 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     }
 }
 
+/// Align parsed tables; document feature formatting runs through features::modules.
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
-    let mut edits = table_formatting(doc);
-    edits.extend(crate::itinerary::formatting(doc, &doc.days));
-    edits.sort_by_key(|e| (e.range.start, e.range.end));
-    edits
-}
-pub(crate) fn table_formatting(doc: &Document) -> Vec<TextEdit> {
     grids(doc)
         .iter()
         // Never invent missing cells or repair a malformed table during formatting.

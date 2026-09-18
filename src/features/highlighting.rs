@@ -1,11 +1,11 @@
 //! Semantic colors describe WTF's syntax and types, independent of the editor.
 //! Keep parser highlights intact: other LSP features use them to identify inert text.
+use super::prose;
 use crate::{
     document::{Attribute, Document, Named, Span},
     engine::{self, Lexeme, Value},
 };
 use lsp_types::SemanticToken;
-mod prose;
 
 pub const TOKEN_TYPES: &[&str] = &[
     "comment",

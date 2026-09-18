@@ -156,7 +156,7 @@ fn unicode_crlf_empty_and_malformed_documents_produce_valid_nonoverlapping_token
 #[test]
 fn zed_rules_cover_the_shared_legend_and_match_browser_palette() {
     let rules: Vec<serde_json::Value> = serde_json::from_str(include_str!(
-        "../zed-extension/languages/wtf/semantic_token_rules.json"
+        "../ide/zed/languages/wtf/semantic_token_rules.json"
     ))
     .unwrap();
     let browser = include_str!("../web/editor.js");

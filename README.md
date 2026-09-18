@@ -39,7 +39,7 @@ cargo build
 Open `notes/interactions.wtf`, `notes/daily.wtf`, or `notes/timers.wtf` in Zed. If you already installed the dev
 extension, restart the WTF language server after rebuilding the binary. The
 extension uses `target/debug/wtf` in the project root. To install it initially,
-use **Install Dev Extension** and choose `zed-extension`.
+use **Install Dev Extension** and choose `ide/zed`.
 
 For notes in other projects, set `lsp.wtf.binary.path` in your Zed user settings
 to this repository's absolute `target/debug/wtf` path and `arguments` to `["lsp"]`.
@@ -542,6 +542,24 @@ to source notes. Re-run the action to refresh the view. Capture appends to
 `inbox.wtf`, `--journal` uses `journal/YYYY-MM-DD.wtf`, and `--file` chooses a note.
 CLI commands read saved files, so save editor changes before completing tasks
 from the terminal. Editor actions use versioned edits against the live buffer.
+
+## Layout
+
+```
+src/
+  model/      what a note is: document (parser), workspace, paths, tables, itinerary
+  evaluate/   what it computes: engine, timers, resources, lookups, plans, charts, glyphs
+  features/   what an editor shows and does: intelligence, presentation, diagnostics,
+              symbols, highlighting, prose, hierarchy, refactor, actions, interaction, typing
+  hosts/      how it is delivered: editor (LSP over stdio), browser (WebAssembly), cli
+ide/          editor integrations: zed, vscode, neovim, helix
+web/          the browser editor; book/ the guide; examples/ one note per feature
+```
+
+Each layer only reaches down: hosts call features, features read the model and
+ask the evaluator, and the evaluator reads the model. Every module inside a
+layer is a sibling of the others, and each leaf is also exported at the crate
+root, so `wtf::engine` and `wtf::evaluate::engine` name the same module.
 
 ## Development
 

@@ -8,7 +8,7 @@ to `init.lua`, replacing both paths:
 
 ```lua
 vim.g.wtf_server_path = "/absolute/path/to/wtf/target/debug/wtf"
-dofile("/absolute/path/to/wtf/neovim/wtf.lua")
+dofile("/absolute/path/to/wtf/ide/neovim/wtf.lua")
 ```
 
 On Windows, use the `wtf.exe` binary. Use your cargo-built executable; macOS's
@@ -41,7 +41,7 @@ After rebuilding Rust, restart Neovim or restart its WTF LSP client.
 From the repository root after `cargo build --locked`:
 
 ```sh
-nvim --headless -u NONE -i NONE -l neovim/smoke.lua
+nvim --headless -u NONE -i NONE -l ide/neovim/smoke.lua
 ```
 
 This loads the actual configuration with temporary copies of the shared example

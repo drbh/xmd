@@ -5,7 +5,7 @@ const os = require("node:os");
 
 async function main() {
   const extension = path.resolve(__dirname, "..");
-  const repo = path.dirname(extension);
+  const repo = path.dirname(path.dirname(extension));
   const binary = process.env.WTF_SERVER_PATH || path.join(repo, "target", "debug", process.platform === "win32" ? "wtf.exe" : "wtf");
   await fs.access(binary);
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "wtf-vscode-"));

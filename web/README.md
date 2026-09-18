@@ -87,11 +87,11 @@ Paths are relative, so a subdirectory deployment works too. Serve `.wasm` as
 Use HTTPS outside localhost.
 
 The browser bridge uses a small JSON request API, not a second implementation of
-the language or a full LSP transport. `src/presentation.rs`, `src/intelligence.rs`,
-`src/diagnostics.rs`, and the parser/evaluator/refactor modules are shared with
-Zed. `src/browser.rs` adds virtual-document lifecycle and browser command dispatch.
+the language or a full LSP transport. `src/features/presentation.rs`, `src/features/intelligence.rs`,
+`src/features/diagnostics.rs`, and the parser/evaluator/refactor modules are shared with
+Zed. `src/hosts/browser.rs` adds virtual-document lifecycle and browser command dispatch.
 `editor.js` translates the shared LSP-shaped data into Monaco provider results.
-`src/symbols.rs` owns document symbols for both hosts. Language/editor features
+`src/features/symbols.rs` owns document symbols for both hosts. Language/editor features
 are LSP-first: implement them in the native server and shared core before exposing
 them in the browser. Browser UI must not introduce a separate language parser or
 exclusive language behavior. A calendar date-picker widget is not implemented,

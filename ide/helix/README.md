@@ -4,10 +4,10 @@ Helix uses the same native `wtf lsp` as the other editors. No editor plugin is
 required. This configuration targets Helix 25.07.1+.
 
 1. Build WTF with `cargo build --locked` from the repository root.
-2. Merge `helix/languages.toml` into `~/.config/helix/languages.toml`, or into
+2. Merge `ide/helix/languages.toml` into `~/.config/helix/languages.toml`, or into
    `.helix/languages.toml` in your notes project. Replace the placeholder command
    with the absolute path to `target/debug/wtf` (`wtf.exe` on Windows).
-3. Copy `helix/runtime/queries/wtf` into
+3. Copy `ide/helix/runtime/queries/wtf` into
    `~/.config/helix/runtime/queries/wtf`. The two query files inherit Helix's
    bundled Markdown highlighting and inline-language handling; no new grammar
    needs compiling. Adapt the paths if you use a different Helix config directory.

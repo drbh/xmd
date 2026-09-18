@@ -7,9 +7,9 @@ editor. The editor starts and stops the process; no separate server is needed.
 | Editor | Setup |
 | --- | --- |
 | Zed | [Existing dev extension and settings](../README.md#try-it) |
-| VS Code | [Local extension](../vscode-extension/README.md) |
-| Neovim 0.11+ | [Lua configuration](../neovim/README.md) |
-| Helix 25.07.1+ | [TOML configuration and Markdown queries](../helix/README.md) |
+| VS Code | [Local extension](../ide/vscode/README.md) |
+| Neovim 0.11+ | [Lua configuration](../ide/neovim/README.md) |
+| Helix 25.07.1+ | [TOML configuration and Markdown queries](../ide/helix/README.md) |
 
 Open a notes folder so cross-file lookup has a clear root. For Neovim and Helix,
 an empty `.wtf` directory identifies the root of notes that are not in Git.

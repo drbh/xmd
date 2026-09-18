@@ -76,7 +76,8 @@ The CLI loads modules for each invocation. The native editor reloads saved modul
 on save notifications and watched-file events, including creation and deletion.
 Clients supporting watched-file registration receive an explicit plugin glob.
 Plugin files stay outside the ordinary note symbol catalog. Their unsaved buffers
-do not change the active registry. Invalid reloads retain the complete previous
+receive semantic highlighting, including bundled standard-library files, but do
+not change the active registry. Invalid reloads retain the complete previous
 registry and report the error in the language server log.
 
 Each workspace snapshot holds an immutable registry behind an `Arc`. Replacement

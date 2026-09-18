@@ -1240,6 +1240,94 @@ fn native_actions_reject_the_same_malformed_commands_as_the_shared_codec() {
 }
 
 #[test]
+fn plugin_and_standard_library_buffers_highlight_without_activating_unsaved_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let plugin = root.join(".wtf/plugins/docs.wtf");
+    let library = root.join("stdlib/.wtf/plugins/format.wtf");
+    for path in [&plugin, &library] {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    }
+    let source = "plugin := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n";
+    let standard = include_str!("../stdlib/.wtf/plugins/format.wtf");
+    std::fs::write(&plugin, source).unwrap();
+    std::fs::write(&library, standard).unwrap();
+    let note = root.join("main.wtf");
+    std::fs::write(&note, "https://docs.example/start\n").unwrap();
+    let mut client = Lsp::start(&root);
+    let hints = json!({"textDocument":{"uri":Url::from_file_path(&note).unwrap()},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
+    let assert_tokens = |client: &mut Lsp, uri: &Url, text: &str| {
+        let expected =
+            wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(text.into()));
+        assert!(!expected.is_empty());
+        assert_eq!(
+            client.request(
+                "textDocument/semanticTokens/full",
+                json!({"textDocument":{"uri":uri}})
+            ),
+            serde_json::to_value(lsp_types::SemanticTokens {
+                result_id: None,
+                data: expected
+            })
+            .unwrap()
+        );
+    };
+    for (path, text) in [(&plugin, source), (&library, standard)] {
+        let uri = Url::from_file_path(path).unwrap();
+        client.notify(
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
+        );
+        client.wait_for_request("workspace/semanticTokens/refresh");
+        assert_tokens(&mut client, &uri, text);
+        let changed = format!(
+            "{}\nunsaved := fn(value) => value + 1\n",
+            text.replace("saved", "unsaved")
+        );
+        client.notify(
+            "textDocument/didChange",
+            json!({"textDocument":{"uri":uri,"version":3},"contentChanges":[{"text":changed}]}),
+        );
+        client.wait_for_request("workspace/semanticTokens/refresh");
+        assert_tokens(&mut client, &uri, &changed);
+        // A stale notification cannot replace the newer editor buffer.
+        client.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"old buffer"}]}));
+        assert_tokens(&mut client, &uri, &changed);
+        // Query rescans preserve editor buffers and exclude module declarations.
+        assert_eq!(
+            client.request("wtf/query", json!({"query":"values"}))["rows"],
+            json!([])
+        );
+        assert_tokens(&mut client, &uri, &changed);
+        assert_eq!(
+            client.request("textDocument/inlayHint", hints.clone())[0]["label"],
+            "saved"
+        );
+        client.notify("textDocument/didClose", json!({"textDocument":{"uri":uri}}));
+        client.wait_for_request("workspace/semanticTokens/refresh");
+        assert!(
+            client
+                .request(
+                    "textDocument/semanticTokens/full",
+                    json!({"textDocument":{"uri":uri}})
+                )
+                .is_null()
+        );
+    }
+    // Saving still activates the disk version through the normal reload path.
+    std::fs::write(&plugin, source.replace("saved", "reloaded")).unwrap();
+    client.notify(
+        "textDocument/didSave",
+        json!({"textDocument":{"uri":Url::from_file_path(&plugin).unwrap()}}),
+    );
+    client.wait_for_request("workspace/semanticTokens/refresh");
+    assert_eq!(
+        client.request("textDocument/inlayHint", hints)[0]["label"],
+        "reloaded"
+    );
+}
+
+#[test]
 fn functional_plugins_hot_reload_over_lsp_and_keep_last_good_version() {
     let dir = tempfile::tempdir().unwrap();
     let plugin_dir = dir.path().join(".wtf/plugins");

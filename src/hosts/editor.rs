@@ -24,6 +24,7 @@ pub use crate::presentation::{hints, hints_at, problems, semantic_tokens};
 struct State {
     workspace: Workspace,
     open: BTreeMap<PathBuf, i32>,
+    plugin_buffers: BTreeMap<PathBuf, Document>,
     hint_refresh: bool,
     token_refresh: bool,
     watch: bool,
@@ -81,6 +82,7 @@ impl Backend {
                     plugins: Default::default(),
                 },
                 open: BTreeMap::new(),
+                plugin_buffers: BTreeMap::new(),
                 hint_refresh: false,
                 token_refresh: false,
                 watch: false,
@@ -228,13 +230,17 @@ impl Backend {
                 return;
             }
             if crate::plugins::is_plugin_path(&path) {
-                // Plugin files reload from disk on save or watched-file events.
-                return;
+                // Highlight unsaved module source without activating it or adding
+                // its definitions to the note workspace. Reload still uses disk.
+                state
+                    .plugin_buffers
+                    .insert(path.clone(), Document::parse(text));
+            } else {
+                state
+                    .workspace
+                    .documents
+                    .insert(path.clone(), Document::parse(text));
             }
-            state
-                .workspace
-                .documents
-                .insert(path.clone(), Document::parse(text));
             state.open.insert(path, version);
         }
         self.notify_changes().await;
@@ -476,7 +482,11 @@ impl LanguageServer for Backend {
     }
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         if let Ok(path) = params.text_document.uri.to_file_path() {
-            self.state.write().await.open.remove(&path);
+            {
+                let mut state = self.state.write().await;
+                state.open.remove(&path);
+                state.plugin_buffers.remove(&path);
+            }
             self.rescan().await;
             self.client
                 .publish_diagnostics(params.text_document.uri, vec![], None)
@@ -510,12 +520,16 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state.workspace.documents.get(&path).map(|doc| {
-            SemanticTokensResult::Tokens(SemanticTokens {
-                result_id: None,
-                data: semantic_tokens(doc),
-            })
-        }))
+        Ok(state
+            .plugin_buffers
+            .get(&path)
+            .or_else(|| state.workspace.documents.get(&path))
+            .map(|doc| {
+                SemanticTokensResult::Tokens(SemanticTokens {
+                    result_id: None,
+                    data: semantic_tokens(doc),
+                })
+            }))
     }
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let at = params.text_document_position_params;

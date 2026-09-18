@@ -1,4 +1,6 @@
 [
   "./modules/documentation.wtf",
-  "./modules/headings.wtf"
+  "./modules/headings.wtf",
+  "../scores.wtf",
+  "../sports.wtf"
 ]

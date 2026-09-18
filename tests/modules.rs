@@ -325,7 +325,7 @@ fn browser_modules_reload_and_decode_host_data_without_executing_commands() {
 fn example_workspace_uses_modules_without_rust_registration() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/modules");
     let ws = Workspace::load(vec![root.clone()]).unwrap();
-    assert_eq!(ws.modules.modules.len(), wtf::modules::bundled().len() + 2);
+    assert_eq!(ws.modules.modules.len(), wtf::modules::bundled().len() + 4);
     let hints = wtf::presentation::hints_at(
         &ws,
         &root.join("demo.wtf"),

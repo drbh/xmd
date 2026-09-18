@@ -1,7 +1,7 @@
 <script>
   import { onMount, untrack } from "svelte";
   import { createWorkspace } from "@wtf/web";
-  import { titleOf, uriOf, createDocument, loadPrefs, savePrefs, relativeTime, TEMPLATES } from "./lib/store.js";
+  import { titleOf, uriOf, createDocument, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
   import { lineStyle, reveal, stats } from "./lib/editing.js";
@@ -52,7 +52,7 @@
     return () => { cancelled = true; for (const stop of stops) stop(); current?.destroy(); live = null; liveStatus = ""; people = []; };
   });
   let now = $state(Date.now());
-  let titleInput = $state(null), sidebarOpenMobile = $state(false);
+  let titleInput = $state(null), sidebarOpenMobile = $state(false), accountMenu = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
   const counts = $derived(active ? stats(active.text) : null);
   const readOnly = $derived(active?.role === "viewer");
@@ -76,7 +76,7 @@
       backends = await resolveBackend();
       unsubscribeBackend = backend.subscribe(event => { if (event.type === "paused") { saved = event.message; notice = event.message; paused = true; } });
       documents = await backend.list();
-      if (backends.cloud?.account) localCount = (await backends.local.list()).length;
+      if (backends.cloud?.account) localCount = (await backends.local.stored()).length;
       for (const d of documents) await workspace.setDocument(uriOf(d.id), d.text);
       route();
       ready = true;
@@ -222,7 +222,7 @@
   }
   // Documents saved in this browser before signing in can move to the account.
   async function moveLocal() {
-    const local = await backends.local.list();
+    const local = await backends.local.stored();
     for (const d of local) {
       if (documents.some(x => x.id === d.id)) continue;
       await backends.cloud.save(d);
@@ -289,7 +289,7 @@
   }
 </script>
 
-<svelte:window onkeydown={keydown} onhashchange={onHashChange} />
+<svelte:window onkeydown={keydown} onhashchange={onHashChange} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
 <input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
 
 {#if !ready}
@@ -318,15 +318,34 @@
           <MenuBar menus={commands.menus} />
         </div>
         <div class="title-actions">
-          {#if people.length}
-            <div class="people-here" title={people.map(p => p.user.name).join(", ")}>
-              {#each people.slice(0, 5) as p (p.clientId)}<span class="avatar small" style={`background:${p.user.color}`}>{(p.user.name || "?")[0].toUpperCase()}</span>{/each}
-              {#if people.length > 5}<span class="muted">+{people.length - 5}</span>{/if}
+          <span class="edited">Last edit {relativeTime(active.updated, now)}</span>
+          {#if live}
+            <div class="people-here" title={[...people.map(p => p.user.name), "you"].join(", ")} aria-label={`${people.length + 1} people in this document`}>
+              {#each people.slice(0, 8) as p (p.clientId)}<span class="avatar small" style={`background:${p.user.color}`} title={p.user.email || p.user.name}>{(p.user.name || "?")[0].toUpperCase()}</span>{/each}
+              {#if people.length > 8}<span class="avatar small more">+{people.length - 8}</span>{/if}
+              <span class="avatar small you" style={`background:${colorFor(account?.email)}`} title="You">{(account?.email || "?")[0].toUpperCase()}</span>
             </div>
           {/if}
-          <span class="edited">Last edit {relativeTime(active.updated, now)}</span>
-          <button type="button" class="button" onclick={() => download()}><Icon name="upload" /> Download</button>
+          {#if backend?.acl && !readOnly}
+            <button type="button" class="button primary share-button" onclick={() => (dialog = "share")}><Icon name="link" /> Share</button>
+          {:else}
+            <button type="button" class="button" onclick={() => download()}><Icon name="upload" /> Download</button>
+          {/if}
           <button type="button" class="tool theme-toggle" title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme" onclick={() => (prefs.theme = theme === "dark" ? "light" : "dark")}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
+          {#if account}
+            <div class="account-menu">
+              <button type="button" class="avatar-button" title={account.email} aria-label="Account" aria-haspopup="true" aria-expanded={accountMenu} onclick={() => (accountMenu = !accountMenu)}><span class="avatar" style={`background:${colorFor(account.email)}`}>{account.email[0].toUpperCase()}</span></button>
+              {#if accountMenu}
+                <div class="dropdown right account-dropdown" role="menu">
+                  <div class="account-card"><span class="avatar" style={`background:${colorFor(account.email)}`}>{account.email[0].toUpperCase()}</span><div><div class="account-name">{account.name || account.email.split("@")[0]}</div><div class="muted">{account.email}</div></div></div>
+                  <hr>
+                  <button type="button" role="menuitem" onclick={() => { accountMenu = false; home(); }}><span class="mark"></span><span class="label">All documents</span></button>
+                  <button type="button" role="menuitem" onclick={() => { accountMenu = false; download(); }}><span class="mark"></span><span class="label">Download this document</span></button>
+                  <button type="button" role="menuitem" onclick={() => backends.cloud.signOut()}><span class="mark"></span><span class="label">Sign out</span></button>
+                </div>
+              {/if}
+            </div>
+          {/if}
         </div>
       </div>
       <Toolbar commands={commands.byId} {style} zoom={prefs.zoom} outline={prefs.outline} onZoom={z => (prefs.zoom = z)} />

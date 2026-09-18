@@ -33,7 +33,7 @@ export async function roleOf(db, user, id) {
 const requireRead = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); return doc; };
 const requireWrite = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); if (role === "viewer") throw new HttpError(403, "You can view this document but not edit it"); return doc; };
 const requireOwner = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); if (role !== "owner") throw new HttpError(403, "Only the owner can do that"); return doc; };
-const present = (doc, role) => ({ id: doc.id, name: doc.name, text: doc.text, version: doc.version, updated: doc.updated_at, created: doc.created_at, role });
+const present = (doc, role) => ({ id: doc.id, name: doc.name, text: doc.text, version: doc.version, updated: doc.updated_at, created: doc.created_at, role, owner: doc.owner_email ?? undefined });
 
 async function body(request) {
   try { return await request.json(); } catch { throw new HttpError(400, "Expected a JSON body"); }
@@ -55,9 +55,9 @@ export async function handle(request, env, user) {
 
   if (path === "/api/documents" && method === "GET") {
     const rows = await db.prepare(`
-      SELECT d.id, d.owner_id, d.name, d.text, d.version, d.created_at, d.updated_at,
+      SELECT d.id, d.owner_id, d.name, d.text, d.version, d.created_at, d.updated_at, u.email AS owner_email,
              CASE WHEN d.owner_id = ?1 THEN 'owner' ELSE a.role END AS role
-      FROM documents d LEFT JOIN document_acl a ON a.document_id = d.id AND a.user_id = ?1
+      FROM documents d JOIN users u ON u.id = d.owner_id LEFT JOIN document_acl a ON a.document_id = d.id AND a.user_id = ?1
       WHERE d.deleted_at IS NULL AND (d.owner_id = ?1 OR a.user_id = ?1)
       ORDER BY d.updated_at DESC`).bind(user.id).all();
     return json(rows.results.map(r => present(r, r.role)));

@@ -179,13 +179,20 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .people .who { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .people .role { color: var(--muted); font-size: 12px; text-transform: capitalize; }
 .error-text { color: var(--error); margin: 0 0 8px; }
+.people .avatar.tiny { margin-right: 4px; }
+.role-select { height: 28px; font-size: 12px; }
+.share-foot { display: flex; align-items: center; gap: 12px; }
+.share-foot .muted { font-size: 12px; line-height: 1.4; }
 
 /* Live editing */
 .live { display: inline-flex; align-items: center; gap: 6px; color: #188038; font-size: 12px; white-space: nowrap; }
 .live .dot { width: 8px; height: 8px; border-radius: 4px; background: currentColor; }
 .live.off { color: var(--warn); }
 .people-here { display: inline-flex; align-items: center; }
-.avatar.small { width: 26px; height: 26px; border-radius: 13px; font-size: 12px; margin-left: -6px; border: 2px solid var(--chrome); }
+.avatar.small { width: 28px; height: 28px; border-radius: 14px; font-size: 12px; margin-left: -6px; border: 2px solid var(--chrome); }
+.avatar.small.more { background: var(--rule); color: var(--muted); font-size: 11px; }
+.avatar.small.you { box-shadow: 0 0 0 2px var(--accent); }
+.people-here { margin-right: 6px; }
 .presence-caret { position: absolute; width: 2px; background: var(--presence); pointer-events: none; }
 .presence-name { position: absolute; top: -16px; left: -1px; padding: 0 5px; border-radius: 3px 3px 3px 0; background: var(--presence); color: #fff; font: 500 10px/16px var(--ui); white-space: nowrap; }
 ::highlight(presence-0) { background: rgba(26, 115, 232, .25); } ::highlight(presence-1) { background: rgba(217, 48, 37, .25); }
@@ -211,9 +218,19 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .shortcut-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px; }
 
 .splash { height: 100vh; display: grid; place-items: center; color: var(--muted); }
-.account { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.avatar { width: 32px; height: 32px; border-radius: 16px; display: inline-grid; place-items: center; background: var(--accent); color: #fff; font-weight: 600; }
-.account .email { color: var(--muted); font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.avatar { width: 32px; height: 32px; border-radius: 16px; display: inline-grid; place-items: center; background: var(--accent); color: #fff; font-weight: 600; flex: none; }
+.avatar.tiny { width: 18px; height: 18px; border-radius: 9px; font-size: 10px; margin-right: 6px; }
+.account-menu { position: relative; }
+.avatar-button { display: inline-flex; border-radius: 20px; padding: 2px; }
+.avatar-button:hover { background: var(--hover); }
+.account-dropdown { min-width: 280px; }
+.account-card { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+.account-card .avatar { width: 40px; height: 40px; border-radius: 20px; font-size: 18px; }
+.account-name { font-weight: 500; }
+.share-button { gap: 6px; }
+.doc-tag { margin-left: 8px; padding: 1px 6px; border-radius: 8px; background: var(--hover); color: var(--muted); font-size: 11px; vertical-align: middle; }
+.doc-by { display: inline-flex; align-items: center; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent.shared { padding-top: 0; }
 .notice.info { background: var(--active); color: var(--accent-ink); border-color: transparent; }
 
 /* Home */
@@ -238,7 +255,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .doc-list { padding: 0 24px; }
 .doc-row { display: flex; align-items: center; border-radius: 8px; }
 .doc-row:hover { background: var(--hover); }
-.doc-row .open { flex: 1; min-width: 0; display: grid; grid-template-columns: 32px 1fr 180px; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; color: var(--ink); }
+.doc-row .open { flex: 1; min-width: 0; display: grid; grid-template-columns: 32px 1fr 220px 150px; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; color: var(--ink); }
 .doc-icon { color: var(--accent); display: inline-flex; }
 .doc-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .doc-when { color: var(--muted); font-size: 12px; text-align: right; }
@@ -268,7 +285,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .view { padding: 32px 20px 100px; }
   .findbar { right: 8px; left: 8px; width: auto; top: 128px; }
   .doc-row .open { grid-template-columns: 32px 1fr; }
-  .doc-when { display: none; }
+  .doc-when, .doc-by { display: none; }
   .shortcut-columns { grid-template-columns: 1fr; }
 }
 

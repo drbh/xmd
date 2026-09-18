@@ -9,7 +9,7 @@
 //   label: string                                 e.g. "Saved in this browser"
 // Optional cloud capabilities: account { email }, signIn(), signOut(), acl(id).
 // A Document is { id, name, text, updated, version?, role? }.
-import { loadDocuments, saveDocuments, watchStorage } from "./store.js";
+import { loadDocuments, saveDocuments, watchStorage, hasStoredDocuments } from "./store.js";
 
 export class BackendError extends Error {
   constructor(code, message, detail) { super(message); this.code = code; this.detail = detail; }
@@ -20,6 +20,8 @@ export class LocalBackend {
   #documents = null;
   #listeners = new Set();
   async list() { return (this.#documents ??= loadDocuments()); }
+  /** Documents a person saved here, as opposed to the starter a fresh browser is seeded with. */
+  async stored() { return hasStoredDocuments() ? this.list() : []; }
   async save(doc) {
     const documents = await this.list();
     const at = documents.findIndex(d => d.id === doc.id);

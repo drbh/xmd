@@ -166,6 +166,7 @@ test("the document app writes like a document editor: typing, formatting, find, 
   // The console runs read-only queries against the resolved document.
   await page.keyboard.press("ControlOrMeta+Alt+j");
   const query = page.locator(".console input");
+  await expect(page.locator(".console")).toHaveAttribute("data-fields", "ready");
   await query.fill("lease * 2");
   await page.keyboard.press("Enter");
   await expect(page.locator(".console .entry").last()).toContainText("$1,800");

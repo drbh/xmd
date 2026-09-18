@@ -93,7 +93,7 @@
   }
 </script>
 
-<section class="console" style={`height:${height}px`} aria-label="Query console">
+<section class="console" style={`height:${height}px`} aria-label="Query console" data-fields={Object.keys(fields).length ? "ready" : "loading"}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grip" onmousedown={resize}></div>
   <header>

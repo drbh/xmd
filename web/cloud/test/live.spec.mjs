@@ -24,7 +24,9 @@ test("editors see each other's typing, keep their carets, undo their own edits, 
 
   const bob = await openAs(browser, "bob@example.com", `#/d/${id}`);
   await bob.page.waitForFunction(() => window.wtfDocs.controller && window.wtfDocs.live?.status === "connected");
-  await expect(alice.page.locator(".people-here .avatar")).toHaveCount(1);
+  // Everyone in the room is shown as a circle, including yourself.
+  await expect(alice.page.locator(".people-here .avatar")).toHaveCount(2);
+  await expect(alice.page.locator(".share-button")).toBeVisible();
 
   // Bob types at the end; Alice sees it and Bob's caret.
   await bob.page.evaluate(() => window.wtfDocs.controller.select(window.wtfDocs.controller.getSource().length));

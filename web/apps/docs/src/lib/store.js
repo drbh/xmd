@@ -82,6 +82,10 @@ Spent [total] this week, about [per_day] per day.
 ];
 
 const valid = d => /^[a-zA-Z0-9_-]+$/.test(d.id) && typeof d.name === "string" && typeof d.text === "string" && Number.isFinite(d.updated);
+/** Whether this browser holds documents someone actually saved (not just the starter). */
+export function hasStoredDocuments() {
+  try { return !!localStorage.getItem(KEY); } catch { return false; }
+}
 export function loadDocuments() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -134,3 +138,7 @@ export function relativeTime(when, now = Date.now()) {
   if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
   return new Date(when).toLocaleDateString();
 }
+
+// Avatar colour for an email, matching the palette the live session uses.
+const COLORS = ["#1a73e8", "#d93025", "#188038", "#e37400", "#9334e6", "#007b83", "#c5221f", "#3c4043"];
+export const colorFor = s => COLORS[[...(s || "")].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7) % COLORS.length];

@@ -96,7 +96,7 @@ test("an invite for an unseen email becomes access on first sign-in", async () =
   assert.equal(invite.data.invited, true);
   assert.deepEqual((await call(`/api/documents/${doc}/acl`)).data.invites, [{ email: newcomer, role: "editor" }]);
   const first = await call("/api/documents", { user: newcomer });
-  assert.ok(first.data.some(d => d.id === doc && d.role === "editor"));
+  assert.ok(first.data.some(d => d.id === doc && d.role === "editor" && d.owner === "alice@example.com"));
   assert.deepEqual((await call(`/api/documents/${doc}/acl`)).data.invites, []);
 });
 

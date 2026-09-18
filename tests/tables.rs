@@ -90,7 +90,8 @@ fn columns_are_scoped_even_with_same_named_globals_and_other_tables() {
 
 #[test]
 fn table_aliases_and_columns_resolve_across_notes_without_capturing_globals() {
-    let mut ws = ws("[alias] := groceries\n[cost] := sum(alias, quantity * price)\n");
+    let mut ws =
+        ws("[alias] := import(\"./data.wtf\").groceries\n[cost] := sum(alias, quantity * price)\n");
     ws.documents
         .insert("/notes/data.wtf".into(), Document::parse(SOURCE.into()));
     assert_eq!(

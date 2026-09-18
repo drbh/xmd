@@ -15,7 +15,7 @@ pub struct Cell {
     pub span: Span,
     pub value: Result<Value, String>,
     /// `[name]` or `[a * b]`: a calculation evaluated with the table, so cells
-    /// can read named values from any note.
+    /// can read local names and explicitly imported values.
     pub expression: Option<(String, Span)>,
 }
 impl Cell {
@@ -300,9 +300,10 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> Result<Symbol, String>
             }
             let def = &doc.definitions[index];
             if def.expression
-                && let Some(alias) = engine::simple_name(&def.source)
+                && let Some(alias) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &def.source)
             {
-                symbol = ws.resolve(&symbol.path, &alias)?;
+                symbol = alias;
                 continue;
             }
         }
@@ -380,7 +381,7 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     } else {
         ws.symbols()
             .iter()
-            .any(|s| s != symbol && ws.named(s).name == name)
+            .any(|s| s.path == symbol.path && s != symbol && ws.named(s).name == name)
     };
     if conflict {
         Err("That name already exists in this scope".into())

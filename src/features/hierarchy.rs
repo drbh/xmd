@@ -252,6 +252,17 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
     };
     let mut references =
         |within: Span| {
+            for member in doc
+                .members
+                .iter()
+                .filter(|m| within.contains(&doc.text, m.span))
+            {
+                if let Some(target) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &member.source)
+                {
+                    add(target, member.span);
+                }
+            }
             for reference in doc.references.iter().filter(|r| {
                 within.contains(&doc.text, Span::new(r.span.line, r.span.start, r.end()))
             }) {

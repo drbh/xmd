@@ -7,6 +7,15 @@ use std::{
 };
 use tower_lsp::lsp_types::{TextEdit, Url};
 
+fn activate_modules(root: &std::path::Path, files: &[&str]) {
+    std::fs::create_dir_all(root.join(".wtf")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules.json"),
+        serde_json::to_string(files).unwrap(),
+    )
+    .unwrap();
+}
+
 struct Lsp {
     child: Child,
     input: ChildStdin,
@@ -512,7 +521,7 @@ fn tables_and_column_interactions_work_over_standard_lsp() {
     let data_uri = Url::from_file_path(&data_path).unwrap();
     let calc_uri = Url::from_file_path(&calc_path).unwrap();
     let data = "# Groceries\n[groceries] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|4|$4.30|\n";
-    let calc = "[total] := sum(groceries, quantity * price)\nCost [total].\n";
+    let calc = "[total] := sum(groceries, quantity * price)\nCost [total].\ngroceries := import(\"./data.wtf\").groceries\n";
     std::fs::write(&data_path, data).unwrap();
     std::fs::write(&calc_path, calc).unwrap();
     let mut lsp = Lsp::start(&root);
@@ -927,7 +936,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     .unwrap();
     let path = root.join("daily.wtf");
     let uri = Url::from_file_path(&path).unwrap();
-    let text = "# Release :release\n- [x] Parser\n- [ ] Review [receipt] :review @estimate(30m)\n- [ ] Publish @after(review) @due(departure-7d)\n[progress] := completed(release)/total(release)\n";
+    let text = "# Release :release\n- [x] Parser\n- [ ] Review [src.receipt] :review @estimate(30m)\n- [ ] Publish @after(review) @due(src.departure-7d)\n[progress] := completed(release)/total(release)\nsrc := import(\"./resources.wtf\")\n";
     std::fs::write(&path, text).unwrap();
     let mut lsp = Lsp::start(&root);
     lsp.notify(
@@ -949,12 +958,12 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     assert!(!tokens["data"].as_array().unwrap().is_empty());
     let hover = lsp.request(
         "textDocument/hover",
-        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16}}),
+        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20}}),
     );
     assert!(hover.to_string().contains("receipt.png"));
     let definition = lsp.request(
         "textDocument/definition",
-        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16}}),
+        json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20}}),
     );
     assert_eq!(
         definition["uri"],
@@ -965,7 +974,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
         json!({"textDocument":{"uri":uri}}),
     );
     assert!(links.to_string().contains("receipt.png"));
-    let rename=lsp.request("textDocument/rename",json!({"textDocument":{"uri":uri},"position":{"line":2,"character":16},"newName":"lunch_receipt"}));
+    let rename=lsp.request("textDocument/rename",json!({"textDocument":{"uri":uri},"position":{"line":2,"character":20},"newName":"lunch_receipt"}));
     assert_eq!(rename["documentChanges"].as_array().unwrap().len(), 2);
     assert!(rename.to_string().contains("lunch_receipt"));
     let actions=lsp.request("textDocument/codeAction",json!({"textDocument":{"uri":uri},"range":{"start":{"line":2,"character":0},"end":{"line":2,"character":0}},"context":{"diagnostics":[]}}));
@@ -1315,6 +1324,7 @@ between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
 "#,
     )
     .unwrap();
+    activate_modules(&root, &["./modules/agenda.wtf"]);
     // The command rescans saved modules before evaluating the same import as a query.
     lsp.request("workspace/executeCommand", command);
     let replaced = std::fs::read_to_string(view).unwrap();
@@ -1416,6 +1426,7 @@ fn module_and_standard_library_buffers_highlight_without_activating_unsaved_sour
     std::fs::write(&library, standard).unwrap();
     let note = root.join("main.wtf");
     std::fs::write(&note, "https://docs.example/start\n").unwrap();
+    activate_modules(&root, &["./modules/docs.wtf", "../stdlib/format.wtf"]);
     let mut client = Lsp::start(&root);
     let hints = json!({"textDocument":{"uri":Url::from_file_path(&note).unwrap()},"range":{"start":{"line":0,"character":0},"end":{"line":1,"character":0}}});
     let assert_tokens = |client: &mut Lsp, uri: &Url, text: &str| {
@@ -1507,6 +1518,17 @@ fn functional_modules_hot_reload_over_lsp_and_keep_last_good_version() {
     client.diagnostics(1);
     client.wait_for_request("workspace/inlayHint/refresh");
     assert_eq!(
+        client.request("textDocument/inlayHint", params.clone()),
+        json!([])
+    );
+    activate_modules(dir.path(), &["./modules/docs.wtf"]);
+    let manifest_uri = Url::from_file_path(dir.path().join(".wtf/modules.json")).unwrap();
+    client.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({"changes":[{"uri":manifest_uri,"type":1}]}),
+    );
+    client.wait_for_request("workspace/inlayHint/refresh");
+    assert_eq!(
         client.request("textDocument/inlayHint", params.clone())[0]["label"],
         "first"
     );
@@ -1525,10 +1547,11 @@ fn functional_modules_hot_reload_over_lsp_and_keep_last_good_version() {
             label
         );
     }
+    activate_modules(dir.path(), &[]);
     std::fs::remove_file(&module).unwrap();
     client.notify(
         "workspace/didChangeWatchedFiles",
-        json!({"changes":[{"uri":module_uri,"type":3}]}),
+        json!({"changes":[{"uri":manifest_uri,"type":2}]}),
     );
     client.wait_for_request("workspace/inlayHint/refresh");
     assert_eq!(client.request("textDocument/inlayHint", params), json!([]));
@@ -1549,6 +1572,7 @@ fn module_reload_rejects_an_in_flight_refresh_before_saving_resources() {
     );
     std::fs::write(&module, &source).unwrap();
     std::fs::write(dir.path().join("main.wtf"), "https://docs.example/start\n").unwrap();
+    activate_modules(dir.path(), &["./modules/docs.wtf"]);
     let mut client = Lsp::start(dir.path());
     client.request("wtf/query", json!({"query":"notes | count"}));
     client.next += 1;
@@ -1600,6 +1624,7 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit
     let note = root.join("main.wtf");
     std::fs::write(&note, "Hello world\n").unwrap();
     let uri = Url::from_file_path(&note).unwrap();
+    activate_modules(&root, &["./modules/edit.wtf"]);
     let mut client = Lsp::start(&root);
     client.notify(
         "textDocument/didOpen",
@@ -1643,7 +1668,7 @@ fn file_queries_read_unsaved_syntax_and_keep_cross_file_graph_endpoints() {
     std::fs::write(&path, "1:saved\n").unwrap();
     std::fs::write(root.join("two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
     let mut lsp = Lsp::start(&root);
-    lsp.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := rate * 2\n- [ ] Local\n"}}));
+    lsp.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := import(\"./two.wtf\").rate * 2\n- [ ] Local\n"}}));
     assert_eq!(lsp.diagnostics(1), json!([]));
     let result = lsp.request("wtf/query", json!({"uri":uri,"query":"map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)"}));
     assert_eq!(result["rows"], json!(["answer"]));
@@ -1678,4 +1703,60 @@ fn file_queries_read_unsaved_syntax_and_keep_cross_file_graph_endpoints() {
         );
     }
     assert_eq!(std::fs::read_to_string(path).unwrap(), "1:saved\n");
+}
+
+#[test]
+fn note_imports_load_on_edit_and_keep_unsaved_hidden_dependencies() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap().join("notes");
+    std::fs::create_dir_all(root.join(".hidden")).unwrap();
+    std::fs::write(root.join(".gitignore"), ".hidden\n").unwrap();
+    std::fs::write(root.join("other.wtf"), "amount := 999\n").unwrap();
+    let imported = root.join(".hidden/values.wtf");
+    std::fs::write(
+        &imported,
+        "amount := import(\"../../external.wtf\").amount\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.parent().unwrap().join("external.wtf"),
+        "amount := 42\n",
+    )
+    .unwrap();
+    let path = root.join("main.wtf");
+    std::fs::write(&path, "answer := amount\n").unwrap();
+    let uri = Url::from_file_path(&path).unwrap();
+    let imported_uri = Url::from_file_path(&imported).unwrap();
+    let mut client = Lsp::start(&root);
+    client.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":"answer := amount\n"}}));
+    assert!(
+        client
+            .diagnostics(1)
+            .to_string()
+            .contains("Unknown name 'amount'")
+    );
+    let source = "src := import(\"./.hidden/values.wtf\")\nanswer := src.amount\n";
+    client.notify(
+        "textDocument/didChange",
+        json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":source}]}),
+    );
+    assert_eq!(client.diagnostics(2), json!([]));
+    let query = json!({"uri":uri,"query":"answer"});
+    assert_eq!(
+        client.request("wtf/query", query.clone())["rows"],
+        json!([42.0])
+    );
+    client.notify("textDocument/didOpen", json!({"textDocument":{"uri":imported_uri,"languageId":"wtf","version":3,"text":"amount := 77\n"}}));
+    assert_eq!(client.diagnostics(3), json!([]));
+    // A query rescans disk, but must retain both the importer and imported buffer.
+    assert_eq!(
+        client.request("wtf/query", query.clone())["rows"],
+        json!([77.0])
+    );
+    client.notify(
+        "textDocument/didClose",
+        json!({"textDocument":{"uri":imported_uri}}),
+    );
+    assert_eq!(client.request("wtf/query", query)["rows"], json!([42.0]));
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "answer := amount\n");
 }

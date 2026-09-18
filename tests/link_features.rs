@@ -88,7 +88,7 @@ impl LinkFeature for Build {
 
 #[test]
 fn one_link_impl_covers_raw_markdown_named_alias_and_cross_note_references() {
-    let source = "🦀 https://docs.example/intro\nSee [manual](https://docs.example/intro).\n[https://docs.example/intro]:guide\n[alias] := guide\nRead [guide], [alias], and [shared].\nOrdinary https://example.com/plain\n";
+    let source = "🦀 https://docs.example/intro\nSee [manual](https://docs.example/intro).\n[https://docs.example/intro]:guide\n[alias] := guide\nRead [guide], [alias], and [shared].\nOrdinary https://example.com/plain\nshared := import(\"./other.wtf\").shared\n";
     let mut ws = workspace(source);
     ws.documents.insert(
         "/notes/other.wtf".into(),
@@ -97,7 +97,7 @@ fn one_link_impl_covers_raw_markdown_named_alias_and_cross_note_references() {
     let features = LinkFeatures::new(&[&Documentation]);
     let mut engine = Engine::at(&ws, now()).with_link_features(features);
     let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
-    assert_eq!(result.hints.len(), 7, "{:?}", result.hints);
+    assert_eq!(result.hints.len(), 8, "{:?}", result.hints);
     assert!(result.hints.iter().all(|h| label(h) == "docs · intro"));
     assert_eq!(result.hints[0].position.character, 29); // crab is two UTF-16 units
     assert!(!result.time_dependent);

@@ -53,7 +53,7 @@ fn features_share_values_and_provider_configuration_only_within_a_request() {
         workspace("[https://count.example/1]:link\n[answer] := link.answer\nAnswer [answer].\n");
     ws.documents.insert(
         "/notes/complete.wtf".into(),
-        Document::parse("link.".into()),
+        Document::parse("link.\nlink := import(\"./a.wtf\").link\n".into()),
     );
     let counter = Counter(AtomicUsize::new(0));
     let providers: &[&dyn LinkFeature] = &[&counter];
@@ -118,7 +118,8 @@ fn calendar_dates_agree_across_features_in_the_supplied_offset() {
 }
 #[test]
 fn cached_errors_keep_their_source_and_do_not_poison_other_sessions() {
-    let mut ws = workspace("[broken] := remote + 1\n[other] := 1 / 0\n[good] := 4\n");
+    let mut ws =
+        workspace("[broken] := import(\"./b.wtf\").remote + 1\n[other] := 1 / 0\n[good] := 4\n");
     ws.documents.insert(
         "/notes/b.wtf".into(),
         Document::parse("[remote] := absent + 2\n".into()),

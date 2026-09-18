@@ -89,7 +89,7 @@ fn forward_references_cross_files_and_cycles() {
     let ws = workspace(&[
         (
             "daily.wtf",
-            "[remaining] := budget - spent\n[spent] := 1410\n[a] := b\n[b] := a\n",
+            "[remaining] := import(\"./resources.wtf\").budget - spent\n[spent] := 1410\n[a] := b\n[b] := a\n",
         ),
         ("resources.wtf", "[$3,000]:budget\n"),
     ]);
@@ -109,7 +109,7 @@ fn forward_references_cross_files_and_cycles() {
         Engine::new(&ws, today())
             .named(Path::new("/notes/daily.wtf"), "budget")
             .unwrap_err()
-            .contains("Ambiguous")
+            .contains("Unknown name")
     );
 }
 #[test]
@@ -261,7 +261,10 @@ fn unicode_highlights_and_edits_use_utf16_positions() {
 #[test]
 fn resources_keep_definition_origin_through_cross_file_aliases() {
     let ws = workspace(&[
-        ("daily.wtf", "[alias] := receipt\n"),
+        (
+            "daily.wtf",
+            "[alias] := import(\"./project/resources.wtf\").receipt\n",
+        ),
         ("project/resources.wtf", "[./assets/receipt.png]:receipt\n"),
     ]);
     let Value::Resource(resource) = evaluate(&ws, "alias") else {
@@ -457,7 +460,7 @@ fn cli_queries_plans_and_converts_alps_problems() {
         serde_json::json!({"type":"money","amount":94.75,"currency":"USD"})
     );
     assert_eq!(json[0]["constraints"][0]["binding"], true);
-    let exported = run(&["convert", "--to-alps", "bakery"]);
+    let exported = run(&["convert", "bakery.wtf", "--to-alps", "bakery"]);
     let problem: serde_json::Value = serde_json::from_str(&exported).unwrap();
     assert_eq!(
         problem["constraints"][0]["expression"],
@@ -480,7 +483,7 @@ fn cli_queries_plans_and_converts_alps_problems() {
     );
     let missing = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
-        .args(["convert", "--to-alps", "flour_stock"])
+        .args(["convert", "bakery.wtf", "--to-alps", "flour_stock"])
         .output()
         .unwrap();
     assert!(!missing.status.success());

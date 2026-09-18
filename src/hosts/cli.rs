@@ -46,6 +46,9 @@ pub enum Command {
         from_alps: Option<PathBuf>,
         #[arg(long, required_unless_present = "from_alps")]
         to_alps: Option<String>,
+        /// The note defining --to-alps NAME.
+        #[arg(required_unless_present = "from_alps", conflicts_with = "from_alps")]
+        file: Option<PathBuf>,
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
@@ -107,7 +110,7 @@ pub struct QueryOutput {
     after_help = "Example: wtf render trip.wtf --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them."
 )]
 pub struct RenderOptions {
-    /// A .wtf note, relative to --root or an absolute path inside the workspace.
+    /// A .wtf note, relative to --root or an absolute path.
     pub file: PathBuf,
     #[arg(long, default_value = ".")]
     pub root: PathBuf,
@@ -187,6 +190,7 @@ pub async fn run(command: Command) -> Result<(), String> {
         Command::Convert {
             from_alps,
             to_alps,
+            file,
             root,
         } => {
             if let Some(file) = from_alps {
@@ -203,8 +207,12 @@ pub async fn run(command: Command) -> Result<(), String> {
                 return Ok(());
             }
             let name = to_alps.ok_or("Choose --from-alps FILE or --to-alps NAME")?;
-            let workspace = load(root)?;
-            let symbol = workspace.resolve(workspace.root(), &name)?;
+            let root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
+            let path = root.join(file.ok_or("Supply the note defining --to-alps NAME")?);
+            let path =
+                std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let workspace = Workspace::load_file(vec![root], &path)?;
+            let symbol = workspace.resolve(&path, &name)?;
             let (_, plan) = crate::plans::plan(&workspace, &symbol)
                 .ok_or_else(|| format!("'{name}' is not a plan"))?;
             let mut engine = Engine::new(&workspace, Local::now().date_naive());
@@ -252,13 +260,18 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
 fn run_query(source: String, within: Option<PathBuf>, options: QueryOutput) -> Result<(), String> {
     let compiled = query::Query::parse(&source)?;
     let now = request_time(options.on, options.now)?;
-    let workspace = load(options.root.clone())?;
+    let root = std::fs::canonicalize(options.root).map_err(|e| e.to_string())?;
     let only = within
         .map(|file| {
-            let path = workspace.root().join(file);
+            let path = root.join(file);
             std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))
         })
         .transpose()?;
+    let mut workspace = match &only {
+        Some(path) => Workspace::load_file(vec![root], path)?,
+        None => Workspace::load(vec![root])?,
+    };
+    compiled.load_imports(&mut workspace, only.as_deref());
     let result = query::execute_scoped_in(
         &crate::RequestContext::new(&workspace, now),
         &compiled,
@@ -314,9 +327,10 @@ fn request_time(
 }
 fn render_command(options: RenderOptions) -> Result<(), String> {
     let now = request_time(options.on, options.now)?;
-    let workspace = load(options.root)?;
-    let path = workspace.root().join(options.file);
+    let root = std::fs::canonicalize(options.root).map_err(|e| e.to_string())?;
+    let path = root.join(options.file);
     let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let workspace = Workspace::load_file(vec![root], &path)?;
     let request = crate::RequestContext::new(&workspace, now);
     let text = match options.format {
         RenderFormat::Html => crate::rendering::html_in(&request, &path)?,

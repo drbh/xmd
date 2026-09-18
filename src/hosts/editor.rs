@@ -50,7 +50,6 @@ impl Backend {
         let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
         self.rescan().await;
         let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
-        let state = self.state.read().await;
         let only = params
             .uri
             .map(|uri| {
@@ -58,6 +57,14 @@ impl Backend {
                     .map_err(|_| Error::invalid_params("Query uri must be a local file URI"))
             })
             .transpose()?;
+        let mut state = self.state.write().await;
+        if let Some(path) = &only {
+            state
+                .workspace
+                .include_file(path)
+                .map_err(Error::invalid_params)?;
+        }
+        compiled.load_imports(&mut state.workspace, only.as_deref());
         let result = crate::query::execute_scoped_in(
             &crate::RequestContext::new(&state.workspace, now),
             &compiled,
@@ -229,7 +236,14 @@ impl Backend {
             if state.open.get(&path).is_some_and(|v| *v > version) {
                 return;
             }
-            if crate::modules::is_module_path(&path) {
+            if crate::modules::is_module_path(&path)
+                || state
+                    .workspace
+                    .modules
+                    .modules
+                    .iter()
+                    .any(|m| m.path == path)
+            {
                 // Highlight unsaved module source without activating it or adding
                 // its definitions to the note workspace. Reload still uses disk.
                 state
@@ -242,6 +256,7 @@ impl Backend {
                     .workspace
                     .documents
                     .insert(path.clone(), Document::parse(text));
+                state.workspace.load_imports();
             }
             state.open.insert(path, version);
         }
@@ -268,11 +283,26 @@ impl Backend {
                     self.client.log_message(MessageType::ERROR, error).await;
                 }
                 let mut state = self.state.write().await;
-                for path in state.open.keys() {
-                    if let Some(doc) = state.workspace.documents.get(path) {
-                        workspace.documents.insert(path.clone(), doc.clone());
+                let open: Vec<_> = state.open.keys().cloned().collect();
+                for path in open {
+                    let module = crate::modules::is_module_path(&path)
+                        || workspace.modules.modules.iter().any(|m| m.path == path);
+                    if module {
+                        if let Some(doc) = state.workspace.documents.get(&path).cloned() {
+                            state.module_buffers.insert(path, doc);
+                        }
+                    } else if let Some(doc) = state
+                        .module_buffers
+                        .remove(&path)
+                        .or_else(|| state.workspace.documents.get(&path).cloned())
+                    {
+                        workspace.documents.insert(path, doc);
                     }
                 }
+                workspace.load_imports();
+                workspace
+                    .documents
+                    .retain(|path, _| !workspace.modules.modules.iter().any(|m| m.path == *path));
                 state.workspace = workspace;
             }
             Ok(Err(e)) => self.client.log_message(MessageType::ERROR, e).await,
@@ -436,7 +466,7 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/modules/*.wtf"}]}))}]).await;
+            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/modules.json"}]}))}]).await;
         }
         let backend = self.clone();
         tokio::spawn(async move {

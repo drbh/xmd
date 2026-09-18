@@ -102,6 +102,8 @@ pub enum Value {
     List(Vec<Value>),
     Record(BTreeMap<String, Value>),
     Function(std::sync::Arc<crate::evaluate::functional::Function>),
+    /// An explicit note import. Members are evaluated only when read.
+    Namespace(PathBuf),
     Number(f64),
     Count(usize),
     Money(f64, Currency),
@@ -157,6 +159,7 @@ impl Value {
             Self::List(_) => "List",
             Self::Record(_) => "Record",
             Self::Function(_) => "Function",
+            Self::Namespace(_) => "Namespace",
             Self::Number(_) => "Number",
             Self::Count(_) => "Count",
             Self::Money(..) => "Money",
@@ -216,6 +219,7 @@ impl Value {
     }
     pub fn display(&self) -> String {
         match self {
+            Self::Namespace(path) => format!("import(\"{}\")", path.display()),
             Self::Null | Self::List(_) | Self::Record(_) => {
                 self.source().unwrap_or_else(|| "<collection>".into())
             }
@@ -623,14 +627,14 @@ impl Expr {
         visit(self, &[], 0, &mut names);
         names
     }
-    fn bare(&self) -> &Self {
+    pub(crate) fn bare(&self) -> &Self {
         if let Self::Spanned(_, _, e) = self {
             e.bare()
         } else {
             self
         }
     }
-    fn bounds(&self) -> (usize, usize) {
+    pub(crate) fn bounds(&self) -> (usize, usize) {
         if let Self::Spanned(s, e, _) = self {
             (*s, *e)
         } else {
@@ -1883,6 +1887,29 @@ impl<'a> Engine<'a> {
                 }
             },
             Expr::Call(n, args) => {
+                if n == "import" {
+                    let [arg] = args.as_slice() else {
+                        return Err("import expects a module ID or a literal note path".into());
+                    };
+                    let Value::Text(id) = self.expr(path, arg)? else {
+                        return Err("import expects text".into());
+                    };
+                    if crate::model::imports::is_note_path(&id) {
+                        if !matches!(arg.bare(), Expr::Value(Value::Text(_))) {
+                            return Err("Note imports require a literal path, e.g. import(\"./values.wtf\")".into());
+                        }
+                        let target = crate::model::imports::note_path(path, &id)?;
+                        if !self.workspace.documents.contains_key(&target) {
+                            return Err(format!(
+                                "Note import '{}' is not loaded (from {})",
+                                target.display(),
+                                path.display()
+                            ));
+                        }
+                        return Ok(Value::Namespace(target));
+                    }
+                    return self.import(&id);
+                }
                 if n == "if" {
                     if args.len() != 3 {
                         return Err("if expects a condition and two branches".into());
@@ -2097,9 +2124,20 @@ impl<'a> Engine<'a> {
                         );
                         value
                     }
-                    other => other.property(key),
+                    other => self.property(&other, key),
                 }
             }
+        }
+    }
+    fn property(&mut self, value: &Value, key: &str) -> Result<Value, String> {
+        match value {
+            Value::Namespace(path) => self.named(path, key),
+            Value::List(items) => items
+                .iter()
+                .map(|v| self.property(v, key))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Value::List),
+            _ => value.property(key),
         }
     }
     /// Restrict evaluation to immutable inputs, including resource properties.
@@ -2239,7 +2277,19 @@ impl<'a> Engine<'a> {
     pub(crate) fn functional(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
         use Value::*;
         let value = match (name, args.as_slice()) {
-            ("import", [Text(id)]) => self.import(id)?,
+            ("get", [Namespace(path), Text(key)]) => match self.workspace.resolve(path, key) {
+                Ok(symbol) => self.symbol(&symbol)?,
+                Err(_)
+                    if !self
+                        .workspace
+                        .symbols()
+                        .iter()
+                        .any(|s| s.path == *path && self.workspace.named(s).name == *key) =>
+                {
+                    Null
+                }
+                Err(e) => return Err(e),
+            },
             ("sort_by", [List(items), function @ Function(_)]) => {
                 let mut keyed = Vec::new();
                 let mut first = None;

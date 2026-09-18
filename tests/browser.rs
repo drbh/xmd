@@ -196,7 +196,7 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
     set(
         &mut ws,
         URI,
-        "[cash] := budget - spent\n🦀 Have [cash].\n",
+        "[cash] := src.budget - src.spent\n🦀 Have [cash].\nsrc := import(\"./values.wtf\")\n",
         1,
     );
     set(
@@ -214,13 +214,13 @@ fn browser_workspace_shares_inlays_diagnostics_and_cross_note_navigation() {
     let definition = request(
         &mut ws,
         "definition",
-        json!({"uri":URI,"position":{"line":0,"character":12}}),
+        json!({"uri":URI,"position":{"line":0,"character":16}}),
     );
     assert_eq!(definition["uri"], "file:///workspace/values.wtf");
     let renamed = request(
         &mut ws,
         "rename",
-        json!({"uri":URI,"position":{"line":0,"character":12},"newName":"trip_budget"}),
+        json!({"uri":URI,"position":{"line":0,"character":16},"newName":"trip_budget"}),
     );
     assert_eq!(renamed["documentChanges"].as_array().unwrap().len(), 2);
     assert!(

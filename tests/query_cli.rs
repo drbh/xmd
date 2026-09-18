@@ -217,7 +217,7 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     std::fs::create_dir(root.join("notes")).unwrap();
-    let source = "a := rate * 2\n- [ ] Local\n";
+    let source = "a := import(\"./two.wtf\").rate * 2\n- [ ] Local\n";
     std::fs::write(root.join("notes/one.wtf"), source).unwrap();
     std::fs::write(root.join("notes/two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
     let args = [
@@ -289,10 +289,15 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
     std::fs::write(root.join("notes/.gitignore"), "ignored.wtf\n").unwrap();
     std::fs::write(root.join("notes/ignored.wtf"), "1:secret\n").unwrap();
     std::fs::write(root.join("outside.wtf"), "- [ ] Outside\n").unwrap();
-    for file in ["missing.wtf", "ignored.wtf", "../outside.wtf"] {
-        let output = run(root, &["ast", file, "--root", "notes"]);
-        assert!(!output.status.success(), "{file}");
-        assert!(output.stdout.is_empty());
+    let output = run(root, &["ast", "missing.wtf", "--root", "notes"]);
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    for file in ["ignored.wtf", "../outside.wtf"] {
+        assert!(
+            run(root, &["ast", file, "--root", "notes"])
+                .status
+                .success()
+        );
     }
     for command in ["capture", "complete"] {
         let output = run(root, &[command, "one.wtf"]);
@@ -388,4 +393,93 @@ fn stdin_queries_keep_the_shared_source_size_limit() {
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("64 KiB"));
+}
+
+#[test]
+fn explicit_query_imports_load_hidden_notes_without_reading_unrelated_files() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    std::fs::create_dir(root.join(".hidden")).unwrap();
+    std::fs::write(root.join("main.wtf"), "- [ ] Local\n").unwrap();
+    std::fs::write(root.join(".hidden/values.wtf"), "price := $7\n").unwrap();
+    std::fs::write(root.join("unrelated.wtf"), [0xff]).unwrap();
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "main.wtf",
+                "import(\"./.hidden/values.wtf\").price",
+                "--json"
+            ]
+        ),
+        json!([{"type":"money", "amount":7.0, "currency":"USD"}])
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "main.wtf",
+                "tasks | select import(\"./.hidden/values.wtf\").price",
+                "--json"
+            ]
+        ),
+        json!([{"type":"money", "amount":7.0, "currency":"USD"}])
+    );
+    let missing = run(root, &["query", "main.wtf", "price", "--json"]);
+    assert!(!missing.status.success());
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("Unknown name 'price'"));
+    assert!(missing.stdout.is_empty());
+}
+
+#[test]
+fn query_imports_follow_row_context_and_preserve_lazy_branches() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    for (folder, amount) in [("one", 1), ("two", 2)] {
+        std::fs::create_dir_all(root.join(folder).join(".hidden")).unwrap();
+        std::fs::write(root.join(folder).join("main.wtf"), "- [ ] Task\n").unwrap();
+        std::fs::write(
+            root.join(folder).join(".hidden/value.wtf"),
+            format!("amount := {amount}\n"),
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "--workspace",
+                "tasks | select import(\"./.hidden/value.wtf\").amount",
+                "--json"
+            ]
+        ),
+        json!([1.0, 2.0])
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "one/main.wtf",
+                "if(false, import(\"./absent.wtf\").amount, 42)",
+                "--json"
+            ]
+        ),
+        json!([42.0])
+    );
+    assert_eq!(
+        json_output(
+            root,
+            &[
+                "query",
+                "one/main.wtf",
+                "tasks | count | select import(\"./.hidden/value.wtf\").amount",
+                "--json"
+            ]
+        ),
+        json!([1.0])
+    );
 }

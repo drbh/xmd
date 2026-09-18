@@ -192,7 +192,7 @@ pub(crate) fn collect_native_in(
             let candidates = ws
                 .symbols()
                 .into_iter()
-                .filter(|s| ws.named(s).name == reference.name)
+                .filter(|s| s.path == path && ws.named(s).name == reference.name)
                 .collect::<Vec<_>>();
             issues.push(diagnostic(
                 ws,

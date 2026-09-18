@@ -14,7 +14,7 @@ pub struct Refactor {
     pub kind: CodeActionKind,
     pub edits: Vec<TextEdit>,
 }
-fn unique(ws: &Workspace, stem: &str) -> String {
+fn unique(ws: &Workspace, path: &Path, stem: &str) -> String {
     (0..)
         .map(|n| {
             if n == 0 {
@@ -23,7 +23,11 @@ fn unique(ws: &Workspace, stem: &str) -> String {
                 format!("{stem}_{n}")
             }
         })
-        .find(|n| !ws.symbols().iter().any(|s| ws.named(s).name == *n))
+        .find(|n| {
+            !ws.symbols()
+                .iter()
+                .any(|s| s.path == path && ws.named(s).name == *n)
+        })
         .unwrap()
 }
 fn distance(a: &str, b: &str) -> usize {
@@ -181,7 +185,7 @@ pub fn actions_for_in(
                     - start,
             ) && !identifier(selected)
             {
-                let name = unique(ws, "calculation");
+                let name = unique(ws, path, "calculation");
                 result.push(Refactor {
                     title: format!("Extract named calculation '{name}'"),
                     kind: CodeActionKind::REFACTOR_EXTRACT,
@@ -219,6 +223,7 @@ pub fn actions_for_in(
         {
             let name = unique(
                 ws,
+                path,
                 if matches!(value, Value::Money(..)) {
                     "amount"
                 } else {

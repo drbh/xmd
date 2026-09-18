@@ -42,7 +42,7 @@ const BASE: &str = "[$3,000]:budget\n[$1,410]:spent\n[remaining_cash] := budget 
 #[test]
 fn prose_value_inlays_respect_unicode_ranges_and_ignore_code_and_links() {
     let mut ws = ws(
-        "🦀 [amount] and [amount].\n`[amount]` <!-- [amount] --> [amount](https://example.com)\nMissing [unknown].\n",
+        "🦀 [amount] and [amount].\n`[amount]` <!-- [amount] --> [amount](https://example.com)\nMissing [unknown].\namount := import(\"./values.wtf\").amount\n",
     );
     ws.documents.insert(
         PathBuf::from("/notes/values.wtf"),
@@ -199,15 +199,29 @@ fn extract_preserves_precedence_prose_unicode_and_existing_names() {
 }
 #[test]
 fn inline_guards_cross_file_capture_and_freeze_is_explicit() {
-    let mut ws = ws("[base] := 5\n[result] := subtotal * 2\nUse [subtotal].\n");
+    let mut ws = ws(
+        "[base] := 5\n[result] := remote.subtotal * 2\nUse [remote.subtotal].\nremote := import(\"./other.wtf\")\n",
+    );
     ws.documents.insert(
         PathBuf::from("/notes/other.wtf"),
         Document::parse("[base] := 10\n[subtotal] := base + 2\n".into()),
     );
     let range = selection(&ws, 1, "subtotal");
     let choices = refactor::actions_for(&ws, path(), range, now());
-    assert!(!choices.iter().any(|a| a.title == "Inline expression"));
-    let choices = refactor::actions_for(&ws, path(), selection(&ws, 2, "[subtotal]"), now());
+    let inline = choices
+        .iter()
+        .find(|a| a.title == "Inline expression")
+        .unwrap();
+    let changed = actions::apply_edits(&ws.documents[path()].text, &inline.edits).unwrap();
+    let mut updated = ws.clone();
+    updated
+        .documents
+        .insert(path().into(), Document::parse(changed));
+    assert_eq!(
+        Engine::at(&updated, now()).named(path(), "result").unwrap(),
+        Value::Number(24.0)
+    );
+    let choices = refactor::actions_for(&ws, path(), selection(&ws, 2, "[remote.subtotal]"), now());
     let freeze = choices
         .iter()
         .find(|a| a.title == "Freeze current value")
@@ -270,7 +284,8 @@ fn unknown_name_fixes_and_ambiguity_locations_are_specific() {
     }
     let ds = diagnostics::collect(&ws, path(), now().date_naive(), now(), true);
     assert_eq!(ds.len(), 1);
-    assert_eq!(ds[0].related_information.as_ref().unwrap().len(), 2);
+    assert_eq!(ds[0].message, "Unknown name 'amount'");
+    assert!(ds[0].related_information.is_none());
 }
 #[test]
 fn cycles_have_full_paths_and_related_locations() {

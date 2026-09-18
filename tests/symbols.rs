@@ -107,7 +107,9 @@ fn symbols_preserve_utf16_crlf_and_ignore_prose_references_code_and_comments() {
 
 #[test]
 fn symbols_work_without_headings_and_report_errors_without_disappearing() {
-    let mut ws = workspace("[cost] := budget + $10\n[bad] := missing + 1\n- [ ] \n# \n");
+    let mut ws = workspace(
+        "[cost] := import(\"./other.wtf\").budget + $10\n[bad] := missing + 1\n- [ ] \n# \n",
+    );
     ws.documents.insert(
         "/notes/other.wtf".into(),
         Document::parse("[$90]:budget\n".into()),

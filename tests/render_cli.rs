@@ -38,11 +38,16 @@ fn render_cli_matches_editor_hints_with_cross_file_values_modules_and_cached_lin
     let notes = root.join("notes");
     let modules = notes.join(".wtf/modules");
     std::fs::create_dir_all(&modules).unwrap();
-    let source = "# Work 🦀\r\n- [ ] Ship @estimate(20m)\r\n[total] := price * 2\r\nTotal [total].\r\nhttps://github.com/o/r/pull/42\r\n";
+    let source = "# Work 🦀\r\n- [ ] Ship @estimate(20m)\r\n[total] := import(\"./values.wtf\").price * 2\r\nTotal [total].\r\nhttps://github.com/o/r/pull/42\r\n";
     std::fs::write(notes.join("main.wtf"), source).unwrap();
     std::fs::write(notes.join("values.wtf"), "[$7]:price\n").unwrap();
     let module = "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: {sections: [\"anchor\"]}}\ncollect := fn(ctx) => map(ctx.document.sections, fn(s) => {at: s.anchor, label: \"custom \" + format_date(now(), \"%H:%M\")})\n";
     std::fs::write(modules.join("headings.wtf"), module).unwrap();
+    std::fs::write(
+        notes.join(".wtf/modules.json"),
+        r#"["./modules/headings.wtf"]"#,
+    )
+    .unwrap();
     let notes = notes.canonicalize().unwrap();
     let clock = DateTime::parse_from_rfc3339("2026-09-18T12:00:00Z").unwrap();
     let mut ws = Workspace::load(vec![notes.clone()]).unwrap();
@@ -73,7 +78,7 @@ fn render_cli_matches_editor_hints_with_cross_file_values_modules_and_cached_lin
         presentation::render_text_in(&RequestContext::new(&ws, clock), &notes.join("main.wtf"))
             .unwrap()
     );
-    assert!(output.contains("[total] := price * 2 = $14\r\n"));
+    assert!(output.contains("[total] := import(\"./values.wtf\").price * 2 = $14\r\n"));
     assert!(output.contains("Total [total] $14."));
     assert!(output.lines().next().unwrap().contains("custom 12:00"));
     assert!(output.contains("○ open · just now"));
@@ -191,13 +196,13 @@ fn render_reports_diagnostics_separately_while_preserving_successful_values() {
 }
 
 #[test]
-fn render_rejects_missing_unindexed_and_invalid_module_inputs_without_output() {
+fn render_accepts_explicit_paths_and_rejects_missing_or_invalid_inputs() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     std::fs::write(root.join(".gitignore"), "ignored.wtf\n").unwrap();
     std::fs::write(root.join("ignored.wtf"), "answer := 42\n").unwrap();
     std::fs::write(root.join("other.txt"), "answer := 42\n").unwrap();
-    for path in ["missing.wtf", "ignored.wtf", "other.txt"] {
+    for path in ["missing.wtf", "other.txt"] {
         let output = run(root, &["render", path]);
         assert_eq!(output.status.code(), Some(1), "{path}");
         assert!(output.stdout.is_empty(), "{path}");
@@ -207,11 +212,12 @@ fn render_rejects_missing_unindexed_and_invalid_module_inputs_without_output() {
     std::fs::create_dir(&notes).unwrap();
     std::fs::write(root.join("outside.wtf"), "answer := 42\n").unwrap();
     let output = run(root, &["render", "../outside.wtf", "--root", "notes"]);
-    assert_eq!(output.status.code(), Some(1));
-    assert!(output.stdout.is_empty());
+    assert!(output.status.success());
+    assert!(run(root, &["render", "ignored.wtf"]).status.success());
     std::fs::write(root.join("main.wtf"), "answer := 42\n").unwrap();
     std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
     std::fs::write(root.join(".wtf/modules/bad.wtf"), "module := {api: 99}").unwrap();
+    std::fs::write(root.join(".wtf/modules.json"), r#"["./modules/bad.wtf"]"#).unwrap();
     let output = run(root, &["render", "main.wtf"]);
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());

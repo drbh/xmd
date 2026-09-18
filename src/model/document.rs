@@ -204,6 +204,8 @@ pub struct Document {
     pub text: String,
     pub definitions: Vec<Definition>,
     pub references: Vec<Reference>,
+    pub imports: std::collections::BTreeSet<String>,
+    pub members: Vec<crate::model::imports::Member>,
     pub tasks: Vec<Task>,
     pub sections: Vec<Section>,
     pub events: Vec<Event>,
@@ -374,6 +376,8 @@ impl Document {
                     let block = &text[prefix..prefix + end];
                     doc.references
                         .retain(|r| r.span.line != row || r.span.start < span.start);
+                    doc.members
+                        .retain(|m| m.span.line != row || m.span.start < span.start);
                     doc.highlights
                         .retain(|h| h.span.line != row || h.span.end <= span.start);
                     doc.definitions[index].source = block[span.start..].trim().into();
@@ -803,6 +807,14 @@ impl Document {
                 .map(|(n, p)| (n, Some(p)))
                 .unwrap_or((inner, None));
             if identifier(name) && property.is_none_or(identifier) {
+                if property.is_some() {
+                    let (_, members) = crate::model::imports::analyze(
+                        inner,
+                        &self.text,
+                        Span::new(row, inner_start, inner_start + inner.len()),
+                    );
+                    self.members.extend(members);
+                }
                 self.references.push(Reference {
                     name: name.into(),
                     span: Span::new(row, inner_start, inner_start + name.len()),
@@ -826,6 +838,13 @@ impl Document {
     }
 
     fn expression(&mut self, line: &str, row: usize, start: usize, end: usize) {
+        let (imports, members) = crate::model::imports::analyze(
+            &line[start..end],
+            &self.text,
+            Span::new(row, start, end),
+        );
+        self.imports.extend(imports);
+        self.members.extend(members);
         // Use the evaluator's lexer, so identifiers and dates have identical boundaries.
         match crate::engine::lex_with_comments(&line[start..end]) {
             Ok(tokens) => {

@@ -53,10 +53,11 @@ pub fn document_links_in(request: &crate::RequestContext<'_>, path: &Path) -> Ve
         }
     }
     for reference in &doc.references {
-        if reference.property.is_none()
-            && let Ok(Value::Resource(resource)) = engine.named(path, &reference.name)
-        {
-            add(reference.span, resource);
+        if let Ok(Value::Resource(resource)) = engine.eval(path, &reference.expression()) {
+            add(
+                Span::new(reference.span.line, reference.span.start, reference.end()),
+                resource,
+            );
         }
     }
     links.sort_by_key(|link| (link.range.start, link.range.end));

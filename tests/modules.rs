@@ -202,6 +202,11 @@ async fn native_load_refresh_reload_rollback_and_removal() {
     std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
     let module = root.join(".wtf/modules/tickets.wtf");
     std::fs::write(&module, LINK).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules.json"),
+        r#"["./modules/tickets.wtf"]"#,
+    )
+    .unwrap();
     std::fs::write(root.join("main.wtf"), format!("{URL}:ticket\n")).unwrap();
     let mut ws = Workspace::load(vec![root.clone()]).unwrap();
     assert_eq!(
@@ -239,6 +244,7 @@ async fn native_load_refresh_reload_rollback_and_removal() {
     std::fs::write(&module, "module := {").unwrap();
     assert!(ws.reload_modules().is_err());
     assert!(Arc::ptr_eq(&working, &ws.modules));
+    std::fs::write(root.join(".wtf/modules.json"), "[]").unwrap();
     std::fs::remove_file(&module).unwrap();
     ws.reload_modules().unwrap();
     assert!(
@@ -617,7 +623,7 @@ fn bundled_consumers_relink_transitive_dependencies_and_revisions() {
 
 #[cfg(feature = "native")]
 #[test]
-fn source_library_reloads_on_disk_and_workspace_modules_take_precedence() {
+fn source_library_reloads_only_from_the_explicit_manifest() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     std::fs::create_dir(root.join("stdlib")).unwrap();
@@ -629,6 +635,11 @@ fn source_library_reloads_on_disk_and_workspace_modules_take_precedence() {
         )
     };
     std::fs::write(root.join("stdlib/headings.wtf"), source("library")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules.json"),
+        r#"["../stdlib/headings.wtf"]"#,
+    )
+    .unwrap();
     let mut ws = Workspace::load(vec![root.into()]).unwrap();
     assert_eq!(ws.documents.len(), 1);
     let render = |ws: &Workspace| {
@@ -640,7 +651,47 @@ fn source_library_reloads_on_disk_and_workspace_modules_take_precedence() {
     ws.reload_modules().unwrap();
     assert!(render(&ws).contains(" saved</span>"));
     std::fs::write(root.join(".wtf/modules/headings.wtf"), source("workspace")).unwrap();
+    std::fs::write(
+        root.join(".wtf/modules.json"),
+        r#"["./modules/headings.wtf"]"#,
+    )
+    .unwrap();
     ws.reload_modules().unwrap();
     assert!(render(&ws).contains(" workspace</span>"));
     assert!(!render(&ws).contains(" saved</span>"));
+}
+
+#[cfg(feature = "native")]
+#[test]
+fn workspace_module_activation_is_explicit_and_bad_manifests_keep_the_snapshot() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::create_dir_all(root.join(".wtf/modules")).unwrap();
+    std::fs::create_dir(root.join("stdlib")).unwrap();
+    std::fs::write(root.join(".wtf/modules/broken.wtf"), "module := {").unwrap();
+    std::fs::write(root.join("stdlib/timer.wtf"), "module := {").unwrap();
+    // Modules can live anywhere, but their location never activates them.
+    std::fs::write(root.join("custom.wtf"), INLAY).unwrap();
+    let mut ws = Workspace::load(vec![root.into()]).unwrap();
+    assert!(!ws.modules.modules.iter().any(|m| m.id == "headings"));
+    let manifest = root.join(".wtf/modules.json");
+    std::fs::write(&manifest, r#"["../custom.wtf"]"#).unwrap();
+    ws.reload_modules().unwrap();
+    assert!(ws.modules.modules.iter().any(|m| m.id == "headings"));
+    assert!(!ws.documents.contains_key(&root.join("custom.wtf")));
+    let working = ws.modules.clone();
+    for invalid in [
+        "{",
+        r#"{"files":[]}"#,
+        r#"["./modules/missing.wtf"]"#,
+        r#"["../custom.wtf",".././custom.wtf"]"#,
+        r#"["../stdlib/*.wtf"]"#,
+    ] {
+        std::fs::write(&manifest, invalid).unwrap();
+        assert!(ws.reload_modules().is_err(), "{invalid}");
+        assert!(Arc::ptr_eq(&working, &ws.modules));
+    }
+    std::fs::remove_file(&manifest).unwrap();
+    ws.reload_modules().unwrap();
+    assert!(!ws.modules.modules.iter().any(|m| m.id == "headings"));
 }

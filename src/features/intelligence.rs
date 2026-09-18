@@ -61,6 +61,11 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let inside =
         |span: Span| span.line == position.line as usize && byte >= span.start && byte <= span.end;
+    if let Some(member) = doc.members.iter().find(|m| inside(m.span))
+        && let Some(symbol) = crate::model::imports::member_symbol(workspace, path, &member.source)
+    {
+        return Some((symbol, member.span));
+    }
     for (table, t) in doc.tables.iter().enumerate() {
         for (column, c) in t.columns.iter().enumerate() {
             if inside(c.span) {
@@ -103,6 +108,13 @@ pub fn occurrences(ws: &Workspace, symbol: &Symbol) -> Vec<(std::path::PathBuf, 
     };
     let name = &ws.named(symbol).name;
     for (path, doc) in &ws.documents {
+        for member in &doc.members {
+            if crate::model::imports::member_symbol(ws, path, &member.source).as_ref()
+                == Some(symbol)
+            {
+                found.push((path.clone(), member.span));
+            }
+        }
         for r in &doc.references {
             if r.name == *name
                 && crate::tables::resolve_reference(ws, path, r).ok().as_ref() == Some(symbol)
@@ -172,7 +184,7 @@ const FUNCTIONS: &[Function] = &[
         name: "import",
         params: &["id: Text"],
         result: "Record",
-        documentation: "Load a module namespace; modules declare their imports.",
+        documentation: "Load a module by ID, or a note with an explicit path such as import(\"./values.wtf\"). Note names are file-local; imported members retain their original source.",
         example: "\"format\"",
     },
     Function {
@@ -854,7 +866,16 @@ pub fn completions_in(
             .next()
             .unwrap_or("");
         if let Ok(value) = engine.named(path, receiver) {
-            for name in property_names_with_links(&value, request.link_features()) {
+            let names = match &value {
+                Value::Namespace(path) => ws
+                    .symbols()
+                    .iter()
+                    .filter(|s| s.path == *path)
+                    .map(|s| ws.named(s).name.clone())
+                    .collect(),
+                _ => property_names_with_links(&value, request.link_features()),
+            };
+            for name in names {
                 let preview = engine.eval(path, &format!("{receiver}.{name}"));
                 result.push(CompletionItem {
                     label: name.clone(),
@@ -1197,6 +1218,17 @@ pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String 
             }
             let doc = &ws.documents[&symbol.path];
             let mut inputs = std::collections::BTreeSet::new();
+            for member in doc
+                .members
+                .iter()
+                .filter(|m| def.value_span.contains(&doc.text, m.span))
+            {
+                if let Some(input) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &member.source)
+                {
+                    inputs.insert(source_link(ws, &input));
+                }
+            }
             for reference in doc
                 .references
                 .iter()

@@ -217,8 +217,9 @@ fn timers_reject_invalid_arguments_and_unsupported_properties() {
 
 #[test]
 fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_properties() {
-    let mut ws =
-        notes("[alias] := focus\nRemaining [alias.remaining].\n- [ ] Work @timer(alias)\n");
+    let mut ws = notes(
+        "[alias] := import(\"./shared.wtf\").focus\nRemaining [alias.remaining].\n- [ ] Work @timer(alias)\n",
+    );
     let origin = PathBuf::from("/notes/shared.wtf");
     ws.documents.insert(
         origin.clone(),

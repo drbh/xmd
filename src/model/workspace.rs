@@ -42,6 +42,9 @@ impl Workspace {
         if !self.modules.same_sources(&modules) {
             self.modules = std::sync::Arc::new(modules);
         }
+        for module in &self.modules.modules {
+            self.documents.remove(&module.path);
+        }
         Ok(())
     }
     pub fn link_features(&self) -> crate::link_features::LinkFeatures<'_> {
@@ -49,16 +52,8 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub(crate) fn load_notes(roots: Vec<PathBuf>) -> Result<Self, String> {
-        let mut result = Self {
-            roots,
-            documents: BTreeMap::new(),
-            cache: BTreeMap::new(),
-            lookups: BTreeMap::new(),
-            modules: Default::default(),
-        };
+        let mut result = Self::empty_notes(roots);
         for root in &result.roots {
-            result.cache.extend(crate::resources::load_cache(root));
-            result.lookups.extend(crate::lookups::native::load(root));
             let walker = ignore::WalkBuilder::new(root)
                 .hidden(true)
                 .follow_links(false)
@@ -85,21 +80,84 @@ impl Workspace {
                 }
             }
         }
+        result.load_imports();
         Ok(result)
     }
+    #[cfg(feature = "native")]
+    fn empty_notes(roots: Vec<PathBuf>) -> Self {
+        let mut result = Self {
+            roots,
+            documents: BTreeMap::new(),
+            cache: BTreeMap::new(),
+            lookups: BTreeMap::new(),
+            modules: Default::default(),
+        };
+        for root in &result.roots {
+            result.cache.extend(crate::resources::load_cache(root));
+            result.lookups.extend(crate::lookups::native::load(root));
+        }
+        result
+    }
+    /// File commands read only the requested note and its explicit dependencies.
+    #[cfg(feature = "native")]
+    pub fn load_file(roots: Vec<PathBuf>, path: &Path) -> Result<Self, String> {
+        let mut result = Self::empty_notes(roots);
+        result.include_file(path)?;
+        result.reload_modules()?;
+        Ok(result)
+    }
+    #[cfg(feature = "native")]
+    pub(crate) fn include_file(&mut self, path: &Path) -> Result<(), String> {
+        if path.extension().is_none_or(|s| s != "wtf") {
+            return Err("Expected a .wtf note".into());
+        }
+        if !self.documents.contains_key(path) {
+            let text =
+                std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+            self.documents.insert(path.into(), Document::parse(text));
+        }
+        self.load_imports();
+        Ok(())
+    }
+    /// Follow explicit imports, including ignored files and files outside roots.
+    /// Existing documents win so unsaved editor buffers remain authoritative.
+    #[cfg(feature = "native")]
+    pub(crate) fn load_imports(&mut self) {
+        let mut pending: Vec<_> = self.documents.keys().cloned().collect();
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(path) = pending.pop() {
+            if !visited.insert(path.clone()) {
+                continue;
+            }
+            let Some(doc) = self.documents.get(&path) else {
+                continue;
+            };
+            let imports: Vec<_> = doc
+                .imports
+                .iter()
+                .filter_map(|id| super::imports::note_path(&path, id).ok())
+                .collect();
+            for target in imports {
+                if !self.documents.contains_key(&target)
+                    && let Ok(text) = std::fs::read_to_string(&target)
+                {
+                    self.documents.insert(target.clone(), Document::parse(text));
+                }
+                pending.push(target);
+            }
+        }
+    }
     pub fn resolve(&self, path: &Path, name: &str) -> Result<Symbol, String> {
-        let found: Vec<_> = self
+        let options: Vec<_> = self
             .symbols()
             .into_iter()
-            .filter(|s| self.named(s).name == name)
+            .filter(|s| s.path == path && self.named(s).name == name)
             .collect();
-        let local: Vec<_> = found.iter().filter(|s| s.path == path).cloned().collect();
-        let options = if local.is_empty() { found } else { local };
         match options.len() {
             0 => Err(format!("Unknown name '{name}'")),
             1 => Ok(options[0].clone()),
             _ => Err(format!(
-                "Ambiguous name '{name}'; use a unique name across notes"
+                "Ambiguous name '{name}'; use a unique name within this note"
             )),
         }
     }
@@ -119,15 +177,16 @@ impl Workspace {
         }
         symbols
     }
-    /// Names a plan reads that no note declares: its decision variables.
+    /// Names a plan reads that its own note does not declare: decision variables.
     pub fn plan_variables<'a>(
         &self,
-        _path: &Path,
+        path: &Path,
         plan: &'a crate::plans::Plan,
     ) -> Vec<(usize, &'a Named)> {
         let declared: std::collections::BTreeSet<&str> = self
             .declared()
             .iter()
+            .filter(|s| s.path == path)
             .map(|s| self.named(s).name.as_str())
             .collect::<Vec<_>>()
             .into_iter()

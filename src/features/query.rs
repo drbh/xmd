@@ -147,6 +147,44 @@ impl Stage {
     }
 }
 impl Query {
+    #[cfg(feature = "native")]
+    pub(crate) fn load_imports(&self, workspace: &mut Workspace, only: Option<&Path>) {
+        let context = only
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| workspace.root().join("__query__.wtf"));
+        let mut requests = std::collections::BTreeSet::new();
+        if let Some(expr) = &self.expression {
+            requests.extend(
+                expr.note_imports()
+                    .into_iter()
+                    .map(|id| (context.clone(), id)),
+            );
+        }
+        // Pipeline rows evaluate in their source note; aggregate rows use the query scope.
+        let mut scopes = vec![context];
+        if only.is_none() && !self.sources.is_empty() {
+            scopes.extend(workspace.documents.keys().cloned());
+        }
+        let mut expressions = Vec::new();
+        for stage in &self.stages {
+            match stage {
+                Stage::Where(e) | Stage::Select(e) | Stage::Sum(e) | Stage::Group(e) => {
+                    expressions.push(e)
+                }
+                Stage::Sort(keys) => expressions.extend(keys.iter().map(|(e, _)| e)),
+                _ => (),
+            }
+        }
+        for id in expressions.into_iter().flat_map(Expr::note_imports) {
+            requests.extend(scopes.iter().map(|path| (path.clone(), id.clone())));
+        }
+        for (path, id) in requests {
+            if let Ok(target) = crate::model::imports::note_path(&path, &id) {
+                // Like note imports, report missing dependencies only if evaluation reads them.
+                let _ = workspace.include_file(&target);
+            }
+        }
+    }
     pub fn parse(source: &str) -> Result<Self, String> {
         if source.len() > 65_536 {
             return Err("Queries are limited to 64 KiB".into());
@@ -292,13 +330,16 @@ pub fn execute_scoped_in(
     {
         return Err(format!("Document is not indexed: {}", path.display()));
     }
+    let context = only
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| ws.root().join("__query__.wtf"));
     let mut items = Vec::new();
     if let Some(expr) = &query.expression {
         let bindings = Arc::new(WorkspaceBindings {
             only: only.map(Path::to_path_buf),
             cache: Mutex::new(BTreeMap::new()),
         });
-        let path = only.unwrap_or(ws.root());
+        let path = &context;
         let value = engine.bound_expr(path, expr, bindings)?;
         let rows = match Q::from_value(value) {
             Q::Array(rows) => rows,
@@ -335,13 +376,13 @@ pub fn execute_scoped_in(
                     selected
                 }
                 Stage::Limit(n) => items.into_iter().take(*n).collect(),
-                Stage::Count => vec![Item::Value(Q::count(items.len()), ws.root().into())],
+                Stage::Count => vec![Item::Value(Q::count(items.len()), context.clone())],
                 Stage::Sum(expr) => {
                     let values = items
                         .iter_mut()
                         .map(|item| eval(expr, item, &mut engine))
                         .collect::<Result<Vec<_>, _>>()?;
-                    vec![Item::Value(sum(values)?, ws.root().into())]
+                    vec![Item::Value(sum(values)?, context.clone())]
                 }
                 Stage::Group(expr) => {
                     let mut groups: BTreeMap<String, (Q, Vec<Q>)> = BTreeMap::new();
@@ -363,7 +404,7 @@ pub fn execute_scoped_in(
                         .map(|(key, rows)| {
                             Item::Value(
                                 Q::object([("key", key), ("rows", Q::Array(rows))]),
-                                ws.root().into(),
+                                context.clone(),
                             )
                         })
                         .collect()

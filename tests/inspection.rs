@@ -176,7 +176,7 @@ fn graph_shares_editor_edges_including_functions_tables_cycles_and_external_endp
     let ws = workspace(&[
         (
             "one.wtf",
-            "double := fn(x) => x * rate\nanswer := double(2)\nloop := loop + 1\nt := table\n| value |\n|---|\n| [rate] |\n# Work :work\n- [ ] Parent\n  - [ ] Child\n",
+            "double := fn(x) => x * import(\"./two.wtf\").rate\nanswer := double(2)\nloop := loop + 1\nt := table\n| value |\n|---|\n| [import(\"./two.wtf\").rate] |\n# Work :work\n- [ ] Parent\n  - [ ] Child\n",
         ),
         ("two.wtf", "3:rate\nextra := rate + 2\n"),
     ]);

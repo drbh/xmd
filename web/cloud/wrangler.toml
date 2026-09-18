@@ -18,7 +18,9 @@ database_id = "7138a96c-8e07-42b7-8aae-a887571c67fc"
 migrations_dir = "migrations"
 
 [vars]
-# Cloudflare Access application protecting /api/*. Leave empty until the
-# application exists; sign-in is then reported as not configured.
-ACCESS_TEAM_DOMAIN = ""
-ACCESS_AUD = ""
+# Cloudflare Access application in front of this hostname (enabled from the
+# Worker's Domains & Routes settings). Empty values report sign-in as not
+# configured. The AUD tag is on the application's page in Zero Trust, and also
+# appears as `kid`/`aud` in the login redirect for the hostname.
+ACCESS_TEAM_DOMAIN = "drbh.cloudflareaccess.com"
+ACCESS_AUD = "c73995dc56687b4e81889766b268984df36e415a97d85f7f93ea4a89a0dc3ef5"

@@ -6,6 +6,8 @@ pub mod catalog;
 pub mod diagnostics;
 pub mod hierarchy;
 pub mod highlighting;
+pub mod inlay_providers;
+pub mod inlays;
 pub mod intelligence;
 pub mod interaction;
 pub mod presentation;

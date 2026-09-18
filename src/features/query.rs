@@ -147,7 +147,15 @@ fn expression(source: &str) -> Result<Expr, String> {
                 pending.push((left, depth + 1));
                 pending.push((right, depth + 1));
             }
-            Expr::Call(_, args) => pending.extend(args.iter().map(|arg| (arg, depth + 1))),
+            Expr::Call(_, args) | Expr::List(args) => {
+                pending.extend(args.iter().map(|arg| (arg, depth + 1)))
+            }
+            Expr::Record(fields) => pending.extend(fields.iter().map(|(_, e)| (e, depth + 1))),
+            Expr::Lambda(_, body) => pending.push((body, depth + 1)),
+            Expr::Apply(f, args) => {
+                pending.push((f, depth + 1));
+                pending.extend(args.iter().map(|arg| (arg, depth + 1)));
+            }
             _ => {}
         }
     }
@@ -317,6 +325,38 @@ fn eval(
 ) -> Result<Q, String> {
     match expr {
         Expr::Spanned(_, _, e) => eval(e, item, engine, ctx),
+        Expr::List(items) => items
+            .iter()
+            .map(|e| eval(e, item, engine, ctx))
+            .collect::<Result<Vec<_>, _>>()
+            .map(Q::Array),
+        Expr::Record(fields) => fields
+            .iter()
+            .map(|(k, e)| Ok((k.clone(), eval(e, item, engine, ctx)?)))
+            .collect::<Result<_, String>>()
+            .map(Q::Object),
+        Expr::Lambda(params, body) => {
+            let captured = match item.clone().materialize(engine).value() {
+                Value::Record(fields) => fields,
+                _ => Default::default(),
+            };
+            Ok(Q::Scalar(Value::Function(std::sync::Arc::new(
+                crate::evaluate::functional::Function {
+                    params: params.clone(),
+                    body: *body.clone(),
+                    path: item.path().into(),
+                    captured,
+                },
+            ))))
+        }
+        Expr::Apply(f, args) => {
+            let function = eval(f, item, engine, ctx)?.value();
+            let args = args
+                .iter()
+                .map(|e| eval(e, item, engine, ctx).map(|v| v.value()))
+                .collect::<Result<Vec<_>, _>>()?;
+            engine.call(function, args).map(Q::from_value)
+        }
         Expr::Value(v) => Ok(Q::from_value(v.clone())),
         Expr::Name(n) => match n.as_str() {
             "null" => Ok(Q::Null),
@@ -373,6 +413,13 @@ fn eval(
             }
         }
         Expr::Call(name, args) => {
+            if name == "if" {
+                if args.len() != 3 {
+                    return Err("if expects a condition and two branches".into());
+                }
+                let condition = boolean(eval(&args[0], item, engine, ctx)?)?;
+                return eval(&args[if condition { 1 } else { 2 }], item, engine, ctx);
+            }
             if name == "coalesce" {
                 for arg in args {
                     let v = eval(arg, item, engine, ctx)?;
@@ -415,6 +462,15 @@ fn eval(
                     Ok(a.get(key).cloned().unwrap_or(Q::Null))
                 }
                 ("sum", [Q::Array(a)]) => sum(a.clone()),
+                _ if crate::evaluate::functional::is_builtin(name) => engine
+                    .functional(name, values.iter().map(Q::value).collect())
+                    .map(Q::from_value),
+                _ if engine.workspace.resolve(item.path(), name).is_ok() => {
+                    let function = engine.named(item.path(), name)?;
+                    engine
+                        .call(function, values.iter().map(Q::value).collect())
+                        .map(Q::from_value)
+                }
                 _ => Err(format!("Unknown function or invalid arguments: {name}")),
             }
         }

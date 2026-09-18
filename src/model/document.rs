@@ -739,15 +739,19 @@ impl Document {
         // Use the evaluator's lexer, so identifiers and dates have identical boundaries.
         match crate::engine::lex(&line[start..end]) {
             Ok(tokens) => {
+                let free_names = crate::engine::expression_names(&line[start..end]);
                 for token in tokens {
                     let span = Span::new(row, start + token.start, start + token.end);
                     let kind = match &token.kind {
                         crate::engine::Lexeme::Name(name) => {
-                            if !line[start + token.end..end].trim_start().starts_with('(')
+                            if free_names
+                                .as_ref()
+                                .is_none_or(|names| names.contains(&token.start))
+                                && !line[start + token.end..end].trim_start().starts_with('(')
                                 && !crate::engine::is_code(name)
                                 && (token.start == 0
                                     || !line[start..start + token.start].trim_end().ends_with('.'))
-                                && !matches!(name.as_str(), "true" | "false")
+                                && !matches!(name.as_str(), "true" | "false" | "null" | "fn")
                                 && (!matches!(name.as_str(), "tomorrow" | "today")
                                     || crate::engine::sum_scope_at(&line[start..end], token.start)
                                         .is_some())

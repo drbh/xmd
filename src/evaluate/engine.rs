@@ -98,6 +98,10 @@ pub fn is_code(name: &str) -> bool {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
+    Null,
+    List(Vec<Value>),
+    Record(BTreeMap<String, Value>),
+    Function(std::sync::Arc<crate::evaluate::functional::Function>),
     Number(f64),
     Count(usize),
     Money(f64, Currency),
@@ -118,6 +122,10 @@ pub enum Value {
 impl Value {
     pub fn type_name(&self) -> &'static str {
         match self {
+            Self::Null => "Null",
+            Self::List(_) => "List",
+            Self::Record(_) => "Record",
+            Self::Function(_) => "Function",
             Self::Number(_) => "Number",
             Self::Count(_) => "Count",
             Self::Money(..) => "Money",
@@ -139,6 +147,27 @@ impl Value {
     /// A round-trippable expression, unlike the human-readable display label.
     pub fn source(&self) -> Option<String> {
         Some(match self {
+            Self::Null => "null".into(),
+            Self::List(values) => format!(
+                "[{}]",
+                values
+                    .iter()
+                    .map(Self::source)
+                    .collect::<Option<Vec<_>>>()?
+                    .join(", ")
+            ),
+            Self::Record(fields) => format!(
+                "{{{}}}",
+                fields
+                    .iter()
+                    .map(|(k, v)| Some(format!(
+                        "{}: {}",
+                        serde_json::to_string(k).ok()?,
+                        v.source()?
+                    )))
+                    .collect::<Option<Vec<_>>>()?
+                    .join(", ")
+            ),
             Self::Number(n) => n.to_string(),
             Self::Money(n, c) => match c.symbol() {
                 Some(symbol) if *n < 0.0 => format!("-{symbol}{}", n.abs()),
@@ -156,6 +185,10 @@ impl Value {
     }
     pub fn display(&self) -> String {
         match self {
+            Self::Null | Self::List(_) | Self::Record(_) => {
+                self.source().unwrap_or_else(|| "<collection>".into())
+            }
+            Self::Function(_) => "<function>".into(),
             Self::Number(n) => decimal(*n),
             Self::Count(n) => n.to_string(),
             Self::Money(n, c) => money(*n, *c),
@@ -350,6 +383,11 @@ pub enum Lexeme {
     Right,
     Comma,
     Dot,
+    OpenList,
+    CloseList,
+    OpenRecord,
+    CloseRecord,
+    Colon,
 }
 #[derive(Clone, Debug)]
 pub struct Token {
@@ -390,7 +428,7 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
                 if s.as_bytes().get(i) == Some(&b'T') {
                     while i < s.len()
                         && !s.as_bytes()[i].is_ascii_whitespace()
-                        && !matches!(s.as_bytes()[i], b')' | b',')
+                        && !matches!(s.as_bytes()[i], b')' | b',' | b']' | b'}')
                     {
                         i += 1;
                     }
@@ -453,11 +491,17 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
                     ')' => Lexeme::Right,
                     ',' => Lexeme::Comma,
                     '.' => Lexeme::Dot,
+                    '[' => Lexeme::OpenList,
+                    ']' => Lexeme::CloseList,
+                    '{' => Lexeme::OpenRecord,
+                    '}' => Lexeme::CloseRecord,
+                    ':' => Lexeme::Colon,
                     '+' | '-' | '*' | '/' | '!' | '=' | '<' | '>' | '&' | '|' => {
-                        if s.as_bytes()
-                            .get(i)
-                            .is_some_and(|b| *b == b'=' || *b == c as u8 && matches!(c, '&' | '|'))
-                        {
+                        if s.as_bytes().get(i).is_some_and(|b| {
+                            *b == b'='
+                                || c == '=' && *b == b'>'
+                                || *b == c as u8 && matches!(c, '&' | '|')
+                        }) {
                             i += 1;
                         }
                         Lexeme::Op(s[start..i].into())
@@ -476,7 +520,7 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
     }
     Ok(out)
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Expr {
     Spanned(usize, usize, Box<Expr>),
     Value(Value),
@@ -485,6 +529,10 @@ pub(crate) enum Expr {
     Unary(String, Box<Expr>),
     Binary(String, Box<Expr>, Box<Expr>),
     Property(Box<Expr>, String),
+    List(Vec<Expr>),
+    Record(Vec<(String, Expr)>),
+    Lambda(Vec<String>, Box<Expr>),
+    Apply(Box<Expr>, Vec<Expr>),
 }
 impl Expr {
     fn bare(&self) -> &Self {
@@ -501,6 +549,53 @@ impl Expr {
             (0, 0)
         }
     }
+}
+/// Free variable positions, excluding function parameters and record keys.
+pub(crate) fn expression_names(source: &str) -> Option<BTreeSet<usize>> {
+    fn visit(expr: &Expr, locals: &[String], names: &mut BTreeSet<usize>) {
+        match expr {
+            Expr::Spanned(start, _, inner) if matches!(inner.as_ref(), Expr::Name(_)) => {
+                if let Expr::Name(name) = inner.as_ref()
+                    && !locals.contains(name)
+                {
+                    names.insert(*start);
+                }
+            }
+            Expr::Spanned(_, _, inner) | Expr::Unary(_, inner) | Expr::Property(inner, _) => {
+                visit(inner, locals, names)
+            }
+            Expr::Lambda(params, body) => {
+                let mut locals = locals.to_vec();
+                locals.extend(params.clone());
+                visit(body, &locals, names);
+            }
+            Expr::Record(fields) => {
+                for (_, e) in fields {
+                    visit(e, locals, names);
+                }
+            }
+            Expr::Call(_, args) | Expr::List(args) => {
+                for e in args {
+                    visit(e, locals, names);
+                }
+            }
+            Expr::Apply(f, args) => {
+                visit(f, locals, names);
+                for e in args {
+                    visit(e, locals, names);
+                }
+            }
+            Expr::Binary(_, a, b) => {
+                visit(a, locals, names);
+                visit(b, locals, names);
+            }
+            _ => (),
+        }
+    }
+    let expr = Parser::parse(source).ok()?;
+    let mut names = BTreeSet::new();
+    visit(&expr, &[], &mut names);
+    Some(names)
 }
 pub(crate) struct Parser {
     tokens: Vec<Token>,
@@ -566,6 +661,31 @@ impl Parser {
         if p.at != p.tokens.len() {
             return Err("Unexpected trailing expression".into());
         }
+        let mut pending = vec![(&expr, 0)];
+        while let Some((node, depth)) = pending.pop() {
+            if depth > 64 {
+                return Err("Expression depth exceeds 64 levels".into());
+            }
+            match node {
+                Expr::Spanned(_, _, e) => pending.push((e, depth)),
+                Expr::Unary(_, e) | Expr::Property(e, _) | Expr::Lambda(_, e) => {
+                    pending.push((e, depth + 1))
+                }
+                Expr::Binary(_, a, b) => {
+                    pending.push((a, depth + 1));
+                    pending.push((b, depth + 1));
+                }
+                Expr::List(items) | Expr::Call(_, items) => {
+                    pending.extend(items.iter().map(|e| (e, depth + 1)))
+                }
+                Expr::Record(fields) => pending.extend(fields.iter().map(|(_, e)| (e, depth + 1))),
+                Expr::Apply(f, args) => {
+                    pending.push((f, depth + 1));
+                    pending.extend(args.iter().map(|e| (e, depth + 1)));
+                }
+                _ => (),
+            }
+        }
         Ok(expr)
     }
     fn expression(&mut self, min: u8) -> Result<Expr, String> {
@@ -583,6 +703,92 @@ impl Parser {
         self.at += 1;
         let mut lhs = match token {
             Lexeme::Value(v) => Expr::Value(v),
+            Lexeme::OpenList => Expr::List(self.arguments(false)?),
+            Lexeme::OpenRecord => {
+                let mut fields = Vec::new();
+                while !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::CloseRecord)
+                ) {
+                    let key = match self.tokens.get(self.at).map(|t| &t.kind) {
+                        Some(Lexeme::Name(key)) | Some(Lexeme::Value(Value::Text(key))) => {
+                            key.clone()
+                        }
+                        _ => return Err("Expected a record field name".into()),
+                    };
+                    if fields.iter().any(|(k, _)| k == &key) {
+                        return Err(format!("Duplicate field '{key}'"));
+                    }
+                    self.at += 1;
+                    if !matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Colon)
+                    ) {
+                        return Err("Expected ':'".into());
+                    }
+                    self.at += 1;
+                    fields.push((key, self.expression(0)?));
+                    if !matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Comma)
+                    ) {
+                        break;
+                    }
+                    self.at += 1;
+                }
+                if !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::CloseRecord)
+                ) {
+                    return Err("Expected '}'".into());
+                }
+                self.at += 1;
+                Expr::Record(fields)
+            }
+            Lexeme::Name(n) if n == "fn" => {
+                if !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::Left)
+                ) {
+                    return Err("Expected fn(parameters) => expression".into());
+                }
+                self.at += 1;
+                let mut params = Vec::new();
+                while !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::Right)
+                ) {
+                    let Some(Token {
+                        kind: Lexeme::Name(name),
+                        ..
+                    }) = self.tokens.get(self.at)
+                    else {
+                        return Err("Expected a parameter name".into());
+                    };
+                    if params.contains(name)
+                        || matches!(name.as_str(), "true" | "false" | "null" | "fn")
+                        || is_code(name)
+                    {
+                        return Err(format!("Invalid or duplicate parameter '{name}'"));
+                    }
+                    params.push(name.clone());
+                    self.at += 1;
+                    if !matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Comma)
+                    ) {
+                        break;
+                    }
+                    self.at += 1;
+                }
+                self.close()?;
+                if !matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Op(op)) if op == "=>")
+                {
+                    return Err("Expected '=>'".into());
+                }
+                self.at += 1;
+                Expr::Lambda(params, Box::new(self.expression(0)?))
+            }
             Lexeme::Name(n) => {
                 if matches!(
                     self.tokens.get(self.at).map(|t| &t.kind),
@@ -623,6 +829,19 @@ impl Parser {
         };
         lhs = Expr::Spanned(start, self.tokens[self.at - 1].end, Box::new(lhs));
         loop {
+            if matches!(
+                self.tokens.get(self.at).map(|t| &t.kind),
+                Some(Lexeme::Left)
+            ) {
+                self.at += 1;
+                let args = self.arguments(true)?;
+                lhs = Expr::Spanned(
+                    start,
+                    self.tokens[self.at - 1].end,
+                    Box::new(Expr::Apply(Box::new(lhs), args)),
+                );
+                continue;
+            }
             if matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Dot)) {
                 self.at += 1;
                 let Some(Token {
@@ -680,6 +899,28 @@ impl Parser {
         }
         self.at += 1;
         Ok(())
+    }
+    fn arguments(&mut self, parentheses: bool) -> Result<Vec<Expr>, String> {
+        let closed = |token: Option<&Token>| {
+            matches!(token.map(|t| &t.kind), Some(Lexeme::Right) if parentheses)
+                || matches!(token.map(|t| &t.kind), Some(Lexeme::CloseList) if !parentheses)
+        };
+        let mut args = Vec::new();
+        while !closed(self.tokens.get(self.at)) {
+            args.push(self.expression(0)?);
+            if !matches!(
+                self.tokens.get(self.at).map(|t| &t.kind),
+                Some(Lexeme::Comma)
+            ) {
+                break;
+            }
+            self.at += 1;
+        }
+        if !closed(self.tokens.get(self.at)) {
+            return Err("Unclosed arguments or list".into());
+        }
+        self.at += 1;
+        Ok(args)
     }
 }
 
@@ -908,6 +1149,9 @@ pub struct Engine<'a> {
     /// a goal seek is legitimately on both at once.
     linear_stack: Vec<Symbol>,
     steps: usize,
+    locals: Vec<BTreeMap<String, Value>>,
+    calls: usize,
+    pure: bool,
 }
 /// Column values for one table row while a `sum` row expression runs.
 struct RowScope {
@@ -950,6 +1194,9 @@ impl<'a> Engine<'a> {
             wanted: Vec::new(),
             linear_stack: Vec::new(),
             steps: 0,
+            locals: Vec::new(),
+            calls: 0,
+            pure: false,
         }
     }
     /// Share immutable inputs and memoized results with another feature session.
@@ -981,7 +1228,11 @@ impl<'a> Engine<'a> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
     }
     pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> Result<Value, String> {
-        if self.contexts.is_empty() && self.stack.is_empty() && self.row_values.is_empty() {
+        if self.contexts.is_empty()
+            && self.stack.is_empty()
+            && self.row_values.is_empty()
+            && self.calls == 0
+        {
             self.steps = 0;
         }
         self.contexts.push((path.into(), span));
@@ -1022,7 +1273,14 @@ impl<'a> Engine<'a> {
             }
             match expr {
                 Expr::Spanned(_, _, inner) => contains(inner, start, end),
-                Expr::Call(_, args) => args.iter().any(|e| contains(e, start, end)),
+                Expr::Call(_, args) | Expr::List(args) => {
+                    args.iter().any(|e| contains(e, start, end))
+                }
+                Expr::Record(fields) => fields.iter().any(|(_, e)| contains(e, start, end)),
+                Expr::Lambda(_, e) => contains(e, start, end),
+                Expr::Apply(f, args) => {
+                    contains(f, start, end) || args.iter().any(|e| contains(e, start, end))
+                }
                 Expr::Unary(_, e) | Expr::Property(e, _) => contains(e, start, end),
                 Expr::Binary(_, a, b) => contains(a, start, end) || contains(b, start, end),
                 _ => false,
@@ -1070,7 +1328,11 @@ impl<'a> Engine<'a> {
         self.symbol(&symbol)
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> Result<Value, String> {
-        if self.contexts.is_empty() && self.stack.is_empty() && self.row_values.is_empty() {
+        if self.contexts.is_empty()
+            && self.stack.is_empty()
+            && self.row_values.is_empty()
+            && self.calls == 0
+        {
             self.steps = 0;
         }
         let key = MemoKey::Symbol(symbol.clone());
@@ -1116,6 +1378,7 @@ impl<'a> Engine<'a> {
         self.stack.push(symbol.clone());
         // Named definitions never capture a caller's row locals.
         let caller_rows = std::mem::take(&mut self.row_values);
+        let caller_locals = std::mem::take(&mut self.locals);
         let doc = &self.workspace.documents[&symbol.path];
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
@@ -1200,6 +1463,7 @@ impl<'a> Engine<'a> {
             }
         };
         self.row_values = caller_rows;
+        self.locals = caller_locals;
         self.stack.pop();
         let entry = MemoEntry {
             value: result.clone(),
@@ -1389,7 +1653,7 @@ impl<'a> Engine<'a> {
             other => constant(self.expr(path, other)?),
         }
     }
-    fn expr(&mut self, path: &Path, expr: &Expr) -> Result<Value, String> {
+    pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> Result<Value, String> {
         self.steps += 1;
         if self.steps > 200_000 {
             let message = "Evaluation exceeds 200,000 steps; simplify nested row calculations";
@@ -1404,12 +1668,62 @@ impl<'a> Engine<'a> {
                 }
                 result
             }
+            Expr::List(items) => {
+                let value = Value::List(
+                    items
+                        .iter()
+                        .map(|e| self.expr(path, e))
+                        .collect::<Result<Vec<_>, _>>()?,
+                );
+                crate::evaluate::functional::check_size(&value)?;
+                Ok(value)
+            }
+            Expr::Record(fields) => {
+                let value = Value::Record(
+                    fields
+                        .iter()
+                        .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?)))
+                        .collect::<Result<BTreeMap<_, _>, String>>()?,
+                );
+                crate::evaluate::functional::check_size(&value)?;
+                Ok(value)
+            }
+            Expr::Lambda(params, body) => {
+                let mut captured = self
+                    .row_values
+                    .last()
+                    .map(|s| s.values.clone())
+                    .unwrap_or_default();
+                if let Some(locals) = self.locals.last() {
+                    captured.extend(locals.clone());
+                }
+                Ok(Value::Function(std::sync::Arc::new(
+                    crate::evaluate::functional::Function {
+                        params: params.clone(),
+                        body: *body.clone(),
+                        path: path.into(),
+                        captured,
+                    },
+                )))
+            }
+            Expr::Apply(function, args) => {
+                let function = self.expr(path, function)?;
+                let args = args
+                    .iter()
+                    .map(|e| self.expr(path, e))
+                    .collect::<Result<Vec<_>, _>>()?;
+                self.call(function, args)
+            }
             Expr::Value(v) => Ok(v.clone()),
             Expr::Name(n) => match n.as_str() {
+                "null" => Ok(Value::Null),
                 "true" => Ok(Value::Bool(true)),
                 "false" => Ok(Value::Bool(false)),
                 code if is_code(code) => Ok(Value::Text(code.to_string())),
                 _ => {
+                    if let Some(value) = self.locals.last().and_then(|s| s.get(n)) {
+                        return Ok(value.clone());
+                    }
                     if let Some(scope) = self.row_values.last() {
                         if scope.decisions.contains_key(n) {
                             return Err(format!(
@@ -1425,6 +1739,47 @@ impl<'a> Engine<'a> {
                 }
             },
             Expr::Call(n, args) => {
+                if n == "if" {
+                    if args.len() != 3 {
+                        return Err("if expects a condition and two branches".into());
+                    }
+                    let Value::Bool(condition) = self.expr(path, &args[0])? else {
+                        return Err("if requires a Boolean condition".into());
+                    };
+                    return self.expr(path, &args[if condition { 1 } else { 2 }]);
+                }
+                if n == "coalesce" {
+                    for arg in args {
+                        let value = self.expr(path, arg)?;
+                        if value != Value::Null {
+                            return Ok(value);
+                        }
+                    }
+                    return Ok(Value::Null);
+                }
+                if crate::evaluate::functional::is_builtin(n) {
+                    let values = args
+                        .iter()
+                        .map(|e| self.expr(path, e))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return self.functional(n, values);
+                }
+                if self.locals.last().is_some_and(|s| s.contains_key(n))
+                    || self.workspace.resolve(path, n).is_ok()
+                {
+                    let function = self
+                        .locals
+                        .last()
+                        .and_then(|s| s.get(n))
+                        .cloned()
+                        .map(Ok)
+                        .unwrap_or_else(|| self.named(path, n))?;
+                    let values = args
+                        .iter()
+                        .map(|e| self.expr(path, e))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return self.call(function, values);
+                }
                 if n == "sum" {
                     return self.sum(path, args).map(|(value, _)| value);
                 }
@@ -1521,6 +1876,11 @@ impl<'a> Engine<'a> {
             Expr::Property(v, key) => {
                 let v = self.expr(path, v)?;
                 match v {
+                    Value::Null => Ok(Value::Null),
+                    Value::Record(fields) => fields
+                        .get(key)
+                        .cloned()
+                        .ok_or_else(|| format!("Unknown field '{key}'")),
                     Value::Timer(timer) => timer.property(key),
                     Value::Forecast(forecast) => forecast.property(key),
                     Value::Plan(plan) => plan.property(key),
@@ -1529,6 +1889,9 @@ impl<'a> Engine<'a> {
                             return Ok(Value::Text(resource.target));
                         }
                         if key == "exists" {
+                            if self.pure {
+                                return Err("Plugin evaluation cannot access the filesystem".into());
+                            }
                             #[cfg(target_arch = "wasm32")]
                             return Err("Local file existence is unavailable in the browser".into());
                             #[cfg(not(target_arch = "wasm32"))]
@@ -1577,6 +1940,72 @@ impl<'a> Engine<'a> {
                 }
             }
         }
+    }
+    /// Restrict evaluation to immutable inputs, including resource properties.
+    pub fn pure(mut self) -> Self {
+        self.pure = true;
+        self
+    }
+    pub fn call(&mut self, function: Value, args: Vec<Value>) -> Result<Value, String> {
+        let Value::Function(function) = function else {
+            return Err("Expected a function".into());
+        };
+        if args.len() != function.params.len() {
+            return Err(format!(
+                "Function expects {} arguments, got {}",
+                function.params.len(),
+                args.len()
+            ));
+        }
+        if self.calls >= 32 {
+            return Err("Function call depth exceeds 32".into());
+        }
+        let mut locals = function.captured.clone();
+        locals.extend(function.params.iter().cloned().zip(args));
+        self.locals.push(locals);
+        let rows = std::mem::take(&mut self.row_values);
+        self.calls += 1;
+        let result = self.expr(&function.path, &function.body);
+        self.calls -= 1;
+        self.row_values = rows;
+        self.locals.pop();
+        let value = result?;
+        crate::evaluate::functional::check_size(&value)?;
+        Ok(value)
+    }
+    pub(crate) fn functional(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
+        use Value::*;
+        let value = match (name, args.as_slice()) {
+            ("map" | "filter", [List(items), function @ Function(_)]) => {
+                let mut output = Vec::new();
+                for item in items {
+                    let value = self.call(function.clone(), vec![item.clone()])?;
+                    if name == "map" {
+                        output.push(value);
+                    } else {
+                        match value {
+                            Bool(true) => output.push(item.clone()),
+                            Bool(false) => (),
+                            _ => return Err("filter predicate must return a Boolean".into()),
+                        }
+                    }
+                    if output.len() > 4096 {
+                        return Err("List exceeds 4096 items".into());
+                    }
+                }
+                List(output)
+            }
+            ("fold", [List(items), initial, function @ Function(_)]) => {
+                let mut result = initial.clone();
+                for item in items {
+                    result = self.call(function.clone(), vec![result, item.clone()])?;
+                }
+                result
+            }
+            _ => crate::evaluate::functional::builtin(name, &args)?,
+        };
+        crate::evaluate::functional::check_size(&value)?;
+        Ok(value)
     }
     pub fn task_done(&self, path: &Path, i: usize) -> bool {
         let doc = &self.workspace.documents[path];
@@ -2037,7 +2466,12 @@ pub(crate) fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
                 Ok(Ratio(*a as f64 / *b as f64))
             };
         }
-        ("+", Text(a), Text(b)) => return Ok(Text(format!("{a}{b}"))),
+        ("+", Text(a), Text(b)) => {
+            if a.len().saturating_add(b.len()) > 1_048_576 {
+                return Err("Text exceeds 1 MiB".into());
+            }
+            return Ok(Text(format!("{a}{b}")));
+        }
         _ => {}
     }
     let currency_a = if let Money(_, c) = &a { Some(*c) } else { None };

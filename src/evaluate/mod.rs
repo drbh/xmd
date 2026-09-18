@@ -4,6 +4,7 @@
 pub mod charts;
 pub mod context;
 pub mod engine;
+pub mod functional;
 pub mod github;
 pub mod glyphs;
 pub mod link_features;

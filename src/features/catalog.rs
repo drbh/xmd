@@ -60,6 +60,14 @@ impl QueryValue {
     }
     pub fn from_value(value: Value) -> Self {
         match value {
+            Value::Null => Self::Null,
+            Value::List(values) => Self::Array(values.into_iter().map(Self::from_value).collect()),
+            Value::Record(fields) => Self::Object(
+                fields
+                    .into_iter()
+                    .map(|(k, v)| (k, Self::from_value(v)))
+                    .collect(),
+            ),
             Value::Plan(p) => Self::object([
                 ("goal", Self::text(p.goal.keyword())),
                 ("objective", Self::from_value(p.objective.clone())),
@@ -148,10 +156,21 @@ impl QueryValue {
             scalar => Self::Scalar(scalar),
         }
     }
+    pub(crate) fn value(&self) -> Value {
+        match self {
+            Self::Null => Value::Null,
+            Self::Scalar(v) => v.clone(),
+            Self::Array(values) => Value::List(values.iter().map(Self::value).collect()),
+            Self::Object(fields) => {
+                Value::Record(fields.iter().map(|(k, v)| (k.clone(), v.value())).collect())
+            }
+        }
+    }
     pub fn json(&self) -> serde_json::Value {
         match self {
             Self::Null => serde_json::Value::Null,
             Self::Scalar(v) => match v {
+                Value::Function(_) => json!({"type":"function"}),
                 Value::Number(n) => json!(n),
                 Value::Count(n) => json!(n),
                 Value::Text(s) => json!(s),

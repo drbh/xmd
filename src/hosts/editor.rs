@@ -1,10 +1,16 @@
+//! The language server host.
+//!
+//! Every request evaluates the workspace at "now". Tests need that clock to be
+//! reproducible, so `WTF_NOW` freezes it: set it to an RFC3339 timestamp (for
+//! example `2026-09-16T14:00:00-04:00`) and [`now`] returns that instant for
+//! the life of the process instead of reading the system clock. An unset or
+//! unparseable value is ignored and the real clock is used.
 use crate::actions::TaskToggle;
 use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
     document::{Document, identifier},
     workspace::{SymbolKind, Workspace},
 };
-use chrono::Local;
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
@@ -19,6 +25,19 @@ use tower_lsp::{
 
 pub use crate::presentation::semantic_tokens;
 use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
+
+/// The current time, or the instant pinned by the `WTF_NOW` environment
+/// variable (read once, at startup).
+pub fn now() -> chrono::DateTime<chrono::FixedOffset> {
+    static FROZEN: std::sync::OnceLock<Option<chrono::DateTime<chrono::FixedOffset>>> =
+        std::sync::OnceLock::new();
+    (*FROZEN.get_or_init(|| {
+        std::env::var("WTF_NOW")
+            .ok()
+            .and_then(|text| chrono::DateTime::parse_from_rfc3339(text.trim()).ok())
+    }))
+    .unwrap_or_else(|| chrono::Local::now().fixed_offset())
+}
 
 struct State {
     workspace: Workspace,
@@ -48,7 +67,7 @@ impl Backend {
     async fn query(&self, params: QueryParams) -> Result<serde_json::Value> {
         let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
         self.rescan().await;
-        let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
+        let now = params.now.unwrap_or_else(|| now());
         let only = params
             .uri
             .map(|uri| {
@@ -107,7 +126,7 @@ impl Backend {
     async fn notify_changes(&self) {
         let (diagnostics, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
-            let now = Local::now().fixed_offset();
+            let now = now();
             let paths: Vec<_> = state
                 .open
                 .keys()
@@ -166,7 +185,7 @@ impl Backend {
             if state.live.is_empty() {
                 return;
             }
-            let now = Local::now().fixed_offset();
+            let now = now();
             let paths: Vec<_> = state
                 .live
                 .iter()
@@ -466,12 +485,12 @@ impl LanguageServer for Backend {
         }
         let backend = self.clone();
         tokio::spawn(async move {
-            let mut today = Local::now().date_naive();
+            let mut today = now().date_naive();
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
                 interval.tick().await;
-                let next = Local::now().date_naive();
+                let next = now().date_naive();
                 if next != today {
                     today = next;
                     backend.notify_changes().await;
@@ -531,7 +550,7 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state.workspace.documents.contains_key(&path).then(|| {
-            crate::RequestContext::new(&state.workspace, Local::now().fixed_offset())
+            crate::RequestContext::new(&state.workspace, now())
                 .hints(&path, params.range)
                 .hints
         }))
@@ -557,7 +576,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         Ok(request.hover(&path, at.position))
     }
     async fn goto_definition(
@@ -639,7 +658,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         Ok(Some(CompletionResponse::Array(request.completions(
             &path,
             at.position,
@@ -659,7 +678,7 @@ impl LanguageServer for Backend {
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
     async fn document_highlight(
@@ -710,7 +729,7 @@ impl LanguageServer for Backend {
         if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         Ok(Some(request.document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
@@ -719,7 +738,7 @@ impl LanguageServer for Backend {
         if !state.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         let mut result: Vec<_> = request
             .code_actions(
                 &path,
@@ -765,7 +784,7 @@ impl LanguageServer for Backend {
         self.rescan().await;
         let (prepared, version) = {
             let state = self.state.read().await;
-            let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+            let request = crate::RequestContext::new(&state.workspace, now());
             let prepared = action
                 .prepare(&request, Capabilities::NATIVE)
                 .map_err(Error::invalid_params)?;
@@ -862,7 +881,7 @@ impl LanguageServer for Backend {
             }
             PreparedAction::ShowToday => {
                 self.rescan().await;
-                let now = Local::now().fixed_offset();
+                let now = now();
                 let today = now.date_naive();
                 let workspace = self.state.read().await.workspace.clone();
                 let compiled = crate::query::Query::parse(
@@ -974,8 +993,7 @@ impl LanguageServer for Backend {
         if !ws.documents.contains_key(&path) {
             return Ok(None);
         }
-        let symbols =
-            crate::RequestContext::new(ws, Local::now().fixed_offset()).document_symbols(&path);
+        let symbols = crate::RequestContext::new(ws, now()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
         } else {
@@ -1006,7 +1024,7 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         let ws = &state.workspace;
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(ws, now());
         Ok(crate::hierarchy::prepare(ws, &path, at.position)
             .map(|symbol| vec![request.hierarchy_item(&symbol)]))
     }
@@ -1019,7 +1037,7 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(ws, now());
         Ok(Some(
             crate::hierarchy::dependents(ws, &symbol)
                 .into_iter()
@@ -1039,7 +1057,7 @@ impl LanguageServer for Backend {
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(ws, now());
         Ok(Some(
             crate::hierarchy::dependencies(ws, &symbol)
                 .into_iter()
@@ -1062,7 +1080,7 @@ impl LanguageServer for Backend {
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.workspace, now());
         request
             .formatting(&path)
             .map(Some)

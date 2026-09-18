@@ -269,7 +269,8 @@ fn request_time(
                     .into(),
             )
     } else {
-        Ok(Local::now().fixed_offset())
+        // `WTF_NOW` freezes the clock; see the `editor` module.
+        Ok(crate::editor::now())
     }
 }
 fn render_command(options: RenderOptions) -> Result<(), String> {

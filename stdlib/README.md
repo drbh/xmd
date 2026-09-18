@@ -86,6 +86,14 @@ The `agenda` library selects and orders tasks, events, and itinerary stops over
 an explicit date window. The editor and CLI call the same `between` function; see
 the [query guide](../src/features/query.md) for examples.
 
+The `units` library converts between units of one dimension: `convert(value,
+from, to)` over temperature (`c`, `f`, `k`), distance, mass, volume, speed, area,
+and decimal data sizes, plus `dimension(unit)`, the rounded `format(value, unit)`
+and `show(value, from, to)`, and the named pairs `c_to_f`, `f_to_c`, `km_to_mi`,
+`mi_to_km`, `kg_to_lb`, and `lb_to_kg`. Units are lowercase text; spelled-out
+aliases such as `"celsius"` or `"kilometers"` are accepted. Unknown units and
+mismatched dimensions raise errors rather than guessing.
+
 The `plan`, `timer`, and `itinerary_core` libraries provide solver policy, timer
 construction/properties/transitions, and itinerary resolution. Typed adapters
 call the active workspace library. A timer retains the module snapshot that

@@ -192,6 +192,66 @@ fn itinerary_library_changes_both_query_dates_and_editor_output() {
 }
 
 #[test]
+fn the_units_library_converts_dimensions_and_reports_bad_input() {
+    let ws = note("distance := import(\"units\").km_to_mi(100)\n");
+    let engine = || RequestContext::new(&ws, now()).engine();
+    for (expression, expected) in [
+        ("import(\"units\").convert(100, \"c\", \"f\")", 212.0),
+        (
+            "import(\"units\").convert(212, \"fahrenheit\", \"celsius\")",
+            100.0,
+        ),
+        ("import(\"units\").convert(0, \"c\", \"k\")", 273.15),
+        ("import(\"units\").convert(1, \"mi\", \"ft\")", 5280.0),
+        ("import(\"units\").convert(2, \"kg\", \"g\")", 2000.0),
+        ("import(\"units\").convert(1, \"gal\", \"qt\")", 4.0),
+        ("import(\"units\").convert(1, \"gb\", \"mb\")", 1000.0),
+        ("import(\"units\").convert(1, \"ha\", \"sqm\")", 10000.0),
+        ("import(\"units\").convert(1, \"mps\", \"kph\")", 3.6),
+        (
+            "import(\"units\").lb_to_kg(import(\"units\").kg_to_lb(5))",
+            5.0,
+        ),
+    ] {
+        let Value::Number(value) = engine().eval(path(), expression).unwrap() else {
+            panic!("{expression} is not numeric");
+        };
+        assert!((value - expected).abs() < 1e-9, "{expression} gave {value}");
+    }
+    let Value::Number(miles) = engine().named(path(), "distance").unwrap() else {
+        panic!("km_to_mi is not numeric");
+    };
+    assert!((miles - 62.137_119_223_733_39).abs() < 1e-9);
+    assert_eq!(
+        engine()
+            .eval(
+                path(),
+                "import(\"units\").format(62.13711922373339, \"miles\")"
+            )
+            .unwrap(),
+        Value::Text("62.14 mi".into())
+    );
+    assert_eq!(
+        engine()
+            .eval(path(), "import(\"units\").dimension(\"tbsp\")")
+            .unwrap(),
+        Value::Text("volume".into())
+    );
+    assert_eq!(
+        engine()
+            .eval(path(), "import(\"units\").convert(1, \"km\", \"kg\")")
+            .unwrap_err(),
+        "Cannot convert km to kg"
+    );
+    assert_eq!(
+        engine()
+            .eval(path(), "import(\"units\").convert(1, \"smoots\", \"m\")")
+            .unwrap_err(),
+        "Unknown unit 'smoots'"
+    );
+}
+
+#[test]
 fn missing_and_failed_libraries_report_errors_instead_of_using_bundled_code() {
     for source in [
         "module := {api: 1, id: \"timer\", kind: \"library\", enabled: false}",

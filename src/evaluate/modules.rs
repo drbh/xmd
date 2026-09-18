@@ -620,6 +620,7 @@ pub fn bundled() -> &'static [Module] {
             ("plan", include_str!("../../stdlib/plan.wtf")),
             ("timer", include_str!("../../stdlib/timer.wtf")),
             ("format", include_str!("../../stdlib/format.wtf")),
+            ("units", include_str!("../../stdlib/units.wtf")),
             ("github", include_str!("../../stdlib/github.wtf")),
             ("table_cells", include_str!("../../stdlib/table_cells.wtf")),
             ("checklists", include_str!("../../stdlib/checklists.wtf")),

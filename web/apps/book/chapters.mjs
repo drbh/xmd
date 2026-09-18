@@ -88,7 +88,7 @@ export const parts = [
         file: "10-events.wtf",
         title: "Appointments",
         prose: [
-          "A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf query @today</code> and <code>wtf query @today</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.",
+          "A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf query --workspace @today</code> and <code>wtf query --workspace @today</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.",
         ],
       },
       {
@@ -251,7 +251,7 @@ export const parts = [
         file: "30-diagnostics.wtf",
         title: "Diagnostics",
         prose: [
-          "Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf query @check --fail-on-match</code>.",
+          "Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf query --workspace @check --fail-on-match</code>.",
           "The example below is valid as written; uncomment one of the suggested lines to see the diagnostic appear.",
         ],
       },
@@ -280,7 +280,7 @@ export const parts = [
         file: "29-agenda-and-cli.wtf",
         title: "Agenda and the Command Line",
         prose: [
-          "<code>wtf query @today</code>, <code>wtf query @week</code>, and <code>wtf query @tasks</code> read every note. <code>wtf ast file.wtf</code> exposes syntax nodes, <code>wtf graph file.wtf</code> shows dependencies, <code>wtf query @check --fail-on-match</code> reports problems, <code>wtf query plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Queries use the same functions as notes: <code>map(filter(tasks, fn(t) =&gt; !t.done), fn(t) =&gt; t.title)</code>. Add <code>--in file.wtf</code> to read one note. Existing pipelines also filter, project, sort, and group results. Queries are read-only. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.",
+          "<code>wtf query --workspace @today</code>, <code>wtf query --workspace @week</code>, and <code>wtf query --workspace @tasks</code> read every note. <code>wtf ast file.wtf</code> exposes syntax nodes, <code>wtf graph file.wtf</code> shows dependencies, <code>wtf query --workspace @check --fail-on-match</code> reports problems, <code>wtf query --workspace plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Queries use the same functions as notes: <code>map(filter(tasks, fn(t) =&gt; !t.done), fn(t) =&gt; t.title)</code>. Use <code>wtf query file.wtf 'tasks'</code> to read one note, or <code>wtf query --workspace 'tasks'</code> to read every note. Existing pipelines also filter, project, sort, and group results. Queries are read-only. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.",
         ],
       },
       {

@@ -7,6 +7,7 @@ use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{
     collections::BTreeSet,
+    ffi::OsString,
     io::{self, Read, Write},
     path::{Path, PathBuf},
 };
@@ -51,22 +52,26 @@ pub enum Command {
 }
 #[derive(Args)]
 #[command(
-    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExamples: wtf query 'map(tasks, fn(t) => t.title)' --in note.wtf --json\n          wtf ast note.wtf --query 'filter(ast, fn(n) => n.kind == \"definition\")'"
+    override_usage = "wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] <FILE> -f <QUERY_FILE>\n       wtf query [OPTIONS] --workspace <QUERY>\n       wtf query [OPTIONS] --workspace -f <QUERY_FILE>",
+    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nSaved views: @today, @week, @tasks, @check\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          wtf query --workspace @today --json\n          wtf query note.wtf -f report.wq"
 )]
 pub struct QueryOptions {
+    /// A note relative to --root, or the query expression when --workspace is set.
+    #[arg(value_name = "FILE_OR_QUERY", required_unless_present_all = ["workspace", "file"])]
+    pub input: Option<OsString>,
     /// A functional expression, collection pipeline or saved view such as @today.
     #[arg(
         value_name = "QUERY",
-        required_unless_present = "file",
-        conflicts_with = "file"
+        required_unless_present_any = ["file", "workspace"],
+        conflicts_with_all = ["file", "workspace"]
     )]
     pub source: Option<String>,
     /// Read a query file; use - for stdin.
-    #[arg(short = 'f', long)]
+    #[arg(short = 'f', long, value_name = "QUERY_FILE")]
     pub file: Option<PathBuf>,
-    /// Read input records from this note; paths are relative to --root.
-    #[arg(long = "in", value_name = "NOTE")]
-    pub within: Option<PathBuf>,
+    /// Query all indexed notes instead of supplying a positional note file.
+    #[arg(long)]
+    pub workspace: bool,
     #[command(flatten)]
     pub output: QueryOutput,
 }
@@ -217,15 +222,24 @@ pub async fn run(command: Command) -> Result<(), String> {
 }
 fn inspect_command(view: &str, mut options: InspectOptions) -> Result<(), String> {
     options.output.json = !options.output.jsonl;
-    query_command(QueryOptions {
-        source: Some(options.query.unwrap_or_else(|| view.into())),
-        file: None,
-        within: Some(options.file),
-        output: options.output,
-    })
+    run_query(
+        options.query.unwrap_or_else(|| view.into()),
+        Some(options.file),
+        options.output,
+    )
 }
 fn query_command(options: QueryOptions) -> Result<(), String> {
-    let source = match (options.source, options.file) {
+    let (within, source) = if options.workspace {
+        let source = options
+            .input
+            .map(|s| s.into_string().map_err(|_| "Query must be UTF-8"))
+            .transpose()?;
+        (None, source)
+    } else {
+        let path = options.input.ok_or("Supply a note FILE or --workspace")?;
+        (Some(PathBuf::from(path)), options.source)
+    };
+    let source = match (source, options.file) {
         (Some(source), None) => source,
         (None, Some(path)) if path == Path::new("-") => {
             let mut source = String::new();
@@ -238,13 +252,15 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
         (None, Some(path)) => {
             std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?
         }
-        _ => return Err("Supply a query or --file PATH".into()),
+        _ => return Err("Supply either a query expression or -f QUERY_FILE".into()),
     };
+    run_query(source, within, options.output)
+}
+fn run_query(source: String, within: Option<PathBuf>, options: QueryOutput) -> Result<(), String> {
     let compiled = query::Query::parse(&source)?;
-    let now = request_time(options.output.on, options.output.now)?;
-    let workspace = load(options.output.root.clone())?;
-    let only = options
-        .within
+    let now = request_time(options.on, options.now)?;
+    let workspace = load(options.root.clone())?;
+    let only = within
         .map(|file| {
             let path = workspace.root().join(file);
             std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))
@@ -255,7 +271,6 @@ fn query_command(options: QueryOptions) -> Result<(), String> {
         &compiled,
         only.as_deref(),
     )?;
-    let options = options.output;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {

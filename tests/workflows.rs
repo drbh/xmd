@@ -338,20 +338,28 @@ fn cli_agendas_filter_ignored_notes_without_mutating_them() {
     std::fs::write(root.join("inbox.wtf"), note).unwrap();
     let tasks: serde_json::Value = serde_json::from_str(&run(&[
         "query",
+        "--workspace",
         "@tasks | where contains(tags, \"errands\")",
         "--json",
     ]))
     .unwrap();
     assert_eq!(tasks.as_array().unwrap().len(), 1);
     assert_eq!(tasks[0]["source"]["line"], 1);
-    let agenda: serde_json::Value =
-        serde_json::from_str(&run(&["query", "@week", "--on", "2026-09-16", "--json"])).unwrap();
+    let agenda: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        "--workspace",
+        "@week",
+        "--on",
+        "2026-09-16",
+        "--json",
+    ]))
+    .unwrap();
     assert_eq!(agenda.as_array().unwrap().len(), 1);
     assert_eq!(
         std::fs::read_to_string(root.join("inbox.wtf")).unwrap(),
         note
     );
-    run(&["query", "@check", "--fail-on-match"]);
+    run(&["query", "--workspace", "@check", "--fail-on-match"]);
 }
 
 #[test]
@@ -424,11 +432,13 @@ fn cli_queries_plans_and_converts_alps_problems() {
     };
     let report = run(&[
         "query",
+        "--workspace",
         "plans | where name == \"bakery\" | select solution",
     ]);
     assert!(report.contains("94.75"), "{report}");
     let json: serde_json::Value = serde_json::from_str(&run(&[
         "query",
+        "--workspace",
         "plans | where name == \"bakery\" | select solution",
         "--json",
     ]))
@@ -454,6 +464,7 @@ fn cli_queries_plans_and_converts_alps_problems() {
     assert!(
         run(&[
             "query",
+            "--workspace",
             "plans | where name == \"problem\" | select solution"
         ])
         .contains("94.75")

@@ -37,6 +37,7 @@ fn query_cli_handles_inline_files_stdin_jsonl_and_saved_views_without_writes() {
         root,
         &[
             "query",
+            "--workspace",
             "@today | select {title, estimate, source}",
             "--on",
             "2026-09-16",
@@ -51,10 +52,13 @@ fn query_cli_handles_inline_files_stdin_jsonl_and_saved_views_without_writes() {
     assert_eq!(result[0]["source"]["line"], 1);
     std::fs::write(root.join("open.wq"), "@tasks | select title").unwrap();
     assert_eq!(
-        json_output(root, &["q", "-f", "open.wq", "--json"]),
+        json_output(root, &["q", "--workspace", "-f", "open.wq", "--json"]),
         json!(["Open #work"])
     );
-    let lines = success(run(root, &["query", "tasks | select {title}", "--jsonl"]));
+    let lines = success(run(
+        root,
+        &["query", "--workspace", "tasks | select {title}", "--jsonl"],
+    ));
     let lines = lines
         .lines()
         .map(|s| serde_json::from_str::<Value>(s).unwrap())
@@ -68,7 +72,7 @@ fn query_cli_handles_inline_files_stdin_jsonl_and_saved_views_without_writes() {
     );
     let mut child = Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(root)
-        .args(["query", "-f", "-", "--json"])
+        .args(["query", "--workspace", "-f", "-", "--json"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -93,21 +97,42 @@ fn diagnostic_exit_status_and_invalid_queries_keep_stdout_machine_readable() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     assert_eq!(
-        json_output(root, &["query", "@check", "--fail-on-match", "--json"]),
+        json_output(
+            root,
+            &[
+                "query",
+                "--workspace",
+                "@check",
+                "--fail-on-match",
+                "--json"
+            ]
+        ),
         json!([])
     );
     std::fs::write(root.join("n.wtf"), "bad := absent + 1\n").unwrap();
-    let failed = run(root, &["query", "@check", "--fail-on-match", "--json"]);
+    let failed = run(
+        root,
+        &[
+            "query",
+            "--workspace",
+            "@check",
+            "--fail-on-match",
+            "--json",
+        ],
+    );
     assert_eq!(failed.status.code(), Some(1));
     let rows: Value = serde_json::from_slice(&failed.stdout).unwrap();
     assert_eq!(rows[0]["severity"], "error");
     assert!(String::from_utf8_lossy(&failed.stderr).contains("matching result"));
-    let malformed = run(root, &["query", "tasks | where ("]);
+    let malformed = run(root, &["query", "--workspace", "tasks | where ("]);
     assert_eq!(malformed.status.code(), Some(1));
     assert!(malformed.stdout.is_empty());
-    let incompatible = run(root, &["query", "tasks", "--json", "--jsonl"]);
+    let incompatible = run(
+        root,
+        &["query", "--workspace", "tasks", "--json", "--jsonl"],
+    );
     assert_eq!(incompatible.status.code(), Some(2));
-    let missing = run(root, &["query", "-f", "missing.wq"]);
+    let missing = run(root, &["query", "--workspace", "-f", "missing.wq"]);
     assert!(!missing.status.success());
     assert!(missing.stdout.is_empty());
     for old in [
@@ -128,6 +153,7 @@ fn clock_options_freeze_both_today_and_now_and_root_is_respected() {
         root,
         &[
             "query",
+            "--workspace",
             "values | select value",
             "--root",
             "notes",
@@ -144,6 +170,7 @@ fn clock_options_freeze_both_today_and_now_and_root_is_respected() {
         root,
         &[
             "query",
+            "--workspace",
             "values | select value",
             "--root",
             "notes",
@@ -158,6 +185,7 @@ fn clock_options_freeze_both_today_and_now_and_root_is_respected() {
             root,
             &[
                 "query",
+                "--workspace",
                 "tasks",
                 "--on",
                 "2026-09-16",
@@ -181,11 +209,10 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
     std::fs::write(root.join("notes/two.wtf"), "3:rate\n- [ ] Other\n").unwrap();
     let args = [
         "query",
+        "one.wtf",
         "map(tasks, fn(t) => t.title)",
         "--root",
         "notes",
-        "--in",
-        "one.wtf",
         "--json",
     ];
     assert_eq!(json_output(root, &args), json!(["Local"]));
@@ -194,9 +221,7 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
         ast,
         json_output(
             root,
-            &[
-                "query", "ast", "--root", "notes", "--in", "one.wtf", "--json"
-            ]
+            &["query", "one.wtf", "ast", "--root", "notes", "--json"]
         )
     );
     assert_eq!(ast[0]["text"], source);
@@ -205,9 +230,7 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
         graph,
         json_output(
             root,
-            &[
-                "query", "graph", "--root", "notes", "--in", "one.wtf", "--json"
-            ]
+            &["query", "one.wtf", "graph", "--root", "notes", "--json"]
         )
     );
     assert_eq!(
@@ -244,12 +267,11 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
             root,
             &[
                 "query",
+                "one.wtf",
                 "-f",
                 "select.wq",
                 "--root",
                 "notes",
-                "--in",
-                "one.wtf",
                 "--json"
             ]
         ),
@@ -260,9 +282,8 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
             root,
             &[
                 "query",
-                "length(tasks)",
-                "--in",
                 root.join("notes/one.wtf").to_str().unwrap(),
+                "length(tasks)",
                 "--json"
             ]
         ),
@@ -284,4 +305,88 @@ fn file_queries_and_inspection_shortcuts_share_outputs_and_never_write() {
         source
     );
     assert!(!root.join("notes/.wtf").exists());
+}
+
+#[test]
+fn query_programs_and_stdin_preserve_positional_and_workspace_scopes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    std::fs::write(root.join("one note.wtf"), "- [ ] Local\n").unwrap();
+    std::fs::write(root.join("other.wtf"), "- [ ] Other\n").unwrap();
+    std::fs::write(root.join("tasks.wq"), "length(tasks)").unwrap();
+    assert_eq!(
+        json_output(root, &["q", "one note.wtf", "-f", "tasks.wq", "--json"]),
+        json!([1])
+    );
+    assert_eq!(
+        json_output(root, &["q", "--workspace", "-f", "tasks.wq", "--json"]),
+        json!([2])
+    );
+    assert_eq!(
+        json_output(root, &["query", "length(tasks)", "--workspace", "--json"]),
+        json!([2])
+    );
+    for (scope, expected) in [("one note.wtf", json!([1])), ("--workspace", json!([2]))] {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_wtf"))
+            .current_dir(root)
+            .args(["query", scope, "-f", "-", "--json"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(b"length(tasks)")
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&success(child.wait_with_output().unwrap())).unwrap(),
+            expected
+        );
+    }
+    // An expression that resembles a filename stays an expression with --workspace.
+    assert_eq!(
+        json_output(
+            root,
+            &["query", "--workspace", "\"one note.wtf\"", "--json"]
+        ),
+        json!(["one note.wtf"])
+    );
+}
+
+#[test]
+fn ambiguous_or_incomplete_query_arguments_are_rejected_before_reading_input() {
+    let tmp = tempfile::tempdir().unwrap();
+    for args in [
+        vec!["query"],
+        vec!["query", "tasks"],
+        vec!["query", "note.wtf"],
+        vec!["query", "--workspace"],
+        vec!["query", "-f", "missing.wq"],
+        vec!["query", "note.wtf", "tasks", "--workspace"],
+        vec!["query", "note.wtf", "tasks", "-f", "missing.wq"],
+        vec!["query", "--workspace", "tasks", "-f", "missing.wq"],
+        vec!["query", "--workspace", "tasks", "-f", "-"],
+        vec!["query", "tasks", "--in", "note.wtf"],
+        vec!["query", "note.wtf", "tasks", "extra"],
+    ] {
+        let output = run(tmp.path(), &args);
+        assert!(!output.status.success(), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        assert!(
+            !String::from_utf8_lossy(&output.stderr).contains("No such file"),
+            "{args:?}"
+        );
+    }
+    let help = success(run(tmp.path(), &["query", "--help"]));
+    for usage in [
+        "<FILE> <QUERY>",
+        "<FILE> -f <QUERY_FILE>",
+        "--workspace <QUERY>",
+        "--workspace -f <QUERY_FILE>",
+    ] {
+        assert!(help.contains(usage), "{help}");
+    }
 }

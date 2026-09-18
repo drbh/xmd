@@ -5,21 +5,23 @@ parser, records, lists, lambdas, typed values, builtins, imports and evaluator.
 Workspace collections are input bindings, loaded when an expression reads them.
 
 ```sh
-wtf query 'map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)' --json
-wtf query 'sum(tasks.estimate)' --in trip.wtf --json
-wtf query '{tasks: length(tasks), errors: length(diagnostics)}' --in trip.wtf --json
+wtf query trip.wtf 'map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)' --json
+wtf query trip.wtf 'sum(tasks.estimate)' --json
+wtf query --workspace '{tasks: length(tasks), errors: length(diagnostics)}' --json
 wtf ast trip.wtf
 wtf graph trip.wtf
 ```
 
-`--in NOTE` restricts input records to an indexed note. Paths are relative to
+`query FILE QUERY` restricts input records to an indexed note. Paths are relative to
 `--root` (default: the current directory), or absolute. References still resolve
 against the workspace, so a calculation in that note can read another file.
 Missing or unindexed files produce an error instead of falling back to all files.
-Omit `--in` to query the whole workspace.
+Use `query --workspace QUERY` to query the whole workspace. The file is required
+unless `--workspace` is set; the scope never depends on whether an argument looks
+like a filename. The former `--in` option is no longer accepted.
 
-`ast FILE` and `graph FILE` are shortcuts for `query ast --in FILE --json` and
-`query graph --in FILE --json`. Both accept `--query EXPRESSION`, `--root`,
+`ast FILE` and `graph FILE` are shortcuts for `query FILE ast --json` and
+`query FILE graph --json`. Both accept `--query EXPRESSION`, `--root`,
 `--jsonl`, clock options and `--fail-on-match`.
 
 ```sh
@@ -77,7 +79,7 @@ Predicates require booleans. Comparisons with null return false, except explicit
 `date(timestamp)` uses the request's timezone. `text(null)` remains null.
 Functions retain lexical scope; query row fields never leak into named note or
 module functions. `eval("expression")` resolves in the current document. For
-file-specific functions and values, supply `--in`.
+file-specific functions and values, supply the positional note file.
 
 The evaluator's existing limits apply, including expression depth, function call
 depth, evaluation steps and collection growth. Dynamic expression evaluation is
@@ -130,9 +132,19 @@ expressions use the same evaluator. A pipeline can start with a functional
 expression, such as `filter(ast, fn(n) => n.kind == "definition") | count`.
 Metadata-only pipeline projections retain lazy definition evaluation.
 
-`-f FILE` still reads a query program, not a note. `-f -` reads stdin. Query files
-can contain multiline expressions and `//` comments. `--on DATE` or `--now
-TIMESTAMP` pins the clock. JSON output is always an array: a list expression
+`-f QUERY_FILE` reads a query program, and `-f -` reads stdin. Choose exactly one
+program source: an inline expression or `-f`. Query files can contain multiline
+expressions and `//` comments. Their paths are relative to the current directory;
+note paths are relative to `--root`.
+
+```sh
+wtf query trip.wtf -f report.wq --json
+wtf query --workspace -f report.wq --json
+printf 'length(tasks)' | wtf query trip.wtf -f - --json
+printf 'length(tasks)' | wtf query --workspace -f - --json
+```
+
+`--on DATE` or `--now TIMESTAMP` pins the clock. JSON output is always an array: a list expression
 supplies its rows; a scalar or record becomes one row. `--jsonl` emits a row per
 line. `--fail-on-match` returns status 1 when there are any result rows.
 

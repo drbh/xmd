@@ -1,15 +1,15 @@
 # Agenda and the command line
 
-Every note feeds wtf query @today, wtf query @week, and wtf query @tasks.
+Every note feeds wtf query --workspace @today, wtf query --workspace @week, and wtf query --workspace @tasks.
 
 - [ ] Send the invoice @due(2026-09-18) #finance
 - [ ] Renew the domain @due(2026-09-30) @every(year) #admin
 - [ ] Draft the talk @scheduled(2026-09-19) @estimate(2h)
 - Standup @at(2026-09-18T09:00-04:00)
 
-<!-- wtf query 'map(filter(tasks, fn(t) => contains(t.tags, "finance")), fn(t) => t.title)'
-filters and projects with the same functions as notes. Add --in 29-agenda-and-cli.wtf
-for this file, or use wtf ast 29-agenda-and-cli.wtf and wtf graph 29-agenda-and-cli.wtf
-for syntax and dependencies. Queries are read-only. wtf query @check --fail-on-match
-reports errors; wtf query plans reads solutions; wtf refresh fills caches.
+<!-- wtf query --workspace 'map(filter(tasks, fn(t) => contains(t.tags, "finance")), fn(t) => t.title)'
+filters and projects with the same functions as notes. Replace --workspace with
+29-agenda-and-cli.wtf to read this file, or use wtf ast 29-agenda-and-cli.wtf and wtf graph 29-agenda-and-cli.wtf
+for syntax and dependencies. Queries are read-only. wtf query --workspace @check --fail-on-match
+reports errors; wtf query --workspace plans reads solutions; wtf refresh fills caches.
 Add --json to a query for structured output. -->

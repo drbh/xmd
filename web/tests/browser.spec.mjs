@@ -299,7 +299,7 @@ test("outline switches notes, preserves hierarchy, and follows task and source e
 
 test("tables run in Wasm with reactive totals, column completion, rename, and diagnostics", async ({ page }) => {
   const errors = await ready(page);
-  const source = readFileSync(new URL("../../notes/tables.wtf", import.meta.url));
+  const source = readFileSync(new URL("./fixtures/tables.wtf", import.meta.url));
   await page.locator("#file-input").setInputFiles({ name: "tables.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("$23.80");
   await expect(page.locator("#problems")).toBeHidden();
@@ -368,7 +368,7 @@ test("Typing a closing pipe or Enter after a task formats on type through the sh
 
 test("plans solve inside the Wasm engine with inlays, hovers, and reactive edits", async ({ page }) => {
   await ready(page);
-  const source = readFileSync(new URL("../../notes/plans.wtf", import.meta.url));
+  const source = readFileSync(new URL("./fixtures/plans.wtf", import.meta.url));
   await page.locator("#file-input").setInputFiles({ name: "plans.wtf", mimeType: "text/plain", buffer: source });
   await expect(page.locator(".view-lines")).toContainText("= $94.75 · bagels 25.75 · doughnuts 14");
   await expect(page.locator(".view-lines")).toContainText("400 ≤ 400 · ● binding");
@@ -436,5 +436,34 @@ test("the book runs every example as a live block on the shared engine", async (
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
   // Unfetched lookups are warnings, listed under the block.
   await expect(page.locator('.wtf-block[data-file="05-currencies.wtf"] .problems .warn').first()).toContainText("No cached rate");
+  expect(errors).toEqual([]);
+});
+
+test("the document view edits, toggles checkboxes, persists, and shares a workspace", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/docs/?test");
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  const view = page.locator(".view");
+  await expect(view).toContainText("= $556");
+  await expect(view.locator(".line.h1").first()).toHaveText(/Trip budget/);
+  // Clicking a checkbox flips it in the text and the engine repaints.
+  const box = view.locator(".t-wtfCheckbox").first();
+  await box.click();
+  await expect(view).toContainText("[x] Book the hotel");
+  await expect(page.locator(".status")).toContainText("Saved in this browser");
+  // A second document sees the first one's names.
+  await page.evaluate(() => window.wtfDocs.newDocument());
+  await page.waitForFunction(() => window.wtfDocs.controller);
+  await page.evaluate(() => window.wtfDocs.controller.setSource("# Second\n\nStill [remaining] to spend.\n"));
+  await expect(view).toContainText("$556");
+  // The title follows the first heading, and saves are debounced briefly.
+  await expect(page.locator(".files nav")).toContainText("Second");
+  await page.waitForTimeout(600);
+  // Documents survive a reload.
+  await page.reload();
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  await expect(page.locator(".files nav")).toContainText("Second");
+  await expect(page.locator(".files nav")).toContainText("Trip budget");
   expect(errors).toEqual([]);
 });

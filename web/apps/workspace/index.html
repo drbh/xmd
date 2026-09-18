@@ -7,9 +7,11 @@
   <title>WTF — browser workspace</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://esm.sh/monaco-editor@0.56.0/es2022/monaco-editor.bundle.css">
+  <link rel="stylesheet" href="./lib/theme/fonts.css">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">
     {
+      "imports": {"@wtf/web": "./lib/src/index.js", "@wtf/web/monaco": "./lib/adapters/monaco/index.js", "monaco-editor": "https://esm.sh/monaco-editor@0.56.0?bundle"},
       "scopes": {
         "https://esm.sh/monaco-editor@0.56.0/": {
           "https://esm.sh/node/process.mjs": "./browser-process.js"
@@ -22,6 +24,7 @@
   <header>
     <div class="brand">wtf<span>notes that think with you</span></div>
     <div class="actions">
+      <a class="button" href="./docs/">Docs view</a>
       <button id="new-note">New note</button>
       <button id="import-notes">Import .wtf</button>
       <button id="download">Download</button>

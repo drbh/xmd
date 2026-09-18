@@ -64,7 +64,7 @@ export function setCaret(view, offset) {
     if (remaining <= node.data.length) { place(node, remaining); return; }
     remaining -= node.data.length;
   }
-  if (last) place(last, last.data.length);
+  if (last) place(last, last.data.length); else place(view, 0);
 }
 export function offsetAt(view, x, y) {
   let node, offset;

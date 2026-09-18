@@ -1,11 +1,11 @@
-import { createWorkspace, defaultUri } from "./workspace.js";
+import { createWorkspace, defaultUri, canonicalUri } from "./workspace.js";
 import { lineChar, offsetAt, offsetOfPoint, renderHover, selectionOf, restoreSelection } from "./dom.js";
 
 /** Mount resolved content; controls always execute the engine's versioned actions. */
 export async function mount(element, options = {}) {
   const owned = !options.workspace;
   const workspace = options.workspace || createWorkspace(options);
-  const uri = options.uri || defaultUri;
+  const uri = canonicalUri(options.uri || defaultUri);
   let dead = false, paused = false, latest, hoverTimer, hoverKey = 0;
   const abort = new AbortController();
   const view = element.tagName === "PRE" ? element : element.appendChild(element.ownerDocument.createElement("pre"));
@@ -43,7 +43,7 @@ export async function mount(element, options = {}) {
     if (!dead && result.open) open(result.open);
     return result;
   }
-  const unsubscribe = workspace.subscribe(uri, draw);
+  const unsubscribe = workspace.subscribe(uri, draw, { editing: options.editing ?? true });
   const unchange = workspace.onChange(change => { if (!dead && change.uri === uri) options.onChange?.(change); });
   const listen = (type, handler) => view.addEventListener(type, handler, { signal: abort.signal });
   listen("click", event => {
@@ -95,7 +95,7 @@ export async function mount(element, options = {}) {
     get destroyed() { return dead; },
     getSource: () => workspace.getDocument(uri)?.source,
     setSource: source => dead ? Promise.reject(new Error("View was destroyed")) : workspace.setDocument(uri, source),
-    refresh: () => workspace.analyze(uri, { force: true }),
+    refresh: () => dead ? Promise.reject(new Error("View was destroyed")) : workspace.analyze(uri, { force: true, editing: options.editing ?? true }),
     execute,
     pause(value) { paused = value; if (!paused && latest) draw(latest); },
     destroy() {

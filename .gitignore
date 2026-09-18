@@ -4,6 +4,10 @@
 /.wtf/
 /web/pkg/
 /web/node_modules/
+/web/apps/*/node_modules/
+/web/apps/*/dist/
+/web/dist/
+/web/*.tgz
 /web/test-results/
 /web/playwright-report/
 /ide/vscode/node_modules/

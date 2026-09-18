@@ -1,7 +1,3 @@
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Regular.subset.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Bold.subset.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Italic.subset.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-BoldItalic.subset.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
 :root { font-family: ui-sans-serif, system-ui, sans-serif; color: #d4ded4; background: #171b19; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; height: 100dvh; display: flex; flex-direction: column; }
@@ -11,6 +7,7 @@ header { min-height: 76px; display: flex; align-items: center; justify-content: 
 .actions { display: flex; gap: 8px; }
 button { cursor: pointer; color: inherit; background: transparent; border: 1px solid #394439; border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 12px; }
 button:hover { background: #283125; }
+a.button { text-decoration: none; display: inline-block; }
 button:focus-visible { outline: 2px solid #a3c583; outline-offset: 2px; }
 main { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0,1fr); }
 aside { padding: 24px 14px; border-right: 1px solid #2b332d; overflow: auto; background: #141815; }

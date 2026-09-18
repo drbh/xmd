@@ -86,3 +86,28 @@ test("worker errors and disposal reject pending requests; timeouts stop further 
   await assert.rejects(pending, /failed/);
   next.destroy();
 });
+
+test("a mutation during an in-flight refresh schedules a fresh snapshot", async () => {
+  const mock = engine();
+  let release, started, block = false;
+  const waiting = new Promise(resolve => { started = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  const ws = createWorkspace({ transport: async (...args) => {
+    const result = await mock.transport(...args);
+    if (args[0] === "analyze" && block) { block = false; started(); await gate; }
+    return result;
+  }, now: "2026-09-18T12:00:00Z" });
+  try {
+    await ws.setDocument(uri, "a"); await ws.setDocument(other, "b");
+    const revisions = [];
+    ws.subscribe(other, snapshot => revisions.push(snapshot.revision));
+    block = true;
+    await ws.setDocument(uri, "first");
+    await waiting;
+    const write = ws.setDocument(uri, "second");
+    release();
+    await write;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(revisions.includes(ws.revision));
+  } finally { ws.destroy(); }
+});

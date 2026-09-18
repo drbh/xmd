@@ -1,4 +1,5 @@
 import { createOutline } from "./outline.js";
+import { createWorkspace } from "@wtf/web";
 
 const $ = id => document.getElementById(id);
 const STORAGE_KEY = "wtf.browser.workspace.v1";
@@ -12,60 +13,23 @@ window.addEventListener("unhandledrejection", event => notice(event.reason?.mess
 async function boot() {
   if (location.protocol === "file:") throw new Error("Serve this folder over HTTP, for example: node web/serve.mjs");
   window.MonacoEnvironment = { getWorker: () => new Worker(new URL("./monaco-worker.js", import.meta.url), { type: "module" }) };
-  const { monaco, createEditor } = await import("./editor.js");
-  const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
-  const pending = new Map();
-  let nextId = 0, dead = false;
-  function rpc(method, params) {
-    if (dead) return Promise.reject(new Error("The language worker stopped. Download your note and reload to retry."));
-    return new Promise((resolve, reject) => {
-      const id = ++nextId;
-      const timeout = setTimeout(() => { pending.delete(id); reject(new Error("Language worker timed out; reload to retry.")); }, 30_000);
-      pending.set(id, { resolve, reject, timeout });
-      worker.postMessage({ id, method, params });
-    });
-  }
-  worker.onmessage = ({ data }) => {
-    const request = pending.get(data.id);
-    if (!request) return;
-    clearTimeout(request.timeout); pending.delete(data.id);
-    if (data.ok) request.resolve(data.result); else request.reject(new Error(data.error));
-  };
-  worker.onerror = event => {
-    dead = true;
-    const error = new Error(event.message || "Could not load the language worker. Run bash web/build.sh and reload.");
-    for (const request of pending.values()) { clearTimeout(request.timeout); request.reject(error); }
-    pending.clear(); notice(error.message);
-  };
-  const legend = await rpc("semanticLegend", {});
-  const notes = new Map(), snapshots = new Map(), analyses = new Map();
-  let active, revision = 0, syncTail = Promise.resolve(), refreshTimer, saveTimer, storageWritable = true;
+  const { monaco, createEditor } = await import("@wtf/web/monaco");
   const error = e => notice(e?.message || e);
-  async function query(model, method, params = {}) {
-    await syncTail;
-    const before = revision;
-    const result = await rpc(method, { uri: model.uri.toString(), ...params });
-    return before === revision ? result : null;
-  }
-  function analyze(model, force = false) {
-    const uri = model.uri.toString(), cache = snapshots.get(uri);
-    if (!force && cache?.revision === revision) return Promise.resolve(cache);
-    const key = `${uri}:${revision}`;
-    if (analyses.has(key)) return analyses.get(key);
-    const before = revision;
-    const request = query(model, "analyze").then(snapshot => {
-      if (!snapshot || before !== revision || snapshot.version !== model.getVersionId()) return null;
-      snapshot.revision = before;
-      snapshots.set(uri, snapshot);
-      ui.publish(model, snapshot);
-      if (model === active?.model) updateStatus(snapshot);
-      return snapshot;
-    }).finally(() => analyses.delete(key));
-    analyses.set(key, request);
-    return request;
-  }
-  const ui = createEditor($("editor"), { legend, query, analyze, error, open: openResource, execute: async (command, versions) => {
-    await syncTail;
+  const workspace = createWorkspace({ onError: error });
+  const rpc = workspace.request;
+  const legend = await rpc("semanticLegend", {});
+  const notes = new Map();
+  let active, refreshTimer, saveTimer, storageWritable = true, unsubscribe;
+  const query = (model, method, params = {}) => workspace.query(model.uri.toString(), method, params);
+  const analyze = (model, force = false) => workspace.analyze(model.uri.toString(), { force });
+  const modelVersion = target => {
+    const model = notes.get(monaco.Uri.parse(target.uri).toString())?.model;
+    const doc = workspace.getDocument(target.uri);
+    if (!model || !doc || doc.version !== target.version || doc.source !== model.getValue()) throw new Error("Note changed; request fresh controls.");
+    return model.getVersionId();
+  };
+  const ui = createEditor($("editor"), { legend, query, analyze, modelVersion, error, open: openResource, execute: async (command, versions) => {
+    await workspace.settled();
     // Monaco can retain a same-title lens briefly after edits/undo. Revalidate its
     // exact target and action, never just its title, against the current workspace.
     const model = notes.get(monaco.Uri.parse(command.arguments[0]).toString())?.model;
@@ -73,15 +37,12 @@ async function boot() {
     const current = await analyze(model, true);
     if (!current?.lenses.some(lens => JSON.stringify(lens.command) === JSON.stringify(command))) throw new Error("Source changed; request fresh controls.");
     versions = current.versions;
-    return rpc("execute", { command, versions });
+    return workspace.execute(command, versions, { apply: false });
   } });
   const { editor } = ui;
   const outline = createOutline(editor, { list: $("outline"), filter: $("outline-filter"), empty: $("outline-empty") });
   function sync(model) {
-    const params = { uri: model.uri.toString(), text: model.getValue(), version: model.getVersionId() };
-    revision++;
-    snapshots.clear();
-    syncTail = syncTail.then(() => rpc("setDocument", params)).catch(error);
+    workspace.setDocument(model.uri.toString(), model.getValue()).catch(error);
   }
   function refresh(force = false) {
     clearTimeout(refreshTimer);
@@ -101,7 +62,7 @@ async function boot() {
     if (new TextEncoder().encode(text).length > 1_000_000) throw new Error("Notes are limited to 1 MB in the browser.");
     name = uniqueName(name);
     const uri = monaco.Uri.file(`/workspace/${name}`);
-    const model = monaco.editor.createModel(text, "wtf", uri);
+    const model = monaco.editor.createModel(text, ui.language, uri);
     // Models are created separately from the editor; suppress their automatic
     // bracket rainbow so Rust's punctuation and inert-code colors stay intact.
     model.updateOptions({ bracketColorizationOptions: { enabled: false, independentColorPoolPerBracketType: false } });
@@ -118,7 +79,13 @@ async function boot() {
   }
   function choose(note, selection) {
     if (active) active.viewState = editor.saveViewState();
+    unsubscribe?.();
     active = note;
+    unsubscribe = workspace.subscribe(note.model.uri.toString(), snapshot => {
+      if (snapshot.source !== note.model.getValue()) return;
+      ui.publish(note.model, snapshot);
+      updateStatus(snapshot);
+    });
     editor.setModel(note.model);
     outline.reset(note.model);
     if (note.viewState) editor.restoreViewState(note.viewState);
@@ -184,7 +151,7 @@ async function boot() {
   } catch { restored = null; storageWritable = false; notice("Saved workspace could not be read. Original storage has been preserved; autosaving is disabled. Download any new work before leaving."); }
   for (const note of restored?.notes || initialNotes) addNote(note.name, note.text);
   choose([...notes.values()].find(n => n.name === restored?.active) || notes.values().next().value);
-  await syncTail;
+  await workspace.settled();
   await refresh(true);
   if (storageWritable) save();
   else $("save-status").textContent = "Local saving unavailable — download a backup";
@@ -221,14 +188,9 @@ async function boot() {
     }
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(true); else save(); });
-  let day = new Date().toDateString();
-  setInterval(() => {
-    const current = new Date().toDateString();
-    if (!document.hidden && (current !== day || snapshots.get(active?.model.uri.toString())?.live)) refresh(true);
-    day = current;
-  }, 1000);
+  window.addEventListener("pagehide", () => { unsubscribe?.(); ui.destroy(); workspace.destroy(); for (const note of notes.values()) note.model.dispose(); });
   // Opt-in test harness; the normal page does not expose editor/worker internals globally.
-  if (new URLSearchParams(location.search).has("test")) window.wtfTest = { editor, monaco, notes, query, analyze, rpc, ui, choose, ready: true };
+  if (new URLSearchParams(location.search).has("test")) window.wtfTest = { editor, monaco, notes, query, analyze, rpc, ui, workspace, choose, ready: true };
 }
 
 boot().catch(error => {

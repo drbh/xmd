@@ -5,10 +5,6 @@ import { createWorkspace, defaultUri } from "./workspace.js";
 /** Resolve once. Returned HTML needs only style.css, with no runtime scripts. */
 export async function render(source, options = {}) {
   const owned = !options.workspace;
-  if (owned && !options.transport && !options.workerFactory && typeof Worker === "undefined") {
-    const { createServerTransport } = await import("./server.js");
-    options = { ...options, transport: await createServerTransport() };
-  }
   const workspace = options.workspace || createWorkspace(options);
   const uri = options.uri || defaultUri;
   try {

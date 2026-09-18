@@ -77,3 +77,10 @@ and escapes all source, labels, tooltips, and link attributes as text.
 The HTML browser regression uses the native binary: run `cargo build --locked`,
 then `cd web && npx playwright test tests/render.spec.mjs` to check the rendered
 text, colors, diagnostics, links, and print styling in Chrome.
+
+HTML serialization now lives in `web/renderer/`, shared by the native CLI and
+WASM host. The browser `render`/`analyze` snapshots expose the same fragment with
+source, clock, schema, and document versions. The framework-independent JS API
+provides `render`, `mount`, and `createWorkspace`; see [web embedding](../web/README.md).
+Theme ownership is `web/theme/palette.json`, with scoped CSS shared by the HTML
+export, book, and docs and generated adapters for Monaco and Zed.

@@ -1,5 +1,6 @@
-import * as monaco from "https://esm.sh/monaco-editor@0.56.0?bundle";
+import * as monaco from "monaco-editor";
 export { monaco };
+import tokenRules from "../../theme/monaco.js";
 
 const point = p => ({ lineNumber: p.line + 1, column: p.character + 1 });
 const position = p => ({ line: p.lineNumber - 1, character: p.column - 1 });
@@ -11,51 +12,22 @@ function emitter() {
   return { event: listener => { listeners.add(listener); return { dispose: () => listeners.delete(listener) }; }, fire: () => { for (const listener of listeners) listener(); } };
 }
 
+let nextEditor = 0;
 export function createEditor(element, client) {
-  monaco.languages.register({ id: "wtf", extensions: [".wtf"] });
-  monaco.languages.setLanguageConfiguration("wtf", {
+  const language = `wtf-${++nextEditor}`, commandId = `${language}.execute`;
+  const disposables = [];
+  const keep = disposable => { if (disposable?.dispose) disposables.push(disposable); return disposable; };
+  const register = (method, ...args) => keep(monaco.languages[method](...args));
+  register("register", { id: language, extensions: [".wtf"] });
+  register("setLanguageConfiguration", language, {
     brackets: [["[", "]"], ["(", ")"]],
     autoClosingPairs: [{ open: "[", close: "]" }, { open: "(", close: ")" }, { open: '"', close: '"' }],
-    comments: { blockComment: ["<!--", "-->"] },
+    comments: { lineComment: "//", blockComment: ["<!--", "-->"] },
   });
   // The semantic tokens below come from Rust, not a second parser in JavaScript.
   monaco.editor.defineTheme("wtf-night", {
     base: "vs-dark", inherit: true,
-    rules: [
-      { token: "comment", foreground: "889781", fontStyle: "italic" },
-      { token: "keyword", foreground: "F0A77D" }, { token: "number", foreground: "DABD90" },
-      { token: "variable", foreground: "A8C7FA" },
-      { token: "variable.declaration", foreground: "A8C7FA", fontStyle: "bold" },
-      { token: "function", foreground: "C6A0F6" },
-      { token: "property", foreground: "83D6CF" },
-      { token: "property.declaration", foreground: "83D6CF", fontStyle: "bold" },
-      { token: "decorator", foreground: "DEA2B8" },
-      { token: "operator", foreground: "EDB486" },
-      { token: "string", foreground: "CAD19B" },
-      { token: "heading", foreground: "D6E8C2", fontStyle: "bold" },
-      { token: "wtfMoney", foreground: "B4D98A", fontStyle: "bold" },
-      { token: "wtfDate", foreground: "F2B3DA", fontStyle: "bold" },
-      { token: "wtfTime", foreground: "91DCE8", fontStyle: "bold" },
-      { token: "wtfDuration", foreground: "F4BA7A" },
-      { token: "wtfRatio", foreground: "EAC080" },
-      { token: "wtfBoolean", foreground: "C6A0F6" },
-      { token: "wtfPunctuation", foreground: "85938B" },
-      { token: "wtfCode", foreground: "A1AE9B" },
-      { token: "wtfLink", foreground: "90BED8", fontStyle: "underline" },
-      { token: "wtfCheckbox", foreground: "FFD580", fontStyle: "bold" },
-      { token: "wtfCheckboxChecked", foreground: "91E6AC", fontStyle: "bold" },
-      { token: "wtfTaskDone", foreground: "87A788", fontStyle: "strikethrough" },
-      { token: "wtfDay", foreground: "FF9ECF", fontStyle: "bold" },
-      { token: "wtfPlace", foreground: "E2C4FF" },
-      { token: "wtfDetailKey", foreground: "9DB3A6", fontStyle: "italic" },
-      { token: "wtfDepart", foreground: "FFB070" }, { token: "wtfDepart.declaration", foreground: "FFB070", fontStyle: "bold" },
-      { token: "wtfArrive", foreground: "9CE8A0" }, { token: "wtfArrive.declaration", foreground: "9CE8A0", fontStyle: "bold" },
-      { token: "wtfTransit", foreground: "8FCBFF" }, { token: "wtfTransit.declaration", foreground: "8FCBFF", fontStyle: "bold" },
-      { token: "wtfStay", foreground: "C9A4FF" }, { token: "wtfStay.declaration", foreground: "C9A4FF", fontStyle: "bold" },
-      { token: "wtfMeal", foreground: "FF8FA3" }, { token: "wtfMeal.declaration", foreground: "FF8FA3", fontStyle: "bold" },
-      { token: "wtfVisit", foreground: "F6E38A" }, { token: "wtfVisit.declaration", foreground: "F6E38A", fontStyle: "bold" },
-      { token: "wtfExplore", foreground: "7FE3D0" }, { token: "wtfExplore.declaration", foreground: "7FE3D0", fontStyle: "bold" },
-    ],
+    rules: tokenRules,
     colors: {
       "editor.background": "#171b19", "editor.foreground": "#d4ded4", "editorLineNumber.foreground": "#66735f",
       "editorLineNumber.activeForeground": "#bacbad", "editorCursor.foreground": "#c1dea4",
@@ -83,20 +55,20 @@ export function createEditor(element, client) {
     try { return await fn(...args); }
     catch (error) { client.error(error); return undefined; }
   };
-  const command = (c, versions) => ({ id: "wtf.browser.execute", title: c.title, arguments: [c, versions] });
-  monaco.editor.registerCommand("wtf.browser.execute", guarded(async (_accessor, c, versions) => {
+  const command = (c, versions) => ({ id: commandId, title: c.title, arguments: [c, versions] });
+  keep(monaco.editor.registerCommand(commandId, guarded(async (_accessor, c, versions) => {
     const result = await client.execute(c, versions);
     if (result?.edit) applyEdit(result.edit);
     if (result?.open) client.open(result.open);
-  }));
+  })));
   const toWorkspaceEdit = edit => ({ edits: (edit.documentChanges || []).flatMap(change => change.edits.map(e => ({
-    resource: monaco.Uri.parse(change.textDocument.uri), versionId: change.textDocument.version,
+    resource: monaco.Uri.parse(change.textDocument.uri), versionId: client.modelVersion?.(change.textDocument) ?? change.textDocument.version,
     textEdit: { range: range(e.range), text: e.newText },
   }))) });
   function applyEdit(edit) {
     const changes = (edit.documentChanges || []).map(change => {
       const model = monaco.editor.getModel(monaco.Uri.parse(change.textDocument.uri));
-      if (!model || model.getVersionId() !== change.textDocument.version) throw new Error("Note changed; request the action again.");
+      if (!model || model.getVersionId() !== (client.modelVersion?.(change.textDocument) ?? change.textDocument.version)) throw new Error("Note changed; request the action again.");
       const edits = change.edits.map(e => ({ range: range(e.range), text: e.newText }));
       if (edits.some(e => !model.validateRange(e.range).equalsRange(e.range))) throw new Error("Invalid edit range.");
       return { model, edits };
@@ -109,7 +81,7 @@ export function createEditor(element, client) {
       model.pushStackElement();
     }
   }
-  monaco.languages.registerInlayHintsProvider("wtf", {
+  register("registerInlayHintsProvider", language, {
     onDidChangeInlayHints: hintChange.event,
     provideInlayHints: guarded(async (model, requestedRange) => {
       const result = await client.analyze(model);
@@ -119,27 +91,27 @@ export function createEditor(element, client) {
       })), dispose() {} };
     }),
   });
-  monaco.languages.registerDocumentSemanticTokensProvider("wtf", {
+  register("registerDocumentSemanticTokensProvider", language, {
     onDidChange: tokenChange.event,
     getLegend: () => client.legend,
     provideDocumentSemanticTokens: guarded(async model => ({ data: new Uint32Array((await client.analyze(model))?.tokens || []) })),
     releaseDocumentSemanticTokens() {},
   });
-  monaco.languages.registerCodeLensProvider("wtf", {
+  register("registerCodeLensProvider", language, {
     onDidChange: lensChange.event,
     provideCodeLenses: guarded(async model => {
       const result = await client.analyze(model);
       return { lenses: (result?.lenses || []).map(l => ({ range: range(l.range), command: command(l.command, result.versions) })), dispose() {} };
     }),
   });
-  monaco.languages.registerHoverProvider("wtf", {
+  register("registerHoverProvider", language, {
     provideHover: guarded(async (model, p) => {
       const result = await client.query(model, "hover", { position: position(p) });
       return result && { range: range(result.range), contents: [markdown(result.contents)] };
     }),
   });
   const kinds = ["Text", "Text", "Method", "Function", "Constructor", "Field", "Variable", "Class", "Interface", "Module", "Property", "Unit", "Value", "Enum", "Keyword", "Snippet", "Color", "File", "Reference", "Folder", "EnumMember", "Constant", "Struct", "Event", "Operator", "TypeParameter"];
-  monaco.languages.registerCompletionItemProvider("wtf", {
+  register("registerCompletionItemProvider", language, {
     triggerCharacters: ["[", "@", "."],
     provideCompletionItems: guarded(async (model, p) => {
       const items = await client.query(model, "completion", { position: position(p) });
@@ -152,7 +124,7 @@ export function createEditor(element, client) {
       })) };
     }),
   });
-  monaco.languages.registerSignatureHelpProvider("wtf", {
+  register("registerSignatureHelpProvider", language, {
     signatureHelpTriggerCharacters: ["(", ","], signatureHelpRetriggerCharacters: [")"],
     provideSignatureHelp: guarded(async (model, p) => {
       const result = await client.query(model, "signature", { position: position(p) });
@@ -160,7 +132,7 @@ export function createEditor(element, client) {
         signatures: result.signatures.map(s => ({ ...s, documentation: markdown(s.documentation) })) }, dispose() {} };
     }),
   });
-  monaco.languages.registerDocumentHighlightProvider("wtf", {
+  register("registerDocumentHighlightProvider", language, {
     provideDocumentHighlights: guarded(async (model, p) => (await client.query(model, "highlights", { position: position(p) }) || []).map(h => ({ ...h, range: range(h.range) }))),
   });
   const documentSymbol = s => ({
@@ -168,31 +140,31 @@ export function createEditor(element, client) {
     range: range(s.range), selectionRange: range(s.selectionRange),
     children: s.children?.map(documentSymbol),
   });
-  monaco.languages.registerFoldingRangeProvider("wtf", {
+  register("registerFoldingRangeProvider", language, {
     provideFoldingRanges: guarded(async model => ((await client.query(model, "folding")) || []).map(r => ({ start: r.startLine + 1, end: r.endLine + 1, kind: r.kind === "comment" ? monaco.languages.FoldingRangeKind.Comment : monaco.languages.FoldingRangeKind.Region }))),
   });
-  monaco.languages.registerDocumentSymbolProvider("wtf", {
+  register("registerDocumentSymbolProvider", language, {
     displayName: "WTF",
     provideDocumentSymbols: guarded(async model => ((await client.query(model, "documentSymbols")) || []).map(documentSymbol)),
   });
-  monaco.languages.registerDocumentFormattingEditProvider("wtf", {
+  register("registerDocumentFormattingEditProvider", language, {
     provideDocumentFormattingEdits: guarded(async model => ((await client.query(model, "formatting")) || []).map(e => ({ range: range(e.range), text: e.newText }))),
   });
-  monaco.languages.registerOnTypeFormattingEditProvider("wtf", {
+  register("registerOnTypeFormattingEditProvider", language, {
     autoFormatTriggerCharacters: ["\n", "|"],
     provideOnTypeFormattingEdits: guarded(async (model, p, ch) => ((await client.query(model, "onTypeFormatting", { position: position(p), ch })) || []).map(e => ({ range: range(e.range), text: e.newText }))),
   });
   const location = l => ({ uri: monaco.Uri.parse(l.uri), range: range(l.range) });
-  monaco.languages.registerDefinitionProvider("wtf", {
+  register("registerDefinitionProvider", language, {
     provideDefinition: guarded(async (model, p) => { const result = await client.query(model, "definition", { position: position(p) }); return result && location(result); }),
   });
-  monaco.languages.registerReferenceProvider("wtf", {
+  register("registerReferenceProvider", language, {
     provideReferences: guarded(async (model, p, context) => {
       const result = await client.query(model, "references", { position: position(p) });
       return (context.includeDeclaration ? result || [] : (result || []).slice(1)).map(location);
     }),
   });
-  monaco.languages.registerRenameProvider("wtf", {
+  register("registerRenameProvider", language, {
     resolveRenameLocation: guarded(async (model, p) => {
       const result = await client.query(model, "prepareRename", { position: position(p) });
       return result && { range: range(result.range), text: result.placeholder };
@@ -202,7 +174,7 @@ export function createEditor(element, client) {
       catch (error) { return { edits: [], rejectReason: error.message }; }
     },
   });
-  monaco.languages.registerCodeActionProvider("wtf", {
+  register("registerCodeActionProvider", language, {
     provideCodeActions: guarded(async (model, r, context) => {
       const result = await client.query(model, "actions", { range: lspRange(r) });
       return { actions: (result?.actions || []).filter(a => !context.only || a.kind === context.only || a.kind?.startsWith(context.only + ".")).map(a => ({
@@ -211,16 +183,16 @@ export function createEditor(element, client) {
       })), dispose() {} };
     }),
   }, { providedCodeActionKinds: ["quickfix", "refactor"] });
-  monaco.languages.registerLinkProvider("wtf", {
+  register("registerLinkProvider", language, {
     provideLinks: guarded(async model => ({ links: ((await client.analyze(model))?.links || []).map(l => ({ range: range(l.range), url: l.target, tooltip: l.tooltip })) })),
   });
-  monaco.editor.registerLinkOpener({ open: resource => client.open(resource.toString()) });
-  monaco.editor.registerEditorOpener({ openCodeEditor: (_source, resource, selection) => client.open(resource.toString(), selection) });
+  keep(monaco.editor.registerLinkOpener({ open: resource => editor.hasTextFocus() && client.open(resource.toString()) }));
+  keep(monaco.editor.registerEditorOpener({ openCodeEditor: (source, resource, selection) => source === editor && client.open(resource.toString(), selection) }));
   let lastTokens = "", lastLenses = "", lastHints = "";
   function publish(model, snapshot) {
     monaco.editor.setModelMarkers(model, "wtf", snapshot.diagnostics.map(d => ({
       ...range(d.range), message: d.message, source: "wtf", code: d.code,
-      severity: d.severity === 2 ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Error,
+      severity: ({ 1: monaco.MarkerSeverity.Error, 2: monaco.MarkerSeverity.Warning, 3: monaco.MarkerSeverity.Info, 4: monaco.MarkerSeverity.Hint })[d.severity] || monaco.MarkerSeverity.Error,
       relatedInformation: d.relatedInformation?.map(r => ({ resource: monaco.Uri.parse(r.location.uri), ...range(r.location.range), message: r.message })),
     })));
     const prefix = model.uri.toString();
@@ -229,5 +201,5 @@ export function createEditor(element, client) {
     if (lenses !== lastLenses) { lastLenses = lenses; lensChange.fire(); }
     if (hints !== lastHints) { lastHints = hints; hintChange.fire(); }
   }
-  return { editor, publish, applyEdit };
+  return { editor, language, publish, applyEdit, destroy() { editor.dispose(); for (const disposable of disposables.reverse()) disposable.dispose(); } };
 }

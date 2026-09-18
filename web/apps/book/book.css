@@ -1,7 +1,3 @@
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Regular.subset.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Bold.subset.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-Italic.subset.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
-@font-face { font-family: "Ioskeley Mono"; src: url("../fonts/IoskeleyMono-BoldItalic.subset.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
 :root { --mono: "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --ink: #d6d6d6; --muted: #8a8a8a; --rule: #2a2a2a; --paper: #0f0f0f; --panel: #141414; --accent: #e6e6e6; --code-bg: #171717; --code-ink: #d6d6d6; --code-inline: #222222; --lead: #b8b8b8; font-family: var(--mono); font-synthesis: none; color: var(--ink); background: var(--paper); color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
@@ -37,7 +33,6 @@ footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px;
 .editor .view::selection, .editor .view *::selection { background: rgba(255,255,255,.14); }
 /* Inline hints, the way the editor draws them: dimmed text at the anchor,
    a hair smaller, with a little air on each side. */
-.inlay { display: inline-block; margin: 0 2px 0 5px; padding: 0 5px; background: #242424; color: #9c9c9c; font-size: 0.86em; line-height: 1.45; vertical-align: baseline; user-select: none; white-space: pre; }
 .hover { position: fixed; z-index: 10; margin: 0; padding: 10px 14px; border: 1px solid #3a3a3a; background: #1d1d1d; color: #c8c8c8; font: 12px/1.6 var(--mono); box-shadow: 0 6px 24px rgba(0,0,0,.5); pointer-events: none; }
 .hover p { margin: 0 0 8px; font-size: 12px; line-height: 1.6; }
 .hover p:last-child { margin-bottom: 0; }
@@ -47,39 +42,5 @@ footer { margin-top: 64px; border-top: 1px solid var(--rule); padding-top: 16px;
 .problems { margin: 0; padding: 8px 18px; list-style: none; border-top: 1px solid var(--rule); font: 12px/1.6 var(--mono); }
 .problems .error { color: #efac9e; }
 .problems .warn { color: #edd8a3; }
-.view .error { text-decoration: underline wavy #efac9e; }
 .view .warn { text-decoration: underline wavy #edd8a3; }
-.view .decl { font-weight: 700; }
-.t-comment { color: #889781; font-style: italic; }
-.t-keyword { color: #F0A77D; }
-.t-number { color: #DABD90; }
-.t-variable { color: #A8C7FA; }
-.t-function { color: #C6A0F6; }
-.t-property { color: #83D6CF; }
-.t-decorator { color: #DEA2B8; }
-.t-operator { color: #EDB486; }
-.t-string { color: #CAD19B; }
-.t-heading { color: #D6E8C2; font-weight: 700; }
-.t-wtfMoney { color: #B4D98A; font-weight: 700; }
-.t-wtfDate { color: #F2B3DA; font-weight: 700; }
-.t-wtfTime { color: #91DCE8; font-weight: 700; }
-.t-wtfDuration { color: #F4BA7A; }
-.t-wtfRatio { color: #EAC080; }
-.t-wtfBoolean { color: #C6A0F6; }
-.t-wtfPunctuation { color: #85938B; }
-.t-wtfCode { color: #A1AE9B; }
-.t-wtfLink { color: #90BED8; text-decoration: underline; }
-.t-wtfCheckbox { color: #FFD580; font-weight: 700; }
-.t-wtfCheckboxChecked { color: #91E6AC; font-weight: 700; }
-.t-wtfTaskDone { color: #87A788; text-decoration: line-through; }
-.t-wtfDay { color: #FF9ECF; font-weight: 700; }
-.t-wtfPlace { color: #E2C4FF; }
-.t-wtfDetailKey { color: #9DB3A6; font-style: italic; }
-.t-wtfDepart { color: #FFB070; }
-.t-wtfArrive { color: #9CE8A0; }
-.t-wtfTransit { color: #8FCBFF; }
-.t-wtfStay { color: #C9A4FF; }
-.t-wtfMeal { color: #FF8FA3; }
-.t-wtfVisit { color: #F6E38A; }
-.t-wtfExplore { color: #7FE3D0; }
 @media (max-width: 900px) { body { grid-template-columns: 1fr; } .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); } main { padding: 24px 20px 64px; } }

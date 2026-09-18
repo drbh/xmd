@@ -1,6 +1,7 @@
 import { createRpc } from "./rpc.js";
 
 export const defaultUri = "file:///workspace/main.wtf";
+export const canonicalUri = uri => new URL(uri).href;
 
 /** UTF-16 coordinates match LSP and JavaScript string offsets. */
 export function indexOf(source, { line, character }) {
@@ -25,12 +26,12 @@ export function applyTextEdits(source, edits) {
 export function createWorkspace(options = {}) {
   const worker = options.workerFactory ? options.workerFactory() : options.transport ? null : new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   const rpc = options.transport || createRpc(worker, options);
-  const documents = new Map(), counters = new Map(), snapshots = new Map(), subscribers = new Map(), changes = new Set();
-  let revision = 0, tail = Promise.resolve(), disposed = false, refreshQueued = false, timer, refreshing = false;
+  const documents = new Map(), counters = new Map(), snapshots = new Map(), analyses = new Map(), subscribers = new Map(), changes = new Set();
+  let revision = 0, tail = Promise.resolve(), disposed = false, refreshQueued = false, refreshAgain = false, timer, refreshing = false;
   let day = new Date().toDateString();
   const clock = () => typeof options.now === "function" ? options.now() : options.now;
   const call = (method, params) => rpc(method, params, clock());
-  const report = error => options.onError?.(error);
+  const report = error => { if (!disposed) options.onError?.(error); };
   const enqueue = operation => {
     if (disposed) return Promise.reject(new Error("Workspace was destroyed"));
     const result = tail.then(() => { if (disposed) throw new Error("Workspace was destroyed"); return operation(); });
@@ -38,21 +39,30 @@ export function createWorkspace(options = {}) {
     return result;
   };
   const emit = change => { if (!disposed) for (const listener of changes) listener(change); };
-  const notify = snapshot => { if (!disposed) for (const listener of subscribers.get(snapshot.uri) || []) listener(snapshot); };
+  const notify = snapshot => { if (!disposed) for (const [listener, editing] of subscribers.get(snapshot.uri) || []) if (snapshot.editing === editing) listener(snapshot); };
   function invalidate() {
     revision++;
     snapshots.clear();
+    refreshAgain = true;
     if (refreshQueued || disposed) return;
     refreshQueued = true;
     queueMicrotask(async () => {
-      try { await tail; if (!disposed) await refresh(); }
+      try {
+        do {
+          refreshAgain = false;
+          await tail;
+          if (!disposed) await refresh();
+        } while (refreshAgain && !disposed);
+      }
       catch (error) { report(error); }
       finally { refreshQueued = false; }
     });
   }
   async function refresh() {
     // One clock scheduler for every mounted view, never a timer per document.
-    for (const uri of subscribers.keys()) if (documents.has(uri)) await api.analyze(uri, { force: true });
+    for (const [uri, listeners] of subscribers) if (documents.has(uri)) {
+      for (const editing of new Set(listeners.values())) await api.analyze(uri, { force: true, editing });
+    }
   }
   function scheduleClock() {
     clearInterval(timer);
@@ -88,46 +98,56 @@ export function createWorkspace(options = {}) {
   const api = {
     get revision() { return revision; },
     get disposed() { return disposed; },
-    getDocument: uri => { const doc = documents.get(uri); return doc && { ...doc }; },
-    hasDocument: uri => documents.has(uri),
+    getDocument: uri => { const doc = documents.get(canonicalUri(uri)); return doc && { ...doc }; },
+    hasDocument: uri => documents.has(canonicalUri(uri)),
     setDocument(uri, source) {
+      uri = canonicalUri(uri);
       if (disposed) return Promise.reject(new Error("Workspace was destroyed"));
       if (documents.get(uri)?.source === source) return tail.then(() => api.getDocument(uri));
       const reserved = reserve(uri, source);
       return enqueue(() => write(reserved));
     },
     removeDocument(uri) {
+      uri = canonicalUri(uri);
       documents.delete(uri);
       invalidate();
       return enqueue(() => call("removeDocument", { uri }));
     },
     request(method, params = {}) {
+      if (params.uri) params = { ...params, uri: canonicalUri(params.uri) };
       if (method === "setDocument") return api.setDocument(params.uri, params.text);
       if (method === "removeDocument") return api.removeDocument(params.uri);
       if (["setPlugins", "setResourceData"].includes(method)) return enqueue(async () => { const result = await call(method, params); invalidate(); return result; });
       return enqueue(() => call(method, params));
     },
     query(uri, method, params = {}) {
+      uri = canonicalUri(uri);
       const before = revision;
       return api.request(method, { ...params, uri }).then(result => before === revision && !disposed ? result : null);
     },
     analyze(uri, { force = false, editing = true } = {}) {
+      uri = canonicalUri(uri);
       const cached = snapshots.get(uri);
       if (!force && cached?.revision === revision && cached.editing === editing) return Promise.resolve(cached);
       const before = revision;
-      return api.request(editing ? "analyze" : "render", { uri, editing }).then(snapshot => {
+      const key = JSON.stringify([uri, before, editing]);
+      if (analyses.has(key)) return analyses.get(key);
+      const result = api.request(editing ? "analyze" : "render", { uri, editing }).then(snapshot => {
         if (disposed || before !== revision || snapshot.version !== documents.get(uri)?.version) return null;
         snapshot.revision = before;
         snapshots.set(uri, snapshot);
         notify(snapshot);
         return snapshot;
-      });
+      }).finally(() => analyses.delete(key));
+      analyses.set(key, result);
+      return result;
     },
     onChange(listener) { changes.add(listener); return () => changes.delete(listener); },
-    subscribe(uri, listener) {
+    subscribe(uri, listener, { editing = true } = {}) {
+      uri = canonicalUri(uri);
       if (disposed) throw new Error("Workspace was destroyed");
-      if (!subscribers.has(uri)) subscribers.set(uri, new Set());
-      subscribers.get(uri).add(listener);
+      if (!subscribers.has(uri)) subscribers.set(uri, new Map());
+      subscribers.get(uri).set(listener, editing);
       scheduleClock();
       return () => { const listeners = subscribers.get(uri); listeners?.delete(listener); if (!listeners?.size) subscribers.delete(uri); scheduleClock(); };
     },
@@ -149,7 +169,7 @@ export function createWorkspace(options = {}) {
       if (disposed) return;
       disposed = true;
       clearInterval(timer);
-      subscribers.clear(); changes.clear(); snapshots.clear(); documents.clear();
+      subscribers.clear(); changes.clear(); snapshots.clear(); analyses.clear(); documents.clear();
       rpc.destroy?.();
     },
   };

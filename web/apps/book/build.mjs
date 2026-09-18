@@ -1,11 +1,11 @@
-// Generate book/index.html: prose from chapters.mjs with every example inlined.
-import { readFileSync, writeFileSync } from "node:fs";
+// Generate web/dist/book/index.html: prose from chapters.mjs with every example inlined.
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 import { parts } from "./chapters.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const examples = resolve(here, "../examples");
+const examples = resolve(here, "../../../examples");
 const escape = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
@@ -46,8 +46,11 @@ const html = `<!doctype html>
   <meta name="referrer" content="no-referrer">
   <title>The WTF Book</title>
   <link rel="icon" href="data:,">
-  <link rel="preload" href="../fonts/IoskeleyMono-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../lib/theme/fonts/IoskeleyMono-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../lib/theme/style.css">
+  <link rel="stylesheet" href="../lib/theme/fonts.css">
   <link rel="stylesheet" href="./book.css">
+  <script type="importmap">{"imports":{"@wtf/web":"../lib/src/index.js","@wtf/web/contenteditable":"../lib/adapters/contenteditable.js"}}</script>
 </head>
 <body>
   <nav class="toc" aria-label="Table of contents">
@@ -62,11 +65,13 @@ const html = `<!doctype html>
       <p>The examples are the files in <code>examples/</code>. Open them in Zed for the full experience, including completion, rename, code actions, and the command line.</p>
     </header>
     ${body}
-    <footer><p>Generated from <code>examples/</code> by <code>node book/build.mjs</code>. Runs on <code>web/worker.js</code>.</p></footer>
+    <footer><p>Generated from <code>examples/</code> by <code>node web/apps/book/build.mjs</code>. Runs on <code>web/src/worker.js</code>.</p></footer>
   </main>
   <script type="module" src="./book.js"></script>
 </body>
 </html>
 `;
-writeFileSync(resolve(here, "index.html"), html);
-console.log("book/index.html written");
+const output = resolve(here, "../../dist/book");
+mkdirSync(output, { recursive: true });
+writeFileSync(resolve(output, "index.html"), html);
+console.log("web/dist/book/index.html written");

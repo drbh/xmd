@@ -23,7 +23,7 @@ fn workspace() -> Workspace {
         .into(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn all() -> Range {
@@ -64,7 +64,7 @@ impl InlayFeature for AtLine {
 fn a_nonlink_feature_composes_with_builtins_and_uses_the_request_clock() {
     let ws = workspace();
     let mut engine = Engine::at(&ws, now());
-    let mut features = wtf::inlay_providers::BUILTINS.to_vec();
+    let mut features = wtf::features::modules::BUILTINS.to_vec();
     features.push(&HeadingClock);
     let result = inlays::collect(&mut engine, path(), all(), &features);
     assert!(result.time_dependent);

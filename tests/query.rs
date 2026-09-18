@@ -2,7 +2,7 @@ use chrono::DateTime;
 use serde_json::{Value, json};
 use wtf::{
     document::Document,
-    query::{self, Query, QueryContext},
+    query::{Query, QueryContext},
     workspace::Workspace,
 };
 
@@ -20,7 +20,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             .collect(),
         cache: Default::default(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn context() -> QueryContext {
@@ -28,7 +28,8 @@ fn context() -> QueryContext {
 }
 fn run(ws: &Workspace, source: &str) -> Value {
     json!(
-        query::execute(ws, &Query::parse(source).unwrap(), &context())
+        wtf::RequestContext::new(ws, context().now)
+            .query(&Query::parse(source).unwrap(), None)
             .unwrap()
             .rows
     )
@@ -91,13 +92,13 @@ fn one_clock_and_offset_control_queries_and_calculated_values() {
     )]);
     let ctx = QueryContext::new(DateTime::parse_from_rfc3339("2026-09-16T23:00:00-04:00").unwrap());
     let result = json!(
-        query::execute(
-            &ws,
-            &Query::parse("values | select {name, value}").unwrap(),
-            &ctx
-        )
-        .unwrap()
-        .rows
+        wtf::RequestContext::new(&ws, ctx.now)
+            .query(
+                &Query::parse("values | select {name, value}").unwrap(),
+                None
+            )
+            .unwrap()
+            .rows
     );
     assert_eq!(
         result[0]["value"],
@@ -108,13 +109,13 @@ fn one_clock_and_offset_control_queries_and_calculated_values() {
         json!({"type":"datetime","value":"2026-09-16T23:00:00-04:00"})
     );
     let events = json!(
-        query::execute(
-            &ws,
-            &Query::parse("events | where at_date == today()").unwrap(),
-            &ctx
-        )
-        .unwrap()
-        .rows
+        wtf::RequestContext::new(&ws, ctx.now)
+            .query(
+                &Query::parse("events | where at_date == today()").unwrap(),
+                None
+            )
+            .unwrap()
+            .rows
     );
     assert_eq!(events.as_array().unwrap().len(), 1);
     assert_eq!(
@@ -182,12 +183,12 @@ fn definitions_resolve_in_their_own_document_and_keep_money_typed() {
         json!({"value":{"type":"money","amount":10.0,"currency":"USD"},"amount":10.0,"currency":"USD","local":{"type":"money","amount":5.0,"currency":"USD"}})
     );
     assert_eq!(result[1]["currency"], "EUR");
-    let err = query::execute(
-        &ws,
-        &Query::parse("values | where name == \"price\" | sum value").unwrap(),
-        &context(),
-    )
-    .unwrap_err();
+    let err = wtf::RequestContext::new(&ws, context().now)
+        .query(
+            &Query::parse("values | where name == \"price\" | sum value").unwrap(),
+            None,
+        )
+        .unwrap_err();
     assert!(err.contains("currency") || err.contains("USD"), "{err}");
 }
 
@@ -279,9 +280,12 @@ fn malformed_queries_and_incompatible_values_return_errors() {
         "tasks | where (true",
         "tasks | select {a:1,a:2}",
         "tasks | limit -1",
-        "unknown",
         "tasks | explode",
         "tasks | select {x:}",
+        "@today",
+        "@week",
+        "@tasks",
+        "@check",
     ] {
         assert!(Query::parse(source).is_err(), "{source}");
     }
@@ -295,7 +299,9 @@ fn malformed_queries_and_incompatible_values_return_errors() {
         "tasks | select {x: 1 + 2d}",
     ] {
         assert!(
-            query::execute(&ws, &Query::parse(source).unwrap(), &context()).is_err(),
+            wtf::RequestContext::new(&ws, context().now)
+                .query(&Query::parse(source).unwrap(), None)
+                .is_err(),
             "{source}"
         );
     }
@@ -311,7 +317,7 @@ fn malformed_queries_and_incompatible_values_return_errors() {
 }
 
 #[test]
-fn saved_agendas_preserve_task_event_and_itinerary_semantics() {
+fn stdlib_agendas_preserve_task_event_and_itinerary_semantics() {
     let ws = workspace(&[(
         "n.wtf",
         concat!(
@@ -335,24 +341,129 @@ fn saved_agendas_preserve_task_event_and_itinerary_semantics() {
         "+ Museum",
         "Afternoon"
     ]);
-    assert_eq!(run(&ws, "@today | select title"), today);
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today()) | select title"
+        ),
+        today
+    );
     let mut week = today.as_array().unwrap().clone();
     week.extend([json!("Tomorrow"), json!("Next")]);
-    assert_eq!(run(&ws, "@week | select title"), json!(week));
-    assert_eq!(run(&ws, "@today | count"), json!([9]));
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today() + 6d) | select title"
+        ),
+        json!(week)
+    );
+    assert_eq!(
+        run(
+            &ws,
+            "import(\"agenda\").between(entries, today(), today()) | count"
+        ),
+        json!([9])
+    );
 }
 
 #[test]
 fn mixed_sort_types_and_long_flat_expressions_fail_without_panics() {
     let ws = workspace(&[("n.wtf", "1:a\n\"text\":b\n2:c\n")]);
-    let error = query::execute(
-        &ws,
-        &Query::parse("values | sort value").unwrap(),
-        &context(),
-    )
-    .unwrap_err();
+    let error = wtf::RequestContext::new(&ws, context().now)
+        .query(&Query::parse("values | sort value").unwrap(), None)
+        .unwrap_err();
     assert!(error.contains("compare"), "{error}");
     let long = format!("tasks | select {}", vec!["1"; 100].join(" + "));
     assert!(Query::parse(&long).unwrap_err().contains("depth"));
     assert!(Query::parse("@unknown").is_err());
+}
+
+#[test]
+fn functional_queries_share_the_note_language_and_can_scope_a_document() {
+    let ws = workspace(&[
+        (
+            "a.wtf",
+            "double := fn(x) => x * 2\n1:n\n- [ ] First @estimate(30m)\n- [x] Done\n",
+        ),
+        ("b.wtf", "9:n\n- [ ] Other @estimate(1h)\n"),
+    ]);
+    let request = wtf::RequestContext::new(&ws, context().now);
+    let path = std::path::Path::new("/notes/a.wtf");
+    let run_file = |source| {
+        json!(
+            request
+                .query(&Query::parse(source).unwrap(), Some(path))
+                .unwrap()
+                .rows
+        )
+    };
+    assert_eq!(
+        run_file("map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)"),
+        json!(["First"])
+    );
+    assert_eq!(
+        run_file("tasks | where !done | select title"),
+        json!(["First"])
+    );
+    assert_eq!(
+        run_file("{count: length(tasks), value: double(n)}"),
+        json!([{"count":2,"value":2.0}])
+    );
+    assert_eq!(
+        run_file("sum(tasks.estimate)"),
+        json!([{"type":"duration","seconds":1800}])
+    );
+    assert_eq!(run(&ws, "length(tasks)"), json!([3]));
+    assert_eq!(
+        run_file("map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title))"),
+        json!(["DONE", "FIRST"])
+    );
+    assert_eq!(
+        run_file(
+            "map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)})"
+        ),
+        json!([{"done":false,"count":1},{"done":true,"count":1}])
+    );
+    assert!(
+        request
+            .query(
+                &Query::parse("tasks").unwrap(),
+                Some(std::path::Path::new("/notes/missing.wtf"))
+            )
+            .unwrap_err()
+            .contains("not indexed")
+    );
+}
+
+#[test]
+fn shared_query_scopes_capture_lexically_without_leaking_into_definitions() {
+    let ws = workspace(&[("a.wtf", "value := 7\nread := fn() => value\n- [ ] A\n")]);
+    assert_eq!(
+        run(
+            &ws,
+            "tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()}"
+        ),
+        json!([{"local":[101.0],"named":7.0}])
+    );
+    assert_eq!(
+        run(&ws, "tasks | select map([1], fn(title) => title + 1)"),
+        json!([[2.0]])
+    );
+    assert_eq!(
+        run(&ws, "tasks | select if(false, nonexistent, title)"),
+        json!(["A"])
+    );
+    assert_eq!(run(&ws, "if(true, 1, values)"), json!([1.0]));
+    assert_eq!(
+        run(
+            &ws,
+            "tasks | select { // | , } inside a comment\n title, nested: {title}}"
+        ),
+        json!([{"title":"A", "nested":{"title":"A"}}])
+    );
+    assert!(
+        wtf::RequestContext::new(&ws, context().now)
+            .query(&Query::parse("unknown").unwrap(), None)
+            .is_err()
+    );
 }

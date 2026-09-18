@@ -1,9 +1,8 @@
 //! Standard LSP document symbols, shared by the native server and browser adapter.
 use crate::{
     document::{Document, Span},
-    workspace::{Symbol, SymbolKind, Workspace},
+    workspace::{Symbol, SymbolKind},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation, Url};
 use std::path::Path;
 
@@ -39,14 +38,7 @@ fn line_range(doc: &Document, row: usize) -> Range {
     .range(&doc.text)
 }
 
-pub fn document_symbols(
-    ws: &Workspace,
-    path: &Path,
-    now: DateTime<FixedOffset>,
-) -> Vec<DocumentSymbol> {
-    document_symbols_in(&crate::RequestContext::new(ws, now), path)
-}
-pub fn document_symbols_in(
+pub(crate) fn document_symbols(
     request: &crate::RequestContext<'_>,
     path: &Path,
 ) -> Vec<DocumentSymbol> {
@@ -58,7 +50,7 @@ pub fn document_symbols_in(
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let dates = crate::itinerary::dates(&doc.days, now.date_naive());
+    let dates = crate::itinerary::dates(&ws.modules, &doc.days, now.date_naive());
     let day_detail = |day: &crate::itinerary::Day, date: &Option<chrono::NaiveDate>| {
         format!(
             "{} stops{}",
@@ -167,9 +159,13 @@ pub fn document_symbols_in(
                 stop.title.clone(),
                 match stop.kind {
                     Some(kind) => {
-                        format!("{} · {}", crate::itinerary::display_time(stop), kind.name)
+                        format!(
+                            "{} · {}",
+                            crate::itinerary::display_time(&ws.modules, stop),
+                            kind.name
+                        )
                     }
-                    None => crate::itinerary::display_time(stop),
+                    None => crate::itinerary::display_time(&ws.modules, stop),
                 },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(
@@ -281,7 +277,10 @@ pub fn document_symbols_in(
                 let range = named.span.range(&doc.text);
                 entries.push(symbol(
                     named.name.clone(),
-                    table.types[column].unwrap_or("Unknown").into(),
+                    table.types[column]
+                        .map(|t| t.as_str())
+                        .unwrap_or("Unknown")
+                        .into(),
                     lsp_types::SymbolKind::FIELD,
                     range,
                     range,

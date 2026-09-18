@@ -3,7 +3,7 @@
 //! variables solved with a pure-Rust simplex, so plans re-solve as notes change.
 use crate::{
     document::{Document, Named, Problem, Span, identifier},
-    engine::{Engine, Linear, Value},
+    engine::{Comparison, Engine, Linear, Unit, Value},
     tables::{Cell, Table},
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -46,7 +46,7 @@ pub struct Plan {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstraintResult {
     pub name: String,
-    pub op: String,
+    pub op: Comparison,
     pub lhs: Value,
     pub rhs: Value,
     pub slack: Value,
@@ -67,7 +67,7 @@ pub struct PlanValue {
 impl PlanValue {
     /// Typed result plus source geometry; presentation policy lives in plan.wtf.
     pub fn record(&self, ws: &Workspace) -> Value {
-        use crate::plugins::{from_json, record};
+        use crate::modules::{from_json, record};
         let columns = self
             .columns()
             .into_iter()
@@ -143,7 +143,7 @@ impl PlanValue {
             .map(|(i, c)| {
                 let mut fields = std::collections::BTreeMap::from([
                     ("name".into(), Value::Text(c.name.clone())),
-                    ("op".into(), Value::Text(c.op.clone())),
+                    ("op".into(), Value::Text(c.op.as_str().into())),
                     ("lhs".into(), c.lhs.clone()),
                     ("rhs".into(), c.rhs.clone()),
                     ("slack".into(), c.slack.clone()),
@@ -407,7 +407,7 @@ pub fn grid(plan: &Plan) -> Table {
                     .collect()
             })
             .collect(),
-        types: vec![Some("Text"); 2],
+        types: vec![Some(crate::engine::ValueType::Text); 2],
         problems: plan.problems.clone(),
         domains: vec![None; 2],
     }
@@ -469,24 +469,13 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
         .unknown_kind()
         .map(|k| typed_in(k, difference.currency, 1.0))
         .unwrap_or(Value::Null);
-    crate::plugins::standard(
-        "plan",
-        "seek_boundary",
-        vec![Value::Text(name), form_value(&difference), unit],
-        engine.now,
-    )
-    .map_err(|message| fail(engine, message))
-}
-/// Human-readable direction for a goal seek.
-pub fn seek_summary(op: &str, coefficient_positive: bool) -> String {
-    crate::plugins::standard(
-        "plan",
-        "seek_summary",
-        vec![Value::Text(op.into()), Value::Bool(coefficient_positive)],
-        chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.fixed_offset(),
-    )
-    .expect("valid comparison")
-    .display()
+    engine
+        .call_module(
+            "plan",
+            "seek_boundary",
+            vec![Value::Text(name), form_value(&difference), unit],
+        )
+        .map_err(|message| fail(engine, message))
 }
 pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)> {
     if let SymbolKind::Definition(index) = symbol.kind {
@@ -500,19 +489,19 @@ pub fn plan<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<(usize, &'a Plan)>
     }
 }
 
-fn typed_in(kind: &str, currency: Option<crate::engine::Currency>, n: f64) -> Value {
+fn typed_in(kind: Unit, currency: Option<crate::engine::Currency>, n: f64) -> Value {
     match kind {
-        "Money" => Value::Money(n, currency.unwrap_or(crate::engine::Currency::USD)),
-        "Duration" => Value::Duration(n.round() as i64),
+        Unit::Money => Value::Money(n, currency.unwrap_or(crate::engine::Currency::USD)),
+        Unit::Duration => Value::Duration(n.round() as i64),
         _ => Value::Number(n),
     }
 }
 fn form_value(form: &Linear) -> Value {
-    crate::plugins::record([
+    crate::modules::record([
         ("constant".into(), Value::Number(form.constant)),
         (
             "terms".into(),
-            crate::plugins::record(
+            crate::modules::record(
                 form.terms
                     .iter()
                     .map(|(k, n)| (k.clone(), Value::Number(*n))),
@@ -556,7 +545,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         return Err("A plan needs at least one unknown name to solve for".into());
     }
     let rows = std::mem::take(&mut engine.row_variables);
-    use crate::plugins::{field, list, record};
+    use crate::modules::{field, list, record};
     let input = record([
         ("goal".into(), Value::Text(plan.goal.keyword().into())),
         (
@@ -597,14 +586,15 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
                             ("name".into(), Value::Text(constraint.named.name.clone())),
                             ("lhs".into(), form_value(lhs)),
                             ("rhs".into(), form_value(rhs)),
-                            ("op".into(), Value::Text(op.clone())),
+                            ("op".into(), Value::Text(op.as_str().into())),
                         ])
                     })
                     .collect(),
             ),
         ),
     ]);
-    let result = crate::plugins::standard("plan", "solve_model", vec![input], engine.now)
+    let result = engine
+        .call_module("plan", "solve_model", vec![input])
         .inspect_err(|message| {
             engine.failure.get_or_insert(crate::engine::EvalFailure {
                 path: path.clone(),
@@ -622,7 +612,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         .map(|c| {
             Ok(ConstraintResult {
                 name: field(c, "name")?.display(),
-                op: field(c, "op")?.display(),
+                op: field(c, "op")?.display().parse()?,
                 lhs: field(c, "lhs")?.clone(),
                 rhs: field(c, "rhs")?.clone(),
                 slack: field(c, "slack")?.clone(),
@@ -643,125 +633,4 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         constraints: results,
         rows,
     })))
-}
-
-/// Canonical text for a linear form: `3 * bagels + 1.25 * doughnuts + 4`.
-pub fn render(form: &Linear) -> String {
-    let mut parts: Vec<String> = form
-        .terms
-        .iter()
-        .filter(|(_, c)| **c != 0.0)
-        .map(|(name, coef)| {
-            if *coef == 1.0 {
-                name.clone()
-            } else {
-                format!("{} * {name}", crate::engine::decimal(*coef))
-            }
-        })
-        .collect();
-    if form.constant != 0.0 || parts.is_empty() {
-        parts.push(crate::engine::decimal(form.constant));
-    }
-    parts.join(" + ").replace("+ -", "- ")
-}
-
-/// The alps interchange format: variables, one objective, named constraints,
-/// with every note value substituted so the file stands alone.
-pub fn export(
-    engine: &mut Engine<'_>,
-    symbol: &Symbol,
-    plan: &Plan,
-) -> Result<serde_json::Value, String> {
-    let ws = engine.workspace;
-    let names: Vec<String> = ws
-        .plan_variables(&symbol.path, plan)
-        .into_iter()
-        .map(|(_, n)| n.name.clone())
-        .collect();
-    let vars = names.iter().cloned().collect();
-    let objective = engine.linear(&symbol.path, &plan.objective, plan.objective_span, &vars)?;
-    let mut constraints = Vec::new();
-    for c in &plan.constraints {
-        let (lhs, op, rhs) = engine.constraint(&symbol.path, &c.source, c.span, &vars)?;
-        constraints.push(serde_json::json!({
-            "name": c.named.name,
-            "expression": format!("{} {op} {}", render(&lhs), render(&rhs)),
-        }));
-    }
-    Ok(serde_json::json!({
-        "variables": names.iter().map(|n| (n.clone(), serde_json::json!({}))).collect::<serde_json::Map<_, _>>(),
-        "objective": {
-            "goal": match plan.goal { Goal::Maximize => "max", Goal::Minimize => "min" },
-            "expression": render(&objective),
-        },
-        "constraints": constraints,
-    }))
-}
-/// WTF source for an alps problem file.
-pub fn import(name: &str, problem: &serde_json::Value) -> Result<String, String> {
-    if !identifier(name) {
-        return Err("Plan names use letters, digits, and underscores".into());
-    }
-    let objective = &problem["objective"];
-    let goal = match objective["goal"].as_str() {
-        Some("max" | "maximize" | "maximise") => Goal::Maximize,
-        Some("min" | "minimize" | "minimise") => Goal::Minimize,
-        _ => return Err("objective.goal must be max or min".into()),
-    };
-    let expression = objective["expression"]
-        .as_str()
-        .ok_or("objective.expression must be a string")?;
-    let mut rows: Vec<(String, String)> = Vec::new();
-    for c in problem["constraints"]
-        .as_array()
-        .ok_or("constraints must be a list")?
-    {
-        let name = c["name"].as_str().ok_or("Each constraint needs a name")?;
-        let expr = c["expression"]
-            .as_str()
-            .ok_or("Each constraint needs an expression")?;
-        rows.push((name.into(), expr.into()));
-    }
-    if let Some(vars) = problem["variables"].as_object() {
-        for (var, bounds) in vars {
-            if let Some(min) = bounds["min"].as_f64() {
-                rows.push((
-                    format!("{var}_min"),
-                    format!("{var} >= {}", crate::engine::decimal(min)),
-                ));
-            }
-            if let Some(max) = bounds["max"].as_f64() {
-                rows.push((
-                    format!("{var}_max"),
-                    format!("{var} <= {}", crate::engine::decimal(max)),
-                ));
-            }
-        }
-    }
-    let width = rows
-        .iter()
-        .map(|(n, _)| n.len())
-        .max()
-        .unwrap_or(10)
-        .max(10);
-    let wide = rows
-        .iter()
-        .map(|(_, e)| e.len())
-        .max()
-        .unwrap_or(10)
-        .max(10);
-    let mut out = format!("[{name}] := {}({})\n", goal.keyword(), expression.trim());
-    out.push_str(&format!(
-        "| {:<width$} | {:<wide$} |\n",
-        "constraint", "expression"
-    ));
-    out.push_str(&format!(
-        "| {} | {} |\n",
-        "-".repeat(width),
-        "-".repeat(wide)
-    ));
-    for (n, e) in rows {
-        out.push_str(&format!("| {n:<width$} | {e:<wide$} |\n"));
-    }
-    Ok(out)
 }

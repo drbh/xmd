@@ -7,5 +7,5 @@
 - [ ] Expense lunch using [receipt_image]
 - [ ] Reread [first_example]
 
-<!-- Images preview on hover and open with the Open image lens. Relative paths
+<!-- Images preview on hover and open with the ↗ image lens. Relative paths
 resolve from the note; ~/ paths work too. -->

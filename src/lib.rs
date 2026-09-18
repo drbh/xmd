@@ -2,6 +2,12 @@
 //! `model` parses notes, `evaluate` computes their values, `features` turn
 //! both into editor behavior, and `hosts` deliver the features over a
 //! transport. Every module inside a layer is a sibling of the others.
+//!
+//! A layer only calls downwards. Feature modules written in the .wtf language
+//! are the one path back up: the engine evaluates them like any other note, and
+//! `features::modules` adapts their hooks into inlays, hovers, diagnostics,
+//! formatting and actions. Hosts see none of that; they build a
+//! [`RequestContext`] and call the methods `features::session` defines on it.
 pub mod evaluate;
 pub mod features;
 pub mod hosts;
@@ -10,12 +16,14 @@ pub mod model;
 // Every leaf module is also reachable at the crate root, so `wtf::engine`
 // and `wtf::document` name the same things the layers do.
 pub use evaluate::{
-    charts, context, engine, github, glyphs, link_features, lookups, plans, plugins, resources,
+    charts, context, engine, github, glyphs, link_features, lookups, modules, plans, resources,
     timers,
 };
+// `modules` at the root is the evaluator's registry; the feature adapter over
+// its hooks stays reachable as `wtf::features::modules`.
 pub use features::{
-    actions, catalog, commands, diagnostics, hierarchy, highlighting, inlay_providers, inlays,
-    intelligence, interaction, presentation, prose, query, refactor, symbols, typing,
+    actions, catalog, commands, diagnostics, hierarchy, highlighting, inlays, intelligence,
+    interaction, presentation, prose, query, refactor, rendering, session, symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

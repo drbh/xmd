@@ -31,7 +31,7 @@ fn workspace(notes: &[(&str, &str)]) -> Workspace {
             .collect(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn evaluate(ws: &Workspace, name: &str) -> Value {
@@ -56,7 +56,18 @@ fn parser_distinguishes_markdown_tasks_code_and_multiple_literals() {
     assert_eq!(doc.links.len(), 2);
     assert_eq!(evaluate(&ws, "remaining").display(), "$1,590");
     assert_eq!(evaluate(&ws, "label").display(), "日本語");
-    assert!(editor::problems(&ws, Path::new("/notes/daily.wtf"), today()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(Path::new("/notes/daily.wtf"))
+        .is_empty()
+    );
 }
 #[test]
 fn expressions_have_precedence_dates_durations_and_boolean_properties() {
@@ -89,7 +100,7 @@ fn forward_references_cross_files_and_cycles() {
     let ws = workspace(&[
         (
             "daily.wtf",
-            "[remaining] := budget - spent\n[spent] := 1410\n[a] := b\n[b] := a\n",
+            "[remaining] := import(\"./resources.wtf\").budget - spent\n[spent] := 1410\n[a] := b\n[b] := a\n",
         ),
         ("resources.wtf", "[$3,000]:budget\n"),
     ]);
@@ -109,7 +120,7 @@ fn forward_references_cross_files_and_cycles() {
         Engine::new(&ws, today())
             .named(Path::new("/notes/daily.wtf"), "budget")
             .unwrap_err()
-            .contains("Ambiguous")
+            .contains("Unknown name")
     );
 }
 #[test]
@@ -121,23 +132,45 @@ fn checklist_counts_leaves_and_completes_hierarchy() {
     )]);
     assert_eq!(evaluate(&ws, "progress").display(), "25%");
     assert_eq!(evaluate(&ws, "work").display(), "1h");
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert_eq!(evaluate(&ws, "progress").display(), "50%");
     assert_eq!(evaluate(&ws, "work").display(), "30m");
-    let hints = editor::hints(
+    let hints = wtf::RequestContext::new(
         &ws,
-        path,
-        today(),
-        Range::new(Position::new(0, 0), Position::new(0, 100)),
-    );
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .hints(path, Range::new(Position::new(0, 0), Position::new(0, 100)))
+    .hints;
     assert_eq!(hints.len(), 1);
     assert!(
         serde_json::to_string(&hints)
             .unwrap()
             .contains("2/4 complete")
     );
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert_eq!(evaluate(&ws, "progress").display(), "0%");
 }
@@ -149,13 +182,41 @@ fn task_dependencies_block_and_detect_cycles() {
         "- [ ] Review :review\n- [ ] Publish @after(review)\n",
     )]);
     assert!(
-        actions::toggle_task(&ws, path, 1, today())
-            .unwrap_err()
-            .contains("Blocked")
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .toggle_task(path, 1)
+        .unwrap_err()
+        .contains("Blocked")
     );
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
-    assert!(actions::toggle_task(&ws, path, 1, today()).is_ok());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .toggle_task(path, 1)
+        .is_ok()
+    );
     let ws = workspace(&[("daily.wtf", "- [ ] A :a @after(b)\n- [ ] B :b @after(a)\n")]);
     assert!(
         Engine::new(&ws, today())
@@ -173,23 +234,49 @@ fn recurrence_preserves_month_end_and_completion_history() {
     )]);
     let jan = NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
     let feb = NaiveDate::from_ymd_opt(2026, 2, 28).unwrap();
-    let edits = actions::toggle_task(&ws, path, 0, jan).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        jan.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-02-28)"));
     assert!(ws.documents[path].text.contains("@repeat_from(2026-01-31)"));
-    let edits = actions::toggle_task(&ws, path, 0, feb).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        feb.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-03-31)"));
     assert_eq!(ws.documents[path].text.matches("wtf-history").count(), 2);
     assert!(!ws.documents[path].tasks[0].checked);
     assert_eq!(ws.documents[path].tasks.len(), 1);
-    assert!(editor::problems(&ws, path, feb).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            feb.and_hms_opt(0, 0, 0).unwrap().and_utc().fixed_offset()
+        )
+        .problems(path)
+        .is_empty()
+    );
 }
 #[test]
 fn recurring_unscheduled_task_and_crlf_no_trailing_newline() {
     let path = Path::new("/notes/daily.wtf");
     let mut ws = workspace(&[("daily.wtf", "# Life\r\n- [ ] Walk @every(day)")]);
-    let edits = actions::toggle_task(&ws, path, 0, today()).unwrap();
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .toggle_task(path, 0)
+    .unwrap();
     replace(&mut ws, path, &edits);
     assert!(
         ws.documents[path]
@@ -205,8 +292,27 @@ fn relative_dates_freeze_and_appointments_are_separate() {
         "daily.wtf",
         "- [ ] Call @due(next Friday)\n- [ ] Plan @scheduled(tomorrow)\n- Coffee @at(2026-09-16T14:00-04:00)\n",
     )]);
-    assert!(editor::problems(&ws, path, today()).is_empty());
-    let edits = actions::freeze_dates(&ws, path, today());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            today()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path)
+        .is_empty()
+    );
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .freeze_dates(path);
     assert_eq!(edits.len(), 2);
     replace(&mut ws, path, &edits);
     assert!(ws.documents[path].text.contains("@due(2026-09-18)"));
@@ -214,11 +320,17 @@ fn relative_dates_freeze_and_appointments_are_separate() {
     let ctx = wtf::query::QueryContext::new(
         chrono::DateTime::parse_from_rfc3339("2026-09-16T12:00:00-04:00").unwrap(),
     );
-    let entries =
-        wtf::query::execute(&ws, &wtf::query::Query::parse("entries").unwrap(), &ctx).unwrap();
+    let entries = wtf::RequestContext::new(&ws, ctx.now)
+        .query(&wtf::query::Query::parse("entries").unwrap(), None)
+        .unwrap();
     assert_eq!(entries.rows.len(), 3);
-    let agenda =
-        wtf::query::execute(&ws, &wtf::query::Query::parse("@today").unwrap(), &ctx).unwrap();
+    let agenda = wtf::RequestContext::new(&ws, ctx.now)
+        .query(
+            &wtf::query::Query::parse("import(\"agenda\").between(entries, today(), today())")
+                .unwrap(),
+            None,
+        )
+        .unwrap();
     assert_eq!(agenda.rows.len(), 1);
 }
 #[test]
@@ -245,7 +357,15 @@ fn unicode_highlights_and_edits_use_utf16_positions() {
         end = start + t.length;
         assert!(end <= doc.line(line as usize).encode_utf16().count() as u32);
     }
-    let edits = actions::freeze_dates(&ws, path, today());
+    let edits = wtf::RequestContext::new(
+        &ws,
+        today()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .freeze_dates(path);
     replace(&mut ws, path, &edits);
     assert!(
         ws.documents[path]
@@ -257,7 +377,10 @@ fn unicode_highlights_and_edits_use_utf16_positions() {
 #[test]
 fn resources_keep_definition_origin_through_cross_file_aliases() {
     let ws = workspace(&[
-        ("daily.wtf", "[alias] := receipt\n"),
+        (
+            "daily.wtf",
+            "[alias] := import(\"./project/resources.wtf\").receipt\n",
+        ),
         ("project/resources.wtf", "[./assets/receipt.png]:receipt\n"),
     ]);
     let Value::Resource(resource) = evaluate(&ws, "alias") else {
@@ -314,7 +437,7 @@ fn cached_github_status_is_typed_and_absent_checks_are_unknown() {
     assert!(resources::github("https://github.com.evil.example/acme/app/pull/42").is_none());
 }
 #[test]
-fn cli_capture_agenda_complete_and_ignored_notes() {
+fn cli_agendas_filter_ignored_notes_without_mutating_them() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(root.join(".gitignore"), "ignored.wtf\n").unwrap();
@@ -334,66 +457,37 @@ fn cli_capture_agenda_complete_and_ignored_notes() {
         );
         String::from_utf8(output.stdout).unwrap()
     };
-    run(&[
-        "capture",
-        "Call dentist",
-        "--due",
-        "next Friday",
-        "--tag",
-        "errands",
-        "--on",
-        "2026-09-16",
-    ]);
-    let note = std::fs::read_to_string(root.join("inbox.wtf")).unwrap();
-    assert!(note.contains("@due(2026-09-18)"));
+    let note = "- [ ] Call dentist #errands @due(2026-09-18)\n";
+    std::fs::write(root.join("inbox.wtf"), note).unwrap();
     let tasks: serde_json::Value = serde_json::from_str(&run(&[
         "query",
-        "@tasks | where contains(tags, \"errands\")",
+        "--workspace",
+        "tasks | where leaf && !done | sort source.path, source.line | where contains(tags, \"errands\")",
         "--json",
     ]))
     .unwrap();
     assert_eq!(tasks.as_array().unwrap().len(), 1);
     assert_eq!(tasks[0]["source"]["line"], 1);
-    let agenda: serde_json::Value =
-        serde_json::from_str(&run(&["query", "@week", "--on", "2026-09-16", "--json"])).unwrap();
+    let agenda: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        "--workspace",
+        "import(\"agenda\").between(entries, today(), today() + 6d)",
+        "--on",
+        "2026-09-16",
+        "--json",
+    ]))
+    .unwrap();
     assert_eq!(agenda.as_array().unwrap().len(), 1);
-    run(&["complete", "inbox.wtf:1", "--on", "2026-09-18"]);
-    assert!(
-        std::fs::read_to_string(root.join("inbox.wtf"))
-            .unwrap()
-            .contains("[x]")
+    assert_eq!(
+        std::fs::read_to_string(root.join("inbox.wtf")).unwrap(),
+        note
     );
-    let tasks: serde_json::Value =
-        serde_json::from_str(&run(&["query", "@tasks", "--json"])).unwrap();
-    assert!(tasks.as_array().unwrap().is_empty());
-    run(&["query", "@check", "--fail-on-match"]);
-}
-
-#[test]
-fn capture_keeps_existing_content_and_can_reference_same_note() {
-    let temp = tempfile::tempdir().unwrap();
-    let original = "[2026-09-25]:departure\n- [ ] Existing @due(tomorrow)\n";
-    std::fs::write(temp.path().join("inbox.wtf"), original).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_wtf"))
-        .current_dir(temp.path())
-        .args([
-            "capture",
-            "Book hotel",
-            "--due",
-            "departure-7d",
-            "--on",
-            "2026-09-16",
-        ])
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let saved = std::fs::read_to_string(temp.path().join("inbox.wtf")).unwrap();
-    assert!(saved.starts_with(original));
-    assert!(saved.contains("Book hotel @due(departure-7d)"));
+    run(&[
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\"",
+        "--fail-on-match",
+    ]);
 }
 
 #[test]
@@ -443,7 +537,7 @@ fn github_refresh_persists_metadata_and_keeps_cache_on_failure() {
 }
 
 #[test]
-fn cli_queries_plans_and_converts_alps_problems() {
+fn cli_queries_plans() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     std::fs::write(
@@ -466,11 +560,13 @@ fn cli_queries_plans_and_converts_alps_problems() {
     };
     let report = run(&[
         "query",
+        "--workspace",
         "plans | where name == \"bakery\" | select solution",
     ]);
     assert!(report.contains("94.75"), "{report}");
     let json: serde_json::Value = serde_json::from_str(&run(&[
         "query",
+        "--workspace",
         "plans | where name == \"bakery\" | select solution",
         "--json",
     ]))
@@ -480,31 +576,4 @@ fn cli_queries_plans_and_converts_alps_problems() {
         serde_json::json!({"type":"money","amount":94.75,"currency":"USD"})
     );
     assert_eq!(json[0]["constraints"][0]["binding"], true);
-    let exported = run(&["convert", "--to-alps", "bakery"]);
-    let problem: serde_json::Value = serde_json::from_str(&exported).unwrap();
-    assert_eq!(
-        problem["constraints"][0]["expression"],
-        "12 * bagels + 6.5 * doughnuts <= 400"
-    );
-    std::fs::write(root.join("problem.json"), &exported).unwrap();
-    let imported = run(&["convert", "--from-alps", "problem.json"]);
-    assert!(
-        imported.starts_with("[problem] := maximize(3 * bagels + 1.25 * doughnuts)\n| constraint"),
-        "{imported}"
-    );
-    std::fs::write(root.join("imported.wtf"), &imported).unwrap();
-    assert!(
-        run(&[
-            "query",
-            "plans | where name == \"problem\" | select solution"
-        ])
-        .contains("94.75")
-    );
-    let missing = Command::new(env!("CARGO_BIN_EXE_wtf"))
-        .current_dir(&root)
-        .args(["convert", "--to-alps", "flour_stock"])
-        .output()
-        .unwrap();
-    assert!(!missing.status.success());
-    assert!(String::from_utf8_lossy(&missing.stderr).contains("not a plan"));
 }

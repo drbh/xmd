@@ -7,7 +7,6 @@ use tower_lsp::lsp_types::{Position, Range};
 use wtf::{
     actions,
     document::Document,
-    editor,
     engine::{Engine, Value},
     timers,
     workspace::Workspace,
@@ -26,7 +25,7 @@ fn notes(text: &str) -> Workspace {
         .into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
-        plugins: Default::default(),
+        modules: Default::default(),
     }
 }
 fn path() -> &'static Path {
@@ -36,7 +35,8 @@ fn eval(ws: &Workspace, expr: &str, seconds: i64) -> Value {
     Engine::at(ws, at(seconds)).eval(path(), expr).unwrap()
 }
 fn change(ws: &mut Workspace, name: &str, action: &str, seconds: i64) {
-    let (origin, edit) = timers::edit(ws, path(), name, action, at(seconds)).unwrap();
+    let (origin, edit) =
+        timers::edit(ws, path(), name, action.parse().unwrap(), at(seconds)).unwrap();
     let text = actions::apply_edits(&ws.documents[&origin.path].text, &[edit]).unwrap();
     ws.documents.insert(origin.path, Document::parse(text));
 }
@@ -77,13 +77,25 @@ fn declarations_are_idle_and_reading_never_starts_or_changes_them() {
         assert!(!engine.time_dependent);
     }
     assert_eq!(ws.documents[path()].text, text);
-    assert!(editor::problems(&ws, path(), at(0).date_naive()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            at(0)
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path())
+        .is_empty()
+    );
 }
 
 #[test]
 fn stopwatch_start_pause_resume_reset_and_reload() {
     let mut ws = notes("🦀 [watch] := stopwatch()\r\nKeep this prose.\r\n");
-    assert!(timers::edit(&ws, path(), "watch", "pause", at(0)).is_err());
+    assert!(timers::edit(&ws, path(), "watch", "pause".parse().unwrap(), at(0)).is_err());
     change(&mut ws, "watch", "start", 0);
     assert!(
         ws.documents[path()]
@@ -97,7 +109,7 @@ fn stopwatch_start_pause_resume_reset_and_reload() {
     ws = notes(&ws.documents[path()].text);
     assert_eq!(eval(&ws, "watch.elapsed", 999), Value::Duration(73));
     assert_eq!(eval(&ws, "watch.state", 999), Value::Text("paused".into()));
-    assert!(timers::edit(&ws, path(), "watch", "start", at(999)).is_err());
+    assert!(timers::edit(&ws, path(), "watch", "start".parse().unwrap(), at(999)).is_err());
     change(&mut ws, "watch", "resume", 1000);
     assert_eq!(eval(&ws, "watch.elapsed", 1009), Value::Duration(82));
     ws = notes(&ws.documents[path()].text);
@@ -131,7 +143,7 @@ fn countdown_clamps_at_zero_and_preserves_duration_expression() {
             .contains("00:00 remaining · ✓ done")
     );
     assert!(!engine.time_dependent);
-    assert!(timers::edit(&ws, path(), "focus", "resume", at(9000)).is_err());
+    assert!(timers::edit(&ws, path(), "focus", "resume".parse().unwrap(), at(9000)).is_err());
     change(&mut ws, "focus", "reset", 9000);
     assert_eq!(
         ws.documents[path()].text,
@@ -164,12 +176,12 @@ fn seconds_work_through_dates_effort_cli_and_comparisons() {
             .eval(path(), "2026-09-16 + 1s")
             .is_err()
     );
-    let entries = wtf::query::execute(
-        &ws,
-        &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
-        &wtf::query::QueryContext::new(at(0)),
-    )
-    .unwrap();
+    let entries = wtf::RequestContext::new(&ws, wtf::query::QueryContext::new(at(0)).now)
+        .query(
+            &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
+            None,
+        )
+        .unwrap();
     assert_eq!(
         entries.rows[0].json(),
         serde_json::json!({"type":"duration","seconds":90})
@@ -206,7 +218,16 @@ fn timers_reject_invalid_arguments_and_unsupported_properties() {
         assert!(Engine::at(&ws, at(0)).eval(path(), expr).is_err(), "{expr}");
     }
     let ws = notes("[watch] := stopwatch()\n- [ ] Bad @timer(1m)\n[watch.bogus]\n");
-    let issues = editor::problems(&ws, path(), at(0).date_naive());
+    let issues = wtf::RequestContext::new(
+        &ws,
+        at(0)
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .fixed_offset(),
+    )
+    .problems(path());
     assert!(issues.iter().any(|p| p.message.contains("@timer requires")));
     assert!(
         issues
@@ -217,8 +238,9 @@ fn timers_reject_invalid_arguments_and_unsupported_properties() {
 
 #[test]
 fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_properties() {
-    let mut ws =
-        notes("[alias] := focus\nRemaining [alias.remaining].\n- [ ] Work @timer(alias)\n");
+    let mut ws = notes(
+        "[alias] := import(\"./shared.wtf\").focus\nRemaining [alias.remaining].\n- [ ] Work @timer(alias)\n",
+    );
     let origin = PathBuf::from("/notes/shared.wtf");
     ws.documents.insert(
         origin.clone(),
@@ -227,7 +249,19 @@ fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_propertie
     change(&mut ws, "alias", "start", 0);
     assert!(ws.documents[&origin].text.contains("countdown(25m, 0s,"));
     assert_eq!(eval(&ws, "alias.remaining", 60), Value::Duration(1440));
-    assert!(editor::problems(&ws, path(), at(0).date_naive()).is_empty());
+    assert!(
+        wtf::RequestContext::new(
+            &ws,
+            at(0)
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .fixed_offset()
+        )
+        .problems(path())
+        .is_empty()
+    );
     let reference = ws.documents[path()]
         .references
         .iter()
@@ -237,12 +271,12 @@ fn cross_file_alias_controls_edit_original_and_reference_spans_exclude_propertie
     assert_eq!(reference.expression(), "alias.remaining");
     let line = ws.documents[path()].line(reference.span.line);
     assert_eq!(&line[reference.span.start..reference.span.end], "alias");
-    let hints = editor::hints_at(
-        &ws,
-        path(),
-        at(60),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, at(60))
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     let text = serde_json::to_string(&hints).unwrap();
     assert!(text.contains("24:00 remaining"));
     assert!(text.contains("24m"));
@@ -281,12 +315,12 @@ fn grouped_declarations_whitespace_and_timer_dependency_cycles() {
     change(&mut ws, "watch", "start", 0);
     assert!(ws.documents[path()].text.contains("countdown(limit, 0s,"));
     assert_eq!(eval(&ws, "watch.remaining", 10), Value::Duration(20));
-    let hints = editor::hints_at(
-        &ws,
-        path(),
-        at(10),
-        Range::new(Position::new(0, 0), Position::new(99, 0)),
-    );
+    let hints = wtf::RequestContext::new(&ws, at(10))
+        .hints(
+            path(),
+            Range::new(Position::new(0, 0), Position::new(99, 0)),
+        )
+        .hints;
     assert!(hints.iter().any(|h| h.position == Position::new(2, 27)));
     let ws = notes("[a] := countdown(b.remaining)\n[b] := countdown(a.remaining)\n");
     assert!(

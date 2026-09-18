@@ -4,6 +4,9 @@ All native editors launch the same `wtf lsp` executable over stdio. Build it
 once with `cargo build --locked`, then configure its absolute path in each
 editor. The editor starts and stops the process; no separate server is needed.
 
+Use [`wtf render FILE`](rendering.md) to export a saved note with the same inline
+values and syntax colors as a standalone HTML file.
+
 | Editor | Setup |
 | --- | --- |
 | Zed | [Existing dev extension and settings](../README.md#try-it) |

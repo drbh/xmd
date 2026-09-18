@@ -5,7 +5,6 @@ use crate::{
     intelligence,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
 use std::path::Path;
 
@@ -14,7 +13,7 @@ pub struct Refactor {
     pub kind: CodeActionKind,
     pub edits: Vec<TextEdit>,
 }
-fn unique(ws: &Workspace, stem: &str) -> String {
+fn unique(ws: &Workspace, path: &Path, stem: &str) -> String {
     (0..)
         .map(|n| {
             if n == 0 {
@@ -23,7 +22,11 @@ fn unique(ws: &Workspace, stem: &str) -> String {
                 format!("{stem}_{n}")
             }
         })
-        .find(|n| !ws.symbols().iter().any(|s| ws.named(s).name == *n))
+        .find(|n| {
+            !ws.symbols()
+                .iter()
+                .any(|s| s.path == path && ws.named(s).name == *n)
+        })
         .unwrap()
 }
 fn distance(a: &str, b: &str) -> usize {
@@ -71,15 +74,7 @@ pub fn expression_regions(doc: &Document) -> Vec<Span> {
         }))
         .collect()
 }
-pub fn actions_for(
-    ws: &Workspace,
-    path: &Path,
-    range: Range,
-    now: DateTime<FixedOffset>,
-) -> Vec<Refactor> {
-    actions_for_in(&crate::RequestContext::new(ws, now), path, range)
-}
-pub fn actions_for_in(
+pub(crate) fn refactors(
     request: &crate::RequestContext<'_>,
     path: &Path,
     range: Range,
@@ -103,21 +98,25 @@ pub fn actions_for_in(
             kind: SymbolKind::Definition(plan.definition),
         };
         if let Ok(Value::Plan(solved)) = request.engine().symbol(&symbol) {
-            let edits: Vec<TextEdit> = crate::plugins::standard(
-                "plan",
-                "write_edits",
-                vec![
-                    solved.record(ws),
-                    Value::Text(crate::paths::file_url(path).unwrap().to_string()),
-                ],
-                request.now(),
-            )
-            .and_then(|v| crate::plugins::json(&v))
-            .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
-            .unwrap_or_default();
+            let edits: Vec<TextEdit> = ws
+                .modules
+                .call(
+                    "plan",
+                    "write_edits",
+                    vec![
+                        solved.record(ws),
+                        Value::Text(crate::paths::file_url(path).unwrap().to_string()),
+                    ],
+                    request.now(),
+                )
+                .and_then(|v| crate::modules::json(&v))
+                .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
+                .unwrap_or_default();
             if !edits.is_empty() {
                 result.push(Refactor {
-                    title: crate::plugins::standard("plan", "write_title", vec![], request.now())
+                    title: ws
+                        .modules
+                        .call("plan", "write_title", vec![], request.now())
                         .map(|v| v.display())
                         .unwrap_or_default(),
                     kind: CodeActionKind::REFACTOR_REWRITE,
@@ -177,7 +176,7 @@ pub fn actions_for_in(
                     - start,
             ) && !identifier(selected)
             {
-                let name = unique(ws, "calculation");
+                let name = unique(ws, path, "calculation");
                 result.push(Refactor {
                     title: format!("Extract named calculation '{name}'"),
                     kind: CodeActionKind::REFACTOR_EXTRACT,
@@ -215,6 +214,7 @@ pub fn actions_for_in(
         {
             let name = unique(
                 ws,
+                path,
                 if matches!(value, Value::Money(..)) {
                     "amount"
                 } else {

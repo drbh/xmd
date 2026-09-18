@@ -22,11 +22,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ PR #42 · refresh for status",
         "live": false
       },
@@ -39,7 +39,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -78,7 +78,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -117,7 +117,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1m ago",
         "live": true,
         "properties": [
@@ -156,7 +156,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 59m ago",
         "live": true,
         "properties": [
@@ -195,7 +195,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1h ago",
         "live": true,
         "properties": [
@@ -234,7 +234,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 23h ago",
         "live": true,
         "properties": [
@@ -273,7 +273,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1d ago",
         "live": true,
         "properties": [
@@ -312,7 +312,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -351,7 +351,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -390,7 +390,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -429,7 +429,7 @@
           "state": "draft",
           "title": "Draft"
         },
-        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "◐ draft · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -468,7 +468,7 @@
           "state": "merged",
           "title": "Merged"
         },
-        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✓ merged · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -507,7 +507,7 @@
           "state": "closed",
           "title": "Closed"
         },
-        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✗ closed · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -546,7 +546,7 @@
           "state": "unknown",
           "title": "Fallback"
         },
-        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "unknown · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [
@@ -602,11 +602,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ issue #3 · refresh for status",
         "live": false
       },
@@ -619,7 +619,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -646,7 +646,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -673,7 +673,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1m ago",
         "live": true,
         "properties": [
@@ -700,7 +700,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 59m ago",
         "live": true,
         "properties": [
@@ -727,7 +727,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1h ago",
         "live": true,
         "properties": [
@@ -754,7 +754,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 23h ago",
         "live": true,
         "properties": [
@@ -781,7 +781,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1d ago",
         "live": true,
         "properties": [
@@ -808,7 +808,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -835,7 +835,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -862,7 +862,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -889,7 +889,7 @@
           "state": "draft",
           "title": "Draft"
         },
-        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "◐ draft · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -916,7 +916,7 @@
           "state": "merged",
           "title": "Merged"
         },
-        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✓ merged · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -943,7 +943,7 @@
           "state": "closed",
           "title": "Closed"
         },
-        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✗ closed · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -970,7 +970,7 @@
           "state": "unknown",
           "title": "Fallback"
         },
-        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "unknown · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [
@@ -1009,11 +1009,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ commit abcdef1 · refresh for status",
         "live": false
       },
@@ -1026,7 +1026,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -1053,7 +1053,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -1080,7 +1080,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1m ago",
         "live": true,
         "properties": [
@@ -1107,7 +1107,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 59m ago",
         "live": true,
         "properties": [
@@ -1134,7 +1134,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1h ago",
         "live": true,
         "properties": [
@@ -1161,7 +1161,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 23h ago",
         "live": true,
         "properties": [
@@ -1188,7 +1188,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1d ago",
         "live": true,
         "properties": [
@@ -1215,7 +1215,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -1242,7 +1242,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -1269,7 +1269,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -1296,7 +1296,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -1323,7 +1323,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -1350,7 +1350,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -1377,7 +1377,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [
@@ -1437,11 +1437,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ PR #1 · refresh for status",
         "live": false
       },
@@ -1454,7 +1454,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -1493,7 +1493,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -1532,7 +1532,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1m ago",
         "live": true,
         "properties": [
@@ -1571,7 +1571,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 59m ago",
         "live": true,
         "properties": [
@@ -1610,7 +1610,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1h ago",
         "live": true,
         "properties": [
@@ -1649,7 +1649,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 23h ago",
         "live": true,
         "properties": [
@@ -1688,7 +1688,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1d ago",
         "live": true,
         "properties": [
@@ -1727,7 +1727,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -1766,7 +1766,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -1805,7 +1805,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -1844,7 +1844,7 @@
           "state": "draft",
           "title": "Draft"
         },
-        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "◐ draft · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -1883,7 +1883,7 @@
           "state": "merged",
           "title": "Merged"
         },
-        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✓ merged · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -1922,7 +1922,7 @@
           "state": "closed",
           "title": "Closed"
         },
-        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✗ closed · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -1961,7 +1961,7 @@
           "state": "unknown",
           "title": "Fallback"
         },
-        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "unknown · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [
@@ -2017,11 +2017,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ PR #01 · refresh for status",
         "live": false
       },
@@ -2034,7 +2034,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -2073,7 +2073,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -2112,7 +2112,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1m ago",
         "live": true,
         "properties": [
@@ -2151,7 +2151,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 59m ago",
         "live": true,
         "properties": [
@@ -2190,7 +2190,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1h ago",
         "live": true,
         "properties": [
@@ -2229,7 +2229,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 23h ago",
         "live": true,
         "properties": [
@@ -2268,7 +2268,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · 1d ago",
         "live": true,
         "properties": [
@@ -2307,7 +2307,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -2346,7 +2346,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -2385,7 +2385,7 @@
           "state": "open",
           "title": "Hello"
         },
-        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Hello**\n\nopen · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "○ open · just now",
         "live": true,
         "properties": [
@@ -2424,7 +2424,7 @@
           "state": "draft",
           "title": "Draft"
         },
-        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Draft**\n\ndraft · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "◐ draft · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -2463,7 +2463,7 @@
           "state": "merged",
           "title": "Merged"
         },
-        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Merged**\n\nmerged · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✓ merged · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -2502,7 +2502,7 @@
           "state": "closed",
           "title": "Closed"
         },
-        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Closed**\n\nclosed · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "✗ closed · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -2541,7 +2541,7 @@
           "state": "unknown",
           "title": "Fallback"
         },
-        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Fallback**\n\nunknown · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "unknown · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [
@@ -2592,11 +2592,11 @@
         ]
       ],
       "program": "gh",
-      "title": "Refresh GitHub status"
+      "title": "⟳ github"
     },
     "states": [
       {
-        "hover": "No cached status. Run `wtf refresh`, or use the Refresh GitHub status code action on this resource. Requires the GitHub CLI (`gh`).",
+        "hover": "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
         "inlay": "◌ commit a-b_c.d · refresh for status",
         "live": false
       },
@@ -2609,7 +2609,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -2636,7 +2636,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -2663,7 +2663,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:59 UTC\n\nLast refreshed: 2026-09-18T11:59:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1m ago",
         "live": true,
         "properties": [
@@ -2690,7 +2690,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 59m ago",
         "live": true,
         "properties": [
@@ -2717,7 +2717,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 11:00 UTC\n\nLast refreshed: 2026-09-18T11:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1h ago",
         "live": true,
         "properties": [
@@ -2744,7 +2744,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:01+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 23h ago",
         "live": true,
         "properties": [
@@ -2771,7 +2771,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-17 12:00 UTC\n\nLast refreshed: 2026-09-17T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · 1d ago",
         "live": true,
         "properties": [
@@ -2798,7 +2798,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-11 12:00 UTC\n\nLast refreshed: 2026-09-11T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ! stale · 7d ago",
         "live": true,
         "properties": [
@@ -2825,7 +2825,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-04 12:00 UTC\n\nLast refreshed: 2026-09-04T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ! stale · 2w ago",
         "live": true,
         "properties": [
@@ -2852,7 +2852,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · cached 2026-09-18 12:01 UTC\n\nLast refreshed: 2026-09-18T12:01:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · just now",
         "live": true,
         "properties": [
@@ -2879,7 +2879,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks pending · review required · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ◌ checks pending · ⚑ review needed · just now",
         "live": true,
         "properties": [
@@ -2906,7 +2906,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks passing · approved · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ● checks · ✓ approved · just now",
         "live": true,
         "properties": [
@@ -2933,7 +2933,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks failing · changes requested · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now",
         "live": true,
         "properties": [
@@ -2960,7 +2960,7 @@
           "state": "commit",
           "title": "Commit"
         },
-        "hover": "**Commit**\n\ncommit · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **Refresh GitHub status** to update.",
+        "hover": "**Commit**\n\ncommit · checks failing · dismissed · cached 2026-09-18 12:00 UTC\n\nLast refreshed: 2026-09-18T12:00:00+00:00. Use **⟳ github** to update.",
         "inlay": "commit · ✗ checks FAILING · dismissed · just now",
         "live": true,
         "properties": [

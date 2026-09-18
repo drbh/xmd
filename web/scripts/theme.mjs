@@ -13,7 +13,7 @@ function onLight(hex) {
   const l = (max + min) / 2;
   // Near-white tones are prose-like (headings); they become ink rather than a tint.
   const plain = l > 0.78 && s < 0.5;
-  const light = plain ? 0.2 : d < 0.08 ? 0.42 : 0.36, sat = plain ? 0.25 : Math.min(0.72, s * 0.85);
+  const light = plain ? 0.14 : d < 0.08 ? 0.42 : 0.36, sat = plain ? 0 : Math.min(0.72, s * 0.85);
   const c = (1 - Math.abs(2 * light - 1)) * sat, x = c * (1 - Math.abs(h % 2 - 1)), m = light - c / 2;
   const [R, G, B] = [[c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x]][Math.floor(h)];
   return "#" + [R, G, B].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");

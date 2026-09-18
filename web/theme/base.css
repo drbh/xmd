@@ -17,8 +17,8 @@
 .wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
 .wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
 .wtf-controls button { font: inherit; cursor: pointer; }
-.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f2622); background: var(--wtf-background, #ffffff); }
-.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3f5b31); background: var(--wtf-inlay-background, #e7efdf); }
+.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f1f1f); background: var(--wtf-background, #ffffff); }
+.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3c4653); background: var(--wtf-inlay-background, #eef0f3); }
 .wtf-light .wtf a { text-decoration-color: #2f6f9f; }
 .wtf-light .wtf .error { text-decoration-color: #c9463a; }
 .wtf-light .wtf .warning { text-decoration-color: #b47a12; }

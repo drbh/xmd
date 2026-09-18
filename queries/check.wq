@@ -1,0 +1,1 @@
+diagnostics | where severity == "error"

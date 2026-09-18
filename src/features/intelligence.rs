@@ -1,7 +1,7 @@
 //! Editor intelligence shared by the LSP handlers and deterministic tests.
 use crate::{
     document::{Document, Span, byte_at},
-    engine::{Engine, Value},
+    engine::Value,
     resources,
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -16,6 +16,23 @@ pub fn markup(value: String) -> MarkupContent {
     }
 }
 pub fn link_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
+    link_hover_at(ws, path, position, chrono::Utc::now().fixed_offset())
+}
+pub fn link_hover_at(
+    ws: &Workspace,
+    path: &Path,
+    position: Position,
+    now: DateTime<FixedOffset>,
+) -> Option<Hover> {
+    link_hover_in(&crate::RequestContext::new(ws, now), path, position)
+}
+pub fn link_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let link = doc.links.iter().find(|l| {
@@ -26,7 +43,16 @@ pub fn link_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hov
         origin: None,
     };
     Some(Hover {
-        contents: HoverContents::Markup(markup(resource.hover(path, &ws.cache))),
+        contents: HoverContents::Markup(markup(
+            resource
+                .presentation(
+                    path,
+                    &ws.cache,
+                    request.now().to_utc(),
+                    request.link_features(),
+                )
+                .hover,
+        )),
         range: Some(link.span.range(&doc.text)),
     })
 }
@@ -126,7 +152,7 @@ pub fn inert(doc: &Document, position: Position) -> bool {
                         .chain(doc.events.iter().flat_map(|e| e.attributes.values()))
                         .any(|a| a.span.line == row && byte >= a.span.start && byte <= a.span.end)
                     && !doc.definitions.iter().any(|d| {
-                        d.expression && d.value_span.line == row && byte >= d.value_span.start
+                        d.expression && d.value_span.contains(&doc.text, Span::new(row, byte, byte))
                     }))
     })
 }
@@ -142,6 +168,293 @@ pub(crate) fn is_builtin_function(name: &str) -> bool {
     FUNCTIONS.iter().any(|f| f.name == name)
 }
 const FUNCTIONS: &[Function] = &[
+    Function {
+        name: "import",
+        params: &["id: Text"],
+        result: "Record",
+        documentation: "Load a module namespace; plugins declare their imports.",
+        example: "\"format\"",
+    },
+    Function {
+        name: "solve_linear",
+        params: &["model: Record"],
+        result: "Record",
+        documentation: "Solve a bounded linear model and return raw numeric values and status.",
+        example: "model",
+    },
+    Function {
+        name: "object",
+        params: &["entries: List"],
+        result: "Record",
+        documentation: "Build a record from key/value pairs; duplicate keys are rejected.",
+        example: "[{key: \"x\", value: 1}]",
+    },
+    Function {
+        name: "parse_date",
+        params: &["text: Text", "format: Text"],
+        result: "Date or Null",
+        documentation: "Parse a calendar date with a strftime format; invalid input returns null.",
+        example: "\"2026-09-18\", \"%F\"",
+    },
+    Function {
+        name: "parse_datetime",
+        params: &["text: Text", "format: Text", "offset: DateTime"],
+        result: "DateTime or Null",
+        documentation: "Parse a local timestamp using a reference timestamp's offset.",
+        example: "\"2026-09-18 09:30\", \"%F %H:%M\", now()",
+    },
+    Function {
+        name: "entries",
+        params: &["record: Record"],
+        result: "List",
+        documentation: "List key/value pairs in key order.",
+        example: "{x: 1}",
+    },
+    Function {
+        name: "number",
+        params: &["value: Number, Money, Ratio, Duration or Count"],
+        result: "Number",
+        documentation: "Extract the numeric magnitude; durations use seconds.",
+        example: "90m",
+    },
+    Function {
+        name: "source",
+        params: &["value: Any"],
+        result: "Text",
+        documentation: "Format a typed scalar as a round-trippable expression.",
+        example: "now()",
+    },
+    Function {
+        name: "make_date",
+        params: &["year: Number", "month: Number", "day: Number"],
+        result: "Date or Null",
+        documentation: "Construct a calendar date; invalid dates return null.",
+        example: "2026, 9, 18",
+    },
+    Function {
+        name: "duration_parts",
+        params: &["duration: Duration"],
+        result: "Record",
+        documentation: "Split integer seconds into total hours, remaining minutes and seconds without rounding.",
+        example: "90m",
+    },
+    Function {
+        name: "date_parts",
+        params: &["date: Date or DateTime"],
+        result: "Record",
+        documentation: "Read year, month, day and weekday (Monday is zero).",
+        example: "today()",
+    },
+    Function {
+        name: "at_time",
+        params: &["date: Date", "time: Duration", "offset: DateTime"],
+        result: "DateTime",
+        documentation: "Combine a date and time of day using the reference timestamp offset.",
+        example: "today(), 9h, now()",
+    },
+    Function {
+        name: "parse_time",
+        params: &["text: Text", "format: Text"],
+        result: "Duration or Null",
+        documentation: "Parse a time of day as seconds since midnight.",
+        example: "\"09:30\", \"%H:%M\"",
+    },
+    Function {
+        name: "parse_duration",
+        params: &["text: Text"],
+        result: "Duration or Null",
+        documentation: "Parse a written duration.",
+        example: "\"2h\"",
+    },
+    Function {
+        name: "pad_start",
+        params: &["text: Text", "width: Number", "fill: Text"],
+        result: "Text",
+        documentation: "Pad text to a character width with one character.",
+        example: "\"3\", 2, \"0\"",
+    },
+    Function {
+        name: "pad_end",
+        params: &["text: Text", "width: Number", "fill: Text"],
+        result: "Text",
+        documentation: "Pad text on the right.",
+        example: "\"x\", 3, \" \"",
+    },
+    Function {
+        name: "slice",
+        params: &["value: Text or List", "start: Number", "end: Number"],
+        result: "Text or List",
+        documentation: "Take a half-open range; text indices count Unicode characters.",
+        example: "\"hello\", 0, 2",
+    },
+    Function {
+        name: "concat",
+        params: &["lists: List..."],
+        result: "List",
+        documentation: "Concatenate lists.",
+        example: "[1, 2], [3]",
+    },
+    Function {
+        name: "trim",
+        params: &["text: Text"],
+        result: "Text",
+        documentation: "Remove surrounding whitespace.",
+        example: "\" hello \"",
+    },
+    Function {
+        name: "type",
+        params: &["value: Any"],
+        result: "Text",
+        documentation: "Get the runtime type name.",
+        example: "42",
+    },
+    Function {
+        name: "floor",
+        params: &["number: Number"],
+        result: "Number",
+        documentation: "Round down to an integer.",
+        example: "1.5",
+    },
+    Function {
+        name: "round",
+        params: &["number: Number"],
+        result: "Number",
+        documentation: "Round to the nearest integer.",
+        example: "1.5",
+    },
+    Function {
+        name: "repeat",
+        params: &["text: Text", "count: Number"],
+        result: "Text",
+        documentation: "Repeat text a bounded number of times.",
+        example: "\"█\", 3",
+    },
+    Function {
+        name: "format_date",
+        params: &["date: Date or DateTime", "format: Text"],
+        result: "Text",
+        documentation: "Format a date or timestamp with strftime directives.",
+        example: "today(), \"%Y-%m-%d\"",
+    },
+    Function {
+        name: "error",
+        params: &["message: Text"],
+        result: "Never",
+        documentation: "Return an evaluation error.",
+        example: "\"Missing data\"",
+    },
+    Function {
+        name: "if",
+        params: &["condition: Boolean", "then: Value", "else: Value"],
+        result: "Value",
+        documentation: "Evaluate only the selected branch.",
+        example: "true, 1, 0",
+    },
+    Function {
+        name: "coalesce",
+        params: &["values: Value..."],
+        result: "Value",
+        documentation: "Return the first non-null value.",
+        example: "null, 1",
+    },
+    Function {
+        name: "map",
+        params: &["items: List", "function: Function"],
+        result: "List",
+        documentation: "Apply a pure function to every item.",
+        example: "[1, 2], fn(x) => x * 2",
+    },
+    Function {
+        name: "filter",
+        params: &["items: List", "predicate: Function"],
+        result: "List",
+        documentation: "Keep items whose predicate returns true.",
+        example: "[1, 2], fn(x) => x > 1",
+    },
+    Function {
+        name: "fold",
+        params: &["items: List", "initial: Value", "function: Function"],
+        result: "Value",
+        documentation: "Combine items left to right with an accumulator.",
+        example: "[1, 2], 0, fn(a, x) => a + x",
+    },
+    Function {
+        name: "get",
+        params: &["collection: Record or List", "key: Text or Number"],
+        result: "Value",
+        documentation: "Read a field or index; return null when absent.",
+        example: "{name: \"hello\"}, \"name\"",
+    },
+    Function {
+        name: "length",
+        params: &["value: List, Record, or Text"],
+        result: "Count",
+        documentation: "Count items, fields, or Unicode characters.",
+        example: "\"hello\"",
+    },
+    Function {
+        name: "text",
+        params: &["value: Value"],
+        result: "Text",
+        documentation: "Format a value as text.",
+        example: "$25",
+    },
+    Function {
+        name: "contains",
+        params: &["value: List or Text", "part: Value"],
+        result: "Boolean",
+        documentation: "Test membership or a text substring.",
+        example: "\"hello\", \"ell\"",
+    },
+    Function {
+        name: "starts_with",
+        params: &["text: Text", "prefix: Text"],
+        result: "Boolean",
+        documentation: "Test a text prefix.",
+        example: "\"hello\", \"he\"",
+    },
+    Function {
+        name: "ends_with",
+        params: &["text: Text", "suffix: Text"],
+        result: "Boolean",
+        documentation: "Test a text suffix.",
+        example: "\"hello\", \"lo\"",
+    },
+    Function {
+        name: "split",
+        params: &["text: Text", "separator: Text"],
+        result: "List",
+        documentation: "Split text into pieces.",
+        example: "\"a/b\", \"/\"",
+    },
+    Function {
+        name: "join",
+        params: &["items: List", "separator: Text"],
+        result: "Text",
+        documentation: "Join a list of text.",
+        example: "[\"a\", \"b\"], \"/\"",
+    },
+    Function {
+        name: "lower",
+        params: &["text: Text"],
+        result: "Text",
+        documentation: "Convert text to lowercase.",
+        example: "\"Hello\"",
+    },
+    Function {
+        name: "upper",
+        params: &["text: Text"],
+        result: "Text",
+        documentation: "Convert text to uppercase.",
+        example: "\"Hello\"",
+    },
+    Function {
+        name: "replace",
+        params: &["text: Text", "from: Text", "to: Text"],
+        result: "Text",
+        documentation: "Replace text occurrences.",
+        example: "\"hello\", \"h\", \"j\"",
+    },
     Function {
         name: "sum",
         params: &["table: Table", "expression: row calculation"],
@@ -419,6 +732,12 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
     }
 }
 pub fn property_names(value: &Value) -> Vec<String> {
+    property_names_with_links(value, crate::link_features::BUILTINS)
+}
+fn property_names_with_links(
+    value: &Value,
+    links: crate::link_features::LinkFeatures<'_>,
+) -> Vec<String> {
     let names: Vec<&str> = match value {
         Value::Timer(t) => {
             let mut names = vec!["elapsed", "running", "done", "state"];
@@ -428,17 +747,14 @@ pub fn property_names(value: &Value) -> Vec<String> {
             names
         }
         Value::Resource(r) => {
-            let mut names = vec!["url"];
-            if let Some((_, kind, _)) = resources::github(&r.target) {
-                names.extend(["title", "state"]);
-                if kind == "pull" {
-                    names.extend(["merged", "checks_passed"]);
-                }
-            } else if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
-                names.push("exists");
+            let mut names = vec!["url".to_owned()];
+            names.extend(links.property_names(&r.target));
+            if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
+                names.push("exists".into());
             }
-            names
+            return names;
         }
+        Value::Record(fields) => return fields.keys().cloned().collect(),
         Value::Plan(p) => return p.property_names(),
         _ => vec![],
     };
@@ -451,6 +767,22 @@ pub fn completions(
     now: DateTime<FixedOffset>,
     snippets: bool,
 ) -> Vec<CompletionItem> {
+    completions_in(
+        &crate::RequestContext::new(ws, now),
+        path,
+        position,
+        snippets,
+    )
+}
+pub fn completions_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+    snippets: bool,
+) -> Vec<CompletionItem> {
+    let ws = request.workspace();
+    let now = request.now();
+
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
@@ -471,7 +803,7 @@ pub fn completions(
             .take_while(|b| b.is_ascii_alphanumeric() || *b == b'_')
             .count();
     let replacement = Span::new(position.line as usize, start, end).range(&doc.text);
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let mut result = vec![];
     if let Some(table_name) =
         crate::tables::scope_at(doc, Span::new(position.line as usize, byte, byte))
@@ -501,7 +833,7 @@ pub fn completions(
             .next()
             .unwrap_or("");
         if let Ok(value) = engine.named(path, receiver) {
-            for name in property_names(&value) {
+            for name in property_names_with_links(&value, request.link_features()) {
                 let preview = engine.eval(path, &format!("{receiver}.{name}"));
                 result.push(CompletionItem {
                     label: name.clone(),
@@ -731,37 +1063,32 @@ pub fn stop_hover(
         .find(|(d, _)| d.stops.iter().any(|s| s.line == row))?;
     let index = day.stops.iter().position(|s| s.line == row)?;
     let stop = &day.stops[index];
-    let mut text = format!(
-        "**{}**\n\n{}{}",
-        stop.title,
-        stop.kind
-            .map(|k| format!("{} · ", k.name))
-            .unwrap_or_default(),
-        crate::itinerary::display_time(stop)
-    );
-    if let Some(date) = date {
-        text.push_str(&format!(", {}", date.format("%A, %B %-d, %Y")));
-    }
-    if let Some(next) = day.stops.get(index + 1)
-        && let Some(seconds) = crate::itinerary::gap(stop, next)
-    {
-        text.push_str(&format!(
-            "\n\n{} {} until {}",
-            crate::glyphs::ARROW,
-            crate::itinerary::human(seconds),
-            next.title
-        ));
-    }
-    for detail in &stop.details {
-        text.push_str(&format!("\n\n**{}:** {}", detail.key, detail.value));
-    }
+    let text = crate::itinerary::call(
+        "stop_hover",
+        vec![
+            crate::itinerary::stop_record(stop, None),
+            day.stops
+                .get(index + 1)
+                .map(|s| crate::itinerary::stop_record(s, None))
+                .unwrap_or(Value::Null),
+            date.map(Value::Date).unwrap_or(Value::Null),
+        ],
+    )
+    .ok()?
+    .display();
     Some(Hover {
         contents: HoverContents::Markup(markup(text)),
         range: Some(Span::new(row, stop.time_span.start, stop.title_span.end).range(&doc.text)),
     })
 }
 pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> String {
-    let mut engine = Engine::at(ws, now);
+    hover_in(&crate::RequestContext::new(ws, now), symbol)
+}
+pub fn hover_in(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
+    let ws = request.workspace();
+    let now = request.now();
+    let features = request.link_features();
+    let mut engine = request.engine();
     let named = ws.named(symbol);
     if let SymbolKind::Column(t, c) = symbol.kind {
         let doc = &ws.documents[&symbol.path];
@@ -858,73 +1185,11 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
                     ));
                 }
             }
-            if let Ok(Value::Plan(plan)) = &value {
-                for (table, column, cells) in plan.columns() {
-                    if let Some(t) = crate::tables::table(ws, &table) {
-                        let chosen: Vec<String> = cells
-                            .iter()
-                            .map(|(row, v)| {
-                                let label = t.rows[*row]
-                                    .first()
-                                    .map(|c| c.source.clone())
-                                    .unwrap_or_else(|| (row + 1).to_string());
-                                match v {
-                                    Value::Bool(true) => label,
-                                    Value::Bool(false) => format!("~~{label}~~"),
-                                    v => format!("{label} × {}", v.display()),
-                                }
-                            })
-                            .collect();
-                        out.push_str(&format!(
-                            "\n\n{}: {}",
-                            t.columns[column].name,
-                            chosen.join(", ")
-                        ));
-                    }
-                }
-                out.push_str(&format!(
-                    "\n\n{} the objective. Variables: {}",
-                    if plan.goal == crate::plans::Goal::Maximize {
-                        "Maximizes"
-                    } else {
-                        "Minimizes"
-                    },
-                    plan.variables
-                        .iter()
-                        .map(|(n, v)| format!("{n} = {}", v.display()))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ));
-                out.push_str("\n\nConstraints:\n");
-                for c in &plan.constraints {
-                    let symbol = match c.op.as_str() {
-                        "<=" => "≤",
-                        ">=" => "≥",
-                        _ => "=",
-                    };
-                    let usage = match (
-                        c.op.as_str(),
-                        crate::charts::magnitude(&c.rhs),
-                        crate::charts::magnitude(&c.lhs),
-                    ) {
-                        ("<=", Some(rhs), Some(lhs)) if rhs > 0.0 => {
-                            format!("`{}` ", crate::charts::bar_fraction(lhs / rhs))
-                        }
-                        _ => String::new(),
-                    };
-                    out.push_str(&format!(
-                        "\n- {}: {usage}{} {symbol} {} · {}",
-                        c.name,
-                        c.lhs.display(),
-                        c.rhs.display(),
-                        if c.binding {
-                            format!("{} binding", crate::glyphs::ON)
-                        } else {
-                            format!("{} slack {}", crate::glyphs::OFF, c.slack.display())
-                        }
-                    ));
-                }
-                out.push_str("\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.");
+            if let Ok(Value::Plan(plan)) = &value
+                && let Ok(text) =
+                    crate::plugins::standard("plan", "hover", vec![plan.record(ws)], now)
+            {
+                out.push_str(&text.display());
             }
             if let Some(contributions) = engine.sum_contributions(&symbol.path, &def.source) {
                 out.push_str("\n\nRow contributions:\n");
@@ -940,9 +1205,11 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
             }
             let doc = &ws.documents[&symbol.path];
             let mut inputs = std::collections::BTreeSet::new();
-            for reference in doc.references.iter().filter(|r| {
-                r.span.line == def.value_span.line && r.span.start >= def.value_span.start
-            }) {
+            for reference in doc
+                .references
+                .iter()
+                .filter(|r| def.value_span.contains(&doc.text, r.span))
+            {
                 if let Ok(input) = crate::tables::resolve_reference(ws, &symbol.path, reference) {
                     inputs.insert(source_link(ws, &input));
                 }
@@ -977,29 +1244,12 @@ pub fn hover(ws: &Workspace, symbol: &Symbol, now: DateTime<FixedOffset>) -> Str
         }
     }
     match value {
-        Ok(Value::Resource(r)) => {
-            out.push_str(&format!("\n\n{}", r.hover(&symbol.path, &ws.cache)))
-        }
-        Ok(Value::Timer(t)) => {
-            if let Some(limit) = t.limit {
-                out.push_str(&format!(
-                    "\n\n`{}`",
-                    crate::charts::bar_fraction(t.elapsed as f64 / limit as f64)
-                ));
-            }
-            out.push_str(&format!(
-                "\n\nElapsed: {}. State: {}.",
-                Value::Duration(t.elapsed).display(),
-                t.state()
-            ));
-            if let Some(started) = t.started {
-                out.push_str(&format!(
-                    " Current segment started: {}.",
-                    started.to_rfc3339()
-                ));
-            }
-            out.push_str("\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.");
-        }
+        Ok(Value::Resource(r)) => out.push_str(&format!(
+            "\n\n{}",
+            r.presentation(&symbol.path, &ws.cache, now.to_utc(), features)
+                .hover
+        )),
+        Ok(Value::Timer(t)) => out.push_str(&t.hover()),
         Ok(Value::Tasks(tasks)) => {
             let done = tasks
                 .iter()
@@ -1029,6 +1279,15 @@ pub fn calculation_hover(
     position: Position,
     now: DateTime<FixedOffset>,
 ) -> Option<Hover> {
+    calculation_hover_in(&crate::RequestContext::new(ws, now), path, position)
+}
+pub fn calculation_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let calculation = doc.calculations.iter().find(|c| {
@@ -1036,7 +1295,7 @@ pub fn calculation_hover(
             && byte + usize::from(c.bracketed) >= c.span.start
             && byte <= c.span.end
     })?;
-    let mut engine = Engine::at(ws, now);
+    let mut engine = request.engine();
     let value = engine.eval_at(path, &calculation.source, calculation.span);
     let mut text = match &value {
         Ok(v) => format!("**{} · {}**", v.display(), v.type_name()),
@@ -1070,6 +1329,19 @@ pub fn calculation_hover(
     })
 }
 pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hover> {
+    cell_hover_in(
+        &crate::RequestContext::new(ws, chrono::Local::now().fixed_offset()),
+        path,
+        position,
+    )
+}
+pub fn cell_hover_in(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
     let doc = ws.documents.get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     for table in &doc.tables {
@@ -1080,7 +1352,8 @@ pub fn cell_hover(ws: &Workspace, path: &Path, position: Position) -> Option<Hov
                     && byte <= cell.span.end
                 {
                     let value = match &cell.expression {
-                        Some((inner, _)) => Engine::at(ws, chrono::Local::now().fixed_offset())
+                        Some((inner, _)) => request
+                            .engine()
                             .eval(path, inner)
                             .map(|v| (v, Some(inner.clone()))),
                         None => cell.value.clone().map(|v| (v, None)),

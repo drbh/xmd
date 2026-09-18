@@ -85,6 +85,7 @@ fn value_kind(value: &Value) -> &'static str {
 }
 
 struct Painter<'a> {
+    text: &'a str,
     lines: Vec<&'a str>,
     colors: Vec<Vec<Style>>,
 }
@@ -95,19 +96,22 @@ impl<'a> Painter<'a> {
             .iter()
             .map(|l| vec![Style::default(); l.len()])
             .collect();
-        Self { lines, colors }
+        Self {
+            text: &doc.text,
+            lines,
+            colors,
+        }
     }
     fn source(&self, span: Span) -> &'a str {
-        self.lines
-            .get(span.line)
-            .and_then(|l| l.get(span.start..span.end))
-            .unwrap_or("")
+        span.source(self.text)
     }
     fn paint(&mut self, span: Span, color: Style) {
-        if let Some(line) = self.colors.get_mut(span.line)
-            && let Some(bytes) = line.get_mut(span.start..span.end)
-        {
-            bytes.fill(color);
+        for span in span.fragments(self.text) {
+            if let Some(line) = self.colors.get_mut(span.line)
+                && let Some(bytes) = line.get_mut(span.start..span.end)
+            {
+                bytes.fill(color);
+            }
         }
     }
     fn mark(&mut self, span: Span, kind: &str) {
@@ -145,7 +149,7 @@ impl<'a> Painter<'a> {
         let source = self.source(span);
         // An unfinished expression should not suddenly become a solid string color.
         self.paint(span, Style::default());
-        let Ok(tokens) = engine::lex(source) else {
+        let Ok(tokens) = engine::lex_with_comments(source) else {
             return;
         };
         for (i, token) in tokens.iter().enumerate() {
@@ -168,11 +172,12 @@ impl<'a> Painter<'a> {
                         "variable"
                     }
                 }
+                Lexeme::Comment => "comment",
                 Lexeme::Op(_) => "operator",
                 _ => "wtfPunctuation",
             };
             self.paint(
-                Span::new(span.line, span.start + token.start, span.start + token.end),
+                span.relative(self.text, token.start, token.end),
                 style(kind, modifiers),
             );
         }

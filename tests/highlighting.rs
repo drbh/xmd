@@ -300,3 +300,17 @@ fn itinerary_stops_paint_one_hue_per_kind_with_bold_markers() {
     assert_kind(source, 6, "Dinner at Casa", "wtfMeal", 0);
     assert_kind(source, 7, "Something else", "heading", 0);
 }
+
+#[test]
+fn multiline_functions_and_comments_keep_valid_utf16_tokens() {
+    let source = "// Explain the function, not an active [reference].\nformat := fn(value) => (\n  // Keep https://example.com and 10m inert.\n  if(\n    value == null,\n    \"🦀 https://example.com/\",\n    text(value) // Render the value.\n  )\n)\n";
+    for source in [source.to_string(), source.replace('\n', "\r\n")] {
+        assert_kind(&source, 0, "[reference]", "comment", 0);
+        assert_kind(&source, 2, "10m", "comment", 0);
+        assert_kind(&source, 3, "if", "function", 2);
+        assert_kind(&source, 5, "🦀", "string", 0);
+        assert_kind(&source, 6, "text", "function", 2);
+        assert_kind(&source, 6, "Render", "comment", 0);
+        tokens(&source);
+    }
+}

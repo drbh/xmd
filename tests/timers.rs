@@ -5,7 +5,7 @@ use std::{
 };
 use tower_lsp::lsp_types::{Position, Range};
 use wtf::{
-    actions, cli,
+    actions,
     document::Document,
     editor,
     engine::{Engine, Value},
@@ -26,6 +26,7 @@ fn notes(text: &str) -> Workspace {
         .into(),
         cache: BTreeMap::new(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn path() -> &'static Path {
@@ -38,6 +39,28 @@ fn change(ws: &mut Workspace, name: &str, action: &str, seconds: i64) {
     let (origin, edit) = timers::edit(ws, path(), name, action, at(seconds)).unwrap();
     let text = actions::apply_edits(&ws.documents[&origin.path].text, &[edit]).unwrap();
     ws.documents.insert(origin.path, Document::parse(text));
+}
+
+#[test]
+fn multiline_timer_actions_preserve_the_surrounding_note() {
+    let source = "// Focus timer.\n[session] := 2m\n[focus] := countdown(\n  session + 30s\n)\nKeep this prose.\n";
+    for source in [source.to_owned(), source.replace('\n', "\r\n")] {
+        let mut ws = notes(&source);
+        assert_eq!(eval(&ws, "focus.remaining", 0), Value::Duration(150));
+        change(&mut ws, "focus", "start", 0);
+        assert_eq!(eval(&ws, "focus.remaining", 20), Value::Duration(130));
+        change(&mut ws, "focus", "pause", 20);
+        assert_eq!(eval(&ws, "focus.remaining", 999), Value::Duration(130));
+        change(&mut ws, "focus", "reset", 999);
+        assert_eq!(eval(&ws, "focus.remaining", 999), Value::Duration(150));
+        let expected = source
+            .replace("countdown(\n  session + 30s\n)", "countdown(session + 30s)")
+            .replace(
+                "countdown(\r\n  session + 30s\r\n)",
+                "countdown(session + 30s)",
+            );
+        assert_eq!(ws.documents[path()].text, expected);
+    }
 }
 
 #[test]
@@ -141,10 +164,20 @@ fn seconds_work_through_dates_effort_cli_and_comparisons() {
             .eval(path(), "2026-09-16 + 1s")
             .is_err()
     );
-    let entries = cli::entries(&ws, at(0).date_naive());
-    assert_eq!(entries[0].estimate_seconds, Some(90));
-    assert_eq!(entries[0].estimate_minutes, Some(1.5));
-    assert_eq!(entries[1].estimate_minutes, Some(30.0));
+    let entries = wtf::query::execute(
+        &ws,
+        &wtf::query::Query::parse("tasks | where leaf | select estimate").unwrap(),
+        &wtf::query::QueryContext::new(at(0)),
+    )
+    .unwrap();
+    assert_eq!(
+        entries.rows[0].json(),
+        serde_json::json!({"type":"duration","seconds":90})
+    );
+    assert_eq!(
+        entries.rows[1].json(),
+        serde_json::json!({"type":"duration","seconds":1800})
+    );
     assert_eq!(
         wtf::engine::next_occurrence("2w", at(0).date_naive(), at(0).date_naive()).unwrap(),
         at(14 * 86400).date_naive()

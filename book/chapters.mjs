@@ -88,7 +88,7 @@ export const parts = [
         file: "10-events.wtf",
         title: "Appointments",
         prose: [
-          "A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf today</code> and <code>wtf agenda</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.",
+          "A line with <code>@at</code> is an appointment. Write the time with an explicit offset so it means the same thing wherever you open the note. Appointments show up in <code>wtf query @today</code> and <code>wtf query @today</code>, and a timestamp is also a value you can subtract from <code>now()</code> to count down to it.",
         ],
       },
       {
@@ -251,7 +251,7 @@ export const parts = [
         file: "30-diagnostics.wtf",
         title: "Diagnostics",
         prose: [
-          "Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf check</code>.",
+          "Problems point at the exact token: an unknown name, a cycle with both locations, an invalid date, a cell of the wrong type. Unfetched data and unrecognized itinerary stops are warnings rather than errors, so a note that is merely waiting on a refresh still passes <code>wtf query @check --fail-on-match</code>.",
           "The example below is valid as written; uncomment one of the suggested lines to see the diagnostic appear.",
         ],
       },
@@ -280,7 +280,7 @@ export const parts = [
         file: "29-agenda-and-cli.wtf",
         title: "Agenda and the Command Line",
         prose: [
-          "<code>wtf today</code>, <code>wtf agenda --week</code>, and <code>wtf tasks</code> read every note. <code>wtf capture</code> appends a task, <code>wtf complete</code> ticks one, <code>wtf check</code> reports problems, <code>wtf plan</code> solves a plan, and <code>wtf refresh</code> fills the caches. Add <code>--json</code> to any listing.",
+          "<code>wtf query @today</code>, <code>wtf query @week</code>, and <code>wtf query @tasks</code> read every note. <code>wtf capture</code> appends a task, <code>wtf complete</code> ticks one, <code>wtf query @check --fail-on-match</code> reports problems, <code>wtf query plans</code> reads plan solutions, and <code>wtf refresh</code> fills the caches. Pipelines filter, project, sort, and group results. Add <code>--json</code> to a query for typed data, or <code>--jsonl</code> for one result per line.",
         ],
       },
       {

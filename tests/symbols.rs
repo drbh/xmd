@@ -19,6 +19,7 @@ fn workspace(source: &str) -> Workspace {
         documents: [(path().into(), Document::parse(source.into()))].into(),
         cache: Default::default(),
         lookups: Default::default(),
+        plugins: Default::default(),
     }
 }
 fn names(symbols: &[DocumentSymbol]) -> Vec<&str> {

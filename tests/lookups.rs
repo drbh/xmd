@@ -39,6 +39,7 @@ fn note(source: &str) -> Workspace {
         documents: [(path().to_path_buf(), Document::parse(source.into()))].into(),
         cache: BTreeMap::new(),
         lookups: store(),
+        plugins: Default::default(),
     }
 }
 fn eval(ws: &Workspace, expression: &str) -> Result<Value, String> {
@@ -281,7 +282,7 @@ fn refresh_uses_keyless_providers_or_commands_from_providers_json() {
     // The refreshed workspace evaluates with the new values.
     let check = std::process::Command::new(env!("CARGO_BIN_EXE_wtf"))
         .current_dir(&root)
-        .arg("check")
+        .args(["query", "@check", "--fail-on-match"])
         .output()
         .unwrap();
     assert!(

@@ -68,7 +68,7 @@ pub(crate) fn hints(
         &mut request.engine(),
         path,
         range,
-        crate::inlay_providers::BUILTINS,
+        crate::features::modules::BUILTINS,
     )
 }
 

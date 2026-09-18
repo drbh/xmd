@@ -431,7 +431,7 @@ fn browser_inlays_use_the_same_registered_features_as_native_presentation() {
             lsp_types::Position::new(0, 0),
             lsp_types::Position::new(u32::MAX, 0),
         ),
-        wtf::inlay_providers::BUILTINS,
+        wtf::features::modules::BUILTINS,
     );
     let result = request(&mut browser, "analyze", json!({"uri":URI}));
     assert_eq!(result["version"], 7);

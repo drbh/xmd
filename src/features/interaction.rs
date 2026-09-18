@@ -132,12 +132,7 @@ pub(crate) fn row_commands(
             format!("{} lookups", glyphs::REFRESH),
         );
     }
-    result.extend(super::module_inlays::commands(
-        request,
-        path,
-        row,
-        capabilities,
-    ));
+    result.extend(super::modules::commands(request, path, row, capabilities));
     result
 }
 pub(crate) fn lenses(

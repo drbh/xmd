@@ -96,7 +96,7 @@ fn one_link_impl_covers_raw_markdown_named_alias_and_cross_note_references() {
     );
     let features = LinkFeatures::new(&[&Documentation]);
     let mut engine = Engine::at(&ws, now()).with_link_features(features);
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
     assert_eq!(result.hints.len(), 8, "{:?}", result.hints);
     assert!(result.hints.iter().all(|h| label(h) == "docs · intro"));
     assert_eq!(result.hints[0].position.character, 29); // crab is two UTF-16 units
@@ -170,7 +170,7 @@ fn provider_properties_and_tooltips_share_the_cache_and_request_clock() {
         engine.eval(path(), "build.url").unwrap(),
         Value::Text(TARGET.into())
     );
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
     assert!(result.time_dependent);
     assert_eq!(label(&result.hints[0]), "build 42 · passed");
     assert_eq!(label(&result.hints[1]), "passed");
@@ -256,7 +256,7 @@ fn github_uses_the_shared_registry_for_badges_properties_actions_and_cache_age()
         wtf::intelligence::property_names(&resource),
         ["url", "title", "state", "merged", "checks_passed"]
     );
-    let result = inlays::collect(&mut engine, path(), all(), wtf::inlay_providers::BUILTINS);
+    let result = inlays::collect(&mut engine, path(), all(), wtf::features::modules::BUILTINS);
     assert_eq!(result.hints.len(), 3);
     assert!(
         result

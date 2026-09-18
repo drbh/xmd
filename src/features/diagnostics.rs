@@ -428,7 +428,7 @@ pub(crate) fn collect(
     editing: bool,
 ) -> Vec<Diagnostic> {
     let mut result = collect_native(request, path, editing);
-    result.extend(super::module_features::diagnostics(request, path));
+    result.extend(super::modules::diagnostics(request, path));
     result.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone()));
     result.dedup_by(|a, b| a.range == b.range && a.message == b.message);
     result

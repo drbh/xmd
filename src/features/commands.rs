@@ -308,7 +308,7 @@ impl Action {
                     .active()
                     .find(|m| m.id == *module)
                     .ok_or("Module is no longer available")?;
-                super::module_inlays::reduce(
+                super::modules::reduce(
                     request,
                     &document_path(document)?,
                     module,

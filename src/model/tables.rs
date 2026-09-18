@@ -391,7 +391,7 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     }
 }
 
-/// Align parsed tables; document feature formatting runs through module_features.
+/// Align parsed tables; document feature formatting runs through features::modules.
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
     grids(doc)
         .iter()

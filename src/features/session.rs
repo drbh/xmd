@@ -83,15 +83,15 @@ impl RequestContext<'_> {
         crate::actions::freeze_dates(self, path)
     }
     pub fn formatting(&self, path: &Path) -> Result<Vec<TextEdit>, String> {
-        crate::features::module_features::formatting(self, path)
+        crate::features::modules::formatting(self, path)
     }
     /// Only the hovers feature modules contribute, ahead of the built-in chain.
     pub fn module_hover(&self, path: &Path, position: Position) -> Option<Hover> {
-        crate::features::module_features::hover(self, path, position)
+        crate::features::modules::hover(self, path, position)
     }
     /// Only the diagnostics feature modules contribute.
     pub fn module_diagnostics(&self, path: &Path) -> Vec<Diagnostic> {
-        crate::features::module_features::diagnostics(self, path)
+        crate::features::modules::diagnostics(self, path)
     }
 
     // Intelligence: what the editor explains.

@@ -25,7 +25,7 @@ pub(crate) fn hover_at(
 ) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents.get(path)?;
-    if let Some(hover) = crate::features::module_features::hover(request, path, position) {
+    if let Some(hover) = crate::features::modules::hover(request, path, position) {
         return Some(hover);
     }
     if let Some(hover) = link_hover(request, path, position) {

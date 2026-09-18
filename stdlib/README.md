@@ -106,6 +106,13 @@ and host I/O. Modules return data; the host validates positions and edits and
 executes authorized actions. A library error is reported instead of selecting a
 bundled replacement.
 
+`src/evaluate/modules.rs` compiles a module and names its contract: `ModuleKind`
+(link, feature, library), the `Hook` a link or feature module may define, and the
+`Collection` of workspace records a feature module reads in `module.inputs`.
+`src/features/modules.rs` adapts those hooks into inlays, hovers, diagnostics,
+formatting and actions, and `src/features/session.rs` is where a host reaches
+them: one method per editor feature on a `RequestContext`.
+
 Feature inputs also expose these reusable query fields:
 
 - `values` and `references`: `display`, `hover`, `type`, `errors`, and UTF-16

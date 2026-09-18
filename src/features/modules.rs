@@ -1,14 +1,24 @@
-//! Modules consume the same semantic records as queries and emit validated data.
+//! Feature modules: how .wtf feature modules drive inlays, hovers, diagnostics,
+//! formatting and actions. They consume the same semantic records as queries and
+//! return data only; this adapter validates every position and edit they propose.
 use crate::{
+    RequestContext,
     catalog::{self, QueryContext},
     commands::{Action, Capabilities},
     engine::{Engine, Value},
     inlays::{InlayContext, InlayFeature, InlaySink},
     modules::{Hook, Module, ModuleKind, from_json, json, record},
 };
-use lsp_types::{Command, Position, Range, TextEdit};
+use lsp_types::{
+    Command, Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
+    NumberOrString, Position, Range, TextEdit,
+};
 use std::path::Path;
 
+/// The default inlay pipeline: every enabled feature module, in order.
+pub const BUILTINS: &[&dyn InlayFeature] = &[&ModuleInlays];
+
+/// Runs each feature module's `collect` hook as one inlay producer.
 pub struct ModuleInlays;
 impl InlayFeature for ModuleInlays {
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
@@ -179,8 +189,8 @@ impl InlayFeature for Module {
 }
 /// Actions are proposals. Preparation validates capabilities and source before
 /// exposing controls; the host repeats validation against the execution snapshot.
-pub fn commands(
-    request: &crate::RequestContext<'_>,
+pub(crate) fn commands(
+    request: &RequestContext<'_>,
     path: &Path,
     row: usize,
     capabilities: Capabilities,
@@ -241,7 +251,7 @@ pub fn commands(
 }
 
 pub(crate) fn reduce(
-    request: &crate::RequestContext<'_>,
+    request: &RequestContext<'_>,
     path: &Path,
     module: &Module,
     event: &serde_json::Value,
@@ -267,4 +277,126 @@ pub(crate) fn reduce(
         return Err("A reducer must return a concrete action".into());
     }
     Ok(action)
+}
+
+/// Call one data-only hook and hand back its JSON items.
+fn call(
+    request: &RequestContext<'_>,
+    path: &Path,
+    module: &Module,
+    hook: Hook,
+) -> Result<Vec<serde_json::Value>, String> {
+    let input = input(module, &mut request.engine(), path)?;
+    let Value::List(items) = module.call(hook, vec![input], request.now())? else {
+        return Err(format!("{hook} must return a list"));
+    };
+    items.iter().map(json).collect()
+}
+fn validate(request: &RequestContext<'_>, path: &Path, range: Range) -> Result<(), String> {
+    crate::actions::apply_edits(
+        &request.workspace().documents[path].text,
+        &[TextEdit::new(range, String::new())],
+    )
+    .map(|_| ())
+}
+pub(crate) fn diagnostics(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic> {
+    if !request.workspace().documents.contains_key(path) {
+        return vec![];
+    }
+    let mut result = vec![];
+    for module in request
+        .workspace()
+        .modules
+        .active()
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Diagnostics))
+    {
+        let batch = (|| {
+            let mut batch = vec![];
+            for item in call(request, path, module, Hook::Diagnostics)? {
+                let mut diagnostic: Diagnostic =
+                    serde_json::from_value(item).map_err(|e| e.to_string())?;
+                validate(request, path, diagnostic.range)?;
+                diagnostic.source.get_or_insert("wtf".into());
+                batch.push(diagnostic);
+            }
+            Ok::<_, String>(batch)
+        })();
+        match batch {
+            Ok(batch) => result.extend(batch),
+            Err(error) => result.push(Diagnostic {
+                range: Range::default(),
+                severity: Some(DiagnosticSeverity::ERROR),
+                source: Some("wtf".into()),
+                code: Some(NumberOrString::String("module".into())),
+                message: format!("{}: {error}", module.id),
+                ..Default::default()
+            }),
+        }
+    }
+    result
+}
+pub(crate) fn hover(
+    request: &RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    request.workspace().documents.get(path)?;
+    for module in request
+        .workspace()
+        .modules
+        .active()
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Hovers))
+    {
+        let batch = (|| {
+            let mut batch = vec![];
+            for item in call(request, path, module, Hook::Hovers)? {
+                let range: Range =
+                    serde_json::from_value(item["range"].clone()).map_err(|e| e.to_string())?;
+                validate(request, path, range)?;
+                let text = item["contents"]
+                    .as_str()
+                    .ok_or("Hover contents must be text")?;
+                batch.push((range, text.to_owned()));
+            }
+            Ok::<_, String>(batch)
+        })();
+        if let Ok(batch) = batch {
+            for (range, text) in batch {
+                if position >= range.start && position <= range.end {
+                    return Some(Hover {
+                        range: Some(range),
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: text,
+                        }),
+                    });
+                }
+            }
+        }
+    }
+    None
+}
+pub(crate) fn formatting(
+    request: &RequestContext<'_>,
+    path: &Path,
+) -> Result<Vec<TextEdit>, String> {
+    let doc = request
+        .workspace()
+        .documents
+        .get(path)
+        .ok_or("Unknown document")?;
+    let mut edits = crate::tables::formatting(doc);
+    for module in request
+        .workspace()
+        .modules
+        .active()
+        .filter(|m| m.kind == ModuleKind::Feature && m.has(Hook::Format))
+    {
+        for value in call(request, path, module, Hook::Format)? {
+            edits.push(serde_json::from_value(value).map_err(|e| e.to_string())?);
+        }
+    }
+    crate::actions::apply_edits(&doc.text, &edits)?;
+    edits.sort_by_key(|e| (e.range.start, e.range.end));
+    Ok(edits)
 }

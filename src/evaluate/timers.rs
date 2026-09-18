@@ -7,6 +7,36 @@ use chrono::{DateTime, FixedOffset};
 use lsp_types::TextEdit;
 use std::path::Path;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TimerAction {
+    Start,
+    Pause,
+    Resume,
+    Reset,
+}
+impl TimerAction {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Start => "start",
+            Self::Pause => "pause",
+            Self::Resume => "resume",
+            Self::Reset => "reset",
+        }
+    }
+}
+impl std::str::FromStr for TimerAction {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "start" => Ok(Self::Start),
+            "pause" => Ok(Self::Pause),
+            "resume" => Ok(Self::Resume),
+            "reset" => Ok(Self::Reset),
+            _ => Err(format!("Unknown timer action '{s}'")),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Timer {
     pub limit: Option<i64>,
@@ -114,14 +144,20 @@ impl Timer {
         }
     }
     pub fn actions(&self) -> Vec<&'static str> {
+        self.available_actions()
+            .into_iter()
+            .map(TimerAction::as_str)
+            .collect()
+    }
+    pub fn available_actions(&self) -> Vec<TimerAction> {
         let mut actions = match self.state() {
-            "idle" => vec!["start"],
-            "running" => vec!["pause"],
-            "paused" => vec!["resume"],
+            "idle" => vec![TimerAction::Start],
+            "running" => vec![TimerAction::Pause],
+            "paused" => vec![TimerAction::Resume],
             _ => vec![],
         };
         if !self.idle {
-            actions.push("reset");
+            actions.push(TimerAction::Reset);
         }
         actions
     }

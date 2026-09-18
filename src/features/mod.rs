@@ -3,6 +3,7 @@
 //! reach into each other's internals.
 pub mod actions;
 pub mod catalog;
+pub mod commands;
 pub mod diagnostics;
 pub mod hierarchy;
 pub mod highlighting;

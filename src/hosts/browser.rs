@@ -1,8 +1,10 @@
 //! A browser-local workspace. JSON crosses the worker boundary; all language logic stays in Rust.
 use crate::{
-    actions, diagnostics,
+    actions,
+    commands::{Action, Capabilities, PreparedAction},
+    diagnostics,
     document::{Document, Span, identifier},
-    intelligence, interaction, paths, presentation, refactor, timers,
+    intelligence, interaction, paths, presentation, refactor,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset};
@@ -201,14 +203,7 @@ impl BrowserWorkspace {
                         ]
                     })
                     .collect();
-                let lenses: Vec<_> = interaction::lenses_in(&request, &path)
-                    .into_iter()
-                    .filter(|l| {
-                        l.command
-                            .as_ref()
-                            .is_none_or(|c| c.command != "wtf.refreshResource")
-                    })
-                    .collect();
+                let lenses = interaction::lenses_for(&request, &path, Capabilities::BROWSER);
                 let links = presentation::document_links_in(&request, &path);
                 Ok(
                     json!({"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
@@ -326,11 +321,13 @@ impl BrowserWorkspace {
             "actions" => {
                 let range: Range = field(&params, "range")?;
                 let mut choices: Vec<Value> = refactor::actions_for_in(&request,&path,range).into_iter().map(|a|json!({"title":a.title,"kind":a.kind,"edit":self.single_edit(&path,a.edits)})).collect();
-                for command in
-                    interaction::row_commands_in(&request, &path, range.start.line as usize, true)
-                        .into_iter()
-                        .filter(|c| c.command != "wtf.refreshResource")
-                {
+                for command in interaction::row_commands_for(
+                    &request,
+                    &path,
+                    range.start.line as usize,
+                    true,
+                    Capabilities::BROWSER,
+                ) {
                     choices.push(json!({"title":command.title,"command":command}));
                 }
                 let dates: Vec<_> = actions::freeze_dates_in(&request, &path)
@@ -349,63 +346,20 @@ impl BrowserWorkspace {
     }
 
     fn execute(&self, command: Command, now: DateTime<FixedOffset>) -> Result<Value, String> {
-        let args = command.arguments.unwrap_or_default();
-        let uri = args
-            .first()
-            .and_then(Value::as_str)
-            .ok_or("Missing document URI")?;
-        let path = virtual_path(uri)?;
-        let doc = self
-            .workspace
-            .documents
-            .get(&path)
-            .ok_or("Note is no longer open")?;
-        if command.command == "wtf.timer" {
-            let name = args
-                .get(1)
-                .and_then(Value::as_str)
-                .ok_or("Missing timer name")?;
-            let action = args
-                .get(2)
-                .and_then(Value::as_str)
-                .ok_or("Missing timer action")?;
-            let (origin, edit) = timers::edit(&self.workspace, &path, name, action, now)?;
-            return Ok(json!({"edit":self.single_edit(&origin.path,vec![edit])}));
+        let action = Action::decode(
+            &command.command,
+            command.arguments.as_deref().unwrap_or(&[]),
+        )?;
+        // The virtual workspace boundary belongs to the browser host.
+        if let Some(document) = action.document() {
+            virtual_path(document.as_str())?;
         }
-        let row = args
-            .get(1)
-            .and_then(Value::as_u64)
-            .and_then(|n| usize::try_from(n).ok())
-            .ok_or("Missing line number")?;
-        if row >= doc.text.lines().count()
-            || args.get(2).and_then(Value::as_str) != Some(doc.line(row))
-        {
-            return Err("Source changed; request fresh controls".into());
-        }
-        match command.command.as_str() {
-            "wtf.task" => {
-                let index = doc
-                    .tasks
-                    .iter()
-                    .position(|t| t.line == row)
-                    .ok_or("No task on this line")?;
-                Ok(
-                    json!({"edit":self.single_edit(&path,actions::toggle_task(&self.workspace,&path,index,now.date_naive())?)}),
-                )
+        let request = crate::RequestContext::new(&self.workspace, now);
+        match action.prepare(&request, Capabilities::BROWSER)? {
+            PreparedAction::Edit { path, edits } => {
+                Ok(json!({"edit":self.single_edit(&path, edits)}))
             }
-            "wtf.openResource" => {
-                let target = args
-                    .get(3)
-                    .and_then(Value::as_str)
-                    .ok_or("Missing resource URL")?;
-                let found = interaction::resources_at(&self.workspace, &path, row, now)
-                    .iter()
-                    .any(|r| r.url(&path).is_ok_and(|u| u.as_str() == target));
-                if !found {
-                    return Err("Resource changed; request fresh controls".into());
-                }
-                Ok(json!({"open":target}))
-            }
+            PreparedAction::Open { url } => Ok(json!({"open":url})),
             _ => Err("This command is not available in the browser".into()),
         }
     }

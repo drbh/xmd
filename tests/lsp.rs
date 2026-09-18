@@ -1206,3 +1206,34 @@ fn workspace_queries_read_live_buffers_and_return_typed_versioned_snapshots() {
     assert_eq!(invalid["error"]["code"], -32602);
     assert_eq!(std::fs::read_to_string(path).unwrap(), disk);
 }
+
+#[test]
+fn native_actions_reject_the_same_malformed_commands_as_the_shared_codec() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let path = root.join("actions.wtf");
+    std::fs::write(&path, "- [ ] Task\n").unwrap();
+    let uri = Url::from_file_path(&path).unwrap();
+    let mut lsp = Lsp::start(&root);
+    for (name, args) in [
+        ("wtf.task", json!([uri, 0, "- [ ] Task", "extra"])),
+        ("wtf.timer", json!([uri, "focus", "explode"])),
+        (
+            "wtf.openResource",
+            json!([uri, -1, "line", "https://example.com"]),
+        ),
+        ("wtf.refresh", json!([uri, "extra"])),
+        ("unknown", json!([])),
+    ] {
+        let expected = wtf::commands::Action::decode(name, args.as_array().unwrap()).unwrap_err();
+        let response = lsp.request_raw(
+            "workspace/executeCommand",
+            json!({"command":name,"arguments":args}),
+        );
+        assert_eq!(response["error"]["code"], -32602);
+        assert_eq!(response["error"]["message"], expected);
+    }
+    assert!(lsp.applied_edits.is_empty());
+    assert!(lsp.opened_documents.is_empty());
+    assert!(!root.join(".wtf").exists());
+}

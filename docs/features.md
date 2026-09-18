@@ -129,3 +129,23 @@ recursion/row scopes stay separate, so visiting one feature cannot contaminate
 another feature's diagnostics. Inlay tooltips reuse the originating engine's
 request. Start a new context after a document/cache change or clock tick; contexts
 never persist in editor workspace state.
+
+## Editor actions
+
+[`commands::Action`](../src/features/commands.rs) is the closed set of editor
+commands. Menus create typed actions and call `Action::command(title)` at the
+protocol boundary. Hosts decode incoming commands once with `Action::decode`.
+Existing LSP IDs and positional arguments remain compatible; malformed types,
+extra arguments and unknown timer operations are rejected centrally.
+
+`Action::prepare(&request, capabilities)` validates the current document, expected
+row text, timer state and resource target, then returns a `PreparedAction`: edits,
+a URL to open, a resource/workspace refresh, or the existing today view. Preparation
+performs no source mutations, network requests or process execution. Timer edits
+use the execution timestamp and preserve the original declaration across aliases.
+
+Native and browser hosts consume these same effects. The native host attaches the
+document version captured with preparation before asking the client to apply an
+edit. The browser retains its workspace-version and virtual-path checks, returning
+edits for its client to apply. `Capabilities` determines both which controls appear
+and which actions can execute; the browser omits all native refresh/view actions.

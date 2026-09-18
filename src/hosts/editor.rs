@@ -1,8 +1,8 @@
+use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
     actions,
     document::{Document, Span, identifier},
     engine::Value,
-    timers,
     workspace::{SymbolKind, Workspace},
 };
 use chrono::Local;
@@ -262,45 +262,19 @@ fn file(uri: &Url) -> Result<PathBuf> {
 }
 use crate::intelligence::symbol_at;
 fn edit_for(state: &State, path: &Path, edits: Vec<TextEdit>) -> WorkspaceEdit {
+    versioned_edit(path, edits, state.open.get(path).copied())
+}
+fn versioned_edit(path: &Path, edits: Vec<TextEdit>, version: Option<i32>) -> WorkspaceEdit {
     WorkspaceEdit {
         document_changes: Some(DocumentChanges::Edits(vec![TextDocumentEdit {
             text_document: OptionalVersionedTextDocumentIdentifier {
                 uri: Url::from_file_path(path).unwrap(),
-                version: state.open.get(path).copied(),
+                version,
             },
             edits: edits.into_iter().map(OneOf::Left).collect(),
         }])),
         ..Default::default()
     }
-}
-
-fn command_row(state: &State, args: &[serde_json::Value]) -> Result<(PathBuf, usize)> {
-    let uri = args
-        .first()
-        .and_then(|v| v.as_str())
-        .and_then(|s| Url::parse(s).ok())
-        .ok_or_else(|| Error::invalid_params("Expected document URI"))?;
-    let path = file(&uri)?;
-    let row = args
-        .get(1)
-        .and_then(|v| v.as_u64())
-        .and_then(|n| usize::try_from(n).ok())
-        .ok_or_else(|| Error::invalid_params("Expected line number"))?;
-    let expected = args
-        .get(2)
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| Error::invalid_params("Expected source text"))?;
-    let doc = state
-        .workspace
-        .documents
-        .get(&path)
-        .ok_or_else(|| Error::invalid_params("Document is no longer in the workspace"))?;
-    if row >= doc.text.lines().count() || doc.line(row) != expected {
-        return Err(Error::invalid_params(
-            "Source changed; request its actions again",
-        ));
-    }
-    Ok((path, row))
 }
 
 #[tower_lsp::async_trait]
@@ -391,17 +365,7 @@ impl LanguageServer for Backend {
                 }),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: [
-                        "wtf.refresh",
-                        "wtf.today",
-                        "wtf.timer",
-                        "wtf.task",
-                        "wtf.openResource",
-                        "wtf.refreshResource",
-                    ]
-                    .into_iter()
-                    .map(str::to_string)
-                    .collect(),
+                    commands: Action::COMMANDS.iter().map(|s| (*s).into()).collect(),
                     ..Default::default()
                 }),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
@@ -877,11 +841,9 @@ impl LanguageServer for Backend {
             }));
         }
         if row == 0 && doc.line(0).trim_start().starts_with('#') {
-            result.push(CodeActionOrCommand::Command(Command {
-                title: "Show today's agenda".into(),
-                command: "wtf.today".into(),
-                arguments: None,
-            }));
+            result.push(CodeActionOrCommand::Command(
+                Action::ShowToday.command("Show today's agenda"),
+            ));
         }
         if let Some(only) = params.context.only {
             result.retain(|a| match a {
@@ -900,122 +862,65 @@ impl LanguageServer for Backend {
         &self,
         params: ExecuteCommandParams,
     ) -> Result<Option<serde_json::Value>> {
-        match params.command.as_str() {
-            "wtf.task" => {
-                self.rescan().await;
-                let edit = {
-                    let state = self.state.read().await;
-                    let (path, row) = command_row(&state, &params.arguments)?;
-                    let index = state.workspace.documents[&path]
-                        .tasks
-                        .iter()
-                        .position(|t| t.line == row)
-                        .ok_or_else(|| Error::invalid_params("No task at this line"))?;
-                    let edits = actions::toggle_task(
-                        &state.workspace,
-                        &path,
-                        index,
-                        Local::now().date_naive(),
-                    )
-                    .map_err(Error::invalid_params)?;
-                    edit_for(&state, &path, edits)
-                };
+        let action =
+            Action::decode(&params.command, &params.arguments).map_err(Error::invalid_params)?;
+        // Reload closed notes while preserving open buffers before validation.
+        self.rescan().await;
+        let (prepared, version) = {
+            let state = self.state.read().await;
+            let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+            let prepared = action
+                .prepare(&request, Capabilities::NATIVE)
+                .map_err(Error::invalid_params)?;
+            let version = match &prepared {
+                PreparedAction::Edit { path, .. } => state.open.get(path).copied(),
+                _ => None,
+            };
+            (prepared, version)
+        };
+        match prepared {
+            PreparedAction::Edit { path, edits } => {
+                let edit = versioned_edit(&path, edits, version);
                 let applied = self.client.apply_edit(edit).await?;
                 if !applied.applied {
                     return Err(Error::invalid_params(
                         applied
                             .failure_reason
-                            .unwrap_or_else(|| "Editor declined the task edit".into()),
+                            .unwrap_or_else(|| "Editor declined the edit".into()),
                     ));
                 }
+                // didChange/didSave reports the applied edit and updates refreshes.
             }
-            "wtf.openResource" | "wtf.refreshResource" => {
-                self.rescan().await;
-                let (resource, url) = {
-                    let state = self.state.read().await;
-                    let (path, row) = command_row(&state, &params.arguments)?;
-                    let target = params
-                        .arguments
-                        .get(3)
-                        .and_then(|v| v.as_str())
-                        .ok_or_else(|| Error::invalid_params("Missing resource URL"))?;
-                    let resource = crate::interaction::resources_at(
-                        &state.workspace,
-                        &path,
-                        row,
-                        Local::now().fixed_offset(),
-                    )
-                    .into_iter()
-                    .find(|r| r.url(&path).is_ok_and(|u| u.as_str() == target))
-                    .ok_or_else(|| {
-                        Error::invalid_params("Resource changed; request its actions again")
-                    })?;
-                    let url = resource.url(&path).map_err(Error::invalid_params)?;
-                    (resource, url)
-                };
-                if params.command == "wtf.openResource" {
-                    let opened = self
-                        .client
-                        .show_document(ShowDocumentParams {
-                            external: Some(url.scheme() != "file"),
-                            uri: url,
-                            take_focus: Some(true),
-                            selection: None,
-                        })
-                        .await?;
-                    if !opened {
-                        return Err(Error::invalid_params("Editor could not open this resource"));
-                    }
-                } else {
-                    let metadata = crate::resources::fetch(&resource.target)
-                        .await
-                        .map_err(Error::invalid_params)?;
-                    let workspace = {
-                        let mut state = self.state.write().await;
-                        state.workspace.cache.insert(resource.target, metadata);
-                        state.workspace.clone()
-                    };
-                    tokio::task::spawn_blocking(move || workspace.save_cache())
-                        .await
-                        .map_err(|e| Error::invalid_params(e.to_string()))?
-                        .map_err(Error::invalid_params)?;
-                    self.notify_changes().await;
+            PreparedAction::Open { url } => {
+                let opened = self
+                    .client
+                    .show_document(ShowDocumentParams {
+                        external: Some(url.scheme() != "file"),
+                        uri: url,
+                        take_focus: Some(true),
+                        selection: None,
+                    })
+                    .await?;
+                if !opened {
+                    return Err(Error::invalid_params("Editor could not open this resource"));
                 }
             }
-            "wtf.timer" => {
-                let args = &params.arguments;
-                let strings: Option<Vec<_>> = args.iter().map(|v| v.as_str()).collect();
-                let strings = strings.filter(|v| v.len() == 3).ok_or_else(|| {
-                    Error::invalid_params("Timer command expects URI, name, and action")
-                })?;
-                let uri =
-                    Url::parse(strings[0]).map_err(|e| Error::invalid_params(e.to_string()))?;
-                let path = file(&uri)?;
-                // Reload closed notes; preserve open/unsaved buffers before making an edit.
-                self.rescan().await;
-                let edit = {
-                    let state = self.state.read().await;
-                    let (origin, edit) = timers::edit(
-                        &state.workspace,
-                        &path,
-                        strings[1],
-                        strings[2],
-                        Local::now().fixed_offset(),
-                    )
+            PreparedAction::RefreshResource { resource } => {
+                let metadata = crate::resources::fetch(&resource.target)
+                    .await
                     .map_err(Error::invalid_params)?;
-                    edit_for(&state, &origin.path, vec![edit])
+                let workspace = {
+                    let mut state = self.state.write().await;
+                    state.workspace.cache.insert(resource.target, metadata);
+                    state.workspace.clone()
                 };
-                let response = self.client.apply_edit(edit).await?;
-                if !response.applied {
-                    return Err(Error::invalid_params(
-                        response
-                            .failure_reason
-                            .unwrap_or_else(|| "Editor declined the timer edit".into()),
-                    ));
-                }
-                // The client's didChange/didSave reports the applied edit and starts/stops refreshes.
+                tokio::task::spawn_blocking(move || workspace.save_cache())
+                    .await
+                    .map_err(|e| Error::invalid_params(e.to_string()))?
+                    .map_err(Error::invalid_params)?;
+                self.notify_changes().await;
             }
-            "wtf.refresh" => {
+            PreparedAction::Refresh => {
                 let mut workspace = self.state.read().await.workspace.clone();
                 let errors = crate::cli::refresh(&mut workspace).await;
                 {
@@ -1039,7 +944,7 @@ impl LanguageServer for Backend {
                     )
                     .await;
             }
-            "wtf.today" => {
+            PreparedAction::ShowToday => {
                 self.rescan().await;
                 let now = Local::now().fixed_offset();
                 let today = now.date_naive();
@@ -1107,7 +1012,6 @@ impl LanguageServer for Backend {
                     })
                     .await;
             }
-            _ => return Err(Error::invalid_params("Unknown WTF command")),
         }
         Ok(None)
     }

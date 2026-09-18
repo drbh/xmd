@@ -1,3 +1,4 @@
+use crate::commands::{Action, Capabilities, RowTarget};
 use crate::{actions, engine::Value, resources::Resource, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use lsp_types::*;
@@ -75,13 +76,31 @@ pub fn row_commands_in(
     row: usize,
     include_task: bool,
 ) -> Vec<Command> {
+    row_commands_for(request, path, row, include_task, Capabilities::NATIVE)
+}
+pub fn row_commands_for(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    include_task: bool,
+    capabilities: Capabilities,
+) -> Vec<Command> {
     let ws = request.workspace();
-
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
     let uri = crate::paths::file_url(path).unwrap();
+    let target = RowTarget {
+        document: uri.clone(),
+        row,
+        expected: doc.line(row).into(),
+    };
     let mut result = vec![];
+    let mut push = |action: Action, title: String| {
+        if capabilities.supports(&action) {
+            result.push(action.command(title));
+        }
+    };
     let mut seen = BTreeSet::new();
     let mut engine = request.engine();
     for name in doc
@@ -96,25 +115,21 @@ pub fn row_commands_in(
                 .map(|r| r.name.as_str()),
         )
     {
-        if let Ok(Value::Timer(t)) = engine.named(path, name)
-            && let Some(origin) = &t.origin
+        if let Ok(Value::Timer(timer)) = engine.named(path, name)
+            && let Some(origin) = &timer.origin
             && seen.insert(origin.clone())
         {
-            for action in t.actions() {
+            for operation in timer.available_actions() {
                 let name = &ws.named(origin).name;
-                result.push(Command {
-                    title: format!(
-                        "{}{} timer '{name}'",
-                        action[..1].to_uppercase(),
-                        &action[1..]
-                    ),
-                    command: "wtf.timer".into(),
-                    arguments: Some(vec![
-                        serde_json::json!(crate::paths::file_url(&origin.path).unwrap()),
-                        serde_json::json!(name),
-                        serde_json::json!(action),
-                    ]),
-                });
+                let verb = operation.as_str();
+                push(
+                    Action::Timer {
+                        document: crate::paths::file_url(&origin.path).unwrap(),
+                        name: name.clone(),
+                        action: operation,
+                    },
+                    format!("{}{} timer '{name}'", verb[..1].to_uppercase(), &verb[1..]),
+                );
             }
         }
     }
@@ -129,44 +144,32 @@ pub fn row_commands_in(
         } else {
             "Complete task"
         };
-        result.push(Command {
-            title: title.into(),
-            command: "wtf.task".into(),
-            arguments: Some(vec![
-                serde_json::json!(uri),
-                serde_json::json!(row),
-                serde_json::json!(doc.line(row)),
-            ]),
-        });
+        push(Action::ToggleTask(target.clone()), title.into());
     }
     for resource in resources_at_in(request, path, row) {
         let url = resource.url(path).unwrap();
-        let args = vec![
-            serde_json::json!(uri),
-            serde_json::json!(row),
-            serde_json::json!(doc.line(row)),
-            serde_json::json!(url),
-        ];
-        result.push(Command {
-            title: format!(
-                "Open {}",
-                if resource.is_image() {
-                    "image"
-                } else if resource.target.starts_with("geo:") {
-                    "map"
-                } else {
-                    "resource"
-                }
-            ),
-            command: "wtf.openResource".into(),
-            arguments: Some(args.clone()),
-        });
-        if let Some(request) = request.link_features().refresh_request(&resource.target) {
-            result.push(Command {
-                title: request.title.into(),
-                command: "wtf.refreshResource".into(),
-                arguments: Some(args),
-            });
+        let kind = if resource.is_image() {
+            "image"
+        } else if resource.target.starts_with("geo:") {
+            "map"
+        } else {
+            "resource"
+        };
+        push(
+            Action::OpenResource {
+                target: target.clone(),
+                url: url.clone(),
+            },
+            format!("Open {kind}"),
+        );
+        if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
+            push(
+                Action::RefreshResource {
+                    target: target.clone(),
+                    url,
+                },
+                refresh.title.into(),
+            );
         }
     }
     let line = doc.line(row);
@@ -175,11 +178,12 @@ pub fn row_commands_in(
         .any(|call| line.contains(call))
         || doc.days.iter().any(|d| d.line == row && d.places.is_some());
     if wants_lookup {
-        result.push(Command {
-            title: "Refresh lookups".into(),
-            command: "wtf.refresh".into(),
-            arguments: Some(vec![serde_json::json!(uri)]),
-        });
+        push(
+            Action::Refresh {
+                document: Some(uri),
+            },
+            "Refresh lookups".into(),
+        );
     }
     result
 }
@@ -187,6 +191,13 @@ pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<Co
     lenses_in(&crate::RequestContext::new(ws, now), path)
 }
 pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLens> {
+    lenses_for(request, path, Capabilities::NATIVE)
+}
+pub fn lenses_for(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    capabilities: Capabilities,
+) -> Vec<CodeLens> {
     let ws = request.workspace();
 
     let Some(doc) = ws.documents.get(path) else {
@@ -202,7 +213,7 @@ pub fn lenses_in(request: &crate::RequestContext<'_>, path: &Path) -> Vec<CodeLe
         .collect();
     rows.into_iter()
         .flat_map(|row| {
-            row_commands_in(request, path, row, true)
+            row_commands_for(request, path, row, true, capabilities)
                 .into_iter()
                 .map(move |command| CodeLens {
                     range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),

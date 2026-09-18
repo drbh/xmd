@@ -461,3 +461,103 @@ fn browser_cell_hover_and_calendar_dates_use_the_injected_clock() {
         );
     }
 }
+
+#[test]
+fn browser_actions_use_the_shared_codec_and_prepared_effects() {
+    use wtf::commands::{Action, Capabilities, PreparedAction};
+    let source = "- [ ] Task\nhttps://example.com/page\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 3);
+    let analysis = request(&mut browser, "analyze", json!({"uri":URI}));
+    let path = std::path::Path::new("/workspace/trip.wtf");
+    let ws = wtf::workspace::Workspace {
+        roots: vec!["/workspace".into()],
+        documents: [(path.into(), wtf::document::Document::parse(source.into()))].into(),
+        cache: Default::default(),
+        lookups: Default::default(),
+    };
+    let ctx = wtf::RequestContext::new(&ws, chrono::DateTime::parse_from_rfc3339(NOW).unwrap());
+    for lens in analysis["lenses"].as_array().unwrap() {
+        let command: lsp_types::Command = serde_json::from_value(lens["command"].clone()).unwrap();
+        let action =
+            Action::decode(&command.command, command.arguments.as_deref().unwrap()).unwrap();
+        let expected = action.prepare(&ctx, Capabilities::BROWSER).unwrap();
+        let actual = request(
+            &mut browser,
+            "execute",
+            json!({"command":command,"versions":analysis["versions"]}),
+        );
+        match expected {
+            PreparedAction::Edit { edits, .. } => {
+                assert_eq!(
+                    actual["edit"]["documentChanges"][0]["edits"],
+                    serde_json::to_value(edits).unwrap()
+                );
+                assert_eq!(
+                    actual["edit"]["documentChanges"][0]["textDocument"]["version"],
+                    3
+                );
+            }
+            PreparedAction::Open { url } => assert_eq!(actual["open"], url.as_str()),
+            _ => panic!("unexpected browser effect"),
+        }
+    }
+    let args = vec![json!(URI), json!(0), json!("- [ ] Task"), json!("extra")];
+    let expected = Action::decode("wtf.task", &args).unwrap_err();
+    let result = raw(
+        &mut browser,
+        "execute",
+        json!({"command":{"title":"bad","command":"wtf.task","arguments":args},"versions":analysis["versions"]}),
+        NOW,
+    );
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["error"], expected);
+    assert_eq!(
+        request(&mut browser, "analyze", json!({"uri":URI}))["version"],
+        3
+    );
+}
+
+#[test]
+fn browser_hides_and_rejects_every_native_refresh_action() {
+    let source = "[price] := quote(ACME)\nhttps://github.com/acme/app/pull/42\n";
+    let mut browser = BrowserWorkspace::new();
+    set(&mut browser, URI, source, 1);
+    let analysis = request(&mut browser, "analyze", json!({"uri":URI}));
+    assert!(!analysis["lenses"].to_string().contains("wtf.refresh"));
+    for row in 0..2 {
+        let choices = request(
+            &mut browser,
+            "actions",
+            json!({"uri":URI,"range":{"start":{"line":row,"character":0},"end":{"line":row,"character":0}}}),
+        );
+        assert!(!choices.to_string().contains("wtf.refresh"));
+    }
+    for action in [
+        wtf::commands::Action::Refresh {
+            document: Some(URI.parse().unwrap()),
+        },
+        wtf::commands::Action::RefreshResource {
+            target: wtf::commands::RowTarget {
+                document: URI.parse().unwrap(),
+                row: 1,
+                expected: "https://github.com/acme/app/pull/42".into(),
+            },
+            url: "https://github.com/acme/app/pull/42".parse().unwrap(),
+        },
+    ] {
+        let response = raw(
+            &mut browser,
+            "execute",
+            json!({"command":action.command("refresh"),"versions":analysis["versions"]}),
+            NOW,
+        );
+        assert_eq!(response["ok"], false);
+        assert!(
+            response["error"]
+                .as_str()
+                .unwrap()
+                .contains("not available")
+        );
+    }
+}

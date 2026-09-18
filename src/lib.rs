@@ -13,8 +13,8 @@ pub use evaluate::{
     charts, context, engine, github, glyphs, link_features, lookups, plans, resources, timers,
 };
 pub use features::{
-    actions, catalog, diagnostics, hierarchy, highlighting, inlay_providers, inlays, intelligence,
-    interaction, presentation, prose, query, refactor, symbols, typing,
+    actions, catalog, commands, diagnostics, hierarchy, highlighting, inlay_providers, inlays,
+    intelligence, interaction, presentation, prose, query, refactor, symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

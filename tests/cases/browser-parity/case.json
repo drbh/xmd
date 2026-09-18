@@ -1,0 +1,30 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        { "method": "semanticLegend", "params": {} },
+        { "method": "render", "params": { "uri": "file:///workspace/trip.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/trip.wtf" } },
+        { "method": "documentSymbols", "params": { "uri": "file:///workspace/symbols.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/money.wtf" } }
+      ]
+    },
+    { "cli": ["render", "trip.wtf", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "trip.wtf" },
+        { "open": "symbols.wtf" },
+        { "open": "money.wtf" },
+        { "request": "textDocument/documentSymbol", "file": "symbols.wtf" },
+        { "request": "textDocument/semanticTokens/full", "file": "money.wtf" },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "trip.wtf",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } }
+        }
+      ]
+    }
+  ]
+}

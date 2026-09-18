@@ -1,0 +1,48 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        { "method": "analyze", "params": { "uri": "file:///workspace/timers.wtf" } },
+        {
+          "method": "execute",
+          "params": {
+            "command": "${last:/result/lenses/0/command}",
+            "versions": { "file:///workspace/timers.wtf": 1 }
+          }
+        },
+        { "method": "analyze", "params": { "uri": "file:///workspace/timers.wtf" } },
+        {
+          "method": "setDocument",
+          "params": {
+            "uri": "file:///workspace/timers.wtf",
+            "version": 2,
+            "text": "[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n"
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "▸ start focus",
+              "command": "wtf.timer",
+              "arguments": ["file:///workspace/timers.wtf", "focus", "start"]
+            },
+            "versions": { "file:///workspace/timers.wtf": 1 }
+          }
+        },
+        {
+          "method": "analyze",
+          "params": { "uri": "file:///workspace/timers.wtf" },
+          "now": "2026-09-16T14:00:01-04:00"
+        },
+        {
+          "method": "analyze",
+          "params": { "uri": "file:///workspace/timers.wtf" },
+          "now": "2026-09-16T14:00:03-04:00"
+        }
+      ]
+    }
+  ]
+}

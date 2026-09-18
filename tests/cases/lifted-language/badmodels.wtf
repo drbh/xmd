@@ -1,0 +1,5 @@
+bad_0 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 5, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_1 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {missing: 1}}, constraints: []})
+bad_2 := solve_linear({goal: "maximize", variables: {x: {kind: "imaginary", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_3 := solve_linear({goal: "guess", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_4 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: [], order: ["x", "x"]})

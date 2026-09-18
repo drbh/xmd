@@ -1,0 +1,1238 @@
+### 0 browser
+-- setDocument timers.wtf
+-- analyze {"uri":"file:///workspace/timers.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= ◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+        "paddingLeft": true,
+        "position": {
+          "character": 24,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+        }
+      },
+      {
+        "label": "◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+        "paddingLeft": true,
+        "position": {
+          "character": 26,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "start"
+          ],
+          "command": "wtf.timer",
+          "title": "▸ start focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            1,
+            "- [ ] Review @timer(focus)"
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "start"
+          ],
+          "command": "wtf.timer",
+          "title": "▸ start focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "task",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[focus] := countdown(2s)\n- [ ] Review @timer(focus)\n",
+    "symbols": [
+      {
+        "detail": "Countdown · ◷ 00:02 remaining · ○ idle",
+        "kind": 13,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 24,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Review",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      9,
+      7,
+      2,
+      0,
+      9,
+      1,
+      15,
+      0,
+      0,
+      1,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      0,
+      11,
+      6,
+      9,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/timers.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/timers.wtf": 1
+    }
+  }
+}
+-- execute {"command":{"arguments":["file:///workspace/timers.wtf","focus","start"],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": " countdown(2s, 0s, 2026-09-16T14:00:00-04:00)",
+              "range": {
+                "end": {
+                  "character": 24,
+                  "line": 0
+                },
+                "start": {
+                  "character": 10,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///workspace/timers.wtf",
+            "version": 1
+          }
+        }
+      ]
+    }
+  }
+}
+-- analyze {"uri":"file:///workspace/timers.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= ◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+        "paddingLeft": true,
+        "position": {
+          "character": 24,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+        }
+      },
+      {
+        "label": "◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+        "paddingLeft": true,
+        "position": {
+          "character": 26,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "start"
+          ],
+          "command": "wtf.timer",
+          "title": "▸ start focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            1,
+            "- [ ] Review @timer(focus)"
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "start"
+          ],
+          "command": "wtf.timer",
+          "title": "▸ start focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "task",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[focus] := countdown(2s)\n- [ ] Review @timer(focus)\n",
+    "symbols": [
+      {
+        "detail": "Countdown · ◷ 00:02 remaining · ○ idle",
+        "kind": 13,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 24,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Review",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      9,
+      7,
+      2,
+      0,
+      9,
+      1,
+      15,
+      0,
+      0,
+      1,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      0,
+      11,
+      6,
+      9,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/timers.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/timers.wtf": 1
+    }
+  }
+}
+-- setDocument {"text":"[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n","uri":"file:///workspace/timers.wtf","version":2}
+{
+  "ok": true,
+  "result": null
+}
+-- execute {"command":{"arguments":["file:///workspace/timers.wtf","focus","start"],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+{
+  "error": "Notes changed; request fresh controls before applying this action",
+  "ok": false
+}
+-- analyze {"uri":"file:///workspace/timers.wtf"} at 2026-09-16T14:00:01-04:00
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= ◷ ████░░░░ 00:01 remaining · ▸ running",
+        "paddingLeft": true,
+        "position": {
+          "character": 55,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+        }
+      },
+      {
+        "label": "◷ ████░░░░ 00:01 remaining · ▸ running",
+        "paddingLeft": true,
+        "position": {
+          "character": 26,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "pause"
+          ],
+          "command": "wtf.timer",
+          "title": "‖ pause focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "reset"
+          ],
+          "command": "wtf.timer",
+          "title": "↺ reset focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            1,
+            "- [ ] Review @timer(focus)"
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "pause"
+          ],
+          "command": "wtf.timer",
+          "title": "‖ pause focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "reset"
+          ],
+          "command": "wtf.timer",
+          "title": "↺ reset focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "task",
+      ""
+    ],
+    "links": [],
+    "live": true,
+    "now": "2026-09-16T14:00:01-04:00",
+    "schemaVersion": 1,
+    "source": "[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n",
+    "symbols": [
+      {
+        "detail": "Countdown · ◷ 00:01 remaining · ▸ running",
+        "kind": 13,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 55,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Review",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      9,
+      7,
+      2,
+      0,
+      9,
+      1,
+      15,
+      0,
+      0,
+      1,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      2,
+      25,
+      11,
+      0,
+      0,
+      25,
+      1,
+      15,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      0,
+      11,
+      6,
+      9,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/timers.wtf",
+    "version": 2,
+    "versions": {
+      "file:///workspace/timers.wtf": 2
+    }
+  }
+}
+-- analyze {"uri":"file:///workspace/timers.wtf"} at 2026-09-16T14:00:03-04:00
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= ◷ ████████ 00:00 remaining · ✓ done",
+        "paddingLeft": true,
+        "position": {
+          "character": 55,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+        }
+      },
+      {
+        "label": "◷ ████████ 00:00 remaining · ✓ done",
+        "paddingLeft": true,
+        "position": {
+          "character": 26,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "reset"
+          ],
+          "command": "wtf.timer",
+          "title": "↺ reset focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            1,
+            "- [ ] Review @timer(focus)"
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/timers.wtf",
+            "focus",
+            "reset"
+          ],
+          "command": "wtf.timer",
+          "title": "↺ reset focus"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "task",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:03-04:00",
+    "schemaVersion": 1,
+    "source": "[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n",
+    "symbols": [
+      {
+        "detail": "Countdown · ◷ 00:00 remaining · ✓ done",
+        "kind": 13,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 55,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Review",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 26,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      9,
+      7,
+      2,
+      0,
+      9,
+      1,
+      15,
+      0,
+      0,
+      1,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      12,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      2,
+      25,
+      11,
+      0,
+      0,
+      25,
+      1,
+      15,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      0,
+      11,
+      6,
+      9,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/timers.wtf",
+    "version": 2,
+    "versions": {
+      "file:///workspace/timers.wtf": 2
+    }
+  }
+}
+

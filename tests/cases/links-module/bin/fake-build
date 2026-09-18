@@ -1,0 +1,9 @@
+#!/bin/sh
+# Stands in for a build service CLI: the run id in the path picks the answer.
+[ "$WTF_FIXTURE_READY" = yes ] || { echo "missing environment" >&2; exit 7; }
+case "$1" in
+  */fail) echo rejected >&2; exit 1 ;;
+  */invalid) printf '%s' 'not json' ;;
+  */empty) printf '%s' '{}' ;;
+  *) printf '%s' '{"title":"Release build","state":"passed"}' ;;
+esac

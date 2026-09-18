@@ -76,8 +76,15 @@ exit 1
 .wtf[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
 .wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
 .wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
+.wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
 .wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
 .wtf-controls button { font: inherit; cursor: pointer; }
+.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f2622); background: var(--wtf-background, #ffffff); }
+.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3f5b31); background: var(--wtf-inlay-background, #e7efdf); }
+.wtf-light .wtf a { text-decoration-color: #2f6f9f; }
+.wtf-light .wtf .error { text-decoration-color: #c9463a; }
+.wtf-light .wtf .warning { text-decoration-color: #b47a12; }
+.wtf-light .wtf .info, .wtf-light .wtf .hint { text-decoration-color: #2f6f9f; }
 .wtf .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
 .wtf .t-property.declaration { color: #83D6CF; font-weight: bold; }
 .wtf .t-wtfDepart.declaration { color: #FFB070; font-weight: bold; }
@@ -106,8 +113,8 @@ exit 1
 .wtf .t-wtfPunctuation { color: #85938B; }
 .wtf .t-wtfCode { color: #A1AE9B; }
 .wtf .t-wtfLink { color: #90BED8; text-decoration-line: underline; }
-.wtf .t-wtfCheckbox { color: #FFD580; font-weight: bold; }
-.wtf .t-wtfCheckboxChecked { color: #91E6AC; font-weight: bold; }
+.wtf .t-wtfCheckbox { color: #FFD580; }
+.wtf .t-wtfCheckboxChecked { color: #91E6AC; }
 .wtf .t-wtfTaskDone { color: #87A788; text-decoration-line: line-through; }
 .wtf .t-wtfDay { color: #FF9ECF; font-weight: bold; }
 .wtf .t-wtfPlace { color: #E2C4FF; }
@@ -157,8 +164,15 @@ exit 0
 .wtf[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
 .wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
 .wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
+.wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
 .wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
 .wtf-controls button { font: inherit; cursor: pointer; }
+.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f2622); background: var(--wtf-background, #ffffff); }
+.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3f5b31); background: var(--wtf-inlay-background, #e7efdf); }
+.wtf-light .wtf a { text-decoration-color: #2f6f9f; }
+.wtf-light .wtf .error { text-decoration-color: #c9463a; }
+.wtf-light .wtf .warning { text-decoration-color: #b47a12; }
+.wtf-light .wtf .info, .wtf-light .wtf .hint { text-decoration-color: #2f6f9f; }
 .wtf .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
 .wtf .t-property.declaration { color: #83D6CF; font-weight: bold; }
 .wtf .t-wtfDepart.declaration { color: #FFB070; font-weight: bold; }
@@ -187,8 +201,8 @@ exit 0
 .wtf .t-wtfPunctuation { color: #85938B; }
 .wtf .t-wtfCode { color: #A1AE9B; }
 .wtf .t-wtfLink { color: #90BED8; text-decoration-line: underline; }
-.wtf .t-wtfCheckbox { color: #FFD580; font-weight: bold; }
-.wtf .t-wtfCheckboxChecked { color: #91E6AC; font-weight: bold; }
+.wtf .t-wtfCheckbox { color: #FFD580; }
+.wtf .t-wtfCheckboxChecked { color: #91E6AC; }
 .wtf .t-wtfTaskDone { color: #87A788; text-decoration-line: line-through; }
 .wtf .t-wtfDay { color: #FF9ECF; font-weight: bold; }
 .wtf .t-wtfPlace { color: #E2C4FF; }

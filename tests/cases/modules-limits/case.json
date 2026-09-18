@@ -1,0 +1,73 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "checklist.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "checklist.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "checklist.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 99
+            }
+          }
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "busy.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "busy.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "oversized.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "oversized.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "oversized.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "oversized.wtf",
+          "line": 1,
+          "character": 0
+        }
+      ]
+    }
+  ]
+}

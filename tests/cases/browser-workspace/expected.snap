@@ -1,0 +1,1186 @@
+### 0 browser
+-- setDocument bakery.wtf
+-- setDocument trip.wtf
+-- setDocument values.wtf
+-- analyze {"uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= $556",
+        "paddingLeft": true,
+        "position": {
+          "character": 32,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](<file:///workspace/values.wtf#L1>), [spent](<file:///workspace/values.wtf#L2>), [src](<file:///workspace/trip.wtf#L3>)\n\nDefinition: [cash](<file:///workspace/trip.wtf#L1>) · /workspace/trip.wtf:1"
+        }
+      },
+      {
+        "label": "$556",
+        "paddingLeft": true,
+        "position": {
+          "character": 14,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](<file:///workspace/values.wtf#L1>), [spent](<file:///workspace/values.wtf#L2>), [src](<file:///workspace/trip.wtf#L3>)\n\nDefinition: [cash](<file:///workspace/trip.wtf#L1>) · /workspace/trip.wtf:1"
+        }
+      },
+      {
+        "label": "= import(\"/workspace/values.wtf\")",
+        "paddingLeft": true,
+        "position": {
+          "character": 29,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**src · Namespace**\n\nimport(\"/workspace/values.wtf\")\n\n```text\nimport(\"./values.wtf\")\n= import(\"/workspace/values.wtf\")\n```\n\nDefinition: [src](<file:///workspace/trip.wtf#L3>) · /workspace/trip.wtf:3"
+        }
+      },
+      {
+        "label": "= $10",
+        "paddingLeft": true,
+        "position": {
+          "character": 18,
+          "line": 4
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](<file:///workspace/trip.wtf#L4>)\n\nDefinition: [total](<file:///workspace/trip.wtf#L5>) · /workspace/trip.wtf:5"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">cash</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">budget</span> <span class=\"t-operator\" title=\"\">-</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">spent</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.wtf#L1&gt;), [spent](&lt;file:///workspace/values.wtf#L2&gt;), [src](&lt;file:///workspace/trip.wtf#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.wtf#L1&gt;) · /workspace/trip.wtf:1\"> = $556</span>\n</span><span class=\"line \" data-line=\"1\">🦀 Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">cash</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.wtf#L1&gt;), [spent](&lt;file:///workspace/values.wtf#L2&gt;), [src](&lt;file:///workspace/trip.wtf#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.wtf#L1&gt;) · /workspace/trip.wtf:1\"> $556</span>.\n</span><span class=\"line \" data-line=\"2\"><span class=\"t-variable declaration\" title=\"\">src</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-function defaultLibrary\" title=\"\">import</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-string\" title=\"\">&quot;./values.wtf&quot;</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**src · Namespace**\n\nimport(&quot;/workspace/values.wtf&quot;)\n\n```text\nimport(&quot;./values.wtf&quot;)\n= import(&quot;/workspace/values.wtf&quot;)\n```\n\nDefinition: [src](&lt;file:///workspace/trip.wtf#L3&gt;) · /workspace/trip.wtf:3\"> = import(&quot;/workspace/values.wtf&quot;)</span>\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfMoney\" title=\"\">$5</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">price</span>\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-variable declaration\" title=\"\">total</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-variable\" title=\"\">price</span> <span class=\"t-operator\" title=\"\">*</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](&lt;file:///workspace/trip.wtf#L4&gt;)\n\nDefinition: [total](&lt;file:///workspace/trip.wtf#L5&gt;) · /workspace/trip.wtf:5\"> = $10</span>\n</span><span class=\"line task\" data-line=\"5\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Open <span class=\"t-decorator\" title=\"\">@estimate</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">90s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span>\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/trip.wtf",
+            5,
+            "- [ ] Open @estimate(90s)"
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 5
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "task",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[cash] := src.budget - src.spent\n🦀 Have [cash].\nsrc := import(\"./values.wtf\")\n$5:price\ntotal := price * 2\n- [ ] Open @estimate(90s)\n",
+    "symbols": [
+      {
+        "detail": "Money · $556",
+        "kind": 13,
+        "name": "cash",
+        "range": {
+          "end": {
+            "character": 32,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 5,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Namespace · import(\"/workspace/values.wtf\")",
+        "kind": 13,
+        "name": "src",
+        "range": {
+          "end": {
+            "character": 29,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 3,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      },
+      {
+        "detail": "Money · $5",
+        "kind": 14,
+        "name": "price",
+        "range": {
+          "end": {
+            "character": 8,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 8,
+            "line": 3
+          },
+          "start": {
+            "character": 3,
+            "line": 3
+          }
+        }
+      },
+      {
+        "detail": "Money · $10",
+        "kind": 13,
+        "name": "total",
+        "range": {
+          "end": {
+            "character": 18,
+            "line": 4
+          },
+          "start": {
+            "character": 0,
+            "line": 4
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 5,
+            "line": 4
+          },
+          "start": {
+            "character": 0,
+            "line": 4
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Open",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 5
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 25,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 5
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      1,
+      0,
+      4,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      3,
+      3,
+      0,
+      0,
+      3,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      7,
+      1,
+      4,
+      0,
+      0,
+      2,
+      3,
+      3,
+      0,
+      0,
+      3,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      8,
+      0,
+      1,
+      8,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      1,
+      0,
+      3,
+      3,
+      1,
+      0,
+      3,
+      3,
+      4,
+      0,
+      0,
+      4,
+      6,
+      7,
+      2,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      14,
+      5,
+      0,
+      0,
+      14,
+      1,
+      15,
+      0,
+      1,
+      0,
+      2,
+      10,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      1,
+      0,
+      5,
+      3,
+      1,
+      0,
+      5,
+      3,
+      4,
+      0,
+      0,
+      4,
+      5,
+      3,
+      0,
+      0,
+      6,
+      1,
+      4,
+      0,
+      0,
+      2,
+      1,
+      2,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      0,
+      9,
+      9,
+      9,
+      0,
+      0,
+      9,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      12,
+      0,
+      0,
+      3,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/trip.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 1,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+-- definition {"position":{"character":16,"line":0},"uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 0
+      },
+      "start": {
+        "character": 9,
+        "line": 0
+      }
+    },
+    "uri": "file:///workspace/values.wtf"
+  }
+}
+-- rename {"newName":"trip_budget","position":{"character":16,"line":0},"uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "trip_budget",
+            "range": {
+              "end": {
+                "character": 20,
+                "line": 0
+              },
+              "start": {
+                "character": 14,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file:///workspace/trip.wtf",
+          "version": 1
+        }
+      },
+      {
+        "edits": [
+          {
+            "newText": "trip_budget",
+            "range": {
+              "end": {
+                "character": 15,
+                "line": 0
+              },
+              "start": {
+                "character": 9,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file:///workspace/values.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- documentSymbols {"uri":"file:///workspace/bakery.wtf"}
+{
+  "ok": true,
+  "result": [
+    {
+      "children": [
+        {
+          "detail": "variable · 25.75",
+          "kind": 13,
+          "name": "bagels",
+          "range": {
+            "end": {
+              "character": 32,
+              "line": 0
+            },
+            "start": {
+              "character": 26,
+              "line": 0
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 32,
+              "line": 0
+            },
+            "start": {
+              "character": 26,
+              "line": 0
+            }
+          }
+        },
+        {
+          "detail": "variable · 14",
+          "kind": 13,
+          "name": "doughnuts",
+          "range": {
+            "end": {
+              "character": 52,
+              "line": 0
+            },
+            "start": {
+              "character": 43,
+              "line": 0
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 52,
+              "line": 0
+            },
+            "start": {
+              "character": 43,
+              "line": 0
+            }
+          }
+        },
+        {
+          "detail": "12 * bagels + 6.5 * doughnuts <= 400",
+          "kind": 8,
+          "name": "flour",
+          "range": {
+            "end": {
+              "character": 7,
+              "line": 3
+            },
+            "start": {
+              "character": 2,
+              "line": 3
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 7,
+              "line": 3
+            },
+            "start": {
+              "character": 2,
+              "line": 3
+            }
+          }
+        },
+        {
+          "detail": "bagels >= 12",
+          "kind": 8,
+          "name": "bagel_min",
+          "range": {
+            "end": {
+              "character": 11,
+              "line": 4
+            },
+            "start": {
+              "character": 2,
+              "line": 4
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 11,
+              "line": 4
+            },
+            "start": {
+              "character": 2,
+              "line": 4
+            }
+          }
+        },
+        {
+          "detail": "doughnuts >= 14",
+          "kind": 8,
+          "name": "doughnut_min",
+          "range": {
+            "end": {
+              "character": 14,
+              "line": 5
+            },
+            "start": {
+              "character": 2,
+              "line": 5
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 14,
+              "line": 5
+            },
+            "start": {
+              "character": 2,
+              "line": 5
+            }
+          }
+        }
+      ],
+      "detail": "Plan · $94.75",
+      "kind": 23,
+      "name": "bakery",
+      "range": {
+        "end": {
+          "character": 34,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 7,
+          "line": 0
+        },
+        "start": {
+          "character": 1,
+          "line": 0
+        }
+      }
+    }
+  ]
+}
+-- query {"query":"values | where name == \"total\" | select {name, value, source}"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-16T14:00:00-04:00",
+    "rows": [
+      {
+        "name": "total",
+        "source": {
+          "line": 5,
+          "path": "/workspace/trip.wtf",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 4
+            },
+            "start": {
+              "character": 0,
+              "line": 4
+            }
+          },
+          "uri": "file:///workspace/trip.wtf#L5"
+        },
+        "value": {
+          "amount": 10.0,
+          "currency": "USD",
+          "type": "money"
+        }
+      }
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 1,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+-- query {"query":"tasks | where leaf && !done | sort source.path, source.line | count"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-16T14:00:00-04:00",
+    "rows": [
+      2
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 1,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+-- query {"query":"map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)","uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-16T14:00:00-04:00",
+    "rows": [
+      "[cash] := src.budget - src.spent",
+      "src := import(\"./values.wtf\")",
+      "$5:price",
+      "total := price * 2"
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 1,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+-- query {"query":"tasks | select title","uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-16T14:00:00-04:00",
+    "rows": [
+      "Open"
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 1,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+-- setDocument {"text":"[cash] := src.budget - src.spent\n🦀 Have [cash].\nsrc := import(\"./values.wtf\")\n$9:price\ntotal := price * 2\n- [ ] Open @estimate(90s)\n","uri":"file:///workspace/trip.wtf","version":2}
+{
+  "ok": true,
+  "result": null
+}
+-- query {"query":"values | where name == \"total\" | select {name, value, source}"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-16T14:00:00-04:00",
+    "rows": [
+      {
+        "name": "total",
+        "source": {
+          "line": 5,
+          "path": "/workspace/trip.wtf",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 4
+            },
+            "start": {
+              "character": 0,
+              "line": 4
+            }
+          },
+          "uri": "file:///workspace/trip.wtf#L5"
+        },
+        "value": {
+          "amount": 18.0,
+          "currency": "USD",
+          "type": "money"
+        }
+      }
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/bakery.wtf": 1,
+      "file:///workspace/trip.wtf": 2,
+      "file:///workspace/values.wtf": 1
+    }
+  }
+}
+
+### 1 cli query --workspace values | where name == "total" | select {name, value, source} --json
+$ wtf query --workspace values | where name == "total" | select {name, value, source} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "name": "total",
+    "source": {
+      "line": 5,
+      "path": "<root>/trip.wtf",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 4
+        },
+        "start": {
+          "character": 0,
+          "line": 4
+        }
+      },
+      "uri": "file://<root>/trip.wtf#L5"
+    },
+    "value": {
+      "amount": 10.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+
+### 2 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json
+$ wtf query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  2
+]
+
+### 3 cli query trip.wtf map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.text) --json
+$ wtf query trip.wtf map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.text) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "[cash] := src.budget - src.spent",
+  "src := import(\"./values.wtf\")",
+  "$5:price",
+  "total := price * 2"
+]
+
+### 4 lsp
+-- open trip.wtf
+-- open bakery.wtf
+-- request textDocument/definition trip.wtf 0:16
+{
+  "range": {
+    "end": {
+      "character": 15,
+      "line": 0
+    },
+    "start": {
+      "character": 9,
+      "line": 0
+    }
+  },
+  "uri": "file://<root>/values.wtf"
+}
+-- request textDocument/rename trip.wtf 0:16
+{
+  "documentChanges": [
+    {
+      "edits": [
+        {
+          "newText": "trip_budget",
+          "range": {
+            "end": {
+              "character": 20,
+              "line": 0
+            },
+            "start": {
+              "character": 14,
+              "line": 0
+            }
+          }
+        }
+      ],
+      "textDocument": {
+        "uri": "file://<root>/trip.wtf",
+        "version": 1
+      }
+    },
+    {
+      "edits": [
+        {
+          "newText": "trip_budget",
+          "range": {
+            "end": {
+              "character": 15,
+              "line": 0
+            },
+            "start": {
+              "character": 9,
+              "line": 0
+            }
+          }
+        }
+      ],
+      "textDocument": {
+        "uri": "file://<root>/values.wtf",
+        "version": null
+      }
+    }
+  ]
+}
+-- request textDocument/inlayHint trip.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= $556",
+    "paddingLeft": true,
+    "position": {
+      "character": 32,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](<file://<root>/values.wtf#L1>), [spent](<file://<root>/values.wtf#L2>), [src](<file://<root>/trip.wtf#L3>)\n\nDefinition: [cash](<file://<root>/trip.wtf#L1>) · <root>/trip.wtf:1"
+    }
+  },
+  {
+    "label": "$556",
+    "paddingLeft": true,
+    "position": {
+      "character": 14,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](<file://<root>/values.wtf#L1>), [spent](<file://<root>/values.wtf#L2>), [src](<file://<root>/trip.wtf#L3>)\n\nDefinition: [cash](<file://<root>/trip.wtf#L1>) · <root>/trip.wtf:1"
+    }
+  },
+  {
+    "label": "= import(\"<root>/values.wtf\")",
+    "paddingLeft": true,
+    "position": {
+      "character": 29,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**src · Namespace**\n\nimport(\"<root>/values.wtf\")\n\n```text\nimport(\"./values.wtf\")\n= import(\"<root>/values.wtf\")\n```\n\nDefinition: [src](<file://<root>/trip.wtf#L3>) · <root>/trip.wtf:3"
+    }
+  },
+  {
+    "label": "= $10",
+    "paddingLeft": true,
+    "position": {
+      "character": 18,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](<file://<root>/trip.wtf#L4>)\n\nDefinition: [total](<file://<root>/trip.wtf#L5>) · <root>/trip.wtf:5"
+    }
+  }
+]
+-- request textDocument/inlayHint bakery.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= $94.75 · bagels 25.75 · doughnuts 14",
+    "paddingLeft": true,
+    "position": {
+      "character": 53,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**bakery · Plan**\n\n$94.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 25.75 + $1.25 * 14)\n= $94.75\n```\n\nMaximizes the objective. Variables: bagels = 25.75, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- bagel_min: 25.75 ≥ 12 · ○ slack 13.75\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.wtf#L1>), [doughnuts](<file://<root>/bakery.wtf#L1>)\n\nDefinition: [bakery](<file://<root>/bakery.wtf#L1>) · <root>/bakery.wtf:1"
+    }
+  },
+  {
+    "label": "████████ 400 ≤ 400 · ● binding",
+    "paddingLeft": true,
+    "position": {
+      "character": 48,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**flour**\n\n████████ 400 ≤ 400 · ● binding\n\nA binding constraint limits the objective; slack is the unused room."
+    }
+  },
+  {
+    "label": "25.75 ≥ 12 · ○ slack 13.75",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**bagel_min**\n\n25.75 ≥ 12 · ○ slack 13.75\n\nA binding constraint limits the objective; slack is the unused room."
+    }
+  },
+  {
+    "label": "14 ≥ 14 · ● binding",
+    "paddingLeft": true,
+    "position": {
+      "character": 34,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**doughnut_min**\n\n14 ≥ 14 · ● binding\n\nA binding constraint limits the objective; slack is the unused room."
+    }
+  },
+  {
+    "label": "25.75",
+    "paddingLeft": true,
+    "position": {
+      "character": 20,
+      "line": 6
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "bakery.bagels"
+    }
+  }
+]
+-- request textDocument/documentSymbol bakery.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "variable · 25.75",
+        "kind": 13,
+        "name": "bagels",
+        "range": {
+          "end": {
+            "character": 32,
+            "line": 0
+          },
+          "start": {
+            "character": 26,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 32,
+            "line": 0
+          },
+          "start": {
+            "character": 26,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "variable · 14",
+        "kind": 13,
+        "name": "doughnuts",
+        "range": {
+          "end": {
+            "character": 52,
+            "line": 0
+          },
+          "start": {
+            "character": 43,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 52,
+            "line": 0
+          },
+          "start": {
+            "character": 43,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "12 * bagels + 6.5 * doughnuts <= 400",
+        "kind": 8,
+        "name": "flour",
+        "range": {
+          "end": {
+            "character": 7,
+            "line": 3
+          },
+          "start": {
+            "character": 2,
+            "line": 3
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 7,
+            "line": 3
+          },
+          "start": {
+            "character": 2,
+            "line": 3
+          }
+        }
+      },
+      {
+        "detail": "bagels >= 12",
+        "kind": 8,
+        "name": "bagel_min",
+        "range": {
+          "end": {
+            "character": 11,
+            "line": 4
+          },
+          "start": {
+            "character": 2,
+            "line": 4
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 11,
+            "line": 4
+          },
+          "start": {
+            "character": 2,
+            "line": 4
+          }
+        }
+      },
+      {
+        "detail": "doughnuts >= 14",
+        "kind": 8,
+        "name": "doughnut_min",
+        "range": {
+          "end": {
+            "character": 14,
+            "line": 5
+          },
+          "start": {
+            "character": 2,
+            "line": 5
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 14,
+            "line": 5
+          },
+          "start": {
+            "character": 2,
+            "line": 5
+          }
+        }
+      }
+    ],
+    "detail": "Plan · $94.75",
+    "kind": 23,
+    "name": "bakery",
+    "range": {
+      "end": {
+        "character": 34,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 7,
+        "line": 0
+      },
+      "start": {
+        "character": 1,
+        "line": 0
+      }
+    }
+  }
+]
+

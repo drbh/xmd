@@ -150,6 +150,11 @@
       ]
     },
     {
+      "write": {
+        "ignored.wtf": "answer := 42\n"
+      }
+    },
+    {
       "cli": [
         "render",
         "ignored.wtf",

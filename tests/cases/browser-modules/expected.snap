@@ -1,0 +1,1569 @@
+### 0 browser
+-- setDocument main.wtf
+-- analyze {"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [
+      {
+        "code": "property",
+        "message": "Unknown resource property 'points'",
+        "range": {
+          "end": {
+            "character": 21,
+            "line": 1
+          },
+          "start": {
+            "character": 15,
+            "line": 1
+          }
+        },
+        "severity": 1,
+        "source": "wtf"
+      }
+    ],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "link",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 18,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`round(2.6)` = 3"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            0,
+            "https://issues.example/tickets/42:ticket",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            1,
+            "Points [ticket.points].",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      7,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      2,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/main.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- setModules {"sources":{"tickets.wtf":"module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"}}
+{
+  "ok": true,
+  "result": null
+}
+-- analyze {"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "ticket /tickets/42",
+        "paddingLeft": true,
+        "position": {
+          "character": 33,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+        }
+      },
+      {
+        "label": "ticket /tickets/42",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+        }
+      },
+      {
+        "label": "null",
+        "paddingLeft": true,
+        "position": {
+          "character": 22,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "ticket.points"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 18,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`round(2.6)` = 3"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> null</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            0,
+            "https://issues.example/tickets/42:ticket",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            1,
+            "Points [ticket.points].",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      7,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      2,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/main.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-18T12:00:00+00:00",
+    "rows": [
+      null
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- setResourceData {"data":{"points":3,"summary":"Browser"},"url":"https://issues.example/tickets/42"}
+{
+  "ok": true,
+  "result": null
+}
+-- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-18T12:00:00+00:00",
+    "rows": [
+      3.0
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- analyze {"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "Browser",
+        "paddingLeft": true,
+        "position": {
+          "character": 33,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+        }
+      },
+      {
+        "label": "Browser",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 22,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "ticket.points"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 18,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`round(2.6)` = 3"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> 3</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            0,
+            "https://issues.example/tickets/42:ticket",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            1,
+            "Points [ticket.points].",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      7,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      2,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/main.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- hover {"position":{"character":10,"line":0},"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "contents": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    },
+    "range": {
+      "end": {
+        "character": 33,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+}
+-- setModules {"sources":{"tickets.wtf":"module := {"}}
+{
+  "error": "/workspace/.wtf/modules/tickets.wtf: /workspace/.wtf/modules/tickets.wtf:1: Expected a record field name",
+  "ok": false
+}
+-- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
+{
+  "ok": true,
+  "result": {
+    "now": "2026-09-18T12:00:00+00:00",
+    "rows": [
+      3.0
+    ],
+    "schemaVersion": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- setModules {"sources":{"custom.wtf":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
+{
+  "ok": true,
+  "result": null
+}
+-- analyze {"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [
+      {
+        "code": "property",
+        "message": "Unknown resource property 'points'",
+        "range": {
+          "end": {
+            "character": 21,
+            "line": 1
+          },
+          "start": {
+            "character": 15,
+            "line": 1
+          }
+        },
+        "severity": 1,
+        "source": "wtf"
+      }
+    ],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "link",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)"
+        }
+      },
+      {
+        "label": "custom",
+        "paddingLeft": true,
+        "position": {
+          "character": 18,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": ""
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"\"> custom</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            0,
+            "https://issues.example/tickets/42:ticket",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/main.wtf",
+              "edits": [
+                {
+                  "newText": "Goodbye",
+                  "range": {
+                    "end": {
+                      "character": 5,
+                      "line": 2
+                    },
+                    "start": {
+                      "character": 0,
+                      "line": 2
+                    }
+                  }
+                }
+              ],
+              "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+              "kind": "edit"
+            }
+          ],
+          "command": "wtf.applyEdits",
+          "title": "Replace"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            1,
+            "Points [ticket.points].",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/main.wtf",
+              "edits": [
+                {
+                  "newText": "Goodbye",
+                  "range": {
+                    "end": {
+                      "character": 5,
+                      "line": 2
+                    },
+                    "start": {
+                      "character": 0,
+                      "line": 2
+                    }
+                  }
+                }
+              ],
+              "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+              "kind": "edit"
+            }
+          ],
+          "command": "wtf.applyEdits",
+          "title": "Replace"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/main.wtf",
+              "edits": [
+                {
+                  "newText": "Goodbye",
+                  "range": {
+                    "end": {
+                      "character": 5,
+                      "line": 2
+                    },
+                    "start": {
+                      "character": 0,
+                      "line": 2
+                    }
+                  }
+                }
+              ],
+              "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+              "kind": "edit"
+            }
+          ],
+          "command": "wtf.applyEdits",
+          "title": "Replace"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      7,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      2,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/main.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/main.wtf": 1
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.wtf","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "Goodbye",
+              "range": {
+                "end": {
+                  "character": 5,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///workspace/main.wtf",
+            "version": 1
+          }
+        }
+      ]
+    }
+  }
+}
+-- setDocument {"text":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nGoodbye [round(2.6)]\n","uri":"file:///workspace/main.wtf","version":2}
+{
+  "ok": true,
+  "result": null
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.wtf","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.wtf":1}}
+{
+  "error": "Notes changed; request fresh controls before applying this action",
+  "ok": false
+}
+-- setModules {"sources":{}}
+{
+  "ok": true,
+  "result": null
+}
+-- analyze {"uri":"file:///workspace/main.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [
+      {
+        "code": "property",
+        "message": "Unknown resource property 'points'",
+        "range": {
+          "end": {
+            "character": 21,
+            "line": 1
+          },
+          "start": {
+            "character": 15,
+            "line": 1
+          }
+        },
+        "severity": 1,
+        "source": "wtf"
+      }
+    ],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "link",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 20,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`round(2.6)` = 3"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Goodbye <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            0,
+            "https://issues.example/tickets/42:ticket",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            "file:///workspace/main.wtf",
+            1,
+            "Points [ticket.points].",
+            "https://issues.example/tickets/42"
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nGoodbye [round(2.6)]\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      7,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      8,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      1,
+      8,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      3,
+      2,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/main.wtf",
+    "version": 2,
+    "versions": {
+      "file:///workspace/main.wtf": 2
+    }
+  }
+}
+

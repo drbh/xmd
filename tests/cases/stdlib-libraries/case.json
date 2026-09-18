@@ -1,0 +1,148 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "watch.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "watch.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "watch.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "watch.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "${last:/0/command}",
+            "arguments": "${last:/0/arguments}"
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "watch.wtf",
+          "line": 1,
+          "character": 9
+        }
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../variants/timer_disabled.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "watch.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "watch.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../variants/timer_failing.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "watch.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "watch.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "counting.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../variants/format_blocks.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "counting.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../variants/plan_failing.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "bakery.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bakery.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    }
+  ]
+}

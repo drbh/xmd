@@ -1,0 +1,418 @@
+### 0 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Hello 🦀
+https://issues.example/tickets/42 ticket /tickets/42:ticket ticket /tickets/42
+See [ticket] ticket /tickets/42 and [issue](https://issues.example/tickets/42) ticket /tickets/42.
+
+### 1 write
+-- write .wtf/modules/tickets.wtf (460 bytes)
+
+### 2 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/tickets.wtf: module.api must be 1
+
+### 3 write
+-- write .wtf/modules/tickets.wtf (457 bytes)
+
+### 4 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/tickets.wtf: inlay must be a function with 1 parameters
+
+### 5 write
+-- write .wtf/modules/tickets.wtf (461 bytes)
+
+### 6 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/tickets.wtf: module.kind must be link, feature, or library
+
+### 7 write
+-- write .wtf/modules/tickets.wtf (465 bytes)
+
+### 8 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/tickets.wtf: <root>/.wtf/modules/tickets.wtf:2: Invalid or duplicate parameter 'ctx'
+
+### 9 write
+-- write .wtf/modules/tickets.wtf (464 bytes)
+
+### 10 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/tickets.wtf: refresh and decode must be supplied together
+
+### 11 write
+-- write .wtf/modules/tickets.wtf (61 bytes)
+
+### 12 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: Unknown module import 'b'
+
+### 13 write
+-- write .wtf/modules.json (39 bytes)
+-- write .wtf/modules/a.wtf (61 bytes)
+-- write .wtf/modules/b.wtf (61 bytes)
+
+### 14 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: Module import cycle: a -> b -> a
+
+### 15 write
+-- write .wtf/modules.json (26 bytes)
+-- remove .wtf/modules/a.wtf
+-- remove .wtf/modules/b.wtf
+-- write .wtf/modules/tickets.wtf (460 bytes)
+
+### 16 lsp
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- await window/logMessage
+{
+  "message": "WTF: tasks, timers, resources, dates, and workspace navigation ready",
+  "type": 3
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "ticket /tickets/42",
+    "paddingLeft": true,
+    "position": {
+      "character": 33,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "ticket /tickets/42",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "ticket /tickets/42",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "ticket /tickets/42",
+    "paddingLeft": true,
+    "position": {
+      "character": 59,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  }
+]
+-- write .wtf/modules/tickets.wtf (404 bytes)
+-- watched .wtf/modules/tickets.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · Module tickets.inlay: Function call depth exceeds 32",
+    "paddingLeft": true,
+    "position": {
+      "character": 33,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Function call depth exceeds 32",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Function call depth exceeds 32",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Function call depth exceeds 32",
+    "paddingLeft": true,
+    "position": {
+      "character": 59,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  }
+]
+-- write .wtf/modules/tickets.wtf (415 bytes)
+-- watched .wtf/modules/tickets.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · Module tickets.inlay: Unknown field 'file'",
+    "paddingLeft": true,
+    "position": {
+      "character": 33,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Unknown field 'file'",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Unknown field 'file'",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  },
+  {
+    "label": "module error · Module tickets.inlay: Unknown field 'file'",
+    "paddingLeft": true,
+    "position": {
+      "character": 59,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)\n\nDetails for https://issues.example/tickets/42"
+    }
+  }
+]
+-- write .wtf/modules/tickets.wtf (113 bytes)
+-- watched .wtf/modules/tickets.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · bad",
+    "paddingLeft": true,
+    "position": {
+      "character": 10,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay line is outside the document"
+    }
+  },
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  },
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  }
+]
+-- write .wtf/modules/tickets.wtf (165 bytes)
+-- watched .wtf/modules/tickets.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · bad",
+    "paddingLeft": true,
+    "position": {
+      "character": 10,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Invalid UTF-16 character boundary"
+    }
+  },
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  },
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  }
+]
+-- write .wtf/modules/tickets.wtf (74 bytes)
+-- watched .wtf/modules/tickets.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 40,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  },
+  {
+    "label": "link",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://issues.example/tickets/42>)"
+    }
+  }
+]
+-- change main.wtf (version 2)
+spun := import("loops").spin(1)
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "Function call depth exceeds 32",
+      "range": {
+        "end": {
+          "character": 31,
+          "line": 0
+        },
+        "start": {
+          "character": 8,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/main.wtf",
+  "version": 2
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[]
+

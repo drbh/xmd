@@ -258,6 +258,9 @@ impl World {
                     }
                 }
             }
+        } else if let Some(files) = step.get("write").and_then(Value::as_object) {
+            let _ = writeln!(out, "### {index} write");
+            self.write(files, out);
         } else if let Some(items) = step.get("browser").and_then(Value::as_array) {
             let _ = writeln!(out, "### {index} browser");
             self.browser(items, out);
@@ -265,6 +268,33 @@ impl World {
             panic!("Unknown step kind: {step}");
         }
         out.push('\n');
+    }
+
+    // ---------------------------------------------------------------- write
+
+    /// Rewrites the workspace between steps: `{"path": "text"}` writes a file
+    /// (creating parents), `{"path": null}` removes it. Nothing else changes,
+    /// so a following `cli`, `lsp` or `read` step sees the new disk state.
+    fn write(&self, files: &Map<String, Value>, out: &mut String) {
+        for (path, content) in files {
+            let target = self.root.join(path);
+            match content {
+                Value::Null => {
+                    let removed = std::fs::remove_file(&target).is_ok();
+                    let _ = writeln!(
+                        out,
+                        "-- remove {path}{}",
+                        if removed { "" } else { " (missing)" }
+                    );
+                }
+                value => {
+                    let text = as_text(value);
+                    std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+                    std::fs::write(&target, &text).unwrap();
+                    let _ = writeln!(out, "-- write {path} ({} bytes)", text.len());
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------ cli
@@ -392,6 +422,23 @@ impl World {
                     json!({"textDocument":{"uri":self.uri(&name)}}),
                 );
                 let _ = writeln!(out, "-- save {name}");
+            } else if let Some(files) = item.get("write").and_then(Value::as_object) {
+                self.write(files, out);
+            } else if let Some(paths) = item.get("watched").and_then(Value::as_array) {
+                let changes: Vec<Value> = paths
+                    .iter()
+                    .map(as_text)
+                    .map(|path| {
+                        let kind = if self.root.join(&path).exists() { 2 } else { 3 };
+                        json!({"uri": self.uri(&path), "type": kind})
+                    })
+                    .collect();
+                lsp.notify(
+                    "workspace/didChangeWatchedFiles",
+                    json!({ "changes": changes }),
+                );
+                let names: Vec<String> = paths.iter().map(as_text).collect();
+                let _ = writeln!(out, "-- watched {}", names.join(" "));
             } else if let Some(name) = item.get("close").map(as_text) {
                 lsp.notify(
                     "textDocument/didClose",
@@ -543,6 +590,12 @@ impl World {
                 if text == "${last}" {
                     return last.clone();
                 }
+                if let Some(pointer) = text
+                    .strip_prefix("${last:")
+                    .and_then(|rest| rest.strip_suffix('}'))
+                {
+                    return last.pointer(pointer).cloned().unwrap_or(Value::Null);
+                }
                 if let Some(index) = text
                     .strip_prefix("${last.")
                     .and_then(|rest| rest.strip_suffix('}'))
@@ -607,13 +660,38 @@ impl World {
             host.request("setDocument", &payload, &self.now);
             let _ = writeln!(out, "-- setDocument {name}");
         }
+        let mut last = Value::Null;
         for item in items {
             let method = as_text(&item["method"]);
-            let params = item.get("params").cloned().unwrap_or(json!({}));
-            let raw = host.request(&method, &params.to_string(), &self.now);
+            let params = self.substitute(&item.get("params").cloned().unwrap_or(json!({})), &last);
+            // A raw string body reaches the host unparsed, so malformed input
+            // can be shown; `now` moves this one request's clock.
+            let body = match item.get("body") {
+                Some(Value::String(text)) => text.clone(),
+                _ => params.to_string(),
+            };
+            let now = item
+                .get("now")
+                .map(as_text)
+                .unwrap_or_else(|| self.now.clone());
+            let raw = host.request(&method, &body, &now);
             let value: Value = serde_json::from_str(&raw).unwrap_or(Value::String(raw));
-            let _ = writeln!(out, "-- {method} {}", compact(&params));
+            let _ = writeln!(
+                out,
+                "-- {method} {}{}",
+                if item.get("body").is_some() {
+                    body.clone()
+                } else {
+                    compact(&params)
+                },
+                if now == self.now {
+                    String::new()
+                } else {
+                    format!(" at {now}")
+                }
+            );
             out.push_str(&pretty(&self.scrub_json(&value)));
+            last = value;
         }
     }
 

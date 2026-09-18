@@ -104,6 +104,13 @@ Records the contents of files in the workspace, or `(missing: …)`. Use it to
 prove that a command did not rewrite a note, or that it did write
 `.wtf/cache.json`.
 
+### `{"write": {"path": "text", "other": null}}`
+
+Rewrites the workspace between steps: a string writes that file (creating parent
+directories), `null` removes it. Use it to change a module, a manifest or a
+cache file halfway through a case, so the next `cli`, `lsp` or `read` step sees
+the new disk state.
+
 ### `{"lsp": [ ... ]}`
 
 Starts `wtf lsp` once for the step, initializes it with the standard client
@@ -127,6 +134,12 @@ JSON, normalized as above, with `version` fields kept.
 An `lsp` step may also carry `"capabilities": {...}`, which replaces the standard
 client capabilities for that server, so a case can take the path a poorer editor
 takes (`{"lsp": [...], "capabilities": {}}` announces none at all).
+| `{"write": {"path": "text"}}` | the `write` step above, in the middle of a session |
+| `{"watched": ["path", ...]}` | `workspace/didChangeWatchedFiles` for those paths (changed, or deleted when gone), which is how a module reload is triggered |
+
+A reload is asynchronous, so follow `watched` with an `await` (usually
+`textDocument/publishDiagnostics`, which the server sends once the rescan is
+done) before requesting anything that should already see the new modules.
 
 Server-initiated requests are answered automatically the moment they are read —
 `workspace/applyEdit` with `{"applied": true}` and `window/showDocument` with
@@ -165,6 +178,23 @@ Only in a case with `"requires": "browser"`. Every `.wtf` note in the case is
 loaded with `setDocument` under `/workspace/<relative path>` first, then each
 item `{"method": "hover", "params": {...}}` is sent to
 `BrowserWorkspace::request` at the frozen clock, and the JSON result recorded.
+Any method works, including `setDocument`, `setModules`, `setResourceData`,
+`execute` and `query`, so a case can drive a whole session.
+
+Three extras: `"now": "<rfc3339>"` moves that one request's clock (a timer
+running out, say); `"body": "<raw text>"` is sent instead of `params`, which is
+how malformed input is shown; and `${last:/json/pointer}` inside `params` is
+replaced with that part of the previous recorded response, which is how a lens
+from an `analyze` is executed:
+
+```json
+{ "method": "analyze", "params": {"uri": "file:///workspace/trip.wtf"} },
+{ "method": "execute", "params": {"command": "${last:/result/lenses/0/command}",
+                                  "versions": {"file:///workspace/trip.wtf": 1}} }
+```
+
+`${last:/pointer}` works in an `lsp` request's `params` too, alongside
+`${last}` and `${last.0}`.
 
 ## Adding a case
 

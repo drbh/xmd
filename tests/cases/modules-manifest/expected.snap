@@ -1,0 +1,233 @@
+### 0 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Note library
+
+### 1 cli query --workspace notes | select source.path --json
+$ wtf query --workspace notes | select source.path --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "<root>/custom.wtf",
+  "<root>/main.wtf"
+]
+
+### 2 write
+-- write .wtf/modules.json (44 bytes)
+
+### 3 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Note section · Note library
+
+### 4 cli query --workspace notes | select source.path --json
+$ wtf query --workspace notes | select source.path --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "<root>/main.wtf"
+]
+
+### 5 write
+-- write .wtf/modules.json (27 bytes)
+-- write .wtf/modules/headings.wtf (118 bytes)
+
+### 6 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Note workspace
+
+### 7 write
+-- write .wtf/modules.json (2 bytes)
+
+### 8 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules.json: expected an array of module file paths: EOF while parsing a list at line 2 column 0
+
+### 9 write
+-- write .wtf/modules.json (14 bytes)
+
+### 10 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules.json: expected an array of module file paths: invalid type: map, expected a sequence at line 1 column 0
+
+### 11 write
+-- write .wtf/modules.json (26 bytes)
+
+### 12 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/missing.wtf (listed in <root>/.wtf/modules.json): No such file or directory (os error 2)
+
+### 13 write
+-- write .wtf/modules.json (37 bytes)
+
+### 14 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/custom.wtf is listed more than once in module manifests
+
+### 15 write
+-- write .wtf/modules.json (20 bytes)
+
+### 16 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/stdlib/*.wtf (listed in <root>/.wtf/modules.json): No such file or directory (os error 2)
+
+### 17 write
+-- write .wtf/modules.json (1361 bytes)
+
+### 18 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: At most 64 workspace modules may be activated
+
+### 19 write
+-- write .wtf/modules.json (49 bytes)
+-- write .wtf/modules/twin.wtf (113 bytes)
+
+### 20 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: Duplicate module id 'headings'
+
+### 21 write
+-- write .wtf/modules.json (23 bytes)
+-- write .wtf/modules/twin.wtf (11 bytes)
+
+### 22 cli render main.wtf --format text
+$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/.wtf/modules/twin.wtf: <root>/.wtf/modules/twin.wtf:1: Expected a record field name
+
+### 23 write
+-- write .wtf/modules.json (27 bytes)
+-- remove .wtf/modules/twin.wtf
+
+### 24 lsp
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- await window/logMessage
+{
+  "message": "WTF: tasks, timers, resources, dates, and workspace navigation ready",
+  "type": 3
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "workspace",
+    "paddingLeft": true,
+    "position": {
+      "character": 6,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+-- write .wtf/modules/headings.wtf (114 bytes)
+-- watched .wtf/modules/headings.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "saved",
+    "paddingLeft": true,
+    "position": {
+      "character": 6,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+-- write .wtf/modules/headings.wtf (11 bytes)
+-- watched .wtf/modules/headings.wtf
+-- await window/logMessage
+{
+  "message": "<root>/.wtf/modules/headings.wtf: <root>/.wtf/modules/headings.wtf:1: Expected a record field name",
+  "type": 1
+}
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "saved",
+    "paddingLeft": true,
+    "position": {
+      "character": 6,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+-- write .wtf/modules/headings.wtf (117 bytes)
+-- watched .wtf/modules/headings.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "reloaded",
+    "paddingLeft": true,
+    "position": {
+      "character": 6,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+-- remove .wtf/modules.json
+-- watched .wtf/modules.json
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":0}}
+[]
+

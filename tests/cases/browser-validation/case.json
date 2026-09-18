@@ -1,0 +1,112 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        {
+          "method": "setDocument",
+          "params": { "uri": "file:///etc/secrets.wtf", "text": "", "version": 1 }
+        },
+        {
+          "method": "setDocument",
+          "params": { "uri": "https://example.com/note.wtf", "text": "", "version": 1 }
+        },
+        {
+          "method": "setDocument",
+          "params": { "uri": "file:///workspace/../secret.wtf", "text": "", "version": 1 }
+        },
+        {
+          "method": "setDocument",
+          "params": { "uri": "file:///workspace/test.wtf#L1", "text": "", "version": 1 }
+        },
+        {
+          "method": "setDocument",
+          "params": { "uri": "file:///workspace/refresh.wtf", "text": "oops", "version": 1 }
+        },
+        { "method": "analyze", "body": "not JSON" },
+        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.wtf" } },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/refresh.wtf",
+            "range": {
+              "start": { "line": 1, "character": 0 },
+              "end": { "line": 1, "character": 0 }
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "⟳ refresh",
+              "command": "wtf.refresh",
+              "arguments": ["file:///workspace/refresh.wtf"]
+            },
+            "versions": { "file:///workspace/refresh.wtf": 1 }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "⟳ github",
+              "command": "wtf.refreshResource",
+              "arguments": [
+                "file:///workspace/refresh.wtf",
+                1,
+                "https://github.com/acme/app/pull/42",
+                "https://github.com/acme/app/pull/42"
+              ]
+            },
+            "versions": { "file:///workspace/refresh.wtf": 1 }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "bad",
+              "command": "wtf.task",
+              "arguments": ["file:///workspace/refresh.wtf", 2, "- [ ] Task", "extra"]
+            },
+            "versions": { "file:///workspace/refresh.wtf": 1 }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "toggle",
+              "command": "wtf.task",
+              "arguments": ["file:///workspace/refresh.wtf", 2, "- [ ] Task"]
+            },
+            "versions": { "file:///workspace/refresh.wtf": 1 }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "command": {
+              "title": "open",
+              "command": "wtf.openResource",
+              "arguments": [
+                "file:///workspace/refresh.wtf",
+                3,
+                "https://example.com/page",
+                "https://example.com/page"
+              ]
+            },
+            "versions": { "file:///workspace/refresh.wtf": 1 }
+          }
+        },
+        { "method": "query", "params": { "query": "tasks | where (" } },
+        { "method": "query", "params": { "uri": "file:///workspace/missing.wtf", "query": "ast" } },
+        { "method": "query", "params": { "uri": "file:///outside/private.wtf", "query": "ast" } },
+        { "method": "query", "params": { "uri": "https://example.com/n.wtf", "query": "ast" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.wtf" } }
+      ]
+    }
+  ]
+}

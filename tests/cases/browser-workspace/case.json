@@ -1,0 +1,114 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        { "method": "analyze", "params": { "uri": "file:///workspace/trip.wtf" } },
+        {
+          "method": "definition",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "position": { "line": 0, "character": 16 }
+          }
+        },
+        {
+          "method": "rename",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "position": { "line": 0, "character": 16 },
+            "newName": "trip_budget"
+          }
+        },
+        { "method": "documentSymbols", "params": { "uri": "file:///workspace/bakery.wtf" } },
+        {
+          "method": "query",
+          "params": { "query": "values | where name == \"total\" | select {name, value, source}" }
+        },
+        {
+          "method": "query",
+          "params": {
+            "query": "tasks | where leaf && !done | sort source.path, source.line | count"
+          }
+        },
+        {
+          "method": "query",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "query": "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)"
+          }
+        },
+        {
+          "method": "query",
+          "params": { "uri": "file:///workspace/trip.wtf", "query": "tasks | select title" }
+        },
+        {
+          "method": "setDocument",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "version": 2,
+            "text": "[cash] := src.budget - src.spent\n🦀 Have [cash].\nsrc := import(\"./values.wtf\")\n$9:price\ntotal := price * 2\n- [ ] Open @estimate(90s)\n"
+          }
+        },
+        {
+          "method": "query",
+          "params": { "query": "values | where name == \"total\" | select {name, value, source}" }
+        }
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | where name == \"total\" | select {name, value, source}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | where leaf && !done | sort source.path, source.line | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.text)",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        { "open": "trip.wtf" },
+        { "open": "bakery.wtf" },
+        {
+          "request": "textDocument/definition",
+          "file": "trip.wtf",
+          "line": 0,
+          "character": 16
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "trip.wtf",
+          "line": 0,
+          "character": 16,
+          "extra": { "newName": "trip_budget" }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "trip.wtf",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "bakery.wtf",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } }
+        },
+        { "request": "textDocument/documentSymbol", "file": "bakery.wtf" }
+      ]
+    }
+  ]
+}

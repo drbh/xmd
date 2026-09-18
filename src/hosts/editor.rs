@@ -26,7 +26,6 @@ struct State {
     open: BTreeMap<PathBuf, i32>,
     module_buffers: BTreeMap<PathBuf, Document>,
     hint_refresh: bool,
-    token_refresh: bool,
     watch: bool,
     live: BTreeSet<PathBuf>,
     lens_refresh: bool,
@@ -92,7 +91,6 @@ impl Backend {
                 open: BTreeMap::new(),
                 module_buffers: BTreeMap::new(),
                 hint_refresh: false,
-                token_refresh: false,
                 watch: false,
                 live: BTreeSet::new(),
                 lens_refresh: false,
@@ -104,7 +102,7 @@ impl Backend {
         }
     }
     async fn notify_changes(&self) {
-        let (diagnostics, hint_refresh, token_refresh, lens_refresh) = {
+        let (diagnostics, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
             let now = Local::now().fixed_offset();
             let paths: Vec<_> = state
@@ -143,23 +141,17 @@ impl Backend {
                 state.diagnostics.insert(path.clone(), ds);
                 state.lenses.insert(path, lenses);
             }
-            (
-                diagnostics,
-                state.hint_refresh,
-                state.token_refresh,
-                state.lens_refresh,
-            )
+            (diagnostics, state.hint_refresh, state.lens_refresh)
         };
         for (uri, version, diagnostics) in diagnostics {
             self.client
                 .publish_diagnostics(uri, diagnostics, Some(version))
                 .await;
         }
+        // Only evaluated features need workspace refreshes. Semantic tokens depend
+        // on document text, and clients request updates when their buffers change.
         if hint_refresh {
             let _ = self.client.inlay_hint_refresh().await;
-        }
-        if token_refresh {
-            let _ = self.client.semantic_tokens_refresh().await;
         }
         if lens_refresh {
             let _ = self.client.code_lens_refresh().await;
@@ -350,9 +342,6 @@ impl LanguageServer for Backend {
                 state.lens_refresh = w.code_lens.is_some_and(|c| c.refresh_support == Some(true));
                 state.hint_refresh = w
                     .inlay_hint
-                    .is_some_and(|c| c.refresh_support == Some(true));
-                state.token_refresh = w
-                    .semantic_tokens
                     .is_some_and(|c| c.refresh_support == Some(true));
                 state.watch = w
                     .did_change_watched_files

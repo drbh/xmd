@@ -307,6 +307,87 @@ fn raw_links_and_rich_tokens_work_over_lsp_and_follow_edits() {
 }
 
 #[test]
+fn ignored_open_notes_keep_highlighting_without_workspace_token_invalidations() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    std::fs::write(root.join(".gitignore"), ".hidden/\n").unwrap();
+    std::fs::create_dir(root.join(".hidden")).unwrap();
+    let path = root.join(".hidden/TODOS.wtf");
+    let uri = Url::from_file_path(&path).unwrap();
+    let source = "# Notes\n\n## Checklist :launch\n\n- [ ] First\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n";
+    std::fs::write(&path, source).unwrap();
+    assert!(
+        !wtf::workspace::Workspace::load(vec![root.clone()])
+            .unwrap()
+            .documents
+            .contains_key(&path)
+    );
+    let mut lsp = Lsp::start(&root);
+    let assert_highlighting = |lsp: &mut Lsp, text: &str| {
+        // Wait until all change notifications have been sent, including refresh requests.
+        lsp.wait_for_request("workspace/codeLens/refresh");
+        let tokens = lsp.request(
+            "textDocument/semanticTokens/full",
+            json!({"textDocument":{"uri":uri}}),
+        );
+        let expected =
+            wtf::highlighting::semantic_tokens(&wtf::document::Document::parse(text.into()));
+        assert!(!expected.is_empty());
+        assert_eq!(
+            tokens["data"],
+            serde_json::to_value(lsp_types::SemanticTokens {
+                result_id: None,
+                data: expected
+            })
+            .unwrap()["data"]
+        );
+        assert!(
+            !lsp.requests
+                .iter()
+                .any(|r| r == "workspace/semanticTokens/refresh"),
+            "Document edits must not invalidate highlighting across the workspace"
+        );
+    };
+    lsp.notify(
+        "textDocument/didOpen",
+        json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":source}}),
+    );
+    assert_highlighting(&mut lsp, source);
+    for (i, title) in ["First 🦀", "First 🦀 edit", "First", "First again"]
+        .into_iter()
+        .enumerate()
+    {
+        let text = source.replace("First", title);
+        lsp.notify(
+            "textDocument/didChange",
+            json!({"textDocument":{"uri":uri,"version":i + 2},"contentChanges":[{"text":text}]}),
+        );
+        assert_highlighting(&mut lsp, &text);
+        // A watcher rescan must retain an ignored note's unsaved buffer and its tokens.
+        lsp.notify(
+            "workspace/didChangeWatchedFiles",
+            json!({"changes":[{"uri":uri,"type":2}]}),
+        );
+        assert_highlighting(&mut lsp, &text);
+        std::fs::write(&path, &text).unwrap();
+        lsp.notify("textDocument/didSave", json!({"textDocument":{"uri":uri}}));
+        assert_highlighting(&mut lsp, &text);
+    }
+    // Changing a second note must not clear the ignored note's highlighting either.
+    let other = Url::from_file_path(root.join("other.wtf")).unwrap();
+    lsp.notify(
+        "textDocument/didOpen",
+        json!({"textDocument":{"uri":other,"languageId":"wtf","version":1,"text":"1:value\n"}}),
+    );
+    assert_highlighting(&mut lsp, &source.replace("First", "First again"));
+    lsp.notify(
+        "textDocument/didClose",
+        json!({"textDocument":{"uri":other}}),
+    );
+    assert_highlighting(&mut lsp, &source.replace("First", "First again"));
+}
+
+#[test]
 fn document_symbols_use_shared_hierarchy_and_follow_unsaved_edits() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().canonicalize().unwrap();
@@ -883,7 +964,7 @@ fn zed_workflow_updates_hints_highlights_links_tasks_and_cross_file_names() {
     assert!(hints.to_string().contains("2/3 complete"));
     assert!(lsp.requests.contains(&"workspace/inlayHint/refresh".into()));
     assert!(
-        lsp.requests
+        !lsp.requests
             .contains(&"workspace/semanticTokens/refresh".into())
     );
     lsp.request("shutdown", json!(null));
@@ -1317,7 +1398,7 @@ fn module_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             "textDocument/didOpen",
             json!({"textDocument":{"uri":uri,"languageId":"wtf","version":1,"text":text}}),
         );
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert_tokens(&mut client, &uri, text);
         let changed = format!(
             "{}\nunsaved := fn(value) => value + 1\n",
@@ -1327,7 +1408,7 @@ fn module_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             "textDocument/didChange",
             json!({"textDocument":{"uri":uri,"version":3},"contentChanges":[{"text":changed}]}),
         );
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert_tokens(&mut client, &uri, &changed);
         // A stale notification cannot replace the newer editor buffer.
         client.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":"old buffer"}]}));
@@ -1343,7 +1424,7 @@ fn module_and_standard_library_buffers_highlight_without_activating_unsaved_sour
             "saved"
         );
         client.notify("textDocument/didClose", json!({"textDocument":{"uri":uri}}));
-        client.wait_for_request("workspace/semanticTokens/refresh");
+        client.wait_for_request("workspace/codeLens/refresh");
         assert!(
             client
                 .request(
@@ -1359,7 +1440,7 @@ fn module_and_standard_library_buffers_highlight_without_activating_unsaved_sour
         "textDocument/didSave",
         json!({"textDocument":{"uri":Url::from_file_path(&module).unwrap()}}),
     );
-    client.wait_for_request("workspace/semanticTokens/refresh");
+    client.wait_for_request("workspace/codeLens/refresh");
     assert_eq!(
         client.request("textDocument/inlayHint", hints)[0]["label"],
         "reloaded"

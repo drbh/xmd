@@ -8,6 +8,18 @@
     "migrate": "wrangler d1 migrations apply wtf-docs --remote",
     "migrate:local": "wrangler d1 migrations apply wtf-docs --local",
     "deploy": "node build.mjs && wrangler d1 migrations apply wtf-docs --remote && wrangler deploy",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs && npx playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "esbuild": "^0.28.2",
+    "wrangler": "^4.135.0"
+  },
+  "dependencies": {
+    "lib0": "^0.2.117",
+    "partyserver": "^0.5.10",
+    "y-partyserver": "^2.2.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32"
   }
 }

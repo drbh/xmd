@@ -46,11 +46,30 @@ in D1 first; the client never decides permissions. Saves carry the document's
 `version` and get **409** when it changed elsewhere, which the app reports and
 stops saving that document until reloaded.
 
+## Live editing
+
+`worker/room.js` is a Durable Object per document (`Room`, SQLite-backed,
+WebSocket hibernation) built on `y-partyserver`: the note is a Yjs text,
+edits are relayed to every connection, presence carries names and carets,
+and the CRDT state is kept in the object's storage. `onSave` mirrors the text
+into the `documents` row (new `version`), so listing, sharing, export, and the
+query console keep reading D1. While a room exists it is the only writer: the
+REST `PUT` is forwarded to it and merged into the live text.
+
+The Worker resolves the caller's role before the WebSocket upgrade
+(`onBeforeConnect`) and the room drops document updates from viewers. The
+browser side is `client/live.js`, loaded on demand by `backend.js` when a
+cloud document opens (Yjs is a separate chunk); it binds the app's editor
+delta API to the shared text and a per-user Yjs undo history.
+
+`npm test` covers the API through `wrangler dev` and drives two editors plus a
+viewer in real browsers (`test/live.spec.mjs`).
+
 ## Commands
 
 ```sh
 npm --prefix web/cloud run dev       # local Worker + local D1, DEV_AUTH identities (X-Dev-User header)
-npm --prefix web/cloud test          # API tests through wrangler dev
+npm --prefix web/cloud test          # API tests and live-editing browser tests through wrangler dev
 npm --prefix web/cloud run deploy    # build, apply remote migrations, deploy
 ```
 

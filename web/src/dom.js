@@ -99,3 +99,23 @@ export function restoreSelection(view, saved) {
   setCaret(view, saved.focus);
   selection.setBaseAndExtent(anchorNode, anchorOffset, selection.focusNode, selection.focusOffset);
 }
+
+/** A DOM range covering source offsets [start, end) of the view, skipping inlays and the trailing sentinel. */
+export function rangeOf(view, start, end) {
+  const walker = view.ownerDocument.createTreeWalker(view, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: node => node.nodeType === Node.ELEMENT_NODE && (node.classList.contains("inlay") || node.classList.contains("eol")) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  const range = view.ownerDocument.createRange();
+  let offset = 0, node, found = false, last = null;
+  while ((node = walker.nextNode())) {
+    const length = node.nodeType === Node.TEXT_NODE ? node.data.length : node.nodeName === "BR" ? 1 : 0;
+    if (!length) continue;
+    last = node;
+    if (!found && start <= offset + length) { found = true; if (node.nodeType === Node.TEXT_NODE) range.setStart(node, start - offset); else range.setStartBefore(node); }
+    if (found && end <= offset + length) { if (node.nodeType === Node.TEXT_NODE) range.setEnd(node, end - offset); else range.setEndAfter(node); return range; }
+    offset += length;
+  }
+  if (!found) { if (last?.nodeType === Node.TEXT_NODE) range.setStart(last, last.data.length); else range.setStart(view, view.childNodes.length - (view.lastElementChild?.classList.contains("eol") ? 1 : 0)); }
+  range.collapse(true);
+  return range;
+}

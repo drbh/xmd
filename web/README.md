@@ -144,7 +144,11 @@ offsets, `select(anchor, focus)` sets them, and `replaceRange(start, end, text,
 after)` edits a span and places the selection afterwards, so an application can
 implement formatting commands and find/replace as text transformations. The
 adapter keeps a zero-width, non-editable `.eol` sentinel after the text so the
-caret can sit after a final newline. Monaco remains available as an IDE adapter
+caret can sit after a final newline. For collaboration, `onEdit(listener)`
+reports each local change as a delta before it is written, `applyEdits(edits)`
+merges changes made elsewhere into the model and the DOM at once (so the caret
+and any in-progress typing stay put), and `setHistory(handler)` delegates undo
+to a shared history. `src/edits.js` holds the plain diff/apply/shift helpers. Monaco remains available as an IDE adapter
 at `@wtf/web/monaco`, with an optional `monaco-editor` peer dependency. Its
 `createEditor(element, client)` returns an editor, a per-instance `language` ID,
 and `destroy()`; use that ID for its models. The shipped site no longer includes

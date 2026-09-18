@@ -1,5 +1,6 @@
 // The documents API. Every handler resolves the caller's role for the
 // document first; authorization never depends on anything the client sends.
+import { getServerByName } from "partyserver";
 const MAX_TEXT = 1_000_000, MAX_NAME = 200, ROLES = new Set(["editor", "viewer"]);
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -22,7 +23,7 @@ export async function ensureUser(db, user) {
 }
 
 // Roles: the owner may do everything; editors read and write; viewers read.
-async function roleOf(db, user, id) {
+export async function roleOf(db, user, id) {
   const doc = await db.prepare("SELECT id, owner_id, name, text, version, created_at, updated_at, deleted_at FROM documents WHERE id = ?1").bind(id).first();
   if (!doc || doc.deleted_at) return { doc: null, role: null };
   if (doc.owner_id === user.id) return { doc, role: "owner" };
@@ -83,9 +84,13 @@ export async function handle(request, env, user) {
       }
       const doc = requireWrite(access);
       if (input.version !== undefined && input.version !== doc.version) throw new HttpError(409, "The document changed elsewhere", { current: present(doc, access.role) });
-      const result = await db.prepare("UPDATE documents SET name = ?1, text = ?2, version = version + 1, updated_at = ?3 WHERE id = ?4 AND version = ?5").bind(input.name, input.text, now, id, doc.version).run();
-      if (!result.meta.changes) throw new HttpError(409, "The document changed elsewhere");
-      return json({ id, version: doc.version + 1, updated: now, role: access.role });
+      // The document's room is the single writer: it merges this text into the live state and mirrors it to D1.
+      const room = await getServerByName(env.Room, id);
+      const response = await room.fetch(new Request(`https://room/${id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: input.text, name: input.name }) }));
+      if (!response.ok) throw new HttpError(502, "The document could not be updated");
+      const saved = await response.json();
+      await db.prepare("UPDATE documents SET name = ?1, updated_at = ?2 WHERE id = ?3").bind(input.name, now, id).run();
+      return json({ id, version: saved.version ?? doc.version + 1, updated: now, role: access.role });
     }
     if (method === "DELETE") {
       requireOwner(access);

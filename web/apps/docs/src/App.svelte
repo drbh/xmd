@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { createWorkspace } from "@wtf/web";
   import { titleOf, uriOf, createDocument, loadPrefs, savePrefs, relativeTime, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
@@ -36,6 +36,21 @@
   let find = $state(null);
   let dialog = $state(null);
   let ready = $state(false), controller = $state(null);
+  // Live editing: one session per open cloud document, from the backend when it offers it.
+  let live = $state.raw(null), liveStatus = $state(""), people = $state.raw([]);
+  $effect(() => {
+    // A room needs the document to exist on the server: wait for the first save (version) before joining.
+    const id = activeId, persisted = active?.version !== undefined;
+    const session = untrack(() => backend?.collaborate && active && persisted ? backend.collaborate({ id, role: active.role }) : null);
+    if (!session) { live = null; liveStatus = ""; people = []; return; }
+    let current = null, cancelled = false, stops = [];
+    session.then(s => {
+      if (cancelled) { s.destroy(); return; }
+      current = s; live = s;
+      stops.push(s.onStatus(status => (liveStatus = status)), s.onPresence(list => (people = list)));
+    }).catch(error);
+    return () => { cancelled = true; for (const stop of stops) stop(); current?.destroy(); live = null; liveStatus = ""; people = []; };
+  });
   let now = $state(Date.now());
   let titleInput = $state(null), sidebarOpenMobile = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
@@ -105,6 +120,8 @@
     document.name = titleOf(source, document.name);
     document.updated = Date.now();
     now = document.updated;
+    // A live document is saved by its room, so there is nothing to schedule.
+    if (live && live.id === document.id) return;
     schedule(document);
   }
   function schedule(document) {
@@ -268,7 +285,7 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, book, get ready() { return ready; } };
+    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, book, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
   }
 </script>
 
@@ -294,10 +311,19 @@
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
               <span class="status-text">{readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
+            {#if live}
+              <span class="live" class:off={liveStatus !== "connected"} title={liveStatus === "connected" ? "Edits sync in real time" : "Reconnecting…"}><span class="dot"></span>{liveStatus === "connected" ? "Live" : "Reconnecting…"}</span>
+            {/if}
           </div>
           <MenuBar menus={commands.menus} />
         </div>
         <div class="title-actions">
+          {#if people.length}
+            <div class="people-here" title={people.map(p => p.user.name).join(", ")}>
+              {#each people.slice(0, 5) as p (p.clientId)}<span class="avatar small" style={`background:${p.user.color}`}>{(p.user.name || "?")[0].toUpperCase()}</span>{/each}
+              {#if people.length > 5}<span class="muted">+{people.length - 5}</span>{/if}
+            </div>
+          {/if}
           <span class="edited">Last edit {relativeTime(active.updated, now)}</span>
           <button type="button" class="button" onclick={() => download()}><Icon name="upload" /> Download</button>
           <button type="button" class="tool theme-toggle" title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme" onclick={() => (prefs.theme = theme === "dark" ? "light" : "dark")}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
@@ -326,7 +352,7 @@
       <main class="canvas" onclick={e => { if (e.target === e.currentTarget && controller) { controller.select(controller.getSource().length); } }}>
         {#if ready}
           {#key active.id}
-            <Editor {workspace} uri={uriOf(active.id)} text={active.text} {readOnly}
+            <Editor {workspace} uri={uriOf(active.id)} text={active.text} {readOnly} {live}
               onSnapshot={(snapshot, list) => { symbols = snapshot.symbols || []; problems = list; engineVersion = snapshot.engineVersion || ""; }}
               {onCaret} onError={error} bind:controller />
           {/key}

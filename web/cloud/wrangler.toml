@@ -11,6 +11,14 @@ directory = "../dist"
 binding = "ASSETS"
 not_found_handling = "none"
 
+[[durable_objects.bindings]]
+name = "Room"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "wtf-docs"

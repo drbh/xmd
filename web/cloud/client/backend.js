@@ -1,7 +1,7 @@
-// Browser side of the hosted deployment. build.mjs copies this file to
+// Browser side of the hosted deployment. build.mjs bundles this file to
 // dist/docs/backend.js, where the app looks for an optional backend module.
 // It implements the app's DocumentBackend interface against /api and knows
-// nothing about the editor.
+// nothing about the editor; live editing (live.js, with Yjs) loads on demand.
 const base = new URL("../", import.meta.url); // the site root; the API lives beside the app
 
 class BackendError extends Error {
@@ -31,13 +31,26 @@ export async function createBackend() {
     if (e.code === "unconfigured") return null; // deployed without Access: purely local
     if (e.code !== "unauthenticated") return null; // API unreachable: purely local
   }
+  const rooms = new Map(); // document id -> live session
   const backend = {
     label: "Saved to your account",
     account,
     signIn() { location.assign(new URL(`api/login?next=${encodeURIComponent(location.pathname + location.hash)}`, base)); },
     signOut() { location.assign(new URL("api/logout", base)); },
     async list() { return api("documents"); },
-    async save(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, version: doc.version } }); },
+    async save(doc) {
+      // A document with a live session is saved by its room; nothing to send.
+      if (rooms.has(doc.id)) return { version: doc.version };
+      return api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, version: doc.version } });
+    },
+    async collaborate(doc) {
+      const { createLive } = await import("./live.js");
+      const live = createLive({ base, id: doc.id, user: account, role: doc.role });
+      rooms.set(doc.id, live);
+      const destroy = live.destroy;
+      live.destroy = () => { rooms.delete(doc.id); destroy(); };
+      return live;
+    },
     async delete(id) { await api(`documents/${id}`, { method: "DELETE" }); },
     subscribe() { return () => {}; },
     acl(id) {

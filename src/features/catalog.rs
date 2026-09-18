@@ -200,26 +200,7 @@ impl QueryValue {
         }
     }
     pub fn property(&self, key: &str) -> Result<Self, String> {
-        match self {
-            Self::Object(fields) => fields
-                .get(key)
-                .cloned()
-                .ok_or_else(|| format!("Unknown field '{key}'")),
-            Self::Null => Ok(Self::Null),
-            Self::Scalar(_) => match self.json() {
-                serde_json::Value::Object(fields) => fields
-                    .get(key)
-                    .cloned()
-                    .map(Self::from_json)
-                    .ok_or_else(|| format!("Unknown field '{key}'")),
-                _ => Err(format!("Cannot read field '{key}' from this scalar")),
-            },
-            Self::Array(values) => values
-                .iter()
-                .map(|v| v.property(key))
-                .collect::<Result<Vec<_>, _>>()
-                .map(Self::Array),
-        }
+        self.value().property(key).map(Self::from_value)
     }
 }
 impl Serialize for QueryValue {
@@ -365,14 +346,6 @@ pub const COLLECTIONS: &[&str] = &[
     "cells",
 ];
 
-pub(crate) fn collect(
-    ws: &Workspace,
-    collection: &str,
-    ctx: QueryContext,
-    engine: &mut Engine<'_>,
-) -> Result<Vec<Record>, String> {
-    collect_document(ws, collection, ctx, engine, None, true)
-}
 /// The query API and feature modules read the same semantic records.
 pub(crate) fn collect_document(
     ws: &Workspace,

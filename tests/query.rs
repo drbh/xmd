@@ -279,7 +279,6 @@ fn malformed_queries_and_incompatible_values_return_errors() {
         "tasks | where (true",
         "tasks | select {a:1,a:2}",
         "tasks | limit -1",
-        "unknown",
         "tasks | explode",
         "tasks | select {x:}",
     ] {
@@ -355,4 +354,89 @@ fn mixed_sort_types_and_long_flat_expressions_fail_without_panics() {
     let long = format!("tasks | select {}", vec!["1"; 100].join(" + "));
     assert!(Query::parse(&long).unwrap_err().contains("depth"));
     assert!(Query::parse("@unknown").is_err());
+}
+
+#[test]
+fn functional_queries_share_the_note_language_and_can_scope_a_document() {
+    let ws = workspace(&[
+        (
+            "a.wtf",
+            "double := fn(x) => x * 2\n1:n\n- [ ] First @estimate(30m)\n- [x] Done\n",
+        ),
+        ("b.wtf", "9:n\n- [ ] Other @estimate(1h)\n"),
+    ]);
+    let request = wtf::RequestContext::new(&ws, context().now);
+    let path = std::path::Path::new("/notes/a.wtf");
+    let run_file = |source| {
+        json!(
+            query::execute_scoped_in(&request, &Query::parse(source).unwrap(), Some(path))
+                .unwrap()
+                .rows
+        )
+    };
+    assert_eq!(
+        run_file("map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)"),
+        json!(["First"])
+    );
+    assert_eq!(
+        run_file("tasks | where !done | select title"),
+        json!(["First"])
+    );
+    assert_eq!(
+        run_file("{count: length(tasks), value: double(n)}"),
+        json!([{"count":2,"value":2.0}])
+    );
+    assert_eq!(
+        run_file("sum(tasks.estimate)"),
+        json!([{"type":"duration","seconds":1800}])
+    );
+    assert_eq!(run(&ws, "length(tasks)"), json!([3]));
+    assert_eq!(
+        run_file("map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title))"),
+        json!(["DONE", "FIRST"])
+    );
+    assert_eq!(
+        run_file(
+            "map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)})"
+        ),
+        json!([{"done":false,"count":1},{"done":true,"count":1}])
+    );
+    assert!(
+        query::execute_scoped_in(
+            &request,
+            &Query::parse("tasks").unwrap(),
+            Some(std::path::Path::new("/notes/missing.wtf"))
+        )
+        .unwrap_err()
+        .contains("not indexed")
+    );
+}
+
+#[test]
+fn shared_query_scopes_capture_lexically_without_leaking_into_definitions() {
+    let ws = workspace(&[("a.wtf", "value := 7\nread := fn() => value\n- [ ] A\n")]);
+    assert_eq!(
+        run(
+            &ws,
+            "tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()}"
+        ),
+        json!([{"local":[101.0],"named":7.0}])
+    );
+    assert_eq!(
+        run(&ws, "tasks | select map([1], fn(title) => title + 1)"),
+        json!([[2.0]])
+    );
+    assert_eq!(
+        run(&ws, "tasks | select if(false, nonexistent, title)"),
+        json!(["A"])
+    );
+    assert_eq!(run(&ws, "if(true, 1, values)"), json!([1.0]));
+    assert_eq!(
+        run(
+            &ws,
+            "tasks | select { // | , } inside a comment\n title, nested: {title}}"
+        ),
+        json!([{"title":"A", "nested":{"title":"A"}}])
+    );
+    assert!(query::execute(&ws, &Query::parse("unknown").unwrap(), &context()).is_err());
 }

@@ -120,6 +120,37 @@ pub enum Value {
     Plan(std::sync::Arc<crate::plans::PlanValue>),
 }
 impl Value {
+    /// Structural access shared by expressions, query records and list projections.
+    pub(crate) fn property(&self, key: &str) -> Result<Self, String> {
+        use Value::*;
+        match (self, key) {
+            (Null, _) => Ok(Null),
+            (Record(fields), _) => fields
+                .get(key)
+                .cloned()
+                .ok_or_else(|| format!("Unknown field '{key}'")),
+            (List(items), _) => items
+                .iter()
+                .map(|v| v.property(key))
+                .collect::<Result<Vec<_>, _>>()
+                .map(List),
+            (Timer(v), _) => v.property(key),
+            (Forecast(v), _) => v.property(key),
+            (Plan(v), _) => v.property(key),
+            (Money(amount, _), "amount") => Ok(Number(*amount)),
+            (Money(_, currency), "currency") => Ok(Text(currency.as_str().into())),
+            (Duration(seconds), "seconds") => Ok(Number(*seconds as f64)),
+            (Date(date), "value") => Ok(Text(date.to_string())),
+            (DateTime(date), "value") => Ok(Text(date.to_rfc3339())),
+            (Ratio(value), "value") => Ok(Number(*value)),
+            (Money(..), "type") => Ok(Text("money".into())),
+            (Duration(_), "type") => Ok(Text("duration".into())),
+            (Date(_), "type") => Ok(Text("date".into())),
+            (DateTime(_), "type") => Ok(Text("datetime".into())),
+            (Ratio(_), "type") => Ok(Text("ratio".into())),
+            _ => Err(format!("Unknown field '{key}' on {}", self.type_name())),
+        }
+    }
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "Null",
@@ -545,6 +576,45 @@ pub(crate) enum Expr {
     Apply(Box<Expr>, Vec<Expr>),
 }
 impl Expr {
+    /// Free names and their source positions, shared by references and lexical capture.
+    pub(crate) fn free_names(&self) -> Vec<(String, usize)> {
+        fn visit(expr: &Expr, bound: &[String], start: usize, out: &mut Vec<(String, usize)>) {
+            match expr {
+                Expr::Spanned(start, _, e) => visit(e, bound, *start, out),
+                Expr::Name(name) if !bound.contains(name) => out.push((name.clone(), start)),
+                Expr::Lambda(params, body) => {
+                    let mut bound = bound.to_vec();
+                    bound.extend(params.clone());
+                    visit(body, &bound, start, out);
+                }
+                Expr::Unary(_, e) | Expr::Property(e, _) => visit(e, bound, start, out),
+                Expr::Binary(_, a, b) => {
+                    visit(a, bound, start, out);
+                    visit(b, bound, start, out);
+                }
+                Expr::Call(_, items) | Expr::List(items) => {
+                    for e in items {
+                        visit(e, bound, start, out);
+                    }
+                }
+                Expr::Record(fields) => {
+                    for (_, e) in fields {
+                        visit(e, bound, start, out);
+                    }
+                }
+                Expr::Apply(f, args) => {
+                    visit(f, bound, start, out);
+                    for e in args {
+                        visit(e, bound, start, out);
+                    }
+                }
+                _ => (),
+            }
+        }
+        let mut names = Vec::new();
+        visit(self, &[], 0, &mut names);
+        names
+    }
     fn bare(&self) -> &Self {
         if let Self::Spanned(_, _, e) = self {
             e.bare()
@@ -562,51 +632,16 @@ impl Expr {
 }
 /// Free variable positions, excluding function parameters and record keys.
 pub(crate) fn expression_names(source: &str) -> Option<BTreeSet<usize>> {
-    fn visit(expr: &Expr, locals: &[String], names: &mut BTreeSet<usize>) {
-        match expr {
-            Expr::Spanned(start, _, inner) if matches!(inner.as_ref(), Expr::Name(_)) => {
-                if let Expr::Name(name) = inner.as_ref()
-                    && !locals.contains(name)
-                {
-                    names.insert(*start);
-                }
-            }
-            Expr::Spanned(_, _, inner) | Expr::Unary(_, inner) | Expr::Property(inner, _) => {
-                visit(inner, locals, names)
-            }
-            Expr::Lambda(params, body) => {
-                let mut locals = locals.to_vec();
-                locals.extend(params.clone());
-                visit(body, &locals, names);
-            }
-            Expr::Record(fields) => {
-                for (_, e) in fields {
-                    visit(e, locals, names);
-                }
-            }
-            Expr::Call(_, args) | Expr::List(args) => {
-                for e in args {
-                    visit(e, locals, names);
-                }
-            }
-            Expr::Apply(f, args) => {
-                visit(f, locals, names);
-                for e in args {
-                    visit(e, locals, names);
-                }
-            }
-            Expr::Binary(_, a, b) => {
-                visit(a, locals, names);
-                visit(b, locals, names);
-            }
-            _ => (),
-        }
-    }
-    let expr = Parser::parse(source).ok()?;
-    let mut names = BTreeSet::new();
-    visit(&expr, &[], &mut names);
-    Some(names)
+    Some(
+        Parser::parse(source)
+            .ok()?
+            .free_names()
+            .into_iter()
+            .map(|(_, start)| start)
+            .collect(),
+    )
 }
+
 pub(crate) struct Parser {
     tokens: Vec<Token>,
     at: usize,
@@ -730,14 +765,19 @@ impl Parser {
                         return Err(format!("Duplicate field '{key}'"));
                     }
                     self.at += 1;
-                    if !matches!(
+                    let value = if matches!(
                         self.tokens.get(self.at).map(|t| &t.kind),
                         Some(Lexeme::Colon)
                     ) {
+                        self.at += 1;
+                        self.expression(0)?
+                    } else if crate::document::identifier(&key) {
+                        let token = &self.tokens[self.at - 1];
+                        Expr::Spanned(token.start, token.end, Box::new(Expr::Name(key.clone())))
+                    } else {
                         return Err("Expected ':'".into());
-                    }
-                    self.at += 1;
-                    fields.push((key, self.expression(0)?));
+                    };
+                    fields.push((key, value));
                     if !matches!(
                         self.tokens.get(self.at).map(|t| &t.kind),
                         Some(Lexeme::Comma)
@@ -1140,6 +1180,12 @@ pub(crate) struct MemoEntry {
     wanted: Vec<String>,
     time_dependent: bool,
 }
+/// Host-provided names are resolved lazily by the same evaluator as note functions.
+/// Resolution runs without the caller's bindings, so definitions cannot capture them.
+pub(crate) trait Bindings: Send + Sync {
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>>;
+}
+
 pub struct Engine<'a> {
     pub workspace: &'a Workspace,
     pub today: NaiveDate,
@@ -1160,6 +1206,7 @@ pub struct Engine<'a> {
     linear_stack: Vec<Symbol>,
     steps: usize,
     locals: Vec<BTreeMap<String, Value>>,
+    bindings: Option<std::sync::Arc<dyn Bindings>>,
     calls: usize,
     pure: bool,
     environment: Option<std::sync::Arc<Workspace>>,
@@ -1207,6 +1254,7 @@ impl<'a> Engine<'a> {
             linear_stack: Vec::new(),
             steps: 0,
             locals: Vec::new(),
+            bindings: None,
             calls: 0,
             pure: false,
             environment: None,
@@ -1238,6 +1286,23 @@ impl<'a> Engine<'a> {
         self.memo = Default::default();
         self
     }
+    pub(crate) fn bound_expr(
+        &mut self,
+        path: &Path,
+        expr: &Expr,
+        bindings: std::sync::Arc<dyn Bindings>,
+    ) -> Result<Value, String> {
+        let previous = self.bindings.replace(bindings);
+        let result = self.expr(path, expr);
+        self.bindings = previous;
+        result
+    }
+    fn binding(&mut self, name: &str) -> Option<Result<Value, String>> {
+        let bindings = self.bindings.take()?;
+        let result = bindings.get(name, self);
+        self.bindings = Some(bindings);
+        result
+    }
     pub fn eval(&mut self, path: &Path, expression: &str) -> Result<Value, String> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
     }
@@ -1246,6 +1311,7 @@ impl<'a> Engine<'a> {
             && self.stack.is_empty()
             && self.row_values.is_empty()
             && self.calls == 0
+            && self.bindings.is_none()
         {
             self.steps = 0;
         }
@@ -1360,6 +1426,7 @@ impl<'a> Engine<'a> {
             && self.stack.is_empty()
             && self.row_values.is_empty()
             && self.calls == 0
+            && self.bindings.is_none()
         {
             self.steps = 0;
         }
@@ -1407,6 +1474,7 @@ impl<'a> Engine<'a> {
         // Named definitions never capture a caller's row locals.
         let caller_rows = std::mem::take(&mut self.row_values);
         let caller_locals = std::mem::take(&mut self.locals);
+        let caller_bindings = self.bindings.take();
         let doc = &self.workspace.documents[&symbol.path];
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
@@ -1491,6 +1559,7 @@ impl<'a> Engine<'a> {
         };
         self.row_values = caller_rows;
         self.locals = caller_locals;
+        self.bindings = caller_bindings;
         self.stack.pop();
         let entry = MemoEntry {
             value: result.clone(),
@@ -1724,6 +1793,13 @@ impl<'a> Engine<'a> {
                 if let Some(locals) = self.locals.last() {
                     captured.extend(locals.clone());
                 }
+                for (name, _) in expr.free_names() {
+                    if !captured.contains_key(&name)
+                        && let Some(value) = self.binding(&name)
+                    {
+                        captured.insert(name, value?);
+                    }
+                }
                 Ok(Value::Function(std::sync::Arc::new(
                     crate::evaluate::functional::Function {
                         environment: self.environment.clone(),
@@ -1753,6 +1829,9 @@ impl<'a> Engine<'a> {
                 _ => {
                     if let Some(value) = self.locals.last().and_then(|s| s.get(n)) {
                         return Ok(value.clone());
+                    }
+                    if let Some(value) = self.binding(n) {
+                        return value;
                     }
                     if let Some(scope) = self.row_values.last() {
                         if scope.decisions.contains_key(n) {
@@ -1797,6 +1876,7 @@ impl<'a> Engine<'a> {
                 if !matches!(
                     n.as_str(),
                     "sum"
+                        | "eval"
                         | "now"
                         | "today"
                         | "stopwatch"
@@ -1826,6 +1906,27 @@ impl<'a> Engine<'a> {
                         .collect::<Result<Vec<_>, _>>()?;
                     return self.call(function, values);
                 }
+                if n == "sum" && args.len() == 1 {
+                    let Value::List(values) = self.expr(path, &args[0])? else {
+                        return Err("sum expects a list, or a table and row expression".into());
+                    };
+                    return crate::evaluate::functional::sum(values);
+                }
+                if n == "eval" && args.len() == 1 {
+                    if self.contexts.len() >= 64 {
+                        return Err("Expression evaluation depth exceeds 64".into());
+                    }
+                    let Value::Text(source) = self.expr(path, &args[0])? else {
+                        return Err("eval expects expression text".into());
+                    };
+                    // Dynamic expressions use the current document, not query row fields.
+                    let bindings = self.bindings.take();
+                    let locals = std::mem::take(&mut self.locals);
+                    let result = self.eval(path, &source);
+                    self.locals = locals;
+                    self.bindings = bindings;
+                    return result;
+                }
                 if n == "sum" {
                     return self.sum(path, args).map(|(value, _)| value);
                 }
@@ -1852,12 +1953,13 @@ impl<'a> Engine<'a> {
                     return Err(format!("{n} expects one argument"));
                 }
                 let value = self.expr(path, &args[0])?;
-                if n == "date"
-                    && let Value::Text(s) = value
-                {
-                    return date_value(&s)
-                        .or_else(|| relative_date(&s, self.today).map(Value::Date))
-                        .ok_or("Unrecognized date".into());
+                if n == "date" {
+                    return match value {
+                        Value::Text(s) => date_value(&s)
+                            .or_else(|| relative_date(&s, self.today).map(Value::Date))
+                            .ok_or("Unrecognized date".into()),
+                        other => self.date(&other).map(Value::Date),
+                    };
                 }
                 let Value::Tasks(tasks) = value else {
                     return Err(format!("{n} expects a named checklist heading"));
@@ -1922,14 +2024,6 @@ impl<'a> Engine<'a> {
             Expr::Property(v, key) => {
                 let v = self.expr(path, v)?;
                 match v {
-                    Value::Null => Ok(Value::Null),
-                    Value::Record(fields) => fields
-                        .get(key)
-                        .cloned()
-                        .ok_or_else(|| format!("Unknown field '{key}'")),
-                    Value::Timer(timer) => timer.property(key),
-                    Value::Forecast(forecast) => forecast.property(key),
-                    Value::Plan(plan) => plan.property(key),
                     Value::Resource(resource) => {
                         if key == "url" {
                             return Ok(Value::Text(resource.target));
@@ -1982,7 +2076,7 @@ impl<'a> Engine<'a> {
                         );
                         value
                     }
-                    _ => Err("Only resource and timer values have properties".into()),
+                    other => other.property(key),
                 }
             }
         }
@@ -2075,6 +2169,7 @@ impl<'a> Engine<'a> {
         locals.extend(function.params.iter().cloned().zip(args));
         self.locals.push(locals);
         let rows = std::mem::take(&mut self.row_values);
+        let bindings = self.bindings.take();
         self.calls += 1;
         if let Some(source) = &function.source {
             self.contexts.push(source.clone());
@@ -2085,6 +2180,7 @@ impl<'a> Engine<'a> {
         }
         self.calls -= 1;
         self.row_values = rows;
+        self.bindings = bindings;
         self.locals.pop();
         let value = result?;
         crate::evaluate::functional::check_size(&value)?;
@@ -2094,6 +2190,48 @@ impl<'a> Engine<'a> {
         use Value::*;
         let value = match (name, args.as_slice()) {
             ("import", [Text(id)]) => self.import(id)?,
+            ("sort_by", [List(items), function @ Function(_)]) => {
+                let mut keyed = Vec::new();
+                let mut first = None;
+                for item in items {
+                    let key = self.call(function.clone(), vec![item.clone()])?;
+                    crate::evaluate::functional::compare(&key, &key)?;
+                    if key != Null {
+                        if let Some(first) = &first {
+                            crate::evaluate::functional::compare(first, &key)?;
+                        } else {
+                            first = Some(key.clone());
+                        }
+                    }
+                    keyed.push((key, item.clone()));
+                }
+                // Every key has been checked against the common scalar type.
+                keyed.sort_by(|(a, _), (b, _)| crate::evaluate::functional::compare(a, b).unwrap());
+                List(keyed.into_iter().map(|(_, item)| item).collect())
+            }
+            ("group_by", [List(items), function @ Function(_)]) => {
+                let mut groups: Vec<(Value, Vec<Value>)> = Vec::new();
+                for item in items {
+                    let key = self.call(function.clone(), vec![item.clone()])?;
+                    crate::evaluate::functional::compare(&key, &key)?;
+                    if let Some((_, rows)) = groups
+                        .iter_mut()
+                        .find(|(k, _)| binary("==", k.clone(), key.clone()) == Ok(Bool(true)))
+                    {
+                        rows.push(item.clone());
+                    } else {
+                        groups.push((key, vec![item.clone()]));
+                    }
+                }
+                List(
+                    groups
+                        .into_iter()
+                        .map(|(key, rows)| {
+                            Record([("key".into(), key), ("rows".into(), List(rows))].into())
+                        })
+                        .collect(),
+                )
+            }
             ("map" | "filter", [List(items), function @ Function(_)]) => {
                 let mut output = Vec::new();
                 for item in items {
@@ -2507,7 +2645,9 @@ pub(crate) fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
             .unwrap_or(a == b);
         return Ok(Bool(equal == (op == "==")));
     }
-    if let (Bool(a), Bool(b)) = (&a, &b) {
+    if let (Bool(a), Bool(b)) = (&a, &b)
+        && matches!(op, "&&" | "||")
+    {
         return match op {
             "&&" => Ok(Bool(*a && *b)),
             "||" => Ok(Bool(*a || *b)),
@@ -2515,7 +2655,12 @@ pub(crate) fn binary(op: &str, a: Value, b: Value) -> Result<Value, String> {
         };
     }
     if matches!(op, "<" | "<=" | ">" | ">=") {
+        if a == Null || b == Null {
+            return Ok(Bool(false));
+        }
         let cmp = match (&a, &b) {
+            (Text(a), Text(b)) => a.partial_cmp(b),
+            (Bool(a), Bool(b)) => a.partial_cmp(b),
             (Date(a), Date(b)) => a.partial_cmp(b),
             (DateTime(a), DateTime(b)) => a.partial_cmp(b),
             (Duration(a), Duration(b)) => a.partial_cmp(b),

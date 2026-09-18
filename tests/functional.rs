@@ -282,3 +282,35 @@ fn multiline_modules_compile_and_apply_the_same_limits() {
             .contains("depth")
     );
 }
+
+#[test]
+fn query_data_operations_are_available_in_note_functions() {
+    let ws = workspace("money := $7\nname := \"Example\"\n");
+    let mut e = engine(&ws);
+    assert_eq!(
+        e.eval(path(), "{name, cost:money.amount}.name").unwrap(),
+        Value::Text("Example".into())
+    );
+    assert_eq!(
+        e.eval(path(), "sum([{x:30m}, {x:null}, {x:90s}].x)")
+            .unwrap(),
+        Value::Duration(1890)
+    );
+    assert_eq!(
+        e.eval(path(), "map(sort_by([3, null, 1], fn(x) => x), fn(x) => x)")
+            .unwrap(),
+        Value::List(vec![Value::Number(1.0), Value::Number(3.0), Value::Null])
+    );
+    assert_eq!(
+        e.eval(path(), "length(group_by([1, 2, 1], fn(x) => x))")
+            .unwrap(),
+        Value::Count(2)
+    );
+    assert_eq!(
+        e.eval(path(), "null < today()").unwrap(),
+        Value::Bool(false)
+    );
+    assert_eq!(e.eval(path(), "\"a\" < \"b\"").unwrap(), Value::Bool(true));
+    assert_eq!(e.eval(path(), "date(now())").unwrap(), Value::Date(e.today));
+    assert!(e.eval(path(), "sort_by([1, \"two\"], fn(x) => x)").is_err());
+}

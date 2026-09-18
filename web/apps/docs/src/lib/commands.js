@@ -89,7 +89,7 @@ export function createCommands(ctx) {
     // Help
     { id: "syntax", menu: "Help", label: "Writing guide", run: () => ctx.dialog("syntax") },
     { id: "shortcuts", menu: "Help", label: "Keyboard shortcuts", shortcut: "mod+/", run: () => ctx.dialog("shortcuts") },
-    { id: "examples", menu: "Help", label: "Live examples", run: () => window.open("../book/", "_blank", "noopener") },
+    { id: "book", menu: "Help", label: "The WTF Book", run: ctx.book },
   ];
   const byId = Object.fromEntries(list.map(c => [c.id, c]));
   return { list, byId, menus: ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, get items() { return list.filter(c => c.menu === name && (!c.when || c.when())); } })) };

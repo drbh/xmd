@@ -14,20 +14,22 @@ npm --prefix web run build
 node web/serve.mjs
 ```
 
-Open http://127.0.0.1:4173 for the Monaco workspace, `/docs/` for the Svelte
-document app, and `/book/` for the live examples. The document app is a
-writing tool in the style of a hosted document editor: a home screen with
-templates and recent documents, a menu bar and formatting toolbar, an outline,
-find and replace, word count, keyboard shortcuts, light and dark paper, and
-engine actions in a side panel. It stores documents in the browser; the
-optional hosted deployment in `web/cloud/` adds accounts, remote storage, and
-sharing through a backend module the app loads only when present. The server serves only
+Open http://127.0.0.1:4173/docs/ for the document app (the site root redirects
+there). It is a writing tool in the style of a hosted document editor: a home
+screen with templates and recent documents, a menu bar and formatting toolbar,
+an outline, find and replace, word count, a query console, keyboard shortcuts,
+light and dark paper, and code lenses beside their lines. `#/book` inside the
+app is the book: every language feature explained beside a live example from
+`examples/`, inlined at build time and run on the same workspace. Documents
+are stored in the browser; the optional hosted deployment in `web/cloud/` adds
+accounts, remote storage, and sharing through a backend module the app loads
+only when present. The server serves only
 `web/dist/`; it does not launch a language server or mount sibling directories.
 Deploy that entire directory to any static server, including beneath a URL
 prefix. Serve `.wasm` as `application/wasm`. `WTF_WEB_PORT` changes the local
 port; `WTF_WEB_BASE=/notes` exercises a subdirectory deployment.
 
-`npm --prefix web run build:site` rebuilds just the applications and themes using
+`npm --prefix web run build:site` rebuilds just the application and themes using
 the existing WASM build. `bash web/build.sh` rebuilds just WASM. One npm lockfile
 covers the library and docs app. Every deployed app loads the same
 `lib/pkg/wtf_bg.wasm`; `dist/manifest.json` records its SHA-256 hash.
@@ -142,13 +144,11 @@ offsets, `select(anchor, focus)` sets them, and `replaceRange(start, end, text,
 after)` edits a span and places the selection afterwards, so an application can
 implement formatting commands and find/replace as text transformations. The
 adapter keeps a zero-width, non-editable `.eol` sentinel after the text so the
-caret can sit after a final newline. Monaco remains the full IDE adapter
+caret can sit after a final newline. Monaco remains available as an IDE adapter
 at `@wtf/web/monaco`, with an optional `monaco-editor` peer dependency. Its
 `createEditor(element, client)` returns an editor, a per-instance `language` ID,
-and `destroy()`; use that ID for its models. The workspace app shows the complete
-client adapter, including mapping workspace versions to Monaco's undo versions.
-The demo loads pinned Monaco assets from a CDN; the base library, docs, and book
-do not depend on that CDN.
+and `destroy()`; use that ID for its models. The shipped site no longer includes
+a Monaco demo, so the adapter is not covered by the browser tests.
 
 `style.css` scopes semantic styling to `.wtf`. Customize `--wtf-background`,
 `--wtf-foreground`, `--wtf-font`, `--wtf-font-size`, `--wtf-inlay-background`, and
@@ -184,7 +184,8 @@ npm --prefix web run build
 npm --prefix web test
 ```
 
-Playwright uses installed Google Chrome. Monaco tests require CDN access.
-Tests cover native/browser rendering parity, core actions, editor operations,
-UTF-16 coordinates, worker failure, disposal, live document switching,
-subdirectory deployment, persistence, and static HTML without external requests.
+Playwright uses installed Google Chrome. Tests cover native/browser rendering
+parity, core actions, editor operations, UTF-16 coordinates, worker failure,
+disposal, live document switching, the book's live examples, the document
+app's editing features, subdirectory deployment, persistence, and static HTML
+without external requests. The hosted API has its own tests in `web/cloud/`.

@@ -15,6 +15,7 @@
   import Icon from "./lib/Icon.svelte";
   import Console from "./lib/Console.svelte";
   import Share from "./lib/Share.svelte";
+  import Book from "./lib/Book.svelte";
 
   let documents = $state([]);
   let backends = $state.raw(null);
@@ -23,6 +24,7 @@
   let localCount = $state(0);
   let prefs = $state(loadPrefs());
   let activeId = $state(null);
+  let view = $state("home"); // "home" | "doc" | "book"
   let engine = $state("Starting the engine…");
   let engineVersion = $state("");
   let saved = $state("");
@@ -61,7 +63,7 @@
       documents = await backend.list();
       if (backends.cloud?.account) localCount = (await backends.local.list()).length;
       for (const d of documents) await workspace.setDocument(uriOf(d.id), d.text);
-      activeId = idFromHash();
+      route();
       ready = true;
       engine = "Rust / WebAssembly · runs in this tab";
     })().catch(e => { engine = `Engine failed: ${e.message}`; notice = e.message; });
@@ -69,20 +71,27 @@
   });
 
   // Routing: the home screen is "#/", a document is "#/d/<id>".
+  // Routing: "#/" is home, "#/d/<id>" a document, "#/book" (or "#/book/<chapter>") the book.
   function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
+  function route() {
+    if (/^#\/book(\/|$)/.test(location.hash)) { view = "book"; activeId = null; return; }
+    activeId = idFromHash();
+    view = activeId ? "doc" : "home";
+  }
   $effect(() => {
     if (!ready) return;
-    const hash = activeId ? `#/d/${activeId}` : "#/";
+    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
-  function onHashChange() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); activeId = m && documents.some(d => d.id === m[1]) ? m[1] : null; }
+  function onHashChange() { route(); }
+  function book() { view = "book"; activeId = null; find = null; dialog = null; }
   function open(id) {
     const d = documents.find(x => x.id === id);
     if (!d) return;
     d.opened = Date.now();
-    activeId = id; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
+    activeId = id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
   }
-  function home() { activeId = null; find = null; dialog = null; }
+  function home() { activeId = null; view = "home"; find = null; dialog = null; }
 
   // Saving: edits are debounced, then handed to the backend one document at a
   // time. A conflict or unavailable store pauses saving for that document and
@@ -237,6 +246,7 @@
     find: replace => (find = { replace }),
     dialog: name => (dialog = name),
     canShare: () => !!backend?.acl,
+    book,
   });
   function keydown(event) {
     if (!active) return;
@@ -258,7 +268,7 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, get ready() { return ready; } };
+    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, book, get ready() { return ready; } };
   }
 </script>
 
@@ -267,8 +277,10 @@
 
 {#if !ready}
   <div class="splash"><p>{engine}</p></div>
+{:else if view === "book"}
+  <Book {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
 {:else if !active}
-  <Home {documents} {engine} {notice} {theme} {account} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+  <Home {documents} {engine} {notice} {theme} {account} onBook={book} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
   <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">

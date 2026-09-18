@@ -258,3 +258,37 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .doc-when { display: none; }
   .shortcut-columns { grid-template-columns: 1fr; }
 }
+
+/* The book: the editor's chrome around prose and live example blocks */
+.book-title { display: flex; flex-direction: column; justify-content: center; }
+.book-title .brand { font-size: 18px; color: var(--ink); }
+.book-title .subtitle { color: var(--muted); font-size: 12px; }
+.book .sidebar { display: block; width: 260px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc > ol > li { margin-bottom: 10px; }
+.toc .row { display: block; width: 100%; text-align: left; padding: 4px 10px 4px 12px; border-radius: 16px; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc .part-link { color: var(--ink); font-weight: 500; font-size: 13px; }
+.toc ol ol .row { padding-left: 24px; }
+.toc .row:hover { color: var(--ink); background: var(--hover); }
+.toc .row[aria-current] { color: var(--accent-ink); }
+.book .canvas { scroll-behavior: smooth; cursor: auto; }
+.prose { padding: 56px 64px 80px; font-family: var(--ui); }
+.prose .title h1 { font-size: 36px; font-weight: 500; margin: 0 0 16px; letter-spacing: -.5px; }
+.prose h1 { font-size: 28px; font-weight: 500; margin: 0 0 12px; }
+.prose h2 { font-size: 20px; font-weight: 500; margin: 44px 0 12px; scroll-margin-top: 24px; }
+.prose h2 .number { color: var(--muted); font-weight: 400; margin-right: 6px; }
+.prose .kicker { text-transform: uppercase; letter-spacing: 2px; font-size: 11px; font-weight: 600; color: var(--accent-ink); margin: 56px 0 8px; }
+.prose .part { border-top: 1px solid var(--rule-soft); margin-top: 40px; scroll-margin-top: 24px; }
+.prose .part:first-of-type { border-top: 0; }
+.prose p { font-size: 15px; line-height: 1.7; margin: 0 0 14px; }
+.prose .lead { font-size: 16px; color: var(--muted); }
+.prose p code { font: 0.9em var(--mono); background: var(--hover); padding: 1px 5px; border-radius: 4px; }
+.prose footer { margin-top: 56px; border-top: 1px solid var(--rule-soft); padding-top: 16px; color: var(--muted); font-size: 12px; }
+.wtf-block { margin: 20px 0 28px; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--paper); }
+.wtf-block figcaption { display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; font: 11px var(--ui); color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--rule-soft); }
+.block { position: relative; }
+.block .view { padding: 16px 20px 16px; min-height: 40px; font: 14px/1.75 var(--mono); }
+.wtf-block .problems { margin: 0; padding: 8px 20px; list-style: none; border-top: 1px solid var(--rule-soft); font: 12px/1.6 var(--ui); display: block; }
+.wtf-block .problems li.error { color: var(--error); } .wtf-block .problems li.warn { color: var(--warn); }
+@media (max-width: 900px) { .book .sidebar { display: none; } .prose { padding: 32px 20px 60px; } .book .title-actions .button { display: none; } }
+@media print { .toc { display: none !important; } }

@@ -3,7 +3,7 @@
   import { mountEditor } from "@wtf/web/contenteditable";
   import { lineOf } from "./editing.js";
   import Icon from "./Icon.svelte";
-  let { workspace, uri, text, readOnly = false, onSnapshot, onCaret, onError, controller = $bindable() } = $props();
+  let { workspace, uri, text, readOnly = false, frame = "page", onSnapshot, onCaret, onError, controller = $bindable() } = $props();
   let view, hover, page;
   // Code lenses drawn as chips at the end of their line, positioned over the
   // page so the editable text itself is never modified.
@@ -42,7 +42,7 @@
       if (stopped) result.destroy(); else { controller = result; if (readOnly) result.element.contentEditable = "false"; report(); }
     }).catch(onError);
     const report = () => {
-      if (!mounted || mounted.destroyed) return;
+      if (!onCaret || !mounted || mounted.destroyed) return;
       const selection = mounted.selection();
       onCaret?.(selection ? lineOf(mounted.getSource(), selection.focus) : -1, selection);
     };
@@ -54,7 +54,7 @@
   });
 </script>
 
-<div class="page" bind:this={page}>
+<div class={frame === "page" ? "page" : "block"} bind:this={page}>
   <pre class="view" bind:this={view} aria-label="Document"></pre>
   {#each chips as chip}
     <div class="lenses" style={`top:${chip.top}px;left:${chip.left}px;height:${chip.height}px`}>

@@ -1,5 +1,5 @@
-// The book's outline: parts, chapters, and the prose around each example.
-// Each chapter names one note from examples/; build.mjs inlines its text.
+// The book: parts, chapters, and the prose around each example. Each chapter
+// names one note from examples/, inlined at build time by examples.js.
 export const parts = [
   {
     title: "Getting Started",

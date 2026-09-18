@@ -244,7 +244,7 @@ impl Record {
         }
     }
     pub fn field(&mut self, key: &str, engine: &mut Engine<'_>) -> Result<QueryValue, String> {
-        if matches!(key, "value" | "type" | "solution" | "errors") {
+        if matches!(key, "value" | "type" | "solution" | "errors" | "display") {
             self.evaluate(engine);
         }
         self.fields
@@ -260,6 +260,8 @@ impl Record {
             Ok(value) => {
                 self.fields
                     .insert("type".into(), QueryValue::text(value.type_name()));
+                self.fields
+                    .insert("display".into(), QueryValue::text(value.display()));
                 let value = QueryValue::from_value(value);
                 if self.fields.contains_key("solution") {
                     self.fields.insert("solution".into(), value.clone());
@@ -297,6 +299,11 @@ fn base(ws: &Workspace, path: &Path, line: usize, kind: &str, title: &str) -> Re
     let QueryValue::Object(fields) = QueryValue::object([
         ("kind", QueryValue::text(kind)),
         ("title", QueryValue::text(title)),
+        ("line", QueryValue::count(line)),
+        (
+            "anchor",
+            QueryValue::from_json(json!(ws.documents[path].line_end(line))),
+        ),
         ("source", source(ws, path, span)),
         ("errors", QueryValue::Array(vec![])),
     ]) else {
@@ -325,6 +332,7 @@ fn date_field(value: Option<NaiveDate>) -> QueryValue {
 }
 
 pub const COLLECTIONS: &[&str] = &[
+    "links",
     "tasks",
     "events",
     "stops",
@@ -336,6 +344,10 @@ pub const COLLECTIONS: &[&str] = &[
     "resources",
     "diagnostics",
     "notes",
+    "sections",
+    "calculations",
+    "references",
+    "cells",
 ];
 
 pub(crate) fn collect(
@@ -343,6 +355,16 @@ pub(crate) fn collect(
     collection: &str,
     ctx: QueryContext,
     engine: &mut Engine<'_>,
+) -> Result<Vec<Record>, String> {
+    collect_document(ws, collection, ctx, engine, None)
+}
+/// The query API and feature modules read the same semantic records.
+pub(crate) fn collect_document(
+    ws: &Workspace,
+    collection: &str,
+    ctx: QueryContext,
+    engine: &mut Engine<'_>,
+    only: Option<&Path>,
 ) -> Result<Vec<Record>, String> {
     if !COLLECTIONS.contains(&collection) {
         return Err(format!(
@@ -352,6 +374,135 @@ pub(crate) fn collect(
     }
     let mut records = Vec::new();
     for (path, doc) in &ws.documents {
+        if only.is_some_and(|wanted| wanted != path) {
+            continue;
+        }
+        if collection == "links" {
+            for link in &doc.links {
+                let mut r = base(ws, path, link.span.line, "link", &link.target);
+                r.fields
+                    .insert("url".into(), QueryValue::text(&link.target));
+                r.fields
+                    .insert("source".into(), source(ws, path, link.span));
+                r.fields.insert(
+                    "anchor".into(),
+                    QueryValue::from_json(json!(link.span.range(&doc.text).end)),
+                );
+                records.push(r);
+            }
+        }
+        if collection == "sections" {
+            for section in &doc.sections {
+                let mut r = base(ws, path, section.line, "section", &section.title);
+                r.fields
+                    .insert("end_line".into(), QueryValue::count(section.end_line));
+                r.fields
+                    .insert("level".into(), QueryValue::count(section.level));
+                records.push(r);
+            }
+        }
+        if collection == "calculations" {
+            for calculation in &doc.calculations {
+                let mut r = expression_record(
+                    ws,
+                    path,
+                    "calculation",
+                    &calculation.source,
+                    calculation.span,
+                    engine.eval_at(path, &calculation.source, calculation.span),
+                );
+                let end = calculation.span.end + usize::from(calculation.bracketed);
+                r.fields.insert(
+                    "anchor".into(),
+                    QueryValue::from_json(json!(
+                        Span::new(calculation.span.line, end, end)
+                            .range(&doc.text)
+                            .end
+                    )),
+                );
+                r.fields.insert(
+                    "bracketed".into(),
+                    QueryValue::boolean(calculation.bracketed),
+                );
+                records.push(r);
+            }
+        }
+        if collection == "references" {
+            for reference in doc.references.iter().filter(|r| r.bracket) {
+                let expression = reference.expression();
+                let end = reference.end()
+                    + doc.line(reference.span.line)[reference.end()..]
+                        .find(']')
+                        .unwrap_or(0)
+                    + 1;
+                let mut r = expression_record(
+                    ws,
+                    path,
+                    "reference",
+                    &expression,
+                    reference.span,
+                    engine.eval(path, &expression),
+                );
+                r.fields.insert(
+                    "anchor".into(),
+                    QueryValue::from_json(json!(
+                        Span::new(reference.span.line, end, end)
+                            .range(&doc.text)
+                            .end
+                    )),
+                );
+                r.fields
+                    .insert("name".into(), QueryValue::text(&reference.name));
+                r.fields.insert(
+                    "property".into(),
+                    reference
+                        .property
+                        .as_ref()
+                        .map(QueryValue::text)
+                        .unwrap_or(QueryValue::Null),
+                );
+                records.push(r);
+            }
+        }
+        if collection == "cells" {
+            for table in &doc.tables {
+                for (row, cells) in table.rows.iter().enumerate() {
+                    for (column, cell) in cells.iter().enumerate() {
+                        let value = match &cell.expression {
+                            Some((source, span)) => engine.eval_at(path, source, *span),
+                            None => cell.value.clone(),
+                        };
+                        let expression = cell
+                            .expression
+                            .as_ref()
+                            .map(|(s, _)| s.as_str())
+                            .unwrap_or(&cell.source);
+                        let mut r =
+                            expression_record(ws, path, "cell", expression, cell.span, value);
+                        r.fields.insert(
+                            "anchor".into(),
+                            QueryValue::from_json(json!(cell.span.range(&doc.text).end)),
+                        );
+                        r.fields
+                            .insert("computed".into(), QueryValue::boolean(cell.calculated()));
+                        r.fields.insert(
+                            "table".into(),
+                            QueryValue::text(&doc.definitions[table.definition].named.name),
+                        );
+                        r.fields.insert("row".into(), QueryValue::count(row));
+                        r.fields.insert(
+                            "column".into(),
+                            table
+                                .columns
+                                .get(column)
+                                .map(|c| QueryValue::text(&c.name))
+                                .unwrap_or(QueryValue::Null),
+                        );
+                        records.push(r);
+                    }
+                }
+            }
+        }
         if collection == "notes" {
             let mut r = base(
                 ws,
@@ -574,6 +725,13 @@ pub(crate) fn collect(
                     .insert("expression".into(), QueryValue::text(&def.source));
                 r.fields.insert("value".into(), QueryValue::Null);
                 r.fields.insert("type".into(), QueryValue::Null);
+                r.fields.insert("display".into(), QueryValue::Null);
+                r.fields
+                    .insert("computed".into(), QueryValue::boolean(def.expression));
+                r.fields.insert(
+                    "anchor".into(),
+                    QueryValue::from_json(json!(def.end.range(&doc.text).end)),
+                );
                 if plan {
                     r.fields.insert("solution".into(), QueryValue::Null);
                 }
@@ -634,4 +792,46 @@ pub(crate) fn collect(
         }
     }
     Ok(records)
+}
+
+fn expression_record(
+    ws: &Workspace,
+    path: &Path,
+    kind: &str,
+    expression: &str,
+    span: Span,
+    value: Result<Value, String>,
+) -> Record {
+    let mut record = base(ws, path, span.line, kind, expression);
+    record
+        .fields
+        .insert("source".into(), source(ws, path, span));
+    record
+        .fields
+        .insert("expression".into(), QueryValue::text(expression));
+    let (value, kind, display, errors) = match value {
+        Ok(v) => {
+            let kind = QueryValue::text(v.type_name());
+            let display = QueryValue::text(v.display());
+            (
+                QueryValue::from_value(v),
+                kind,
+                display,
+                QueryValue::Array(vec![]),
+            )
+        }
+        Err(e) => (
+            QueryValue::Null,
+            QueryValue::Null,
+            QueryValue::Null,
+            QueryValue::strings([e]),
+        ),
+    };
+    record.fields.extend([
+        ("value".into(), value),
+        ("type".into(), kind),
+        ("display".into(), display),
+        ("errors".into(), errors),
+    ]);
+    record
 }

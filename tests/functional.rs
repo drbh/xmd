@@ -119,3 +119,27 @@ fn existing_builtins_keep_their_meaning_when_notes_use_the_same_name() {
     );
     assert_eq!(e.named(path(), "now").unwrap(), Value::Number(1.0));
 }
+
+#[test]
+fn presentation_primitives_preserve_unicode_units_and_limits() {
+    let ws = workspace("");
+    let mut e = engine(&ws);
+    for (expression, expected) in [
+        ("slice(\"a🦀z\", 1, 2)", "🦀"),
+        ("join(concat([\"a\"], [\"b\"]), \"/\")", "a/b"),
+        ("repeat(\"█\", round(2.6))", "███"),
+        ("format_date(today(), \"%Y-%m-%d\")", "2026-09-18"),
+        ("trim(\"  hi  \")", "hi"),
+    ] {
+        assert_eq!(e.eval(path(), expression).unwrap().display(), expected);
+    }
+    for expression in [
+        "repeat(\"a\", 1000000000)",
+        "slice([], 2, 1)",
+        "format_date(today(), \"%H\")",
+        "format_date(today(), \"%Q\")",
+        "error(\"bad\")",
+    ] {
+        assert!(e.eval(path(), expression).is_err(), "{expression}");
+    }
+}

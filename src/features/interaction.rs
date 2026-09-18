@@ -168,7 +168,7 @@ pub fn row_commands_for(
                     target: target.clone(),
                     url,
                 },
-                refresh.title.into(),
+                refresh.title,
             );
         }
     }
@@ -185,6 +185,12 @@ pub fn row_commands_for(
             "Refresh lookups".into(),
         );
     }
+    result.extend(super::plugin_inlays::commands(
+        request,
+        path,
+        row,
+        capabilities,
+    ));
     result
 }
 pub fn lenses(ws: &Workspace, path: &Path, now: DateTime<FixedOffset>) -> Vec<CodeLens> {
@@ -210,6 +216,11 @@ pub fn lenses_for(
         .chain(doc.tasks.iter().map(|t| t.line))
         .chain(doc.references.iter().map(|r| r.span.line))
         .chain(doc.links.iter().map(|l| l.span.line))
+        .chain(if ws.plugins.active().any(|m| m.has("actions")) {
+            0..doc.text.lines().count()
+        } else {
+            0..0
+        })
         .collect();
     rows.into_iter()
         .flat_map(|row| {

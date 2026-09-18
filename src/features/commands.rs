@@ -7,7 +7,7 @@ use lsp_types::{Command, TextEdit, Url};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RowTarget {
     pub document: Url,
     pub row: usize,
@@ -30,8 +30,14 @@ impl RowTarget {
         vec![json!(self.document), json!(self.row), json!(self.expected)]
     }
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Action {
+    Edit {
+        document: Url,
+        expected: String,
+        edits: Vec<TextEdit>,
+    },
     ToggleTask(RowTarget),
     Timer {
         document: Url,
@@ -86,6 +92,7 @@ pub enum PreparedAction {
 
 impl Action {
     pub const COMMANDS: &'static [&'static str] = &[
+        "wtf.applyEdits",
         "wtf.task",
         "wtf.timer",
         "wtf.openResource",
@@ -98,7 +105,7 @@ impl Action {
             Self::ToggleTask(target)
             | Self::OpenResource { target, .. }
             | Self::RefreshResource { target, .. } => Some(&target.document),
-            Self::Timer { document, .. } => Some(document),
+            Self::Timer { document, .. } | Self::Edit { document, .. } => Some(document),
             Self::Refresh { document } => document.as_ref(),
             Self::ShowToday => None,
         }
@@ -106,6 +113,7 @@ impl Action {
     /// Retain the existing LSP command IDs and argument arrays at the boundary.
     pub fn command(&self, title: impl Into<String>) -> Command {
         let (command, arguments) = match self {
+            Self::Edit { .. } => ("wtf.applyEdits", vec![json!(self)]),
             Self::ToggleTask(target) => ("wtf.task", target.arguments()),
             Self::Timer {
                 document,
@@ -168,6 +176,15 @@ impl Action {
             })
         };
         match command {
+            "wtf.applyEdits" => {
+                exact(1)?;
+                let action: Self =
+                    serde_json::from_value(args[0].clone()).map_err(|e| e.to_string())?;
+                if !matches!(action, Self::Edit { .. }) {
+                    return Err("Expected an edit action".into());
+                }
+                Ok(action)
+            }
             "wtf.task" => {
                 exact(3)?;
                 Ok(Self::ToggleTask(row_target()?))
@@ -226,6 +243,22 @@ impl Action {
             }
         }
         match self {
+            Self::Edit {
+                document,
+                expected,
+                edits,
+            } => {
+                let path = document_path(document)?;
+                let doc = &request.workspace().documents[&path];
+                if doc.text != *expected {
+                    return Err("Source changed; request fresh controls".into());
+                }
+                actions::apply_edits(&doc.text, edits)?;
+                Ok(PreparedAction::Edit {
+                    path,
+                    edits: edits.clone(),
+                })
+            }
             Self::ToggleTask(target) => {
                 let path = target.validate(request)?;
                 let index = request.workspace().documents[&path]

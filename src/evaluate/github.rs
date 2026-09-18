@@ -9,6 +9,9 @@ use lsp_types::Url;
 
 pub struct GitHub;
 impl LinkFeature for GitHub {
+    fn id(&self) -> &str {
+        "github"
+    }
     fn matches(&self, url: &Url) -> bool {
         parse_url(url).is_some()
     }
@@ -102,7 +105,7 @@ impl LinkFeature for GitHub {
             _ => vec!["api".into(), format!("repos/{repo}/commits/{id}")],
         };
         Some(RefreshRequest {
-            title: "Refresh GitHub status",
+            title: "Refresh GitHub status".into(),
             program: "gh".into(),
             args,
             env: vec![

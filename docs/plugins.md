@@ -103,3 +103,65 @@ steps, expression depth and function call depth. The first version has no import
 mutable variables, asynchronous expressions, or third-party language runtime.
 
 A working workspace is in [`examples/plugins`](../examples/plugins/demo.wtf).
+
+## Shared semantic inputs and replacement
+
+Set `inputs: ["sections", "tasks"]` to select the catalog collections needed by a
+module. They are exposed under `ctx.document` using exactly the same records as
+queries. Available collections include `values`, `plans`, `tables`, `rows`,
+`tasks`, `events`, `stops`, `entries`, `resources`, `notes`, `diagnostics`, `links`,
+`sections`, `calculations`, `references`, and `cells`. Values retain their units;
+evaluated expression records also include `display`, `type`, and `errors`.
+Sections expose `end_line`; tasks expose evaluated `done`, `leaf`, and `estimate`.
+
+Every record has a zero-based `line` and UTF-16 `anchor`; `source.range` identifies
+its source text. Return `{at: record.anchor, label: "...", tooltip: "..."}` for an
+exactly positioned hint. Legacy `{line: n, label: "..."}` still means line end.
+Malformed positions, including split surrogate pairs, reject the whole batch.
+`ctx.range` is the requested hint range. `ctx.document` always supplies `path`,
+`uri`, `text`, and `lines`. Omitting `inputs` selects the original collections;
+`definitions` remains an alias for `values` with a nullable `error` field.
+
+A workspace module replaces a provider with the same ID. Native inlay IDs are
+`definitions`, `decisions`, `constraints`, `table_cells`, `itinerary`, `checklists`,
+`tasks`, `calculations`, `references`, and `links`; the GitHub link provider is
+`github`. Replacement is by provider, independent of which records or URLs the
+replacement chooses to handle. To disable a provider, install only:
+
+```wtf
+plugin := {api: 1, id: "checklists", kind: "inlay", enabled: false}
+```
+
+Removing a replacement restores the default provider on the next successful
+reload. Distinct IDs extend the registry. The same rules apply in the browser.
+
+Link modules may additionally define `matches(url)` to narrow host matching,
+`property_names(url)` to return a subset of declared `properties`, and
+`time_dependent(ctx)` to control clock refreshes precisely. `refresh(url)` may
+include text `title` and an `env` record of text environment variables. The
+optional `cache_namespace: null` opts into legacy, unnamespaced metadata; omit it
+for the normal ID/version isolation. Legacy metadata is exposed as a cached
+record when it has no generic `data` payload. `ctx.native` indicates whether the
+runtime can execute native refresh programs.
+
+## Interactive features
+
+Inlay modules can define `actions(ctx)` alongside `collect(ctx)`, or on its own.
+The context adds zero-based `row` and `capabilities: {refresh, views}`. Actions
+appear in the existing code actions, lenses, and browser controls. Return a list
+of `{title, action}` records; actions use the shared tagged action vocabulary:
+`toggle_task`, `timer`, `open_resource`, `refresh_resource`, `refresh`,
+`show_today`, and `edit`. Fields mirror `commands::Action`; for example:
+
+```wtf
+plugin := {api: 1, id: "greeting", kind: "inlay", inputs: []}
+actions := fn(ctx) => if(ctx.row == 0, [{title: "Insert greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: "Hello "}]}}], [])
+```
+
+`edit` requires the complete expected source snapshot and LSP `TextEdit` records.
+The host validates document membership, exact source, UTF-16 boundaries, range
+ordering, and overlap before applying edits. Existing action types retain their
+own semantic checks. Unsupported host actions are omitted; an invalid proposal
+rejects that module's entire action batch. Execution revalidates against current
+source, so stale controls cannot overwrite newer edits. Merely evaluating a
+module never applies an action.

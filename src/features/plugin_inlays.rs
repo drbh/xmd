@@ -1,16 +1,19 @@
-//! The generic inlay adapter for functional modules.
+//! Modules consume the same semantic records as queries and emit validated data.
 use crate::{
-    engine::Value,
+    catalog::{self, QueryContext},
+    commands::{Action, Capabilities},
+    engine::{Engine, Value},
     inlays::{InlayContext, InlayFeature, InlaySink},
-    plugins::{Module, record},
-    workspace::{Symbol, SymbolKind},
+    plugins::{Module, from_json, json, record},
 };
+use lsp_types::{Command, Position, Range, TextEdit};
+use std::path::Path;
 
 pub struct PluginInlays;
 impl InlayFeature for PluginInlays {
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let plugins = context.engine.workspace.plugins.clone();
-        for module in plugins.modules.iter().filter(|m| m.kind == "inlay") {
+        for module in plugins.active().filter(|m| m.kind == "inlay") {
             module.collect(context, output);
         }
     }
@@ -18,85 +21,79 @@ impl InlayFeature for PluginInlays {
 fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
     record(fields.into_iter().map(|(k, v)| (k.into(), v)))
 }
+fn input(module: &Module, engine: &mut Engine<'_>, path: &Path) -> Result<Value, String> {
+    let doc = &engine.workspace.documents[path];
+    let Value::Record(mut document) = object([
+        ("path", Value::Text(path.to_string_lossy().into())),
+        ("uri", Value::Text(crate::paths::file_url(path)?.into())),
+        ("text", Value::Text(doc.text.clone())),
+        (
+            "lines",
+            Value::List(doc.text.lines().map(|s| Value::Text(s.into())).collect()),
+        ),
+    ]) else {
+        unreachable!()
+    };
+    for collection in &module.inputs {
+        let records = catalog::collect_document(
+            engine.workspace,
+            collection,
+            QueryContext::new(engine.now),
+            engine,
+            Some(path),
+        )?;
+        let values = Value::List(
+            records
+                .into_iter()
+                .map(|r| r.materialize(engine).value())
+                .collect(),
+        );
+        if collection == "values" {
+            // Preserve the original API's alias; all new fields come from the catalog.
+            let mut definitions = values.clone();
+            if let Value::List(items) = &mut definitions {
+                for item in items {
+                    if let Value::Record(fields) = item {
+                        let error = match fields.get("errors") {
+                            Some(Value::List(errors)) => {
+                                errors.first().cloned().unwrap_or(Value::Null)
+                            }
+                            _ => Value::Null,
+                        };
+                        fields.insert("error".into(), error);
+                    }
+                }
+            }
+            document.insert("definitions".into(), definitions);
+        }
+        document.insert(collection.clone(), values);
+    }
+    Ok(object([("document", Value::Record(document))]))
+}
+fn validate_position(text: &str, position: Position) -> Result<(), String> {
+    crate::actions::apply_edits(
+        text,
+        &[TextEdit {
+            range: Range::new(position, position),
+            new_text: String::new(),
+        }],
+    )
+    .map(|_| ())
+}
 impl InlayFeature for Module {
+    fn id(&self) -> &str {
+        &self.id
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
-        if self.kind != "inlay" {
+        if !self.enabled || self.kind != "inlay" || !self.has("collect") {
             return;
         }
         let document = context.document;
-        let sections = document
-            .sections
-            .iter()
-            .map(|s| {
-                object([
-                    ("line", Value::Count(s.line)),
-                    ("title", Value::Text(s.title.clone())),
-                ])
-            })
-            .collect();
-        let tasks = document
-            .tasks
-            .iter()
-            .map(|t| {
-                object([
-                    ("line", Value::Count(t.line)),
-                    ("title", Value::Text(t.title.clone())),
-                    ("checked", Value::Bool(t.checked)),
-                ])
-            })
-            .collect();
-        let links = document
-            .links
-            .iter()
-            .map(|l| {
-                object([
-                    ("line", Value::Count(l.span.line)),
-                    ("url", Value::Text(l.target.clone())),
-                ])
-            })
-            .collect();
-        let definitions = document
-            .definitions
-            .iter()
-            .enumerate()
-            .map(|(i, d)| {
-                let evaluated = context.engine.symbol(&Symbol {
-                    path: context.path.into(),
-                    kind: SymbolKind::Definition(i),
-                });
-                let (value, error) = match evaluated {
-                    Ok(v) => (v, Value::Null),
-                    Err(e) => (Value::Null, Value::Text(e)),
-                };
-                object([
-                    ("line", Value::Count(d.named.span.line)),
-                    ("name", Value::Text(d.named.name.clone())),
-                    ("value", value),
-                    ("error", error),
-                ])
-            })
-            .collect();
-        let input = object([(
-            "document",
-            object([
-                ("path", Value::Text(context.path.to_string_lossy().into())),
-                (
-                    "lines",
-                    Value::List(
-                        document
-                            .text
-                            .lines()
-                            .map(|l| Value::Text(l.into()))
-                            .collect(),
-                    ),
-                ),
-                ("sections", Value::List(sections)),
-                ("tasks", Value::List(tasks)),
-                ("links", Value::List(links)),
-                ("definitions", Value::List(definitions)),
-            ]),
-        )]);
         let result = (|| {
+            let mut input = input(self, context.engine, context.path)?;
+            if let Value::Record(fields) = &mut input {
+                fields.insert("range".into(), from_json(&serde_json::json!(context.range)));
+            }
             let Value::List(hints) = self.call("collect", vec![input], context.engine.now)? else {
                 return Err("collect must return a list".into());
             };
@@ -105,16 +102,20 @@ impl InlayFeature for Module {
                 let Value::Record(fields) = hint else {
                     return Err("Each inlay must be a record".into());
                 };
-                let line = match fields.get("line") {
-                    Some(Value::Count(n)) => *n,
-                    Some(Value::Number(n)) if n.is_finite() && *n >= 0.0 && n.fract() == 0.0 => {
-                        *n as usize
+                let position = if let Some(at) = fields.get("at") {
+                    serde_json::from_value::<Position>(json(at)?).map_err(|e| e.to_string())?
+                } else {
+                    let line = fields.get("line").ok_or("Inlay needs at or line")?;
+                    let line = json(line)?
+                        .as_u64()
+                        .and_then(|n| usize::try_from(n).ok())
+                        .ok_or("Inlay line must be a nonnegative integer")?;
+                    if line >= document.text.lines().count() {
+                        return Err("Inlay line is outside the document".into());
                     }
-                    _ => return Err("Inlay line must be a nonnegative integer".into()),
+                    document.line_end(line)
                 };
-                if line >= document.text.lines().count() {
-                    return Err("Inlay line is outside the document".into());
-                }
+                validate_position(&document.text, position)?;
                 let Some(Value::Text(label)) = fields.get("label") else {
                     return Err("Inlay label must be text".into());
                 };
@@ -123,7 +124,7 @@ impl InlayFeature for Module {
                     Some(Value::Text(s)) => s.clone(),
                     _ => return Err("Inlay tooltip must be text".into()),
                 };
-                validated.push((document.line_end(line), label.clone(), tooltip));
+                validated.push((position, label.clone(), tooltip));
             }
             Ok::<_, String>(validated)
         })();
@@ -143,4 +144,62 @@ impl InlayFeature for Module {
             context.mark_time_dependent();
         }
     }
+}
+/// Actions are proposals. Preparation validates capabilities and source before
+/// exposing controls; the host repeats validation against the execution snapshot.
+pub fn commands(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    capabilities: Capabilities,
+) -> Vec<Command> {
+    let mut engine = request.engine();
+    let mut commands = vec![];
+    for module in request
+        .workspace()
+        .plugins
+        .active()
+        .filter(|m| m.has("actions"))
+    {
+        let result = (|| {
+            let Value::Record(mut ctx) = input(module, &mut engine, path)? else {
+                unreachable!()
+            };
+            ctx.insert("row".into(), Value::Count(row));
+            ctx.insert(
+                "capabilities".into(),
+                object([
+                    ("refresh", Value::Bool(capabilities.refresh)),
+                    ("views", Value::Bool(capabilities.views)),
+                ]),
+            );
+            let Value::List(proposals) =
+                module.call("actions", vec![Value::Record(ctx)], request.now())?
+            else {
+                return Err("actions must return a list".into());
+            };
+            let mut validated = vec![];
+            for proposal in proposals {
+                let Value::Record(fields) = proposal else {
+                    return Err("Each action must be a record".into());
+                };
+                let Some(Value::Text(title)) = fields.get("title") else {
+                    return Err("Action title must be text".into());
+                };
+                let action: Action =
+                    serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
+                        .map_err(|e| e.to_string())?;
+                if !capabilities.supports(&action) {
+                    continue;
+                }
+                action.prepare(request, capabilities)?;
+                validated.push(action.command(title));
+            }
+            Ok::<_, String>(validated)
+        })();
+        if let Ok(proposals) = result {
+            commands.extend(proposals);
+        }
+    }
+    commands
 }

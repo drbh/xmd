@@ -300,7 +300,7 @@ async fn explicit_refresh_executes_a_provider_request_and_requires_decodable_suc
         }
         fn refresh_request(&self, _: &Url) -> Option<RefreshRequest> {
             Some(RefreshRequest {
-                title: "Refresh build",
+                title: "Refresh build".into(),
                 program: self.program.clone(),
                 args: vec![self.data.clone()],
                 env: vec![("WTF_FIXTURE_READY".into(), "yes".into())],

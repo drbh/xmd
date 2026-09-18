@@ -16,6 +16,9 @@ pub struct LinkContext<'a> {
 /// it appears. The adapter covers raw/Markdown links, definitions and references.
 /// Only matching and an inlay label are required. Other capabilities are optional.
 pub trait LinkFeature: Send + Sync {
+    fn id(&self) -> &str {
+        ""
+    }
     fn matches(&self, url: &Url) -> bool;
     fn inlay(&self, context: &LinkContext<'_>) -> String;
     fn hover(&self, _context: &LinkContext<'_>) -> Option<String> {
@@ -56,7 +59,7 @@ pub struct LinkPresentation {
 /// A program and distinct arguments, not a shell expression. Cached status is
 /// replaced only after the process succeeds and the provider decodes its JSON.
 pub struct RefreshRequest {
-    pub title: &'static str,
+    pub title: String,
     pub program: String,
     pub args: Vec<String>,
     pub env: Vec<(String, String)>,
@@ -67,13 +70,19 @@ pub struct RefreshRequest {
 pub struct LinkFeatures<'a> {
     features: &'a [&'a dyn LinkFeature],
     plugins: &'a [crate::evaluate::plugins::Module],
+    bundled: bool,
 }
-pub const BUILTINS: LinkFeatures<'static> = LinkFeatures::new(&[&crate::github::GitHub]);
+pub const BUILTINS: LinkFeatures<'static> = LinkFeatures {
+    features: &[&crate::github::GitHub],
+    plugins: &[],
+    bundled: true,
+};
 impl<'a> LinkFeatures<'a> {
     pub const fn new(features: &'a [&'a dyn LinkFeature]) -> Self {
         Self {
             features,
             plugins: &[],
+            bundled: false,
         }
     }
     pub fn with_plugins(mut self, plugins: &'a [crate::evaluate::plugins::Module]) -> Self {
@@ -85,7 +94,22 @@ impl<'a> LinkFeatures<'a> {
         self.plugins
             .iter()
             .map(|p| p as &dyn LinkFeature)
-            .chain(self.features.iter().copied())
+            .chain(
+                self.features
+                    .iter()
+                    .copied()
+                    .filter(|f| !self.plugins.iter().any(|m| m.id == f.id())),
+            )
+            .chain(
+                (if self.bundled {
+                    crate::plugins::bundled()
+                } else {
+                    &[]
+                })
+                .iter()
+                .filter(|m| self.bundled && !self.plugins.iter().any(|p| p.id == m.id))
+                .map(|m| m as &dyn LinkFeature),
+            )
             .find(|feature| feature.matches(&url))
             .map(|feature| (feature, url))
     }

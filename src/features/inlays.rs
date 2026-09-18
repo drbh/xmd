@@ -9,6 +9,9 @@ use std::path::Path;
 /// request's engine/clock and cached data, never fetch or modify source here.
 /// Implement this trait and register the implementation in `inlay_providers::BUILTINS`.
 pub trait InlayFeature: Send + Sync {
+    fn id(&self) -> &str {
+        ""
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink);
 }
 
@@ -79,7 +82,9 @@ pub fn collect(
         hints: Vec::new(),
     };
     for feature in features {
-        feature.collect(&mut context, &mut output);
+        if !context.engine.workspace.plugins.overrides(feature.id()) {
+            feature.collect(&mut context, &mut output);
+        }
     }
     output.hints.sort_by_key(|hint| hint.position);
     InlayOutput {

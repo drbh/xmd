@@ -28,12 +28,86 @@ pub fn is_builtin(name: &str) -> bool {
             | "lower"
             | "upper"
             | "replace"
+            | "slice"
+            | "concat"
+            | "trim"
+            | "type"
+            | "floor"
+            | "round"
+            | "repeat"
+            | "format_date"
+            | "error"
     )
 }
 
 pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     use Value::*;
     Ok(match (name, args) {
+        ("type", [value]) => Text(value.type_name().into()),
+        ("error", [Text(message)]) => return Err(message.clone()),
+        ("trim", [Text(text)]) => Text(text.trim().into()),
+        ("floor" | "round", [value]) => {
+            let number = match value {
+                Number(n) | Ratio(n) => *n,
+                Count(n) => *n as f64,
+                _ => return Err(format!("{name} requires a number")),
+            };
+            Number(if name == "floor" {
+                number.floor()
+            } else {
+                number.round()
+            })
+        }
+        ("concat", lists) => {
+            let mut result = Vec::new();
+            for list in lists {
+                let List(items) = list else {
+                    return Err("concat requires lists".into());
+                };
+                if result.len().saturating_add(items.len()) > 8192 {
+                    return Err("List exceeds the collection size limit".into());
+                }
+                result.extend(items.clone());
+            }
+            List(result)
+        }
+        ("slice", [value, start, end]) => {
+            let start = index(start)?;
+            let end = index(end)?;
+            if start > end {
+                return Err("slice start must not exceed end".into());
+            }
+            match value {
+                Text(text) => Text(text.chars().skip(start).take(end - start).collect()),
+                List(items) => List(items[start.min(items.len())..end.min(items.len())].to_vec()),
+                _ => return Err("slice requires text or a list".into()),
+            }
+        }
+        ("repeat", [Text(text), count]) => {
+            let count = index(count)?;
+            if text.len().saturating_mul(count) > 1_048_576 || count > 8192 {
+                return Err("Repeated text exceeds the size limit".into());
+            }
+            Text(text.repeat(count))
+        }
+        ("format_date", [value, Text(format)]) => {
+            if chrono::format::StrftimeItems::new(format)
+                .any(|i| matches!(i, chrono::format::Item::Error))
+            {
+                return Err("Invalid date format".into());
+            }
+            Text(match value {
+                DateTime(d) => d.format(format).to_string(),
+                Date(d) => {
+                    // Reject time/offset specifiers for dates rather than panicking in Display.
+                    let mut result = String::new();
+                    std::fmt::write(&mut result, format_args!("{}", d.format(format)))
+                        .map_err(|_| "Format needs a time or timezone")?;
+                    result
+                }
+                _ => return Err("format_date requires a date or timestamp".into()),
+            })
+        }
         ("get", [Record(fields), Text(key)]) => fields.get(key).cloned().unwrap_or(Null),
         ("get", [List(items), index]) => {
             let index = match index {
@@ -111,4 +185,16 @@ pub(crate) fn check_size(value: &Value) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn index(value: &Value) -> Result<usize, String> {
+    match value {
+        Value::Count(n) => Ok(*n),
+        Value::Number(n)
+            if n.is_finite() && *n >= 0.0 && n.fract() == 0.0 && *n < usize::MAX as f64 =>
+        {
+            Ok(*n as usize)
+        }
+        _ => Err("Expected a nonnegative integer".into()),
+    }
 }

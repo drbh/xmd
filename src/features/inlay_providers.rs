@@ -38,6 +38,9 @@ fn timer_label(timer: &crate::timers::Timer) -> String {
 
 pub struct DefinitionInlays;
 impl InlayFeature for DefinitionInlays {
+    fn id(&self) -> &str {
+        "definitions"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let workspace = engine.workspace;
@@ -111,6 +114,9 @@ impl InlayFeature for DefinitionInlays {
 
 pub struct DecisionInlays;
 impl InlayFeature for DecisionInlays {
+    fn id(&self) -> &str {
+        "decisions"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let workspace = engine.workspace;
@@ -157,6 +163,9 @@ impl InlayFeature for DecisionInlays {
 
 pub struct ConstraintInlays;
 impl InlayFeature for ConstraintInlays {
+    fn id(&self) -> &str {
+        "constraints"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let path = context.path;
@@ -206,6 +215,9 @@ impl InlayFeature for ConstraintInlays {
 
 pub struct TableCellInlays;
 impl InlayFeature for TableCellInlays {
+    fn id(&self) -> &str {
+        "table_cells"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let path = context.path;
@@ -229,6 +241,9 @@ impl InlayFeature for TableCellInlays {
 
 pub struct ItineraryInlays;
 impl InlayFeature for ItineraryInlays {
+    fn id(&self) -> &str {
+        "itinerary"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let workspace = engine.workspace;
@@ -328,6 +343,9 @@ impl InlayFeature for ItineraryInlays {
 
 pub struct ChecklistInlays;
 impl InlayFeature for ChecklistInlays {
+    fn id(&self) -> &str {
+        "checklists"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let path = context.path;
@@ -380,6 +398,9 @@ impl InlayFeature for ChecklistInlays {
 
 pub struct TaskInlays;
 impl InlayFeature for TaskInlays {
+    fn id(&self) -> &str {
+        "tasks"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let path = context.path;
@@ -461,6 +482,9 @@ impl InlayFeature for TaskInlays {
 
 pub struct CalculationInlays;
 impl InlayFeature for CalculationInlays {
+    fn id(&self) -> &str {
+        "calculations"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let path = context.path;
@@ -486,6 +510,9 @@ impl InlayFeature for CalculationInlays {
 
 pub struct ReferenceInlays;
 impl InlayFeature for ReferenceInlays {
+    fn id(&self) -> &str {
+        "references"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let workspace = engine.workspace;
@@ -529,6 +556,9 @@ impl InlayFeature for ReferenceInlays {
 /// Providers need no knowledge of definitions, references, UTF-16 or editor hosts.
 pub struct LinkInlays;
 impl InlayFeature for LinkInlays {
+    fn id(&self) -> &str {
+        "links"
+    }
     fn collect(&self, context: &mut InlayContext<'_, '_>, output: &mut InlaySink) {
         let engine = &mut *context.engine;
         let workspace = engine.workspace;

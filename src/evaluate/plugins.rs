@@ -24,10 +24,12 @@ pub struct Module {
     pub kind: String,
     pub path: PathBuf,
     pub live: bool,
+    pub enabled: bool,
+    pub inputs: Vec<String>,
     hosts: Vec<String>,
     prefix: String,
     properties: Vec<String>,
-    cache_key: String,
+    cache_key: Option<String>,
     workspace: Arc<Workspace>,
 }
 pub fn is_plugin_path(path: &Path) -> bool {
@@ -72,6 +74,11 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
     Ok(match value {
         Value::Null => serde_json::Value::Null,
         Value::Bool(v) => (*v).into(),
+        Value::Number(v)
+            if v.is_finite() && *v >= 0.0 && *v < u64::MAX as f64 && v.fract() == 0.0 =>
+        {
+            (*v as u64).into()
+        }
         Value::Number(v) => serde_json::Number::from_f64(*v)
             .ok_or("Nonfinite plugin number")?
             .into(),
@@ -86,7 +93,7 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
         _ => return Err("Cached plugin data must contain JSON values".into()),
     })
 }
-fn url_value(url: &Url) -> Value {
+pub fn url_value(url: &Url) -> Value {
     record([
         ("raw".into(), Value::Text(url.to_string())),
         (
@@ -128,7 +135,9 @@ impl Module {
             lookups: Default::default(),
             plugins: Default::default(),
         });
-        let mut engine = Engine::at(&workspace, epoch()).pure();
+        let mut engine = Engine::at(&workspace, epoch())
+            .pure()
+            .with_link_features(crate::link_features::LinkFeatures::new(&[]));
         let Value::Record(config) = engine.named(&path, "plugin")? else {
             return Err("plugin must be a record".into());
         };
@@ -144,6 +153,28 @@ impl Module {
             return Err("Invalid plugin id".into());
         }
         let kind = text(config.get("kind").ok_or("plugin.kind is required")?)?;
+        let enabled = match config.get("enabled") {
+            None => true,
+            Some(Value::Bool(v)) => *v,
+            _ => return Err("enabled must be boolean".into()),
+        };
+        let inputs = config
+            .get("inputs")
+            .map(strings)
+            .transpose()?
+            .unwrap_or_else(|| {
+                vec![
+                    "sections".into(),
+                    "tasks".into(),
+                    "values".into(),
+                    "links".into(),
+                ]
+            });
+        for input in &inputs {
+            if !crate::catalog::COLLECTIONS.contains(&input.as_str()) {
+                return Err(format!("Unknown input collection: {input}"));
+            }
+        }
         let required = match kind.as_str() {
             "link" => "inlay",
             "inlay" => "collect",
@@ -154,7 +185,8 @@ impl Module {
             .map(strings)
             .transpose()?
             .unwrap_or_default();
-        if kind == "link"
+        if enabled
+            && kind == "link"
             && (hosts.is_empty()
                 || hosts.iter().any(|host| {
                     Url::parse(&format!("https://{host}")).is_err()
@@ -186,13 +218,18 @@ impl Module {
             ("property", 2),
             ("refresh", 1),
             ("decode", 2),
+            ("matches", 1),
+            ("property_names", 1),
+            ("time_dependent", 1),
+            ("actions", 1),
         ] {
             if names.contains(name) {
                 if !matches!(engine.named(&path,name)?,Value::Function(f) if f.params.len()==arity)
                 {
                     return Err(format!("{name} must be a function with {arity} parameters"));
                 }
-            } else if name == required {
+            } else if name == required && enabled && (kind == "link" || !names.contains("actions"))
+            {
                 return Err(format!("Missing {required} function"));
             }
         }
@@ -207,12 +244,18 @@ impl Module {
             Some(Value::Number(n)) if *n >= 1.0 && n.fract() == 0.0 => n.to_string(),
             _ => return Err("cache_version must be a positive integer".into()),
         };
-        let cache_key = format!("{id}:{version}");
+        let cache_key = match config.get("cache_namespace") {
+            Some(Value::Null) => None,
+            None => Some(format!("{id}:{version}")),
+            _ => return Err("cache_namespace may only be null (legacy cache) or omitted".into()),
+        };
         Ok(Self {
             id,
             kind,
             path,
             live,
+            enabled,
+            inputs,
             hosts,
             prefix,
             properties,
@@ -232,7 +275,9 @@ impl Module {
         for arg in &args {
             crate::evaluate::functional::check_size(arg)?;
         }
-        let mut engine = Engine::at(&self.workspace, now).pure();
+        let mut engine = Engine::at(&self.workspace, now)
+            .pure()
+            .with_link_features(crate::link_features::LinkFeatures::new(&[]));
         let function = engine.named(&self.path, name)?;
         engine
             .call(function, args)
@@ -241,14 +286,18 @@ impl Module {
     fn context(&self, ctx: &LinkContext<'_>) -> Value {
         let cached = ctx
             .cached
-            .filter(|m| m.provider.as_deref() == Some(&self.cache_key));
+            .filter(|m| m.provider.as_deref() == self.cache_key.as_deref());
         record([
             ("url".into(), url_value(ctx.url)),
+            ("native".into(), Value::Bool(!cfg!(target_arch = "wasm32"))),
             (
                 "cached".into(),
                 cached
-                    .and_then(|m| m.data.as_ref())
-                    .map(from_json)
+                    .map(|m| {
+                        from_json(&m.data.clone().unwrap_or_else(|| {
+                            serde_json::to_value(m).expect("metadata serializes")
+                        }))
+                    })
                     .unwrap_or(Value::Null),
             ),
             (
@@ -262,12 +311,18 @@ impl Module {
 }
 impl LinkFeature for Module {
     fn matches(&self, url: &Url) -> bool {
-        self.kind == "link"
+        self.enabled
+            && self.kind == "link"
             && matches!(url.scheme(), "http" | "https")
             && url
                 .host_str()
                 .is_some_and(|host| self.hosts.iter().any(|h| h == host))
             && url.path().starts_with(&self.prefix)
+            && (!self.has("matches")
+                || matches!(
+                    self.call("matches", vec![url_value(url)], epoch()),
+                    Ok(Value::Bool(true))
+                ))
     }
     fn inlay(&self, ctx: &LinkContext<'_>) -> String {
         self.call("inlay", vec![self.context(ctx)], ctx.now.fixed_offset())
@@ -281,17 +336,36 @@ impl LinkFeature for Module {
                 .unwrap_or_else(|e| e)
         })
     }
-    fn time_dependent(&self, _: &LinkContext<'_>) -> bool {
+    fn time_dependent(&self, ctx: &LinkContext<'_>) -> bool {
+        if self.has("time_dependent") {
+            return !matches!(
+                self.call(
+                    "time_dependent",
+                    vec![self.context(ctx)],
+                    ctx.now.fixed_offset()
+                ),
+                Ok(Value::Bool(false))
+            );
+        }
         self.live
     }
     fn cache_namespace(&self) -> Option<&str> {
-        Some(&self.cache_key)
+        self.cache_key.as_deref()
     }
-    fn property_names(&self, _: &Url) -> Vec<String> {
+    fn property_names(&self, url: &Url) -> Vec<String> {
+        if self.has("property_names") {
+            return self
+                .call("property_names", vec![url_value(url)], epoch())
+                .and_then(|v| strings(&v))
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|p| self.properties.contains(p))
+                .collect();
+        }
         self.properties.clone()
     }
     fn property(&self, ctx: &LinkContext<'_>, name: &str) -> Result<Value, String> {
-        if !self.properties.iter().any(|p| p == name) {
+        if !self.property_names(ctx.url).iter().any(|p| p == name) {
             return Err(format!("Unknown resource property '{name}'"));
         }
         self.call(
@@ -320,10 +394,23 @@ impl LinkFeature for Module {
             program
         };
         Some(RefreshRequest {
-            title: "Plugin refresh",
+            title: fields
+                .get("title")
+                .map(text)
+                .transpose()
+                .ok()?
+                .unwrap_or_else(|| "Plugin refresh".into()),
             program,
             args: strings(fields.get("args")?).ok()?,
-            env: vec![],
+            env: match fields.get("env") {
+                None => vec![],
+                Some(Value::Record(env)) => env
+                    .iter()
+                    .map(|(k, v)| text(v).map(|v| (k.clone(), v)))
+                    .collect::<Result<_, _>>()
+                    .ok()?,
+                _ => return None,
+            },
         })
     }
     fn decode_refresh(
@@ -344,16 +431,25 @@ impl LinkFeature for Module {
         Ok(Metadata {
             title: data["title"].as_str().unwrap_or_default().into(),
             state: data["state"].as_str().unwrap_or_default().into(),
-            merged: None,
-            checks: None,
-            review: None,
+            merged: data["merged"].as_bool(),
+            checks: data["checks"].as_str().map(str::to_owned),
+            review: data["review"].as_str().map(str::to_owned),
             fetched_at: now,
-            provider: Some(self.cache_key.clone()),
+            provider: self.cache_key.clone(),
             data: Some(data),
         })
     }
 }
 impl Plugins {
+    pub fn overrides(&self, id: &str) -> bool {
+        self.modules.iter().any(|m| m.id == id)
+    }
+    pub fn active(&self) -> impl Iterator<Item = &Module> {
+        self.modules
+            .iter()
+            .chain(bundled().iter().filter(|m| !self.overrides(&m.id)))
+            .filter(|m| m.enabled)
+    }
     pub fn same_sources(&self, other: &Self) -> bool {
         self.modules.len() == other.modules.len()
             && self.modules.iter().zip(&other.modules).all(|(a, b)| {
@@ -406,4 +502,9 @@ impl Plugins {
         }
         Self::compile(sources)
     }
+}
+
+/// Bundled modules use exactly the same compiler and adapters as workspace modules.
+pub fn bundled() -> &'static [Module] {
+    &[]
 }

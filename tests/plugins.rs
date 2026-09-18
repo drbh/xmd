@@ -337,3 +337,110 @@ fn example_workspace_uses_plugins_without_rust_registration() {
             .any(|h| matches!(&h.label,InlayHintLabel::String(s) if s=="18 characters"))
     );
 }
+
+#[test]
+fn semantic_inputs_and_utf16_anchors_are_shared_with_queries() {
+    let mut ws = workspace();
+    ws.documents
+        .insert(path().into(), Document::parse("🦀 [round(2.6)]\n".into()));
+    ws.plugins = registry(
+        r#"plugin := {api: 1, id: "calculations", kind: "inlay", inputs: ["calculations"]}
+collect := fn(ctx) => map(ctx.document.calculations, fn(c) => {at: c.anchor, label: "custom " + c.display, tooltip: trim(c.expression)})
+"#,
+    );
+    let hints = wtf::presentation::hints_at(
+        &ws,
+        path(),
+        now(),
+        Range::new(Position::new(0, 0), Position::new(99, 0)),
+    );
+    assert_eq!(hints.len(), 1);
+    assert_eq!(hints[0].position, Position::new(0, 15));
+    assert!(matches!(&hints[0].label, InlayHintLabel::String(s) if s == "custom 3"));
+    let q = wtf::query::Query::parse("calculations | select anchor").unwrap();
+    let result = wtf::query::execute(&ws, &q, &wtf::query::QueryContext::new(now())).unwrap();
+    assert_eq!(
+        serde_json::to_value(result).unwrap()["rows"][0],
+        serde_json::json!({"line":0,"character":15})
+    );
+    ws.plugins =
+        registry(r#"plugin := {api: 1, id: "calculations", kind: "inlay", enabled: false}"#);
+    assert!(labels(&ws).is_empty());
+}
+
+#[test]
+fn plugin_edit_actions_share_codec_validation_and_stale_source_checks() {
+    use wtf::commands::{Action, Capabilities, PreparedAction};
+    let mut ws = workspace();
+    ws.plugins = registry(
+        r#"plugin := {api: 1, id: "insert", kind: "inlay", inputs: []}
+actions := fn(ctx) => if(ctx.row == 0, [{title: "Insert greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: "Hello "}]}}], [])
+"#,
+    );
+    let request = wtf::RequestContext::new(&ws, now());
+    let commands =
+        wtf::interaction::row_commands_for(&request, path(), 0, true, Capabilities::BROWSER);
+    let command = commands
+        .iter()
+        .find(|c| c.title == "Insert greeting")
+        .unwrap();
+    let action = Action::decode(&command.command, command.arguments.as_ref().unwrap()).unwrap();
+    let PreparedAction::Edit { edits, .. } =
+        action.prepare(&request, Capabilities::BROWSER).unwrap()
+    else {
+        panic!()
+    };
+    assert!(
+        wtf::actions::apply_edits(&ws.documents[path()].text, &edits)
+            .unwrap()
+            .starts_with("Hello # Hello")
+    );
+    ws.documents
+        .insert(path().into(), Document::parse("changed\n".into()));
+    assert!(
+        action
+            .prepare(&wtf::RequestContext::new(&ws, now()), Capabilities::BROWSER)
+            .unwrap_err()
+            .contains("Source changed")
+    );
+}
+
+#[test]
+fn invalid_plugin_positions_are_atomic_and_reversed_edits_return_errors() {
+    let mut ws = workspace();
+    ws.plugins = registry(
+        r#"plugin := {api: 1, id: "bad", kind: "inlay", inputs: []}
+collect := fn(ctx) => [{line: 0, label: "partial"}, {at: {line: 0, character: 9}, label: "splits emoji"}]
+"#,
+    );
+    let values = labels(&ws);
+    assert!(!values.iter().any(|s| s == "partial"));
+    assert!(values.iter().any(|s| s == "plugin error · bad"));
+    let edit = lsp_types::TextEdit {
+        range: Range::new(Position::new(0, 1), Position::new(0, 0)),
+        new_text: String::new(),
+    };
+    assert!(
+        wtf::actions::apply_edits("text", &[edit])
+            .unwrap_err()
+            .contains("Reversed")
+    );
+}
+
+#[test]
+fn link_callbacks_narrow_matches_properties_and_refresh_options() {
+    let source=LINK.replace("inlay :=", "matches := fn(url) => ends_with(url.path, \"42\")\nproperty_names := fn(url) => [\"title\"]\ntime_dependent := fn(ctx) => false\ninlay :=").replace("program: \"/bin/echo\",", "title: \"Fetch ticket\", env: {TICKET_MODE: \"json\"}, program: \"/bin/echo\",");
+    let mut ws = workspace();
+    ws.plugins = registry(&source);
+    let links = ws.link_features();
+    assert_eq!(links.property_names(URL), ["title"]);
+    assert!(
+        links
+            .property_names("https://issues.example/tickets/43")
+            .is_empty()
+    );
+    let refresh = links.refresh_request(URL).unwrap();
+    assert_eq!(refresh.title, "Fetch ticket");
+    assert_eq!(refresh.env, [("TICKET_MODE".into(), "json".into())]);
+    assert!(!links.time_dependent(URL, &ws.cache, now().to_utc()));
+}

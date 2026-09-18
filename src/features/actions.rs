@@ -196,6 +196,9 @@ pub fn apply_edits(text: &str, edits: &[TextEdit]) -> Result<String, String> {
     let mut replacements = edits
         .iter()
         .map(|e| {
+            if e.range.start > e.range.end {
+                return Err("Reversed edit range".into());
+            }
             Ok((
                 offset(text, e.range.start)?,
                 offset(text, e.range.end)?,

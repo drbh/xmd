@@ -35,3 +35,16 @@ Evaluation has a step budget and a 32-call function depth limit. Text and
 collection results are bounded. Functions introduce no mutable variables or effectful calls.
 Fetching data remains an explicit host action. Plugin evaluation also disables
 the existing local-resource `exists` property. See [Functional plugins](plugins.md).
+
+Presentation and transformation primitives also include:
+
+| Function | Meaning |
+| --- | --- |
+| `slice(value, start, end)` | Half-open slice of a list or Unicode characters in text; indices beyond the end are clamped. |
+| `concat(lists...)` | Concatenate lists. |
+| `trim(text)` | Remove surrounding whitespace. |
+| `type(value)` | Runtime type name. |
+| `floor(number)`, `round(number)` | Round down or to the nearest integer. |
+| `repeat(text, count)` | Repeat text within the evaluation size limits. |
+| `format_date(date, format)` | Format a date or timestamp with strftime directives. |
+| `error(message)` | Return an explicit evaluation error. |

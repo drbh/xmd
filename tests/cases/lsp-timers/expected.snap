@@ -1,0 +1,684 @@
+### 0 lsp
+-- open timers.wtf
+-- await textDocument/publishDiagnostics timers.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/timers.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◴ 00:00 elapsed · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ○ idle\n\n```text\nstopwatch()\n= ◴ 00:00 elapsed · ○ idle\n```\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+    }
+  },
+  {
+    "label": "= ◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+    }
+  },
+  {
+    "label": "◴ 00:00 elapsed · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  },
+  {
+    "label": "0s",
+    "paddingLeft": true,
+    "position": {
+      "character": 21,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "watch.elapsed"
+    }
+  }
+]
+-- request textDocument/codeLens timers.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "▸ start watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "▸ start focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/timers.wtf",
+          "expected": "- [ ] Work @timer(watch)",
+          "kind": "toggle_task",
+          "row": 2
+        }
+      ],
+      "command": "wtf.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "▸ start watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "▸ start watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+-- request textDocument/completion timers.wtf 3:13
+[
+  {
+    "detail": "Duration · 0s",
+    "kind": 10,
+    "label": "elapsed",
+    "textEdit": {
+      "newText": "elapsed",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "running",
+    "textEdit": {
+      "newText": "running",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "done",
+    "textEdit": {
+      "newText": "done",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · idle",
+    "kind": 10,
+    "label": "state",
+    "textEdit": {
+      "newText": "state",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  }
+]
+-- request textDocument/rename timers.wtf 3:7
+{
+  "documentChanges": [
+    {
+      "edits": [
+        {
+          "newText": "debugging",
+          "range": {
+            "end": {
+              "character": 6,
+              "line": 0
+            },
+            "start": {
+              "character": 1,
+              "line": 0
+            }
+          }
+        },
+        {
+          "newText": "debugging",
+          "range": {
+            "end": {
+              "character": 23,
+              "line": 2
+            },
+            "start": {
+              "character": 18,
+              "line": 2
+            }
+          }
+        },
+        {
+          "newText": "debugging",
+          "range": {
+            "end": {
+              "character": 12,
+              "line": 3
+            },
+            "start": {
+              "character": 7,
+              "line": 3
+            }
+          }
+        }
+      ],
+      "textDocument": {
+        "uri": "file://<root>/timers.wtf",
+        "version": 1
+      }
+    }
+  ]
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 22,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/timers.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- change timers.wtf (version 2)
+[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)
+[focus] := countdown(2s)
+- [ ] Work @timer(watch)
+Spent [watch.elapsed].
+-- await textDocument/publishDiagnostics timers.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/timers.wtf",
+  "version": 2
+}
+-- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◴ 00:00 elapsed · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 51,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ▸ running\n\n```text\nstopwatch(0s, 2026-09-16T14:00:00-04:00)\n= ◴ 00:00 elapsed · ▸ running\n```\n\nElapsed: 0s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+    }
+  },
+  {
+    "label": "= ◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+    }
+  },
+  {
+    "label": "◴ 00:00 elapsed · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  },
+  {
+    "label": "0s",
+    "paddingLeft": true,
+    "position": {
+      "character": 21,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "watch.elapsed"
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Cannot start a running timer"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(0s)",
+            "range": {
+              "end": {
+                "character": 51,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/timers.wtf",
+          "version": 2
+        }
+      }
+    ]
+  }
+}
+-- change timers.wtf (version 3)
+[watch] := stopwatch(0s)
+[focus] := countdown(2s)
+- [ ] Work @timer(watch)
+Spent [watch.elapsed].
+-- await textDocument/publishDiagnostics timers.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/timers.wtf",
+  "version": 3
+}
+-- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◴ 00:00 elapsed · ‖ paused",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ‖ paused\n\n```text\nstopwatch(0s)\n= ◴ 00:00 elapsed · ‖ paused\n```\n\nElapsed: 0s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+    }
+  },
+  {
+    "label": "= ◷ ░░░░░░░░ 00:02 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+    }
+  },
+  {
+    "label": "◴ 00:00 elapsed · ‖ paused",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  },
+  {
+    "label": "0s",
+    "paddingLeft": true,
+    "position": {
+      "character": 21,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "watch.elapsed"
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch()",
+            "range": {
+              "end": {
+                "character": 24,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/timers.wtf",
+          "version": 3
+        }
+      }
+    ]
+  }
+}
+-- open expired.wtf
+-- await textDocument/publishDiagnostics expired.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/expired.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint expired.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◷ ████████ 00:00 remaining · ✓ done",
+    "paddingLeft": true,
+    "position": {
+      "character": 53,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**tea · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(1s, 0s, 2026-09-16T13:59:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 1s. State: done. Current segment started: 2026-09-16T13:59:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [tea](<file://<root>/expired.wtf#L1>) · <root>/expired.wtf:1"
+    }
+  },
+  {
+    "label": "◷ ████████ 00:00 remaining · ✓ done",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  },
+  {
+    "label": "image · open preview",
+    "paddingLeft": true,
+    "position": {
+      "character": 23,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<file://<root>/receipt.png>)\n\n![Preview](<file://<root>/receipt.png>)"
+    }
+  }
+]
+-- request textDocument/codeLens expired.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "reset",
+          "document": "file://<root>/expired.wtf",
+          "kind": "timer",
+          "name": "tea"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "↺ reset tea"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/expired.wtf",
+          "expected": "- [ ] Work @timer(tea)",
+          "kind": "toggle_task",
+          "row": 1
+        }
+      ],
+      "command": "wtf.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "reset",
+          "document": "file://<root>/expired.wtf",
+          "kind": "timer",
+          "name": "tea"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "↺ reset tea"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/expired.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 3
+          },
+          "url": "file://<root>/receipt.png"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ image"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+
+### 1 read timers.wtf
+-- timers.wtf
+[watch] := stopwatch()
+[focus] := countdown(2s)
+- [ ] Work @timer(watch)
+Spent [watch.elapsed].
+

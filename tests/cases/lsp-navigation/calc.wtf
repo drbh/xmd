@@ -1,0 +1,3 @@
+[total] := sum(groceries, quantity * price)
+Cost [total].
+groceries := import("./data.wtf").groceries

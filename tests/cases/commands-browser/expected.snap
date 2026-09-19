@@ -1,0 +1,342 @@
+### 0 lsp
+-- open note.wtf
+-- await textDocument/publishDiagnostics note.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 3
+        },
+        "start": {
+          "character": 11,
+          "line": 3
+        }
+      },
+      "severity": 2,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/note.wtf",
+  "version": 1
+}
+-- request textDocument/codeLens note.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "start",
+          "document": "file://<root>/note.wtf",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "wtf.timer",
+      "title": "▸ start focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/note.wtf",
+          "expected": "- [ ] Task",
+          "kind": "toggle_task",
+          "row": 1
+        }
+      ],
+      "command": "wtf.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/note.wtf",
+            "expected": "https://github.com/acme/app/pull/42",
+            "row": 2
+          },
+          "url": "https://github.com/acme/app/pull/42"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/note.wtf",
+            "expected": "https://github.com/acme/app/pull/42",
+            "row": 2
+          },
+          "url": "https://github.com/acme/app/pull/42"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ github"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/note.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+
+### 1 browser
+-- setDocument note.wtf
+-- actions {"range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"uri":"file:///workspace/note.wtf"}
+{
+  "ok": true,
+  "result": {
+    "actions": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "action": "start",
+              "document": "file:///workspace/note.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
+          ],
+          "command": "wtf.timer",
+          "title": "▸ start focus"
+        },
+        "title": "▸ start focus"
+      }
+    ],
+    "versions": {
+      "file:///workspace/note.wtf": 1
+    }
+  }
+}
+-- actions {"range":{"end":{"character":0,"line":1},"start":{"character":0,"line":1}},"uri":"file:///workspace/note.wtf"}
+{
+  "ok": true,
+  "result": {
+    "actions": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/note.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 1
+            }
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "title": "✓ done"
+      }
+    ],
+    "versions": {
+      "file:///workspace/note.wtf": 1
+    }
+  }
+}
+-- actions {"range":{"end":{"character":0,"line":2},"start":{"character":0,"line":2}},"uri":"file:///workspace/note.wtf"}
+{
+  "ok": true,
+  "result": {
+    "actions": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/note.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 2
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "title": "↗ open"
+      }
+    ],
+    "versions": {
+      "file:///workspace/note.wtf": 1
+    }
+  }
+}
+-- actions {"range":{"end":{"character":0,"line":3},"start":{"character":0,"line":3}},"uri":"file:///workspace/note.wtf"}
+{
+  "ok": true,
+  "result": {
+    "actions": [],
+    "versions": {
+      "file:///workspace/note.wtf": 1
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.wtf","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "x",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 1
+                },
+                "start": {
+                  "character": 3,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "newText": " @completed(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 10,
+                  "line": 1
+                },
+                "start": {
+                  "character": 10,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///workspace/note.wtf",
+            "version": 1
+          }
+        }
+      ]
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/note.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":""},"versions":{"file:///workspace/note.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+              "range": {
+                "end": {
+                  "character": 22,
+                  "line": 0
+                },
+                "start": {
+                  "character": 10,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///workspace/note.wtf",
+            "version": 1
+          }
+        }
+      ]
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"document":null,"kind":"refresh"}],"command":"wtf.refresh","title":""},"versions":{"file:///workspace/note.wtf":1}}
+{
+  "error": "This command is not available in this host",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"kind":"show_today"}],"command":"wtf.today","title":""},"versions":{"file:///workspace/note.wtf":1}}
+{
+  "error": "This command is not available in this host",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/note.wtf","expected":"https://github.com/acme/app/pull/42","row":2},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":""},"versions":{"file:///workspace/note.wtf":1}}
+{
+  "error": "This command is not available in this host",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.wtf","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":2}}
+{
+  "error": "Notes changed; request fresh controls before applying this action",
+  "ok": false
+}
+

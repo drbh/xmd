@@ -1,0 +1,251 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "note.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "note.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": []
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0,
+                "expected": "- [ ] Task"
+              },
+              "extra"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "show_today"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "explode",
+                "document": "${uri:note.wtf}"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": -1,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": "0",
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "https://example.com",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "file:///workspace/note.wtf#L1",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              {
+                "kind": "timer",
+                "document": "${uri:note.wtf}",
+                "name": "focus",
+                "action": "explode"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.timer",
+            "arguments": [
+              {
+                "kind": "timer",
+                "document": "${uri:note.wtf}",
+                "name": 12,
+                "action": "start"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              {
+                "kind": "open_resource",
+                "target": {
+                  "document": "${uri:note.wtf}",
+                  "row": 0,
+                  "expected": "- [ ] Task"
+                },
+                "url": "not a URL"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.openResource",
+            "arguments": [
+              {
+                "kind": "refresh_resource",
+                "target": {
+                  "document": "${uri:note.wtf}",
+                  "row": 0,
+                  "expected": "- [ ] Task"
+                },
+                "url": "https://example.com"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.refresh",
+            "arguments": [
+              {
+                "kind": "refresh",
+                "document": "${uri:note.wtf}"
+              },
+              "extra"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.today",
+            "arguments": [
+              "${uri:note.wtf}"
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "edit"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "unknown",
+            "arguments": []
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json",
+        "note.wtf"
+      ]
+    }
+  ]
+}

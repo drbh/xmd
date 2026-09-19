@@ -1,0 +1,3 @@
+impossible := parse_date("2026-02-29", "%F")
+bad_time := parse_datetime("2026-09-18 25:00", "%F %H:%M", now())
+parsed := source(parse_datetime("2026-09-18 09:30", "%F %H:%M", now()))

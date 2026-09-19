@@ -1,0 +1,311 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "notes | select source.path",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../stdlib/headings.wtf\", \"../custom.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "notes | select source.path",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"workspace\"}]\n",
+        ".wtf/modules.json": "[\"./modules/headings.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "{\"files\": []}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"./modules/missing.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../custom.wtf\", \".././custom.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../stdlib/*.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"../stdlib/headings.wtf\", \"../stdlib/m0.wtf\", \"../stdlib/m1.wtf\", \"../stdlib/m2.wtf\", \"../stdlib/m3.wtf\", \"../stdlib/m4.wtf\", \"../stdlib/m5.wtf\", \"../stdlib/m6.wtf\", \"../stdlib/m7.wtf\", \"../stdlib/m8.wtf\", \"../stdlib/m9.wtf\", \"../stdlib/m10.wtf\", \"../stdlib/m11.wtf\", \"../stdlib/m12.wtf\", \"../stdlib/m13.wtf\", \"../stdlib/m14.wtf\", \"../stdlib/m15.wtf\", \"../stdlib/m16.wtf\", \"../stdlib/m17.wtf\", \"../stdlib/m18.wtf\", \"../stdlib/m19.wtf\", \"../stdlib/m20.wtf\", \"../stdlib/m21.wtf\", \"../stdlib/m22.wtf\", \"../stdlib/m23.wtf\", \"../stdlib/m24.wtf\", \"../stdlib/m25.wtf\", \"../stdlib/m26.wtf\", \"../stdlib/m27.wtf\", \"../stdlib/m28.wtf\", \"../stdlib/m29.wtf\", \"../stdlib/m30.wtf\", \"../stdlib/m31.wtf\", \"../stdlib/m32.wtf\", \"../stdlib/m33.wtf\", \"../stdlib/m34.wtf\", \"../stdlib/m35.wtf\", \"../stdlib/m36.wtf\", \"../stdlib/m37.wtf\", \"../stdlib/m38.wtf\", \"../stdlib/m39.wtf\", \"../stdlib/m40.wtf\", \"../stdlib/m41.wtf\", \"../stdlib/m42.wtf\", \"../stdlib/m43.wtf\", \"../stdlib/m44.wtf\", \"../stdlib/m45.wtf\", \"../stdlib/m46.wtf\", \"../stdlib/m47.wtf\", \"../stdlib/m48.wtf\", \"../stdlib/m49.wtf\", \"../stdlib/m50.wtf\", \"../stdlib/m51.wtf\", \"../stdlib/m52.wtf\", \"../stdlib/m53.wtf\", \"../stdlib/m54.wtf\", \"../stdlib/m55.wtf\", \"../stdlib/m56.wtf\", \"../stdlib/m57.wtf\", \"../stdlib/m58.wtf\", \"../stdlib/m59.wtf\", \"../stdlib/m60.wtf\", \"../stdlib/m61.wtf\", \"../stdlib/m62.wtf\", \"../stdlib/m63.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/twin.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"twin\"}]\n",
+        ".wtf/modules.json": "[\"./modules/headings.wtf\", \"./modules/twin.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/twin.wtf": "module := {",
+        ".wtf/modules.json": "[\"./modules/twin.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"./modules/headings.wtf\"]\n",
+        ".wtf/modules/twin.wtf": null
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "await": "window/logMessage"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"saved\"}]\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/headings.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/headings.wtf": "module := {"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/headings.wtf"
+          ]
+        },
+        {
+          "await": "window/logMessage"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"reloaded\"}]\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/headings.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules.json": null
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules.json"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

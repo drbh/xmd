@@ -1,0 +1,50 @@
+{
+  "https://github.com/org/repo/pull/42": {
+    "title": "Hello",
+    "state": "open",
+    "merged": false,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-16T17:59:00Z"
+  },
+  "https://github.com/org/repo/issues/3": {
+    "title": "An issue",
+    "state": "closed",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-16T17:00:00Z"
+  },
+  "https://github.com/org/repo/commit/abcdef12345": {
+    "title": "Commit",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-15T18:00:00Z"
+  },
+  "http://github.com/org/repo/pull/1": {
+    "title": "Draft",
+    "state": "open",
+    "merged": false,
+    "checks": "pending",
+    "review": "review_required",
+    "fetched_at": "2026-09-09T18:00:00Z"
+  },
+  "https://github.com/o/r/pull/2": {
+    "title": "Merged",
+    "state": "merged",
+    "merged": true,
+    "checks": "passing",
+    "review": "approved",
+    "fetched_at": "2026-09-02T18:00:00Z"
+  },
+  "https://github.com/o/r/pull/3": {
+    "title": "Closed",
+    "state": "closed",
+    "merged": false,
+    "checks": "failing",
+    "review": "changes_requested",
+    "fetched_at": "2026-09-16T18:00:00Z"
+  }
+}

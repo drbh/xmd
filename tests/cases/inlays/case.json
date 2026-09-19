@@ -1,0 +1,66 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "n.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "n.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "n.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "n.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 100,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "n.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 9
+            },
+            "end": {
+              "line": 1,
+              "character": 24
+            }
+          }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "missing.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 100,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

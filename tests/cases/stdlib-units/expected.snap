@@ -1,0 +1,47 @@
+### 0 cli render units.wtf --format text
+$ wtf render units.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Unit conversions
+u := import("units") = <collection>
+distance := u.km_to_mi(100) = 62.1371
+c_to_f := u.convert(100, "c", "f") = 212
+f_to_c := u.convert(212, "fahrenheit", "celsius") = 100
+c_to_k := u.convert(0, "c", "k") = 273.15
+mi_to_ft := u.convert(1, "mi", "ft") = 5280
+kg_to_g := u.convert(2, "kg", "g") = 2000
+gal_to_qt := u.convert(1, "gal", "qt") = 4
+gb_to_mb := u.convert(1, "gb", "mb") = 1000
+ha_to_sqm := u.convert(1, "ha", "sqm") = 10000
+mps_to_kph := u.convert(1, "mps", "kph") = 3.6
+round_trip := u.lb_to_kg(u.kg_to_lb(5)) = 5
+formatted := u.format(62.13711922373339, "miles") = 62.14 mi
+dimension := u.dimension("tbsp") = volume
+
+### 1 cli render bad.wtf --format text
+$ wtf render bad.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+u := import("units") = <collection>
+mismatch := u.convert(1, "km", "kg")
+unknown := u.convert(1, "smoots", "m")
+--- stderr
+<root>/bad.wtf:2:13: error: Cannot convert km to kg
+<root>/bad.wtf:3:12: error: Unknown unit 'smoots'
+wtf: 2 error(s) while rendering
+
+### 2 cli query bad.wtf diagnostics | select {message, code} --json
+$ wtf query bad.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "message": "Cannot convert km to kg"
+  },
+  {
+    "code": "evaluation",
+    "message": "Unknown unit 'smoots'"
+  }
+]
+

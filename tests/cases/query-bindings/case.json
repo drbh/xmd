@@ -1,0 +1,172 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | select {name, value, type, display, errors}",
+        "--root",
+        "money",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | where name == \"total\" | select {value, amount:value.amount, currency:value.currency, local:eval(\"price\")}",
+        "--root",
+        "money",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | where name == \"price\" | sum value",
+        "--root",
+        "money",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "usd.wtf",
+        "values | where name == \"total\" | select {name, hover}",
+        "--root",
+        "money",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "notes | select {title, kind, path: source.path, size: length(text)}",
+        "--root",
+        "money",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tables.wtf",
+        "tables | select {name}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tables.wtf",
+        "rows | where table == \"groceries\" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tables.wtf",
+        "values | where name == \"total\" | select {name, value, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "plans.wtf",
+        "plans | select {name}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "plans.wtf",
+        "plans | where name == \"bakery\" | select solution",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "links.wtf",
+        "resources | select {target, metadata}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "links.wtf",
+        "resources | where metadata != null | select metadata.title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bad.wtf",
+        "values | select {name, value, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bad.wtf",
+        "tasks | select {title, due, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bad.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "bad.wtf"
+        },
+        {
+          "query": {
+            "query": "tasks | select {title, errors}",
+            "uri": "bad.wtf"
+          }
+        },
+        {
+          "change": {
+            "file": "bad.wtf",
+            "text": "good := 41 + 1\n- [ ] Fixed @due(2026-09-17)\n"
+          }
+        },
+        {
+          "query": {
+            "query": "values | select {name, display}",
+            "uri": "bad.wtf"
+          }
+        },
+        {
+          "query": {
+            "query": "length(tasks)"
+          }
+        },
+        {
+          "request": "wtf/query",
+          "params": {
+            "query": "tasks",
+            "uri": "${uri:missing.wtf}"
+          }
+        }
+      ]
+    }
+  ]
+}

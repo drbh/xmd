@@ -1,0 +1,2 @@
+- [ ] A :a @after(b)
+- [ ] B :b @after(a)

@@ -1,0 +1,945 @@
+### 0 lsp
+-- open links.wtf
+-- await textDocument/publishDiagnostics links.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/links.wtf",
+  "version": 1
+}
+-- request textDocument/documentLink links.wtf
+[
+  {
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 0
+      },
+      "start": {
+        "character": 3,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/packing.wtf",
+    "tooltip": "Open file://<root>/packing.wtf"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 45,
+        "line": 0
+      },
+      "start": {
+        "character": 21,
+        "line": 0
+      }
+    },
+    "target": "https://example.com/docs",
+    "tooltip": "Open https://example.com/docs"
+  }
+]
+-- request textDocument/hover links.wtf 0:4
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "[Open resource](<file://<root>/packing.wtf>)"
+  },
+  "range": {
+    "end": {
+      "character": 16,
+      "line": 0
+    },
+    "start": {
+      "character": 3,
+      "line": 0
+    }
+  }
+}
+-- request textDocument/semanticTokens/full links.wtf
+0:3+13 wtfLink "./packing.wtf"
+0:21+24 wtfLink "https://example.com/docs"
+1:0+1 wtfPunctuation "["
+1:1+5 variable [declaration] "focus"
+1:6+1 wtfPunctuation "]"
+1:8+2 operator ":="
+1:11+9 function [defaultLibrary] "countdown"
+1:20+1 wtfPunctuation "("
+1:21+3 wtfDuration "25m"
+1:24+1 wtfPunctuation ")"
+2:0+1 wtfPunctuation "-"
+2:2+3 wtfCheckbox "[ ]"
+2:16+10 wtfDate "09/17/2026"
+2:30+3 wtfTime "7AM"
+-- change links.wtf (version 2)
+🦀 ./other.wtf
+[focus] := $3.30
+- [x] Interview 09/17/2026 at 7AM
+-- await textDocument/publishDiagnostics links.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/links.wtf",
+  "version": 2
+}
+-- request textDocument/documentLink links.wtf
+[
+  {
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 0
+      },
+      "start": {
+        "character": 3,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/other.wtf",
+    "tooltip": "Open file://<root>/other.wtf"
+  }
+]
+-- request textDocument/semanticTokens/full links.wtf
+0:3+11 wtfLink "./other.wtf"
+1:0+1 wtfPunctuation "["
+1:1+5 variable [declaration] "focus"
+1:6+1 wtfPunctuation "]"
+1:8+2 operator ":="
+1:11+5 wtfMoney "$3.30"
+2:0+1 wtfPunctuation "-"
+2:2+3 wtfCheckboxChecked "[x]"
+2:5+28 wtfTaskDone " Interview 09/17/2026 at 7AM"
+-- open symbols.wtf
+-- await textDocument/publishDiagnostics symbols.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/symbols.wtf",
+  "version": 1
+}
+-- request textDocument/documentSymbol symbols.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "Money · $3,000",
+        "kind": 14,
+        "name": "budget",
+        "range": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 9,
+            "line": 1
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "detail": "Money · $556",
+            "kind": 13,
+            "name": "remaining",
+            "range": {
+              "end": {
+                "character": 30,
+                "line": 3
+              },
+              "start": {
+                "character": 0,
+                "line": 3
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 3
+              },
+              "start": {
+                "character": 1,
+                "line": 3
+              }
+            }
+          },
+          {
+            "children": [
+              {
+                "detail": "Complete",
+                "kind": 17,
+                "name": "Passport",
+                "range": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                }
+              }
+            ],
+            "detail": "Complete · :pack",
+            "kind": 17,
+            "name": "Pack",
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 5
+              },
+              "start": {
+                "character": 0,
+                "line": 4
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 16,
+                "line": 4
+              },
+              "start": {
+                "character": 12,
+                "line": 4
+              }
+            }
+          },
+          {
+            "detail": "Countdown · ◷ 25:00 remaining · ○ idle",
+            "kind": 13,
+            "name": "timer",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 6
+              },
+              "start": {
+                "character": 0,
+                "line": 6
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 6,
+                "line": 6
+              },
+              "start": {
+                "character": 1,
+                "line": 6
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Money",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 6
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 8,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "detail": "",
+    "kind": 3,
+    "name": "Trip",
+    "range": {
+      "end": {
+        "character": 25,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- change symbols.wtf (version 2)
+# Trip
+[$3,000]:budget
+## Cash
+[remaining] := budget - $1,410
+- [ ] Pack :pack
+  - [x] Passport
+[timer] := countdown(25m)
+-- await textDocument/publishDiagnostics symbols.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/symbols.wtf",
+  "version": 2
+}
+-- request textDocument/documentSymbol symbols.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "Money · $3,000",
+        "kind": 14,
+        "name": "budget",
+        "range": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 9,
+            "line": 1
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "detail": "Money · $1,590",
+            "kind": 13,
+            "name": "remaining",
+            "range": {
+              "end": {
+                "character": 30,
+                "line": 3
+              },
+              "start": {
+                "character": 0,
+                "line": 3
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 3
+              },
+              "start": {
+                "character": 1,
+                "line": 3
+              }
+            }
+          },
+          {
+            "children": [
+              {
+                "detail": "Complete",
+                "kind": 17,
+                "name": "Passport",
+                "range": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                }
+              }
+            ],
+            "detail": "Complete · :pack",
+            "kind": 17,
+            "name": "Pack",
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 5
+              },
+              "start": {
+                "character": 0,
+                "line": 4
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 16,
+                "line": 4
+              },
+              "start": {
+                "character": 12,
+                "line": 4
+              }
+            }
+          },
+          {
+            "detail": "Countdown · ◷ 25:00 remaining · ○ idle",
+            "kind": 13,
+            "name": "timer",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 6
+              },
+              "start": {
+                "character": 0,
+                "line": 6
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 6,
+                "line": 6
+              },
+              "start": {
+                "character": 1,
+                "line": 6
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Cash",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 6
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 7,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "detail": "",
+    "kind": 3,
+    "name": "Trip",
+    "range": {
+      "end": {
+        "character": 25,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- open prose.wtf
+-- await textDocument/publishDiagnostics prose.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/prose.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint prose.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= $556",
+    "paddingLeft": true,
+    "position": {
+      "character": 39,
+      "line": 6
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+    }
+  },
+  {
+    "label": "$556",
+    "paddingLeft": true,
+    "position": {
+      "character": 19,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+    }
+  }
+]
+-- change prose.wtf (version 2)
+# Trip
+
+Our budget is [$3,000]:trip_budget.
+
+We've spent [$1,410]:trip_spent.
+
+[trip_left] := trip_budget - trip_spent
+
+We have [trip_left] remaining.
+-- await textDocument/publishDiagnostics prose.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/prose.wtf",
+  "version": 2
+}
+-- request textDocument/inlayHint prose.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= $1,590",
+    "paddingLeft": true,
+    "position": {
+      "character": 39,
+      "line": 6
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+    }
+  },
+  {
+    "label": "$1,590",
+    "paddingLeft": true,
+    "position": {
+      "character": 19,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+    }
+  }
+]
+
+### 1 read links.wtf symbols.wtf prose.wtf
+-- links.wtf
+🦀 ./packing.wtf and https://example.com/docs.
+[focus] := countdown(25m)
+- [ ] Interview 09/17/2026 at 7AM
+-- symbols.wtf
+# Trip
+[$3,000]:budget
+## Money
+[remaining] := budget - $2,444
+- [ ] Pack :pack
+  - [x] Passport
+[timer] := countdown(25m)
+-- prose.wtf
+# Trip
+
+Our budget is [$3,000]:trip_budget.
+
+We've spent [$2,444]:trip_spent.
+
+[trip_left] := trip_budget - trip_spent
+
+We have [trip_left] remaining.
+
+### 2 lsp capabilities {}
+-- open flat.wtf
+-- request textDocument/documentSymbol flat.wtf
+[
+  {
+    "kind": 3,
+    "location": {
+      "range": {
+        "end": {
+          "character": 6,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/flat.wtf"
+    },
+    "name": "Flat"
+  },
+  {
+    "containerName": "Flat",
+    "kind": 14,
+    "location": {
+      "range": {
+        "end": {
+          "character": 11,
+          "line": 1
+        },
+        "start": {
+          "character": 5,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/flat.wtf"
+    },
+    "name": "answer"
+  },
+  {
+    "containerName": "Flat",
+    "kind": 3,
+    "location": {
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 2
+        },
+        "start": {
+          "character": 0,
+          "line": 2
+        }
+      },
+      "uri": "file://<root>/flat.wtf"
+    },
+    "name": "Packing"
+  },
+  {
+    "containerName": "Packing",
+    "kind": 17,
+    "location": {
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "uri": "file://<root>/flat.wtf"
+    },
+    "name": "Passport"
+  }
+]
+
+### 3 cli query --workspace notes | select {title} | sort title --json
+$ wtf query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "title": "flat.wtf"
+  },
+  {
+    "title": "links.wtf"
+  },
+  {
+    "title": "prose.wtf"
+  },
+  {
+    "title": "symbols.wtf"
+  }
+]
+
+### 4 lsp
+-- open ignored/TODOS.wtf
+-- await textDocument/publishDiagnostics ignored/TODOS.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/ignored/TODOS.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "████░░░░ 1/2 complete · 20m estimated left",
+    "paddingLeft": true,
+    "position": {
+      "character": 7,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`█████░░░░░ 50%` 1/2 complete · 20m estimated left"
+    }
+  },
+  {
+    "label": "████░░░░ 1/2 complete · 20m estimated left",
+    "paddingLeft": true,
+    "position": {
+      "character": 20,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`█████░░░░░ 50%` 1/2 complete · 20m estimated left"
+    }
+  },
+  {
+    "label": "= 1",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 7
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**done · Count**\n\n1\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+    }
+  },
+  {
+    "label": "= 1",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**left · Count**\n\n1\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+    }
+  },
+  {
+    "label": "= 20m",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 9
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**work · Duration**\n\n20m\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 20m\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+    }
+  }
+]
+-- request textDocument/semanticTokens/full ignored/TODOS.wtf
+0:0+1 wtfPunctuation "#"
+0:1+6 heading " Notes"
+2:0+2 wtfPunctuation "##"
+2:2+11 heading " Checklist "
+2:13+1 wtfPunctuation ":"
+2:14+6 variable [declaration] "launch"
+4:0+1 wtfPunctuation "-"
+4:2+3 wtfCheckbox "[ ]"
+4:12+9 decorator "@estimate"
+4:21+1 wtfPunctuation "("
+4:22+3 wtfDuration "20m"
+4:25+1 wtfPunctuation ")"
+5:0+1 wtfPunctuation "-"
+5:2+3 wtfCheckboxChecked "[X]"
+5:5+9 wtfTaskDone " Finished"
+7:0+4 variable [declaration] "done"
+7:4+3 operator " :="
+7:8+9 function [defaultLibrary] "completed"
+7:17+1 wtfPunctuation "("
+7:18+6 variable "launch"
+7:24+1 wtfPunctuation ")"
+8:0+4 variable [declaration] "left"
+8:4+3 operator " :="
+8:8+9 function [defaultLibrary] "remaining"
+8:17+1 wtfPunctuation "("
+8:18+6 variable "launch"
+8:24+1 wtfPunctuation ")"
+9:0+4 variable [declaration] "work"
+9:4+3 operator " :="
+9:8+6 function [defaultLibrary] "effort"
+9:14+1 wtfPunctuation "("
+9:15+6 variable "launch"
+9:21+1 wtfPunctuation ")"
+-- change ignored/TODOS.wtf (version 2)
+# Notes
+
+## Checklist :launch
+
+- [x] First @estimate(20m)
+- [X] Finished
+
+done := completed(launch)
+left := remaining(launch)
+work := effort(launch)
+-- await textDocument/publishDiagnostics ignored/TODOS.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/ignored/TODOS.wtf",
+  "version": 2
+}
+-- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "████████ 2/2 complete",
+    "paddingLeft": true,
+    "position": {
+      "character": 7,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`██████████ 100%` 2/2 complete"
+    }
+  },
+  {
+    "label": "████████ 2/2 complete",
+    "paddingLeft": true,
+    "position": {
+      "character": 20,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`██████████ 100%` 2/2 complete"
+    }
+  },
+  {
+    "label": "= 2",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 7
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+    }
+  },
+  {
+    "label": "= 0",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+    }
+  },
+  {
+    "label": "= 0s",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 9
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+    }
+  }
+]
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/ignored/TODOS.wtf"}]}
+-- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "████████ 2/2 complete",
+    "paddingLeft": true,
+    "position": {
+      "character": 7,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`██████████ 100%` 2/2 complete"
+    }
+  },
+  {
+    "label": "████████ 2/2 complete",
+    "paddingLeft": true,
+    "position": {
+      "character": 20,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`██████████ 100%` 2/2 complete"
+    }
+  },
+  {
+    "label": "= 2",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 7
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+    }
+  },
+  {
+    "label": "= 0",
+    "paddingLeft": true,
+    "position": {
+      "character": 25,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+    }
+  },
+  {
+    "label": "= 0s",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 9
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+    }
+  }
+]
+

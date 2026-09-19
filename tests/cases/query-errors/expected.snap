@@ -1,0 +1,281 @@
+### 0 cli query n.wtf  --json
+$ wtf query n.wtf  --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Empty expression around '|'
+
+### 1 cli query n.wtf tasks | --json
+$ wtf query n.wtf tasks | --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Empty expression around '|'
+
+### 2 cli query n.wtf tasks | where (true --json
+$ wtf query n.wtf tasks | where (true --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unclosed delimiter in query
+
+### 3 cli query n.wtf tasks | select {a:1,a:2} --json
+$ wtf query n.wtf tasks | select {a:1,a:2} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Duplicate field 'a'
+
+### 4 cli query n.wtf tasks | limit -1 --json
+$ wtf query n.wtf tasks | limit -1 --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: limit requires a nonnegative integer
+
+### 5 cli query n.wtf tasks | explode --json
+$ wtf query n.wtf tasks | explode --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Unknown stage 'explode'; use where, select, sort, limit, count, sum or group
+
+### 6 cli query n.wtf tasks | select {x:} --json
+$ wtf query n.wtf tasks | select {x:} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Expected a value, name, or function
+
+### 7 cli query n.wtf @today --json
+$ wtf query n.wtf @today --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unexpected character '@'
+
+### 8 cli query n.wtf @week --json
+$ wtf query n.wtf @week --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unexpected character '@'
+
+### 9 cli query n.wtf @tasks --json
+$ wtf query n.wtf @tasks --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unexpected character '@'
+
+### 10 cli query n.wtf @check --json
+$ wtf query n.wtf @check --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unexpected character '@'
+
+### 11 cli query n.wtf @unknown --json
+$ wtf query n.wtf @unknown --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unexpected character '@'
+
+### 12 cli query n.wtf tasks | where (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) --json
+$ wtf query n.wtf tasks | where (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Query nesting exceeds 64 levels
+
+### 13 cli query n.wtf tasks | select 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 --json
+$ wtf query n.wtf tasks | select 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Expression depth exceeds 64 levels
+
+### 14 cli query n.wtf tasks | select 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+ --json
+$ wtf query n.wtf tasks | select 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+ --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Expected an expression
+
+### 15 cli query n.wtf tasks | where title --json
+$ wtf query n.wtf tasks | where title --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Expected a boolean predicate
+
+### 16 cli query n.wtf tasks | where dne --json
+$ wtf query n.wtf tasks | where dne --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Unknown name 'dne'
+
+### 17 cli query n.wtf tasks | select title.dne --json
+$ wtf query n.wtf tasks | select title.dne --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Unknown field 'dne' on Text
+
+### 18 cli query n.wtf tasks | select bogus() --json
+$ wtf query n.wtf tasks | select bogus() --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Unknown name 'bogus'
+
+### 19 cli query n.wtf tasks | sort tags --json
+$ wtf query n.wtf tasks | sort tags --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Cannot compare these value types
+
+### 20 cli query n.wtf tasks | select {x: 1 + 2d} --json
+$ wtf query n.wtf tasks | select {x: 1 + 2d} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Unsupported arithmetic types (Number + Duration)
+
+### 21 cli query n.wtf unknown --json
+$ wtf query n.wtf unknown --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unknown name 'unknown'
+
+### 22 cli query n.wtf 1/0 --json
+$ wtf query n.wtf 1/0 --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Division by zero (Number / Number)
+
+### 23 cli query n.wtf 2026-09-25 + 1h --json
+$ wtf query n.wtf 2026-09-25 + 1h --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: A date requires whole-day durations; use a date/time for hours (Date + Duration)
+
+### 24 cli query n.wtf sort_by([1, "two"], fn(x) => x) --json
+$ wtf query n.wtf sort_by([1, "two"], fn(x) => x) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Cannot compare these value types
+
+### 25 cli query n.wtf repeat("a", 1000000000) --json
+$ wtf query n.wtf repeat("a", 1000000000) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Repeated text exceeds the size limit
+
+### 26 cli query n.wtf slice([], 2, 1) --json
+$ wtf query n.wtf slice([], 2, 1) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: slice start must not exceed end
+
+### 27 cli query n.wtf format_date(today(), "%H") --json
+$ wtf query n.wtf format_date(today(), "%H") --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Format needs a time or timezone
+
+### 28 cli query n.wtf format_date(today(), "%Q") --json
+$ wtf query n.wtf format_date(today(), "%Q") --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Invalid date format
+
+### 29 cli query n.wtf error("bad") --json
+$ wtf query n.wtf error("bad") --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: bad
+
+### 30 cli query n.wtf fn(x, x) => x --json
+$ wtf query n.wtf fn(x, x) => x --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Invalid or duplicate parameter 'x'
+
+### 31 cli query n.wtf {x: 1, x: 2} --json
+$ wtf query n.wtf {x: 1, x: 2} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Duplicate field 'x'
+
+### 32 cli query n.wtf map([1], fn(x) => x)(2) --json
+$ wtf query n.wtf map([1], fn(x) => x)(2) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Expected a function
+
+### 33 cli query n.wtf if(1, 2, 3) --json
+$ wtf query n.wtf if(1, 2, 3) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: if requires a Boolean condition
+
+### 34 cli query n.wtf good() --json
+$ wtf query n.wtf good() --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Function expects 1 arguments, got 0
+
+### 35 cli query n.wtf loop(1) --json
+$ wtf query n.wtf loop(1) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Function call depth exceeds 32
+
+### 36 cli query n.wtf bad(2) --json
+$ wtf query n.wtf bad(2) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unknown name 'missing'
+
+### 37 cli query n.wtf eval(code) --json
+$ wtf query n.wtf eval(code) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Function call depth exceeds 32
+
+### 38 cli query n.wtf fold([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0, fn(a, x) => grow(a)) --json
+$ wtf query n.wtf fold([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0, fn(a, x) => grow(a)) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Value exceeds the collection or text size limit
+
+### 39 cli query mixed.wtf values | sort value | select name --json
+$ wtf query mixed.wtf values | sort value | select name --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 1: Cannot compare these value types
+
+### 40 cli query n.wtf divide(1) --json
+$ wtf query n.wtf divide(1) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Division by zero (Number / Number)
+
+### 41 cli query n.wtf good(2) --json
+$ wtf query n.wtf good(2) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  3.0
+]
+
+### 42 cli query n.wtf 1 + 2 --json
+$ wtf query n.wtf 1 + 2 --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  3.0
+]
+
+### 43 cli query broken.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query broken.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "Expected an expression",
+    "severity": "error"
+  }
+]
+
+### 44 cli query missing.wtf tasks --json
+$ wtf query missing.wtf tasks --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: <root>/missing.wtf: No such file or directory (os error 2)
+

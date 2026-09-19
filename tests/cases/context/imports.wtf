@@ -1,0 +1,3 @@
+[broken] := import("./b.wtf").remote + 1
+[other] := 1 / 0
+[good] := 4

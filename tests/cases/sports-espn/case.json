@@ -1,0 +1,94 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "games.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "unsupported.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/cache.json": "{\n  \"https://www.espn.com/nba/game/_/gameId/401584896\": {\n    \"title\": \"LAL @ BOS\",\n    \"state\": \"final\",\n    \"merged\": null,\n    \"checks\": null,\n    \"review\": null,\n    \"fetched_at\": \"2026-09-18T11:00:00Z\",\n    \"provider\": \"sports:1\",\n    \"data\": {\n      \"away\": \"LAL\",\n      \"away_score\": 108,\n      \"completed\": true,\n      \"home\": \"BOS\",\n      \"home_score\": 112,\n      \"state\": \"final\",\n      \"status\": \"Final\",\n      \"title\": \"LAL @ BOS\",\n      \"winner\": \"home\"\n    }\n  },\n  \"https://espn.com/nfl/game/_/gameId/401671793\": {\n    \"title\": \"BUF @ KC\",\n    \"state\": \"live\",\n    \"merged\": null,\n    \"checks\": null,\n    \"review\": null,\n    \"fetched_at\": \"2026-09-18T11:00:00Z\",\n    \"provider\": \"sports:1\",\n    \"data\": {\n      \"away\": \"BUF\",\n      \"away_score\": 14,\n      \"completed\": false,\n      \"home\": \"KC\",\n      \"home_score\": 17,\n      \"state\": \"live\",\n      \"status\": \"8:12 - 3rd\",\n      \"title\": \"BUF @ KC\",\n      \"winner\": null\n    }\n  },\n  \"https://www.espn.com/soccer/eng.1/game/_/gameId/704321\": {\n    \"title\": \"CHE @ ARS\",\n    \"state\": \"scheduled\",\n    \"merged\": null,\n    \"checks\": null,\n    \"review\": null,\n    \"fetched_at\": \"2026-09-18T11:00:00Z\",\n    \"provider\": \"sports:1\",\n    \"data\": {\n      \"away\": \"CHE\",\n      \"away_score\": null,\n      \"completed\": false,\n      \"home\": \"ARS\",\n      \"home_score\": null,\n      \"state\": \"scheduled\",\n      \"status\": \"Wed, 7:30 PM\",\n      \"title\": \"CHE @ ARS\",\n      \"winner\": null\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "games.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "games.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "games.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "games.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "games.wtf",
+          "line": 2,
+          "character": 15
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "games.wtf",
+          "line": 3,
+          "character": 6
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "games.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

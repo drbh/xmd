@@ -1,0 +1,164 @@
+### 0 cli refresh
+$ wtf refresh --root <root>
+exit 1
+--- stderr
+wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub title
+
+### 1 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://github.com/org/repo/commit/abcdef12345": {
+    "title": "Commit subject",
+    "state": "commit",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": null,
+      "merged": null,
+      "review": null,
+      "state": "commit",
+      "title": "Commit subject"
+    }
+  },
+  "https://github.com/org/repo/issues/3": {
+    "title": "An issue",
+    "state": "closed",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": null,
+      "merged": null,
+      "review": null,
+      "state": "closed",
+      "title": "An issue"
+    }
+  },
+  "https://github.com/org/repo/pull/42": {
+    "title": "Hello",
+    "state": "open",
+    "merged": false,
+    "checks": "passing",
+    "review": "APPROVED",
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": "passing",
+      "merged": false,
+      "review": "APPROVED",
+      "state": "open",
+      "title": "Hello"
+    }
+  },
+  "https://github.com/org/repo/pull/7": {
+    "title": "Merged",
+    "state": "merged",
+    "merged": true,
+    "checks": "failing",
+    "review": "CHANGES_REQUESTED",
+    "fetched_at": "<clock>",
+    "data": {
+      "checks": "failing",
+      "merged": true,
+      "review": "CHANGES_REQUESTED",
+      "state": "merged",
+      "title": "Merged"
+    }
+  }
+}
+
+### 2 cli render links.wtf --format text
+$ wtf render links.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+https://github.com/org/repo/pull/42 ○ open · ● checks · ✓ approved · just now
+https://github.com/org/repo/pull/7 ✓ merged · ✗ checks FAILING · ⚑ CHANGES REQUESTED · just now
+https://github.com/org/repo/issues/3 ✗ closed · just now
+https://github.com/org/repo/commit/abcdef12345 commit · just now
+https://github.com/org/repo/pull/9 ◌ PR #9 · refresh for status
+
+### 3 cli query links.wtf resources | select {target, metadata} --json
+$ wtf query links.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "metadata": {
+      "checks": "passing",
+      "data": {
+        "checks": "passing",
+        "merged": false,
+        "review": "APPROVED",
+        "state": "open",
+        "title": "Hello"
+      },
+      "fetched_at": "<clock>",
+      "merged": false,
+      "review": "APPROVED",
+      "state": "open",
+      "title": "Hello"
+    },
+    "target": "https://github.com/org/repo/pull/42"
+  },
+  {
+    "metadata": {
+      "checks": "failing",
+      "data": {
+        "checks": "failing",
+        "merged": true,
+        "review": "CHANGES_REQUESTED",
+        "state": "merged",
+        "title": "Merged"
+      },
+      "fetched_at": "<clock>",
+      "merged": true,
+      "review": "CHANGES_REQUESTED",
+      "state": "merged",
+      "title": "Merged"
+    },
+    "target": "https://github.com/org/repo/pull/7"
+  },
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "checks": null,
+        "merged": null,
+        "review": null,
+        "state": "closed",
+        "title": "An issue"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "review": null,
+      "state": "closed",
+      "title": "An issue"
+    },
+    "target": "https://github.com/org/repo/issues/3"
+  },
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "checks": null,
+        "merged": null,
+        "review": null,
+        "state": "commit",
+        "title": "Commit subject"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "review": null,
+      "state": "commit",
+      "title": "Commit subject"
+    },
+    "target": "https://github.com/org/repo/commit/abcdef12345"
+  },
+  {
+    "metadata": null,
+    "target": "https://github.com/org/repo/pull/9"
+  }
+]
+

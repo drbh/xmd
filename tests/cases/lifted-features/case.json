@@ -1,0 +1,326 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "bakery.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bakery.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bakery.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "choice.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "choice.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "choice.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "timers.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "timers.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "timers.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "oaxaca.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "oaxaca.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "oaxaca.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "baddates.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "baddates.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "baddates.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "yearless.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "yearless.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "yearless.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "work.wtf",
+        "values | select {name, display, type}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "work.wtf",
+        "diagnostics | select {message, code, severity}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "bakery.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "bakery.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "bakery.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "choice.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "choice.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "choice.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "timers.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "timers.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "oaxaca.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "oaxaca.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "oaxaca.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "baddates.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "baddates.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "baddates.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "yearless.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "yearless.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "yearless.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "open": "work.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "work.wtf"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "work.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "oaxaca.wtf",
+          "line": 1,
+          "character": 2
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "oaxaca.wtf",
+          "line": 4,
+          "character": 2
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "oaxaca.wtf",
+          "line": 9,
+          "character": 2
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "yearless.wtf",
+          "line": 1,
+          "character": 2
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "baddates.wtf",
+          "line": 1,
+          "character": 2
+        }
+      ]
+    }
+  ]
+}

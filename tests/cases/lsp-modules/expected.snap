@@ -1,0 +1,358 @@
+### 0 lsp
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[]
+-- await workspace/inlayHint/refresh
+null
+-- write .wtf/modules.json
+["./modules/docs.wtf"]
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.wtf/modules.json"}]}
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "first",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- write .wtf/modules/docs.wtf
+module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
+inlay := fn(ctx) => "second"
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules/docs.wtf"}]}
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "second",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- write .wtf/modules/docs.wtf
+module := {
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules/docs.wtf"}]}
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "second",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- write .wtf/modules.json
+[]
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules.json"}]}
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[]
+
+### 1 lsp
+-- write .wtf/modules/docs.wtf
+module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
+inlay := fn(ctx) => "saved"
+-- write .wtf/modules.json
+["./modules/docs.wtf"]
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.wtf/modules.json"}]}
+-- await workspace/inlayHint/refresh
+null
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "saved",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- open .wtf/modules/docs.wtf
+-- request textDocument/semanticTokens/full .wtf/modules/docs.wtf
+0:0+6 variable [declaration] "module"
+0:6+3 operator " :="
+0:10+1 wtfPunctuation "{"
+0:11+3 variable "api"
+0:14+1 wtfPunctuation ":"
+0:16+1 number "1"
+0:17+1 wtfPunctuation ","
+0:19+2 variable "id"
+0:21+1 wtfPunctuation ":"
+0:23+6 string "\"docs\""
+0:29+1 wtfPunctuation ","
+0:31+4 variable "kind"
+0:35+1 wtfPunctuation ":"
+0:37+6 string "\"link\""
+0:43+1 wtfPunctuation ","
+0:45+5 variable "hosts"
+0:50+1 wtfPunctuation ":"
+0:52+1 wtfPunctuation "["
+0:53+14 string "\"docs.example\""
+0:67+2 wtfPunctuation "]}"
+1:0+5 variable [declaration] "inlay"
+1:5+3 operator " :="
+1:9+2 function "fn"
+1:11+1 wtfPunctuation "("
+1:12+3 variable "ctx"
+1:15+1 wtfPunctuation ")"
+1:17+2 operator "=>"
+1:20+7 string "\"saved\""
+-- change .wtf/modules/docs.wtf (version 2)
+module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
+inlay := fn(ctx) => "unsaved"
+extra := fn(value) => value + 1
+-- request textDocument/semanticTokens/full .wtf/modules/docs.wtf
+0:0+6 variable [declaration] "module"
+0:6+3 operator " :="
+0:10+1 wtfPunctuation "{"
+0:11+3 variable "api"
+0:14+1 wtfPunctuation ":"
+0:16+1 number "1"
+0:17+1 wtfPunctuation ","
+0:19+2 variable "id"
+0:21+1 wtfPunctuation ":"
+0:23+6 string "\"docs\""
+0:29+1 wtfPunctuation ","
+0:31+4 variable "kind"
+0:35+1 wtfPunctuation ":"
+0:37+6 string "\"link\""
+0:43+1 wtfPunctuation ","
+0:45+5 variable "hosts"
+0:50+1 wtfPunctuation ":"
+0:52+1 wtfPunctuation "["
+0:53+14 string "\"docs.example\""
+0:67+2 wtfPunctuation "]}"
+1:0+5 variable [declaration] "inlay"
+1:5+3 operator " :="
+1:9+2 function "fn"
+1:11+1 wtfPunctuation "("
+1:12+3 variable "ctx"
+1:15+1 wtfPunctuation ")"
+1:17+2 operator "=>"
+1:20+9 string "\"unsaved\""
+2:0+5 variable [declaration] "extra"
+2:5+3 operator " :="
+2:9+2 function "fn"
+2:11+1 wtfPunctuation "("
+2:12+5 variable "value"
+2:17+1 wtfPunctuation ")"
+2:19+2 operator "=>"
+2:22+5 variable "value"
+2:28+1 operator "+"
+2:30+1 number "1"
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "saved",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- query values
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/.wtf/modules/docs.wtf": 2,
+    "file://<root>/main.wtf": 1
+  }
+}
+-- close .wtf/modules/docs.wtf
+
+### 2 lsp
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "saved",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+-- await workspace/inlayHint/refresh
+null
+-- write .wtf/modules/docs.wtf
+module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
+inlay := fn(ctx) => "reloaded"
+-- save .wtf/modules/docs.wtf
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "reloaded",
+    "paddingLeft": true,
+    "position": {
+      "character": 26,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://docs.example/start>)"
+    }
+  }
+]
+
+### 3 lsp
+-- write .wtf/modules/edit.wtf
+module := {api: 1, id: "edit", kind: "feature", inputs: []}
+actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
+-- write .wtf/modules.json
+["./modules/edit.wtf"]
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules.json"}]}
+-- open main2.wtf
+-- await textDocument/publishDiagnostics main2.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main2.wtf",
+  "version": 1
+}
+-- request textDocument/codeLens main2.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/main2.wtf",
+          "edits": [
+            {
+              "newText": "Goodbye",
+              "range": {
+                "end": {
+                  "character": 5,
+                  "line": 0
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "expected": "Hello world\n",
+          "kind": "edit"
+        }
+      ],
+      "command": "wtf.applyEdits",
+      "title": "Greeting"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.wtf}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"wtf.applyEdits"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "Goodbye",
+            "range": {
+              "end": {
+                "character": 5,
+                "line": 0
+              },
+              "start": {
+                "character": 0,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/main2.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- change main2.wtf (version 2)
+Goodbye world
+-- await textDocument/publishDiagnostics main2.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main2.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.wtf}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"wtf.applyEdits"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+

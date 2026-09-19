@@ -11,4 +11,8 @@ const view = await mount(document.createElement("div"), {
 });
 const editor = await mountEditor(document.createElement("div"), { source: html });
 await editor.undo(); await editor.redo();
+const selection: { anchor: number; focus: number } | null = editor.selection();
+editor.select(0, 3);
+await editor.replaceRange(0, 3, "b := 1", { anchor: 0, focus: 6 });
+console.log(selection);
 view.destroy(); editor.destroy(); workspace.destroy();

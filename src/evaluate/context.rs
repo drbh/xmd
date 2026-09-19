@@ -79,10 +79,4 @@ impl<'a> RequestContext<'a> {
         self.memo = Default::default();
         self
     }
-    /// Compatibility for APIs that accept a calendar day separately from `now`.
-    pub(crate) fn with_today(mut self, today: NaiveDate) -> Self {
-        self.today = today;
-        self.memo = Default::default();
-        self
-    }
 }

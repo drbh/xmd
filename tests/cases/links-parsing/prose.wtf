@@ -1,0 +1,6 @@
+🦀 See https://example.com/docs?q=1#part, and (https://example.com/a_(b)).
+Files: ./notes.wtf, ../src/main.rs; src/lib.rs and README.md.
+Config /tmp/log.txt; file:///tmp/a%20b.txt.
+Map geo:40.7,-74.0.
+# Review https://github.com/zed-industries/zed
+- [ ] Read https://example.com/@at(today)/[page] @estimate(5m)

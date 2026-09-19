@@ -1,0 +1,786 @@
+### 0 browser
+-- setDocument refresh.wtf
+-- setDocument {"text":"","uri":"file:///etc/secrets.wtf","version":1}
+{
+  "error": "Expected a .wtf file within the browser's /workspace",
+  "ok": false
+}
+-- setDocument {"text":"","uri":"https://example.com/note.wtf","version":1}
+{
+  "error": "Expected a local file URI",
+  "ok": false
+}
+-- setDocument {"text":"","uri":"file:///workspace/../secret.wtf","version":1}
+{
+  "error": "Expected a .wtf file within the browser's /workspace",
+  "ok": false
+}
+-- setDocument {"text":"","uri":"file:///workspace/test.wtf#L1","version":1}
+{
+  "error": "Document URIs cannot contain queries or fragments",
+  "ok": false
+}
+-- setDocument {"text":"oops","uri":"file:///workspace/refresh.wtf","version":1}
+{
+  "error": "Stale document version",
+  "ok": false
+}
+-- analyze not JSON
+{
+  "error": "expected ident at line 1 column 2",
+  "ok": false
+}
+-- analyze {"uri":"file:///workspace/refresh.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [
+      {
+        "code": "evaluation",
+        "message": "No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "range": {
+          "end": {
+            "character": 22,
+            "line": 0
+          },
+          "start": {
+            "character": 11,
+            "line": 0
+          }
+        },
+        "severity": 2,
+        "source": "wtf"
+      }
+    ],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "◌ PR #42 · refresh for status",
+        "paddingLeft": true,
+        "position": {
+          "character": 35,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-wtfLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-wtfLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/refresh.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 2
+            }
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://example.com/page",
+                "row": 3
+              },
+              "url": "https://example.com/page"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "task",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 35,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "target": "https://github.com/acme/app/pull/42",
+        "tooltip": "Open https://github.com/acme/app/pull/42"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 24,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        },
+        "target": "https://example.com/page",
+        "tooltip": "Open https://example.com/page"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[price] := quote(ACME)\nhttps://github.com/acme/app/pull/42\n- [ ] Task\nhttps://example.com/page\n",
+    "symbols": [
+      {
+        "detail": "Error · No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "kind": 13,
+        "name": "price",
+        "range": {
+          "end": {
+            "character": 22,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Task",
+        "range": {
+          "end": {
+            "character": 10,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 10,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      1,
+      0,
+      35,
+      17,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      1,
+      0,
+      24,
+      17,
+      0
+    ],
+    "uri": "file:///workspace/refresh.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/refresh.wtf": 1
+    }
+  }
+}
+-- actions {"range":{"end":{"character":0,"line":1},"start":{"character":0,"line":1}},"uri":"file:///workspace/refresh.wtf"}
+{
+  "ok": true,
+  "result": {
+    "actions": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "title": "↗ open"
+      }
+    ],
+    "versions": {
+      "file:///workspace/refresh.wtf": 1
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","kind":"refresh"}],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.wtf":1}}
+{
+  "error": "This command is not available in this host",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.wtf":1}}
+{
+  "error": "This command is not available in this host",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.wtf":1}}
+{
+  "error": "wtf.task expects a single action argument",
+  "ok": false
+}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "x",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 2
+                },
+                "start": {
+                  "character": 3,
+                  "line": 2
+                }
+              }
+            },
+            {
+              "newText": " @completed(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 10,
+                  "line": 2
+                },
+                "start": {
+                  "character": 10,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///workspace/refresh.wtf",
+            "version": 1
+          }
+        }
+      ]
+    }
+  }
+}
+-- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.wtf":1}}
+{
+  "ok": true,
+  "result": {
+    "open": "https://example.com/page"
+  }
+}
+-- query {"query":"tasks | where ("}
+{
+  "error": "Unclosed delimiter in query",
+  "ok": false
+}
+-- query {"query":"ast","uri":"file:///workspace/missing.wtf"}
+{
+  "error": "Document is not indexed: /workspace/missing.wtf",
+  "ok": false
+}
+-- query {"query":"ast","uri":"file:///outside/private.wtf"}
+{
+  "error": "Expected a .wtf file within the browser's /workspace",
+  "ok": false
+}
+-- query {"query":"ast","uri":"https://example.com/n.wtf"}
+{
+  "error": "Expected a local file URI",
+  "ok": false
+}
+-- analyze {"uri":"file:///workspace/refresh.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [
+      {
+        "code": "evaluation",
+        "message": "No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "range": {
+          "end": {
+            "character": 22,
+            "line": 0
+          },
+          "start": {
+            "character": 11,
+            "line": 0
+          }
+        },
+        "severity": 2,
+        "source": "wtf"
+      }
+    ],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "◌ PR #42 · refresh for status",
+        "paddingLeft": true,
+        "position": {
+          "character": 35,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-wtfLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-wtfLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "document": "file:///workspace/refresh.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 2
+            }
+          ],
+          "command": "wtf.task",
+          "title": "✓ done"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://example.com/page",
+                "row": 3
+              },
+              "url": "https://example.com/page"
+            }
+          ],
+          "command": "wtf.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      "task",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 35,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "target": "https://github.com/acme/app/pull/42",
+        "tooltip": "Open https://github.com/acme/app/pull/42"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 24,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        },
+        "target": "https://example.com/page",
+        "tooltip": "Open https://example.com/page"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[price] := quote(ACME)\nhttps://github.com/acme/app/pull/42\n- [ ] Task\nhttps://example.com/page\n",
+    "symbols": [
+      {
+        "detail": "Error · No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "kind": 13,
+        "name": "price",
+        "range": {
+          "end": {
+            "character": 22,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Incomplete",
+        "kind": 17,
+        "name": "Task",
+        "range": {
+          "end": {
+            "character": 10,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 10,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      1,
+      0,
+      35,
+      17,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      18,
+      0,
+      1,
+      0,
+      24,
+      17,
+      0
+    ],
+    "uri": "file:///workspace/refresh.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/refresh.wtf": 1
+    }
+  }
+}
+

@@ -1,0 +1,135 @@
+### 0 cli render solver.wtf --format text
+$ wtf render solver.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+optimal := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}) = {"status": "optimal", "values": {"x": 2}}
+unbounded := solve_linear({goal: "maximize", variables: {x: {kind: "continuous", lower: 0}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}) = {"status": "unbounded"}
+infeasible := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: ">=", rhs: {constant: 5, terms: {}}}]}) = {"status": "infeasible"}
+
+### 1 cli query solver.wtf values | select {name, display} --json
+$ wtf query solver.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "{\"status\": \"optimal\", \"values\": {\"x\": 2}}",
+    "name": "optimal"
+  },
+  {
+    "display": "{\"status\": \"unbounded\"}",
+    "name": "unbounded"
+  },
+  {
+    "display": "{\"status\": \"infeasible\"}",
+    "name": "infeasible"
+  }
+]
+
+### 2 cli render badmodels.wtf --format text
+$ wtf render badmodels.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+bad_0 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 5, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_1 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {missing: 1}}, constraints: []})
+bad_2 := solve_linear({goal: "maximize", variables: {x: {kind: "imaginary", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_3 := solve_linear({goal: "guess", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
+bad_4 := solve_linear({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: [], order: ["x", "x"]})
+--- stderr
+<root>/badmodels.wtf:1:10: error: Reversed bounds for 'x'
+<root>/badmodels.wtf:2:10: error: Unknown linear variable 'missing'
+<root>/badmodels.wtf:3:10: error: Unknown variable kind 'imaginary'
+<root>/badmodels.wtf:4:10: error: Linear goal must be maximize or minimize
+<root>/badmodels.wtf:5:10: error: Variable order must name every variable exactly once
+wtf: 5 error(s) while rendering
+
+### 3 cli render validate.wtf --format text
+$ wtf render validate.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+a := stopwatch(null)
+b := stopwatch(0s, null)
+c := countdown(1m, null)
+d := countdown(1m, 0s, null)
+--- stderr
+<root>/validate.wtf:1:6: error: Timer durations must be nonnegative whole seconds
+<root>/validate.wtf:2:6: error: Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00
+<root>/validate.wtf:3:6: error: Timer durations must be nonnegative whole seconds
+<root>/validate.wtf:4:6: error: Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00
+wtf: 4 error(s) while rendering
+
+### 4 cli render calendar.wtf --format text
+$ wtf render calendar.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+impossible := parse_date("2026-02-29", "%F") = null
+bad_time := parse_datetime("2026-09-18 25:00", "%F %H:%M", now()) = null
+parsed := source(parse_datetime("2026-09-18 09:30", "%F %H:%M", now())) = 2026-09-18T09:30:00-04:00
+
+### 5 cli render imports.wtf --format text
+$ wtf render imports.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+x := import("consumer").run(3) = 12
+human := import("format").human(125m) = 2h 5m
+
+### 6 cli query --workspace notes | select import("format").human(125m) | limit 1 --json
+$ wtf query --workspace notes | select import("format").human(125m) | limit 1 --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "2h 5m"
+]
+
+### 7 cli render runaway.wtf --format text
+$ wtf render runaway.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+spun := import("math").loop(0)
+--- stderr
+<root>/runaway.wtf:1:9: error: Function call depth exceeds 32
+wtf: 1 error(s) while rendering
+
+### 8 cli render plans.wtf --format text
+$ wtf render plans.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+result := maximize(zebra + apple) = 3 · zebra 1 · apple 2
+| constraint | expression |
+| --- | --- |
+| z | zebra <= 1 | ████████ 1 ≤ 1 · ● binding
+| a | apple <= 2 | ████████ 2 ≤ 2 · ● binding
+
+### 9 lsp
+-- open plans.wtf
+-- await textDocument/publishDiagnostics plans.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/plans.wtf",
+  "version": 1
+}
+-- request textDocument/hover plans.wtf 0:2
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**result · Plan**\n\n3\n\n```text\nmaximize(zebra + apple)\n= maximize(1 + 2)\n= 3\n```\n\nMaximizes the objective. Variables: zebra = 1, apple = 2\n\nConstraints:\n\n- z: `██████████ 100%` 1 ≤ 1 · ● binding\n- a: `██████████ 100%` 2 ≤ 2 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [apple](<file://<root>/plans.wtf#L1>), [zebra](<file://<root>/plans.wtf#L1>)\n\nDefinition: [result](<file://<root>/plans.wtf#L1>) · <root>/plans.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 6,
+      "line": 0
+    },
+    "start": {
+      "character": 0,
+      "line": 0
+    }
+  }
+}
+
+### 10 cli render precision.wtf --format text
+$ wtf render precision.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+under_an_hour := stopwatch(59s) = ◴ 00:59 elapsed · ‖ paused
+an_hour := stopwatch(3600s) = ◴ 01:00:00 elapsed · ‖ paused
+huge := stopwatch(9007199254741003s) = ◴ 2501999792983:36:44 elapsed · ‖ paused
+

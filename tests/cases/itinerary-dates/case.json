@@ -1,0 +1,38 @@
+{
+  "steps": [
+    { "cli": ["render", "markers.wtf", "--format", "text"] },
+    {
+      "cli": [
+        "query",
+        "markers.wtf",
+        "map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind})",
+        "--json"
+      ]
+    },
+    { "cli": ["query", "markers.wtf", "stops | select {title, line, at_date}", "--json"] },
+    { "cli": ["query", "markers.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "markers.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "markers.wtf" },
+        {
+          "request": "textDocument/formatting",
+          "file": "markers.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        }
+      ]
+    },
+    { "cli": ["query", "carry.wtf", "stops | select {title, at_date}", "--json"] },
+    { "cli": ["query", "past.wtf", "stops | select {title, at_date}", "--json"] },
+    { "cli": ["query", "prose.wtf", "days | select {title, line}", "--json"] },
+    { "cli": ["query", "bad.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "complete.wtf" },
+        { "request": "textDocument/completion", "file": "complete.wtf", "line": 2, "character": 11 },
+        { "request": "textDocument/completion", "file": "complete.wtf", "line": 5, "character": 2 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+### 0 cli render watch.wtf --format text
+$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+watch := stopwatch() = ◴ 00:41 elapsed · ‖ paused
+Elapsed [watch.elapsed] 42s.
+
+### 1 lsp
+-- open watch.wtf
+-- await textDocument/publishDiagnostics watch.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/watch.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction watch.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "action": "resume",
+        "document": "file://<root>/watch.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
+    ],
+    "command": "wtf.timer",
+    "title": "▸ resume watch"
+  },
+  {
+    "arguments": [
+      {
+        "action": "reset",
+        "document": "file://<root>/watch.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
+    ],
+    "command": "wtf.timer",
+    "title": "↺ reset watch"
+  }
+]
+-- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(17s)",
+            "range": {
+              "end": {
+                "character": 20,
+                "line": 0
+              },
+              "start": {
+                "character": 8,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/watch.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- request textDocument/hover watch.wtf 1:9
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "watch.elapsed = 42s\n\n**watch · Stopwatch**\n\nCUSTOM TIMER\n\n```text\nstopwatch()\n= CUSTOM TIMER\n```\n\nElapsed: 41s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/watch.wtf#L1>) · <root>/watch.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 22,
+      "line": 1
+    },
+    "start": {
+      "character": 9,
+      "line": 1
+    }
+  }
+}
+
+### 2 write
+-- write .wtf/modules.json (35 bytes)
+
+### 3 cli render watch.wtf --format text
+$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+watch := stopwatch()
+Elapsed [watch.elapsed].
+--- stderr
+<root>/watch.wtf:1:10: error: Module 'timer' is unavailable or disabled
+wtf: 1 error(s) while rendering
+
+### 4 cli query watch.wtf diagnostics | select {message, code} --json
+$ wtf query watch.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "message": "Module 'timer' is unavailable or disabled"
+  }
+]
+
+### 5 write
+-- write .wtf/modules.json (34 bytes)
+
+### 6 cli render watch.wtf --format text
+$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+watch := stopwatch()
+Elapsed [watch.elapsed].
+--- stderr
+<root>/watch.wtf:1:10: error: CUSTOM FAILURE
+wtf: 1 error(s) while rendering
+
+### 7 cli query watch.wtf diagnostics | select {message, code} --json
+$ wtf query watch.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "message": "CUSTOM FAILURE"
+  }
+]
+
+### 8 write
+-- write .wtf/modules.json (3 bytes)
+
+### 9 cli render counting.wtf --format text
+$ wtf render counting.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+watch := countdown(1m, 30s) = ◷ ████░░░░ 00:30 remaining · ‖ paused
+
+### 10 write
+-- write .wtf/modules.json (34 bytes)
+
+### 11 cli render counting.wtf --format text
+$ wtf render counting.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+watch := countdown(1m, 30s) = ◷ ▓▓▓▓░░░░ 00:30 remaining · ‖ paused
+
+### 12 write
+-- write .wtf/modules.json (33 bytes)
+
+### 13 cli render bakery.wtf --format text
+$ wtf render bakery.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+best := maximize($2 * count)
+| constraint | expression |
+| --- | --- |
+| limit | count <= 3 |
+--- stderr
+<root>/bakery.wtf:1:18: error: ACTIVE PLAN LIBRARY
+wtf: 1 error(s) while rendering
+
+### 14 cli query bakery.wtf diagnostics | select {message, code} --json
+$ wtf query bakery.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "message": "ACTIVE PLAN LIBRARY"
+  }
+]
+

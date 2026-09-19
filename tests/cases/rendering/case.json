@@ -1,0 +1,84 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "lf.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "lf_trailing.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "crlf.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "crlf_trailing.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "empty.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "escape.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "escape.wtf",
+        "--format",
+        "html"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "empty.wtf",
+        "--format",
+        "html"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "missing.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "read": [
+        "lf.wtf",
+        "crlf.wtf",
+        "escape.wtf"
+      ]
+    }
+  ]
+}

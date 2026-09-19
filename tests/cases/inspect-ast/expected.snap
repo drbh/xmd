@@ -1,0 +1,804 @@
+### 0 cli ast one.wtf -q ast | where kind == "document" | select {kind, name, parent, text}
+$ wtf ast one.wtf -q ast | where kind == "document" | select {kind, name, parent, text} --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "kind": "document",
+    "name": null,
+    "parent": null,
+    "text": "# Notes 🦀\r\nPlain prose.\r\n[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)\r\n- [ ] Parent\r\n  - [x] Child @estimate(30m)\r\nSee [add].\r\n```\r\ninert := 5\r\n```\r\n"
+  }
+]
+
+### 1 cli ast one.wtf -q join(map(filter(ast, fn(n) => n.kind == "line"), fn(n) => n.text), "")
+$ wtf ast one.wtf -q join(map(filter(ast, fn(n) => n.kind == "line"), fn(n) => n.text), "") --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "# Notes 🦀\r\nPlain prose.\r\n[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)\r\n- [ ] Parent\r\n  - [x] Child @estimate(30m)\r\nSee [add].\r\n```\r\ninert := 5\r\n```\r\n"
+]
+
+### 2 cli ast one.wtf -q map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range})
+$ wtf ast one.wtf -q map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range}) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "kind": "document",
+    "line": 1,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 12
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "text": "# Notes 🦀\r\nPlain prose.\r\n[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)\r\n- [ ] Parent\r\n  - [x] Child @estimate(30m)\r\nSee [add].\r\n```\r\ninert := 5\r\n```\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 1,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "text": "# Notes 🦀\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 2,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "text": "Plain prose.\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 3,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "text": "[add] := fn(x) => (\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 4,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "text": "  // keep this comment\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 5,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    },
+    "text": "  x + missing\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 6,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    },
+    "text": ")\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 7,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 7
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    },
+    "text": "- [ ] Parent\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 8,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 7
+      }
+    },
+    "text": "  - [x] Child @estimate(30m)\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 9,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 9
+      },
+      "start": {
+        "character": 0,
+        "line": 8
+      }
+    },
+    "text": "See [add].\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 10,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 10
+      },
+      "start": {
+        "character": 0,
+        "line": 9
+      }
+    },
+    "text": "```\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 11,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 11
+      },
+      "start": {
+        "character": 0,
+        "line": 10
+      }
+    },
+    "text": "inert := 5\r\n"
+  },
+  {
+    "kind": "line",
+    "line": 12,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 12
+      },
+      "start": {
+        "character": 0,
+        "line": 11
+      }
+    },
+    "text": "```\r\n"
+  },
+  {
+    "kind": "section",
+    "line": 1,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 12
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "text": "# Notes 🦀\r\nPlain prose.\r\n[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)\r\n- [ ] Parent\r\n  - [x] Child @estimate(30m)\r\nSee [add].\r\n```\r\ninert := 5\r\n```\r\n"
+  },
+  {
+    "kind": "definition",
+    "line": 3,
+    "name": "add",
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "text": "[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)"
+  },
+  {
+    "kind": "lambda",
+    "line": 3,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 5
+      },
+      "start": {
+        "character": 9,
+        "line": 2
+      }
+    },
+    "text": "fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)"
+  },
+  {
+    "kind": "binary",
+    "line": 5,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 4
+      },
+      "start": {
+        "character": 2,
+        "line": 4
+      }
+    },
+    "text": "x + missing"
+  },
+  {
+    "kind": "name",
+    "line": 5,
+    "name": "x",
+    "range": {
+      "end": {
+        "character": 3,
+        "line": 4
+      },
+      "start": {
+        "character": 2,
+        "line": 4
+      }
+    },
+    "text": "x"
+  },
+  {
+    "kind": "name",
+    "line": 5,
+    "name": "missing",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 4
+      },
+      "start": {
+        "character": 6,
+        "line": 4
+      }
+    },
+    "text": "missing"
+  },
+  {
+    "kind": "task",
+    "line": 7,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 7
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    },
+    "text": "- [ ] Parent\r\n"
+  },
+  {
+    "kind": "checkbox",
+    "line": 7,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 5,
+        "line": 6
+      },
+      "start": {
+        "character": 2,
+        "line": 6
+      }
+    },
+    "text": "[ ]"
+  },
+  {
+    "kind": "task",
+    "line": 8,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 7
+      }
+    },
+    "text": "  - [x] Child @estimate(30m)\r\n"
+  },
+  {
+    "kind": "checkbox",
+    "line": 8,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 7,
+        "line": 7
+      },
+      "start": {
+        "character": 4,
+        "line": 7
+      }
+    },
+    "text": "[x]"
+  },
+  {
+    "kind": "attribute",
+    "line": 8,
+    "name": "estimate",
+    "range": {
+      "end": {
+        "character": 28,
+        "line": 7
+      },
+      "start": {
+        "character": 14,
+        "line": 7
+      }
+    },
+    "text": "@estimate(30m)"
+  },
+  {
+    "kind": "literal",
+    "line": 8,
+    "name": null,
+    "range": {
+      "end": {
+        "character": 27,
+        "line": 7
+      },
+      "start": {
+        "character": 24,
+        "line": 7
+      }
+    },
+    "text": "30m"
+  },
+  {
+    "kind": "reference",
+    "line": 5,
+    "name": "missing",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 4
+      },
+      "start": {
+        "character": 6,
+        "line": 4
+      }
+    },
+    "text": "missing"
+  },
+  {
+    "kind": "reference",
+    "line": 9,
+    "name": "add",
+    "range": {
+      "end": {
+        "character": 8,
+        "line": 8
+      },
+      "start": {
+        "character": 5,
+        "line": 8
+      }
+    },
+    "text": "add"
+  }
+]
+
+### 3 cli ast one.wtf -q map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children})
+$ wtf ast one.wtf -q map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children}) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:1",
+      "file://<root>/one.wtf#ast:2",
+      "file://<root>/one.wtf#ast:3",
+      "file://<root>/one.wtf#ast:4",
+      "file://<root>/one.wtf#ast:5",
+      "file://<root>/one.wtf#ast:6",
+      "file://<root>/one.wtf#ast:7",
+      "file://<root>/one.wtf#ast:8",
+      "file://<root>/one.wtf#ast:9",
+      "file://<root>/one.wtf#ast:10",
+      "file://<root>/one.wtf#ast:11",
+      "file://<root>/one.wtf#ast:12",
+      "file://<root>/one.wtf#ast:13"
+    ],
+    "id": "file://<root>/one.wtf#ast:0",
+    "kind": "document",
+    "parent": null
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:1",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:2",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:3",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:4",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:5",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:6",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:7",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:8",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:9",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:10",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:11",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:12",
+    "kind": "line",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:14",
+      "file://<root>/one.wtf#ast:19",
+      "file://<root>/one.wtf#ast:25",
+      "file://<root>/one.wtf#ast:26"
+    ],
+    "id": "file://<root>/one.wtf#ast:13",
+    "kind": "section",
+    "parent": "file://<root>/one.wtf#ast:0"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:15"
+    ],
+    "id": "file://<root>/one.wtf#ast:14",
+    "kind": "definition",
+    "parent": "file://<root>/one.wtf#ast:13"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:16"
+    ],
+    "id": "file://<root>/one.wtf#ast:15",
+    "kind": "lambda",
+    "parent": "file://<root>/one.wtf#ast:14"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:17",
+      "file://<root>/one.wtf#ast:18"
+    ],
+    "id": "file://<root>/one.wtf#ast:16",
+    "kind": "binary",
+    "parent": "file://<root>/one.wtf#ast:15"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:17",
+    "kind": "name",
+    "parent": "file://<root>/one.wtf#ast:16"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:18",
+    "kind": "name",
+    "parent": "file://<root>/one.wtf#ast:16"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:20",
+      "file://<root>/one.wtf#ast:21"
+    ],
+    "id": "file://<root>/one.wtf#ast:19",
+    "kind": "task",
+    "parent": "file://<root>/one.wtf#ast:13"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:20",
+    "kind": "checkbox",
+    "parent": "file://<root>/one.wtf#ast:19"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:22",
+      "file://<root>/one.wtf#ast:23"
+    ],
+    "id": "file://<root>/one.wtf#ast:21",
+    "kind": "task",
+    "parent": "file://<root>/one.wtf#ast:19"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:22",
+    "kind": "checkbox",
+    "parent": "file://<root>/one.wtf#ast:21"
+  },
+  {
+    "children": [
+      "file://<root>/one.wtf#ast:24"
+    ],
+    "id": "file://<root>/one.wtf#ast:23",
+    "kind": "attribute",
+    "parent": "file://<root>/one.wtf#ast:21"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:24",
+    "kind": "literal",
+    "parent": "file://<root>/one.wtf#ast:23"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:25",
+    "kind": "reference",
+    "parent": "file://<root>/one.wtf#ast:13"
+  },
+  {
+    "children": [],
+    "id": "file://<root>/one.wtf#ast:26",
+    "kind": "reference",
+    "parent": "file://<root>/one.wtf#ast:13"
+  }
+]
+
+### 4 cli ast one.wtf -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => {name:n.name, text:n.text})
+$ wtf ast one.wtf -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => {name:n.name, text:n.text}) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "name": "add",
+    "text": "[add] := fn(x) => (\r\n  // keep this comment\r\n  x + missing\r\n)"
+  }
+]
+
+### 5 cli ast one.wtf -q ast | where kind == "lambda" | select parameters
+$ wtf ast one.wtf -q ast | where kind == "lambda" | select parameters --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  [
+    "x"
+  ]
+]
+
+### 6 cli ast one.wtf -q ast | where kind == "name" && name == "missing" | select text
+$ wtf ast one.wtf -q ast | where kind == "name" && name == "missing" | select text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "missing"
+]
+
+### 7 cli ast one.wtf -q ast | where kind == "checkbox" | select text
+$ wtf ast one.wtf -q ast | where kind == "checkbox" | select text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "[ ]",
+  "[x]"
+]
+
+### 8 cli ast one.wtf -q ast | count
+$ wtf ast one.wtf -q ast | count --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  27
+]
+
+### 9 cli query one.wtf ast | count --json
+$ wtf query one.wtf ast | count --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  27
+]
+
+### 10 cli ast tables.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
+$ wtf ast tables.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "document",
+  "line",
+  "section",
+  "definition",
+  "call",
+  "name",
+  "binary",
+  "table",
+  "column",
+  "row",
+  "cell",
+  "reference"
+]
+
+### 11 cli ast plans.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
+$ wtf ast plans.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "document",
+  "line",
+  "section",
+  "definition",
+  "literal",
+  "plan",
+  "objective",
+  "binary",
+  "name",
+  "column",
+  "constraint",
+  "reference"
+]
+
+### 12 cli ast other.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
+$ wtf ast other.wtf -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "document",
+  "line",
+  "definition",
+  "parse_error",
+  "day",
+  "stop",
+  "detail",
+  "link"
+]
+
+### 13 cli ast other.wtf -q filter(ast, fn(n) => n.kind == "parse_error") | select {text, path: source.path}
+$ wtf ast other.wtf -q filter(ast, fn(n) => n.kind == "parse_error") | select {text, path: source.path} --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "path": "<root>/other.wtf",
+    "text": "1 +"
+  }
+]
+
+### 14 cli ast empty.wtf -q ast | select {kind, text}
+$ wtf ast empty.wtf -q ast | select {kind, text} --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "kind": "document",
+    "text": ""
+  }
+]
+
+### 15 cli ast empty.wtf --jsonl
+$ wtf ast empty.wtf --jsonl --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+{"children":[],"id":"file://<root>/empty.wtf#ast:0","kind":"document","name":null,"parent":null,"schemaVersion":1,"source":{"line":1,"path":"<root>/empty.wtf","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"uri":"file://<root>/empty.wtf#L1"},"text":""}
+
+### 16 cli ast missing.wtf
+$ wtf ast missing.wtf --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/missing.wtf: No such file or directory (os error 2)
+

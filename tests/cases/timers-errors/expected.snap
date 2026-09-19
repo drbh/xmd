@@ -1,0 +1,164 @@
+### 0 cli query bad.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query bad.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "countdown expects duration, optionally followed by elapsed and a start timestamp",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 1,
+    "message": "Countdown duration must be greater than zero",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 2,
+    "message": "Timer durations must be nonnegative whole seconds",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 3,
+    "message": "Timer durations must be nonnegative whole seconds",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 4,
+    "message": "Timer durations must be nonnegative whole seconds",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 5,
+    "message": "Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 6,
+    "message": "Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 7,
+    "message": "stopwatch accepts optional elapsed and a start timestamp",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 8,
+    "message": "Timer durations must be nonnegative whole seconds",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 9,
+    "message": "countdown expects duration, optionally followed by elapsed and a start timestamp",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 10,
+    "message": "Module timer.property: Only countdowns have .remaining",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 11,
+    "message": "Module timer.property: Unknown timer property 'bogus'",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 12,
+    "message": "Invalid number '0.1s'",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 13,
+    "message": "Invalid number '9223372036854775808s'",
+    "severity": "error"
+  }
+]
+
+### 1 cli query attributes.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query attributes.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "attribute",
+    "line": 1,
+    "message": "@timer requires a named stopwatch or countdown, e.g. @timer(focus)",
+    "severity": "error"
+  },
+  {
+    "code": "property",
+    "line": 2,
+    "message": "Module timer.property: Unknown timer property 'bogus'",
+    "severity": "error"
+  }
+]
+
+### 2 cli render attributes.wtf --format text
+$ wtf render attributes.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle
+- [ ] Bad @timer(1m)
+[watch.bogus]
+--- stderr
+<root>/attributes.wtf:2:18: error: @timer requires a named stopwatch or countdown, e.g. @timer(focus)
+<root>/attributes.wtf:3:8: error: Module timer.property: Unknown timer property 'bogus'
+wtf: 2 error(s) while rendering
+
+### 3 lsp
+-- open attributes.wtf
+-- await textDocument/publishDiagnostics attributes.wtf
+{
+  "diagnostics": [
+    {
+      "code": "attribute",
+      "message": "@timer requires a named stopwatch or countdown, e.g. @timer(focus)",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 1
+        },
+        "start": {
+          "character": 17,
+          "line": 1
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    },
+    {
+      "code": "property",
+      "message": "Module timer.property: Unknown timer property 'bogus'",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 2
+        },
+        "start": {
+          "character": 7,
+          "line": 2
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/attributes.wtf",
+  "version": 1
+}
+

@@ -1,0 +1,190 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "bakery.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "bakery.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "choice.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "choice.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "timers.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "timers.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "oaxaca.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "oaxaca.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "baddates.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "baddates.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "yearless.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "yearless.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "work.wtf",
+        "diagnostics",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "timers.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "timers.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "open": "oaxaca.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "oaxaca.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "oaxaca.wtf",
+          "line": 1,
+          "character": 2
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "oaxaca.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

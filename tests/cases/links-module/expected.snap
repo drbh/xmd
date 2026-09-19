@@ -1,0 +1,262 @@
+### 0 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[https://builds.example/runs/42]:build build · refresh for status
+Status [build.state] for [build.title].
+Unsupported https://builds.example/status and https://builds.example.evil/runs/42.
+--- stderr
+<root>/work.wtf:2:15: error: Module builds.property: Refresh build first
+<root>/work.wtf:2:33: error: Module builds.property: Refresh build first
+wtf: 2 error(s) while rendering
+
+### 1 cli query work.wtf diagnostics | select {message, code} --json
+$ wtf query work.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "property",
+    "message": "Module builds.property: Refresh build first"
+  },
+  {
+    "code": "property",
+    "message": "Module builds.property: Refresh build first"
+  }
+]
+
+### 2 cli refresh
+$ wtf refresh --root <root>
+exit 1
+--- stderr
+wtf: https://builds.example/runs/empty: Module builds.decode: Unknown field 'title'
+https://builds.example/runs/fail: fake-build failed: rejected
+https://builds.example/runs/invalid: expected ident at line 1 column 2
+
+### 3 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://builds.example/runs/42": {
+    "title": "Release build",
+    "state": "passed",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "builds:1",
+    "data": {
+      "state": "passed",
+      "title": "Release build"
+    }
+  }
+}
+
+### 4 cli render shapes.wtf --format text
+$ wtf render shapes.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+🦀 https://builds.example/runs/42 build · passed
+See [nightly](https://builds.example/runs/42) build · passed.
+[https://builds.example/runs/42]:guide build · passed
+[alias] := guide build · passed
+Read [guide] build · passed, [alias] build · passed, and [shared] build · passed.
+Ordinary https://example.com/plain
+shared := import("./other.wtf").shared build · passed
+
+### 5 read shapes.wtf
+-- shapes.wtf
+🦀 https://builds.example/runs/42
+See [nightly](https://builds.example/runs/42).
+[https://builds.example/runs/42]:guide
+[alias] := guide
+Read [guide], [alias], and [shared].
+Ordinary https://example.com/plain
+shared := import("./other.wtf").shared
+
+### 6 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[https://builds.example/runs/42]:build build · passed
+Status [build.state] passed for [build.title] Release build.
+Unsupported https://builds.example/status and https://builds.example.evil/runs/42.
+
+### 7 cli render broken.wtf --format text
+$ wtf render broken.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+https://builds.example/runs/fail build · refresh for status
+https://builds.example/runs/invalid build · refresh for status
+https://builds.example/runs/empty build · refresh for status
+
+### 8 cli query work.wtf diagnostics | select {message, code} --json
+$ wtf query work.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 9 lsp
+-- open work.wtf
+-- await textDocument/publishDiagnostics work.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/work.wtf",
+  "version": 1
+}
+-- request textDocument/hover work.wtf 0:5
+null
+-- request textDocument/hover work.wtf 1:9
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "build.state = passed\n\n**build · Resource**\n\nhttps://builds.example/runs/42\n\n[Open resource](<https://builds.example/runs/42>)\n\nBuild status at 2026-09-16 18:00:00 +00:00\n\nDefinition: [build](<file://<root>/work.wtf#L1>) · <root>/work.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 19,
+      "line": 1
+    },
+    "start": {
+      "character": 8,
+      "line": 1
+    }
+  }
+}
+-- request textDocument/completion work.wtf 1:14
+[
+  {
+    "detail": "Text · https://builds.example/runs/42",
+    "kind": 10,
+    "label": "url",
+    "textEdit": {
+      "newText": "url",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · passed",
+    "kind": 10,
+    "label": "state",
+    "textEdit": {
+      "newText": "state",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · Release build",
+    "kind": 10,
+    "label": "title",
+    "textEdit": {
+      "newText": "title",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  }
+]
+-- request textDocument/codeAction work.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "[https://builds.example/runs/42]:build",
+          "row": 0
+        },
+        "url": "https://builds.example/runs/42"
+      }
+    ],
+    "command": "wtf.openResource",
+    "title": "↗ open"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "refresh_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "[https://builds.example/runs/42]:build",
+          "row": 0
+        },
+        "url": "https://builds.example/runs/42"
+      }
+    ],
+    "command": "wtf.refreshResource",
+    "title": "⟳ build"
+  }
+]
+
+### 10 write
+-- write .wtf/modules/builds.wtf (563 bytes)
+
+### 11 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[https://builds.example/runs/42]:build build · refresh for status
+Status [build.state] for [build.title].
+Unsupported https://builds.example/status and https://builds.example.evil/runs/42.
+--- stderr
+<root>/work.wtf:2:15: error: Module builds.property: Refresh build first
+<root>/work.wtf:2:33: error: Unknown resource property 'title'
+wtf: 2 error(s) while rendering
+
+### 12 write
+-- write .wtf/modules/builds.wtf (63 bytes)
+
+### 13 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[https://builds.example/runs/42]:build link
+Status [build.state] for [build.title].
+Unsupported https://builds.example/status and https://builds.example.evil/runs/42.
+--- stderr
+<root>/work.wtf:2:15: error: Unknown resource property 'state'
+<root>/work.wtf:2:33: error: Unknown resource property 'title'
+wtf: 2 error(s) while rendering
+
+### 14 write
+-- write .wtf/modules.json (52 bytes)
+-- write .wtf/modules/aaa_first.wtf (106 bytes)
+-- write .wtf/modules/builds.wtf (1081 bytes)
+
+### 15 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[https://builds.example/runs/42]:build first wins
+Status [build.state] for [build.title].
+Unsupported https://builds.example/status first wins and https://builds.example.evil/runs/42.
+--- stderr
+<root>/work.wtf:2:15: error: Unknown resource property 'state'
+<root>/work.wtf:2:33: error: Unknown resource property 'title'
+wtf: 2 error(s) while rendering
+

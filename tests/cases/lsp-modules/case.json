@@ -1,0 +1,419 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "write": {
+            "file": ".wtf/modules.json",
+            "text": "[\"./modules/docs.wtf\"]\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules.json}",
+                "type": 1
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules/docs.wtf",
+            "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"second\"\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules/docs.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules/docs.wtf",
+            "text": "module := {\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules/docs.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules.json",
+            "text": "[]\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules.json}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "write": {
+            "file": ".wtf/modules/docs.wtf",
+            "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n"
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules.json",
+            "text": "[\"./modules/docs.wtf\"]\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules.json}",
+                "type": 1
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "open": ".wtf/modules/docs.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": ".wtf/modules/docs.wtf"
+        },
+        {
+          "change": {
+            "file": ".wtf/modules/docs.wtf",
+            "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"unsaved\"\nextra := fn(value) => value + 1\n"
+          }
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": ".wtf/modules/docs.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "query": {
+            "query": "values"
+          }
+        },
+        {
+          "close": ".wtf/modules/docs.wtf"
+        }
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "write": {
+            "file": ".wtf/modules/docs.wtf",
+            "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"reloaded\"\n"
+          }
+        },
+        {
+          "save": ".wtf/modules/docs.wtf"
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "write": {
+            "file": ".wtf/modules/edit.wtf",
+            "text": "module := {api: 1, id: \"edit\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"Goodbye\"}]}}], [])\n"
+          }
+        },
+        {
+          "write": {
+            "file": ".wtf/modules.json",
+            "text": "[\"./modules/edit.wtf\"]\n"
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:.wtf/modules.json}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "open": "main2.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main2.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "main2.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "edit",
+                "document": "${uri:main2.wtf}",
+                "expected": "Hello world\n",
+                "edits": [
+                  {
+                    "range": {
+                      "start": {
+                        "line": 0,
+                        "character": 0
+                      },
+                      "end": {
+                        "line": 0,
+                        "character": 5
+                      }
+                    },
+                    "newText": "Goodbye"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "change": {
+            "file": "main2.wtf",
+            "text": "Goodbye world\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main2.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "edit",
+                "document": "${uri:main2.wtf}",
+                "expected": "Hello world\n",
+                "edits": [
+                  {
+                    "range": {
+                      "start": {
+                        "line": 0,
+                        "character": 0
+                      },
+                      "end": {
+                        "line": 0,
+                        "character": 5
+                      }
+                    },
+                    "newText": "Goodbye"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

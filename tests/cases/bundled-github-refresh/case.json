@@ -1,0 +1,31 @@
+{
+  "now": "2026-09-16T18:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "links.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "links.wtf",
+        "resources | select {target, metadata}",
+        "--json"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--root",
+        "notes",
+        "--now",
+        "2026-09-18T12:00:00Z",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "${root}/notes/main.wtf",
+        "--root",
+        "notes",
+        "--now",
+        "2026-09-18T12:00:00Z",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "read": [
+        "notes/main.wtf",
+        "notes/values.wtf",
+        "notes/.wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "clock.wtf",
+        "--now",
+        "2026-09-18T23:30:00-04:00",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "clock.wtf",
+        "--on",
+        "2026-09-17",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "clock.wtf",
+        "--on",
+        "2026-09-17",
+        "--now",
+        "2026-09-18T12:00:00Z",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plain_empty.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plain_prose.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plain_comment.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plain_code.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "diag.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "warn.wtf",
+        "--on",
+        "2026-09-18",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "missing.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "other.txt",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "../outside.wtf",
+        "--root",
+        "notes",
+        "--now",
+        "2026-09-18T12:00:00Z",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        "ignored.wtf": "answer := 42\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "ignored.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "money.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "money.wtf",
+        "--format",
+        "pdf"
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json",
+        "money.wtf"
+      ]
+    }
+  ]
+}

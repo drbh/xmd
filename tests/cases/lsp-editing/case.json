@@ -1,0 +1,222 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "links.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "links.wtf"
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "links.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "links.wtf",
+          "line": 0,
+          "character": 4
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "links.wtf"
+        },
+        {
+          "change": {
+            "file": "links.wtf",
+            "text": "\ud83e\udd80 ./other.wtf\n[focus] := $3.30\n- [x] Interview 09/17/2026 at 7AM\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "links.wtf"
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "links.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "links.wtf"
+        },
+        {
+          "open": "symbols.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "symbols.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "symbols.wtf"
+        },
+        {
+          "change": {
+            "file": "symbols.wtf",
+            "text": "# Trip\n[$3,000]:budget\n## Cash\n[remaining] := budget - $1,410\n- [ ] Pack :pack\n  - [x] Passport\n[timer] := countdown(25m)\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "symbols.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "symbols.wtf"
+        },
+        {
+          "open": "prose.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "prose.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "prose.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "prose.wtf",
+            "text": "# Trip\n\nOur budget is [$3,000]:trip_budget.\n\nWe've spent [$1,410]:trip_spent.\n\n[trip_left] := trip_budget - trip_spent\n\nWe have [trip_left] remaining.\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "prose.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "prose.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        "links.wtf",
+        "symbols.wtf",
+        "prose.wtf"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "flat.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "flat.wtf"
+        }
+      ],
+      "capabilities": {}
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "notes | select {title} | sort title",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "ignored/TODOS.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "ignored/TODOS.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "ignored/TODOS.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "ignored/TODOS.wtf"
+        },
+        {
+          "change": {
+            "file": "ignored/TODOS.wtf",
+            "text": "# Notes\n\n## Checklist :launch\n\n- [x] First @estimate(20m)\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "ignored/TODOS.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "ignored/TODOS.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:ignored/TODOS.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "ignored/TODOS.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

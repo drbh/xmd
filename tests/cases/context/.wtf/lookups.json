@@ -1,0 +1,10 @@
+{
+  "quote:ACME": {
+    "value": {
+      "price": 10,
+      "currency": "USD"
+    },
+    "fetched_at": "2026-09-16T16:00:00Z",
+    "source": "fixture"
+  }
+}

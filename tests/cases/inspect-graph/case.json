@@ -1,0 +1,107 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "graph",
+        "one.wtf",
+        "--root",
+        "notes"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "one.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "graph.nodes | where external | select name"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "one.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)})"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "one.wtf",
+        "length(graph.nodes)",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "one.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "length(graph.nodes)"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "length(filter(graph.nodes, fn(n) => n.external))",
+        "--root",
+        "notes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "ignored.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "graph.nodes | select name"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "../outside.wtf",
+        "--root",
+        "notes",
+        "-q",
+        "graph.nodes | select name"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "missing.wtf",
+        "--root",
+        "notes"
+      ]
+    },
+    {
+      "read": [
+        "notes/one.wtf",
+        "notes/.wtf/cache.json"
+      ]
+    }
+  ]
+}

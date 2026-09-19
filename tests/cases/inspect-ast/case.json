@@ -1,0 +1,138 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "ast | where kind == \"document\" | select {kind, name, parent, text}"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "join(map(filter(ast, fn(n) => n.kind == \"line\"), fn(n) => n.text), \"\")"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range})"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children})"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => {name:n.name, text:n.text})"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "ast | where kind == \"lambda\" | select parameters"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "ast | where kind == \"name\" && name == \"missing\" | select text"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "ast | where kind == \"checkbox\" | select text"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "one.wtf",
+        "-q",
+        "ast | count"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "one.wtf",
+        "ast | count",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "tables.wtf",
+        "-q",
+        "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "plans.wtf",
+        "-q",
+        "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "other.wtf",
+        "-q",
+        "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "other.wtf",
+        "-q",
+        "filter(ast, fn(n) => n.kind == \"parse_error\") | select {text, path: source.path}"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "empty.wtf",
+        "-q",
+        "ast | select {kind, text}"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "empty.wtf",
+        "--jsonl"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "missing.wtf"
+      ]
+    }
+  ]
+}

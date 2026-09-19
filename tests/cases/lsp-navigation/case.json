@@ -1,0 +1,181 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "data.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "data.wtf"
+        },
+        {
+          "open": "calc.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "calc.wtf"
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37
+        },
+        {
+          "request": "textDocument/definition",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37
+        },
+        {
+          "request": "textDocument/references",
+          "file": "data.wtf",
+          "line": 2,
+          "character": 15,
+          "extra": {
+            "context": {
+              "includeDeclaration": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37,
+          "extra": {
+            "newName": "unit_price"
+          }
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "calc.wtf",
+          "line": 0,
+          "character": 37,
+          "extra": {
+            "newName": "quantity"
+          }
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "data.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "data.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "calc.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "data.wtf",
+            "text": "# Groceries\n[groceries] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|5|$4.30|\n"
+          }
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "calc.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "open": "interactions.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "interactions.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "interactions.wtf",
+          "line": 3,
+          "character": 5
+        },
+        {
+          "request": "textDocument/documentHighlight",
+          "file": "interactions.wtf",
+          "line": 3,
+          "character": 5
+        },
+        {
+          "request": "textDocument/prepareRename",
+          "file": "interactions.wtf",
+          "line": 3,
+          "character": 5
+        },
+        {
+          "open": "bakery.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "bakery.wtf"
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "bakery.wtf",
+          "line": 3,
+          "character": 15,
+          "extra": {
+            "newName": "rolls"
+          }
+        },
+        {
+          "change": {
+            "file": "bakery.wtf",
+            "text": "[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| ---------- | ---------- |\n| flour | 12 * bagels + 6.5 * doughnuts <= 400 |\n| bagel_min | bagels >= 40 |\n| doughnut_min | doughnuts >= 14 |\nBake [bakery.bagels] bagels.\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "bakery.wtf"
+        }
+      ]
+    },
+    {
+      "read": [
+        "data.wtf",
+        "bakery.wtf"
+      ]
+    }
+  ]
+}

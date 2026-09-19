@@ -23,6 +23,7 @@ pub mod link_features;
 pub mod lookups;
 pub mod modules;
 pub mod plans;
+pub mod records;
 pub mod resources;
 pub mod timers;
 

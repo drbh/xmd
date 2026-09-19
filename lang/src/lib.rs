@@ -20,7 +20,7 @@ pub mod model;
 // and `wtf::document` name the same things the layers do.
 pub use evaluate::{
     charts, context, engine, error, feeds, github, glyphs, link_features, lookups, modules, plans,
-    resources, timers,
+    records, resources, timers,
 };
 // `modules` at the root is the evaluator's registry; the feature adapter over
 // its hooks stays reachable as `wtf::features::modules`.

@@ -2,6 +2,7 @@
 use crate::error::{EvalError, EvalResult};
 use crate::{
     engine::{Value, timer_arguments},
+    records::{FromValue, TimerRecord, ToValue},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset};
@@ -100,18 +101,13 @@ impl PartialEq for Timer {
 
 impl Timer {
     pub fn record(&self) -> Value {
-        crate::modules::record([
-            (
-                "limit".into(),
-                self.limit.map(Value::Duration).unwrap_or(Value::Null),
-            ),
-            ("elapsed".into(), Value::Duration(self.elapsed)),
-            (
-                "started".into(),
-                self.started.map(Value::DateTime).unwrap_or(Value::Null),
-            ),
-            ("idle".into(), Value::Bool(self.idle)),
-        ])
+        TimerRecord {
+            limit: self.limit,
+            elapsed: self.elapsed,
+            started: self.started,
+            idle: self.idle,
+        }
+        .to_value()
     }
     pub fn new(
         engine: &mut crate::engine::Engine<'_>,
@@ -125,37 +121,22 @@ impl Timer {
             .find(|m| m.id == "timer")
             .ok_or_else(|| EvalError::ModuleUnavailable("timer".into()))?
             .clone();
-        let Value::Record(fields) = engine.call_module(
+        let created = engine.call_module(
             "timer",
             "create",
             vec![Value::Text(name.into()), Value::List(args.to_vec())],
-        )?
-        else {
-            return Err(EvalError::Message(
-                "Timer constructor must return a record".into(),
-            ));
-        };
-        let limit = match fields.get("limit") {
-            Some(Value::Null) => None,
-            Some(Value::Duration(n)) => Some(*n),
-            _ => return Err(EvalError::Message("Invalid timer limit".into())),
-        };
-        let Some(Value::Duration(elapsed)) = fields.get("elapsed") else {
-            return Err(EvalError::Message("Invalid timer elapsed time".into()));
-        };
-        let started = match fields.get("started") {
-            Some(Value::Null) => None,
-            Some(Value::DateTime(t)) => Some(*t),
-            _ => return Err(EvalError::Message("Invalid timer timestamp".into())),
-        };
-        let Some(Value::Bool(idle)) = fields.get("idle") else {
-            return Err(EvalError::Message("Invalid timer state".into()));
-        };
+        )?;
+        let TimerRecord {
+            limit,
+            elapsed,
+            started,
+            idle,
+        } = TimerRecord::from_value(&created)?;
         Ok(Self {
             limit,
-            elapsed: *elapsed,
+            elapsed,
             started,
-            idle: *idle,
+            idle,
             origin: None,
             implementation: std::sync::Arc::new(implementation),
             now: engine.now,

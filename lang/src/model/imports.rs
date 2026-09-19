@@ -45,8 +45,7 @@ impl Expr {
     pub(crate) fn note_imports(&self) -> Vec<String> {
         let mut imports = Vec::new();
         self.walk(&mut |e| {
-            if let Expr::Call(name, args) = e.bare()
-                && name == "import"
+            if let Expr::Builtin(crate::engine::Builtin::Import, args) = e.bare()
                 && let [arg] = args.as_slice()
                 && let Expr::Value(Value::Text(id)) = arg.bare()
                 && is_note_path(id)
@@ -64,7 +63,9 @@ impl Expr {
                 a.walk(visit);
                 b.walk(visit);
             }
-            Self::Call(_, args) | Self::List(args) => args.iter().for_each(|e| e.walk(visit)),
+            Self::Call(_, args) | Self::Builtin(_, args) | Self::List(args) => {
+                args.iter().for_each(|e| e.walk(visit))
+            }
             Self::Record(fields) => fields.iter().for_each(|(_, e)| e.walk(visit)),
             Self::Apply(f, args) => {
                 f.walk(visit);
@@ -126,8 +127,7 @@ pub(crate) fn member_symbol(ws: &Workspace, path: &Path, source: &str) -> Option
         expr: &Expr,
         seen: &mut BTreeSet<Symbol>,
     ) -> Option<PathBuf> {
-        if let Expr::Call(name, args) = expr.bare()
-            && name == "import"
+        if let Expr::Builtin(crate::engine::Builtin::Import, args) = expr.bare()
             && let [arg] = args.as_slice()
             && let Expr::Value(Value::Text(id)) = arg.bare()
         {

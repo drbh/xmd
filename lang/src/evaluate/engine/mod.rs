@@ -226,7 +226,7 @@ impl<'a> Engine<'a> {
             }
             match expr {
                 Expr::Spanned(_, _, inner) => contains(inner, start, end),
-                Expr::Call(_, args) | Expr::List(args) => {
+                Expr::Call(_, args) | Expr::Builtin(_, args) | Expr::List(args) => {
                     args.iter().any(|e| contains(e, start, end))
                 }
                 Expr::Record(fields) => fields.iter().any(|(_, e)| contains(e, start, end)),
@@ -539,59 +539,57 @@ impl<'a> Engine<'a> {
                 }
             },
             Expr::Call(n, args) => {
-                // One name resolution decides everything: an unknown name is a
-                // call to a note function, a known one dispatches by variant.
-                let Ok(builtin) = n.parse::<Builtin>() else {
-                    let function = self
-                        .locals
-                        .last()
-                        .and_then(|s| s.get(n))
-                        .cloned()
-                        .map(Ok)
-                        .or_else(|| self.binding(n))
-                        .unwrap_or_else(|| self.named(path, n))?;
+                // An unqualified name is a note function: locals first, then
+                // the caller's bindings, then the workspace.
+                let function = self
+                    .locals
+                    .last()
+                    .and_then(|s| s.get(n))
+                    .cloned()
+                    .map(Ok)
+                    .or_else(|| self.binding(n))
+                    .unwrap_or_else(|| self.named(path, n))?;
+                let values = args
+                    .iter()
+                    .map(|e| self.expr(path, e))
+                    .collect::<Result<Vec<_>, _>>()?;
+                self.call(function, values)
+            }
+            Expr::Builtin(builtin, args) => match builtin {
+                Builtin::Import => self.call_import(path, args),
+                Builtin::If => self.call_if(path, args),
+                Builtin::Coalesce => self.call_coalesce(path, args),
+                // Everything else with eagerly evaluated arguments.
+                builtin if !builtin.is_special_form() => {
                     let values = args
                         .iter()
                         .map(|e| self.expr(path, e))
                         .collect::<Result<Vec<_>, _>>()?;
-                    return self.call(function, values);
-                };
-                match builtin {
-                    Builtin::Import => self.call_import(path, args),
-                    Builtin::If => self.call_if(path, args),
-                    Builtin::Coalesce => self.call_coalesce(path, args),
-                    // Everything else with eagerly evaluated arguments.
-                    builtin if !builtin.is_special_form() => {
-                        let values = args
-                            .iter()
-                            .map(|e| self.expr(path, e))
-                            .collect::<Result<Vec<_>, _>>()?;
-                        self.functional(builtin, values)
-                    }
-                    Builtin::Sum if args.len() == 1 => {
-                        let Value::List(values) = self.expr(path, &args[0])? else {
-                            return Err(EvalError::Message(
-                                "sum expects a list, or a table and row expression".into(),
-                            ));
-                        };
-                        crate::evaluate::functional::sum(values)
-                    }
-                    Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
-                    Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
-                    Builtin::Now if args.is_empty() => {
-                        self.time_dependent = true;
-                        Ok(Value::DateTime(self.now))
-                    }
-                    Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, builtin, args),
-                    Builtin::Today if args.is_empty() => Ok(Value::Date(self.today)),
-                    Builtin::Rate | Builtin::To | Builtin::Forecast | Builtin::Quote => {
-                        self.lookup(path, builtin, args)
-                    }
-                    // The one-argument tail: a date, a checklist question, and
-                    // the names that only a plan or a goal seek answers.
-                    builtin => self.call_checklist(path, builtin, args),
+                    self.functional(*builtin, values)
                 }
-            }
+                Builtin::Sum if args.len() == 1 => {
+                    let Value::List(values) = self.expr(path, &args[0])? else {
+                        return Err(EvalError::Message(
+                            "sum expects a list, or a table and row expression".into(),
+                        ));
+                    };
+                    crate::evaluate::functional::sum(values)
+                }
+                Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
+                Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
+                Builtin::Now if args.is_empty() => {
+                    self.time_dependent = true;
+                    Ok(Value::DateTime(self.now))
+                }
+                Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, *builtin, args),
+                Builtin::Today if args.is_empty() => Ok(Value::Date(self.today)),
+                Builtin::Rate | Builtin::To | Builtin::Forecast | Builtin::Quote => {
+                    self.lookup(path, *builtin, args)
+                }
+                // The one-argument tail: a date, a checklist question, and
+                // the names that only a plan or a goal seek answers.
+                builtin => self.call_checklist(path, *builtin, args),
+            },
             Expr::Unary(op, v) => {
                 let v = self.expr(path, v)?;
                 match (op, v) {
@@ -1294,12 +1292,10 @@ impl<'a> Engine<'a> {
     }
     pub fn sum_contributions(&mut self, path: &Path, source: &str) -> Option<Vec<Value>> {
         let parsed = Parser::parse(source).ok()?;
-        let Expr::Call(name, args) = parsed.bare() else {
+        let Expr::Builtin(Builtin::Sum, args) = parsed.bare() else {
             return None;
         };
-        (name == "sum")
-            .then(|| self.sum(path, args).ok().map(|(_, rows)| rows))
-            .flatten()
+        self.sum(path, args).ok().map(|(_, rows)| rows)
     }
     pub fn blocked(&mut self, path: &Path, i: usize) -> EvalResult<Vec<String>> {
         self.blocked_inner(path, i, &mut Vec::new())

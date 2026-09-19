@@ -1,6 +1,8 @@
 //! Linearization: a definition read symbolically as `terms · variables +
 //! constant`, so plans and goal seeks can reason about an unknown.
-use super::{BinaryOp, Comparison, Currency, Engine, Expr, Parser, RowScope, UnaryOp, Value};
+use super::{
+    BinaryOp, Builtin, Comparison, Currency, Engine, Expr, Parser, RowScope, UnaryOp, Value,
+};
 use crate::{
     document::Span,
     error::{CurrencyOp, EvalError, EvalResult, UnitOp},
@@ -376,7 +378,7 @@ impl Engine<'_> {
                 self.linear_stack.pop();
                 result
             }
-            Expr::Call(n, args) if n == "sum" && args.len() == 2 => {
+            Expr::Builtin(Builtin::Sum, args) if args.len() == 2 => {
                 self.linear_sum(path, args, vars)
             }
             Expr::Unary(op, inner) => {

@@ -78,6 +78,8 @@ impl Syntax<'_> {
             Expr::Value(value) => ("literal", json!({"value":Q::from_value(value.clone())})),
             Expr::Name(name) => ("name", json!({"name":name})),
             Expr::Call(name, _) => ("call", json!({"name":name})),
+            // A built-in call is still a call node named by its spelling.
+            Expr::Builtin(builtin, _) => ("call", json!({"name":builtin.as_str()})),
             Expr::Unary(op, _) => ("unary", json!({"operator":op.as_str()})),
             Expr::Binary(op, _, _) => ("binary", json!({"operator":op.as_str()})),
             Expr::Property(_, key) => ("property", json!({"name":key})),
@@ -96,7 +98,7 @@ impl Syntax<'_> {
                 self.expr(a, base, None, node, "left");
                 self.expr(b, base, None, node, "right");
             }
-            Expr::Call(_, items) | Expr::List(items) => {
+            Expr::Call(_, items) | Expr::Builtin(_, items) | Expr::List(items) => {
                 for (i, e) in items.iter().enumerate() {
                     self.expr(e, base, None, node, &i.to_string());
                 }

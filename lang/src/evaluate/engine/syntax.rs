@@ -1,6 +1,6 @@
 //! Syntax: the lexer, the expression tree, and the tolerant source scans the
 //! editor features read without evaluating anything.
-use super::{BinaryOp, Currency, Operator, UnaryOp, Value, date_value, is_code, literal};
+use super::{BinaryOp, Builtin, Currency, Operator, UnaryOp, Value, date_value, is_code, literal};
 use std::collections::BTreeSet;
 #[derive(Clone, Debug)]
 pub enum Lexeme {
@@ -166,7 +166,11 @@ pub(crate) enum Expr {
     Spanned(usize, usize, Box<Expr>),
     Value(Value),
     Name(String),
+    /// A call to a note function: the callee is a name the runtime resolves.
     Call(String, Vec<Expr>),
+    /// A call the parser already recognized as a built-in, so evaluation never
+    /// re-reads the spelling.
+    Builtin(Builtin, Vec<Expr>),
     Unary(UnaryOp, Box<Expr>),
     Binary(BinaryOp, Box<Expr>, Box<Expr>),
     Property(Box<Expr>, String),
@@ -193,14 +197,14 @@ impl Expr {
                     visit(b, bound, start, out);
                 }
                 Expr::Call(name, items) => {
-                    if !bound.contains(name) && !is_builtin_function(name) {
+                    if !bound.contains(name) {
                         out.push((name.clone(), start));
                     }
                     for e in items {
                         visit(e, bound, start, out);
                     }
                 }
-                Expr::List(items) => {
+                Expr::Builtin(_, items) | Expr::List(items) => {
                     for e in items {
                         visit(e, bound, start, out);
                     }
@@ -328,7 +332,7 @@ impl Parser {
                     pending.push((a, depth + 1));
                     pending.push((b, depth + 1));
                 }
-                Expr::List(items) | Expr::Call(_, items) => {
+                Expr::List(items) | Expr::Call(_, items) | Expr::Builtin(_, items) => {
                     pending.extend(items.iter().map(|e| (e, depth + 1)))
                 }
                 Expr::Record(fields) => pending.extend(fields.iter().map(|(_, e)| (e, depth + 1))),
@@ -472,7 +476,12 @@ impl Parser {
                         }
                     }
                     self.close()?;
-                    Expr::Call(n, args)
+                    // The callee's spelling is decided once, here: a built-in
+                    // never has to be recognized again while a note evaluates.
+                    match n.parse::<Builtin>() {
+                        Ok(builtin) => Expr::Builtin(builtin, args),
+                        Err(()) => Expr::Call(n, args),
+                    }
                 } else {
                     Expr::Name(n)
                 }
@@ -581,12 +590,13 @@ impl Parser {
 /// Arguments of a direct timer declaration, retaining the original duration expression.
 pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
     let parsed = Parser::parse(source).ok()?;
-    let Expr::Call(name, _) = parsed.bare() else {
+    let Expr::Builtin(builtin, _) = parsed.bare() else {
         return None;
     };
-    if !matches!(name.as_str(), "stopwatch" | "countdown") {
+    if !matches!(builtin, Builtin::Stopwatch | Builtin::Countdown) {
         return None;
     }
+    let name = builtin.as_str();
     let tokens = lex(source).ok()?;
     let call = tokens
         .iter()

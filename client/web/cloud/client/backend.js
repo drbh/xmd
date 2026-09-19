@@ -30,6 +30,14 @@ async function api(path, options = {}) {
   return data;
 }
 
+/** A document shared by link, readable without an account. */
+export async function sharedDocument(token) {
+  const response = await fetch(new URL(`public/v1/${encodeURIComponent(token)}`, base), { headers: { accept: "application/json" } });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new BackendError("failed", data?.error || "This link no longer works");
+  return data;
+}
+
 export async function createBackend() {
   let account = null, offline = false;
   const cached = read(CACHE) || {};
@@ -55,7 +63,7 @@ export async function createBackend() {
       const queued = read(OUTBOX) || [];
       const remaining = [];
       for (const doc of queued) {
-        try { await api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, folder: doc.folder ?? null } }); }
+        try { await api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, folder: doc.folder ?? null, file: doc.file } }); }
         catch (e) { if (isNetworkError(e)) remaining.push(doc); /* a rejected save is dropped; the server copy wins */ }
       }
       write(OUTBOX, remaining);
@@ -79,7 +87,7 @@ export async function createBackend() {
     async save(doc) {
       // A document with a live session is saved by its room; nothing to send.
       if (rooms.has(doc.id)) return { version: doc.version };
-      const body = { name: doc.name, text: doc.text, version: doc.version, folder: doc.folder ?? null };
+      const body = { name: doc.name, text: doc.text, version: doc.version, folder: doc.folder ?? null, file: doc.file, named: !!doc.named };
       try {
         const result = await api(`documents/${doc.id}`, { method: "PUT", body });
         remember({ documents: (read(CACHE)?.documents || []).filter(d => d.id !== doc.id).concat([{ ...doc, version: result.version }]) });
@@ -88,14 +96,19 @@ export async function createBackend() {
         if (!isNetworkError(e)) throw e;
         // Offline: keep it here and send it when the network returns.
         const queued = (read(OUTBOX) || []).filter(d => d.id !== doc.id);
-        queued.push({ id: doc.id, name: doc.name, text: doc.text, folder: doc.folder ?? null, updated: doc.updated, role: "owner" });
+        queued.push({ id: doc.id, name: doc.name, file: doc.file, text: doc.text, folder: doc.folder ?? null, updated: doc.updated, role: "owner" });
         write(OUTBOX, queued);
         offline = true;
         return { version: doc.version };
       }
     },
     /** Filing changes the folder only; the text is left alone. */
-    async file(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { folder: doc.folder ?? null } }); },
+    async file(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { folder: doc.folder ?? null, file: doc.file, name: doc.name, named: !!doc.named } }); },
+    trash: {
+      list: () => api("trash"),
+      restore: id => api(`trash/${id}`, { method: "POST" }),
+      purge: id => api(`trash/${id}`, { method: "DELETE" }),
+    },
     async listFolders() {
       if (offline) return cached.folders || [];
       const folders = await api("folders");
@@ -104,6 +117,18 @@ export async function createBackend() {
     },
     async saveFolder(folder) { return api(`folders/${folder.id}`, { method: "PUT", body: { name: folder.name } }); },
     async deleteFolder(id) { await api(`folders/${id}`, { method: "DELETE" }); },
+    link(id) {
+      return {
+        get: () => api(`documents/${id}/link`),
+        enable: () => api(`documents/${id}/link`, { method: "POST" }),
+        disable: () => api(`documents/${id}/link`, { method: "DELETE" }),
+      };
+    },
+    keys: {
+      list: () => api("keys"),
+      create: name => api("keys", { method: "POST", body: { name } }),
+      revoke: id => api(`keys/${id}`, { method: "DELETE" }),
+    },
     folderAcl(id) {
       return {
         list: () => api(`folders/${id}/acl`),

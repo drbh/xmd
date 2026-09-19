@@ -20,25 +20,25 @@ exit 0
       "constraints": [
         {
           "anchor": {
-            "character": 41.0,
-            "line": 3.0
+            "character": 41,
+            "line": 3
           },
           "binding": true,
-          "lhs": 10.0,
+          "lhs": 10,
           "name": "coverage",
           "op": ">=",
           "range": {
             "end": {
-              "character": 39.0,
-              "line": 3.0
+              "character": 39,
+              "line": 3
             },
             "start": {
-              "character": 15.0,
-              "line": 3.0
+              "character": 15,
+              "line": 3
             }
           },
-          "rhs": 10.0,
-          "slack": 0.0
+          "rhs": 10,
+          "slack": 0
         }
       ],
       "goal": "minimize",
@@ -51,7 +51,7 @@ exit 0
         "visits"
       ],
       "variables": {
-        "calls": 0.0,
+        "calls": 0,
         "visits": 3.3333
       }
     }

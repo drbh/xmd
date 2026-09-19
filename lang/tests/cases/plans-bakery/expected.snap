@@ -26,30 +26,30 @@ exit 0
       "constraints": [
         {
           "anchor": {
-            "character": 63.0,
-            "line": 4.0
+            "character": 63,
+            "line": 4
           },
           "binding": true,
-          "lhs": 400.0,
+          "lhs": 400,
           "name": "flour",
           "op": "<=",
           "range": {
             "end": {
-              "character": 61.0,
-              "line": 4.0
+              "character": 61,
+              "line": 4
             },
             "start": {
-              "character": 17.0,
-              "line": 4.0
+              "character": 17,
+              "line": 4
             }
           },
-          "rhs": 400.0,
-          "slack": 0.0
+          "rhs": 400,
+          "slack": 0
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 5.0
+            "character": 63,
+            "line": 5
           },
           "binding": false,
           "lhs": 32.75,
@@ -57,21 +57,21 @@ exit 0
           "op": "<=",
           "range": {
             "end": {
-              "character": 48.0,
-              "line": 5.0
+              "character": 48,
+              "line": 5
             },
             "start": {
-              "character": 17.0,
-              "line": 5.0
+              "character": 17,
+              "line": 5
             }
           },
-          "rhs": 200.0,
+          "rhs": 200,
           "slack": 167.25
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 6.0
+            "character": 63,
+            "line": 6
           },
           "binding": false,
           "lhs": 25.75,
@@ -79,38 +79,38 @@ exit 0
           "op": ">=",
           "range": {
             "end": {
-              "character": 29.0,
-              "line": 6.0
+              "character": 29,
+              "line": 6
             },
             "start": {
-              "character": 17.0,
-              "line": 6.0
+              "character": 17,
+              "line": 6
             }
           },
-          "rhs": 12.0,
+          "rhs": 12,
           "slack": 13.75
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 7.0
+            "character": 63,
+            "line": 7
           },
           "binding": true,
-          "lhs": 14.0,
+          "lhs": 14,
           "name": "doughnut_min",
           "op": ">=",
           "range": {
             "end": {
-              "character": 32.0,
-              "line": 7.0
+              "character": 32,
+              "line": 7
             },
             "start": {
-              "character": 17.0,
-              "line": 7.0
+              "character": 17,
+              "line": 7
             }
           },
-          "rhs": 14.0,
-          "slack": 0.0
+          "rhs": 14,
+          "slack": 0
         }
       ],
       "goal": "maximize",
@@ -125,7 +125,7 @@ exit 0
       ],
       "variables": {
         "bagels": 25.75,
-        "doughnuts": 14.0
+        "doughnuts": 14
       }
     }
   }
@@ -775,7 +775,7 @@ exit 0
 --- stdout
 [
   25.75,
-  0.0,
+  0,
   51.5,
   {
     "amount": 94.75,
@@ -1046,30 +1046,30 @@ exit 0
       "constraints": [
         {
           "anchor": {
-            "character": 63.0,
-            "line": 8.0
+            "character": 63,
+            "line": 8
           },
           "binding": true,
-          "lhs": 400.0,
+          "lhs": 400,
           "name": "flour",
           "op": "<=",
           "range": {
             "end": {
-              "character": 61.0,
-              "line": 8.0
+              "character": 61,
+              "line": 8
             },
             "start": {
-              "character": 17.0,
-              "line": 8.0
+              "character": 17,
+              "line": 8
             }
           },
-          "rhs": 400.0,
-          "slack": 0.0
+          "rhs": 400,
+          "slack": 0
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 9.0
+            "character": 63,
+            "line": 9
           },
           "binding": false,
           "lhs": 32.75,
@@ -1077,21 +1077,21 @@ exit 0
           "op": "<=",
           "range": {
             "end": {
-              "character": 48.0,
-              "line": 9.0
+              "character": 48,
+              "line": 9
             },
             "start": {
-              "character": 17.0,
-              "line": 9.0
+              "character": 17,
+              "line": 9
             }
           },
-          "rhs": 200.0,
+          "rhs": 200,
           "slack": 167.25
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 10.0
+            "character": 63,
+            "line": 10
           },
           "binding": false,
           "lhs": 25.75,
@@ -1099,38 +1099,38 @@ exit 0
           "op": ">=",
           "range": {
             "end": {
-              "character": 29.0,
-              "line": 10.0
+              "character": 29,
+              "line": 10
             },
             "start": {
-              "character": 17.0,
-              "line": 10.0
+              "character": 17,
+              "line": 10
             }
           },
-          "rhs": 12.0,
+          "rhs": 12,
           "slack": 13.75
         },
         {
           "anchor": {
-            "character": 63.0,
-            "line": 11.0
+            "character": 63,
+            "line": 11
           },
           "binding": true,
-          "lhs": 14.0,
+          "lhs": 14,
           "name": "doughnut_min",
           "op": ">=",
           "range": {
             "end": {
-              "character": 32.0,
-              "line": 11.0
+              "character": 32,
+              "line": 11
             },
             "start": {
-              "character": 17.0,
-              "line": 11.0
+              "character": 17,
+              "line": 11
             }
           },
-          "rhs": 14.0,
-          "slack": 0.0
+          "rhs": 14,
+          "slack": 0
         }
       ],
       "goal": "maximize",
@@ -1145,7 +1145,7 @@ exit 0
       ],
       "variables": {
         "bagels": 25.75,
-        "doughnuts": 14.0
+        "doughnuts": 14
       }
     }
   }

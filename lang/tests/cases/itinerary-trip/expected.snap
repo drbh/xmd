@@ -43,7 +43,7 @@ exit 0
     "month": 11,
     "places": "New York | Oaxaca",
     "stops": 5,
-    "year": 2026.0
+    "year": 2026
   },
   {
     "day": 21,
@@ -182,36 +182,36 @@ exit 0
     "notes": [
       {
         "anchor": {
-          "character": 28.0,
-          "line": 25.0
+          "character": 28,
+          "line": 25
         },
         "line": 25,
         "line_range": {
           "end": {
-            "character": 28.0,
-            "line": 25.0
+            "character": 28,
+            "line": 25
           },
           "start": {
-            "character": 0.0,
-            "line": 25.0
+            "character": 0,
+            "line": 25
           }
         },
         "raw": "Museum of Cultures of Oaxaca"
       },
       {
         "anchor": {
-          "character": 6.0,
-          "line": 26.0
+          "character": 6,
+          "line": 26
         },
         "line": 26,
         "line_range": {
           "end": {
-            "character": 6.0,
-            "line": 26.0
+            "character": 6,
+            "line": 26
           },
           "start": {
-            "character": 0.0,
-            "line": 26.0
+            "character": 0,
+            "line": 26
           }
         },
         "raw": "Zocalo"

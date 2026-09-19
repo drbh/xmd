@@ -695,7 +695,7 @@
           "uri": "file:///workspace/trip.wtf#L5"
         },
         "value": {
-          "amount": 10.0,
+          "amount": 10,
           "currency": "USD",
           "type": "money"
         }
@@ -789,7 +789,7 @@
           "uri": "file:///workspace/trip.wtf#L5"
         },
         "value": {
-          "amount": 18.0,
+          "amount": 18,
           "currency": "USD",
           "type": "money"
         }
@@ -827,7 +827,7 @@ exit 0
       "uri": "file://<root>/trip.wtf#L5"
     },
     "value": {
-      "amount": 10.0,
+      "amount": 10,
       "currency": "USD",
       "type": "money"
     }

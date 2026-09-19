@@ -1,0 +1,73 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "total"
+      ],
+      "stdin": "flights := $420.00\nhotel := $180.50\ntotal := flights + hotel\n"
+    },
+    {
+      "cli": [
+        "tasks | where !done | select {title}",
+        "--json"
+      ],
+      "stdin": "- [x] book flights\n- [ ] pack\n- [ ] print tickets\n"
+    },
+    {
+      "cli": [
+        "trip.wtf",
+        "total"
+      ]
+    },
+    {
+      "cli": [
+        "trip.wtf",
+        "tasks | where !done | count"
+      ]
+    },
+    {
+      "cli": [
+        "--workspace",
+        "tasks | where !done | count"
+      ]
+    },
+    {
+      "cli": [
+        "total"
+      ],
+      "stdin": ""
+    },
+    {
+      "cli": []
+    },
+    {
+      "cli": [
+        "left"
+      ],
+      "stdin": "left := import(\"./other.wtf\").budget - $200.00\n"
+    },
+    {
+      "cli": [
+        "query",
+        "total"
+      ],
+      "stdin": "total := $600.50\n"
+    },
+    {
+      "cli": [
+        "q",
+        "tasks | count",
+        "--json"
+      ],
+      "stdin": "- [ ] pack\n"
+    },
+    {
+      "cli": [
+        "trip.wtf",
+        "-"
+      ],
+      "stdin": "tasks | count"
+    }
+  ]
+}

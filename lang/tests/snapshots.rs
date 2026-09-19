@@ -9,8 +9,26 @@
 //! `$OUT_DIR/cases.rs` and included below, so cargo runs them in parallel and
 //! `cargo test --test snapshots <name>` picks one out.
 //!
-//! See `tests/README.md` for the case layout and the step vocabulary.
-//! Rewrite snapshots with `UPDATE_SNAPSHOTS=1`.
+//! A case directory holds its notes (at any depth), an optional `.wtf/`
+//! (modules manifest, `cache.json`, `lookups.json`), optional `bin/` fakes that
+//! are made executable and put on the child's `PATH`, `case.json` and
+//! `expected.snap`. `case.json` is `{"now": <rfc3339>, "requires": "browser"?,
+//! "steps": [...]}`; the clock defaults to 2026-09-16T14:00:00-04:00 and is
+//! passed to the CLI as `--now` and to the language server as `WTF_NOW`.
+//!
+//! Steps: `{"cli": [...]}` (optionally an object with `stdin`/`env`; `--root`
+//! and `--now` are appended where the subcommand takes them), `{"read": [..]}`,
+//! `{"write": {"path": "text" | null}}`, `{"lsp": [...]}` (one server per step;
+//! items `open`/`change`/`save`/`close`/`request`/`await`/`query`/`initialize`/
+//! `notify`/`write`/`watched`; request params from `file`/`line`/`character`/
+//! `range`/`extra` or verbatim `params`, `${uri:f}`/`${root}`/`${last}`
+//! placeholders, `"apply": true` applies returned edits) and, in a
+//! `requires: "browser"` case, `{"browser": [{"method", "params"}]}`.
+//!
+//! Transcripts normalize the temporary root to `<root>`, carriage returns to
+//! `␍`, sub-second wall-clock stamps to `<clock>` and `<style>` bodies to `…`.
+//! Rewrite snapshots with `UPDATE_SNAPSHOTS=1`; cases needing the browser
+//! feature are `ignored` without it.
 #![cfg(feature = "native")]
 
 mod support;

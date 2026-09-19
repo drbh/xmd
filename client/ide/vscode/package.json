@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "publisher": "drbh",
   "license": "UNLICENSED",
-  "repository": { "type": "git", "url": "https://github.com/drbh/wtf" },
+  "repository": { "type": "git", "url": "https://github.com/drbh/jot" },
   "engines": { "vscode": "^1.91.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",

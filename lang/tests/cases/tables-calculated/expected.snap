@@ -40,7 +40,7 @@ exit 0
     "line": 6,
     "title": "unit * qty",
     "value": {
-      "amount": 30.0,
+      "amount": 30,
       "currency": "USD",
       "type": "money"
     }
@@ -54,7 +54,7 @@ exit 0
     "line": 7,
     "title": "unit",
     "value": {
-      "amount": 10.0,
+      "amount": 10,
       "currency": "USD",
       "type": "money"
     }

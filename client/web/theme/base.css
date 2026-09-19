@@ -1,6 +1,6 @@
-.wtf { color-scheme: dark; color: var(--wtf-foreground, #d4ded4); background: var(--wtf-background, #171b19); margin: 0; font: var(--wtf-font-size, 14px)/1.8 var(--wtf-font, "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace); tab-size: 2; white-space: pre; }
+.wtf { color-scheme: dark; color: var(--wtf-foreground, #e3e3e3); background: var(--wtf-background, #202124); margin: 0; font: var(--wtf-font-size, 14px)/1.8 var(--wtf-font, "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace); tab-size: 2; white-space: pre; }
 .wtf code { font: inherit; }
-.wtf .inlay { color: var(--wtf-inlay-foreground, #b6c8a6); background: var(--wtf-inlay-background, #283125); border-radius: 3px; font-style: normal; font-weight: 400; white-space: pre; }
+.wtf .inlay { color: var(--wtf-inlay-foreground, #c3cad6); background: var(--wtf-inlay-background, #2d3138); border-radius: 3px; font-style: normal; font-weight: 400; white-space: pre; }
 .wtf a { color: inherit; text-decoration: underline; text-decoration-color: #90bed8; text-underline-offset: 3px; }
 .wtf .diagnostic { text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 4px; }
 .wtf .point { position: relative; }

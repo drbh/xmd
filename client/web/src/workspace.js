@@ -22,9 +22,25 @@ export function applyTextEdits(source, edits) {
   return source;
 }
 
+// The engine runs in a module worker next to this file. Browsers only start
+// workers from their own origin, so when the library is loaded from another
+// site (a CDN, the hosted app) the worker is a same-origin blob that imports
+// the real one; the CDN must send CORS headers for lib/, and the shipped
+// Worker and static server do.
+function engineWorker() {
+  // The literal form below is what bundlers recognise to include the worker;
+  // the origin check deliberately avoids it so they leave it alone.
+  if (typeof location === "undefined" || new URL(import.meta.url).origin === location.origin) return new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+  const script = "./worker.js";
+  const shim = URL.createObjectURL(new Blob([`import ${JSON.stringify(new URL(script, import.meta.url).href)};`], { type: "text/javascript" }));
+  const worker = new Worker(shim, { type: "module" });
+  URL.revokeObjectURL(shim);
+  return worker;
+}
+
 /** Owns source and language state; views and persistence subscribe independently. */
 export function createWorkspace(options = {}) {
-  const worker = options.workerFactory ? options.workerFactory() : options.transport ? null : new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+  const worker = options.workerFactory ? options.workerFactory() : options.transport ? null : engineWorker();
   const rpc = options.transport || createRpc(worker, options);
   const documents = new Map(), counters = new Map(), snapshots = new Map(), analyses = new Map(), subscribers = new Map(), changes = new Set();
   let revision = 0, tail = Promise.resolve(), disposed = false, refreshQueued = false, refreshAgain = false, timer, refreshing = false;

@@ -9,7 +9,7 @@ exit 0
     "name": "price",
     "type": "Money",
     "value": {
-      "amount": 7.0,
+      "amount": 7,
       "currency": "EUR",
       "type": "money"
     }
@@ -20,7 +20,7 @@ exit 0
     "name": "total",
     "type": "Money",
     "value": {
-      "amount": 21.0,
+      "amount": 21,
       "currency": "EUR",
       "type": "money"
     }
@@ -31,7 +31,7 @@ exit 0
     "name": "price",
     "type": "Money",
     "value": {
-      "amount": 5.0,
+      "amount": 5,
       "currency": "USD",
       "type": "money"
     }
@@ -42,7 +42,7 @@ exit 0
     "name": "total",
     "type": "Money",
     "value": {
-      "amount": 10.0,
+      "amount": 10,
       "currency": "USD",
       "type": "money"
     }
@@ -55,29 +55,29 @@ exit 0
 --- stdout
 [
   {
-    "amount": 21.0,
+    "amount": 21,
     "currency": "EUR",
     "local": {
-      "amount": 7.0,
+      "amount": 7,
       "currency": "EUR",
       "type": "money"
     },
     "value": {
-      "amount": 21.0,
+      "amount": 21,
       "currency": "EUR",
       "type": "money"
     }
   },
   {
-    "amount": 10.0,
+    "amount": 10,
     "currency": "USD",
     "local": {
-      "amount": 5.0,
+      "amount": 5,
       "currency": "USD",
       "type": "money"
     },
     "value": {
-      "amount": 10.0,
+      "amount": 10,
       "currency": "USD",
       "type": "money"
     }
@@ -154,7 +154,7 @@ exit 0
     "display": "$23.80",
     "name": "total",
     "value": {
-      "amount": 23.799999999999997,
+      "amount": 23.8,
       "currency": "USD",
       "type": "money"
     }
@@ -181,30 +181,30 @@ exit 0
     "constraints": [
       {
         "anchor": {
-          "character": 63.0,
-          "line": 10.0
+          "character": 63,
+          "line": 10
         },
         "binding": true,
-        "lhs": 400.0,
+        "lhs": 400,
         "name": "flour",
         "op": "<=",
         "range": {
           "end": {
-            "character": 61.0,
-            "line": 10.0
+            "character": 61,
+            "line": 10
           },
           "start": {
-            "character": 17.0,
-            "line": 10.0
+            "character": 17,
+            "line": 10
           }
         },
-        "rhs": 400.0,
-        "slack": 0.0
+        "rhs": 400,
+        "slack": 0
       },
       {
         "anchor": {
-          "character": 63.0,
-          "line": 11.0
+          "character": 63,
+          "line": 11
         },
         "binding": false,
         "lhs": 32.75,
@@ -212,21 +212,21 @@ exit 0
         "op": "<=",
         "range": {
           "end": {
-            "character": 48.0,
-            "line": 11.0
+            "character": 48,
+            "line": 11
           },
           "start": {
-            "character": 17.0,
-            "line": 11.0
+            "character": 17,
+            "line": 11
           }
         },
-        "rhs": 200.0,
+        "rhs": 200,
         "slack": 167.25
       },
       {
         "anchor": {
-          "character": 63.0,
-          "line": 12.0
+          "character": 63,
+          "line": 12
         },
         "binding": false,
         "lhs": 25.75,
@@ -234,38 +234,38 @@ exit 0
         "op": ">=",
         "range": {
           "end": {
-            "character": 29.0,
-            "line": 12.0
+            "character": 29,
+            "line": 12
           },
           "start": {
-            "character": 17.0,
-            "line": 12.0
+            "character": 17,
+            "line": 12
           }
         },
-        "rhs": 12.0,
+        "rhs": 12,
         "slack": 13.75
       },
       {
         "anchor": {
-          "character": 63.0,
-          "line": 13.0
+          "character": 63,
+          "line": 13
         },
         "binding": true,
-        "lhs": 14.0,
+        "lhs": 14,
         "name": "doughnut_min",
         "op": ">=",
         "range": {
           "end": {
-            "character": 32.0,
-            "line": 13.0
+            "character": 32,
+            "line": 13
           },
           "start": {
-            "character": 17.0,
-            "line": 13.0
+            "character": 17,
+            "line": 13
           }
         },
-        "rhs": 14.0,
-        "slack": 0.0
+        "rhs": 14,
+        "slack": 0
       }
     ],
     "goal": "maximize",
@@ -280,7 +280,7 @@ exit 0
     ],
     "variables": {
       "bagels": 25.75,
-      "doughnuts": 14.0
+      "doughnuts": 14
     }
   }
 ]

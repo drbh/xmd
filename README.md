@@ -1,3 +1,5 @@
+[![CI](https://github.com/drbh/jot/actions/workflows/ci.yml/badge.svg)](https://github.com/drbh/jot/actions/workflows/ci.yml)
+
 `.wft` is markdown with reactive values, a computation graph, and an LSP-native runtime.
 
 * plain text first

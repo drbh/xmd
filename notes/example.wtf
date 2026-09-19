@@ -1,9 +1,0 @@
-# Trip
-
-Our budget is [$3,000]:budget.
-
-We've spent [$2,444]:spent.
-
-[remaining] := budget - spent
-
-We have [remaining] remaining.

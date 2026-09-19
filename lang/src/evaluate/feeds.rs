@@ -227,10 +227,8 @@ fn assign_feed(feed: &mut Feed, open: &Field, value: String) {
                 feed.link.get_or_insert(link);
             }
         }
-        "updated" | "lastbuilddate" | "pubdate" | "date" => {
-            if feed.updated.is_none() {
-                feed.updated = instant(&value);
-            }
+        "updated" | "lastbuilddate" | "pubdate" | "date" if feed.updated.is_none() => {
+            feed.updated = instant(&value);
         }
         _ => {}
     }

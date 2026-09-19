@@ -13,7 +13,7 @@
 
 ## Basic Usage
 
-The best way to get started is to simply install the lsp into your editor and start writing `.wft` files.
+The best way to get started is to simply install the lsp into your editor and start writing `.wtf` files.
 
 The lsp will highlight and provide the computed values and errors inline. (example below uses `#` where the inlay hint would be shown)
 

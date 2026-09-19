@@ -94,21 +94,26 @@ impl Module {
                 .map(|input| input.parse())
                 .collect::<Result<_, String>>()?,
         };
-        let hosts = config
-            .get("hosts")
-            .map(strings)
-            .transpose()?
-            .unwrap_or_default();
+        // `hosts: "*"` is the host-agnostic spelling of an empty list: the
+        // module recognizes a URL shape on any site, through its own `matches`.
+        let hosts = match config.get("hosts") {
+            Some(Value::Text(any)) if any == "*" => vec![],
+            other => other.map(strings).transpose()?.unwrap_or_default(),
+        };
         if enabled
             && kind == ModuleKind::Link
-            && (hosts.is_empty()
-                || hosts.iter().any(|host| {
-                    Url::parse(&format!("https://{host}")).is_err()
-                        || host.contains(['/', '?', '#', '@', ':'])
-                        || host.to_lowercase() != *host
-                }))
+            && hosts.iter().any(|host| {
+                Url::parse(&format!("https://{host}")).is_err()
+                    || host.contains(['/', '?', '#', '@', ':'])
+                    || host.to_lowercase() != *host
+            })
         {
             return Err("Link modules require lowercase host names".into());
+        }
+        // Without hosts nothing narrows the module but its own predicate, so a
+        // host-agnostic link module has to supply one.
+        if enabled && kind == ModuleKind::Link && hosts.is_empty() && !names.contains("matches") {
+            return Err("Link modules require hosts or a matches function".into());
         }
         let prefix = config
             .get("path_prefix")

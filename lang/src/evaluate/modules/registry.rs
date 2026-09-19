@@ -142,6 +142,7 @@ pub fn bundled() -> &'static [Module] {
             ("format", include_str!("../../../stdlib/format.wtf")),
             ("units", include_str!("../../../stdlib/units.wtf")),
             ("github", include_str!("../../../stdlib/github.wtf")),
+            ("rss", include_str!("../../../stdlib/rss.wtf")),
             (
                 "table_cells",
                 include_str!("../../../stdlib/table_cells.wtf"),

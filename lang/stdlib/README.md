@@ -10,6 +10,16 @@ as workspace modules.
 - `kind: "link"` resolves known hosts and supplies their labels, properties,
   hovers, and optional refresh requests.
 
+A link module declares either a nonempty list of lowercase `hosts` or a
+`matches` function; `hosts: "*"` (equivalently an omitted or empty list) means
+the module recognizes a URL shape rather than a site, and then `matches` is
+required, because nothing else narrows it. `refresh(url)` may add
+`format: "feed"` beside its program and arguments: the host then parses that
+program's RSS or Atom output and hands `decode` the record
+`{title, link, updated, items: [{title, link, published, summary}]}`, dates as
+RFC 3339 UTC text and the newest fifty items first. A browser workspace cannot
+run programs, but `setResourceData` accepts exactly that JSON.
+
 Every module declares `module := {api: 1, id: "…", kind: "…"}`. Dependencies are
 explicit: add `imports: ["format"]`, then use `fmt := import("format")`.
 Document inputs can select collections and individual fields, for example
@@ -93,6 +103,12 @@ and `show(value, from, to)`, and the named pairs `c_to_f`, `f_to_c`, `km_to_mi`,
 `mi_to_km`, `kg_to_lb`, and `lb_to_kg`. Units are lowercase text; spelled-out
 aliases such as `"celsius"` or `"kilometers"` are accepted. Unknown units and
 mismatched dimensions raise errors rather than guessing.
+
+Two link modules ship bundled. `github` labels pull requests, issues and commits
+through the GitHub CLI. `rss` recognizes any RSS or Atom feed — a path ending in
+`.xml`, `.rss` or `.atom`, or a `feed`, `feeds`, `rss` or `atom` segment — fetches
+it with `curl`, and exposes `title`, `link`, `latest`, `count`, `updated` and
+`items` as note properties beside a `▸ newest · age · n items` inlay.
 
 The `plan`, `timer`, and `itinerary_core` libraries provide solver policy, timer
 construction/properties/transitions, and itinerary resolution. Typed adapters

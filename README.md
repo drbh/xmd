@@ -1,6 +1,11 @@
 [![CI](https://github.com/drbh/jot/actions/workflows/ci.yml/badge.svg)](https://github.com/drbh/jot/actions/workflows/ci.yml)
 
-`.wft` is markdown with reactive values, a computation graph, and an LSP-native runtime.
+`.wtf` is markdown with reactive values, a computation graph, and an LSP-native runtime.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/typing-dark.gif">
+  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
+</picture>
 
 * plain text first
 * reactive values inside notes

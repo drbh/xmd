@@ -77,11 +77,11 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   await expect(page.locator(".status")).toContainText("Saved in this browser");
   // Code lenses are chips at the end of their lines rather than a control bar under the page.
   await expect(page.locator(".wtf-controls")).toHaveCount(0);
-  const lens = page.locator(".lens", { hasText: "Reopen task" }).first();
+  const lens = page.locator(".lens", { hasText: "○ reopen" }).first();
   await expect(lens).toBeVisible();
   await lens.click();
   await expect(view).toContainText("[ ] Book the hotel");
-  await expect(page.locator(".lens", { hasText: "Reopen task" })).toHaveCount(1);
+  await expect(page.locator(".lens", { hasText: "○ reopen" })).toHaveCount(1);
   // The bundled font ships its checkbox ligature: the marker and box shape as one run.
   await expect(view).toHaveCSS("font-family", /Ioskeley Mono/);
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);

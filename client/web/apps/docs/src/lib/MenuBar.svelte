@@ -20,9 +20,12 @@
     else if (event.key === "ArrowLeft") { open = names[(names.indexOf(open) - 1 + names.length) % names.length]; event.preventDefault(); }
   }
   function outside(event) { if (open && !bar.contains(event.target)) open = null; }
+  // Escape closes an open menu wherever focus is: on a phone a tap on the menu
+  // button need not focus it, so the bar's own keydown would never see the key.
+  function escape(event) { if (open && event.key === "Escape" && !bar.contains(event.target)) { open = null; event.preventDefault(); } }
 </script>
 
-<svelte:window onmousedown={outside} />
+<svelte:window onmousedown={outside} onkeydown={escape} />
 
 <div class="menubar" role="menubar" tabindex="-1" bind:this={bar} onkeydown={keydown}>
   {#each menus as menu (menu.name)}

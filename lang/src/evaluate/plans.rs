@@ -5,6 +5,10 @@ use crate::error::{EvalError, EvalResult};
 use crate::{
     document::{Document, Named, Problem, Span, identifier},
     engine::{Comparison, Engine, Linear, Unit, Value},
+    records::{
+        CellRecord, ColumnRecord, ConstraintInput, ConstraintRecord, DecisionRecord, Fields,
+        FormRecord, FromValue, PlanInput, PlanRecord, SolutionRecord, ToValue,
+    },
     tables::{Cell, Table},
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -68,73 +72,47 @@ pub struct PlanValue {
 impl PlanValue {
     /// Typed result plus source geometry; presentation policy lives in plan.wtf.
     pub fn record(&self, ws: &Workspace) -> Value {
-        use crate::modules::{from_json, record};
+        use crate::modules::from_json;
         let columns = self
             .columns()
             .into_iter()
             .filter_map(|(symbol, column, cells)| {
                 let table = crate::tables::table(ws, &symbol)?;
                 let doc = &ws.documents[&symbol.path];
-                Some(record([
-                    (
-                        "name".into(),
-                        Value::Text(table.columns[column].name.clone()),
-                    ),
-                    (
-                        "cells".into(),
-                        Value::List(
-                            cells
-                                .into_iter()
-                                .filter_map(|(row, value)| {
-                                    let cell = table.rows.get(row)?.get(column)?;
-                                    let line = doc.line(cell.span.line).as_bytes();
-                                    let (mut a, mut b) = (cell.span.start, cell.span.end);
-                                    while a > 0 && line[a - 1] == b' ' {
-                                        a -= 1;
-                                    }
-                                    while b < line.len() && line[b] == b' ' {
-                                        b += 1;
-                                    }
-                                    Some(record([
-                                        ("value".into(), value),
-                                        (
-                                            "label".into(),
-                                            Value::Text(
-                                                table.rows[row]
-                                                    .first()
-                                                    .map(|c| c.source.clone())
-                                                    .unwrap_or_else(|| (row + 1).to_string()),
-                                            ),
-                                        ),
-                                        (
-                                            "document".into(),
-                                            Value::Text(
-                                                crate::paths::file_url(&symbol.path)
-                                                    .ok()?
-                                                    .to_string(),
-                                            ),
-                                        ),
-                                        ("source".into(), Value::Text(cell.source.clone())),
-                                        ("line".into(), Value::Count(cell.span.line)),
-                                        (
-                                            "anchor".into(),
-                                            from_json(&serde_json::json!(
-                                                cell.span.range(&doc.text).end
-                                            )),
-                                        ),
-                                        (
-                                            "range".into(),
-                                            from_json(&serde_json::json!(
-                                                Span::new(cell.span.line, a, b).range(&doc.text)
-                                            )),
-                                        ),
-                                        ("width".into(), Value::Count((b - a).saturating_sub(2))),
-                                    ]))
-                                })
-                                .collect(),
-                        ),
-                    ),
-                ]))
+                Some(ColumnRecord {
+                    name: table.columns[column].name.clone(),
+                    cells: cells
+                        .into_iter()
+                        .filter_map(|(row, value)| {
+                            let cell = table.rows.get(row)?.get(column)?;
+                            let line = doc.line(cell.span.line).as_bytes();
+                            let (mut a, mut b) = (cell.span.start, cell.span.end);
+                            while a > 0 && line[a - 1] == b' ' {
+                                a -= 1;
+                            }
+                            while b < line.len() && line[b] == b' ' {
+                                b += 1;
+                            }
+                            Some(CellRecord {
+                                value,
+                                label: table.rows[row]
+                                    .first()
+                                    .map(|c| c.source.clone())
+                                    .unwrap_or_else(|| (row + 1).to_string()),
+                                document: crate::paths::file_url(&symbol.path).ok()?.to_string(),
+                                source: cell.source.clone(),
+                                line: cell.span.line,
+                                anchor: from_json(&serde_json::json!(
+                                    cell.span.range(&doc.text).end
+                                )),
+                                range: from_json(&serde_json::json!(
+                                    Span::new(cell.span.line, a, b).range(&doc.text)
+                                )),
+                                width: (b - a).saturating_sub(2),
+                            })
+                        })
+                        .collect(),
+                })
             })
             .collect();
         let constraints = self
@@ -142,46 +120,36 @@ impl PlanValue {
             .iter()
             .enumerate()
             .map(|(i, c)| {
-                let mut fields = std::collections::BTreeMap::from([
-                    ("name".into(), Value::Text(c.name.clone())),
-                    ("op".into(), Value::Text(c.op.as_str().into())),
-                    ("lhs".into(), c.lhs.clone()),
-                    ("rhs".into(), c.rhs.clone()),
-                    ("slack".into(), c.slack.clone()),
-                    ("binding".into(), Value::Bool(c.binding)),
-                ]);
-                if let Some((_, plan)) = plan(ws, &self.origin)
-                    && let Some(constraint) = plan.constraints.get(i)
-                {
-                    let doc = &ws.documents[&self.origin.path];
-                    fields.insert(
-                        "anchor".into(),
-                        from_json(&serde_json::json!(doc.line_end(constraint.span.line))),
-                    );
-                    fields.insert(
-                        "range".into(),
-                        from_json(&serde_json::json!(constraint.span.range(&doc.text))),
-                    );
+                // Only a plan still in the workspace can point at its own source.
+                let source = plan(ws, &self.origin)
+                    .and_then(|(_, plan)| plan.constraints.get(i))
+                    .map(|constraint| {
+                        let doc = &ws.documents[&self.origin.path];
+                        (
+                            from_json(&serde_json::json!(doc.line_end(constraint.span.line))),
+                            from_json(&serde_json::json!(constraint.span.range(&doc.text))),
+                        )
+                    });
+                ConstraintRecord {
+                    name: c.name.clone(),
+                    op: c.op.as_str().into(),
+                    lhs: c.lhs.clone(),
+                    rhs: c.rhs.clone(),
+                    slack: c.slack.clone(),
+                    binding: c.binding,
+                    anchor: source.as_ref().map(|(anchor, _)| anchor.clone()),
+                    range: source.map(|(_, range)| range),
                 }
-                Value::Record(fields)
             })
             .collect();
-        record([
-            ("goal".into(), Value::Text(self.goal.keyword().into())),
-            ("objective".into(), self.objective.clone()),
-            ("variables".into(), record(self.variables.iter().cloned())),
-            (
-                "variable_order".into(),
-                Value::List(
-                    self.variables
-                        .iter()
-                        .map(|(name, _)| Value::Text(name.clone()))
-                        .collect(),
-                ),
-            ),
-            ("constraints".into(), Value::List(constraints)),
-            ("columns".into(), Value::List(columns)),
-        ])
+        PlanRecord {
+            goal: self.goal.keyword().into(),
+            objective: self.objective.clone(),
+            variables: self.variables.clone(),
+            constraints,
+            columns,
+        }
+        .to_value()
     }
     pub fn property(&self, name: &str) -> EvalResult<Value> {
         if name == "objective" {
@@ -501,19 +469,15 @@ fn typed_in(kind: Unit, currency: Option<crate::engine::Currency>, n: f64) -> Va
         _ => Value::Number(n),
     }
 }
+fn form_record(form: &Linear) -> FormRecord {
+    FormRecord {
+        constant: form.constant,
+        terms: form.terms.iter().map(|(k, n)| (k.clone(), *n)).collect(),
+        unit: typed_in(form.kind, form.currency, 1.0),
+    }
+}
 fn form_value(form: &Linear) -> Value {
-    crate::modules::record([
-        ("constant".into(), Value::Number(form.constant)),
-        (
-            "terms".into(),
-            crate::modules::record(
-                form.terms
-                    .iter()
-                    .map(|(k, n)| (k.clone(), Value::Number(*n))),
-            ),
-        ),
-        ("unit".into(), typed_in(form.kind, form.currency, 1.0)),
-    ])
+    form_record(form).to_value()
 }
 pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResult<Value> {
     let ws = engine.workspace;
@@ -553,56 +517,35 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResul
         return Err(message);
     }
     let rows = std::mem::take(&mut engine.row_variables);
-    use crate::modules::{field, list, record};
-    let input = record([
-        ("goal".into(), Value::Text(plan.goal.keyword().into())),
-        (
-            "names".into(),
-            Value::List(names.iter().cloned().map(Value::Text).collect()),
-        ),
-        (
-            "decisions".into(),
-            Value::List(
-                rows.iter()
-                    .map(|row| {
-                        record([
-                            ("name".into(), Value::Text(row.name.clone())),
-                            (
-                                "kind".into(),
-                                Value::Text(
-                                    match row.domain {
-                                        crate::tables::Domain::Choice => "binary",
-                                        crate::tables::Domain::Count => "integer",
-                                    }
-                                    .into(),
-                                ),
-                            ),
-                        ])
-                    })
-                    .collect(),
-            ),
-        ),
-        ("objective".into(), form_value(&objective)),
-        (
-            "constraints".into(),
-            Value::List(
-                plan.constraints
-                    .iter()
-                    .zip(&constraints)
-                    .map(|(constraint, (lhs, op, rhs))| {
-                        record([
-                            ("name".into(), Value::Text(constraint.named.name.clone())),
-                            ("lhs".into(), form_value(lhs)),
-                            ("rhs".into(), form_value(rhs)),
-                            ("op".into(), Value::Text(op.as_str().into())),
-                        ])
-                    })
-                    .collect(),
-            ),
-        ),
-    ]);
+    let input = PlanInput {
+        goal: plan.goal.keyword().into(),
+        names,
+        decisions: rows
+            .iter()
+            .map(|row| DecisionRecord {
+                name: row.name.clone(),
+                kind: match row.domain {
+                    crate::tables::Domain::Choice => "binary",
+                    crate::tables::Domain::Count => "integer",
+                }
+                .into(),
+            })
+            .collect(),
+        objective: form_record(&objective),
+        constraints: plan
+            .constraints
+            .iter()
+            .zip(&constraints)
+            .map(|(constraint, (lhs, op, rhs))| ConstraintInput {
+                name: constraint.named.name.clone(),
+                lhs: form_record(lhs),
+                rhs: form_record(rhs),
+                op: op.as_str().into(),
+            })
+            .collect(),
+    };
     let result = engine
-        .call_module("plan", "solve_model", vec![input])
+        .call_module("plan", "solve_model", vec![input.to_value()])
         .inspect_err(|message| {
             engine.failure.get_or_insert(crate::engine::EvalFailure {
                 path: path.clone(),
@@ -611,32 +554,35 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResul
                 related: vec![],
             });
         })?;
-    let variables = list(field(&result, "variables")?)?
-        .iter()
-        .map(|v| Ok((field(v, "name")?.display(), field(v, "value")?.clone())))
-        .collect::<EvalResult<_>>()?;
-    let results = list(field(&result, "constraints")?)?
-        .iter()
+    let solution = SolutionRecord::from_value(&result)?;
+    let variables = solution
+        .variables
+        .into_iter()
+        .map(|v| (v.name, v.value))
+        .collect();
+    let results = solution
+        .constraints
+        .into_iter()
         .map(|c| {
             Ok(ConstraintResult {
-                name: field(c, "name")?.display(),
-                op: field(c, "op")?.display().parse()?,
-                lhs: field(c, "lhs")?.clone(),
-                rhs: field(c, "rhs")?.clone(),
-                slack: field(c, "slack")?.clone(),
-                binding: matches!(field(c, "binding")?, Value::Bool(true)),
+                name: c.name,
+                op: c.op.parse()?,
+                lhs: c.lhs,
+                rhs: c.rhs,
+                slack: c.slack,
+                binding: c.binding,
             })
         })
         .collect::<EvalResult<_>>()?;
-    let choices = field(&result, "rows")?;
+    let choices = Fields::new(&solution.rows)?;
     let rows = rows
         .into_iter()
-        .map(|row| Ok((row.clone(), field(choices, &row.name)?.clone())))
+        .map(|row| Ok((row.clone(), choices.required::<Value>(&row.name)?)))
         .collect::<EvalResult<_>>()?;
     Ok(Value::Plan(std::sync::Arc::new(PlanValue {
         origin: symbol.clone(),
         goal: plan.goal,
-        objective: field(&result, "objective")?.clone(),
+        objective: solution.objective,
         variables,
         constraints: results,
         rows,

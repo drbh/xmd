@@ -68,15 +68,6 @@ pub fn url_value(url: &Url) -> Value {
         ("scheme".into(), Value::Text(url.scheme().into())),
     ])
 }
-pub(crate) fn field<'a>(value: &'a Value, key: &str) -> EvalResult<&'a Value> {
-    if let Value::Record(fields) = value {
-        fields
-            .get(key)
-            .ok_or_else(|| EvalError::Message(format!("Missing field '{key}'")))
-    } else {
-        Err(EvalError::Expected("a record"))
-    }
-}
 pub(crate) fn list(value: &Value) -> EvalResult<&[Value]> {
     if let Value::List(items) = value {
         Ok(items)

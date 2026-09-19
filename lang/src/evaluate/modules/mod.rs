@@ -18,7 +18,7 @@ mod registry;
 mod values;
 
 pub use registry::{ModuleRegistry, bundled};
-pub(crate) use values::{field, list};
+pub(crate) use values::list;
 pub use values::{from_json, json, record, url_value};
 
 /// What a module plugs into. `module.kind` in the source names one of these.

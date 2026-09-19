@@ -2,6 +2,9 @@
 //! (timers, resources, lookups, plans), plus the text charts and the glyph
 //! vocabulary every label draws from.
 //!
+//! `error` is the one failure vocabulary every one of them answers with, so a
+//! caller can tell a mistake in a note from data that is merely unfetched
+//! without reading the sentence.
 //! `modules` compiles the .wtf feature, link and library modules and `context`
 //! holds the one workspace snapshot, clock and memo a request evaluates
 //! against. `link_features` is the contract a link module implements, next to
@@ -10,6 +13,7 @@
 pub mod charts;
 pub mod context;
 pub mod engine;
+pub mod error;
 pub mod feeds;
 pub mod functional;
 pub mod github;

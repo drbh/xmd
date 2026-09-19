@@ -1,5 +1,5 @@
 //! Small, pure additions to the shared expression language.
-use super::engine::{BinaryOp, Expr, Value};
+use super::engine::{BinaryOp, Builtin, Expr, Value};
 use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug)]
@@ -28,58 +28,13 @@ impl PartialEq for Function {
     }
 }
 
-pub fn is_builtin(name: &str) -> bool {
-    matches!(
-        name,
-        "parse_date"
-            | "parse_datetime"
-            | "object"
-            | "import"
-            | "solve_linear"
-            | "entries"
-            | "number"
-            | "source"
-            | "duration_parts"
-            | "date_parts"
-            | "make_date"
-            | "at_time"
-            | "parse_time"
-            | "parse_duration"
-            | "pad_start"
-            | "pad_end"
-            | "map"
-            | "filter"
-            | "sort_by"
-            | "group_by"
-            | "fold"
-            | "get"
-            | "length"
-            | "text"
-            | "contains"
-            | "starts_with"
-            | "ends_with"
-            | "split"
-            | "join"
-            | "lower"
-            | "upper"
-            | "replace"
-            | "slice"
-            | "concat"
-            | "trim"
-            | "type"
-            | "floor"
-            | "round"
-            | "repeat"
-            | "format_date"
-            | "error"
-    )
-}
-
-pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
+/// Answer a built-in whose arguments have already been evaluated.
+pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
+    use Builtin as B;
     use Value::*;
     Ok(match (name, args) {
-        ("solve_linear", [model]) => crate::evaluate::solver::solve(model)?,
-        ("object", [List(entries)]) => {
+        (B::SolveLinear, [model]) => crate::evaluate::solver::solve(model)?,
+        (B::Object, [List(entries)]) => {
             let mut fields = BTreeMap::new();
             for entry in entries {
                 let Record(entry) = entry else {
@@ -95,7 +50,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             }
             Record(fields)
         }
-        ("entries", [Record(fields)]) => List(
+        (B::Entries, [Record(fields)]) => List(
             fields
                 .iter()
                 .map(|(key, value)| {
@@ -109,21 +64,21 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 })
                 .collect(),
         ),
-        ("number", [value]) => {
+        (B::Number, [value]) => {
             Number(crate::charts::magnitude(value).ok_or("Expected a numeric value")?)
         }
-        ("source", [value]) => Text(
+        (B::Source, [value]) => Text(
             value
                 .source()
                 .ok_or("Value cannot be written as an expression")?,
         ),
-        ("parse_date", [Text(value), Text(format)]) => {
+        (B::ParseDate, [Text(value), Text(format)]) => {
             chrono::NaiveDate::parse_from_str(value, format)
                 .ok()
                 .map(Date)
                 .unwrap_or(Null)
         }
-        ("parse_datetime", [Text(value), Text(format), DateTime(reference)]) => {
+        (B::ParseDatetime, [Text(value), Text(format), DateTime(reference)]) => {
             use chrono::TimeZone;
             chrono::NaiveDateTime::parse_from_str(value, format)
                 .ok()
@@ -131,17 +86,17 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 .map(DateTime)
                 .unwrap_or(Null)
         }
-        ("parse_duration", [Text(value)]) => {
+        (B::ParseDuration, [Text(value)]) => {
             crate::engine::duration(value).map(Duration).unwrap_or(Null)
         }
-        ("parse_time", [Text(value), Text(format)]) => {
+        (B::ParseTime, [Text(value), Text(format)]) => {
             use chrono::Timelike;
             chrono::NaiveTime::parse_from_str(value, format)
                 .ok()
                 .map(|t| Duration(t.num_seconds_from_midnight() as i64))
                 .unwrap_or(Null)
         }
-        ("make_date", [year, month, day]) => {
+        (B::MakeDate, [year, month, day]) => {
             let y = number(year)?;
             let m = number(month)?;
             let d = number(day)?;
@@ -160,7 +115,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                     .unwrap_or(Null)
             }
         }
-        ("duration_parts", [Duration(seconds)]) => Record(
+        (B::DurationParts, [Duration(seconds)]) => Record(
             [
                 ("hours".into(), Number((seconds / 3600) as f64)),
                 ("minutes".into(), Number((seconds / 60 % 60) as f64)),
@@ -168,7 +123,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             ]
             .into(),
         ),
-        ("date_parts", [value]) => {
+        (B::DateParts, [value]) => {
             use chrono::Datelike;
             let date = match value {
                 Date(d) => *d,
@@ -188,7 +143,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 .into(),
             )
         }
-        ("at_time", [Date(date), Duration(seconds), DateTime(reference)]) => {
+        (B::AtTime, [Date(date), Duration(seconds), DateTime(reference)]) => {
             use chrono::TimeZone;
             if !(0..86400).contains(seconds) {
                 return Err("Time must be within a calendar day".into());
@@ -207,7 +162,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                     .ok_or("Invalid timestamp")?,
             )
         }
-        ("pad_start" | "pad_end", [Text(value), width, Text(fill)]) => {
+        (B::PadStart | B::PadEnd, [Text(value), width, Text(fill)]) => {
             if fill.chars().count() != 1 {
                 return Err("Padding must be one character".into());
             }
@@ -217,28 +172,28 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             {
                 return Err("Padding exceeds the size limit".into());
             }
-            Text(if name == "pad_start" {
+            Text(if name == B::PadStart {
                 fill.repeat(count) + value
             } else {
                 value.clone() + &fill.repeat(count)
             })
         }
-        ("type", [value]) => Text(value.type_name().into()),
-        ("error", [Text(message)]) => return Err(message.clone()),
-        ("trim", [Text(text)]) => Text(text.trim().into()),
-        ("floor" | "round", [value]) => {
+        (B::Type, [value]) => Text(value.type_name().into()),
+        (B::Error, [Text(message)]) => return Err(message.clone()),
+        (B::Trim, [Text(text)]) => Text(text.trim().into()),
+        (B::Floor | B::Round, [value]) => {
             let number = match value {
                 Number(n) | Ratio(n) => *n,
                 Count(n) => *n as f64,
                 _ => return Err(format!("{name} requires a number")),
             };
-            Number(if name == "floor" {
+            Number(if name == B::Floor {
                 number.floor()
             } else {
                 number.round()
             })
         }
-        ("concat", lists) => {
+        (B::Concat, lists) => {
             let mut result = Vec::new();
             for list in lists {
                 let List(items) = list else {
@@ -251,7 +206,7 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             }
             List(result)
         }
-        ("slice", [value, start, end]) => {
+        (B::Slice, [value, start, end]) => {
             let start = index(start)?;
             let end = index(end)?;
             if start > end {
@@ -263,14 +218,14 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 _ => return Err("slice requires text or a list".into()),
             }
         }
-        ("repeat", [Text(text), count]) => {
+        (B::Repeat, [Text(text), count]) => {
             let count = index(count)?;
             if text.len().saturating_mul(count) > 1_048_576 || count > 8192 {
                 return Err("Repeated text exceeds the size limit".into());
             }
             Text(text.repeat(count))
         }
-        ("format_date", [value, Text(format)]) => {
+        (B::FormatDate, [value, Text(format)]) => {
             if chrono::format::StrftimeItems::new(format)
                 .any(|i| matches!(i, chrono::format::Item::Error))
             {
@@ -288,8 +243,8 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
                 _ => return Err("format_date requires a date or timestamp".into()),
             })
         }
-        ("get", [Record(fields), Text(key)]) => fields.get(key).cloned().unwrap_or(Null),
-        ("get", [List(items), index]) => {
+        (B::Get, [Record(fields), Text(key)]) => fields.get(key).cloned().unwrap_or(Null),
+        (B::Get, [List(items), index]) => {
             let index = match index {
                 Count(n) => *n,
                 Number(n) if n.is_finite() && *n >= 0.0 && n.fract() == 0.0 => *n as usize,
@@ -297,26 +252,26 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             };
             items.get(index).cloned().unwrap_or(Null)
         }
-        ("get", [Null, _]) => Null,
-        ("length", [List(items)]) => Count(items.len()),
-        ("length", [Record(fields)]) => Count(fields.len()),
-        ("length", [Text(text)]) => Count(text.chars().count()),
-        ("text", [Null]) => Null,
-        ("text", [value]) => Text(value.display()),
-        ("contains", [Text(text), Text(part)]) => Bool(text.contains(part)),
-        ("contains", [List(items), value]) => Bool(items.iter().any(|item| {
+        (B::Get, [Null, _]) => Null,
+        (B::Length, [List(items)]) => Count(items.len()),
+        (B::Length, [Record(fields)]) => Count(fields.len()),
+        (B::Length, [Text(text)]) => Count(text.chars().count()),
+        (B::Text, [Null]) => Null,
+        (B::Text, [value]) => Text(value.display()),
+        (B::Contains, [Text(text), Text(part)]) => Bool(text.contains(part)),
+        (B::Contains, [List(items), value]) => Bool(items.iter().any(|item| {
             super::engine::binary(BinaryOp::Equal, item.clone(), value.clone()) == Ok(Bool(true))
         })),
-        ("starts_with", [Text(text), Text(part)]) => Bool(text.starts_with(part)),
-        ("ends_with", [Text(text), Text(part)]) => Bool(text.ends_with(part)),
-        ("split", [Text(text), Text(separator)]) => {
+        (B::StartsWith, [Text(text), Text(part)]) => Bool(text.starts_with(part)),
+        (B::EndsWith, [Text(text), Text(part)]) => Bool(text.ends_with(part)),
+        (B::Split, [Text(text), Text(separator)]) => {
             let parts = text.split(separator).take(8193).collect::<Vec<_>>();
             if parts.len() > 8192 {
                 return Err("List exceeds the collection size limit".into());
             }
             List(parts.into_iter().map(|s| Text(s.into())).collect())
         }
-        ("join", [List(items), Text(separator)]) => {
+        (B::Join, [List(items), Text(separator)]) => {
             let parts = items
                 .iter()
                 .map(|v| match v {
@@ -335,9 +290,9 @@ pub fn builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             }
             Text(parts.join(separator))
         }
-        ("lower", [Text(text)]) => Text(text.to_lowercase()),
-        ("upper", [Text(text)]) => Text(text.to_uppercase()),
-        ("replace", [Text(text), Text(from), Text(to)]) => {
+        (B::Lower, [Text(text)]) => Text(text.to_lowercase()),
+        (B::Upper, [Text(text)]) => Text(text.to_uppercase()),
+        (B::Replace, [Text(text), Text(from), Text(to)]) => {
             let count = text.matches(from).count();
             if count.saturating_mul(to.len()).saturating_add(text.len()) > 1_048_576 {
                 return Err("Text exceeds 1 MiB".into());

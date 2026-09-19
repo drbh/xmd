@@ -618,27 +618,5 @@ pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
 }
 /// Names reserved by the evaluator, also used by references and editor highlighting.
 pub(crate) fn is_builtin_function(name: &str) -> bool {
-    crate::evaluate::functional::is_builtin(name)
-        || matches!(
-            name,
-            "if" | "coalesce"
-                | "sum"
-                | "eval"
-                | "now"
-                | "today"
-                | "stopwatch"
-                | "countdown"
-                | "rate"
-                | "to"
-                | "forecast"
-                | "quote"
-                | "date"
-                | "total"
-                | "completed"
-                | "remaining"
-                | "effort"
-                | "maximize"
-                | "minimize"
-                | "solve"
-        )
+    name.parse::<super::Builtin>().is_ok()
 }

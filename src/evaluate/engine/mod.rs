@@ -529,55 +529,9 @@ impl<'a> Engine<'a> {
                 }
             },
             Expr::Call(n, args) => {
-                if n == "import" {
-                    let [arg] = args.as_slice() else {
-                        return Err("import expects a module ID or a literal note path".into());
-                    };
-                    let Value::Text(id) = self.expr(path, arg)? else {
-                        return Err("import expects text".into());
-                    };
-                    if crate::model::imports::is_note_path(&id) {
-                        if !matches!(arg.bare(), Expr::Value(Value::Text(_))) {
-                            return Err("Note imports require a literal path, e.g. import(\"./values.wtf\")".into());
-                        }
-                        let target = crate::model::imports::note_path(path, &id)?;
-                        if !self.workspace.documents.contains_key(&target) {
-                            return Err(format!(
-                                "Note import '{}' is not loaded (from {})",
-                                target.display(),
-                                path.display()
-                            ));
-                        }
-                        return Ok(Value::Namespace(target));
-                    }
-                    return self.import(&id);
-                }
-                if n == "if" {
-                    if args.len() != 3 {
-                        return Err("if expects a condition and two branches".into());
-                    }
-                    let Value::Bool(condition) = self.expr(path, &args[0])? else {
-                        return Err("if requires a Boolean condition".into());
-                    };
-                    return self.expr(path, &args[if condition { 1 } else { 2 }]);
-                }
-                if n == "coalesce" {
-                    for arg in args {
-                        let value = self.expr(path, arg)?;
-                        if value != Value::Null {
-                            return Ok(value);
-                        }
-                    }
-                    return Ok(Value::Null);
-                }
-                if crate::evaluate::functional::is_builtin(n) {
-                    let values = args
-                        .iter()
-                        .map(|e| self.expr(path, e))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    return self.functional(n, values);
-                }
-                if !is_builtin_function(n) {
+                // One name resolution decides everything: an unknown name is a
+                // call to a note function, a known one dispatches by variant.
+                let Ok(builtin) = n.parse::<Builtin>() else {
                     let function = self
                         .locals
                         .last()
@@ -591,93 +545,39 @@ impl<'a> Engine<'a> {
                         .map(|e| self.expr(path, e))
                         .collect::<Result<Vec<_>, _>>()?;
                     return self.call(function, values);
-                }
-                if n == "sum" && args.len() == 1 {
-                    let Value::List(values) = self.expr(path, &args[0])? else {
-                        return Err("sum expects a list, or a table and row expression".into());
-                    };
-                    return crate::evaluate::functional::sum(values);
-                }
-                if n == "eval" && args.len() == 1 {
-                    if self.calls >= 32 {
-                        return Err("Function call depth exceeds 32".into());
-                    }
-                    let Value::Text(source) = self.expr(path, &args[0])? else {
-                        return Err("eval expects expression text".into());
-                    };
-                    // Dynamic expressions use the current document, not query row fields.
-                    let bindings = self.bindings.take();
-                    let locals = std::mem::take(&mut self.locals);
-                    self.calls += 1;
-                    let result = self.eval(path, &source);
-                    self.calls -= 1;
-                    self.locals = locals;
-                    self.bindings = bindings;
-                    return result;
-                }
-                if n == "sum" {
-                    return self.sum(path, args).map(|(value, _)| value);
-                }
-                if n == "now" && args.is_empty() {
-                    self.time_dependent = true;
-                    return Ok(Value::DateTime(self.now));
-                }
-                if matches!(n.as_str(), "stopwatch" | "countdown") {
-                    let values = args
-                        .iter()
-                        .map(|a| self.expr(path, a))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    let time_dependent = self.time_dependent;
-                    let timer = Timer::new(self, n, &values)?;
-                    // The module declares whether this resolved state still needs a clock.
-                    self.time_dependent = time_dependent || timer.time_dependent()?;
-                    return Ok(Value::Timer(std::sync::Arc::new(timer)));
-                }
-                if n == "today" && args.is_empty() {
-                    return Ok(Value::Date(self.today));
-                }
-                if matches!(n.as_str(), "rate" | "to" | "forecast" | "quote") {
-                    return self.lookup(path, n, args);
-                }
-                if args.len() != 1 {
-                    return Err(format!("{n} expects one argument"));
-                }
-                let value = self.expr(path, &args[0])?;
-                if n == "date" {
-                    return match value {
-                        Value::Text(s) => date_value(&s)
-                            .or_else(|| relative_date(&s, self.today).map(Value::Date))
-                            .ok_or("Unrecognized date".into()),
-                        other => self.date(&other).map(Value::Date),
-                    };
-                }
-                let Value::Tasks(tasks) = value else {
-                    return Err(format!("{n} expects a named checklist heading"));
                 };
-                let done = tasks.iter().filter(|(p, i)| self.task_done(p, *i)).count();
-                match n.as_str() {
-                    "total" => Ok(Value::Count(tasks.len())),
-                    "completed" => Ok(Value::Count(done)),
-                    "remaining" => Ok(Value::Count(tasks.len() - done)),
-                    "effort" => {
-                        let mut seconds = 0i64;
-                        for (p, i) in tasks {
-                            if !self.task_done(&p, i) {
-                                let task = &self.workspace.documents[&p].tasks[i];
-                                if let Some(attr) = task.attributes.get("estimate") {
-                                    let Value::Duration(m) = self.eval(&p, &attr.value)? else {
-                                        return Err("@estimate requires a duration".into());
-                                    };
-                                    if m < 0 {
-                                        return Err("Estimate cannot be negative".into());
-                                    }
-                                    seconds = seconds.checked_add(m).ok_or("Duration overflow")?;
-                                }
-                            }
-                        }
-                        Ok(Value::Duration(seconds))
+                match builtin {
+                    Builtin::Import => self.call_import(path, args),
+                    Builtin::If => self.call_if(path, args),
+                    Builtin::Coalesce => self.call_coalesce(path, args),
+                    // Everything else with eagerly evaluated arguments.
+                    builtin if !builtin.is_special_form() => {
+                        let values = args
+                            .iter()
+                            .map(|e| self.expr(path, e))
+                            .collect::<Result<Vec<_>, _>>()?;
+                        self.functional(builtin, values)
                     }
-                    _ => Err(format!("Unknown function '{n}'")),
+                    Builtin::Sum if args.len() == 1 => {
+                        let Value::List(values) = self.expr(path, &args[0])? else {
+                            return Err("sum expects a list, or a table and row expression".into());
+                        };
+                        crate::evaluate::functional::sum(values)
+                    }
+                    Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
+                    Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
+                    Builtin::Now if args.is_empty() => {
+                        self.time_dependent = true;
+                        Ok(Value::DateTime(self.now))
+                    }
+                    Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, builtin, args),
+                    Builtin::Today if args.is_empty() => Ok(Value::Date(self.today)),
+                    Builtin::Rate | Builtin::To | Builtin::Forecast | Builtin::Quote => {
+                        self.lookup(path, builtin, args)
+                    }
+                    // The one-argument tail: a date, a checklist question, and
+                    // the names that only a plan or a goal seek answers.
+                    builtin => self.call_checklist(path, builtin, args),
                 }
             }
             Expr::Unary(op, v) => {
@@ -916,10 +816,141 @@ impl<'a> Engine<'a> {
         crate::evaluate::functional::check_size(&value)?;
         Ok(value)
     }
-    pub(crate) fn functional(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
+    /// `import(id)`: a module ID, or a literal path to another note.
+    fn call_import(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+        let [arg] = args else {
+            return Err("import expects a module ID or a literal note path".into());
+        };
+        let Value::Text(id) = self.expr(path, arg)? else {
+            return Err("import expects text".into());
+        };
+        if crate::model::imports::is_note_path(&id) {
+            if !matches!(arg.bare(), Expr::Value(Value::Text(_))) {
+                return Err(
+                    "Note imports require a literal path, e.g. import(\"./values.wtf\")".into(),
+                );
+            }
+            let target = crate::model::imports::note_path(path, &id)?;
+            if !self.workspace.documents.contains_key(&target) {
+                return Err(format!(
+                    "Note import '{}' is not loaded (from {})",
+                    target.display(),
+                    path.display()
+                ));
+            }
+            return Ok(Value::Namespace(target));
+        }
+        self.import(&id)
+    }
+    /// `if(condition, then, else)`: only the chosen branch is evaluated.
+    fn call_if(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+        if args.len() != 3 {
+            return Err("if expects a condition and two branches".into());
+        }
+        let Value::Bool(condition) = self.expr(path, &args[0])? else {
+            return Err("if requires a Boolean condition".into());
+        };
+        self.expr(path, &args[if condition { 1 } else { 2 }])
+    }
+    /// `coalesce(a, b, …)`: stop at the first non-null argument.
+    fn call_coalesce(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+        for arg in args {
+            let value = self.expr(path, arg)?;
+            if value != Value::Null {
+                return Ok(value);
+            }
+        }
+        Ok(Value::Null)
+    }
+    /// `eval(text)`: parse and run expression text in the current document.
+    fn call_eval(&mut self, path: &Path, arg: &Expr) -> Result<Value, String> {
+        if self.calls >= 32 {
+            return Err("Function call depth exceeds 32".into());
+        }
+        let Value::Text(source) = self.expr(path, arg)? else {
+            return Err("eval expects expression text".into());
+        };
+        // Dynamic expressions use the current document, not query row fields.
+        let bindings = self.bindings.take();
+        let locals = std::mem::take(&mut self.locals);
+        self.calls += 1;
+        let result = self.eval(path, &source);
+        self.calls -= 1;
+        self.locals = locals;
+        self.bindings = bindings;
+        result
+    }
+    /// `stopwatch(…)` and `countdown(…)`: the timer module resolves the state.
+    fn call_timer(
+        &mut self,
+        path: &Path,
+        builtin: Builtin,
+        args: &[Expr],
+    ) -> Result<Value, String> {
+        let values = args
+            .iter()
+            .map(|a| self.expr(path, a))
+            .collect::<Result<Vec<_>, _>>()?;
+        let time_dependent = self.time_dependent;
+        let timer = Timer::new(self, builtin.as_str(), &values)?;
+        // The module declares whether this resolved state still needs a clock.
+        self.time_dependent = time_dependent || timer.time_dependent()?;
+        Ok(Value::Timer(std::sync::Arc::new(timer)))
+    }
+    /// The one-argument built-ins: `date` over text or a timestamp, and the
+    /// counts a named checklist heading answers.
+    fn call_checklist(
+        &mut self,
+        path: &Path,
+        builtin: Builtin,
+        args: &[Expr],
+    ) -> Result<Value, String> {
+        if args.len() != 1 {
+            return Err(format!("{builtin} expects one argument"));
+        }
+        let value = self.expr(path, &args[0])?;
+        if builtin == Builtin::Date {
+            return match value {
+                Value::Text(s) => date_value(&s)
+                    .or_else(|| relative_date(&s, self.today).map(Value::Date))
+                    .ok_or("Unrecognized date".into()),
+                other => self.date(&other).map(Value::Date),
+            };
+        }
+        let Value::Tasks(tasks) = value else {
+            return Err(format!("{builtin} expects a named checklist heading"));
+        };
+        let done = tasks.iter().filter(|(p, i)| self.task_done(p, *i)).count();
+        match builtin {
+            Builtin::Total => Ok(Value::Count(tasks.len())),
+            Builtin::Completed => Ok(Value::Count(done)),
+            Builtin::Remaining => Ok(Value::Count(tasks.len() - done)),
+            Builtin::Effort => {
+                let mut seconds = 0i64;
+                for (p, i) in tasks {
+                    if !self.task_done(&p, i) {
+                        let task = &self.workspace.documents[&p].tasks[i];
+                        if let Some(attr) = task.attributes.get("estimate") {
+                            let Value::Duration(m) = self.eval(&p, &attr.value)? else {
+                                return Err("@estimate requires a duration".into());
+                            };
+                            if m < 0 {
+                                return Err("Estimate cannot be negative".into());
+                            }
+                            seconds = seconds.checked_add(m).ok_or("Duration overflow")?;
+                        }
+                    }
+                }
+                Ok(Value::Duration(seconds))
+            }
+            _ => Err(format!("Unknown function '{builtin}'")),
+        }
+    }
+    pub(crate) fn functional(&mut self, name: Builtin, args: Vec<Value>) -> Result<Value, String> {
         use Value::*;
         let value = match (name, args.as_slice()) {
-            ("get", [Namespace(path), Text(key)]) => match self.workspace.resolve(path, key) {
+            (Builtin::Get, [Namespace(path), Text(key)]) => match self.workspace.resolve(path, key)
+            {
                 Ok(symbol) => self.symbol(&symbol)?,
                 Err(_)
                     if !self
@@ -932,7 +963,7 @@ impl<'a> Engine<'a> {
                 }
                 Err(e) => return Err(e),
             },
-            ("sort_by", [List(items), function @ Function(_)]) => {
+            (Builtin::SortBy, [List(items), function @ Function(_)]) => {
                 let mut keyed = Vec::new();
                 let mut first = None;
                 for item in items {
@@ -951,7 +982,7 @@ impl<'a> Engine<'a> {
                 keyed.sort_by(|(a, _), (b, _)| crate::evaluate::functional::compare(a, b).unwrap());
                 List(keyed.into_iter().map(|(_, item)| item).collect())
             }
-            ("group_by", [List(items), function @ Function(_)]) => {
+            (Builtin::GroupBy, [List(items), function @ Function(_)]) => {
                 let mut groups: Vec<(Value, Vec<Value>)> = Vec::new();
                 for item in items {
                     let key = self.call(function.clone(), vec![item.clone()])?;
@@ -973,11 +1004,11 @@ impl<'a> Engine<'a> {
                         .collect(),
                 )
             }
-            ("map" | "filter", [List(items), function @ Function(_)]) => {
+            (Builtin::Map | Builtin::Filter, [List(items), function @ Function(_)]) => {
                 let mut output = Vec::new();
                 for item in items {
                     let value = self.call(function.clone(), vec![item.clone()])?;
-                    if name == "map" {
+                    if name == Builtin::Map {
                         output.push(value);
                     } else {
                         match value {
@@ -992,7 +1023,7 @@ impl<'a> Engine<'a> {
                 }
                 List(output)
             }
-            ("fold", [List(items), initial, function @ Function(_)]) => {
+            (Builtin::Fold, [List(items), initial, function @ Function(_)]) => {
                 let mut result = initial.clone();
                 for item in items {
                     result = self.call(function.clone(), vec![result, item.clone()])?;
@@ -1147,7 +1178,7 @@ impl<'a> Engine<'a> {
     }
     /// `rate(EUR, USD)`, `to(money, USD)`, `forecast("Oaxaca", 2026-11-20[, F])`
     /// and `quote(NVDA)`: values from the lookup cache, never fetched here.
-    fn lookup(&mut self, path: &Path, name: &str, args: &[Expr]) -> Result<Value, String> {
+    fn lookup(&mut self, path: &Path, name: Builtin, args: &[Expr]) -> Result<Value, String> {
         let code = |value: Value, what: &str| match value {
             Value::Text(code) => Ok(code),
             other => Err(format!(
@@ -1160,7 +1191,7 @@ impl<'a> Engine<'a> {
                 .ok_or_else(|| format!("'{code}' is not a currency code such as USD"))
         };
         match name {
-            "rate" => {
+            Builtin::Rate => {
                 if args.len() != 2 {
                     return Err("rate expects two currency codes: rate(EUR, USD)".into());
                 }
@@ -1171,7 +1202,7 @@ impl<'a> Engine<'a> {
                 }
                 crate::lookups::rate(&self.workspace.lookups, from, to).map(Value::Number)
             }
-            "to" => {
+            Builtin::To => {
                 if args.len() != 2 {
                     return Err(
                         "to expects a money value and a currency code: to(hotel, USD)".into(),
@@ -1187,7 +1218,7 @@ impl<'a> Engine<'a> {
                 let rate = crate::lookups::rate(&self.workspace.lookups, from, to)?;
                 Ok(Value::Money(amount * rate, to))
             }
-            "quote" => {
+            Builtin::Quote => {
                 if args.len() != 1 {
                     return Err("quote expects a ticker symbol: quote(NVDA)".into());
                 }

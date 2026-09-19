@@ -347,16 +347,13 @@ impl Engine<'_> {
                 }
                 result
             }
-            Expr::Name(n) if vars.contains(n) && self.row_values.is_empty() => {
-                Ok(Linear::variable(n))
-            }
+            Expr::Name(n) if vars.contains(n) && self.row().is_none() => Ok(Linear::variable(n)),
             Expr::Name(n)
                 if self
-                    .row_values
-                    .last()
+                    .row()
                     .is_some_and(|scope| scope.decisions.contains_key(n)) =>
             {
-                let variable = self.row_values.last().unwrap().decisions[n].clone();
+                let variable = self.row().unwrap().decisions[n].clone();
                 if variable.is_empty() {
                     return Err(EvalError::DecisionColumnBareTable(n.clone()));
                 }
@@ -365,7 +362,7 @@ impl Engine<'_> {
             // Walk into calculations symbolically, so a goal seek can see its
             // own name through any chain of definitions.
             Expr::Name(n)
-                if self.row_values.is_empty()
+                if self.row().is_none()
                     && !matches!(n.as_str(), "true" | "false")
                     && self.definition_source(path, n).is_some() =>
             {
@@ -433,13 +430,13 @@ impl Engine<'_> {
         args: &[Expr],
         vars: &BTreeSet<String>,
     ) -> EvalResult<Linear> {
-        let Some(Expr::Name(name)) = args.first().map(Expr::bare) else {
+        let Some(name) = args.first().and_then(Expr::as_name) else {
             return Err(EvalError::Message(
                 "The first argument to sum must be a table name".into(),
             ));
         };
         let Value::Table(table) = self.named(path, name)? else {
-            return Err(EvalError::NotATable(name.clone()));
+            return Err(EvalError::NotATable(name.into()));
         };
         let decisions = self.decision_columns(&table);
         let mut total = Linear::constant(Unit::Any, 0.0);
@@ -458,8 +455,8 @@ impl Engine<'_> {
                 }
                 names.insert(column.clone(), variable);
             }
-            self.row_values.push(RowScope {
-                table: name.clone(),
+            self.push_row(RowScope {
+                table: name.into(),
                 values: table
                     .columns
                     .iter()
@@ -469,7 +466,7 @@ impl Engine<'_> {
                 decisions: names,
             });
             let form = self.linear_expr(path, &args[1], vars);
-            self.row_values.pop();
+            self.pop_row();
             total = total.add(&form?, 1.0)?;
         }
         Ok(total)

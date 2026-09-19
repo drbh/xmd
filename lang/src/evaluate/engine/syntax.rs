@@ -166,6 +166,15 @@ pub(crate) enum Expr {
     Spanned(usize, usize, Box<Expr>),
     Value(Value),
     Name(String),
+    /// A name the parser resolved to a parameter of the lambda it sits in,
+    /// kept alongside its slot so tooling still reads it as a name. There is
+    /// no depth: an outer lambda's parameter is read out of the closure the
+    /// inner lambda captured, never off the frame stack, so only the
+    /// innermost parameter list is resolved.
+    Param {
+        name: String,
+        index: usize,
+    },
     /// A call to a note function: the callee is a name the runtime resolves.
     Call(String, Vec<Expr>),
     /// A call the parser already recognized as a built-in, so evaluation never
@@ -186,6 +195,8 @@ impl Expr {
             match expr {
                 Expr::Spanned(start, _, e) => visit(e, bound, *start, out),
                 Expr::Name(name) if !bound.contains(name) => out.push((name.clone(), start)),
+                // A parameter is bound by construction.
+                Expr::Param { .. } => (),
                 Expr::Lambda(params, body) => {
                     let mut bound = bound.to_vec();
                     bound.extend(params.clone());
@@ -227,6 +238,13 @@ impl Expr {
         visit(self, &[], 0, &mut names);
         names
     }
+    /// The name this node spells, whether or not it resolved to a parameter.
+    pub(crate) fn as_name(&self) -> Option<&str> {
+        match self.bare() {
+            Self::Name(name) | Self::Param { name, .. } => Some(name),
+            _ => None,
+        }
+    }
     pub(crate) fn bare(&self) -> &Self {
         if let Self::Spanned(_, _, e) = self {
             e.bare()
@@ -258,15 +276,14 @@ pub(crate) struct Parser {
     tokens: Vec<Token>,
     at: usize,
     depth: usize,
+    /// Parameters of the lambda currently being parsed, saved and restored
+    /// around each body, so a name can be resolved to a slot where it is
+    /// written rather than looked up every time it is read.
+    parameters: Vec<String>,
 }
 
 pub fn simple_name(source: &str) -> Option<String> {
-    let parsed = Parser::parse(source).ok()?;
-    if let Expr::Name(name) = parsed.bare() {
-        Some(name.clone())
-    } else {
-        None
-    }
+    Parser::parse(source).ok()?.as_name().map(str::to_string)
 }
 
 /// Tolerant lexical scopes for sum(table, row_expression). The evaluator checks
@@ -313,6 +330,7 @@ impl Parser {
             tokens: lex(s)?,
             at: 0,
             depth: 0,
+            parameters: Vec::new(),
         };
         let expr = p.expression(0)?;
         if p.at != p.tokens.len() {
@@ -385,7 +403,7 @@ impl Parser {
                         self.expression(0)?
                     } else if crate::document::identifier(&key) {
                         let token = &self.tokens[self.at - 1];
-                        Expr::Spanned(token.start, token.end, Box::new(Expr::Name(key.clone())))
+                        Expr::Spanned(token.start, token.end, Box::new(self.name(key.clone())))
                     } else {
                         return Err("Expected ':'".into());
                     };
@@ -451,7 +469,10 @@ impl Parser {
                     return Err("Expected '=>'".into());
                 }
                 self.at += 1;
-                Expr::Lambda(params, Box::new(self.expression(0)?))
+                let enclosing = std::mem::replace(&mut self.parameters, params.clone());
+                let body = self.expression(0);
+                self.parameters = enclosing;
+                Expr::Lambda(params, Box::new(body?))
             }
             Lexeme::Name(n) => {
                 if matches!(
@@ -483,7 +504,7 @@ impl Parser {
                         Err(()) => Expr::Call(n, args),
                     }
                 } else {
-                    Expr::Name(n)
+                    self.name(n)
                 }
             }
             Lexeme::Left => {
@@ -552,6 +573,13 @@ impl Parser {
         }
         self.depth -= 1;
         Ok(lhs)
+    }
+    /// A bare name, resolved to a parameter slot when it names one.
+    fn name(&self, name: String) -> Expr {
+        match self.parameters.iter().position(|p| *p == name) {
+            Some(index) => Expr::Param { name, index },
+            None => Expr::Name(name),
+        }
     }
     fn close(&mut self) -> Result<(), String> {
         if !matches!(

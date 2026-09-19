@@ -62,10 +62,7 @@ impl Engine<'_> {
         args: &[Expr],
     ) -> EvalResult<Value> {
         let function = self
-            .locals
-            .last()
-            .and_then(|s| s.get(name))
-            .cloned()
+            .local(name)
             .map(Ok)
             .or_else(|| self.binding(name))
             .unwrap_or_else(|| self.named(path, name))?;
@@ -168,11 +165,8 @@ impl Engine<'_> {
         if self.calls >= 32 {
             return Err(EvalError::DepthExceeded(Depth::Call));
         }
-        let mut locals = function.captured.clone();
-        locals.extend(function.params.iter().cloned().zip(args));
-        self.locals.push(locals);
-        let rows = std::mem::take(&mut self.row_values);
-        let bindings = self.bindings.take();
+        let height = self.barrier(false);
+        self.push_call(function.clone(), args);
         self.calls += 1;
         if let Some(source) = &function.source {
             self.contexts.push(source.clone());
@@ -182,9 +176,7 @@ impl Engine<'_> {
             self.contexts.pop();
         }
         self.calls -= 1;
-        self.row_values = rows;
-        self.bindings = bindings;
-        self.locals.pop();
+        self.unwind(height);
         let value = result?;
         crate::evaluate::functional::check_size(&value)?;
         Ok(value)
@@ -247,14 +239,13 @@ impl Engine<'_> {
         let Value::Text(source) = self.expr(path, arg)? else {
             return Err(EvalError::Message("eval expects expression text".into()));
         };
-        // Dynamic expressions use the current document, not query row fields.
-        let bindings = self.bindings.take();
-        let locals = std::mem::take(&mut self.locals);
+        // Dynamic expressions use the current document, not query row fields,
+        // but a row expression's `eval` still runs inside its row.
+        let height = self.barrier(true);
         self.calls += 1;
         let result = self.eval(path, &source);
         self.calls -= 1;
-        self.locals = locals;
-        self.bindings = bindings;
+        self.unwind(height);
         result
     }
     /// `stopwatch(…)` and `countdown(…)`: the timer module resolves the state.
@@ -425,20 +416,20 @@ impl Engine<'_> {
                 "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
             ));
         }
-        let Expr::Name(name) = args[0].bare() else {
+        let Some(name) = args[0].as_name() else {
             return Err(EvalError::Message(
                 "The first argument to sum must be a table name".into(),
             ));
         };
         let Value::Table(table) = self.named(path, name)? else {
-            return Err(EvalError::NotATable(name.clone()));
+            return Err(EvalError::NotATable(name.into()));
         };
         let mut total = None;
         let mut contributions = Vec::new();
         let decisions = self.decision_columns(&table);
         for row in &table.rows {
-            self.row_values.push(RowScope {
-                table: name.clone(),
+            self.push_row(RowScope {
+                table: name.into(),
                 values: table
                     .columns
                     .iter()
@@ -451,7 +442,7 @@ impl Engine<'_> {
                     .collect(),
             });
             let value = self.expr(path, &args[1]);
-            self.row_values.pop();
+            self.pop_row();
             let value = value?;
             if !matches!(
                 value,

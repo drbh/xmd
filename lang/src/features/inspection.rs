@@ -76,7 +76,7 @@ impl Syntax<'_> {
         }
         let (kind, data) = match expr {
             Expr::Value(value) => ("literal", json!({"value":Q::from_value(value.clone())})),
-            Expr::Name(name) => ("name", json!({"name":name})),
+            Expr::Name(name) | Expr::Param { name, .. } => ("name", json!({"name":name})),
             Expr::Call(name, _) => ("call", json!({"name":name})),
             // A built-in call is still a call node named by its spelling.
             Expr::Builtin(builtin, _) => ("call", json!({"name":builtin.as_str()})),

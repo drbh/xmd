@@ -67,7 +67,8 @@ pub struct Engine<'a> {
     contexts: Vec<(PathBuf, Span)>,
     memo: std::sync::Arc<std::sync::Mutex<BTreeMap<MemoKey, MemoEntry>>>,
     stack: Vec<Symbol>,
-    row_values: Vec<RowScope>,
+    /// The dynamic environment a name is resolved against, innermost last.
+    frames: Vec<Frame>,
     /// Decision-column variables met while linearizing a plan.
     pub row_variables: Vec<RowVariable>,
     /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
@@ -76,12 +77,39 @@ pub struct Engine<'a> {
     /// a goal seek is legitimately on both at once.
     linear_stack: Vec<Symbol>,
     steps: usize,
-    locals: Vec<BTreeMap<String, Value>>,
-    bindings: Option<std::sync::Arc<dyn Bindings>>,
     calls: usize,
     pure: bool,
     environment: Option<std::sync::Arc<Workspace>>,
     expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
+}
+/// One level of the environment a name is resolved against. The stack is one
+/// list rather than one per kind, but the order a name is searched in is not
+/// the order frames were pushed: a call's locals answer first, then the
+/// bindings a host supplied, then the row a `sum` is walking, then the
+/// workspace.
+pub(super) enum Frame {
+    /// A call in progress: its arguments by parameter index, and the function
+    /// itself, which names those parameters and carries what it captured.
+    Function {
+        function: std::sync::Arc<crate::evaluate::functional::Function>,
+        arguments: Vec<Value>,
+    },
+    /// One table row, while a `sum` row expression runs.
+    Row(RowScope),
+    /// Names a host resolves lazily: a query's row fields, a module's context.
+    /// Taken out of the frame while it answers, so resolving a binding cannot
+    /// see itself.
+    Bindings(Option<std::sync::Arc<dyn Bindings>>),
+    /// A named definition, a call, or a dynamic `eval`: nothing below is in
+    /// scope. A row survives an `eval`, which still runs inside its row.
+    Barrier { rows: bool },
+}
+/// Where each kind of frame is found, or `None` when a barrier hides it.
+#[derive(Default)]
+struct Scope {
+    function: Option<usize>,
+    bindings: Option<usize>,
+    row: Option<usize>,
 }
 /// Column values for one table row while a `sum` row expression runs.
 pub(super) struct RowScope {
@@ -106,13 +134,11 @@ impl<'a> Engine<'a> {
             contexts: Vec::new(),
             memo: request.memo.clone(),
             stack: Vec::new(),
-            row_values: Vec::new(),
+            frames: Vec::new(),
             row_variables: Vec::new(),
             wanted: Vec::new(),
             linear_stack: Vec::new(),
             steps: 0,
-            locals: Vec::new(),
-            bindings: None,
             calls: 0,
             pure: false,
             environment: None,
@@ -150,27 +176,114 @@ impl<'a> Engine<'a> {
         expr: &Expr,
         bindings: std::sync::Arc<dyn Bindings>,
     ) -> EvalResult<Value> {
-        let previous = self.bindings.replace(bindings);
+        let height = self.frames.len();
+        self.frames.push(Frame::Bindings(Some(bindings)));
         let result = self.expr(path, expr);
-        self.bindings = previous;
+        self.frames.truncate(height);
         result
     }
-    fn binding(&mut self, name: &str) -> Option<EvalResult<Value>> {
-        let bindings = self.bindings.take()?;
+    /// The innermost frame of each kind that is still in scope.
+    fn scope(&self) -> Scope {
+        let mut scope = Scope::default();
+        let (mut locals, mut bindings, mut rows) = (true, true, true);
+        for (at, frame) in self.frames.iter().enumerate().rev() {
+            match frame {
+                Frame::Function { .. } if locals => scope.function = scope.function.or(Some(at)),
+                Frame::Bindings(_) if bindings => scope.bindings = scope.bindings.or(Some(at)),
+                Frame::Row(_) if rows => scope.row = scope.row.or(Some(at)),
+                Frame::Barrier { rows: keep } => {
+                    (locals, bindings) = (false, false);
+                    rows &= *keep;
+                    if !rows {
+                        break;
+                    }
+                }
+                _ => (),
+            }
+        }
+        scope
+    }
+    /// A call's locals: its parameters first, then what it captured.
+    pub(super) fn local(&self, name: &str) -> Option<Value> {
+        let Some(Frame::Function {
+            function,
+            arguments,
+        }) = self.scope().function.map(|at| &self.frames[at])
+        else {
+            return None;
+        };
+        function
+            .params
+            .iter()
+            .position(|p| p == name)
+            .and_then(|i| arguments.get(i).cloned())
+            .or_else(|| function.captured.get(name).cloned())
+    }
+    /// Those locals as the name-to-value map a closure captures.
+    fn captured(&self) -> Option<BTreeMap<String, Value>> {
+        let Some(Frame::Function {
+            function,
+            arguments,
+        }) = self.scope().function.map(|at| &self.frames[at])
+        else {
+            return None;
+        };
+        let mut locals = function.captured.clone();
+        locals.extend(
+            function
+                .params
+                .iter()
+                .cloned()
+                .zip(arguments.iter().cloned()),
+        );
+        Some(locals)
+    }
+    pub(super) fn row(&self) -> Option<&RowScope> {
+        match self.scope().row.map(|at| &self.frames[at]) {
+            Some(Frame::Row(scope)) => Some(scope),
+            _ => None,
+        }
+    }
+    pub(super) fn push_row(&mut self, scope: RowScope) {
+        self.frames.push(Frame::Row(scope));
+    }
+    pub(super) fn pop_row(&mut self) {
+        self.frames.pop();
+    }
+    /// Hide the frames below, and answer with the height to restore.
+    pub(super) fn barrier(&mut self, rows: bool) -> usize {
+        let height = self.frames.len();
+        self.frames.push(Frame::Barrier { rows });
+        height
+    }
+    pub(super) fn unwind(&mut self, height: usize) {
+        self.frames.truncate(height);
+    }
+    pub(super) fn push_call(
+        &mut self,
+        function: std::sync::Arc<crate::evaluate::functional::Function>,
+        arguments: Vec<Value>,
+    ) {
+        self.frames.push(Frame::Function {
+            function,
+            arguments,
+        });
+    }
+    pub(super) fn binding(&mut self, name: &str) -> Option<EvalResult<Value>> {
+        let at = self.scope().bindings?;
+        let Frame::Bindings(slot) = &mut self.frames[at] else {
+            return None;
+        };
+        let bindings = slot.take()?;
         let result = bindings.get(name, self);
-        self.bindings = Some(bindings);
+        self.frames[at] = Frame::Bindings(Some(bindings));
         result
     }
     pub fn eval(&mut self, path: &Path, expression: &str) -> EvalResult<Value> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
     }
     pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> EvalResult<Value> {
-        if self.contexts.is_empty()
-            && self.stack.is_empty()
-            && self.row_values.is_empty()
-            && self.calls == 0
-            && self.bindings.is_none()
-        {
+        if self.idle() {
             self.steps = 0;
         }
         self.contexts.push((path.into(), span));
@@ -276,17 +389,18 @@ impl<'a> Engine<'a> {
         }
         Ok(result)
     }
+    /// Nothing is part-way through: the step budget starts again.
+    fn idle(&self) -> bool {
+        self.contexts.is_empty() && self.stack.is_empty() && self.frames.is_empty()
+            // A module evaluates on its own engine, which inherits the budget.
+            && self.calls == 0
+    }
     pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
         let symbol = self.workspace.resolve(path, name)?;
         self.symbol(&symbol)
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
-        if self.contexts.is_empty()
-            && self.stack.is_empty()
-            && self.row_values.is_empty()
-            && self.calls == 0
-            && self.bindings.is_none()
-        {
+        if self.idle() {
             self.steps = 0;
         }
         let key = MemoKey::Symbol(symbol.clone());
@@ -328,10 +442,8 @@ impl<'a> Engine<'a> {
         let previous_time = std::mem::replace(&mut self.time_dependent, false);
         let wanted_start = self.wanted.len();
         self.stack.push(symbol.clone());
-        // Named definitions never capture a caller's row locals.
-        let caller_rows = std::mem::take(&mut self.row_values);
-        let caller_locals = std::mem::take(&mut self.locals);
-        let caller_bindings = self.bindings.take();
+        // Named definitions never capture a caller's frames.
+        let height = self.barrier(false);
         let doc = &self.workspace.documents[&symbol.path];
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
@@ -415,9 +527,7 @@ impl<'a> Engine<'a> {
                 })
             }
         };
-        self.row_values = caller_rows;
-        self.locals = caller_locals;
-        self.bindings = caller_bindings;
+        self.unwind(height);
         self.stack.pop();
         let entry = MemoEntry {
             value: result.clone(),
@@ -456,6 +566,7 @@ impl<'a> Engine<'a> {
             }
             Expr::Value(v) => Ok(v.clone()),
             Expr::Name(n) => self.name(path, n),
+            Expr::Param { name, index } => self.param(path, name, *index),
             Expr::Builtin(builtin, args) => self.builtin(path, *builtin, args),
             Expr::Call(n, args) => self.call_named(path, n, args),
             Expr::Lambda(params, body) => self.lambda(path, expr, params, body),
@@ -502,13 +613,9 @@ impl<'a> Engine<'a> {
         params: &[String],
         body: &Expr,
     ) -> EvalResult<Value> {
-        let mut captured = self
-            .row_values
-            .last()
-            .map(|s| s.values.clone())
-            .unwrap_or_default();
-        if let Some(locals) = self.locals.last() {
-            captured.extend(locals.clone());
+        let mut captured = self.row().map(|s| s.values.clone()).unwrap_or_default();
+        if let Some(locals) = self.captured() {
+            captured.extend(locals);
         }
         for (name, _) in expr.free_names() {
             if !captured.contains_key(&name)
@@ -539,13 +646,13 @@ impl<'a> Engine<'a> {
             code if is_code(code) => return Ok(Value::Text(code.to_string())),
             _ => (),
         }
-        if let Some(value) = self.locals.last().and_then(|s| s.get(n)) {
-            return Ok(value.clone());
+        if let Some(value) = self.local(n) {
+            return Ok(value);
         }
         if let Some(value) = self.binding(n) {
             return value;
         }
-        let Some(scope) = self.row_values.last() else {
+        let Some(scope) = self.row() else {
             return self.named(path, n);
         };
         if scope.decisions.contains_key(n) {
@@ -559,6 +666,18 @@ impl<'a> Engine<'a> {
                 name: n.into(),
                 table: scope.table.clone(),
             })
+    }
+    /// A lambda parameter, read straight out of the call's arguments. Outside
+    /// its call — a body walked symbolically by a plan — the name still
+    /// decides.
+    fn param(&mut self, path: &Path, name: &str, index: usize) -> EvalResult<Value> {
+        if let Some(Frame::Function { arguments, .. }) =
+            self.scope().function.map(|at| &self.frames[at])
+            && let Some(value) = arguments.get(index)
+        {
+            return Ok(value.clone());
+        }
+        self.name(path, name)
     }
     fn binary_expr(&mut self, path: &Path, op: BinaryOp, a: &Expr, b: &Expr) -> EvalResult<Value> {
         let a = self.expr(path, a)?;

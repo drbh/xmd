@@ -55,6 +55,13 @@ impl Expr {
         });
         imports
     }
+    /// Whether this node reads a lambda parameter, whose properties are the
+    /// caller's, not a note's.
+    fn mentions_parameter(&self) -> bool {
+        let mut found = false;
+        self.walk(&mut |e| found |= matches!(e.bare(), Expr::Param { .. }));
+        found
+    }
     fn walk(&self, visit: &mut impl FnMut(&Expr)) {
         visit(self);
         match self.bare() {
@@ -88,7 +95,8 @@ pub(crate) fn analyze(source: &str, text: &str, span: Span) -> (Vec<String>, Vec
         if let Expr::Property(_, key) = e.bare() {
             let (start, end) = e.bounds();
             // A function parameter's properties do not refer to note definitions.
-            if e.free_names().iter().all(|(_, at)| free.contains(at))
+            if !e.mentions_parameter()
+                && e.free_names().iter().all(|(_, at)| free.contains(at))
                 && let Some(token) = tokens.iter().rev().find(|t| {
                     t.start >= start
                         && t.end <= end
@@ -114,7 +122,7 @@ pub(crate) fn member_symbol(ws: &Workspace, path: &Path, source: &str) -> Option
         seen: &mut BTreeSet<Symbol>,
     ) -> Option<Symbol> {
         match expr.bare() {
-            Expr::Name(name) => ws.resolve(path, name).ok(),
+            Expr::Name(name) | Expr::Param { name, .. } => ws.resolve(path, name).ok(),
             Expr::Property(receiver, key) => {
                 ws.resolve(&namespace(ws, path, receiver, seen)?, key).ok()
             }

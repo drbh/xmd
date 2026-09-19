@@ -1,0 +1,57 @@
+#!/bin/sh
+# A stand-in for `curl`: prints the feed document the requested URL serves.
+for url in "$@"; do :; done
+case "$url" in
+  *blog/feed.xml)
+    cat <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Typed &amp; Notes</title>
+  <link>https://example.com/blog</link>
+  <lastBuildDate>Mon, 14 Sep 2026 09:30:00 +0000</lastBuildDate>
+  <item>
+    <title><![CDATA[Typed notes]]></title>
+    <link>https://example.com/blog/typed-notes</link>
+    <pubDate>Mon, 14 Sep 2026 09:30:00 +0000</pubDate>
+    <description>&lt;p&gt;Why a note   should&lt;/p&gt; &lt;b&gt;compute&lt;/b&gt;</description>
+  </item>
+  <item>
+    <title>Dates &amp; durations</title>
+    <link>https://example.com/blog/dates</link>
+    <pubDate>Tue, 01 Sep 2026 12:00:00 GMT</pubDate>
+    <description><![CDATA[<p>Relative dates, <em>plainly</em>.</p>]]></description>
+  </item>
+  <item>
+    <title>An older post</title>
+    <link>https://example.com/blog/older</link>
+    <pubDate>Fri, 15 Aug 2025 08:00:00 -0400</pubDate>
+  </item>
+</channel></rss>
+XML
+    ;;
+  *notes.example.org/atom)
+    cat <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">Field Notes</title>
+  <link rel="self" href="https://notes.example.org/atom"/>
+  <link rel="alternate" href="https://notes.example.org/"/>
+  <updated>2026-09-15T07:45:00Z</updated>
+  <entry>
+    <title>Reading a feed &#8212; natively</title>
+    <link rel="alternate" href="https://notes.example.org/feeds"/>
+    <published>2026-09-15T07:45:00Z</published>
+    <summary type="html">&lt;p&gt;The host parses, the module decodes.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <title>Unclosed &lt;tags&gt; happen</title>
+    <link rel="alternate" href="https://notes.example.org/tags"/>
+    <updated>2026-08-30T19:00:00+02:00</updated>
+  </entry>
+</feed>
+XML
+    ;;
+  *)
+    printf '%s' 'not xml at all: \001\002 <unclosed'
+    ;;
+esac

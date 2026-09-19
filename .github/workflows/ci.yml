@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # The snapshot suite freezes the clock and records transcripts assuming UTC.
+  TZ: UTC
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Build
+        run: cargo build
+      - name: Test
+        run: cargo test
+      - name: Test (browser feature)
+        run: cargo test -p wtf --features browser
+
+  wasm:
+    name: WASM and web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/web/package-lock.json
+      - name: Install web dependencies
+        run: npm --prefix client/web ci
+      - name: Build WASM
+        run: bash client/web/build.sh
+      - name: Build site
+        run: npm --prefix client/web run build
+      - name: Node tests
+        run: npm --prefix client/web run test:unit
+      - name: Type tests
+        run: npm --prefix client/web run test:types
+      - name: Build native binary
+        # client/web/tests/render.spec.mjs spawns target/debug/wtf for native parity.
+        run: cargo build
+      - name: Install Playwright browser
+        # playwright.config.mjs pins channel "chrome", so install Google Chrome.
+        run: npx --prefix client/web playwright install --with-deps chrome
+      - name: Browser tests
+        working-directory: client/web
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            client/web/playwright-report
+            client/web/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ide:
+    name: VS Code extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/ide/vscode/package-lock.json
+      - name: Install extension dependencies
+        run: npm --prefix client/ide/vscode ci
+      # `npm run test` launches a real VS Code against target/debug/wtf and needs
+      # a display; it is not run here. `check` syntax-checks the extension only.
+      - name: Check extension sources
+        run: npm --prefix client/ide/vscode run check

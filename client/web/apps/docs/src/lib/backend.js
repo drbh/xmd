@@ -29,7 +29,7 @@ export class LocalBackend {
   async save(doc) {
     const documents = this.#load().documents;
     const at = documents.findIndex(d => d.id === doc.id);
-    const copy = { id: doc.id, name: doc.name, text: doc.text, updated: doc.updated, opened: doc.opened, folder: doc.folder ?? null };
+    const copy = { id: doc.id, name: doc.name, file: doc.file, text: doc.text, updated: doc.updated, opened: doc.opened, folder: doc.folder ?? null };
     if (at === -1) documents.unshift(copy); else documents[at] = copy;
     this.#write();
     return { version: doc.updated };

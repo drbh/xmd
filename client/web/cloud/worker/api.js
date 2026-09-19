@@ -1,6 +1,7 @@
 // The documents API. Every handler resolves the caller's role for the
 // document first; authorization never depends on anything the client sends.
 import { getServerByName } from "partyserver";
+import { sha256, newKey } from "./auth.js";
 const MAX_TEXT = 1_000_000, MAX_NAME = 200, ROLES = new Set(["editor", "viewer"]);
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -27,7 +28,7 @@ export async function ensureUser(db, user) {
 // Roles: the owner may do everything; editors read and write; viewers read.
 const best = (...roles) => roles.includes("owner") ? "owner" : roles.includes("editor") ? "editor" : roles.includes("viewer") ? "viewer" : null;
 export async function roleOf(db, user, id) {
-  const doc = await db.prepare("SELECT id, owner_id, name, text, version, created_at, updated_at, deleted_at, folder_id FROM documents WHERE id = ?1").bind(id).first();
+  const doc = await db.prepare("SELECT id, owner_id, name, file, text, version, created_at, updated_at, deleted_at, folder_id FROM documents WHERE id = ?1").bind(id).first();
   if (!doc || doc.deleted_at) return { doc: null, role: null };
   if (doc.owner_id === user.id) return { doc, role: "owner" };
   const acl = await db.prepare("SELECT role FROM document_acl WHERE document_id = ?1 AND user_id = ?2").bind(id, user.id).first();
@@ -44,7 +45,12 @@ async function folderRoleOf(db, user, id) {
 const requireRead = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); return doc; };
 const requireWrite = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); if (role === "viewer") throw new HttpError(403, "You can view this document but not edit it"); return doc; };
 const requireOwner = ({ doc, role }) => { if (!doc || !role) throw new HttpError(404, "Document not found"); if (role !== "owner") throw new HttpError(403, "Only the owner can do that"); return doc; };
-const present = (doc, role) => ({ id: doc.id, name: doc.name, text: doc.text, version: doc.version, updated: doc.updated_at, created: doc.created_at, role, owner: doc.owner_email ?? undefined, folder: doc.folder_id ?? null });
+const present = (doc, role) => ({ id: doc.id, name: doc.name, file: doc.file ?? fileNameFor(doc.name), text: doc.text, version: doc.version, updated: doc.updated_at, created: doc.created_at, role, owner: doc.owner_email ?? undefined, folder: doc.folder_id ?? null });
+/** A file name for a document: the name without path separators or control characters, never empty. */
+export function fileNameFor(name) {
+  const clean = String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim().replace(/\.wtf$/i, "").slice(0, 120);
+  return clean || "Untitled document";
+}
 
 async function body(request) {
   try { return await request.json(); } catch { throw new HttpError(400, "Expected a JSON body"); }
@@ -62,11 +68,30 @@ export async function handle(request, env, user) {
   const method = request.method;
   await ensureUser(db, user);
 
-  if (path === "/api/me") return json({ id: user.id, email: user.email, name: user.name });
+  if (path === "/api/me") return json({ id: user.id, email: user.email, name: user.name, viaKey: !!user.viaKey });
+  // A key syncs documents and folders; sharing and key management need the browser.
+  if (user.viaKey && (path.endsWith("/acl") || path.startsWith("/api/keys"))) throw new HttpError(403, "Not available with an API key");
+
+  if (path === "/api/keys" && method === "GET") {
+    const rows = await db.prepare("SELECT id, name, created_at, last_used_at FROM api_keys WHERE user_id = ?1 AND revoked_at IS NULL ORDER BY created_at DESC").bind(user.id).all();
+    return json(rows.results.map(k => ({ id: k.id, name: k.name, created: k.created_at, lastUsed: k.last_used_at })));
+  }
+  if (path === "/api/keys" && method === "POST") {
+    const input = await body(request);
+    const name = String(input.name ?? "").trim().slice(0, 80) || "Sync key";
+    const key = newKey(), id = crypto.randomUUID(), now = Date.now();
+    await db.prepare("INSERT INTO api_keys (id, user_id, name, hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5)").bind(id, user.id, name, await sha256(key), now).run();
+    return json({ id, name, key, created: now }, 201);
+  }
+  const keyMatch = /^\/api\/keys\/([^/]+)$/.exec(path);
+  if (keyMatch && method === "DELETE") {
+    await db.prepare("UPDATE api_keys SET revoked_at = ?1 WHERE id = ?2 AND user_id = ?3").bind(Date.now(), keyMatch[1], user.id).run();
+    return json({ ok: true });
+  }
 
   if (path === "/api/documents" && method === "GET") {
     const rows = await db.prepare(`
-      SELECT d.id, d.owner_id, d.name, d.text, d.version, d.created_at, d.updated_at, d.folder_id, u.email AS owner_email,
+      SELECT d.id, d.owner_id, d.name, d.file, d.text, d.version, d.created_at, d.updated_at, d.folder_id, u.email AS owner_email,
              CASE WHEN d.owner_id = ?1 THEN 'owner' WHEN a.role = 'editor' OR fa.role = 'editor' THEN 'editor' ELSE 'viewer' END AS role
       FROM documents d JOIN users u ON u.id = d.owner_id
       LEFT JOIN document_acl a ON a.document_id = d.id AND a.user_id = ?1
@@ -98,20 +123,28 @@ export async function handle(request, env, user) {
         const own = await db.prepare("SELECT id FROM folders WHERE id = ?1 AND owner_id = ?2 AND deleted_at IS NULL").bind(input.folder, user.id).first();
         if (!own) throw new HttpError(404, "Folder not found");
       }
+      // The file name is the document's identity for imports: unique within its folder, owner-set.
+      const renaming = input.file !== undefined && (!access.doc || access.role === "owner");
+      const file = renaming ? fileNameFor(input.file) : access.doc ? (access.doc.file ?? fileNameFor(access.doc.name)) : fileNameFor(input.name);
+      const folderAfter = filing ? input.folder : access.doc?.folder_id ?? null;
+      if (renaming || filing || !access.doc) {
+        const clash = await db.prepare("SELECT id FROM documents WHERE owner_id = ?1 AND COALESCE(folder_id, '') = COALESCE(?2, '') AND COALESCE(file, name) = ?3 AND id != ?4 AND deleted_at IS NULL").bind(user.id, folderAfter, file, id).first();
+        if (clash) throw new HttpError(409, `A document named "${file}" already exists in that folder`, { clash: clash.id });
+      }
       if (input.text === undefined && access.doc) {
-        // Filing only: the text is left alone (a live document's room owns it).
+        // Filing or renaming only: the text is left alone (a live document's room owns it).
         requireOwner(access);
-        if (!filing) throw new HttpError(400, "Nothing to change");
-        await db.prepare("UPDATE documents SET folder_id = ?1, updated_at = ?2 WHERE id = ?3").bind(input.folder, now, id).run();
-        return json({ id, version: access.doc.version, updated: now, role: "owner", folder: input.folder });
+        if (!filing && !renaming) throw new HttpError(400, "Nothing to change");
+        await db.prepare("UPDATE documents SET folder_id = ?1, file = ?2, name = COALESCE(?3, name), updated_at = ?4 WHERE id = ?5").bind(folderAfter, file, renaming && typeof input.name === "string" ? input.name : null, now, id).run();
+        return json({ id, version: access.doc.version, updated: now, role: "owner", folder: folderAfter, file });
       }
       validateDocument(input);
       if (!access.doc) {
         // First save of a client-created id. The row must not exist at all, or someone else's (deleted) document would be reused.
         const taken = await db.prepare("SELECT owner_id FROM documents WHERE id = ?1").bind(id).first();
         if (taken) throw new HttpError(409, "That document id is already in use");
-        await db.prepare("INSERT INTO documents (id, owner_id, name, text, version, created_at, updated_at, folder_id) VALUES (?1, ?2, ?3, ?4, 1, ?5, ?5, ?6)").bind(id, user.id, input.name, input.text, now, filing ? input.folder : null).run();
-        return json({ id, version: 1, updated: now, role: "owner", folder: filing ? input.folder : null }, 201);
+        await db.prepare("INSERT INTO documents (id, owner_id, name, file, text, version, created_at, updated_at, folder_id) VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?6, ?7)").bind(id, user.id, input.name, file, input.text, now, filing ? input.folder : null).run();
+        return json({ id, version: 1, updated: now, role: "owner", folder: filing ? input.folder : null, file }, 201);
       }
       const doc = requireWrite(access);
       if (input.version !== undefined && input.version !== doc.version) throw new HttpError(409, "The document changed elsewhere", { current: present(doc, access.role) });
@@ -120,9 +153,8 @@ export async function handle(request, env, user) {
       const response = await room.fetch(new Request(`https://room/${id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: input.text, name: input.name }) }));
       if (!response.ok) throw new HttpError(502, "The document could not be updated");
       const saved = await response.json();
-      if (filing) await db.prepare("UPDATE documents SET name = ?1, updated_at = ?2, folder_id = ?3 WHERE id = ?4").bind(input.name, now, input.folder, id).run();
-      else await db.prepare("UPDATE documents SET name = ?1, updated_at = ?2 WHERE id = ?3").bind(input.name, now, id).run();
-      return json({ id, version: saved.version ?? doc.version + 1, updated: now, role: access.role, folder: filing ? input.folder : doc.folder_id ?? null });
+      await db.prepare("UPDATE documents SET name = ?1, updated_at = ?2, folder_id = ?3, file = ?4 WHERE id = ?5").bind(input.name, now, folderAfter, file, id).run();
+      return json({ id, version: saved.version ?? doc.version + 1, updated: now, role: access.role, folder: folderAfter, file });
     }
     if (method === "DELETE") {
       requireOwner(access);

@@ -1,12 +1,27 @@
 // Serves the built site from client/web/dist and the accounts API under /api.
 import { routePartykitRequest } from "partyserver";
-import { authenticate } from "./auth.js";
+import { authenticate, authenticateKey } from "./auth.js";
 import { handle, json, HttpError, roleOf, ensureUser } from "./api.js";
 export { Room } from "./room.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // The sync API lives outside the browser sign-in and takes an API key instead.
+    const sync = /^(.*)\/sync\/v1(\/.*)?$/.exec(url.pathname);
+    if (sync) {
+      try {
+        const user = await authenticateKey(request, env);
+        if (!user) return json({ error: "A valid API key is required" }, 401, { "www-authenticate": "Bearer" });
+        const rewritten = new URL(request.url);
+        rewritten.pathname = `${sync[1]}/api${sync[2] || ""}`;
+        return await handle(new Request(rewritten, request), env, user);
+      } catch (e) {
+        if (e instanceof HttpError) return json({ error: e.message, ...e.extra }, e.status);
+        console.error(e);
+        return json({ error: "Something went wrong" }, 500);
+      }
+    }
     if (!/\/api(\/|$)/.test(url.pathname)) return env.ASSETS.fetch(request);
     try {
       const user = await authenticate(request, env);

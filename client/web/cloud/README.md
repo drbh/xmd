@@ -77,6 +77,33 @@ the edits on reconnect through the sync handshake; one never opened here is
 read-only until it has been, since seeding it locally would duplicate the
 room's text.
 
+## Syncing a directory: `wtf sync`
+
+The command line mirrors a directory of `.wtf` files with a folder in the web
+app. Create a key under the account menu (**API keys…**), then:
+
+```sh
+wtf sync ./notes --url https://wtf-docs.drbh.workers.dev --folder Notes --key wtf_…
+wtf sync ./notes            # address, folder and key are remembered
+wtf sync ./notes --watch    # keep syncing every few seconds
+wtf sync ./notes --dry-run  # say what would change
+```
+
+Keys authenticate `/sync/v1/*`, which is outside the Access application and
+reuses the API's handlers and ACL; a key cannot share documents or manage
+keys. The key is stored per address in `~/.config/wtf/credentials.json`
+(mode 600), never in the synced directory.
+
+Each file is compared three ways against the copy kept in `.wtf-sync/base/`:
+changed on one side wins, changed on both is merged line by line, and a real
+conflict is written as `NAME.conflict.wtf` beside the untouched file, which
+then stays frozen until the conflict file is removed. Deleting a file removes
+the document (soft delete); a document removed in the web app moves its file
+to `.wtf-sync/trash/`. Documents are addressed by file name within a folder
+in the app too (`docs/<Folder>/<File>.wtf`), so `import("./Budget.wtf")`
+means the same thing on disk and online. `test/sync.test.mjs` runs the built
+CLI against `wrangler dev`.
+
 ## Commands
 
 ```sh

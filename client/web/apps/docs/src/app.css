@@ -201,6 +201,10 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 ::highlight(presence-4) { background: rgba(147, 52, 230, .25); } ::highlight(presence-5) { background: rgba(0, 123, 131, .25); }
 ::highlight(presence-6) { background: rgba(197, 34, 31, .25); } ::highlight(presence-7) { background: rgba(60, 64, 67, .25); }
 
+.fresh-key { margin: 0 0 14px; padding: 12px 14px; border-radius: 8px; background: var(--active); }
+.fresh-key p { margin: 0 0 8px; }
+.fresh-key .key { display: block; margin: 0 0 10px; padding: 8px 10px; border-radius: 6px; background: var(--chrome); font-size: 13px; user-select: all; overflow-wrap: anywhere; }
+
 /* Dialogs */
 .dialog { border: 0; border-radius: 12px; padding: 0; background: var(--chrome); color: var(--ink); box-shadow: 0 8px 32px rgba(0,0,0,.3); width: min(92vw, 440px); }
 .dialog.wide { width: min(92vw, 720px); }

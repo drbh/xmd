@@ -8,7 +8,7 @@
     "migrate": "wrangler d1 migrations apply wtf-docs --remote",
     "migrate:local": "wrangler d1 migrations apply wtf-docs --local",
     "deploy": "node build.mjs && wrangler d1 migrations apply wtf-docs --remote && wrangler deploy",
-    "test": "node --test test/*.test.mjs && npx playwright test"
+    "test": "node --test --test-concurrency=1 test/*.test.mjs && npx playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

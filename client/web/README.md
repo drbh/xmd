@@ -99,7 +99,9 @@ unsubscribe();
 workspace.destroy();  // Stop the worker and all subscriptions.
 ```
 
-Names are local to each document. Imports use paths relative to that document;
+Names are local to each document. The document app addresses documents as
+`file:///workspace/docs/<Folder>/<File>.wtf`, so `import("./Other.wtf")`
+works the same in the app, on disk, and through `wtf sync`. Imports use paths relative to that document;
 supply imported sources with `setDocument` before rendering. A missing source
 produces a diagnostic; the browser never fetches it automatically.
 

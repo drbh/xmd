@@ -4,7 +4,7 @@
   import Icon from "./Icon.svelte";
   import { TEMPLATES, relativeTime, colorFor } from "./store.js";
   let { documents, folders = [], thumbs = {}, engine, notice, theme, account = null, cloud = null, localCount = 0, canShare = false,
-    onMoveLocal, onToggleTheme, onBook, onOpen, onNew, onImport, onRename, onDuplicate, onDownload, onDelete,
+    onMoveLocal, onToggleTheme, onBook, onKeys, onOpen, onNew, onImport, onRename, onDuplicate, onDownload, onDelete,
     onNewFolder, onRenameFolder, onDeleteFolder, onShareFolder, onMove } = $props();
   let query = $state(""), menu = $state(null), accountMenu = $state(false), current = $state(null);
   const folder = $derived(folders.find(f => f.id === current) ?? null);
@@ -90,6 +90,7 @@
           <div class="dropdown right account-dropdown" role="menu">
             <div class="account-card"><span class="avatar" style={`background:${colorFor(account.email)}`}>{account.email[0].toUpperCase()}</span><div><div class="account-name">{account.name || account.email.split("@")[0]}</div><div class="muted">{account.email}</div></div></div>
             <hr>
+            {#if onKeys}<button type="button" role="menuitem" onclick={() => { accountMenu = false; onKeys(); }}><span class="mark"></span><span class="label">API keys…</span></button>{/if}
             <button type="button" role="menuitem" onclick={() => cloud.signOut()}><span class="mark"></span><span class="label">Sign out</span></button>
           </div>
         {/if}

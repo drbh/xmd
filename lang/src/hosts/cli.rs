@@ -39,6 +39,8 @@ pub enum Command {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
+    /// Keep a directory of notes in step with a folder in the web app.
+    Sync(crate::hosts::sync::SyncOptions),
 }
 #[derive(Args)]
 #[command(
@@ -162,6 +164,7 @@ pub async fn run(command: Command) -> Result<(), String> {
         Command::Render(options) => render_command(options),
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
+        Command::Sync(options) => crate::hosts::sync::run(options),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;

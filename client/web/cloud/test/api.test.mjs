@@ -3,6 +3,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
+import { rmSync } from "node:fs";
 
 const PORT = 8790, BASE = `http://127.0.0.1:${PORT}`;
 let server;
@@ -11,8 +12,10 @@ const call = (path, { user = "alice@example.com", method = "GET", body } = {}) =
   fetch(`${BASE}${path}`, { method, headers: as(user), body: body && JSON.stringify(body), redirect: "manual" }).then(async r => ({ status: r.status, headers: r.headers, data: r.headers.get("content-type")?.includes("json") ? await r.json() : null }));
 
 before(async () => {
-  execFileSync("wrangler", ["d1", "migrations", "apply", "wtf-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
-  server = spawn("wrangler", ["dev", "--var", "DEV_AUTH:1", "--port", String(PORT), "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: ["ignore", "pipe", "pipe"] });
+  // Every run starts from an empty local database.
+  rmSync(new URL("../.wrangler/test-state", import.meta.url), { recursive: true, force: true });
+  execFileSync("npx", ["wrangler", "d1", "migrations", "apply", "wtf-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
+  server = spawn("npx", ["wrangler", "dev", "--var", "DEV_AUTH:1", "--port", String(PORT), "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: ["ignore", "pipe", "pipe"] });
   const started = Date.now();
   while (Date.now() - started < 60_000) {
     try { if ((await fetch(`${BASE}/api/me`, { headers: as("probe@example.com") })).ok) return; } catch { /* not up yet */ }
@@ -125,6 +128,30 @@ test("folders: filing is owner-only, folder members reach its documents, deletin
   assert.equal((await call(`/api/folders/${folder}`, { method: "DELETE" })).status, 200);
   assert.equal((await call(`/api/documents/${doc}`)).data.folder, null);
   assert.equal((await call("/api/folders")).data.some(f => f.id === folder), false);
+});
+
+test("API keys drive the sync API outside the browser sign-in, without sharing or key management", async () => {
+  const created = await call("/api/keys", { method: "POST", body: { name: "laptop" } });
+  assert.equal(created.status, 201);
+  assert.match(created.data.key, /^wtf_/);
+  assert.ok((await call("/api/keys")).data.some(k => k.id === created.data.id && k.name === "laptop"));
+  const sync = (path, options = {}) => fetch(`${BASE}/sync/v1${path}`, { ...options, headers: { authorization: `Bearer ${created.data.key}`, "content-type": "application/json", accept: "application/json" }, body: options.body && JSON.stringify(options.body) }).then(async r => ({ status: r.status, data: r.headers.get("content-type")?.includes("json") ? await r.json() : null }));
+  assert.equal((await fetch(`${BASE}/sync/v1/me`)).status, 401);
+  assert.equal((await fetch(`${BASE}/sync/v1/me`, { headers: { authorization: "Bearer wtf_not_a_real_key_at_all_00000" } })).status, 401);
+  const me = await sync("/me");
+  assert.equal(me.data.email, "alice@example.com"); assert.equal(me.data.viaKey, true);
+  const doc = id();
+  const put = await sync(`/documents/${doc}`, { method: "PUT", body: { name: "From the CLI", text: "# From the CLI\n", file: "From the CLI" } });
+  assert.equal(put.status, 201); assert.equal(put.data.file, "From the CLI");
+  assert.ok((await sync("/documents")).data.some(d => d.id === doc && d.file === "From the CLI"));
+  // File names are unique within a folder.
+  assert.equal((await sync(`/documents/${id()}`, { method: "PUT", body: { name: "x", text: "y", file: "From the CLI" } })).status, 409);
+  assert.equal((await sync(`/documents/${doc}`, { method: "PUT", body: { file: "Renamed by CLI" } })).status, 200);
+  assert.equal((await call(`/api/documents/${doc}`)).data.file, "Renamed by CLI");
+  assert.equal((await sync(`/documents/${doc}/acl`)).status, 403);
+  assert.equal((await sync("/keys")).status, 403);
+  assert.equal((await call(`/api/keys/${created.data.id}`, { method: "DELETE" })).status, 200);
+  assert.equal((await sync("/me")).status, 401);
 });
 
 test("validation and unauthenticated requests", async () => {

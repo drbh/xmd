@@ -19,8 +19,8 @@ pub mod model;
 // Every leaf module is also reachable at the crate root, so `wtf::engine`
 // and `wtf::document` name the same things the layers do.
 pub use evaluate::{
-    charts, context, engine, github, glyphs, link_features, lookups, modules, plans, resources,
-    timers,
+    charts, context, engine, feeds, github, glyphs, link_features, lookups, modules, plans,
+    resources, timers,
 };
 // `modules` at the root is the evaluator's registry; the feature adapter over
 // its hooks stays reachable as `wtf::features::modules`.

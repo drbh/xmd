@@ -63,6 +63,30 @@ pub struct RefreshRequest {
     pub program: String,
     pub args: Vec<String>,
     pub env: Vec<(String, String)>,
+    /// How the host reads the program's output before `decode` sees it.
+    pub format: RefreshFormat,
+}
+
+/// What the refreshed bytes are. A module decodes records, never markup, so any
+/// format other than JSON names a conversion the host performs first.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RefreshFormat {
+    /// The program prints JSON, which reaches `decode` as it stands.
+    #[default]
+    Json,
+    /// The program prints an RSS or Atom document, which [`crate::feeds`]
+    /// turns into the JSON `decode` receives.
+    Feed,
+}
+impl std::str::FromStr for RefreshFormat {
+    type Err = String;
+    fn from_str(value: &str) -> Result<Self, String> {
+        match value {
+            "json" => Ok(Self::Json),
+            "feed" => Ok(Self::Feed),
+            _ => Err("refresh format must be \"json\" or \"feed\"".into()),
+        }
+    }
 }
 
 /// First matching registration wins. No mutable process-global module state.
@@ -210,7 +234,15 @@ impl<'a> LinkFeatures<'a> {
                 String::from_utf8_lossy(&output.stderr).trim()
             ));
         }
-        let data = serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+        // A feed is markup, so the host parses it into the records a module reads.
+        let data = match request.format {
+            RefreshFormat::Json => {
+                serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?
+            }
+            RefreshFormat::Feed => crate::feeds::json(&crate::feeds::parse(
+                &String::from_utf8_lossy(&output.stdout),
+            )?),
+        };
         feature.decode_refresh(&url, &data, Utc::now())
     }
 }

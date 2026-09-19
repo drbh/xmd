@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     engine::Value,
-    link_features::{LinkContext, LinkFeature, RefreshRequest},
+    link_features::{LinkContext, LinkFeature, RefreshFormat, RefreshRequest},
     resources::Metadata,
 };
 use chrono::{DateTime, Utc};
@@ -46,9 +46,12 @@ impl LinkFeature for Module {
         self.enabled
             && self.kind == ModuleKind::Link
             && matches!(url.scheme(), "http" | "https")
-            && url
-                .host_str()
-                .is_some_and(|host| self.hosts.iter().any(|h| h == host))
+            // No declared hosts means the module's own `matches` decides, which
+            // is how a feed module recognizes a shape rather than a site.
+            && (self.hosts.is_empty()
+                || url
+                    .host_str()
+                    .is_some_and(|host| self.hosts.iter().any(|h| h == host)))
             && url.path().starts_with(&self.prefix)
             && (!self.has(Hook::Matches)
                 || matches!(
@@ -144,6 +147,10 @@ impl LinkFeature for Module {
                     .collect::<Result<_, _>>()
                     .ok()?,
                 _ => return None,
+            },
+            format: match fields.get("format") {
+                None => RefreshFormat::default(),
+                Some(value) => text(value).ok()?.parse().ok()?,
             },
         })
     }

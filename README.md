@@ -2,16 +2,16 @@
 
 # wtf
 
-Notes that compute. A `.wtf` file is Markdown where values have names, and
-everything that depends on them stays right — in your editor, from the shell,
-in a plain text file.
+notes that compute. a `.wtf` file is markdown where values have names and
+anything that depends on them stays current, in your editor and from the
+shell. its still a plain text file
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/typing-dark.gif">
-  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
+  <img alt="writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
 </picture>
 
-## The language, in seven lines
+## the language in seven lines
 
 ```wtf
 $1,234:car                          a value with a name
@@ -23,34 +23,54 @@ We have [total] left.               any value in a sentence  $1,301
 focus := countdown(25m)             timers are values        ◷ 25:00 remaining
 ```
 
-The right-hand column is what your editor shows inline. That is the whole
-model; everything else is a function you call or a module you add.
+the right column is what the editor shows inline. thats the whole model,
+the rest is functions you call and modules you add
 
-## Ask the file a question
+## ask the file a question
 
-```sh
-cat trip.wtf | wtf 'total'                        # $1,301
-wtf trip.wtf 'tasks | where !done' --json         # typed JSON
-wtf --workspace 'diagnostics' --fail-on-match     # a build check
+the default command is a query. pipe a note in or name it
+
+```bash
+cat trip.wtf | wtf 'total'
+wtf trip.wtf 'tasks | where !done | select {title, due}' --json
+wtf --workspace 'diagnostics' --fail-on-match
 ```
+
+```
+$1,301
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-11-06"
+    },
+    "title": "Pack"
+  }
+]
+```
+
+the last one exits 1 when any note has an error, so it works as a ci check
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/terminal-dark.gif">
-  <img alt="Querying the note from a terminal: single values, filtered tasks, typed JSON, diagnostics for CI and a rendered text export" src="https://example.com/placeholder/terminal-light.gif" width="720">
+  <img alt="querying the note from a terminal: single values, filtered tasks, typed json, diagnostics for ci and a rendered text export" src="https://example.com/placeholder/terminal-light.gif" width="720">
 </picture>
 
-## Install
+## install
 
-```sh
-cargo install --path lang     # the wtf binary: CLI and language server
+```bash
+cargo install --path lang
 ```
 
-Editors: [VS Code](client/ide/vscode) · [Neovim](client/ide/neovim) ·
-[Zed](client/ide/zed) · [Helix](client/ide/helix) — each runs `wtf lsp`.
-Or open a note in the [browser app](client/web) without installing anything.
+that is the cli and the language server in one binary. editor setups are in
+`client/ide/vscode`, `client/ide/neovim`, `client/ide/zed` and
+`client/ide/helix`, each runs `wtf lsp`. `client/web` is the browser app if
+you dont want to install anything
 
-## Go further
+## go further
 
-- [Examples](lang/examples) — one short note per feature, in the order you'll meet them.
-- [Standard library](lang/stdlib) — the modules behind tasks, timers, plans, feeds and units, written in `.wtf`.
-- `wtf --help` and `wtf query --help` — every command, binding, function and stage.
+`lang/examples` has one short note per feature, numbered in the order you
+tend to meet them. `lang/stdlib` is the standard library, tasks, timers,
+plans, feeds and units are all written in `.wtf` and you can replace any of
+them. `wtf --help` and `wtf query --help` list every command, binding,
+function and stage

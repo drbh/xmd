@@ -13,12 +13,14 @@ use std::{
 mod arithmetic;
 mod builtins;
 mod calls;
+mod host;
 mod linear;
 mod syntax;
 mod value;
 pub(crate) use arithmetic::binary;
 pub use arithmetic::{BinaryOp, Comparison, Operator, UnaryOp};
 pub use builtins::Builtin;
+pub use host::{HostObject, Namespace};
 pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};
@@ -775,7 +777,7 @@ impl<'a> Engine<'a> {
     }
     fn property(&mut self, value: &Value, key: &str) -> EvalResult<Value> {
         match value {
-            Value::Namespace(path) => self.named(path, key),
+            Value::Namespace(path) => self.named(path.path(), key),
             Value::List(items) => items
                 .iter()
                 .map(|v| self.property(v, key))

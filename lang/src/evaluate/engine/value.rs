@@ -151,10 +151,11 @@ impl ValueType {
         }
     }
     /// The properties every value of this kind has, as `Value::property` reads
-    /// them and completion offers them. `Timer`, `Forecast`, `Plan` and
-    /// `Record` are missing on purpose: their fields depend on the value (a
-    /// countdown has `remaining`, a record has whatever it was built with), so
-    /// they answer for themselves instead.
+    /// them and completion offers them. This is the language's own half:
+    /// `Record` and the host kinds are missing on purpose, because their
+    /// fields depend on the value rather than its type (a countdown has
+    /// `remaining`, a record has whatever it was built with), so they answer
+    /// for themselves — see `engine::host`.
     pub fn fields(self) -> &'static [&'static str] {
         match self {
             Self::Money => &["amount", "currency", "type"],
@@ -176,7 +177,7 @@ pub enum Value {
     Record(BTreeMap<String, Value>),
     Function(std::sync::Arc<crate::evaluate::functional::Function>),
     /// An explicit note import. Members are evaluated only when read.
-    Namespace(PathBuf),
+    Namespace(crate::engine::Namespace),
     Number(f64),
     Count(usize),
     Money(f64, Currency),
@@ -200,6 +201,9 @@ impl Value {
     /// Structural access shared by expressions, query records and list projections.
     pub(crate) fn property(&self, key: &str) -> EvalResult<Self> {
         use Value::*;
+        if let Some(object) = self.host() {
+            return object.property(key);
+        }
         match (self, key) {
             (Null, _) => Ok(Null),
             (Record(fields), _) => {
@@ -216,9 +220,6 @@ impl Value {
                 .map(|v| v.property(key))
                 .collect::<Result<Vec<_>, _>>()
                 .map(List),
-            (Timer(v), _) => v.property(key),
-            (Forecast(v), _) => v.property(key),
-            (Plan(v), _) => v.property(key),
             // Every other kind answers only for the fields its type owns.
             (value, key) if value.kind().fields().contains(&key) => Ok(match (value, key) {
                 (Money(amount, _), "amount") => Number(*amount),
@@ -238,16 +239,17 @@ impl Value {
         }
     }
     pub fn kind(&self) -> ValueType {
+        if let Some(object) = self.host() {
+            return object.kind();
+        }
         match self {
             Self::Null => ValueType::Null,
             Self::List(_) => ValueType::List,
             Self::Record(_) => ValueType::Record,
             Self::Function(_) => ValueType::Function,
-            Self::Namespace(_) => ValueType::Namespace,
             Self::Number(_) => ValueType::Number,
             Self::Count(_) => ValueType::Count,
             Self::Money(..) => ValueType::Money,
-            Self::Forecast(_) => ValueType::Forecast,
             Self::Ratio(_) => ValueType::Ratio,
             Self::Duration(_) => ValueType::Duration,
             Self::Date(_) => ValueType::Date,
@@ -255,12 +257,8 @@ impl Value {
             Self::Bool(_) => ValueType::Boolean,
             // A code is a kind of text, and notes compare `type` against it.
             Self::Text(_) | Self::Code(_) => ValueType::Text,
-            Self::Resource(_) => ValueType::Resource,
-            Self::Tasks(_) => ValueType::Checklist,
-            Self::Timer(t) if t.limit.is_some() => ValueType::Countdown,
-            Self::Timer(_) => ValueType::Stopwatch,
-            Self::Table(_) => ValueType::Table,
-            Self::Plan(_) => ValueType::Plan,
+            // Every remaining kind is a host object, answered above.
+            _ => unreachable!("Value::host must sort every kind"),
         }
     }
     /// The language-level name of this kind, as notes and queries compare it.
@@ -268,6 +266,8 @@ impl Value {
         self.kind().as_str()
     }
     /// A round-trippable expression, unlike the human-readable display label.
+    /// Only the language's own kinds have one: no note can write down a host
+    /// object, so every one of them falls through to `None`.
     pub fn source(&self) -> Option<String> {
         Some(match self {
             Self::Null => "null".into(),
@@ -308,8 +308,10 @@ impl Value {
         })
     }
     pub fn display(&self) -> String {
+        if let Some(object) = self.host() {
+            return object.display();
+        }
         match self {
-            Self::Namespace(path) => format!("import(\"{}\")", path.display()),
             Self::Null | Self::List(_) | Self::Record(_) => {
                 self.source().unwrap_or_else(|| "<collection>".into())
             }
@@ -317,7 +319,6 @@ impl Value {
             Self::Number(n) => decimal(*n),
             Self::Count(n) => n.to_string(),
             Self::Money(n, c) => money(*n, *c),
-            Self::Forecast(f) => f.display(),
             Self::Ratio(n) => format!("{}%", decimal(n * 100.0)),
             Self::Duration(s) => {
                 if *s == 0 {
@@ -344,11 +345,8 @@ impl Value {
             Self::Bool(b) => b.to_string(),
             Self::Text(s) => s.clone(),
             Self::Code(code) => code.as_str().into(),
-            Self::Resource(r) => r.target.clone(),
-            Self::Tasks(t) => format!("{} tasks", t.len()),
-            Self::Timer(t) => t.display(),
-            Self::Table(t) => format!("{} rows · {} columns", t.rows.len(), t.columns.len()),
-            Self::Plan(p) => p.objective.display(),
+            // Every remaining kind is a host object, answered above.
+            _ => unreachable!("Value::host must sort every kind"),
         }
     }
     pub fn date(&self) -> EvalResult<NaiveDate> {

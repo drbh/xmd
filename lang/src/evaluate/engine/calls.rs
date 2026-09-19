@@ -205,7 +205,7 @@ impl Engine<'_> {
                     path.display()
                 )));
             }
-            return Ok(Value::Namespace(target));
+            return Ok(Value::Namespace(crate::engine::Namespace(target)));
         }
         self.import(&id)
     }
@@ -317,20 +317,19 @@ impl Engine<'_> {
     pub(crate) fn functional(&mut self, name: Builtin, args: Vec<Value>) -> EvalResult<Value> {
         use Value::*;
         let value = match (name, args.as_slice()) {
-            (Builtin::Get, [Namespace(path), Text(key)]) => match self.workspace.resolve(path, key)
-            {
-                Ok(symbol) => self.symbol(&symbol)?,
-                Err(_)
-                    if !self
-                        .workspace
-                        .symbols()
-                        .iter()
-                        .any(|s| s.path == *path && self.workspace.named(s).name == *key) =>
-                {
-                    Null
+            (Builtin::Get, [Namespace(path), Text(key)]) => {
+                match self.workspace.resolve(path.path(), key) {
+                    Ok(symbol) => self.symbol(&symbol)?,
+                    Err(_)
+                        if !self.workspace.symbols().iter().any(|s| {
+                            s.path == path.path() && self.workspace.named(s).name == *key
+                        }) =>
+                    {
+                        Null
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            },
+            }
             (Builtin::SortBy, [List(items), function @ Function(_)]) => {
                 let mut keyed = Vec::new();
                 let mut first = None;

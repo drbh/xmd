@@ -161,7 +161,7 @@ impl QueryValue {
             Self::Null => serde_json::Value::Null,
             Self::Scalar(v) => match v {
                 Value::Function(_) => json!({"type":"function"}),
-                Value::Namespace(path) => json!({"type":"namespace", "path":path}),
+                Value::Namespace(path) => json!({"type":"namespace", "path":path.path()}),
                 Value::Number(n) => json!(n),
                 Value::Count(n) => json!(n),
                 Value::Text(s) => json!(s),

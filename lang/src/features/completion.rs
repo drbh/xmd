@@ -165,7 +165,7 @@ pub(crate) fn completions(
                 Value::Namespace(path) => ws
                     .symbols()
                     .iter()
-                    .filter(|s| s.path == *path)
+                    .filter(|s| s.path == path.path())
                     .map(|s| ws.named(s).name.clone())
                     .collect(),
                 _ => property_names_with_links(&value, request.link_features()),

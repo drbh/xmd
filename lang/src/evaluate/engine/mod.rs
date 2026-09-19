@@ -57,27 +57,44 @@ pub(crate) trait Bindings: Send + Sync {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<EvalResult<Value>>;
 }
 
-pub struct Engine<'a> {
-    pub workspace: &'a Workspace,
-    pub today: NaiveDate,
-    pub now: DateTime<FixedOffset>,
-    pub time_dependent: bool,
-    link_features: crate::link_features::LinkFeatures<'a>,
-    pub failure: Option<EvalFailure>,
-    contexts: Vec<(PathBuf, Span)>,
-    memo: std::sync::Arc<std::sync::Mutex<BTreeMap<MemoKey, MemoEntry>>>,
-    stack: Vec<Symbol>,
-    /// The dynamic environment a name is resolved against, innermost last.
-    frames: Vec<Frame>,
-    /// Decision-column variables met while linearizing a plan.
-    pub row_variables: Vec<RowVariable>,
-    /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
-    pub wanted: Vec<crate::lookups::LookupKey>,
-    /// Definitions being walked symbolically, separate from the value stack:
-    /// a goal seek is legitimately on both at once.
-    linear_stack: Vec<Symbol>,
+/// How much work one evaluation may still do. A module evaluates on an engine
+/// of its own, which inherits the budget rather than being given a fresh one.
+#[derive(Default)]
+struct Budget {
     steps: usize,
     calls: usize,
+}
+/// What is being walked right now: enough to name a cycle, and to place a
+/// failure in the note that asked for it.
+#[derive(Default)]
+struct Trace {
+    /// Definitions on the value stack.
+    symbols: Vec<Symbol>,
+    /// Definitions being walked symbolically, separate from the value stack:
+    /// a goal seek is legitimately on both at once.
+    linear: Vec<Symbol>,
+    /// The note and span each nested evaluation belongs to.
+    contexts: Vec<(PathBuf, Span)>,
+}
+pub struct Engine<'a> {
+    pub workspace: &'a Workspace,
+    /// The one clock snapshot every date in this evaluation is read against.
+    pub today: NaiveDate,
+    pub now: DateTime<FixedOffset>,
+    features: crate::link_features::LinkFeatures<'a>,
+    memo: std::sync::Arc<std::sync::Mutex<BTreeMap<MemoKey, MemoEntry>>>,
+    /// The dynamic environment a name is resolved against, innermost last.
+    frames: Vec<Frame>,
+    budget: Budget,
+    trace: Trace,
+    pub failure: Option<EvalFailure>,
+    /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
+    pub wanted: Vec<crate::lookups::LookupKey>,
+    pub time_dependent: bool,
+    /// Decision-column variables met while linearizing a plan.
+    pub row_variables: Vec<RowVariable>,
+    /// A module's evaluation: immutable inputs only, its own workspace, and
+    /// the expressions its note was parsed into.
     pure: bool,
     environment: Option<std::sync::Arc<Workspace>>,
     expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
@@ -128,18 +145,15 @@ impl<'a> Engine<'a> {
             workspace: request.workspace(),
             today: request.today(),
             now: request.now(),
-            time_dependent: false,
-            link_features: request.link_features(),
-            failure: None,
-            contexts: Vec::new(),
+            features: request.link_features(),
             memo: request.memo.clone(),
-            stack: Vec::new(),
             frames: Vec::new(),
-            row_variables: Vec::new(),
+            budget: Budget::default(),
+            trace: Trace::default(),
+            failure: None,
             wanted: Vec::new(),
-            linear_stack: Vec::new(),
-            steps: 0,
-            calls: 0,
+            time_dependent: false,
+            row_variables: Vec::new(),
             pure: false,
             environment: None,
             expressions: None,
@@ -151,7 +165,7 @@ impl<'a> Engine<'a> {
             workspace: self.workspace,
             clock: crate::context::Clock::new(self.now),
             today: self.today,
-            links: self.link_features,
+            links: self.features,
             memo: self.memo.clone(),
         }
     }
@@ -162,11 +176,11 @@ impl<'a> Engine<'a> {
             .ok_or(EvalError::Expected("a date or appointment time"))
     }
     pub fn link_features(&self) -> crate::link_features::LinkFeatures<'a> {
-        self.link_features
+        self.features
     }
     /// Override the registry for an embedded host or test before evaluation begins.
     pub fn with_link_features(mut self, features: crate::link_features::LinkFeatures<'a>) -> Self {
-        self.link_features = features;
+        self.features = features;
         self.memo = Default::default();
         self
     }
@@ -284,9 +298,9 @@ impl<'a> Engine<'a> {
     }
     pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> EvalResult<Value> {
         if self.idle() {
-            self.steps = 0;
+            self.budget.steps = 0;
         }
-        self.contexts.push((path.into(), span));
+        self.trace.contexts.push((path.into(), span));
         let parsed = self
             .expressions
             .as_ref()
@@ -307,12 +321,12 @@ impl<'a> Engine<'a> {
                 Err(error)
             }
         };
-        self.contexts.pop();
+        self.trace.contexts.pop();
         result
     }
     fn fail(&mut self, bounds: (usize, usize), message: &EvalError) {
         if self.failure.is_none()
-            && let Some((path, base)) = self.contexts.last()
+            && let Some((path, base)) = self.trace.contexts.last()
         {
             self.failure = Some(EvalFailure {
                 path: path.clone(),
@@ -391,9 +405,9 @@ impl<'a> Engine<'a> {
     }
     /// Nothing is part-way through: the step budget starts again.
     fn idle(&self) -> bool {
-        self.contexts.is_empty() && self.stack.is_empty() && self.frames.is_empty()
+        self.trace.contexts.is_empty() && self.trace.symbols.is_empty() && self.frames.is_empty()
             // A module evaluates on its own engine, which inherits the budget.
-            && self.calls == 0
+            && self.budget.calls == 0
     }
     pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
         let symbol = self.workspace.resolve(path, name)?;
@@ -401,7 +415,7 @@ impl<'a> Engine<'a> {
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
         if self.idle() {
-            self.steps = 0;
+            self.budget.steps = 0;
         }
         let key = MemoKey::Symbol(symbol.clone());
         let cached = self
@@ -418,8 +432,8 @@ impl<'a> Engine<'a> {
             self.time_dependent |= entry.time_dependent;
             return entry.value;
         }
-        if let Some(start) = self.stack.iter().position(|s| s == symbol) {
-            let mut related = self.stack[start..].to_vec();
+        if let Some(start) = self.trace.symbols.iter().position(|s| s == symbol) {
+            let mut related = self.trace.symbols[start..].to_vec();
             related.push(symbol.clone());
             let message = EvalError::Cycle {
                 names: related
@@ -435,13 +449,13 @@ impl<'a> Engine<'a> {
             });
             return Err(message);
         }
-        if self.stack.len() >= 64 {
+        if self.trace.symbols.len() >= 64 {
             return Err(EvalError::DepthExceeded(Depth::Dependency));
         }
         let previous_failure = self.failure.take();
         let previous_time = std::mem::replace(&mut self.time_dependent, false);
         let wanted_start = self.wanted.len();
-        self.stack.push(symbol.clone());
+        self.trace.symbols.push(symbol.clone());
         // Named definitions never capture a caller's frames.
         let height = self.barrier(false);
         let doc = &self.workspace.documents[&symbol.path];
@@ -528,7 +542,7 @@ impl<'a> Engine<'a> {
             }
         };
         self.unwind(height);
-        self.stack.pop();
+        self.trace.symbols.pop();
         let entry = MemoEntry {
             value: result.clone(),
             failure: if result.is_err() {
@@ -550,8 +564,8 @@ impl<'a> Engine<'a> {
     /// One node, one dispatch: every kind of expression names the method that
     /// answers it.
     pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
-        self.steps += 1;
-        if self.steps > 200_000 {
+        self.budget.steps += 1;
+        if self.budget.steps > 200_000 {
             let message = EvalError::StepLimit;
             self.fail(expr.bounds(), &message);
             return Err(message);
@@ -631,7 +645,7 @@ impl<'a> Engine<'a> {
                 params: params.to_vec(),
                 body: body.clone(),
                 path: path.into(),
-                source: self.contexts.last().cloned(),
+                source: self.trace.contexts.last().cloned(),
                 captured,
             },
         )))
@@ -724,7 +738,7 @@ impl<'a> Engine<'a> {
                     .unwrap_or(false),
             ));
         }
-        self.time_dependent |= self.link_features.time_dependent(
+        self.time_dependent |= self.features.time_dependent(
             &resource.target,
             &self.workspace.cache,
             self.now.to_utc(),
@@ -739,7 +753,7 @@ impl<'a> Engine<'a> {
         {
             return entry.value;
         }
-        let value = self.link_features.property(
+        let value = self.features.property(
             &resource.target,
             &self.workspace.cache,
             self.now.to_utc(),

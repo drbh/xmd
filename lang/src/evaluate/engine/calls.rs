@@ -74,14 +74,14 @@ impl Engine<'_> {
             .pure()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]))
             .with_environment(workspace.clone());
-        engine.steps = self.steps;
-        engine.calls = self.calls;
+        engine.budget.steps = self.budget.steps;
+        engine.budget.calls = self.budget.calls;
         engine.today = self.today;
         engine.memo = self.memo.clone();
         engine
     }
     fn absorb_module(&mut self, other: &Engine<'_>) {
-        self.steps = other.steps;
+        self.budget.steps = other.budget.steps;
         self.time_dependent |= other.time_dependent;
         if self.failure.is_none() {
             // A module has its own source workspace. Let the caller attach an
@@ -162,20 +162,20 @@ impl Engine<'_> {
                 found: args.len(),
             });
         }
-        if self.calls >= 32 {
+        if self.budget.calls >= 32 {
             return Err(EvalError::DepthExceeded(Depth::Call));
         }
         let height = self.barrier(false);
         self.push_call(function.clone(), args);
-        self.calls += 1;
+        self.budget.calls += 1;
         if let Some(source) = &function.source {
-            self.contexts.push(source.clone());
+            self.trace.contexts.push(source.clone());
         }
         let result = self.expr(&function.path, &function.body);
         if function.source.is_some() {
-            self.contexts.pop();
+            self.trace.contexts.pop();
         }
-        self.calls -= 1;
+        self.budget.calls -= 1;
         self.unwind(height);
         let value = result?;
         crate::evaluate::functional::check_size(&value)?;
@@ -233,7 +233,7 @@ impl Engine<'_> {
     }
     /// `eval(text)`: parse and run expression text in the current document.
     fn call_eval(&mut self, path: &Path, arg: &Expr) -> EvalResult<Value> {
-        if self.calls >= 32 {
+        if self.budget.calls >= 32 {
             return Err(EvalError::DepthExceeded(Depth::Call));
         }
         let Value::Text(source) = self.expr(path, arg)? else {
@@ -242,9 +242,9 @@ impl Engine<'_> {
         // Dynamic expressions use the current document, not query row fields,
         // but a row expression's `eval` still runs inside its row.
         let height = self.barrier(true);
-        self.calls += 1;
+        self.budget.calls += 1;
         let result = self.eval(path, &source);
-        self.calls -= 1;
+        self.budget.calls -= 1;
         self.unwind(height);
         result
     }

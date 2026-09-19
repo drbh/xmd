@@ -234,7 +234,7 @@ impl Engine<'_> {
         span: Span,
         vars: &BTreeSet<String>,
     ) -> EvalResult<Linear> {
-        self.contexts.push((path.into(), span));
+        self.trace.contexts.push((path.into(), span));
         let result = match Parser::parse(source) {
             Ok(expr) => self.linear_expr(path, &expr, vars),
             Err(message) => {
@@ -243,7 +243,7 @@ impl Engine<'_> {
                 Err(error)
             }
         };
-        self.contexts.pop();
+        self.trace.contexts.pop();
         result
     }
     /// `lhs <= rhs`, `lhs >= rhs`, or `lhs == rhs` as two linear forms.
@@ -254,7 +254,7 @@ impl Engine<'_> {
         span: Span,
         vars: &BTreeSet<String>,
     ) -> EvalResult<(Linear, Comparison, Linear)> {
-        self.contexts.push((path.into(), span));
+        self.trace.contexts.push((path.into(), span));
         let result = (|| {
             let expr = Parser::parse(source)
                 .map_err(EvalError::Parse)
@@ -285,7 +285,7 @@ impl Engine<'_> {
             }
             Ok((lhs, op, rhs))
         })();
-        self.contexts.pop();
+        self.trace.contexts.pop();
         result
     }
     /// An ordinary calculation's source, for symbolic descent. Tables, plans,
@@ -367,12 +367,12 @@ impl Engine<'_> {
                     && self.definition_source(path, n).is_some() =>
             {
                 let (symbol, source, span) = self.definition_source(path, n).unwrap();
-                if self.linear_stack.contains(&symbol) {
+                if self.trace.linear.contains(&symbol) {
                     return Err(EvalError::CycleThrough { name: n.clone() });
                 }
-                self.linear_stack.push(symbol.clone());
+                self.trace.linear.push(symbol.clone());
                 let result = self.linear(&symbol.path, &source, span, vars);
-                self.linear_stack.pop();
+                self.trace.linear.pop();
                 result
             }
             Expr::Builtin(Builtin::Sum, args) if args.len() == 2 => {

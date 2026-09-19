@@ -258,7 +258,7 @@ pub(crate) fn refactors(
             continue;
         }
         if let Err(error) = ws.resolve(path, &reference.name) {
-            if !error.to_string().starts_with("Unknown name") {
+            if !matches!(error, crate::error::EvalError::UnknownName { .. }) {
                 continue;
             }
             let mut choices: Vec<_> = ws

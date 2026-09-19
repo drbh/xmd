@@ -112,7 +112,8 @@ fn diagnostic(
         ..Default::default()
     }
 }
-/// A failed evaluation, rendered for the host that shows it.
+/// A failed evaluation, reported at the right severity: data that has not been
+/// fetched yet is a state of the world, not a mistake in the note.
 fn evaluation(
     ws: &Workspace,
     path: &Path,
@@ -121,7 +122,16 @@ fn evaluation(
     code: DiagnosticCode,
     related: &[Symbol],
 ) -> Diagnostic {
-    diagnostic(ws, path, span, error.to_string(), code, related)
+    pending(
+        diagnostic(ws, path, span, error.to_string(), code, related),
+        error,
+    )
+}
+fn pending(mut issue: Diagnostic, error: &EvalError) -> Diagnostic {
+    if error.is_pending() {
+        issue.severity = Some(DiagnosticSeverity::WARNING);
+    }
+    issue
 }
 pub fn incomplete(source: &str) -> bool {
     if Engine::valid_expression(source) {
@@ -227,10 +237,10 @@ pub(crate) fn collect_native(
                         path,
                         failure.span,
                         &failure.message,
-                        if failure.related.is_empty() {
-                            DiagnosticCode::Evaluation
-                        } else {
+                        if failure.message.is_cycle() {
                             DiagnosticCode::Cycle
+                        } else {
+                            DiagnosticCode::Evaluation
                         },
                         &failure.related,
                     ));
@@ -242,13 +252,16 @@ pub(crate) fn collect_native(
                             s.path == failure.path && ws.named(s).span.line == failure.span.line
                         })
                         .collect();
-                    issues.push(diagnostic(
-                        ws,
-                        path,
-                        named.span,
-                        format!("Dependency error: {message}"),
-                        DiagnosticCode::Dependency,
-                        &related,
+                    issues.push(pending(
+                        diagnostic(
+                            ws,
+                            path,
+                            named.span,
+                            format!("Dependency error: {message}"),
+                            DiagnosticCode::Dependency,
+                            &related,
+                        ),
+                        &message,
                     ));
                 }
             } else {
@@ -377,15 +390,6 @@ pub(crate) fn collect_native(
                 DiagnosticCode::Attribute,
                 &[],
             ));
-        }
-    }
-    // Data that has not been fetched yet is a state, not a mistake in the note.
-    for issue in &mut issues {
-        if issue.message.starts_with("No cached")
-            || issue.message.contains("; run wtf refresh")
-            || issue.message.contains("no forecast yet")
-        {
-            issue.severity = Some(DiagnosticSeverity::WARNING);
         }
     }
     let names_a_token = |d: &Diagnostic| code_of(d).is_some_and(DiagnosticCode::names_a_token);

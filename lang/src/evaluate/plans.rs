@@ -1,6 +1,7 @@
 //! Linear plans: `[name] := maximize(expr)` followed by a constraint table.
 //! Names that resolve to note values are constants; the rest are decision
 //! variables solved with a pure-Rust simplex, so plans re-solve as notes change.
+use crate::error::{EvalError, EvalResult};
 use crate::{
     document::{Document, Named, Problem, Span, identifier},
     engine::{Comparison, Engine, Linear, Unit, Value},
@@ -182,7 +183,7 @@ impl PlanValue {
             ("columns".into(), Value::List(columns)),
         ])
     }
-    pub fn property(&self, name: &str) -> Result<Value, String> {
+    pub fn property(&self, name: &str) -> EvalResult<Value> {
         if name == "objective" {
             return Ok(self.objective.clone());
         }
@@ -192,7 +193,10 @@ impl PlanValue {
         if let Some(c) = self.constraints.iter().find(|c| c.name == name) {
             return Ok(c.slack.clone());
         }
-        Err(format!("Unknown plan property '{name}'"))
+        Err(crate::error::EvalError::UnknownProperty {
+            owner: crate::error::PropertyOwner::Plan,
+            name: name.into(),
+        })
     }
     /// Per decision column: (table, column, chosen values in row order).
     pub fn columns(&self) -> Vec<ColumnChoices> {
@@ -435,15 +439,16 @@ pub fn seek_body(source: &str) -> Option<&str> {
 /// Goal seek: the definition's own name is the unknown, and the answer is the
 /// boundary value that makes the constraint hold. Linear equations have a
 /// closed form, so no solver runs.
-pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
+pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> EvalResult<Value> {
     let doc = &engine.workspace.documents[&symbol.path];
     let SymbolKind::Definition(index) = symbol.kind else {
-        return Err("Expected a definition".into());
+        return Err(EvalError::Expected("a definition"));
     };
     let def = &doc.definitions[index];
     let name = def.named.name.clone();
-    let body =
-        seek_body(&def.source).ok_or("solve() needs a constraint, e.g. solve(total >= $500)")?;
+    let body = seek_body(&def.source).ok_or(EvalError::Message(
+        "solve() needs a constraint, e.g. solve(total >= $500)".into(),
+    ))?;
     let raw = def.value_span.source(&doc.text);
     let offset = def.value_span.start + raw.len() - raw.trim_start().len();
     let start = offset + def.source.find(body).unwrap_or(0);
@@ -455,7 +460,7 @@ pub fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> Result<Value, String> {
     let vars = [name.clone()].into_iter().collect();
     let (lhs, op, rhs) = engine.constraint(&symbol.path, body, span, &vars)?;
     let difference = lhs.minus(&rhs)?;
-    let fail = |engine: &mut Engine<'_>, message: String| {
+    let fail = |engine: &mut Engine<'_>, message: EvalError| {
         engine.failure.get_or_insert(crate::engine::EvalFailure {
             path: symbol.path.clone(),
             span,
@@ -510,7 +515,7 @@ fn form_value(form: &Linear) -> Value {
         ("unit".into(), typed_in(form.kind, form.currency, 1.0)),
     ])
 }
-pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Value, String> {
+pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResult<Value> {
     let ws = engine.workspace;
     let path = symbol.path.clone();
     let names: Vec<String> = ws
@@ -521,13 +526,14 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
     let vars: std::collections::BTreeSet<String> = names.iter().cloned().collect();
     if !plan.problems.is_empty() {
         let problem = &plan.problems[0];
+        let message = EvalError::Message(problem.message.clone());
         engine.failure.get_or_insert(crate::engine::EvalFailure {
             path: path.clone(),
             span: problem.span,
-            message: problem.message.clone(),
+            message: message.clone(),
             related: vec![],
         });
-        return Err(problem.message.clone());
+        return Err(message);
     }
     engine.row_variables.clear();
     let objective = engine.linear(&path, &plan.objective, plan.objective_span, &vars)?;
@@ -536,13 +542,15 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
         constraints.push(engine.constraint(&path, &constraint.source, constraint.span, &vars)?);
     }
     if names.is_empty() && engine.row_variables.is_empty() {
+        let message =
+            EvalError::Message("A plan needs at least one unknown name to solve for".into());
         engine.failure.get_or_insert(crate::engine::EvalFailure {
             path: path.clone(),
             span: plan.objective_span,
-            message: "A plan needs at least one unknown name to solve for".into(),
+            message: message.clone(),
             related: vec![],
         });
-        return Err("A plan needs at least one unknown name to solve for".into());
+        return Err(message);
     }
     let rows = std::mem::take(&mut engine.row_variables);
     use crate::modules::{field, list, record};
@@ -606,7 +614,7 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
     let variables = list(field(&result, "variables")?)?
         .iter()
         .map(|v| Ok((field(v, "name")?.display(), field(v, "value")?.clone())))
-        .collect::<Result<_, String>>()?;
+        .collect::<EvalResult<_>>()?;
     let results = list(field(&result, "constraints")?)?
         .iter()
         .map(|c| {
@@ -619,12 +627,12 @@ pub fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Result<Va
                 binding: matches!(field(c, "binding")?, Value::Bool(true)),
             })
         })
-        .collect::<Result<_, String>>()?;
+        .collect::<EvalResult<_>>()?;
     let choices = field(&result, "rows")?;
     let rows = rows
         .into_iter()
         .map(|row| Ok((row.clone(), field(choices, &row.name)?.clone())))
-        .collect::<Result<_, String>>()?;
+        .collect::<EvalResult<_>>()?;
     Ok(Value::Plan(std::sync::Arc::new(PlanValue {
         origin: symbol.clone(),
         goal: plan.goal,

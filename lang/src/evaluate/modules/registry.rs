@@ -1,6 +1,9 @@
 //! The registry: the compiled set of modules, linked and ready to call.
 use super::Module;
-use crate::engine::Value;
+use crate::{
+    engine::Value,
+    error::{EvalError, EvalResult},
+};
 use chrono::{DateTime, FixedOffset};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -30,15 +33,20 @@ impl ModuleRegistry {
         name: &str,
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         self.active()
             .find(|m| m.id == id)
-            .ok_or_else(|| format!("Module '{id}' is unavailable or disabled"))?
+            .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?
             .call(name, args, now)
-            .map_err(|e| {
-                e.strip_prefix(&format!("Module {id}.{name}: "))
-                    .unwrap_or(&e)
-                    .to_owned()
+            // The caller asked for this hook by name, so its own attribution
+            // would only repeat what the call site already says.
+            .map_err(|e| match e {
+                EvalError::Module {
+                    id: at,
+                    hook,
+                    source,
+                } if at == id && hook == name => *source,
+                other => other,
             })
     }
     pub fn same_sources(&self, other: &Self) -> bool {

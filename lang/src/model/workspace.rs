@@ -147,18 +147,16 @@ impl Workspace {
             }
         }
     }
-    pub fn resolve(&self, path: &Path, name: &str) -> Result<Symbol, String> {
+    pub fn resolve(&self, path: &Path, name: &str) -> crate::error::EvalResult<Symbol> {
         let options: Vec<_> = self
             .symbols()
             .into_iter()
             .filter(|s| s.path == path && self.named(s).name == name)
             .collect();
         match options.len() {
-            0 => Err(format!("Unknown name '{name}'")),
+            0 => Err(crate::error::EvalError::UnknownName { name: name.into() }),
             1 => Ok(options[0].clone()),
-            _ => Err(format!(
-                "Ambiguous name '{name}'; use a unique name within this note"
-            )),
+            _ => Err(crate::error::EvalError::AmbiguousName { name: name.into() }),
         }
     }
     pub fn symbols(&self) -> Vec<Symbol> {

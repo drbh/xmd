@@ -53,7 +53,7 @@ pub(crate) fn hover_at(
                 .engine()
                 .eval(path, &reference.expression())
                 .map(|v| v.display())
-                .unwrap_or_else(|e| e);
+                .unwrap_or_else(|e| e.to_string());
             value = format!("{} = {preview}\n\n{value}", reference.expression());
             range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
         }
@@ -207,7 +207,7 @@ pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol)
                 cell.value
                     .as_ref()
                     .map(Value::display)
-                    .unwrap_or_else(|e| e.clone())
+                    .unwrap_or_else(|e| e.to_string())
             })
             .collect::<Vec<_>>()
             .join(", ");
@@ -295,7 +295,7 @@ pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol)
                                 ]
                             )
                             .map(|v| v.display())
-                            .unwrap_or_else(|e| e)
+                            .unwrap_or_else(|e| e.to_string())
                     ));
                 }
             }
@@ -476,7 +476,7 @@ pub(crate) fn cell_hover(
                                 .map(|e| format!("\n\nCalculated from `{e}`"))
                                 .unwrap_or_default()
                         ),
-                        Err(error) => error,
+                        Err(error) => error.to_string(),
                     };
                     return Some(Hover {
                         contents: HoverContents::Markup(markup(text)),

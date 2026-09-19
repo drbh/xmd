@@ -2,6 +2,7 @@
 //! values it produces, the syntax it reads, and the linear forms plans need.
 use crate::{
     document::Span,
+    error::{Depth, EvalError, EvalResult, Limit, Overflow},
     timers::Timer,
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -29,8 +30,14 @@ pub use value::{
 pub struct EvalFailure {
     pub path: PathBuf,
     pub span: Span,
-    pub message: String,
+    pub message: EvalError,
     pub related: Vec<Symbol>,
+}
+impl EvalFailure {
+    /// The rendered sentence, for hosts that only display it.
+    pub fn message(&self) -> String {
+        self.message.to_string()
+    }
 }
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum MemoKey {
@@ -39,7 +46,7 @@ pub(crate) enum MemoKey {
 }
 #[derive(Clone)]
 pub(crate) struct MemoEntry {
-    value: Result<Value, String>,
+    value: EvalResult<Value>,
     failure: Option<EvalFailure>,
     wanted: Vec<crate::lookups::LookupKey>,
     time_dependent: bool,
@@ -47,7 +54,7 @@ pub(crate) struct MemoEntry {
 /// Host-provided names are resolved lazily by the same evaluator as note functions.
 /// Resolution runs without the caller's bindings, so definitions cannot capture them.
 pub(crate) trait Bindings: Send + Sync {
-    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>>;
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<EvalResult<Value>>;
 }
 
 pub struct Engine<'a> {
@@ -122,11 +129,11 @@ impl<'a> Engine<'a> {
             memo: self.memo.clone(),
         }
     }
-    pub fn date(&self, value: &Value) -> Result<NaiveDate, String> {
+    pub fn date(&self, value: &Value) -> EvalResult<NaiveDate> {
         self.request()
             .clock()
             .date(value)
-            .ok_or_else(|| "Expected a date or appointment time".into())
+            .ok_or(EvalError::Expected("a date or appointment time"))
     }
     pub fn link_features(&self) -> crate::link_features::LinkFeatures<'a> {
         self.link_features
@@ -142,22 +149,22 @@ impl<'a> Engine<'a> {
         path: &Path,
         expr: &Expr,
         bindings: std::sync::Arc<dyn Bindings>,
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         let previous = self.bindings.replace(bindings);
         let result = self.expr(path, expr);
         self.bindings = previous;
         result
     }
-    fn binding(&mut self, name: &str) -> Option<Result<Value, String>> {
+    fn binding(&mut self, name: &str) -> Option<EvalResult<Value>> {
         let bindings = self.bindings.take()?;
         let result = bindings.get(name, self);
         self.bindings = Some(bindings);
         result
     }
-    pub fn eval(&mut self, path: &Path, expression: &str) -> Result<Value, String> {
+    pub fn eval(&mut self, path: &Path, expression: &str) -> EvalResult<Value> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
     }
-    pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> Result<Value, String> {
+    pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> EvalResult<Value> {
         if self.contexts.is_empty()
             && self.stack.is_empty()
             && self.row_values.is_empty()
@@ -182,14 +189,15 @@ impl<'a> Engine<'a> {
                     .last()
                     .map(|t| (t.start, t.end))
                     .unwrap_or((0, expression.len()));
-                self.fail(bounds, &message);
-                Err(message)
+                let error = EvalError::Parse(message);
+                self.fail(bounds, &error);
+                Err(error)
             }
         };
         self.contexts.pop();
         result
     }
-    fn fail(&mut self, bounds: (usize, usize), message: &str) {
+    fn fail(&mut self, bounds: (usize, usize), message: &EvalError) {
         if self.failure.is_none()
             && let Some((path, base)) = self.contexts.last()
         {
@@ -203,7 +211,7 @@ impl<'a> Engine<'a> {
                     .unwrap_or_else(|| {
                         Span::new(base.line, base.start + bounds.0, base.start + bounds.1)
                     }),
-                message: message.into(),
+                message: message.clone(),
                 related: vec![],
             });
         }
@@ -234,8 +242,8 @@ impl<'a> Engine<'a> {
         Parser::parse(source).is_ok_and(|e| contains(&e, start, end))
     }
     /// Return a substitution trace without re-evaluating side effects (evaluation is pure).
-    pub fn substituted(&mut self, path: &Path, source: &str) -> Result<String, String> {
-        let tokens = lex(source)?;
+    pub fn substituted(&mut self, path: &Path, source: &str) -> EvalResult<String> {
+        let tokens = lex(source).map_err(EvalError::Parse)?;
         let mut edits = Vec::new();
         for (i, token) in tokens.iter().enumerate() {
             if let Lexeme::Name(name) = &token.kind
@@ -268,11 +276,11 @@ impl<'a> Engine<'a> {
         }
         Ok(result)
     }
-    pub fn named(&mut self, path: &Path, name: &str) -> Result<Value, String> {
+    pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
         let symbol = self.workspace.resolve(path, name)?;
         self.symbol(&symbol)
     }
-    pub fn symbol(&mut self, symbol: &Symbol) -> Result<Value, String> {
+    pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
         if self.contexts.is_empty()
             && self.stack.is_empty()
             && self.row_values.is_empty()
@@ -299,14 +307,12 @@ impl<'a> Engine<'a> {
         if let Some(start) = self.stack.iter().position(|s| s == symbol) {
             let mut related = self.stack[start..].to_vec();
             related.push(symbol.clone());
-            let message = format!(
-                "Dependency cycle: {}",
-                related
+            let message = EvalError::Cycle {
+                names: related
                     .iter()
-                    .map(|s| self.workspace.named(s).name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(" → ")
-            );
+                    .map(|s| self.workspace.named(s).name.clone())
+                    .collect(),
+            };
             self.failure = Some(EvalFailure {
                 path: symbol.path.clone(),
                 span: self.workspace.named(symbol).span,
@@ -316,7 +322,7 @@ impl<'a> Engine<'a> {
             return Err(message);
         }
         if self.stack.len() >= 64 {
-            return Err("Dependency chain exceeds 64 levels".into());
+            return Err(EvalError::DepthExceeded(Depth::Dependency));
         }
         let previous_failure = self.failure.take();
         let previous_time = std::mem::replace(&mut self.time_dependent, false);
@@ -336,13 +342,14 @@ impl<'a> Engine<'a> {
                     crate::plans::seek(self, symbol)
                 } else if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
                     if let Some(problem) = table.problems.first() {
+                        let message = EvalError::Message(problem.message.clone());
                         self.failure = Some(EvalFailure {
                             path: symbol.path.clone(),
                             span: problem.span,
-                            message: problem.message.clone(),
+                            message: message.clone(),
                             related: vec![],
                         });
-                        Err(problem.message.clone())
+                        Err(message)
                     } else {
                         self.table_value(symbol, table)
                     }
@@ -393,9 +400,9 @@ impl<'a> Engine<'a> {
                         .collect(),
                 ))
             }
-            SymbolKind::Column(_, _) => {
-                Err("A column needs a row context, e.g. sum(table, column)".into())
-            }
+            SymbolKind::Column(_, _) => Err(EvalError::Message(
+                "A column needs a row context, e.g. sum(table, column)".into(),
+            )),
             SymbolKind::Variable(plan, name) => {
                 let name = doc.plans[plan].names[name].name.clone();
                 let definition = Symbol {
@@ -404,7 +411,7 @@ impl<'a> Engine<'a> {
                 };
                 self.symbol(&definition).and_then(|value| match value {
                     Value::Plan(p) => p.property(&name),
-                    _ => Err("Expected a plan".into()),
+                    _ => Err(EvalError::Expected("a plan")),
                 })
             }
         };
@@ -430,12 +437,12 @@ impl<'a> Engine<'a> {
         self.time_dependent |= previous_time;
         result
     }
-    pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> Result<Value, String> {
+    pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
         self.steps += 1;
         if self.steps > 200_000 {
-            let message = "Evaluation exceeds 200,000 steps; simplify nested row calculations";
-            self.fail(expr.bounds(), message);
-            return Err(message.into());
+            let message = EvalError::StepLimit;
+            self.fail(expr.bounds(), &message);
+            return Err(message);
         }
         match expr {
             Expr::Spanned(start, end, expr) => {
@@ -460,7 +467,7 @@ impl<'a> Engine<'a> {
                     fields
                         .iter()
                         .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?)))
-                        .collect::<Result<BTreeMap<_, _>, String>>()?,
+                        .collect::<EvalResult<BTreeMap<_, _>>>()?,
                 );
                 crate::evaluate::functional::check_size(&value)?;
                 Ok(value)
@@ -516,13 +523,16 @@ impl<'a> Engine<'a> {
                     }
                     if let Some(scope) = self.row_values.last() {
                         if scope.decisions.contains_key(n) {
-                            return Err(format!(
-                                "'{n}' is a decision column; a plan chooses it, so sum over it inside maximize or minimize"
-                            ));
+                            return Err(EvalError::DecisionColumnOutsidePlan(n.clone()));
                         }
-                        scope.values.get(n).cloned().ok_or_else(|| {
-                            format!("Unknown column '{n}' in table '{}'", scope.table)
-                        })
+                        scope
+                            .values
+                            .get(n)
+                            .cloned()
+                            .ok_or_else(|| EvalError::UnknownColumn {
+                                name: n.clone(),
+                                table: scope.table.clone(),
+                            })
                     } else {
                         self.named(path, n)
                     }
@@ -560,7 +570,9 @@ impl<'a> Engine<'a> {
                     }
                     Builtin::Sum if args.len() == 1 => {
                         let Value::List(values) = self.expr(path, &args[0])? else {
-                            return Err("sum expects a list, or a table and row expression".into());
+                            return Err(EvalError::Message(
+                                "sum expects a list, or a table and row expression".into(),
+                            ));
                         };
                         crate::evaluate::functional::sum(values)
                     }
@@ -590,9 +602,9 @@ impl<'a> Engine<'a> {
                     (UnaryOp::Negate, Value::Duration(n)) => n
                         .checked_neg()
                         .map(Value::Duration)
-                        .ok_or("Duration overflow".into()),
+                        .ok_or(EvalError::Overflowed(Overflow::Duration)),
                     (UnaryOp::Plus, v) if v.scalar().is_some() => Ok(v),
-                    _ => Err("Invalid unary operation".into()),
+                    _ => Err(EvalError::Message("Invalid unary operation".into())),
                 }
             }
             Expr::Binary(op, a, b) => {
@@ -604,9 +616,9 @@ impl<'a> Engine<'a> {
                     return Ok(a);
                 }
                 let right = self.expr(path, b)?;
-                let types = format!("{} {op} {}", a.type_name(), right.type_name());
-                binary(*op, a, right).map_err(|message| {
-                    let message = format!("{message} ({types})");
+                let (left, right_kind) = (a.kind(), right.kind());
+                binary(*op, a, right).map_err(|source| {
+                    let message = source.in_binary(*op, left, right_kind);
                     self.fail(b.bounds(), &message);
                     message
                 })
@@ -620,10 +632,14 @@ impl<'a> Engine<'a> {
                         }
                         if key == "exists" {
                             if self.pure {
-                                return Err("Module evaluation cannot access the filesystem".into());
+                                return Err(EvalError::Message(
+                                    "Module evaluation cannot access the filesystem".into(),
+                                ));
                             }
                             #[cfg(target_arch = "wasm32")]
-                            return Err("Local file existence is unavailable in the browser".into());
+                            return Err(EvalError::Message(
+                                "Local file existence is unavailable in the browser".into(),
+                            ));
                             #[cfg(not(target_arch = "wasm32"))]
                             return Ok(Value::Bool(
                                 resource
@@ -671,7 +687,7 @@ impl<'a> Engine<'a> {
             }
         }
     }
-    fn property(&mut self, value: &Value, key: &str) -> Result<Value, String> {
+    fn property(&mut self, value: &Value, key: &str) -> EvalResult<Value> {
         match value {
             Value::Namespace(path) => self.named(path, key),
             Value::List(items) => items
@@ -727,13 +743,13 @@ impl<'a> Engine<'a> {
         id: &str,
         name: &str,
         args: Vec<Value>,
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         let module = self
             .workspace
             .modules
             .active()
             .find(|m| m.id == id)
-            .ok_or_else(|| format!("Module '{id}' is unavailable or disabled"))?
+            .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?
             .clone();
         let workspace = module.environment();
         let mut engine = self
@@ -745,13 +761,13 @@ impl<'a> Engine<'a> {
         self.absorb_module(&engine);
         result
     }
-    fn import(&mut self, id: &str) -> Result<Value, String> {
+    fn import(&mut self, id: &str) -> EvalResult<Value> {
         let module = self
             .workspace
             .modules
             .active()
             .find(|m| m.id == id)
-            .ok_or_else(|| format!("Unknown or undeclared import '{id}'"))?
+            .ok_or_else(|| EvalError::UnknownImport(id.into()))?
             .clone();
         let workspace = module.environment();
         let mut engine = self
@@ -767,14 +783,14 @@ impl<'a> Engine<'a> {
                     engine.named(&module.path, &d.named.name)?,
                 ))
             })
-            .collect::<Result<BTreeMap<_, _>, String>>()
+            .collect::<EvalResult<BTreeMap<_, _>>>()
             .map(Value::Record);
         self.absorb_module(&engine);
         result
     }
-    pub fn call(&mut self, function: Value, args: Vec<Value>) -> Result<Value, String> {
+    pub fn call(&mut self, function: Value, args: Vec<Value>) -> EvalResult<Value> {
         let Value::Function(function) = function else {
-            return Err("Expected a function".into());
+            return Err(EvalError::Expected("a function"));
         };
         if let Some(workspace) = &function.environment
             && !std::ptr::eq(self.workspace, workspace.as_ref())
@@ -786,14 +802,13 @@ impl<'a> Engine<'a> {
             return result;
         }
         if args.len() != function.params.len() {
-            return Err(format!(
-                "Function expects {} arguments, got {}",
-                function.params.len(),
-                args.len()
-            ));
+            return Err(EvalError::FunctionArity {
+                expected: function.params.len(),
+                found: args.len(),
+            });
         }
         if self.calls >= 32 {
-            return Err("Function call depth exceeds 32".into());
+            return Err(EvalError::DepthExceeded(Depth::Call));
         }
         let mut locals = function.captured.clone();
         locals.extend(function.params.iter().cloned().zip(args));
@@ -817,43 +832,47 @@ impl<'a> Engine<'a> {
         Ok(value)
     }
     /// `import(id)`: a module ID, or a literal path to another note.
-    fn call_import(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+    fn call_import(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         let [arg] = args else {
-            return Err("import expects a module ID or a literal note path".into());
+            return Err(EvalError::Message(
+                "import expects a module ID or a literal note path".into(),
+            ));
         };
         let Value::Text(id) = self.expr(path, arg)? else {
-            return Err("import expects text".into());
+            return Err(EvalError::Message("import expects text".into()));
         };
         if crate::model::imports::is_note_path(&id) {
             if !matches!(arg.bare(), Expr::Value(Value::Text(_))) {
-                return Err(
+                return Err(EvalError::Message(
                     "Note imports require a literal path, e.g. import(\"./values.wtf\")".into(),
-                );
+                ));
             }
             let target = crate::model::imports::note_path(path, &id)?;
             if !self.workspace.documents.contains_key(&target) {
-                return Err(format!(
+                return Err(EvalError::Message(format!(
                     "Note import '{}' is not loaded (from {})",
                     target.display(),
                     path.display()
-                ));
+                )));
             }
             return Ok(Value::Namespace(target));
         }
         self.import(&id)
     }
     /// `if(condition, then, else)`: only the chosen branch is evaluated.
-    fn call_if(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+    fn call_if(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         if args.len() != 3 {
-            return Err("if expects a condition and two branches".into());
+            return Err(EvalError::Message(
+                "if expects a condition and two branches".into(),
+            ));
         }
         let Value::Bool(condition) = self.expr(path, &args[0])? else {
-            return Err("if requires a Boolean condition".into());
+            return Err(EvalError::Message("if requires a Boolean condition".into()));
         };
         self.expr(path, &args[if condition { 1 } else { 2 }])
     }
     /// `coalesce(a, b, …)`: stop at the first non-null argument.
-    fn call_coalesce(&mut self, path: &Path, args: &[Expr]) -> Result<Value, String> {
+    fn call_coalesce(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         for arg in args {
             let value = self.expr(path, arg)?;
             if value != Value::Null {
@@ -863,12 +882,12 @@ impl<'a> Engine<'a> {
         Ok(Value::Null)
     }
     /// `eval(text)`: parse and run expression text in the current document.
-    fn call_eval(&mut self, path: &Path, arg: &Expr) -> Result<Value, String> {
+    fn call_eval(&mut self, path: &Path, arg: &Expr) -> EvalResult<Value> {
         if self.calls >= 32 {
-            return Err("Function call depth exceeds 32".into());
+            return Err(EvalError::DepthExceeded(Depth::Call));
         }
         let Value::Text(source) = self.expr(path, arg)? else {
-            return Err("eval expects expression text".into());
+            return Err(EvalError::Message("eval expects expression text".into()));
         };
         // Dynamic expressions use the current document, not query row fields.
         let bindings = self.bindings.take();
@@ -881,12 +900,7 @@ impl<'a> Engine<'a> {
         result
     }
     /// `stopwatch(…)` and `countdown(…)`: the timer module resolves the state.
-    fn call_timer(
-        &mut self,
-        path: &Path,
-        builtin: Builtin,
-        args: &[Expr],
-    ) -> Result<Value, String> {
+    fn call_timer(&mut self, path: &Path, builtin: Builtin, args: &[Expr]) -> EvalResult<Value> {
         let values = args
             .iter()
             .map(|a| self.expr(path, a))
@@ -904,21 +918,23 @@ impl<'a> Engine<'a> {
         path: &Path,
         builtin: Builtin,
         args: &[Expr],
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         if args.len() != 1 {
-            return Err(format!("{builtin} expects one argument"));
+            return Err(EvalError::Arity(builtin));
         }
         let value = self.expr(path, &args[0])?;
         if builtin == Builtin::Date {
             return match value {
                 Value::Text(s) => date_value(&s)
                     .or_else(|| relative_date(&s, self.today).map(Value::Date))
-                    .ok_or("Unrecognized date".into()),
+                    .ok_or(EvalError::Message("Unrecognized date".into())),
                 other => self.date(&other).map(Value::Date),
             };
         }
         let Value::Tasks(tasks) = value else {
-            return Err(format!("{builtin} expects a named checklist heading"));
+            return Err(EvalError::Message(format!(
+                "{builtin} expects a named checklist heading"
+            )));
         };
         let done = tasks.iter().filter(|(p, i)| self.task_done(p, *i)).count();
         match builtin {
@@ -932,21 +948,27 @@ impl<'a> Engine<'a> {
                         let task = &self.workspace.documents[&p].tasks[i];
                         if let Some(attr) = task.attributes.get("estimate") {
                             let Value::Duration(m) = self.eval(&p, &attr.value)? else {
-                                return Err("@estimate requires a duration".into());
+                                return Err(EvalError::Message(
+                                    "@estimate requires a duration".into(),
+                                ));
                             };
                             if m < 0 {
-                                return Err("Estimate cannot be negative".into());
+                                return Err(EvalError::Message(
+                                    "Estimate cannot be negative".into(),
+                                ));
                             }
-                            seconds = seconds.checked_add(m).ok_or("Duration overflow")?;
+                            seconds = seconds
+                                .checked_add(m)
+                                .ok_or(EvalError::Overflowed(Overflow::Duration))?;
                         }
                     }
                 }
                 Ok(Value::Duration(seconds))
             }
-            _ => Err(format!("Unknown function '{builtin}'")),
+            _ => Err(EvalError::UnknownFunction(builtin.to_string())),
         }
     }
-    pub(crate) fn functional(&mut self, name: Builtin, args: Vec<Value>) -> Result<Value, String> {
+    pub(crate) fn functional(&mut self, name: Builtin, args: Vec<Value>) -> EvalResult<Value> {
         use Value::*;
         let value = match (name, args.as_slice()) {
             (Builtin::Get, [Namespace(path), Text(key)]) => match self.workspace.resolve(path, key)
@@ -1014,11 +1036,15 @@ impl<'a> Engine<'a> {
                         match value {
                             Bool(true) => output.push(item.clone()),
                             Bool(false) => (),
-                            _ => return Err("filter predicate must return a Boolean".into()),
+                            _ => {
+                                return Err(EvalError::Message(
+                                    "filter predicate must return a Boolean".into(),
+                                ));
+                            }
                         }
                     }
                     if output.len() > 4096 {
-                        return Err("List exceeds 4096 items".into());
+                        return Err(EvalError::LimitExceeded(Limit::ListItems));
                     }
                 }
                 List(output)
@@ -1051,17 +1077,19 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn sum(&mut self, path: &Path, args: &[Expr]) -> Result<(Value, Vec<Value>), String> {
+    fn sum(&mut self, path: &Path, args: &[Expr]) -> EvalResult<(Value, Vec<Value>)> {
         if args.len() != 2 {
-            return Err(
+            return Err(EvalError::Message(
                 "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
-            );
+            ));
         }
         let Expr::Name(name) = args[0].bare() else {
-            return Err("The first argument to sum must be a table name".into());
+            return Err(EvalError::Message(
+                "The first argument to sum must be a table name".into(),
+            ));
         };
         let Value::Table(table) = self.named(path, name)? else {
-            return Err(format!("'{name}' is not a table"));
+            return Err(EvalError::NotATable(name.clone()));
         };
         let mut total = None;
         let mut contributions = Vec::new();
@@ -1087,10 +1115,10 @@ impl<'a> Engine<'a> {
                 value,
                 Value::Number(_) | Value::Money(..) | Value::Ratio(_) | Value::Duration(_)
             ) {
-                return Err(format!(
+                return Err(EvalError::Message(format!(
                     "sum requires numeric, money, ratio, or duration results, found {}",
                     value.type_name()
-                ));
+                )));
             }
             total = Some(if let Some(previous) = total {
                 let ratios =
@@ -1107,17 +1135,15 @@ impl<'a> Engine<'a> {
             contributions.push(value);
         }
         total.map(|v| (v, contributions)).ok_or_else(|| {
-            "Cannot sum an empty table: add a row to establish its value type".into()
+            EvalError::Message(
+                "Cannot sum an empty table: add a row to establish its value type".into(),
+            )
         })
     }
 
     /// Rows of a table, evaluating calculated cells and checking that each
     /// column keeps one type. Failures point at the offending cell.
-    fn table_value(
-        &mut self,
-        symbol: &Symbol,
-        table: &crate::tables::Table,
-    ) -> Result<Value, String> {
+    fn table_value(&mut self, symbol: &Symbol, table: &crate::tables::Table) -> EvalResult<Value> {
         let mut types: Vec<Option<ValueType>> = table.types.clone();
         let mut rows = Vec::with_capacity(table.rows.len());
         for row in &table.rows {
@@ -1130,10 +1156,10 @@ impl<'a> Engine<'a> {
                             value,
                             Value::Table(_) | Value::Plan(_) | Value::Tasks(_) | Value::Timer(_)
                         ) {
-                            let message = format!(
+                            let message = EvalError::Message(format!(
                                 "A cell cannot hold a {}; use a scalar value",
                                 value.type_name()
-                            );
+                            ));
                             self.failure.get_or_insert(EvalFailure {
                                 path: symbol.path.clone(),
                                 span: *span,
@@ -1144,11 +1170,11 @@ impl<'a> Engine<'a> {
                         }
                         if let Some(expected) = types.get(column).copied().flatten() {
                             if expected != value.kind() {
-                                let message = format!(
+                                let message = EvalError::Message(format!(
                                     "Column '{}' expects {expected}, found {}",
                                     table.columns[column].name,
                                     value.type_name()
-                                );
+                                ));
                                 self.failure.get_or_insert(EvalFailure {
                                     path: symbol.path.clone(),
                                     span: *span,
@@ -1162,7 +1188,7 @@ impl<'a> Engine<'a> {
                         }
                         value
                     }
-                    None => cell.value.clone().map_err(|e| e.to_string())?,
+                    None => cell.value.clone()?,
                 };
                 values.push(value);
             }
@@ -1178,22 +1204,25 @@ impl<'a> Engine<'a> {
     }
     /// `rate(EUR, USD)`, `to(money, USD)`, `forecast("Oaxaca", 2026-11-20[, F])`
     /// and `quote(NVDA)`: values from the lookup cache, never fetched here.
-    fn lookup(&mut self, path: &Path, name: Builtin, args: &[Expr]) -> Result<Value, String> {
+    fn lookup(&mut self, path: &Path, name: Builtin, args: &[Expr]) -> EvalResult<Value> {
         let code = |value: Value, what: &str| match value {
             Value::Text(code) => Ok(code),
-            other => Err(format!(
+            other => Err(EvalError::Message(format!(
                 "{what} must be a code such as USD, found {}",
                 other.type_name()
-            )),
+            ))),
         };
         let currency = |code: &str| {
-            Currency::parse(code)
-                .ok_or_else(|| format!("'{code}' is not a currency code such as USD"))
+            Currency::parse(code).ok_or_else(|| {
+                EvalError::Message(format!("'{code}' is not a currency code such as USD"))
+            })
         };
         match name {
             Builtin::Rate => {
                 if args.len() != 2 {
-                    return Err("rate expects two currency codes: rate(EUR, USD)".into());
+                    return Err(EvalError::Message(
+                        "rate expects two currency codes: rate(EUR, USD)".into(),
+                    ));
                 }
                 let from = currency(&code(self.expr(path, &args[0])?, "The first currency")?)?;
                 let to = currency(&code(self.expr(path, &args[1])?, "The second currency")?)?;
@@ -1204,12 +1233,14 @@ impl<'a> Engine<'a> {
             }
             Builtin::To => {
                 if args.len() != 2 {
-                    return Err(
+                    return Err(EvalError::Message(
                         "to expects a money value and a currency code: to(hotel, USD)".into(),
-                    );
+                    ));
                 }
                 let Value::Money(amount, from) = self.expr(path, &args[0])? else {
-                    return Err("to converts money; the first argument is not money".into());
+                    return Err(EvalError::Message(
+                        "to converts money; the first argument is not money".into(),
+                    ));
                 };
                 let to = currency(&code(self.expr(path, &args[1])?, "The currency")?)?;
                 if from != to {
@@ -1220,7 +1251,9 @@ impl<'a> Engine<'a> {
             }
             Builtin::Quote => {
                 if args.len() != 1 {
-                    return Err("quote expects a ticker symbol: quote(NVDA)".into());
+                    return Err(EvalError::Message(
+                        "quote expects a ticker symbol: quote(NVDA)".into(),
+                    ));
                 }
                 let symbol = code(self.expr(path, &args[0])?, "The ticker")?;
                 self.wanted.push(crate::lookups::LookupKey::quote(&symbol));
@@ -1228,15 +1261,15 @@ impl<'a> Engine<'a> {
             }
             _ => {
                 if !(2..=3).contains(&args.len()) {
-                    return Err(
+                    return Err(EvalError::Message(
                         "forecast expects a place and a date: forecast(\"Oaxaca\", 2026-11-20)"
                             .into(),
-                    );
+                    ));
                 }
                 let Value::Text(place) = self.expr(path, &args[0])? else {
-                    return Err(
+                    return Err(EvalError::Message(
                         "The place must be text, e.g. forecast(\"Oaxaca\", 2026-11-20)".into(),
-                    );
+                    ));
                 };
                 let value = self.expr(path, &args[1])?;
                 let date = self.date(&value)?;
@@ -1245,7 +1278,9 @@ impl<'a> Engine<'a> {
                         "F" | "FAHRENHEIT" => true,
                         "C" | "CELSIUS" => false,
                         other => {
-                            return Err(format!("Unknown temperature unit '{other}'; use F or C"));
+                            return Err(EvalError::Message(format!(
+                                "Unknown temperature unit '{other}'; use F or C"
+                            )));
                         }
                     },
                     None => false,
@@ -1266,7 +1301,7 @@ impl<'a> Engine<'a> {
             .then(|| self.sum(path, args).ok().map(|(_, rows)| rows))
             .flatten()
     }
-    pub fn blocked(&mut self, path: &Path, i: usize) -> Result<Vec<String>, String> {
+    pub fn blocked(&mut self, path: &Path, i: usize) -> EvalResult<Vec<String>> {
         self.blocked_inner(path, i, &mut Vec::new())
     }
     fn blocked_inner(
@@ -1274,7 +1309,7 @@ impl<'a> Engine<'a> {
         path: &Path,
         i: usize,
         stack: &mut Vec<TaskKey>,
-    ) -> Result<Vec<String>, String> {
+    ) -> EvalResult<Vec<String>> {
         let key = (path.to_path_buf(), i);
         if let Some(start) = stack.iter().position(|k| k == &key) {
             let related: Vec<_> = stack[start..]
@@ -1286,11 +1321,12 @@ impl<'a> Engine<'a> {
                     kind: SymbolKind::Task(*index),
                 })
                 .collect();
-            let names = related
-                .iter()
-                .map(|s| self.workspace.named(s).name.as_str())
-                .collect::<Vec<_>>();
-            let message = format!("Task dependency cycle: {}", names.join(" → "));
+            let message = EvalError::TaskCycle {
+                names: related
+                    .iter()
+                    .map(|s| self.workspace.named(s).name.clone())
+                    .collect(),
+            };
             let task = &self.workspace.documents[path].tasks[i];
             self.failure = Some(EvalFailure {
                 path: path.into(),
@@ -1305,7 +1341,7 @@ impl<'a> Engine<'a> {
             return Err(message);
         }
         if stack.len() > 64 {
-            return Err("Task dependency chain is too deep".into());
+            return Err(EvalError::DepthExceeded(Depth::Task));
         }
         stack.push(key);
         let task = &self.workspace.documents[path].tasks[i];
@@ -1321,9 +1357,9 @@ impl<'a> Engine<'a> {
                     Value::Bool(b) => b,
                     Value::Tasks(ts) => ts.iter().all(|(p, j)| self.task_done(p, *j)),
                     _ => {
-                        return Err(
+                        return Err(EvalError::Message(
                             "@after requires task names, checklists, or boolean expressions".into(),
-                        );
+                        ));
                     }
                 };
                 if !ready {
@@ -1334,7 +1370,7 @@ impl<'a> Engine<'a> {
         stack.pop();
         Ok(blocked)
     }
-    pub fn when(&mut self, path: &Path, source: &str) -> Result<Value, String> {
+    pub fn when(&mut self, path: &Path, source: &str) -> EvalResult<Value> {
         if let Some(v) = date_value(source) {
             return Ok(v);
         }

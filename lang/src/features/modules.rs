@@ -132,10 +132,12 @@ impl TryFrom<(&Document, Value)> for InlayHint {
             return Err("Each inlay must be a record".into());
         };
         let position = if let Some(at) = fields.get("at") {
-            serde_json::from_value::<Position>(json(at)?).map_err(|e| e.to_string())?
+            serde_json::from_value::<Position>(json(at).map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?
         } else {
             let line = fields.get("line").ok_or("Inlay needs at or line")?;
-            let line = json(line)?
+            let line = json(line)
+                .map_err(|e| e.to_string())?
                 .as_u64()
                 .and_then(|n| usize::try_from(n).ok())
                 .ok_or("Inlay line must be a nonnegative integer")?;
@@ -175,9 +177,10 @@ impl TryFrom<Value> for ActionProposal {
         let Some(Value::Text(title)) = fields.get("title") else {
             return Err("Action title must be text".into());
         };
-        let action: Action =
-            serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
-                .map_err(|e| e.to_string())?;
+        let action: Action = serde_json::from_value(
+            json(fields.get("action").ok_or("Missing action")?).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
         Ok(Self {
             title: title.clone(),
             action,
@@ -300,19 +303,23 @@ impl InlayFeature for Module {
         let result = (|| {
             let input = input(self, context.engine, context.path)?.with_range(context.range);
             if self.has(Hook::TimeDependent) {
-                if self.call(
-                    Hook::TimeDependent,
-                    vec![input.to_value()],
-                    context.engine.now,
-                )? == Value::Bool(true)
+                if self
+                    .call(
+                        Hook::TimeDependent,
+                        vec![input.to_value()],
+                        context.engine.now,
+                    )
+                    .map_err(|e| e.to_string())?
+                    == Value::Bool(true)
                 {
                     context.mark_time_dependent();
                 }
             } else if self.live {
                 context.mark_time_dependent();
             }
-            let Value::List(hints) =
-                self.call(Hook::Collect, vec![input.to_value()], context.engine.now)?
+            let Value::List(hints) = self
+                .call(Hook::Collect, vec![input.to_value()], context.engine.now)
+                .map_err(|e| e.to_string())?
             else {
                 return Err("collect must return a list".into());
             };
@@ -355,8 +362,9 @@ pub(crate) fn commands(
             let input = input(module, &mut engine, path)?
                 .with_row(row)
                 .with_capabilities(capabilities);
-            let Value::List(proposals) =
-                module.call(Hook::Actions, vec![input.to_value()], request.now())?
+            let Value::List(proposals) = module
+                .call(Hook::Actions, vec![input.to_value()], request.now())
+                .map_err(|e| e.to_string())?
             else {
                 return Err("actions must return a list".into());
             };
@@ -390,12 +398,15 @@ pub(crate) fn reduce(
     capabilities: Capabilities,
 ) -> Result<Action, String> {
     let context = input(module, &mut request.engine(), path)?.with_capabilities(capabilities);
-    let result = module.call(
-        Hook::Reduce,
-        vec![context.to_value(), from_json(event)],
-        request.now(),
-    )?;
-    let action: Action = serde_json::from_value(json(&result)?).map_err(|e| e.to_string())?;
+    let result = module
+        .call(
+            Hook::Reduce,
+            vec![context.to_value(), from_json(event)],
+            request.now(),
+        )
+        .map_err(|e| e.to_string())?;
+    let action: Action = serde_json::from_value(json(&result).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
     if matches!(action, Action::Invoke { .. }) {
         return Err("A reducer must return a concrete action".into());
     }
@@ -410,10 +421,16 @@ fn call(
     hook: Hook,
 ) -> Result<Vec<serde_json::Value>, String> {
     let input = input(module, &mut request.engine(), path)?.to_value();
-    let Value::List(items) = module.call(hook, vec![input], request.now())? else {
+    let Value::List(items) = module
+        .call(hook, vec![input], request.now())
+        .map_err(|e| e.to_string())?
+    else {
         return Err(format!("{hook} must return a list"));
     };
-    items.iter().map(json).collect()
+    items
+        .iter()
+        .map(|item| json(item).map_err(|e| e.to_string()))
+        .collect()
 }
 fn validate(request: &RequestContext<'_>, path: &Path, range: Range) -> Result<(), String> {
     crate::actions::apply_edits(

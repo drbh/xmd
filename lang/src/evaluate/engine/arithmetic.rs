@@ -1,6 +1,7 @@
 //! Operators: what `+`, `<=` or `&&` mean between two values, and the operator
 //! vocabulary the lexer and the parser share.
 use super::Value;
+use crate::error::{CurrencyOp, EvalError, EvalResult, Limit, Overflow};
 
 /// An operator as written, including the ones only the parser gives meaning to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -225,7 +226,7 @@ impl std::fmt::Display for UnaryOp {
         f.write_str(self.as_str())
     }
 }
-pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> {
+pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
     use Value::*;
     if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) {
         let equal = a
@@ -241,7 +242,7 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
         return match op {
             BinaryOp::And => Ok(Bool(*a && *b)),
             BinaryOp::Or => Ok(Bool(*a || *b)),
-            _ => Err("Invalid boolean operator".into()),
+            _ => Err(EvalError::Message("Invalid boolean operator".into())),
         };
     }
     if matches!(
@@ -259,9 +260,11 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
             (Duration(a), Duration(b)) => a.partial_cmp(b),
             (Money(a, ca), Money(b, cb)) => {
                 if ca != cb {
-                    return Err(format!(
-                        "Cannot compare {ca} with {cb}; convert with to(value, {cb})"
-                    ));
+                    return Err(EvalError::CurrencyMismatch {
+                        op: CurrencyOp::Compare,
+                        left: *ca,
+                        right: *cb,
+                    });
                 }
                 a.partial_cmp(b)
             }
@@ -270,7 +273,9 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
                 .zip(b.scalar())
                 .and_then(|(a, b)| a.partial_cmp(&b)),
         }
-        .ok_or("Cannot compare these value types")?;
+        .ok_or(EvalError::Message(
+            "Cannot compare these value types".into(),
+        ))?;
         return Ok(Bool(match op {
             BinaryOp::Less => cmp.is_lt(),
             BinaryOp::LessEqual => cmp.is_le(),
@@ -282,28 +287,30 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
         (BinaryOp::Subtract, Date(a), Date(b)) => return Ok(Duration((*a - *b).num_seconds())),
         (BinaryOp::Add | BinaryOp::Subtract, Date(a), Duration(m)) => {
             if m % 86400 != 0 {
-                return Err(
+                return Err(EvalError::Message(
                     "A date requires whole-day durations; use a date/time for hours".into(),
-                );
+                ));
             }
-            let delta = chrono::Duration::try_seconds(*m).ok_or("Duration overflow")?;
+            let delta = chrono::Duration::try_seconds(*m)
+                .ok_or(EvalError::Overflowed(Overflow::Duration))?;
             return if op == BinaryOp::Add {
                 a.checked_add_signed(delta)
             } else {
                 a.checked_sub_signed(delta)
             }
             .map(Date)
-            .ok_or("Date overflow".into());
+            .ok_or(EvalError::Overflowed(Overflow::Date));
         }
         (BinaryOp::Add | BinaryOp::Subtract, DateTime(a), Duration(m)) => {
-            let delta = chrono::Duration::try_seconds(*m).ok_or("Duration overflow")?;
+            let delta = chrono::Duration::try_seconds(*m)
+                .ok_or(EvalError::Overflowed(Overflow::Duration))?;
             return if op == BinaryOp::Add {
                 a.checked_add_signed(delta)
             } else {
                 a.checked_sub_signed(delta)
             }
             .map(DateTime)
-            .ok_or("Date/time overflow".into());
+            .ok_or(EvalError::Overflowed(Overflow::DateTime));
         }
         (BinaryOp::Subtract, DateTime(a), DateTime(b)) => {
             return Ok(Duration((*a - *b).num_seconds()));
@@ -315,18 +322,18 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
                 a.checked_sub(*b)
             }
             .map(Duration)
-            .ok_or("Duration overflow".into());
+            .ok_or(EvalError::Overflowed(Overflow::Duration));
         }
         (BinaryOp::Divide, Duration(a), Duration(b)) => {
             return if *b == 0 {
-                Err("Division by zero".into())
+                Err(EvalError::DivisionByZero)
             } else {
                 Ok(Ratio(*a as f64 / *b as f64))
             };
         }
         (BinaryOp::Add, Text(a), Text(b)) => {
             if a.len().saturating_add(b.len()) > 1_048_576 {
-                return Err("Text exceeds 1 MiB".into());
+                return Err(EvalError::LimitExceeded(Limit::Text));
             }
             return Ok(Text(format!("{a}{b}")));
         }
@@ -337,9 +344,11 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
     if let (Some(ca), Some(cb)) = (currency_a, currency_b)
         && ca != cb
     {
-        return Err(format!(
-            "Cannot combine {ca} and {cb}; convert with to(value, {cb})"
-        ));
+        return Err(EvalError::CurrencyMismatch {
+            op: CurrencyOp::Combine,
+            left: ca,
+            right: cb,
+        });
     }
     let money_a = currency_a.is_some();
     let money_b = currency_b.is_some();
@@ -358,7 +367,9 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
         };
         if let Some(m) = scaled {
             if !m.is_finite() || m.fract() != 0.0 || m.abs() >= i64::MAX as f64 {
-                return Err("Duration must fit in whole seconds".into());
+                return Err(EvalError::Message(
+                    "Duration must fit in whole seconds".into(),
+                ));
             }
             return Ok(Duration(m as i64));
         }
@@ -368,33 +379,35 @@ pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> Result<Value, String> 
     } else {
         a.scalar()
     }
-    .ok_or("Unsupported arithmetic types")?;
+    .ok_or(EvalError::UnsupportedArithmetic)?;
     let y = if let Money(n, _) = b {
         Some(n)
     } else {
         b.scalar()
     }
-    .ok_or("Unsupported arithmetic types")?;
+    .ok_or(EvalError::UnsupportedArithmetic)?;
     let n = match op {
         BinaryOp::Add => x + y,
         BinaryOp::Subtract => x - y,
         BinaryOp::Multiply => x * y,
         BinaryOp::Divide => {
             if y == 0.0 {
-                return Err("Division by zero".into());
+                return Err(EvalError::DivisionByZero);
             }
             x / y
         }
-        _ => return Err(format!("Unknown operator {op}")),
+        _ => return Err(EvalError::Message(format!("Unknown operator {op}"))),
     };
     if !n.is_finite() {
-        return Err("Number overflow".into());
+        return Err(EvalError::Overflowed(Overflow::Number));
     }
     if op == BinaryOp::Multiply && money_a && money_b {
-        return Err("Cannot multiply two money values".into());
+        return Err(EvalError::Message(
+            "Cannot multiply two money values".into(),
+        ));
     }
     if op == BinaryOp::Divide && !money_a && money_b {
-        return Err("Cannot divide a scalar by money".into());
+        return Err(EvalError::Message("Cannot divide a scalar by money".into()));
     }
     if op == BinaryOp::Divide && (money_a && money_b || counts) {
         return Ok(Ratio(n));

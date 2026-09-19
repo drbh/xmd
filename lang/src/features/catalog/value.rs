@@ -191,7 +191,10 @@ impl QueryValue {
         }
     }
     pub fn property(&self, key: &str) -> Result<Self, String> {
-        self.value().property(key).map(Self::from_value)
+        self.value()
+            .property(key)
+            .map(Self::from_value)
+            .map_err(|e| e.to_string())
     }
 }
 impl Serialize for QueryValue {

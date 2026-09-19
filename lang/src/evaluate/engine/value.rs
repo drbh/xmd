@@ -1,5 +1,9 @@
 //! Values: the kinds a note computes, their literals, display and arithmetic.
-use crate::{resources::Resource, timers::Timer};
+use crate::{
+    error::{EvalError, EvalResult, Overflow, PropertyOwner},
+    resources::Resource,
+    timers::Timer,
+};
 use chrono::{
     DateTime, Datelike, Duration, FixedOffset, Local, Months, NaiveDate, NaiveDateTime, TimeZone,
     Weekday,
@@ -69,7 +73,7 @@ impl Forecast {
         }
         s
     }
-    pub fn property(&self, name: &str) -> Result<Value, String> {
+    pub fn property(&self, name: &str) -> EvalResult<Value> {
         match name {
             "high" => Ok(Value::Number(self.high)),
             "low" => Ok(Value::Number(self.low)),
@@ -77,8 +81,13 @@ impl Forecast {
             "rain" => self
                 .precipitation
                 .map(Value::Ratio)
-                .ok_or("This forecast has no precipitation chance".into()),
-            _ => Err(format!("Unknown forecast property '{name}'")),
+                .ok_or(EvalError::Message(
+                    "This forecast has no precipitation chance".into(),
+                )),
+            _ => Err(EvalError::UnknownProperty {
+                owner: PropertyOwner::Forecast,
+                name: name.into(),
+            }),
         }
     }
 }
@@ -188,14 +197,19 @@ pub enum Value {
 }
 impl Value {
     /// Structural access shared by expressions, query records and list projections.
-    pub(crate) fn property(&self, key: &str) -> Result<Self, String> {
+    pub(crate) fn property(&self, key: &str) -> EvalResult<Self> {
         use Value::*;
         match (self, key) {
             (Null, _) => Ok(Null),
-            (Record(fields), _) => fields
-                .get(key)
-                .cloned()
-                .ok_or_else(|| format!("Unknown field '{key}'")),
+            (Record(fields), _) => {
+                fields
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| EvalError::UnknownField {
+                        key: key.into(),
+                        on: None,
+                    })
+            }
             (List(items), _) => items
                 .iter()
                 .map(|v| v.property(key))
@@ -216,7 +230,10 @@ impl Value {
                 // own name in the lowercase spelling notes compare against.
                 _ => Text(value.type_name().to_lowercase()),
             }),
-            _ => Err(format!("Unknown field '{key}' on {}", self.type_name())),
+            _ => Err(EvalError::UnknownField {
+                key: key.into(),
+                on: Some(self.kind()),
+            }),
         }
     }
     pub fn kind(&self) -> ValueType {
@@ -330,11 +347,11 @@ impl Value {
             Self::Plan(p) => p.objective.display(),
         }
     }
-    pub fn date(&self) -> Result<NaiveDate, String> {
+    pub fn date(&self) -> EvalResult<NaiveDate> {
         match self {
             Self::Date(d) => Ok(*d),
             Self::DateTime(d) => Ok(d.with_timezone(&Local).date_naive()),
-            _ => Err("Expected a date or appointment time".into()),
+            _ => Err(EvalError::Expected("a date or appointment time")),
         }
     }
     pub(super) fn scalar(&self) -> Option<f64> {
@@ -441,7 +458,7 @@ pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
     }
     today.checked_add_signed(Duration::days(delta))
 }
-pub fn literal(s: &str) -> Result<Value, String> {
+pub fn literal(s: &str) -> EvalResult<Value> {
     let s = s.trim();
     if let Some(r) = Resource::parse(s) {
         return Ok(Value::Resource(r));
@@ -473,7 +490,7 @@ pub fn literal(s: &str) -> Result<Value, String> {
     let num = format!("{sign}{}", digits.replace([',', '%'], ""));
     if let Ok(n) = num.parse::<f64>() {
         if !n.is_finite() {
-            return Err("Number must be finite".into());
+            return Err(EvalError::Message("Number must be finite".into()));
         }
         return Ok(if let Some(currency) = currency {
             Value::Money(n, currency)
@@ -486,7 +503,7 @@ pub fn literal(s: &str) -> Result<Value, String> {
     if s.starts_with('"') && s.ends_with('"') {
         return serde_json::from_str::<String>(s)
             .map(Value::Text)
-            .map_err(|e| e.to_string());
+            .map_err(|e| EvalError::Message(e.to_string()));
     }
     Ok(Value::Text(s.into()))
 }
@@ -497,7 +514,7 @@ pub fn next_occurrence(
     rule: &str,
     anchor: NaiveDate,
     completed: NaiveDate,
-) -> Result<NaiveDate, String> {
+) -> EvalResult<NaiveDate> {
     let month_step = match rule.trim() {
         "month" | "monthly" => Some(1),
         "year" | "yearly" => Some(12),
@@ -513,18 +530,21 @@ pub fn next_occurrence(
                 s => duration(s)
                     .filter(|d| *d > 0 && *d % 86400 == 0)
                     .map(|d| d / 86400)
-                    .ok_or(
-                        "@every supports day, week, month, year, or positive whole-day durations",
-                    )?,
+                    .ok_or(EvalError::Message(
+                        "@every supports day, week, month, year, or positive whole-day durations"
+                            .into(),
+                    ))?,
             };
             days.checked_mul(n as i64)
                 .and_then(chrono::Duration::try_days)
                 .and_then(|d| anchor.checked_add_signed(d))
         };
-        let candidate = candidate.ok_or("Recurrence date overflow")?;
+        let candidate = candidate.ok_or(EvalError::Overflowed(Overflow::Recurrence))?;
         if candidate > completed {
             return Ok(candidate);
         }
     }
-    Err("Recurrence exceeded its search limit".into())
+    Err(EvalError::Message(
+        "Recurrence exceeded its search limit".into(),
+    ))
 }

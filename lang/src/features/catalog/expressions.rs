@@ -197,7 +197,7 @@ fn expression_base(
     kind: RecordKind,
     source: &str,
     span: Span,
-    value: Result<Value, String>,
+    value: crate::error::EvalResult<Value>,
 ) -> (Base, Expression, Option<crate::resources::Resource>) {
     let mut base = Base::new(ws, path, span.line, kind, source);
     base.source = SourceRef::new(ws, path, span);
@@ -205,7 +205,7 @@ fn expression_base(
         Ok(Value::Resource(resource)) => Some(resource.clone()),
         _ => None,
     };
-    let (expression, errors) = Expression::new(source, value);
+    let (expression, errors) = Expression::new(source, value.map_err(|e| e.to_string()));
     base.errors = errors;
     (base, expression, resource)
 }

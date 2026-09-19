@@ -60,7 +60,7 @@ pub(crate) fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                 if !closed {
                     return Err("Unclosed string".into());
                 }
-                Lexeme::Value(literal(&s[start..i])?)
+                Lexeme::Value(literal(&s[start..i]).map_err(|e| e.to_string())?)
             } else if c.is_ascii_digit() && s.get(i..i + 10).and_then(date_value).is_some() {
                 i += 10;
                 if s.as_bytes().get(i) == Some(&b'T') {
@@ -109,7 +109,7 @@ pub(crate) fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                 {
                     i += gap + 3;
                 }
-                let v = literal(&s[start..i])?;
+                let v = literal(&s[start..i]).map_err(|e| e.to_string())?;
                 if matches!(v, Value::Text(_)) {
                     return Err(format!("Invalid number '{}'", &s[start..i]));
                 }

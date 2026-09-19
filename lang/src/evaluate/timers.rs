@@ -1,4 +1,5 @@
 //! Timers are timestamp-based values. Reading/evaluating them never mutates state.
+use crate::error::{EvalError, EvalResult};
 use crate::{
     engine::{Value, timer_arguments},
     workspace::{Symbol, SymbolKind, Workspace},
@@ -116,13 +117,13 @@ impl Timer {
         engine: &mut crate::engine::Engine<'_>,
         name: &str,
         args: &[Value],
-    ) -> Result<Self, String> {
+    ) -> EvalResult<Self> {
         let implementation = engine
             .workspace
             .modules
             .active()
             .find(|m| m.id == "timer")
-            .ok_or("Module 'timer' is unavailable or disabled")?
+            .ok_or_else(|| EvalError::ModuleUnavailable("timer".into()))?
             .clone();
         let Value::Record(fields) = engine.call_module(
             "timer",
@@ -130,23 +131,25 @@ impl Timer {
             vec![Value::Text(name.into()), Value::List(args.to_vec())],
         )?
         else {
-            return Err("Timer constructor must return a record".into());
+            return Err(EvalError::Message(
+                "Timer constructor must return a record".into(),
+            ));
         };
         let limit = match fields.get("limit") {
             Some(Value::Null) => None,
             Some(Value::Duration(n)) => Some(*n),
-            _ => return Err("Invalid timer limit".into()),
+            _ => return Err(EvalError::Message("Invalid timer limit".into())),
         };
         let Some(Value::Duration(elapsed)) = fields.get("elapsed") else {
-            return Err("Invalid timer elapsed time".into());
+            return Err(EvalError::Message("Invalid timer elapsed time".into()));
         };
         let started = match fields.get("started") {
             Some(Value::Null) => None,
             Some(Value::DateTime(t)) => Some(*t),
-            _ => return Err("Invalid timer timestamp".into()),
+            _ => return Err(EvalError::Message("Invalid timer timestamp".into())),
         };
         let Some(Value::Bool(idle)) = fields.get("idle") else {
-            return Err("Invalid timer state".into());
+            return Err(EvalError::Message("Invalid timer state".into()));
         };
         Ok(Self {
             limit,
@@ -158,7 +161,7 @@ impl Timer {
             now: engine.now,
         })
     }
-    fn call(&self, name: &str) -> Result<Value, String> {
+    fn call(&self, name: &str) -> EvalResult<Value> {
         self.implementation
             .call(name, vec![self.record()], self.now)
     }
@@ -168,13 +171,15 @@ impl Timer {
     pub fn running(&self) -> bool {
         matches!(self.call("running"), Ok(Value::Bool(true)))
     }
-    pub fn time_dependent(&self) -> Result<bool, String> {
+    pub fn time_dependent(&self) -> EvalResult<bool> {
         if !self.implementation.has("time_dependent") {
             return Ok(self.implementation.live);
         }
         match self.call("time_dependent")? {
             Value::Bool(live) => Ok(live),
-            _ => Err("timer.time_dependent must return a boolean".into()),
+            _ => Err(EvalError::Message(
+                "timer.time_dependent must return a boolean".into(),
+            )),
         }
     }
     /// An unreadable state reads as idle: the glyphs and labels stay drawable.
@@ -187,19 +192,19 @@ impl Timer {
     pub fn display(&self) -> String {
         self.call("display")
             .map(|v| v.display())
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e.to_string())
     }
     pub fn inlay(&self) -> String {
         self.call("inlay")
             .map(|v| v.display())
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e.to_string())
     }
     pub fn hover(&self) -> String {
         self.call("hover")
             .map(|v| v.display())
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e.to_string())
     }
-    pub fn property(&self, name: &str) -> Result<Value, String> {
+    pub fn property(&self, name: &str) -> EvalResult<Value> {
         self.implementation.call(
             "property",
             vec![self.record(), Value::Text(name.into())],
@@ -241,7 +246,11 @@ pub fn edit_in(
     let workspace = request.workspace();
     let now = request.now();
 
-    let Value::Timer(timer) = request.engine().named(path, name)? else {
+    let Value::Timer(timer) = request
+        .engine()
+        .named(path, name)
+        .map_err(|e| e.to_string())?
+    else {
         return Err("Expected a named timer".into());
     };
     let origin = timer
@@ -265,7 +274,8 @@ pub fn edit_in(
                 Value::Text(original.first().copied().unwrap_or_default().into()),
             ],
             now,
-        )?
+        )
+        .map_err(|e| e.to_string())?
         .display();
     let raw = def.value_span.source(&doc.text);
     let leading = &raw[..raw.len() - raw.trim_start().len()];

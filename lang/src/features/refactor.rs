@@ -110,6 +110,7 @@ pub(crate) fn refactors(
                     request.now(),
                 )
                 .and_then(|v| crate::modules::json(&v))
+                .map_err(|e| e.to_string())
                 .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
                 .unwrap_or_default();
             if !edits.is_empty() {
@@ -257,7 +258,7 @@ pub(crate) fn refactors(
             continue;
         }
         if let Err(error) = ws.resolve(path, &reference.name) {
-            if !error.starts_with("Unknown name") {
+            if !error.to_string().starts_with("Unknown name") {
                 continue;
             }
             let mut choices: Vec<_> = ws

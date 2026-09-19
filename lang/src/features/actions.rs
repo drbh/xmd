@@ -134,7 +134,7 @@ pub(crate) fn toggle_task(
     }
     if !done {
         for i in &indices {
-            let blocked = engine.blocked(path, *i)?;
+            let blocked = engine.blocked(path, *i).map_err(|e| e.to_string())?;
             if !blocked.is_empty() {
                 return Err(format!("Blocked by {}", blocked.join(", ")));
             }
@@ -156,7 +156,12 @@ pub(crate) fn toggle_task(
         let due = task
             .attributes
             .get("due")
-            .map(|a| engine.when(path, &a.value).and_then(|v| engine.date(&v)))
+            .map(|a| {
+                engine
+                    .when(path, &a.value)
+                    .and_then(|v| engine.date(&v))
+                    .map_err(|e| e.to_string())
+            })
             .transpose()?
             .unwrap_or(today);
         let anchor = task
@@ -165,7 +170,8 @@ pub(crate) fn toggle_task(
             .map(|a| NaiveDate::parse_from_str(&a.value, "%Y-%m-%d").map_err(|e| e.to_string()))
             .transpose()?
             .unwrap_or(due);
-        let next = next_occurrence(&recurrence.value, anchor, today.max(due))?;
+        let next = next_occurrence(&recurrence.value, anchor, today.max(due))
+            .map_err(|e| e.to_string())?;
         let mut edits = Vec::new();
         if let Some(attr) = task.attributes.get("due") {
             edits.push(TextEdit::new(
@@ -305,5 +311,5 @@ pub fn apply_edits(text: &str, edits: &[TextEdit]) -> Result<String, String> {
     Ok(result)
 }
 pub fn value_date(value: Value) -> Result<NaiveDate, String> {
-    value.date()
+    value.date().map_err(|e| e.to_string())
 }

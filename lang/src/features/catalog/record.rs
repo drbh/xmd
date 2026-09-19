@@ -461,8 +461,10 @@ impl Record {
                 self.fields.insert(LazyField::Value.as_str().into(), value);
             }
             Err(e) => {
-                self.fields
-                    .insert(LazyField::Errors.as_str().into(), QueryValue::strings([e]));
+                self.fields.insert(
+                    LazyField::Errors.as_str().into(),
+                    QueryValue::strings([e.to_string()]),
+                );
             }
         }
     }

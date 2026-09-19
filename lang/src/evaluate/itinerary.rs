@@ -1,6 +1,7 @@
 //! Itinerary resolution: parsed days and stops become module values, and the
 //! `itinerary_core` module decides their dates, labels and canonical text.
 use crate::document::{Document, Span};
+use crate::error::EvalResult;
 use crate::model::itinerary::{Day, Stop};
 use crate::{
     engine::Value,
@@ -18,7 +19,7 @@ pub(crate) fn try_dates(
     modules: &ModuleRegistry,
     days: &[Day],
     today: NaiveDate,
-) -> Result<Vec<Option<NaiveDate>>, String> {
+) -> EvalResult<Vec<Option<NaiveDate>>> {
     let input = Value::List(days.iter().map(day_parts).collect());
     let result = call(modules, "dates", vec![input, Value::Date(today)])?;
     Ok(crate::modules::list(&result)?
@@ -32,28 +33,24 @@ pub(crate) fn try_dates(
 pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> String {
     call(modules, "time_text", vec![stop_record(stop, None)])
         .map(|v| v.display())
-        .unwrap_or_else(|e| e)
+        .unwrap_or_else(|e| e.to_string())
 }
 pub fn canonical_line(modules: &ModuleRegistry, stop: &Stop) -> String {
     call(modules, "canonical", vec![stop_record(stop, None)])
         .map(|v| v.display())
-        .unwrap_or_else(|e| e)
+        .unwrap_or_else(|e| e.to_string())
 }
 pub fn label(modules: &ModuleRegistry, stop: &Stop) -> String {
     call(modules, "label", vec![stop_record(stop, None)])
         .map(|v| v.display())
-        .unwrap_or_else(|e| e)
+        .unwrap_or_else(|e| e.to_string())
 }
 fn epoch() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::DateTime::from_timestamp(0, 0)
         .unwrap()
         .fixed_offset()
 }
-pub(crate) fn call(
-    modules: &ModuleRegistry,
-    name: &str,
-    args: Vec<Value>,
-) -> Result<Value, String> {
+pub(crate) fn call(modules: &ModuleRegistry, name: &str, args: Vec<Value>) -> EvalResult<Value> {
     modules.call("itinerary_core", name, args, epoch())
 }
 fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {

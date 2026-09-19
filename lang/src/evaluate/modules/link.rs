@@ -3,6 +3,7 @@ use super::{
     Hook, Module, ModuleKind, epoch, from_json, json, url_value,
     values::{strings, text},
 };
+use crate::error::{EvalError, EvalResult, PropertyOwner};
 use crate::{
     engine::Value,
     link_features::{LinkContext, LinkFeature, RefreshFormat, RefreshRequest},
@@ -68,7 +69,7 @@ impl LinkFeature for Module {
         self.has(Hook::Hover).then(|| {
             self.call(Hook::Hover, vec![self.context(ctx)], ctx.now.fixed_offset())
                 .and_then(|v| text(&v))
-                .unwrap_or_else(|e| e)
+                .unwrap_or_else(|e| e.to_string())
         })
     }
     fn time_dependent(&self, ctx: &LinkContext<'_>) -> bool {
@@ -99,9 +100,12 @@ impl LinkFeature for Module {
         }
         self.properties.clone()
     }
-    fn property(&self, ctx: &LinkContext<'_>, name: &str) -> Result<Value, String> {
+    fn property(&self, ctx: &LinkContext<'_>, name: &str) -> EvalResult<Value> {
         if !self.property_names(ctx.url).iter().any(|p| p == name) {
-            return Err(format!("Unknown resource property '{name}'"));
+            return Err(EvalError::UnknownProperty {
+                owner: PropertyOwner::Resource,
+                name: name.into(),
+            });
         }
         self.call(
             Hook::Property,
@@ -159,14 +163,14 @@ impl LinkFeature for Module {
         url: &Url,
         data: &serde_json::Value,
         now: DateTime<Utc>,
-    ) -> Result<Metadata, String> {
+    ) -> EvalResult<Metadata> {
         let value = self.call(
             Hook::Decode,
             vec![url_value(url), from_json(data)],
             now.fixed_offset(),
         )?;
         let Value::Record(_) = &value else {
-            return Err("decode must return a record".into());
+            return Err(EvalError::Message("decode must return a record".into()));
         };
         let data = json(&value)?;
         Ok(Metadata {

@@ -13,7 +13,7 @@ use unicode_width::UnicodeWidthStr;
 pub struct Cell {
     pub source: String,
     pub span: Span,
-    pub value: Result<Value, String>,
+    pub value: crate::error::EvalResult<Value>,
     /// `[name]` or `[a * b]`: a calculation evaluated with the table, so cells
     /// can read local names and explicitly imported values.
     pub expression: Option<(String, Span)>,
@@ -212,22 +212,26 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                         });
                     let value = if let Some((inner, _)) = &expression {
                         if inner.is_empty() {
-                            Err(
+                            Err(crate::error::EvalError::Message(
                                 "Empty calculation; write a name or expression inside the brackets"
                                     .into(),
-                            )
-                        } else if engine::Engine::valid_expression(inner) {
-                            Err(format!(
-                                "Calculated cell [{inner}] is evaluated with the table"
                             ))
+                        } else if engine::Engine::valid_expression(inner) {
+                            Err(crate::error::EvalError::Message(format!(
+                                "Calculated cell [{inner}] is evaluated with the table"
+                            )))
                         } else {
-                            Err(format!("Invalid calculation '{inner}'"))
+                            Err(crate::error::EvalError::Message(format!(
+                                "Invalid calculation '{inner}'"
+                            )))
                         }
                     } else if domains.get(column).is_some_and(Option::is_some) {
                         // A plan decides these; whatever is written is a note to self.
                         Ok(Value::Text(decoded.clone()))
                     } else if decoded.is_empty() {
-                        Err("Missing cell value".into())
+                        Err(crate::error::EvalError::Message(
+                            "Missing cell value".into(),
+                        ))
                     } else {
                         engine::literal(&decoded).and_then(|v| {
                             if matches!(v, Value::Text(_))
@@ -235,9 +239,9 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                                     c.is_ascii_digit() || matches!(c, '$' | '-' | '+')
                                 })
                             {
-                                Err(format!(
+                                Err(crate::error::EvalError::Message(format!(
                                     "Invalid scalar literal '{decoded}'; quote it to store text"
-                                ))
+                                )))
                             } else {
                                 Ok(v)
                             }
@@ -268,7 +272,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
                 continue;
             }
             match &cell.value {
-                Err(message) => problem(cell.span, message.clone()),
+                Err(message) => problem(cell.span, message.to_string()),
                 Ok(value) => {
                     let kind = value.kind();
                     if let Some(expected) = table.types[column] {
@@ -291,7 +295,7 @@ pub fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
     table
 }
 
-pub fn origin(ws: &Workspace, path: &Path, name: &str) -> Result<Symbol, String> {
+pub fn origin(ws: &Workspace, path: &Path, name: &str) -> crate::error::EvalResult<Symbol> {
     let mut symbol = ws.resolve(path, name)?;
     for _ in 0..64 {
         let doc = &ws.documents[&symbol.path];
@@ -308,9 +312,11 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> Result<Symbol, String>
                 continue;
             }
         }
-        return Err(format!("'{name}' is not a table"));
+        return Err(crate::error::EvalError::NotATable(name.into()));
     }
-    Err("Table alias chain is cyclic or too deep".into())
+    Err(crate::error::EvalError::Message(
+        "Table alias chain is cyclic or too deep".into(),
+    ))
 }
 pub fn table<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<&'a Table> {
     if let SymbolKind::Definition(index) = symbol.kind {
@@ -336,7 +342,7 @@ pub fn resolve_reference(
     ws: &Workspace,
     path: &Path,
     reference: &Reference,
-) -> Result<Symbol, String> {
+) -> crate::error::EvalResult<Symbol> {
     let Some(name) = scope_at(&ws.documents[path], reference.span) else {
         return ws.resolve(path, &reference.name);
     };
@@ -359,14 +365,14 @@ pub fn resolve_reference(
             path: target.path,
             kind: SymbolKind::Column(index, *column),
         }),
-        [] => Err(format!(
-            "Unknown column '{}' in table '{name}'",
-            reference.name
-        )),
-        _ => Err(format!(
+        [] => Err(crate::error::EvalError::UnknownColumn {
+            name: reference.name.clone(),
+            table: name,
+        }),
+        _ => Err(crate::error::EvalError::Message(format!(
             "Ambiguous column '{}' in table '{name}'",
             reference.name
-        )),
+        ))),
     }
 }
 pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<(), String> {

@@ -1,19 +1,20 @@
 //! Converting between module values and the JSON and URLs hosts exchange.
 use crate::engine::Value;
+use crate::error::{EvalError, EvalResult};
 use lsp_types::Url;
 
-pub(super) fn text(value: &Value) -> Result<String, String> {
+pub(super) fn text(value: &Value) -> EvalResult<String> {
     if let Value::Text(s) = value {
         Ok(s.clone())
     } else {
-        Err("Expected text".into())
+        Err(EvalError::Expected("text"))
     }
 }
-pub(super) fn strings(value: &Value) -> Result<Vec<String>, String> {
+pub(super) fn strings(value: &Value) -> EvalResult<Vec<String>> {
     if let Value::List(items) = value {
         items.iter().map(text).collect()
     } else {
-        Err("Expected a list of text".into())
+        Err(EvalError::Expected("a list of text"))
     }
 }
 pub fn record(fields: impl IntoIterator<Item = (String, Value)>) -> Value {
@@ -29,7 +30,7 @@ pub fn from_json(value: &serde_json::Value) -> Value {
         serde_json::Value::Object(v) => record(v.iter().map(|(k, v)| (k.clone(), from_json(v)))),
     }
 }
-pub fn json(value: &Value) -> Result<serde_json::Value, String> {
+pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
     Ok(match value {
         Value::Null => serde_json::Value::Null,
         Value::Bool(v) => (*v).into(),
@@ -39,7 +40,7 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
             (*v as u64).into()
         }
         Value::Number(v) => serde_json::Number::from_f64(*v)
-            .ok_or("Nonfinite module number")?
+            .ok_or(EvalError::Message("Nonfinite module number".into()))?
             .into(),
         Value::Count(v) => (*v).into(),
         Value::Text(v) => v.clone().into(),
@@ -47,9 +48,13 @@ pub fn json(value: &Value) -> Result<serde_json::Value, String> {
         Value::Record(v) => serde_json::Value::Object(
             v.iter()
                 .map(|(k, v)| Ok((k.clone(), json(v)?)))
-                .collect::<Result<_, String>>()?,
+                .collect::<EvalResult<_>>()?,
         ),
-        _ => return Err("Cached module data must contain JSON values".into()),
+        _ => {
+            return Err(EvalError::Message(
+                "Cached module data must contain JSON values".into(),
+            ));
+        }
     })
 }
 pub fn url_value(url: &Url) -> Value {
@@ -63,19 +68,19 @@ pub fn url_value(url: &Url) -> Value {
         ("scheme".into(), Value::Text(url.scheme().into())),
     ])
 }
-pub(crate) fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
+pub(crate) fn field<'a>(value: &'a Value, key: &str) -> EvalResult<&'a Value> {
     if let Value::Record(fields) = value {
         fields
             .get(key)
-            .ok_or_else(|| format!("Missing field '{key}'"))
+            .ok_or_else(|| EvalError::Message(format!("Missing field '{key}'")))
     } else {
-        Err("Expected a record".into())
+        Err(EvalError::Expected("a record"))
     }
 }
-pub(crate) fn list(value: &Value) -> Result<&[Value], String> {
+pub(crate) fn list(value: &Value) -> EvalResult<&[Value]> {
     if let Value::List(items) = value {
         Ok(items)
     } else {
-        Err("Expected a list".into())
+        Err(EvalError::Expected("a list"))
     }
 }

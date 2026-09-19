@@ -7,6 +7,7 @@ use crate::{
     catalog::Collection,
     document::Document,
     engine::{Engine, Lexeme, Value},
+    error::{EvalError, EvalResult},
     workspace::Workspace,
 };
 use lsp_types::Url;
@@ -17,30 +18,34 @@ use std::{
 };
 
 impl Module {
-    pub fn compile(path: PathBuf, source: String) -> Result<Self, String> {
+    pub fn compile(path: PathBuf, source: String) -> EvalResult<Self> {
         if source.len() > 65_536 {
-            return Err("Modules are limited to 64 KiB".into());
+            return Err(EvalError::Message("Modules are limited to 64 KiB".into()));
         }
         let document = Document::parse(source);
         if let Some(problem) = document.problems.first() {
-            return Err(problem.message.clone());
+            return Err(EvalError::Message(problem.message.clone()));
         }
         let mut names = BTreeSet::new();
         let mut live = false;
         let mut expressions = BTreeMap::new();
         for def in &document.definitions {
             if !names.insert(def.named.name.clone()) {
-                return Err(format!("Duplicate definition '{}'", def.named.name));
+                return Err(EvalError::Message(format!(
+                    "Duplicate definition '{}'",
+                    def.named.name
+                )));
             }
             if !def.expression {
-                return Err("Module definitions must use :=".into());
+                return Err(EvalError::Message("Module definitions must use :=".into()));
             }
             expressions.insert(
                 def.source.clone(),
                 crate::engine::Parser::parse(&def.source)
                     .map_err(|e| format!("{}:{}: {e}", path.display(), def.value_span.line + 1))?,
             );
-            live |= crate::engine::lex(&def.source)?
+            live |= crate::engine::lex(&def.source)
+                .map_err(EvalError::Parse)?
                 .iter()
                 .any(|t| matches!(&t.kind,Lexeme::Name(n) if n=="now" || n=="today"));
         }
@@ -55,7 +60,7 @@ impl Module {
             .pure()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]));
         let Value::Record(config) = engine.named(&path, "module")? else {
-            return Err("module must be a record".into());
+            return Err(EvalError::Message("module must be a record".into()));
         };
         if !matches!(config.get("api"),Some(Value::Number(n)) if *n==1.0) {
             return Err("module.api must be 1".into());
@@ -146,7 +151,9 @@ impl Module {
             if names.contains(name) {
                 if !matches!(engine.named(&path,name)?,Value::Function(f) if f.params.len()==arity)
                 {
-                    return Err(format!("{name} must be a function with {arity} parameters"));
+                    return Err(EvalError::Message(format!(
+                        "{name} must be a function with {arity} parameters"
+                    )));
                 }
             } else if Some(hook) == required
                 && enabled
@@ -155,7 +162,7 @@ impl Module {
                         .iter()
                         .any(|h| names.contains(h.name())))
             {
-                return Err(format!("Missing {name} function"));
+                return Err(EvalError::Message(format!("Missing {name} function")));
             }
         }
         if names.contains(Hook::Refresh.name()) != names.contains(Hook::Decode.name()) {

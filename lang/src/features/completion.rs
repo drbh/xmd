@@ -178,7 +178,7 @@ pub(crate) fn completions(
                     detail: Some(
                         preview
                             .map(|v| format!("{} · {}", v.type_name(), v.display()))
-                            .unwrap_or_else(|e| e),
+                            .unwrap_or_else(|e| e.to_string()),
                     ),
                     text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
                         replacement,
@@ -204,7 +204,7 @@ pub(crate) fn completions(
             }
             let detail = value
                 .map(|v| format!("{} · {}", v.type_name(), v.display()))
-                .unwrap_or_else(|e| e);
+                .unwrap_or_else(|e| e.to_string());
             result.push(CompletionItem {
                 label: name.clone(),
                 kind: Some(CompletionItemKind::VARIABLE),

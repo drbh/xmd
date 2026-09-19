@@ -2,6 +2,7 @@
 use crate::{
     document::{Problem, Span},
     engine::{Engine, Value},
+    error::EvalError,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use lsp_types::*;
@@ -111,6 +112,17 @@ fn diagnostic(
         ..Default::default()
     }
 }
+/// A failed evaluation, rendered for the host that shows it.
+fn evaluation(
+    ws: &Workspace,
+    path: &Path,
+    span: Span,
+    error: &EvalError,
+    code: DiagnosticCode,
+    related: &[Symbol],
+) -> Diagnostic {
+    diagnostic(ws, path, span, error.to_string(), code, related)
+}
 pub fn incomplete(source: &str) -> bool {
     if Engine::valid_expression(source) {
         return false;
@@ -168,11 +180,11 @@ pub(crate) fn collect_native(
                 .into_iter()
                 .filter(|s| ws.named(s).name == named.name)
                 .collect::<Vec<_>>();
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 named.span,
-                message,
+                &message,
                 DiagnosticCode::AmbiguousName,
                 &candidates,
             ));
@@ -187,11 +199,11 @@ pub(crate) fn collect_native(
                 SymbolKind::Definition(i) => doc.definitions[i].value_span,
                 _ => named.span,
             };
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 span,
-                message,
+                &message,
                 DiagnosticCode::Resource,
                 &[],
             ));
@@ -210,11 +222,11 @@ pub(crate) fn collect_native(
                     continue;
                 }
                 if failure.path == path {
-                    issues.push(diagnostic(
+                    issues.push(evaluation(
                         ws,
                         path,
                         failure.span,
-                        failure.message,
+                        &failure.message,
                         if failure.related.is_empty() {
                             DiagnosticCode::Evaluation
                         } else {
@@ -240,11 +252,11 @@ pub(crate) fn collect_native(
                     ));
                 }
             } else {
-                issues.push(diagnostic(
+                issues.push(evaluation(
                     ws,
                     path,
                     named.span,
-                    message,
+                    &message,
                     DiagnosticCode::Evaluation,
                     &[],
                 ));
@@ -259,11 +271,11 @@ pub(crate) fn collect_native(
                 .filter(|f| f.path == path)
                 .map(|f| f.span)
                 .unwrap_or(calculation.span);
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 span,
-                message,
+                &message,
                 DiagnosticCode::Evaluation,
                 &[],
             ));
@@ -279,11 +291,11 @@ pub(crate) fn collect_native(
                 .into_iter()
                 .filter(|s| s.path == path && ws.named(s).name == reference.name)
                 .collect::<Vec<_>>();
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 reference.span,
-                message,
+                &message,
                 if candidates.is_empty() {
                     DiagnosticCode::UnknownName
                 } else {
@@ -299,11 +311,11 @@ pub(crate) fn collect_native(
             }
             if let Err(message) = engine.eval_at(path, &reference.expression(), reference.span) {
                 let span = Span::new(reference.span.line, reference.span.end + 1, reference.end());
-                issues.push(diagnostic(
+                issues.push(evaluation(
                     ws,
                     path,
                     span,
-                    message,
+                    &message,
                     DiagnosticCode::Property,
                     &[],
                 ));
@@ -325,17 +337,17 @@ pub(crate) fn collect_native(
                 .as_ref()
                 .map(|f| f.related.as_slice())
                 .unwrap_or(&[]);
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 span,
-                message,
+                &message,
                 DiagnosticCode::Dependency,
                 related,
             ));
         }
         for (key, attr) in &task.attributes {
-            let error = match key.as_str() {
+            let error: Option<EvalError> = match key.as_str() {
                 "due" | "scheduled" | "at" | "repeat_from" => engine.when(path, &attr.value).err(),
                 "estimate" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(crate::engine::Value::Duration(s)) if s >= 0)).then(|| "@estimate requires a nonnegative duration, e.g. 20m or 2h".into()),
                 "timer" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(crate::engine::Value::Timer(t)) if t.origin.is_some() && crate::document::identifier(&attr.value))).then(|| "@timer requires a named stopwatch or countdown, e.g. @timer(focus)".into()),
@@ -343,11 +355,11 @@ pub(crate) fn collect_native(
                 _ => None,
             };
             if let Some(message) = error {
-                issues.push(diagnostic(
+                issues.push(evaluation(
                     ws,
                     path,
                     attr.value_span,
-                    message,
+                    &message,
                     DiagnosticCode::Attribute,
                     &[],
                 ));
@@ -357,11 +369,11 @@ pub(crate) fn collect_native(
     for event in &doc.events {
         let attr = &event.attributes["at"];
         if let Err(message) = engine.when(path, &attr.value) {
-            issues.push(diagnostic(
+            issues.push(evaluation(
                 ws,
                 path,
                 attr.value_span,
-                message,
+                &message,
                 DiagnosticCode::Attribute,
                 &[],
             ));

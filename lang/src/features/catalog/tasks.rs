@@ -144,7 +144,7 @@ pub(super) fn tasks(
                     error: value
                         .as_ref()
                         .err()
-                        .map(QueryValue::text)
+                        .map(|e| QueryValue::text(e.to_string()))
                         .unwrap_or(QueryValue::Null),
                 });
             }
@@ -188,8 +188,8 @@ pub(super) fn tasks(
         match engine.blocked(path, i) {
             Ok(v) => record.scheduling.blocked_by = v,
             Err(e) => {
-                record.blocked_error = QueryValue::text(&e);
-                errors.push(e);
+                record.blocked_error = QueryValue::text(e.to_string());
+                errors.push(e.to_string());
             }
         }
         record.timer = match task
@@ -225,6 +225,7 @@ pub(super) fn events(
                 base.errors = vec![
                     other
                         .err()
+                        .map(|e| e.to_string())
                         .unwrap_or_else(|| "@at requires a date or timestamp".into()),
                 ];
             }

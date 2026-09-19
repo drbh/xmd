@@ -252,7 +252,7 @@ pub(crate) fn document_symbols(
                         ),
                     })
                     .map(|v| v.display())
-                    .unwrap_or_else(|e| e);
+                    .unwrap_or_else(|e| e.to_string());
                 entries.push(symbol(
                     named.name.clone(),
                     format!("variable · {value}"),

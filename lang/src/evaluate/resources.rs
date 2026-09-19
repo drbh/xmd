@@ -1,3 +1,4 @@
+use crate::error::{EvalError, EvalResult};
 use crate::link_features::{self, LinkFeatures};
 use chrono::{DateTime, Utc};
 use lsp_types::Url;
@@ -70,52 +71,57 @@ impl Resource {
             origin: None,
         })
     }
-    pub fn url(&self, document: &Path) -> Result<Url, String> {
+    pub fn url(&self, document: &Path) -> EvalResult<Url> {
         let document = self.origin.as_deref().unwrap_or(document);
         if let Some(coords) = self.target.strip_prefix("geo:") {
             let (lat, lon) = coords
                 .split_once(',')
-                .ok_or("Expected geo:latitude,longitude")?;
-            let lat: f64 = lat.parse().map_err(|_| "Invalid latitude")?;
-            let lon: f64 = lon.parse().map_err(|_| "Invalid longitude")?;
+                .ok_or(EvalError::Expected("geo:latitude,longitude"))?;
+            let lat: f64 = lat
+                .parse()
+                .map_err(|_| EvalError::Message("Invalid latitude".into()))?;
+            let lon: f64 = lon
+                .parse()
+                .map_err(|_| EvalError::Message("Invalid longitude".into()))?;
             if !lat.is_finite()
                 || !lon.is_finite()
                 || !(-90.0..=90.0).contains(&lat)
                 || !(-180.0..=180.0).contains(&lon)
             {
-                return Err("Coordinates are out of range".into());
+                return Err(EvalError::Message("Coordinates are out of range".into()));
             }
             return Url::parse(&format!(
                 "https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}"
             ))
-            .map_err(|e| e.to_string());
+            .map_err(|e| EvalError::Message(e.to_string()));
         }
         if self.target.starts_with("http://")
             || self.target.starts_with("https://")
             || self.target.starts_with("file://")
         {
             // A malformed URL is an error, never a relative file path.
-            return Url::parse(&self.target).map_err(|e| e.to_string());
+            return Url::parse(&self.target).map_err(|e| EvalError::Message(e.to_string()));
         }
         if let Ok(url) = Url::parse(&self.target) {
             if matches!(url.scheme(), "https" | "http" | "file") {
                 return Ok(url);
             }
-            return Err("Unsupported link scheme".into());
+            return Err(EvalError::Message("Unsupported link scheme".into()));
         }
         if let Some(relative) = self.target.strip_prefix("~/") {
             #[cfg(not(target_arch = "wasm32"))]
             {
-                let home_dir = std::env::var_os("HOME").ok_or("Home directory is unavailable")?;
+                let home_dir = std::env::var_os("HOME")
+                    .ok_or(EvalError::Message("Home directory is unavailable".into()))?;
                 return resolved_file_url(&PathBuf::from(home_dir).join(relative));
             }
             #[cfg(target_arch = "wasm32")]
             {
                 let _ = relative;
-                return Err(
+                return Err(EvalError::Message(
                     "Home-directory paths can be opened in the native editor, not the browser"
                         .into(),
-                );
+                ));
             }
         }
         let path = document
@@ -195,7 +201,7 @@ impl Resource {
                 },
                 url
             ),
-            Err(err) => err,
+            Err(err) => err.to_string(),
         };
         if self.is_image()
             && let Ok(url) = self.url(document)
@@ -206,11 +212,11 @@ impl Resource {
     }
 }
 
-fn resolved_file_url(path: &Path) -> Result<Url, String> {
+fn resolved_file_url(path: &Path) -> EvalResult<Url> {
     let url = crate::paths::file_url(path)?;
     // from_file_path preserves dot segments; parsing normalizes them without IO.
     // Native and browser links must use the same canonical URI to find open notes.
-    Url::parse(url.as_str()).map_err(|e| e.to_string())
+    Url::parse(url.as_str()).map_err(|e| EvalError::Message(e.to_string()))
 }
 
 /// Recognize unprefixed paths without turning fractions, domains, or ordinary

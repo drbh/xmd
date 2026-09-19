@@ -1,5 +1,10 @@
 //! Hot-reloadable WTF modules: what one is, and how the engine calls into it.
-use crate::{catalog::Collection, engine::Value, workspace::Workspace};
+use crate::{
+    catalog::Collection,
+    engine::Value,
+    error::{EvalError, EvalResult},
+    workspace::Workspace,
+};
 use chrono::{DateTime, FixedOffset, Utc};
 use std::{
     collections::BTreeMap,
@@ -198,10 +203,10 @@ impl Module {
         entry: impl Entry,
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         let name = entry.entry_name();
         if !self.enabled {
-            return Err(format!("Module '{}' is disabled", self.id));
+            return Err(EvalError::ModuleDisabled(self.id.clone()));
         }
         for arg in &args {
             crate::evaluate::functional::check_size(arg)?;
@@ -214,7 +219,7 @@ impl Module {
         let function = engine.named(&self.path, name)?;
         engine
             .call(function, args)
-            .map_err(|e| format!("Module {}.{name}: {e}", self.id))
+            .map_err(|e| e.in_module(&self.id, name))
     }
 }
 

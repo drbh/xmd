@@ -30,7 +30,8 @@ pub(super) fn days(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
-    let dates = crate::itinerary::try_dates(&ws.modules, &doc.days, engine.today)?;
+    let dates = crate::itinerary::try_dates(&ws.modules, &doc.days, engine.today)
+        .map_err(|e| e.to_string())?;
     for (day, date) in doc.days.iter().zip(dates) {
         let mut value = crate::itinerary::day_record(day, doc);
         if let Some(date) = date
@@ -49,7 +50,7 @@ pub(super) fn days(
                         Value::Text(
                             crate::lookups::forecast_from(&lookup.value, false)
                                 .map(|f| f.display())
-                                .unwrap_or_else(|e| e),
+                                .unwrap_or_else(|e| e.to_string()),
                         ),
                     ),
                     ("source".into(), Value::Text(lookup.source.clone())),

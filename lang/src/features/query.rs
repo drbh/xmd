@@ -241,28 +241,34 @@ fn boolean(v: Q) -> Result<bool, String> {
     }
 }
 fn compare(a: &Q, b: &Q) -> Result<Ordering, String> {
-    functional::compare(&a.value(), &b.value())
+    functional::compare(&a.value(), &b.value()).map_err(|e| e.to_string())
 }
 fn sum(values: impl IntoIterator<Item = Q>) -> Result<Q, String> {
-    functional::sum(values.into_iter().map(|v| v.value())).map(Q::from_value)
+    functional::sum(values.into_iter().map(|v| v.value()))
+        .map(Q::from_value)
+        .map_err(|e| e.to_string())
 }
 
 struct RowBindings(Mutex<Item>);
 impl Bindings for RowBindings {
-    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>> {
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<crate::error::EvalResult<Value>> {
         let mut item = self.0.lock().expect("query row poisoned");
         let exists = match &*item {
             Item::Record(record) => record.has(name),
             Item::Value(value, _) => value.property(name).is_ok(),
         };
-        exists.then(|| item.field(name, engine).map(|v| v.value()))
+        exists.then(|| {
+            item.field(name, engine)
+                .map(|v| v.value())
+                .map_err(Into::into)
+        })
     }
 }
 fn eval(expr: &Expr, item: &mut Item, engine: &mut Engine<'_>) -> Result<Q, String> {
     let bindings = Arc::new(RowBindings(Mutex::new(item.clone())));
     let result = engine.bound_expr(item.path(), expr, bindings.clone());
     *item = bindings.0.lock().expect("query row poisoned").clone();
-    result.map(Q::from_value)
+    result.map(Q::from_value).map_err(|e| e.to_string())
 }
 
 /// Collections are loaded on demand, so unrelated features and errors are not evaluated.
@@ -271,7 +277,7 @@ struct WorkspaceBindings {
     cache: Mutex<BTreeMap<String, Value>>,
 }
 impl Bindings for WorkspaceBindings {
-    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>> {
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<crate::error::EvalResult<Value>> {
         let collection = name.parse::<Collection>();
         if name != "graph" && collection.is_err() {
             return None;
@@ -305,7 +311,7 @@ impl Bindings for WorkspaceBindings {
                 .expect("query cache poisoned")
                 .insert(name.into(), value.clone());
         }
-        Some(result)
+        Some(result.map_err(Into::into))
     }
 }
 
@@ -334,7 +340,9 @@ pub(crate) fn execute(
             cache: Mutex::new(BTreeMap::new()),
         });
         let path = &context;
-        let value = engine.bound_expr(path, expr, bindings)?;
+        let value = engine
+            .bound_expr(path, expr, bindings)
+            .map_err(|e| e.to_string())?;
         let rows = match Q::from_value(value) {
             Q::Array(rows) => rows,
             value => vec![value],

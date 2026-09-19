@@ -4,7 +4,10 @@
 //! Fetching happens only in the native app, on `wtf refresh` or the Refresh
 //! lens, through built-in keyless providers or commands from
 //! `.wtf/providers.json`.
-use crate::engine::{Currency, Forecast, Value};
+use crate::{
+    engine::{Currency, Forecast, Value},
+    error::{EvalError, EvalResult},
+};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -105,36 +108,29 @@ pub fn day_place(places: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> {
+pub fn rate(store: &Store, from: Currency, to: Currency) -> EvalResult<f64> {
     if from == to {
         return Ok(1.0);
     }
-    let lookup = LookupKey::rate(from, to).lookup(store).ok_or_else(|| {
-        format!("No cached rate {from}→{to}; run wtf refresh or use the ⟳ lookups lens")
-    })?;
+    let key = LookupKey::rate(from, to);
+    let lookup = key
+        .lookup(store)
+        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
     lookup.value["rate"]
         .as_f64()
         .filter(|r| r.is_finite() && *r > 0.0)
-        .ok_or_else(|| {
-            lookup.value["error"]
-                .as_str()
-                .map(|e| format!("Rate {from}→{to}: {e}"))
-                .unwrap_or_else(|| format!("Cached rate {from}→{to} is unreadable"))
-        })
+        .ok_or_else(|| reported(lookup, key))
 }
-pub fn quote(store: &Store, symbol: &str) -> Result<Value, String> {
-    let lookup = LookupKey::quote(symbol).lookup(store).ok_or_else(|| {
-        format!("No cached quote for {symbol}; run wtf refresh or use the ⟳ lookups lens")
-    })?;
+pub fn quote(store: &Store, symbol: &str) -> EvalResult<Value> {
+    // The cache is keyed case-insensitively; a message names the ticker as written.
+    let key = LookupKey::Quote(symbol.to_string());
+    let lookup = LookupKey::quote(symbol)
+        .lookup(store)
+        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
     let price = lookup.value["price"]
         .as_f64()
         .filter(|p| p.is_finite())
-        .ok_or_else(|| {
-            lookup.value["error"]
-                .as_str()
-                .map(|e| format!("Quote {symbol}: {e}"))
-                .unwrap_or_else(|| format!("Cached quote for {symbol} is unreadable"))
-        })?;
+        .ok_or_else(|| reported(lookup, key))?;
     let currency = lookup.value["currency"]
         .as_str()
         .and_then(Currency::parse)
@@ -146,22 +142,34 @@ pub fn forecast(
     place: &str,
     date: NaiveDate,
     fahrenheit: bool,
-) -> Result<Forecast, String> {
-    let lookup = LookupKey::forecast(place, date).lookup(store).ok_or_else(|| {
-        format!(
-            "No cached forecast for {place} on {date}; run wtf refresh or use the ⟳ lookups lens"
-        )
-    })?;
-    forecast_from(&lookup.value, fahrenheit)
-        .map_err(|e| format!("Forecast for {place} on {date}: {e}"))
+) -> EvalResult<Forecast> {
+    let key = LookupKey::Forecast {
+        place: place.to_string(),
+        date,
+    };
+    let lookup = LookupKey::forecast(place, date)
+        .lookup(store)
+        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
+    forecast_from(&lookup.value, fahrenheit).map_err(|e| e.in_lookup(key))
 }
-pub fn forecast_from(value: &serde_json::Value, fahrenheit: bool) -> Result<Forecast, String> {
+/// What a cached lookup said went wrong, or that it cannot be read at all.
+fn reported(lookup: &Lookup, key: LookupKey) -> EvalError {
+    match lookup.value["error"].as_str() {
+        Some(message) => EvalError::Custom(message.into()).in_lookup(key),
+        None => EvalError::Unreadable(key),
+    }
+}
+pub fn forecast_from(value: &serde_json::Value, fahrenheit: bool) -> EvalResult<Forecast> {
     if let Some(error) = value["error"].as_str() {
-        return Err(error.to_string());
+        return Err(EvalError::Custom(error.to_string()));
     }
     let (high, low) = (
-        value["high"].as_f64().ok_or("missing high temperature")?,
-        value["low"].as_f64().ok_or("missing low temperature")?,
+        value["high"]
+            .as_f64()
+            .ok_or(EvalError::Message("missing high temperature".into()))?,
+        value["low"]
+            .as_f64()
+            .ok_or(EvalError::Message("missing low temperature".into()))?,
     );
     let convert = |c: f64| {
         if fahrenheit {

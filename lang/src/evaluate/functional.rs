@@ -1,5 +1,6 @@
 //! Small, pure additions to the shared expression language.
 use super::engine::{BinaryOp, Builtin, Expr, Value};
+use crate::error::{EvalError, EvalResult, Limit, Overflow};
 use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug)]
@@ -29,7 +30,7 @@ impl PartialEq for Function {
 }
 
 /// Answer a built-in whose arguments have already been evaluated.
-pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
+pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
     use Builtin as B;
     use Value::*;
     Ok(match (name, args) {
@@ -38,14 +39,18 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             let mut fields = BTreeMap::new();
             for entry in entries {
                 let Record(entry) = entry else {
-                    return Err("object requires key/value records".into());
+                    return Err(EvalError::Message(
+                        "object requires key/value records".into(),
+                    ));
                 };
                 let Some(Text(key)) = entry.get("key") else {
-                    return Err("object keys must be text".into());
+                    return Err(EvalError::Message("object keys must be text".into()));
                 };
-                let value = entry.get("value").ok_or("object entry needs value")?;
+                let value = entry
+                    .get("value")
+                    .ok_or(EvalError::Message("object entry needs value".into()))?;
                 if fields.insert(key.clone(), value.clone()).is_some() {
-                    return Err(format!("Duplicate object key '{key}'"));
+                    return Err(EvalError::Message(format!("Duplicate object key '{key}'")));
                 }
             }
             Record(fields)
@@ -65,13 +70,11 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
                 .collect(),
         ),
         (B::Number, [value]) => {
-            Number(crate::charts::magnitude(value).ok_or("Expected a numeric value")?)
+            Number(crate::charts::magnitude(value).ok_or(EvalError::Expected("a numeric value"))?)
         }
-        (B::Source, [value]) => Text(
-            value
-                .source()
-                .ok_or("Value cannot be written as an expression")?,
-        ),
+        (B::Source, [value]) => Text(value.source().ok_or(EvalError::Message(
+            "Value cannot be written as an expression".into(),
+        ))?),
         (B::ParseDate, [Text(value), Text(format)]) => {
             chrono::NaiveDate::parse_from_str(value, format)
                 .ok()
@@ -128,7 +131,11 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             let date = match value {
                 Date(d) => *d,
                 DateTime(d) => d.date_naive(),
-                _ => return Err("date_parts requires a date or timestamp".into()),
+                _ => {
+                    return Err(EvalError::Message(
+                        "date_parts requires a date or timestamp".into(),
+                    ));
+                }
             };
             Record(
                 [
@@ -146,7 +153,9 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
         (B::AtTime, [Date(date), Duration(seconds), DateTime(reference)]) => {
             use chrono::TimeZone;
             if !(0..86400).contains(seconds) {
-                return Err("Time must be within a calendar day".into());
+                return Err(EvalError::Message(
+                    "Time must be within a calendar day".into(),
+                ));
             }
             DateTime(
                 reference
@@ -154,23 +163,23 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
                     .from_local_datetime(
                         &date
                             .and_hms_opt(0, 0, 0)
-                            .ok_or("Invalid midnight")?
+                            .ok_or(EvalError::Message("Invalid midnight".into()))?
                             .checked_add_signed(chrono::Duration::seconds(*seconds))
-                            .ok_or("Date overflow")?,
+                            .ok_or(EvalError::Overflowed(Overflow::Date))?,
                     )
                     .single()
-                    .ok_or("Invalid timestamp")?,
+                    .ok_or(EvalError::Message("Invalid timestamp".into()))?,
             )
         }
         (B::PadStart | B::PadEnd, [Text(value), width, Text(fill)]) => {
             if fill.chars().count() != 1 {
-                return Err("Padding must be one character".into());
+                return Err(EvalError::Message("Padding must be one character".into()));
             }
             let count = index(width)?.saturating_sub(value.chars().count());
             if count > 8192
                 || count.saturating_mul(fill.len()).saturating_add(value.len()) > 1_048_576
             {
-                return Err("Padding exceeds the size limit".into());
+                return Err(EvalError::LimitExceeded(Limit::Padding));
             }
             Text(if name == B::PadStart {
                 fill.repeat(count) + value
@@ -179,13 +188,13 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             })
         }
         (B::Type, [value]) => Text(value.type_name().into()),
-        (B::Error, [Text(message)]) => return Err(message.clone()),
+        (B::Error, [Text(message)]) => return Err(EvalError::Custom(message.clone())),
         (B::Trim, [Text(text)]) => Text(text.trim().into()),
         (B::Floor | B::Round, [value]) => {
             let number = match value {
                 Number(n) | Ratio(n) => *n,
                 Count(n) => *n as f64,
-                _ => return Err(format!("{name} requires a number")),
+                _ => return Err(EvalError::Message(format!("{name} requires a number"))),
             };
             Number(if name == B::Floor {
                 number.floor()
@@ -197,10 +206,10 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             let mut result = Vec::new();
             for list in lists {
                 let List(items) = list else {
-                    return Err("concat requires lists".into());
+                    return Err(EvalError::Message("concat requires lists".into()));
                 };
                 if result.len().saturating_add(items.len()) > 8192 {
-                    return Err("List exceeds the collection size limit".into());
+                    return Err(EvalError::LimitExceeded(Limit::Collection));
                 }
                 result.extend(items.clone());
             }
@@ -210,18 +219,18 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             let start = index(start)?;
             let end = index(end)?;
             if start > end {
-                return Err("slice start must not exceed end".into());
+                return Err(EvalError::Message("slice start must not exceed end".into()));
             }
             match value {
                 Text(text) => Text(text.chars().skip(start).take(end - start).collect()),
                 List(items) => List(items[start.min(items.len())..end.min(items.len())].to_vec()),
-                _ => return Err("slice requires text or a list".into()),
+                _ => return Err(EvalError::Message("slice requires text or a list".into())),
             }
         }
         (B::Repeat, [Text(text), count]) => {
             let count = index(count)?;
             if text.len().saturating_mul(count) > 1_048_576 || count > 8192 {
-                return Err("Repeated text exceeds the size limit".into());
+                return Err(EvalError::LimitExceeded(Limit::RepeatedText));
             }
             Text(text.repeat(count))
         }
@@ -229,18 +238,23 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             if chrono::format::StrftimeItems::new(format)
                 .any(|i| matches!(i, chrono::format::Item::Error))
             {
-                return Err("Invalid date format".into());
+                return Err(EvalError::Message("Invalid date format".into()));
             }
             Text(match value {
                 DateTime(d) => d.format(format).to_string(),
                 Date(d) => {
                     // Reject time/offset specifiers for dates rather than panicking in Display.
                     let mut result = String::new();
-                    std::fmt::write(&mut result, format_args!("{}", d.format(format)))
-                        .map_err(|_| "Format needs a time or timezone")?;
+                    std::fmt::write(&mut result, format_args!("{}", d.format(format))).map_err(
+                        |_| EvalError::Message("Format needs a time or timezone".into()),
+                    )?;
                     result
                 }
-                _ => return Err("format_date requires a date or timestamp".into()),
+                _ => {
+                    return Err(EvalError::Message(
+                        "format_date requires a date or timestamp".into(),
+                    ));
+                }
             })
         }
         (B::Get, [Record(fields), Text(key)]) => fields.get(key).cloned().unwrap_or(Null),
@@ -248,7 +262,11 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
             let index = match index {
                 Count(n) => *n,
                 Number(n) if n.is_finite() && *n >= 0.0 && n.fract() == 0.0 => *n as usize,
-                _ => return Err("List index must be a nonnegative integer".into()),
+                _ => {
+                    return Err(EvalError::Message(
+                        "List index must be a nonnegative integer".into(),
+                    ));
+                }
             };
             items.get(index).cloned().unwrap_or(Null)
         }
@@ -267,7 +285,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
         (B::Split, [Text(text), Text(separator)]) => {
             let parts = text.split(separator).take(8193).collect::<Vec<_>>();
             if parts.len() > 8192 {
-                return Err("List exceeds the collection size limit".into());
+                return Err(EvalError::LimitExceeded(Limit::Collection));
             }
             List(parts.into_iter().map(|s| Text(s.into())).collect())
         }
@@ -276,7 +294,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
                 .iter()
                 .map(|v| match v {
                     Text(s) => Ok(s.as_str()),
-                    _ => Err("join requires a list of text"),
+                    _ => Err(EvalError::Message("join requires a list of text".into())),
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let size = parts.iter().map(|s| s.len()).sum::<usize>().saturating_add(
@@ -286,7 +304,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
                     .saturating_mul(separator.len()),
             );
             if size > 1_048_576 {
-                return Err("Text exceeds 1 MiB".into());
+                return Err(EvalError::LimitExceeded(Limit::Text));
             }
             Text(parts.join(separator))
         }
@@ -295,15 +313,15 @@ pub fn builtin(name: Builtin, args: &[Value]) -> Result<Value, String> {
         (B::Replace, [Text(text), Text(from), Text(to)]) => {
             let count = text.matches(from).count();
             if count.saturating_mul(to.len()).saturating_add(text.len()) > 1_048_576 {
-                return Err("Text exceeds 1 MiB".into());
+                return Err(EvalError::LimitExceeded(Limit::Text));
             }
             Text(text.replace(from, to))
         }
-        _ => return Err(format!("Invalid arguments for {name}")),
+        _ => return Err(EvalError::Message(format!("Invalid arguments for {name}"))),
     })
 }
 
-pub(crate) fn check_size(value: &Value) -> Result<(), String> {
+pub(crate) fn check_size(value: &Value) -> EvalResult<()> {
     let mut pending = vec![value];
     let mut count = 0usize;
     let mut bytes = 0usize;
@@ -319,13 +337,13 @@ pub(crate) fn check_size(value: &Value) -> Result<(), String> {
             _ => (),
         }
         if count + pending.len() > 8192 || bytes > 1_048_576 {
-            return Err("Value exceeds the collection or text size limit".into());
+            return Err(EvalError::LimitExceeded(Limit::Value));
         }
     }
     Ok(())
 }
 
-fn index(value: &Value) -> Result<usize, String> {
+fn index(value: &Value) -> EvalResult<usize> {
     match value {
         Value::Count(n) => Ok(*n),
         Value::Number(n)
@@ -333,20 +351,20 @@ fn index(value: &Value) -> Result<usize, String> {
         {
             Ok(*n as usize)
         }
-        _ => Err("Expected a nonnegative integer".into()),
+        _ => Err(EvalError::Expected("a nonnegative integer")),
     }
 }
 
-fn number(value: &Value) -> Result<f64, String> {
+fn number(value: &Value) -> EvalResult<f64> {
     match value {
         Value::Number(n) if n.is_finite() => Ok(*n),
         Value::Count(n) => Ok(*n as f64),
-        _ => Err("Expected a finite number".into()),
+        _ => Err(EvalError::Expected("a finite number")),
     }
 }
 
 /// Stable scalar ordering, with missing values last (also for descending sorts).
-pub(crate) fn compare(a: &Value, b: &Value) -> Result<std::cmp::Ordering, String> {
+pub(crate) fn compare(a: &Value, b: &Value) -> EvalResult<std::cmp::Ordering> {
     use Value::*;
     use std::cmp::Ordering;
     match (a, b) {
@@ -367,7 +385,7 @@ pub(crate) fn compare(a: &Value, b: &Value) -> Result<std::cmp::Ordering, String
 }
 
 /// Sum compatible quantities without throwing away their units; missing values are skipped.
-pub(crate) fn sum(values: impl IntoIterator<Item = Value>) -> Result<Value, String> {
+pub(crate) fn sum(values: impl IntoIterator<Item = Value>) -> EvalResult<Value> {
     use Value::*;
     let mut total = None;
     for value in values {
@@ -378,7 +396,9 @@ pub(crate) fn sum(values: impl IntoIterator<Item = Value>) -> Result<Value, Stri
             value,
             Number(_) | Count(_) | Ratio(_) | Money(..) | Duration(_)
         ) {
-            return Err("sum requires numbers, money or durations".into());
+            return Err(EvalError::Message(
+                "sum requires numbers, money or durations".into(),
+            ));
         }
         total = Some(match total {
             Some(previous) => super::engine::binary(BinaryOp::Add, previous, value)?,

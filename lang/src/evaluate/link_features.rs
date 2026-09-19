@@ -1,5 +1,6 @@
 //! Optional URL semantics, adapted into the common inlay pipeline by LinkInlays.
 //! Implementations are pure; native hosts execute explicitly requested refreshes.
+use crate::error::{EvalError, EvalResult, PropertyOwner};
 use crate::{
     engine::Value,
     resources::{Cache, Metadata},
@@ -31,8 +32,11 @@ pub trait LinkFeature: Send + Sync {
     fn property_names(&self, _url: &Url) -> Vec<String> {
         vec![]
     }
-    fn property(&self, _context: &LinkContext<'_>, name: &str) -> Result<Value, String> {
-        Err(format!("Unknown resource property '{name}'"))
+    fn property(&self, _context: &LinkContext<'_>, name: &str) -> EvalResult<Value> {
+        Err(EvalError::UnknownProperty {
+            owner: PropertyOwner::Resource,
+            name: name.into(),
+        })
     }
     fn cache_namespace(&self) -> Option<&str> {
         None
@@ -46,8 +50,10 @@ pub trait LinkFeature: Send + Sync {
         _url: &Url,
         _data: &serde_json::Value,
         _now: DateTime<Utc>,
-    ) -> Result<Metadata, String> {
-        Err("This link feature does not support refresh".into())
+    ) -> EvalResult<Metadata> {
+        Err(EvalError::Message(
+            "This link feature does not support refresh".into(),
+        ))
     }
 }
 
@@ -180,10 +186,13 @@ impl<'a> LinkFeatures<'a> {
         cache: &Cache,
         now: DateTime<Utc>,
         name: &str,
-    ) -> Result<Value, String> {
+    ) -> EvalResult<Value> {
         let (feature, url) = self
             .matching(target)
-            .ok_or_else(|| format!("Unknown resource property '{name}'"))?;
+            .ok_or_else(|| EvalError::UnknownProperty {
+                owner: PropertyOwner::Resource,
+                name: name.into(),
+            })?;
         feature.property(
             &LinkContext {
                 url: &url,
@@ -204,10 +213,10 @@ impl<'a> LinkFeatures<'a> {
         target: &str,
         data: &serde_json::Value,
         now: DateTime<Utc>,
-    ) -> Result<Metadata, String> {
+    ) -> EvalResult<Metadata> {
         let (feature, url) = self
             .matching(target)
-            .ok_or("No feature recognizes this link")?;
+            .ok_or(EvalError::Message("No feature recognizes this link".into()))?;
         feature.decode_refresh(&url, data, now)
     }
     #[cfg(feature = "native")]
@@ -243,6 +252,8 @@ impl<'a> LinkFeatures<'a> {
                 &String::from_utf8_lossy(&output.stdout),
             )?),
         };
-        feature.decode_refresh(&url, &data, Utc::now())
+        feature
+            .decode_refresh(&url, &data, Utc::now())
+            .map_err(|e| e.to_string())
     }
 }

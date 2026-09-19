@@ -114,11 +114,12 @@ impl BrowserWorkspace {
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
             let data: Value = field(&params, "data")?;
-            let metadata = self.session.workspace.link_features().decode_refresh(
-                &target,
-                &data,
-                now.to_utc(),
-            )?;
+            let metadata = self
+                .session
+                .workspace
+                .link_features()
+                .decode_refresh(&target, &data, now.to_utc())
+                .map_err(|e| e.to_string())?;
             self.session.workspace.cache.insert(target, metadata);
             return Ok(Value::Null);
         }

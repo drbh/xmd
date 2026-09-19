@@ -37,7 +37,7 @@ impl LinkFeature for GitHub {
     fn property_names(&self, url: &Url) -> Vec<String> {
         module().property_names(url)
     }
-    fn property(&self, ctx: &LinkContext<'_>, name: &str) -> Result<Value, String> {
+    fn property(&self, ctx: &LinkContext<'_>, name: &str) -> crate::error::EvalResult<Value> {
         module().property(ctx, name)
     }
     fn refresh_request(&self, url: &Url) -> Option<RefreshRequest> {
@@ -51,9 +51,11 @@ impl LinkFeature for GitHub {
         url: &Url,
         data: &serde_json::Value,
         now: DateTime<Utc>,
-    ) -> Result<Metadata, String> {
+    ) -> crate::error::EvalResult<Metadata> {
         if !self.matches(url) {
-            return Err("Not a supported GitHub link".into());
+            return Err(crate::error::EvalError::Message(
+                "Not a supported GitHub link".into(),
+            ));
         }
         module().decode_refresh(url, data, now)
     }
@@ -70,7 +72,7 @@ impl Metadata {
                 now.fixed_offset(),
             )
             .map(|v| v.display())
-            .unwrap_or_else(|e| e)
+            .unwrap_or_else(|e| e.to_string())
     }
     pub fn badge(&self, now: DateTime<Utc>) -> String {
         self.render("badge", now)
@@ -107,5 +109,7 @@ pub fn metadata(
 ) -> Result<Metadata, String> {
     let url = Url::parse(&format!("https://github.com/compat/compat/{kind}/0"))
         .map_err(|e| e.to_string())?;
-    module().decode_refresh(&url, data, now)
+    module()
+        .decode_refresh(&url, data, now)
+        .map_err(|e| e.to_string())
 }

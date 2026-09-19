@@ -141,7 +141,7 @@ pub(crate) fn item(request: &crate::RequestContext<'_>, symbol: &Symbol) -> Call
                     format!("checklist · {done}/{} complete", tasks.len())
                 }
                 Ok(v) => v.display(),
-                Err(e) => e,
+                Err(e) => e.to_string(),
             };
             (lsp_types::SymbolKind::NAMESPACE, detail)
         }
@@ -185,7 +185,7 @@ pub(crate) fn item(request: &crate::RequestContext<'_>, symbol: &Symbol) -> Call
                     p.variables.len()
                 ),
                 Ok(v) => format!("{} · {}", v.type_name(), v.display()),
-                Err(e) => e,
+                Err(e) => e.to_string(),
             };
             (kind, detail)
         }

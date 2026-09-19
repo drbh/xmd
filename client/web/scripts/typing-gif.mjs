@@ -5,49 +5,12 @@
 //   node scripts/typing-gif.mjs [--theme light|dark] [--out dist/typing-<theme>.gif] [--port 4199]
 //
 // Needs a built site (`npm run build`), headless Chrome, and ffmpeg on PATH.
-// The script serves dist/ itself on a spare port so a running dev server is
-// never mistaken for the fresh build. Only the page is captured, not the
-// app's chrome, in a fixed-height frame that scrolls with the caret.
-import { mkdtemp, rm, mkdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { spawn, spawnSync } from "node:child_process";
-import { chromium } from "@playwright/test";
+// Only the page is captured, not the app's chrome, in a fixed-height frame
+// that scrolls with the caret. The story lives in lib/story.mjs.
+import { resolve } from "node:path";
+import { assemble, keystroke, launch, option, record, requireFfmpeg, serve, web } from "./lib/capture.mjs";
+import { story } from "./lib/story.mjs";
 
-// The story: each step is `type` text at the caret, `after` (move the caret to
-// just after the first occurrence of a substring), `end` (caret to the end),
-// or `pause` milliseconds. Pauses are where the viewer reads the result.
-const story = [
-  { type: "Values are plain text with a name.\n$1,234:car\n$67:groceries\n\n" },
-  { type: "Calculations update as you type.\ntotal := car + groceries" },
-  { pause: 1400 },
-  { after: "$67" },
-  { type: "0" },
-  { pause: 1800 },
-  { end: true },
-  { type: "\n\nAny value can sit inside a sentence.\nWe have [total] left for the trip." },
-  { pause: 1500 },
-  { type: "\n\nDates do arithmetic.\n2026-11-20:departure\nLeaving in [departure - today()]." },
-  { pause: 1500 },
-  { type: "\n\nTables have typed columns and sum themselves.\nbasket := table\n| item | qty | price |\n| --- | --- | --- |\n| apple | 2 | $3.30 |\n| pear | 4 | $4.30 |\n\nspend := sum(basket, qty * price)" },
-  { pause: 1800 },
-  { type: "\n\nTasks know when they are due.\n- [ ] Book the flights @due(departure - 14d)\n- [ ] Pack @due(tomorrow)" },
-  { pause: 1800 },
-  { type: "\n\nA named heading is a checklist that counts.\n## Packing :packing\n- [x] Passport\n- [x] Charger\n- [ ] Sunscreen\n\n[completed(packing)] of [total(packing)] packed." },
-  { pause: 1800 },
-  { type: "\n\nTimers are values; their controls live in the note.\nfocus := countdown(25m)" },
-  { pause: 1600 },
-  { type: "\n\nLibraries add functions.\nThat is [round(import(\"units\").convert(100, \"km\", \"mi\"))] miles." },
-  { pause: 2600 },
-];
-
-const args = process.argv.slice(2);
-const option = (name, fallback) => {
-  const at = args.indexOf(`--${name}`);
-  return at === -1 ? fallback : args[at + 1];
-};
-const web = fileURLToPath(new URL("../", import.meta.url));
 const theme = option("theme", "light");
 const out = resolve(web, option("out", `dist/typing-${theme}.gif`));
 const port = Number(option("port", "4199"));
@@ -55,22 +18,13 @@ const fps = 10;
 const frameWidth = 720;
 const frameHeight = 360;
 
-if (spawnSync("ffmpeg", ["-version"]).error) throw new Error("ffmpeg is required to assemble the GIF");
-
-// Serve the built site on our own port.
-const server = spawn(process.execPath, [join(web, "serve.mjs")], { env: { ...process.env, WTF_WEB_PORT: String(port) }, stdio: "ignore" });
-const base = `http://127.0.0.1:${port}`;
-for (let tries = 0; ; tries++) {
-  if (await fetch(base).then(r => r.ok, () => false)) break;
-  if (tries > 100) throw new Error(`The site did not come up on ${base}; run \`npm run build\` first`);
-  await new Promise(r => setTimeout(r, 100));
-}
-
-const frames = await mkdtemp(join(tmpdir(), "wtf-gif-"));
-const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
+requireFfmpeg();
+const site = await serve(port);
+const browser = await launch();
+let camera;
 try {
   const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 880, height: 1000 } });
-  await page.goto(`${base}/docs/?test`);
+  await page.goto(`${site.base}/docs/?test`);
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
   await page.locator(".template", { hasText: "Blank" }).click();
   await page.waitForFunction(() => window.wtfDocs.controller);
@@ -103,19 +57,10 @@ try {
     const room = pane.clientHeight - 40;
     if (bottom > room) pane.scrollTop += bottom - room;
   });
-
-  // Frames are captured on a fixed clock while the story plays, so pauses in
-  // the story are pauses in the GIF.
-  let frame = 0;
-  let rolling = true;
-  const camera = (async () => {
-    while (rolling) {
-      await page.screenshot({ path: join(frames, `f${String(frame++).padStart(4, "0")}.png`), clip });
-      await new Promise(r => setTimeout(r, 1000 / fps));
-    }
-  })();
   const caret = offset => page.evaluate(offset => window.wtfDocs.controller.select(offset), offset);
   const source = () => page.evaluate(() => window.wtfDocs.controller.getSource());
+
+  camera = await record(page, clip, fps);
   await page.waitForTimeout(600);
   for (const step of story) {
     if (step.type) {
@@ -130,11 +75,10 @@ try {
             await c.replaceRange(at, at, "\n");
           });
           await follow();
-          await page.waitForTimeout(160);
         } else {
           await page.keyboard.type(ch);
-          await page.waitForTimeout(22 + Math.random() * 22);
         }
+        await page.waitForTimeout(keystroke(ch));
       }
     } else if (step.after) {
       const at = (await source()).indexOf(step.after);
@@ -150,16 +94,9 @@ try {
       await page.waitForTimeout(step.pause);
     }
   }
-  rolling = false;
-  await camera;
+  await camera.stop();
 } finally {
   await browser.close();
-  server.kill();
+  site.stop();
 }
-
-await mkdir(dirname(out), { recursive: true });
-const filters = `fps=${fps},scale=${frameWidth}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=3`;
-const ffmpeg = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(fps), "-i", join(frames, "f%04d.png"), "-vf", filters, "-loop", "0", out], { encoding: "utf8" });
-await rm(frames, { recursive: true, force: true });
-if (ffmpeg.status !== 0) throw new Error(`ffmpeg failed: ${ffmpeg.stderr}`);
-console.log(`GIF written to ${out}`);
+await assemble(camera.frames, out, { fps, width: frameWidth });

@@ -41,6 +41,11 @@ total was [total] # $1,301.01
 
 You can also query a specific file for its computed state.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/terminal-dark.gif">
+  <img alt="Querying the note from a terminal: single values, filtered tasks, typed JSON, diagnostics for CI and a rendered text export" src="https://example.com/placeholder/terminal-light.gif" width="720">
+</picture>
+
 ```bash
 wtf query example.wtf 'total'
 # $1,301.01

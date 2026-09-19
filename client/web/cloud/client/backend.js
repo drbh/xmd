@@ -79,7 +79,7 @@ export async function createBackend() {
     async save(doc) {
       // A document with a live session is saved by its room; nothing to send.
       if (rooms.has(doc.id)) return { version: doc.version };
-      const body = { name: doc.name, text: doc.text, version: doc.version, folder: doc.folder ?? null, file: doc.file };
+      const body = { name: doc.name, text: doc.text, version: doc.version, folder: doc.folder ?? null, file: doc.file, named: !!doc.named };
       try {
         const result = await api(`documents/${doc.id}`, { method: "PUT", body });
         remember({ documents: (read(CACHE)?.documents || []).filter(d => d.id !== doc.id).concat([{ ...doc, version: result.version }]) });
@@ -95,7 +95,12 @@ export async function createBackend() {
       }
     },
     /** Filing changes the folder only; the text is left alone. */
-    async file(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { folder: doc.folder ?? null, file: doc.file, name: doc.name } }); },
+    async file(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { folder: doc.folder ?? null, file: doc.file, name: doc.name, named: !!doc.named } }); },
+    trash: {
+      list: () => api("trash"),
+      restore: id => api(`trash/${id}`, { method: "POST" }),
+      purge: id => api(`trash/${id}`, { method: "DELETE" }),
+    },
     async listFolders() {
       if (offline) return cached.folders || [];
       const folders = await api("folders");

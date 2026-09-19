@@ -3,10 +3,16 @@
   // shared with you. A folder opens in place, with a breadcrumb back.
   import Icon from "./Icon.svelte";
   import { TEMPLATES, relativeTime, colorFor } from "./store.js";
-  let { documents, folders = [], thumbs = {}, engine, notice, theme, account = null, cloud = null, localCount = 0, canShare = false,
+  let { documents, folders = [], thumbs = {}, engine, notice, onDismiss, trash = null, onRestore, theme, account = null, cloud = null, localCount = 0, canShare = false,
     onMoveLocal, onToggleTheme, onBook, onKeys, onOpen, onNew, onImport, onRename, onDuplicate, onDownload, onDelete,
-    onNewFolder, onRenameFolder, onDeleteFolder, onShareFolder, onMove } = $props();
-  let query = $state(""), menu = $state(null), accountMenu = $state(false), current = $state(null);
+    onNewFolder, onRenameFolder, onDeleteFolder, onShareFolder, onMove, current = $bindable(null) } = $props();
+  let query = $state(""), menu = $state(null), accountMenu = $state(false);
+  // The trash is loaded when opened; restoring or purging refreshes it.
+  let trashOpen = $state(false), trashed = $state(null);
+  async function loadTrash() { try { trashed = await trash.list(); } catch { trashed = []; } }
+  $effect(() => { if (trashOpen && trash) loadTrash(); });
+  $effect(() => { documents.length; if (trashOpen && trash) loadTrash(); });
+  async function purge(d) { if (!confirm(`Delete “${d.name}” forever?`)) return; await trash.purge(d.id); await loadTrash(); }
   const folder = $derived(folders.find(f => f.id === current) ?? null);
   const matches = d => !query || d.name.toLowerCase().includes(query.toLowerCase()) || d.text.toLowerCase().includes(query.toLowerCase());
   const sorted = $derived([...documents].sort((a, b) => b.updated - a.updated).filter(matches));
@@ -27,7 +33,7 @@
   <div class="doc-row" role="listitem">
     <button type="button" class="open" onclick={() => onOpen(d.id)}>
       <span class="doc-icon"><Icon name="doc" /></span>
-      <span class="doc-name">{d.name || "Untitled document"}{#if d.role === "viewer"}<span class="doc-tag">View only</span>{/if}{#if !folder && d.folder && folders.some(f => f.id === d.folder)}<span class="doc-tag">{folders.find(f => f.id === d.folder).name}</span>{/if}</span>
+      <span class="doc-name">{d.name || "Untitled document"}{#if d.file && d.file !== d.name}<span class="doc-file">{d.file}.wtf</span>{/if}{#if d.role === "viewer"}<span class="doc-tag">View only</span>{/if}{#if !folder && d.folder && folders.some(f => f.id === d.folder)}<span class="doc-tag">{folders.find(f => f.id === d.folder).name}</span>{/if}</span>
       <span class="doc-by">{#if d.owner && isShared(d)}<span class="avatar tiny" style={`background:${colorFor(d.owner)}`}>{d.owner[0].toUpperCase()}</span>{d.owner}{/if}</span>
       <span class="doc-when">Edited {relativeTime(d.updated)}</span>
     </button>
@@ -99,7 +105,7 @@
       <button type="button" class="button" onclick={() => cloud.signIn()}>Sign in</button>
     {/if}
   </header>
-  {#if notice}<p class="notice" role="status">{notice}</p>{/if}
+  {#if notice}<p class="notice" role="status">{notice}<button type="button" class="tool dismiss" aria-label="Dismiss" onclick={onDismiss}><Icon name="close" size={14} /></button></p>{/if}
   {#if account && cloud?.offline}<p class="notice" role="status">You're offline. Documents you opened before are available; changes are kept on this device and sent when the network returns.</p>{/if}
   {#if account && localCount}
     <p class="notice info" role="status">{localCount} document{localCount === 1 ? "" : "s"} saved in this browser before you signed in. <button type="button" class="link" onclick={onMoveLocal}>Move to your account</button></p>
@@ -147,6 +153,25 @@
         {:else if !sharedFolders.length}<p class="empty">Documents and folders other people share with you appear here. Ask them to add <strong>{account.email}</strong> from a Share button.</p>{/if}
       </section>
     {/if}
+  {/if}
+  {#if trash && !query && !folder}
+    <section class="recent trash-section" aria-label="Trash">
+      <div class="section-head"><h2><button type="button" class="link" onclick={() => (trashOpen = !trashOpen)}><Icon name="expand" size={14} /> Trash</button></h2>{#if trashOpen && trashed}<span class="muted">{trashed.length}</span>{/if}</div>
+      {#if trashOpen}
+        {#if trashed === null}<p class="empty">Loading…</p>
+        {:else if trashed.length}
+          <div class="doc-list" role="list">
+            {#each trashed as d (d.id)}
+              <div class="doc-row" role="listitem">
+                <div class="open static"><span class="doc-icon"><Icon name="doc" /></span><span class="doc-name">{d.name}{#if d.file && d.file !== d.name}<span class="doc-file">{d.file}.wtf</span>{/if}</span><span class="doc-by"></span><span class="doc-when">Removed {relativeTime(d.deleted)}</span></div>
+                <button type="button" class="link" onclick={() => onRestore(d)}>Restore</button>
+                <button type="button" class="link danger" onclick={() => purge(d)}>Delete forever</button>
+              </div>
+            {/each}
+          </div>
+        {:else}<p class="empty">The trash is empty. Removed documents wait here until you delete them for good.</p>{/if}
+      {/if}
+    </section>
   {/if}
   <footer class="home-foot">{engine} · {account ? `Documents are saved to ${account.email}.` : "Documents are stored in this browser. Download a copy to keep a backup."}</footer>
 </div>

@@ -154,6 +154,25 @@ test("API keys drive the sync API outside the browser sign-in, without sharing o
   assert.equal((await sync("/me")).status, 401);
 });
 
+test("the trash keeps removed documents until restored or purged, and file names follow headings until pinned", async () => {
+  const doc = id();
+  const created = await call(`/api/documents/${doc}`, { method: "PUT", body: { name: "Draft", text: "# Draft\n", file: "Draft", named: false } });
+  assert.equal(created.data.named, false);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { file: "Draft final", named: true } })).data.named, true);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "DELETE" })).status, 200);
+  assert.equal((await call(`/api/documents/${doc}`)).status, 404);
+  const trash = await call("/api/trash");
+  assert.ok(trash.data.some(d => d.id === doc && d.deleted));
+  assert.equal((await call(`/api/trash/${doc}`, { user: "bob@example.com", method: "POST" })).status, 404);
+  const restored = await call(`/api/trash/${doc}`, { method: "POST" });
+  assert.equal(restored.status, 200); assert.equal(restored.data.file, "Draft final");
+  assert.equal((await call(`/api/documents/${doc}`)).data.role, "owner");
+  await call(`/api/documents/${doc}`, { method: "DELETE" });
+  assert.equal((await call(`/api/trash/${doc}`, { method: "DELETE" })).status, 200);
+  assert.equal((await call("/api/trash")).data.some(d => d.id === doc), false);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { name: "Draft", text: "again" } })).status, 201); // the id is free again
+});
+
 test("validation and unauthenticated requests", async () => {
   assert.equal((await call("/api/documents/bad id", { method: "PUT", body: { name: "x", text: "y" } })).status, 400);
   assert.equal((await call(`/api/documents/${id()}`, { method: "PUT", body: { name: "x" } })).status, 400);

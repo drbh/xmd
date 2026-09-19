@@ -95,18 +95,18 @@ export function loadState() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      const documents = parsed.documents, folders = parsed.folders ?? [];
-      if (!Array.isArray(documents) || !Array.isArray(folders) || documents.some(d => !valid(d)) || folders.some(f => !validFolder(f)) || !unique(documents) || !unique(folders)) throw new Error("Invalid saved documents");
-      return { documents, folders };
+      const documents = parsed.documents, folders = parsed.folders ?? [], trash = parsed.trash ?? [];
+      if (!Array.isArray(documents) || !Array.isArray(folders) || !Array.isArray(trash) || documents.some(d => !valid(d)) || trash.some(d => !valid(d)) || folders.some(f => !validFolder(f)) || !unique(documents) || !unique(folders)) throw new Error("Invalid saved documents");
+      return { documents, folders, trash };
     }
   } catch { writable = false; }
-  return { documents: [createDocument(TEMPLATES[1])], folders: [] };
+  return { documents: [createDocument(TEMPLATES[1])], folders: [], trash: [] };
 }
 export const loadDocuments = () => loadState().documents;
 export function createDocument(template = TEMPLATES[0], name) {
   const text = template.text;
   const title = name ?? titleOf(text, template.name);
-  return { id: crypto.randomUUID(), name: title, file: fileNameFor(title), text, updated: Date.now(), opened: Date.now(), folder: null };
+  return { id: crypto.randomUUID(), name: title, file: fileNameFor(title), named: false, text, updated: Date.now(), opened: Date.now(), folder: null };
 }
 /** A file name for a document: the name without path separators or control characters, never empty. */
 export function fileNameFor(name) {
@@ -119,9 +119,9 @@ export function uniqueFile(file, folder, documents, except) {
   if (!taken.has(file.toLowerCase())) return file;
   for (let n = 2; ; n++) if (!taken.has(`${file} ${n}`.toLowerCase())) return `${file} ${n}`;
 }
-export function saveState({ documents, folders = [] }) {
+export function saveState({ documents, folders = [], trash = [] }) {
   if (!writable) return false;
-  try { localStorage.setItem(KEY, JSON.stringify({ documents, folders })); return true; } catch { return false; }
+  try { localStorage.setItem(KEY, JSON.stringify({ documents, folders, trash })); return true; } catch { return false; }
 }
 export const saveDocuments = documents => saveState({ documents });
 export function clearState() {

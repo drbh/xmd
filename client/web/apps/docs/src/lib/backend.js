@@ -29,7 +29,7 @@ export class LocalBackend {
   async save(doc) {
     const documents = this.#load().documents;
     const at = documents.findIndex(d => d.id === doc.id);
-    const copy = { id: doc.id, name: doc.name, file: doc.file, text: doc.text, updated: doc.updated, opened: doc.opened, folder: doc.folder ?? null };
+    const copy = { id: doc.id, name: doc.name, file: doc.file, named: !!doc.named, text: doc.text, updated: doc.updated, opened: doc.opened, folder: doc.folder ?? null };
     if (at === -1) documents.unshift(copy); else documents[at] = copy;
     this.#write();
     return { version: doc.updated };
@@ -37,9 +37,26 @@ export class LocalBackend {
   async file(doc) { return this.save(doc); }
   async delete(id) {
     const state = this.#load();
+    const doc = state.documents.find(d => d.id === id);
     state.documents = state.documents.filter(d => d.id !== id);
+    if (doc) (state.trash ??= []).unshift({ ...doc, deleted: Date.now() });
     this.#write();
   }
+  trash = {
+    list: async () => this.#load().trash ?? [],
+    restore: async id => {
+      const state = this.#load();
+      const doc = (state.trash ?? []).find(d => d.id === id);
+      if (!doc) throw new BackendError("failed", "Not in the trash");
+      state.trash = state.trash.filter(d => d.id !== id);
+      const { deleted, ...restored } = doc;
+      if (restored.folder && !state.folders.some(f => f.id === restored.folder)) restored.folder = null;
+      state.documents.unshift(restored);
+      this.#write();
+      return { id, folder: restored.folder ?? null, file: restored.file };
+    },
+    purge: async id => { const state = this.#load(); state.trash = (state.trash ?? []).filter(d => d.id !== id); this.#write(); },
+  };
   async listFolders() { return this.#load().folders; }
   async saveFolder(folder) {
     const folders = this.#load().folders;

@@ -205,6 +205,23 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .fresh-key p { margin: 0 0 8px; }
 .fresh-key .key { display: block; margin: 0 0 10px; padding: 8px 10px; border-radius: 6px; background: var(--chrome); font-size: 13px; user-select: all; overflow-wrap: anywhere; }
 
+.notice { display: flex; align-items: center; gap: 8px; }
+.notice .dismiss { margin-left: auto; width: 26px; height: 26px; color: inherit; }
+.doc-file { margin-left: 8px; color: var(--faint); font: 12px var(--mono); }
+.doc-row .open.static { cursor: default; }
+.doc-row .link { margin-right: 12px; white-space: nowrap; }
+.link.danger { color: var(--error); }
+.trash-section .section-head h2 .link { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--ink); }
+.crumb { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 14px; padding: 0 6px; height: 30px; border-radius: 4px; white-space: nowrap; }
+.crumb:hover { background: var(--hover); color: var(--ink); }
+.crumb .crumb-sep { margin-left: 4px; color: var(--faint); }
+
+/* Tap-to-inspect sheet on touch screens */
+.inspect { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 30; max-height: 45vh; overflow: auto; padding: 12px 40px 12px 14px; border-radius: 12px; background: var(--chrome); border: 1px solid var(--rule); box-shadow: 0 -4px 24px rgba(0,0,0,.25); font: 13px/1.6 var(--mono); color: var(--ink); }
+.inspect > .tool { position: absolute; top: 6px; right: 6px; }
+.inspect-body p { margin: 0 0 8px; } .inspect-body p:last-child { margin-bottom: 0; } .inspect-body strong { font-weight: 600; } .inspect-body code { background: var(--hover); padding: 0 4px; border-radius: 3px; } .inspect-body pre { margin: 6px 0; padding: 8px 10px; background: var(--bg); border-radius: 6px; white-space: pre-wrap; font: inherit; }
+@media (hover: hover) { .inspect { display: none; } }
+
 /* Dialogs */
 .dialog { border: 0; border-radius: 12px; padding: 0; background: var(--chrome); color: var(--ink); box-shadow: 0 8px 32px rgba(0,0,0,.3); width: min(92vw, 440px); }
 .dialog.wide { width: min(92vw, 720px); }

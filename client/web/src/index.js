@@ -1,5 +1,6 @@
 export { createWorkspace, defaultUri } from "./workspace.js";
 export { mount } from "./view.js";
+export { renderHover } from "./dom.js";
 import { createWorkspace, defaultUri } from "./workspace.js";
 
 /** Resolve once. Returned HTML needs only style.css, with no runtime scripts. */

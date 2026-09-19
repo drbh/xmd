@@ -91,3 +91,5 @@ export const defaultUri: string;
 export function createWorkspace(options?: WorkspaceOptions): Workspace;
 export function render(source: string, options?: RenderOptions): Promise<string>;
 export function mount(element: HTMLElement, options?: MountOptions): Promise<View>;
+/** The engine's Markdown hover as HTML, for hosts that show it in their own surface. */
+export function renderHover(markdown: string): string;

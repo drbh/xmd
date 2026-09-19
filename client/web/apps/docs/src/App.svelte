@@ -26,6 +26,7 @@
   let thumbs = $state.raw({});
   let shareFolder = $state(null);
   let keysOpen = $state(false);
+  let homeFolder = $state(null);
   let backends = $state.raw(null);
   const backend = $derived(backends?.backend);
   const account = $derived(backends?.cloud?.account ?? null);
@@ -93,6 +94,11 @@
       folders = await backend.listFolders();
       // Older documents have no file name yet; derive one, keeping names unique per folder.
       for (const d of documents) if (!d.file) d.file = uniqueFile(fileNameFor(d.name), d.folder, documents, d.id);
+      // A file name follows the heading until someone renames the document on purpose.
+      for (const d of documents) if (!d.named && d.role !== "viewer" && d.role !== "editor" && fileNameFor(d.name) !== d.file) {
+        d.file = uniqueFile(fileNameFor(d.name), d.folder, documents, d.id);
+        backend.file?.($state.snapshot(d)).catch(() => {});
+      }
       if (backends.cloud?.account) localCount = (await backends.local.stored()).length;
       for (const d of documents) await workspace.setDocument(uriOf(d), d.text);
       // Template thumbnails are the templates themselves, resolved by the engine
@@ -125,14 +131,25 @@
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
   function onHashChange() { route(); }
-  function book() { view = "book"; activeId = null; find = null; dialog = null; }
+  function book() { const leaving = active; view = "book"; activeId = null; find = null; dialog = null; settleFile(leaving); }
+  // Leaving a document is when its file name catches up with its heading.
+  async function settleFile(d) {
+    if (!d || d.named || (d.role && d.role !== "owner")) return;
+    const wanted = fileNameFor(d.name);
+    if (wanted === d.file) return;
+    const before = uriOf(d);
+    d.file = uniqueFile(wanted, d.folder, documents, d.id);
+    await readdress(d, before);
+    await backend.file?.($state.snapshot(d)).catch(error);
+  }
   function open(id) {
     const d = documents.find(x => x.id === id);
     if (!d) return;
+    if (active && active.id !== id) settleFile(active);
     d.opened = Date.now();
     activeId = id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
   }
-  function home() { activeId = null; view = "home"; find = null; dialog = null; }
+  function home() { const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving); }
 
   // Saving: edits are debounced, then handed to the backend one document at a
   // time. A conflict or unavailable store pauses saving for that document and
@@ -152,6 +169,7 @@
   }
   function schedule(document) {
     dirty.add(document.id);
+    if (saved !== "Saving…" && saved !== backend?.label) notice = ""; // a new edit clears an old error
     saved = "Saving…";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 300);
@@ -178,6 +196,8 @@
     const d = createDocument(template, template.id === "blank" ? "Untitled document" : undefined);
     d.folder = folder;
     d.file = uniqueFile(d.file, folder, documents);
+    // A second "Trip budget" is "Trip budget 2" in its heading too, so lists tell them apart.
+    if (d.file !== fileNameFor(d.name)) { d.text = d.text.replace(/^(#+\s+)(.*?)(\s+:\w+)?$/m, (m, hashes, _title, tag) => `${hashes}${d.file}${tag || ""}`); d.name = titleOf(d.text, d.file); }
     documents = [d, ...documents];
     await workspace.setDocument(uriOf(d), d.text);
     schedule(d);
@@ -195,7 +215,7 @@
     open(copy.id);
   }
   async function remove(d = active) {
-    if (!d || !confirm(`Remove "${d.name}"? This cannot be undone.`)) return;
+    if (!d || !confirm(`Move "${d.name}" to the trash?`)) return;
     documents = documents.filter(x => x.id !== d.id);
     if (activeId === d.id) home();
     dirty.delete(d.id);
@@ -255,11 +275,23 @@
       else { lines[at] = next; d.text = lines.join("\n"); await workspace.setDocument(before, d.text); }
     }
     // An explicit rename also renames the file, which is what imports refer to.
-    d.name = name; d.file = uniqueFile(fileNameFor(name), d.folder, documents, d.id); d.updated = Date.now();
+    const wanted = fileNameFor(name);
+    d.name = name; d.file = uniqueFile(wanted, d.folder, documents, d.id); d.named = true; d.updated = Date.now();
+    if (d.file !== wanted) notice = `Another document here is already called “${wanted}”, so this one's file is “${d.file}”.`;
     await readdress(d, before);
     dirty.add(d.id);
     await flush();
     if (backend.file) await backend.file($state.snapshot(d)).catch(error);
+  }
+  // Trash: a removed document comes back with a free file name, into its folder if that still exists.
+  async function restore(d) {
+    try {
+      const result = await backend.trash.restore(d.id);
+      const back = { ...d, folder: result.folder ?? null, file: result.file ?? d.file, deleted: undefined, role: d.role ?? "owner" };
+      documents = [back, ...documents];
+      await workspace.setDocument(uriOf(back), back.text);
+      notice = `Restored “${back.name}”.`;
+    } catch (e) { error(e); }
   }
   // Folders group documents; sharing a folder shares everything in it.
   async function newFolder(name = prompt("Folder name")) {
@@ -340,6 +372,7 @@
     find: replace => (find = { replace }),
     dialog: name => (dialog = name),
     canShare: () => !!backend?.acl,
+    readOnly: () => readOnly,
     book,
   });
   function keydown(event) {
@@ -380,7 +413,7 @@
 {:else if view === "book"}
   <Book {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
 {:else if !active}
-  <Home {documents} {folders} {thumbs} {engine} {notice} {theme} {account} onBook={book} onKeys={backend?.keys ? () => (keysOpen = true) : null} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+  <Home {documents} {folders} {thumbs} {engine} {notice} bind:current={homeFolder} onDismiss={() => (notice = "")} trash={backend?.trash} onRestore={restore} {theme} {account} onBook={book} onKeys={backend?.keys ? () => (keysOpen = true) : null} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
   <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">
@@ -388,6 +421,9 @@
         <button type="button" class="logo" title="Back to documents" aria-label="Documents home" onclick={home}><Icon name="doc" size={26} /></button>
         <div class="title-block">
           <div class="title-row">
+            {#if active.folder && folders.some(f => f.id === active.folder)}
+              <button type="button" class="crumb" title="Open folder" onclick={() => { const f = active.folder; home(); homeFolder = f; }}><Icon name="folder" size={14} /> {folders.find(f => f.id === active.folder).name}<span class="crumb-sep">›</span></button>
+            {/if}
             <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false" readonly={readOnly}
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
@@ -494,6 +530,18 @@
       <Share acl={backend.acl(active.id)} name={active.name} onClose={() => (dialog = null)} />
     {:else if dialog === "keys" && backend?.keys}
       <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (dialog = null)} />
+    {:else if dialog === "details"}
+      <Dialog title="Document details" onClose={() => (dialog = null)}>
+        <table class="stats"><tbody>
+          <tr><td>File</td><td><code>{active.file}.wtf</code></td></tr>
+          <tr><td>Folder</td><td>{folders.find(f => f.id === active.folder)?.name ?? "—"}</td></tr>
+          <tr><td>Import as</td><td><code>import("./{active.file}.wtf")</code></td></tr>
+          <tr><td>Your access</td><td>{active.role ?? "owner"}{#if active.owner && active.role !== "owner"} · shared by {active.owner}{/if}</td></tr>
+          <tr><td>Last edit</td><td>{new Date(active.updated).toLocaleString()}</td></tr>
+          <tr><td>Link</td><td><code>{location.href.replace(/\?test/, "")}</code></td></tr>
+        </tbody></table>
+        <p class="muted">The file name is what other documents and <code>wtf sync</code> use; it follows the first heading until you rename the document yourself.</p>
+      </Dialog>
     {:else if dialog === "problems"}
       <Dialog title="Problems" onClose={() => (dialog = null)}>
         {#if problems.length}

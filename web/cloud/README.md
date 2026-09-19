@@ -65,6 +65,18 @@ delta API to the shared text and a per-user Yjs undo history.
 `npm test` covers the API through `wrangler dev` and drives two editors plus a
 viewer in real browsers (`test/live.spec.mjs`).
 
+## Offline
+
+`build.mjs` adds the backend module and its Yjs chunk to the service worker's
+precache, so the hosted app also opens offline. `client/backend.js` remembers
+the last library and account; without a network it serves that, queues saves
+in an outbox that is retried when the network returns, and reports
+`offline`. Live documents keep their Yjs state in IndexedDB (`y-indexeddb`):
+a document opened online before can be edited offline and the room merges
+the edits on reconnect through the sync handshake; one never opened here is
+read-only until it has been, since seeding it locally would duplicate the
+room's text.
+
 ## Commands
 
 ```sh

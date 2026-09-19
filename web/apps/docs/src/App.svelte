@@ -58,7 +58,9 @@
   let titleInput = $state(null), sidebarOpenMobile = $state(false), accountMenu = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
   const counts = $derived(active ? stats(active.text) : null);
-  const readOnly = $derived(active?.role === "viewer");
+  const readOnly = $derived(active?.role === "viewer" || liveStatus === "locked");
+  let online = $state(navigator.onLine);
+  let update = $state(null);
   const symbolNames = $derived.by(() => { const out = new Set(); const walk = list => { for (const s of list) { if (/^[A-Za-z_]\w*$/.test(s.name)) out.add(s.name); walk(s.children || []); } }; walk(symbols); return [...out]; });
   const systemDark = matchMedia("(prefers-color-scheme: dark)");
   let dark = $state(systemDark.matches);
@@ -77,7 +79,11 @@
     const tick = setInterval(() => (now = Date.now()), 30_000);
     (async () => {
       backends = await resolveBackend();
-      unsubscribeBackend = backend.subscribe(event => { if (event.type === "paused") { saved = event.message; notice = event.message; paused = true; } });
+      if (backends.cloud?.offline) online = false;
+      unsubscribeBackend = backend.subscribe(event => {
+        if (event.type === "paused") { saved = event.message; notice = event.message; paused = true; }
+        if (event.type === "online" || event.type === "offline") { online = event.type === "online"; saved = ""; }
+      });
       documents = await backend.list();
       folders = await backend.listFolders();
       if (backends.cloud?.account) localCount = (await backends.local.stored()).length;
@@ -332,7 +338,7 @@
   }
 </script>
 
-<svelte:window onkeydown={keydown} onhashchange={onHashChange} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
+<svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onwtf:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
 <input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
 
 {#if shareFolder && backend?.folderAcl}
@@ -355,10 +361,12 @@
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
-              <span class="status-text">{readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
+              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
-            {#if live}
-              <span class="live" class:off={liveStatus !== "connected"} title={liveStatus === "connected" ? "Edits sync in real time" : "Reconnecting…"}><span class="dot"></span>{liveStatus === "connected" ? "Live" : "Reconnecting…"}</span>
+            {#if !online}
+              <span class="live off" title="Working offline. Changes are kept on this device and sent when the network returns."><span class="dot"></span><span>Offline</span></span>
+            {:else if live}
+              <span class="live" class:off={liveStatus !== "connected"} title={liveStatus === "connected" ? "Edits sync in real time" : "Reconnecting…"}><span class="dot"></span><span>{liveStatus === "connected" ? "Live" : "Reconnecting…"}</span></span>
             {/if}
           </div>
           <MenuBar menus={commands.menus} />
@@ -431,6 +439,7 @@
     {#if find}<FindBar {controller} replace={find.replace} onClose={at => { find = null; controller?.select(at); }} />{/if}
     {#if prefs.wordCount && counts}<button type="button" class="chip words" title="Word count" onclick={() => (dialog = "stats")}>{counts.words} words</button>{/if}
     {#if problems.length}<button type="button" class="chip problems-chip" onclick={() => (dialog = "problems")}><Icon name="warning" size={14} /> {problems.length} problem{problems.length === 1 ? "" : "s"}</button>{/if}
+    {#if update}<button type="button" class="chip update-chip" onclick={() => { update.waiting?.postMessage("skip-waiting"); navigator.serviceWorker?.addEventListener("controllerchange", () => location.reload(), { once: true }); }}>A new version is ready · Reload</button>{/if}
     {#if !prefs.console}<button type="button" class="chip console-chip" onclick={() => (prefs.console = true)}><Icon name="code" size={14} /> Console</button>{/if}
     <button type="button" class="chip outline-toggle" aria-label="Toggle outline" onclick={() => (sidebarOpenMobile = !sidebarOpenMobile)}><Icon name="outline" size={16} /></button>
 

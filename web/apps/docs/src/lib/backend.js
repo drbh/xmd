@@ -73,11 +73,9 @@ export async function resolveBackend() {
   const local = new LocalBackend();
   let cloud = null;
   try {
-    const url = new URL("./backend.js", document.baseURI).href;
-    if ((await fetch(url, { method: "HEAD" })).ok) {
-      const module = await import(/* @vite-ignore */ url);
-      cloud = await module.createBackend?.();
-    }
+    // A missing module simply fails to import; offline, a cached one still loads.
+    const module = await import(/* @vite-ignore */ new URL("./backend.js", document.baseURI).href);
+    cloud = await module.createBackend?.();
   } catch { cloud = null; }
   if (!cloud) return { backend: local, local, cloud: null };
   return { backend: cloud.account ? cloud : local, local, cloud };

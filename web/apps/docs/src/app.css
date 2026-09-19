@@ -167,6 +167,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .console .text { height: 26px; padding: 0 12px; border-radius: 6px; color: var(--accent-ink); font: 500 12px var(--ui); }
 .console .text:hover { background: var(--hover); } .console .text:disabled { color: var(--faint); background: none; cursor: default; }
 .chip.console-chip { right: 16px; }
+.chip.update-chip { left: 50%; transform: translateX(-50%); color: var(--accent-ink); border-color: var(--accent); }
 .problems-chip ~ .console-chip, .chip.problems-chip + .chip.console-chip { right: 150px; }
 
 .read-only .toolbar :is(.tool, .select):not([aria-label="Show outline"], [aria-label="Print"], [aria-label="Find"], .zoom) { pointer-events: none; opacity: .4; }

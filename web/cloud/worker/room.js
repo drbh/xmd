@@ -52,6 +52,9 @@ export class Room extends YServer {
   // watch and show presence but their document updates are dropped.
   onConnect(connection, context) {
     connection.setState({ role: context.request.headers.get("x-wtf-role") || "viewer", email: context.request.headers.get("x-wtf-email") || "" });
+    // The base class starts the sync handshake, which is how edits made while
+    // disconnected reach the room.
+    return super.onConnect(connection, context);
   }
   isReadOnly(connection) { return connection.state?.role === "viewer"; }
 

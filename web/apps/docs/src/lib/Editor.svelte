@@ -52,6 +52,8 @@
     const width = list => list.reduce((n, l) => n + 30 + l.command.title.length * 6.2, 0) + (list.length - 1) * 4;
     chips = [...byLine.values()].map(list => ({ ...list.at, left: list.at.below ? null : Math.max(8, Math.min(list.at.left, origin.width - width(list) - 12)), lenses: list }));
   }
+  // Read-only can change while open (a viewer, or an offline document without a local copy).
+  $effect(() => { if (controller && !controller.destroyed) controller.element.contentEditable = readOnly ? "false" : "true"; });
   // A live session binds once both it and the editor exist.
   $effect(() => {
     const session = live, editor = controller;

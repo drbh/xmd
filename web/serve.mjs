@@ -7,7 +7,7 @@ import { resolve, extname, sep } from "node:path";
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 const prefix = `/${(process.env.WTF_WEB_BASE || "").replace(/^\/+|\/+$/g, "")}`.replace(/\/$/, "");
 const port = Number(process.env.WTF_WEB_PORT || 4173);
-const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".wtf": "text/plain", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".json": "application/json", ".wtf": "text/plain", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 const server = http.createServer(async (request, response) => {
   try {
     if (!["GET", "HEAD"].includes(request.method)) { response.writeHead(405).end(); return; }

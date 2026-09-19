@@ -3,6 +3,7 @@
 // Yjs is only ever downloaded when a cloud document is opened.
 import * as Y from "yjs";
 import YProvider from "y-partyserver/provider";
+import { IndexeddbPersistence } from "y-indexeddb";
 import { diff } from "../lib/src/edits.js";
 
 const COLORS = ["#1a73e8", "#d93025", "#188038", "#e37400", "#9334e6", "#007b83", "#c5221f", "#3c4043"];
@@ -32,6 +33,10 @@ export function createLive({ base, id, user, role }) {
   const site = new URL(base);
   // With `prefix`, the provider uses the path as given, so the room id is part of it.
   const provider = new YProvider(site.host, id, doc, { prefix: `${site.pathname.replace(/\/$/, "")}/api/rooms/room/${id}`, protocol: site.protocol === "https:" ? "wss" : "ws" });
+  // Edits are kept in this browser too, so a document can be edited without a
+  // network and the room merges everything when the connection returns.
+  let local = null;
+  try { local = new IndexeddbPersistence(`wtf-doc-${id}`, doc); } catch { /* private mode or no IndexedDB */ }
   const awareness = provider.awareness;
   awareness.setLocalStateField("user", { name: user.name || user.email, email: user.email, color: colorFor(user.email) });
   const statusListeners = new Set(), presenceListeners = new Set();
@@ -64,6 +69,20 @@ export function createLive({ base, id, user, role }) {
     const onSync = state => { if (state && !synced) { synced = true; reconcile(); } };
     provider.on("sync", onSync);
     if (provider.synced) onSync(true);
+    // Without a network the local copy is the first "sync": it holds any
+    // edits made offline that the room has not seen yet. A document never
+    // opened online here has no local copy and stays read-only until it has,
+    // because seeding it here would duplicate the room's text on merge.
+    const offlineStart = () => {
+      if (synced || provider.wsconnected) return;
+      if (text.length) onSync(true);
+      else { status = "locked"; for (const l of statusListeners) l(status); }
+    };
+    // Give the room a moment to answer; if it has not, the local copy leads.
+    let offlineTimer;
+    local?.whenSynced.then(() => { offlineTimer = setTimeout(offlineStart, navigator.onLine ? 2500 : 0); });
+    const onOffline = () => { if (local?.synced) offlineStart(); };
+    addEventListener("offline", onOffline);
     const stopEdits = editor.onEdit(({ edits }) => {
       // Apply from the end so earlier offsets stay valid.
       doc.transact(() => { for (const e of [...edits].reverse()) { if (e.end > e.start) text.delete(e.start, e.end - e.start); if (e.text) text.insert(e.start, e.text); } }, "local");
@@ -84,17 +103,19 @@ export function createLive({ base, id, user, role }) {
       if (key !== lastCursor) { lastCursor = key; awareness.setLocalStateField("cursor", next); }
     };
     document.addEventListener("selectionchange", cursor);
-    detach = () => { provider.off("sync", onSync); stopEdits(); text.unobserve(observer); document.removeEventListener("selectionchange", cursor); undoManager.destroy(); if (!editor.destroyed) editor.setHistory(null); };
+    detach = () => { clearTimeout(offlineTimer); removeEventListener("offline", onOffline); provider.off("sync", onSync); stopEdits(); text.unobserve(observer); document.removeEventListener("selectionchange", cursor); undoManager.destroy(); if (!editor.destroyed) editor.setHistory(null); };
     return live;
   }
   const live = {
     id,
+    /** The shared text as this client currently knows it. */
+    get text() { return text.toString(); },
     get status() { return status; },
     get connected() { return status === "connected" && provider.synced; },
     attach,
     onStatus(listener) { statusListeners.add(listener); listener(status); return () => statusListeners.delete(listener); },
     onPresence(listener) { presenceListeners.add(listener); presence(); return () => presenceListeners.delete(listener); },
-    destroy() { detach(); awareness.setLocalState(null); provider.destroy(); doc.destroy(); },
+    destroy() { detach(); awareness.setLocalState(null); provider.destroy(); local?.destroy(); doc.destroy(); },
   };
   return live;
 }

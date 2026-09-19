@@ -99,6 +99,7 @@
     {/if}
   </header>
   {#if notice}<p class="notice" role="status">{notice}</p>{/if}
+  {#if account && cloud?.offline}<p class="notice" role="status">You're offline. Documents you opened before are available; changes are kept on this device and sent when the network returns.</p>{/if}
   {#if account && localCount}
     <p class="notice info" role="status">{localCount} document{localCount === 1 ? "" : "s"} saved in this browser before you signed in. <button type="button" class="link" onclick={onMoveLocal}>Move to your account</button></p>
   {/if}

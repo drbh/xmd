@@ -13,4 +13,15 @@ await build({
   chunkNames: "live-[hash]",
   logLevel: "warning",
 });
-console.log("Cloud backend module bundled to web/dist/docs/backend.js");
+// The service worker precaches the backend module and its chunks too, so the
+// account mode is available offline; its version changes with them.
+const { readdir, readFile, writeFile } = await import("node:fs/promises");
+const { createHash } = await import("node:crypto");
+const docsDir = new URL("../dist/docs/", import.meta.url);
+const extra = (await readdir(docsDir)).filter(f => f === "backend.js" || /^live-.*\.js$/.test(f)).map(f => `docs/${f}`);
+const swPath = new URL("../dist/sw.js", import.meta.url);
+let sw = await readFile(swPath, "utf8");
+sw = sw.replace(/^self\.__WTF_PRECACHE__ = (\[.*\]);$/m, (_, list) => `self.__WTF_PRECACHE__ = ${JSON.stringify([...new Set([...JSON.parse(list).filter(p => !/^docs\/(backend|live-)/.test(p)), ...extra])])};`);
+sw = sw.replace(/^self\.__WTF_VERSION__ = "([^"]+)";$/m, (_, v) => `self.__WTF_VERSION__ = ${JSON.stringify(createHash("sha256").update(v).update(extra.join("\n")).digest("hex").slice(0, 12))};`);
+await writeFile(swPath, sw);
+console.log("Cloud backend module bundled to web/dist/docs/backend.js and precached");

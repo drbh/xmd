@@ -3,7 +3,10 @@
 //! both into editor behavior, and `hosts` deliver the features over a
 //! transport. Every module inside a layer is a sibling of the others.
 //!
-//! A layer only calls downwards. Feature modules written in the .wtf language
+//! A layer only calls downwards, so a subject can span two of them:
+//! `model::itinerary` parses days and stops, and `evaluate::itinerary`
+//! resolves their dates and labels through the `itinerary_core` module.
+//! Feature modules written in the .wtf language
 //! are the one path back up: the engine evaluates them like any other note, and
 //! `features::modules` adapts their hooks into inlays, hovers, diagnostics,
 //! formatting and actions. Hosts see none of that; they build a
@@ -30,6 +33,13 @@ pub use features::{
 pub use hosts::browser;
 #[cfg(feature = "native")]
 pub use hosts::{cli, editor};
-pub use model::{document, itinerary, paths, tables, workspace};
+pub use model::{document, paths, tables, workspace};
+
+// An itinerary is parsed in `model` and resolved in `evaluate`; both halves
+// answer to `wtf::itinerary`.
+pub mod itinerary {
+    pub use crate::evaluate::itinerary::*;
+    pub use crate::model::itinerary::*;
+}
 
 pub use context::RequestContext;

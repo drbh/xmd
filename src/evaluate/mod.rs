@@ -5,13 +5,15 @@
 //! `modules` compiles the .wtf feature, link and library modules and `context`
 //! holds the one workspace snapshot, clock and memo a request evaluates
 //! against. `link_features` is the contract a link module implements, next to
-//! the module compiler that produces it.
+//! the module compiler that produces it. `itinerary` resolves the days and
+//! stops `model::itinerary` parsed by calling the `itinerary_core` module.
 pub mod charts;
 pub mod context;
 pub mod engine;
 pub mod functional;
 pub mod github;
 pub mod glyphs;
+pub mod itinerary;
 pub mod link_features;
 pub mod lookups;
 pub mod modules;

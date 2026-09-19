@@ -4,7 +4,7 @@
   import Dialog from "./Dialog.svelte";
   import Icon from "./Icon.svelte";
   import { colorFor } from "./store.js";
-  let { acl, name, onClose } = $props();
+  let { acl, name, kind = "document", onClose } = $props();
   let state = $state(null), email = $state(""), role = $state("editor"), error = $state(""), busy = $state(false), copied = $state(false);
   async function copyLink() {
     try { await navigator.clipboard.writeText(location.href.replace(/\?test/, "")); copied = true; setTimeout(() => (copied = false), 2000); } catch { error = "Copy the address bar link instead."; }
@@ -26,7 +26,7 @@
   }
 </script>
 
-<Dialog title={`Share “${name}”`} {onClose}>
+<Dialog title={`Share ${kind === "folder" ? "folder " : ""}“${name}”`} {onClose}>
   {#if !state}<p>{error || "Loading…"}</p>
   {:else}
     {#if state.role === "owner"}
@@ -51,8 +51,8 @@
       {/each}
     </ul>
     <div class="share-foot">
-      <button type="button" class="button" onclick={copyLink}><Icon name="link" /> {copied ? "Link copied" : "Copy link"}</button>
-      <span class="muted">Only people listed here can open it. Anyone who hasn't signed in yet gets access the first time they do.</span>
+      {#if kind === "document"}<button type="button" class="button" onclick={copyLink}><Icon name="link" /> {copied ? "Link copied" : "Copy link"}</button>{/if}
+      <span class="muted">{kind === "folder" ? "People here can open every document in the folder, now and later." : "Only people listed here can open it."} Anyone who hasn't signed in yet gets access the first time they do.</span>
     </div>
   {/if}
 </Dialog>

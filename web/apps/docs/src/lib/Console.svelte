@@ -1,6 +1,7 @@
 <script>
   // A developer-console drawer: type a query in the note's functional language
   // and see the engine's rows. Read-only; it never edits the document.
+  import { tick } from "svelte";
   import Icon from "./Icon.svelte";
   import { complete, apply, learnFields } from "./completions.js";
   let { rpc, uri, names = [], onClose, height = $bindable(260) } = $props();
@@ -68,7 +69,8 @@
     if (!menu || !item) return;
     const next = apply(input, field.selectionStart ?? input.length, menu.start, item);
     input = next.text; menu = null;
-    requestAnimationFrame(() => { field.setSelectionRange(next.caret, next.caret); field.focus(); });
+    // Place the caret only once the new value is in the DOM.
+    tick().then(() => { field.setSelectionRange(next.caret, next.caret); field.focus(); });
   }
   function keydown(event) {
     if (menu) {

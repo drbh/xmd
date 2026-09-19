@@ -231,6 +231,18 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .doc-tag { margin-left: 8px; padding: 1px 6px; border-radius: 8px; background: var(--hover); color: var(--muted); font-size: 11px; vertical-align: middle; }
 .doc-by { display: inline-flex; align-items: center; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent.shared { padding-top: 0; }
+.folder-grid { padding: 0 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.folder-card { display: flex; align-items: center; border: 1px solid var(--rule); border-radius: 10px; background: var(--chrome); }
+.folder-card:hover { background: var(--hover); }
+.folder-open { flex: 1; min-width: 0; display: grid; grid-template-columns: 32px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 12px 12px; text-align: left; color: var(--ink); }
+.folder-icon { grid-row: 1 / 3; color: var(--accent); display: inline-flex; }
+.folder-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-meta { display: inline-flex; align-items: center; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-meta .avatar.tiny { margin: 0 4px; }
+.crumbs { display: inline-flex; align-items: center; gap: 8px; }
+.crumb-sep { color: var(--faint); }
+.menu-heading { padding: 4px 16px 2px; color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+.section-head .link { display: inline-flex; align-items: center; gap: 4px; }
 .notice.info { background: var(--active); color: var(--accent-ink); border-color: transparent; }
 
 /* Home */
@@ -247,7 +259,9 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .muted { color: var(--muted); font-size: 12px; }
 .template-row { max-width: 1080px; margin: 0 auto; padding: 0 24px; display: flex; gap: 18px; overflow-x: auto; }
 .template { display: grid; gap: 8px; text-align: left; flex: none; width: 150px; }
-.template .thumb { display: block; height: 190px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--faint); font: 6px/1.8 var(--mono); padding: 14px 12px; white-space: pre-wrap; overflow: hidden; overflow-wrap: anywhere; }
+.template .thumb { display: block; height: 190px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); overflow: hidden; }
+.template .thumb .wtf { margin: 0; padding: 12px 10px; font-size: 5.5px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; pointer-events: none; }
+.template .thumb .wtf .inlay { font-size: inherit; }
 .template .thumb.blank { display: grid; place-items: center; color: var(--accent); }
 .template:hover .thumb { border-color: var(--accent); }
 .template .label { font-weight: 500; font-size: 13px; }

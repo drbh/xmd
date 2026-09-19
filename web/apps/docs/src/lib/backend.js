@@ -8,8 +8,10 @@
 //   subscribe(listener): () => void               listener({ type: "paused", message })
 //   label: string                                 e.g. "Saved in this browser"
 // Optional cloud capabilities: account { email }, signIn(), signOut(), acl(id).
-// A Document is { id, name, text, updated, version?, role? }.
-import { loadDocuments, saveDocuments, watchStorage, hasStoredDocuments } from "./store.js";
+// Folders: listFolders(), saveFolder(folder), deleteFolder(id); a document's
+// `folder` is a folder id or null. Cloud backends also offer folderAcl(id).
+// A Document is { id, name, text, updated, folder, version?, role?, owner? }.
+import { loadState, saveState, clearState, watchStorage, hasStoredDocuments } from "./store.js";
 
 export class BackendError extends Error {
   constructor(code, message, detail) { super(message); this.code = code; this.detail = detail; }
@@ -17,25 +19,44 @@ export class BackendError extends Error {
 
 export class LocalBackend {
   label = "Saved in this browser";
-  #documents = null;
+  #state = null;
   #listeners = new Set();
-  async list() { return (this.#documents ??= loadDocuments()); }
+  #load() { return (this.#state ??= loadState()); }
+  #write() { if (!saveState(this.#load())) throw new BackendError("unavailable", "Saving paused; download your changes"); }
+  async list() { return this.#load().documents; }
   /** Documents a person saved here, as opposed to the starter a fresh browser is seeded with. */
   async stored() { return hasStoredDocuments() ? this.list() : []; }
   async save(doc) {
-    const documents = await this.list();
+    const documents = this.#load().documents;
     const at = documents.findIndex(d => d.id === doc.id);
-    const copy = { id: doc.id, name: doc.name, text: doc.text, updated: doc.updated, opened: doc.opened };
+    const copy = { id: doc.id, name: doc.name, text: doc.text, updated: doc.updated, opened: doc.opened, folder: doc.folder ?? null };
     if (at === -1) documents.unshift(copy); else documents[at] = copy;
-    if (!saveDocuments(documents)) throw new BackendError("unavailable", "Saving paused; download your changes");
+    this.#write();
     return { version: doc.updated };
   }
+  async file(doc) { return this.save(doc); }
   async delete(id) {
-    this.#documents = (await this.list()).filter(d => d.id !== id);
-    saveDocuments(this.#documents);
+    const state = this.#load();
+    state.documents = state.documents.filter(d => d.id !== id);
+    this.#write();
+  }
+  async listFolders() { return this.#load().folders; }
+  async saveFolder(folder) {
+    const folders = this.#load().folders;
+    const at = folders.findIndex(f => f.id === folder.id);
+    const copy = { id: folder.id, name: folder.name, updated: folder.updated };
+    if (at === -1) folders.push(copy); else folders[at] = copy;
+    this.#write();
+    return copy;
+  }
+  async deleteFolder(id) {
+    const state = this.#load();
+    state.folders = state.folders.filter(f => f.id !== id);
+    for (const d of state.documents) if (d.folder === id) d.folder = null;
+    this.#write();
   }
   /** Removes everything from this browser, after documents were moved elsewhere. */
-  async clear() { this.#documents = []; saveDocuments([]); }
+  async clear() { this.#state = { documents: [], folders: [] }; clearState(); }
   subscribe(listener) {
     this.#listeners.add(listener);
     const stop = watchStorage(message => listener({ type: "paused", message }));

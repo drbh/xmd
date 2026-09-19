@@ -81,30 +81,41 @@ Spent [total] this week, about [per_day] per day.
 ` },
 ];
 
-const valid = d => /^[a-zA-Z0-9_-]+$/.test(d.id) && typeof d.name === "string" && typeof d.text === "string" && Number.isFinite(d.updated);
+const ID = /^[a-zA-Z0-9_-]+$/;
+const valid = d => ID.test(d.id) && typeof d.name === "string" && typeof d.text === "string" && Number.isFinite(d.updated) && (d.folder == null || ID.test(d.folder));
+const validFolder = f => ID.test(f.id) && typeof f.name === "string" && Number.isFinite(f.updated);
+const unique = list => new Set(list.map(x => x.id)).size === list.length;
 /** Whether this browser holds documents someone actually saved (not just the starter). */
 export function hasStoredDocuments() {
   try { return !!localStorage.getItem(KEY); } catch { return false; }
 }
-export function loadDocuments() {
+/** Documents and folders saved in this browser; a fresh browser starts with one example. */
+export function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed.documents) || !parsed.documents.length || parsed.documents.some(d => !valid(d)) || new Set(parsed.documents.map(d => d.id)).size !== parsed.documents.length) throw new Error("Invalid saved documents");
-      return parsed.documents;
+      const documents = parsed.documents, folders = parsed.folders ?? [];
+      if (!Array.isArray(documents) || !Array.isArray(folders) || documents.some(d => !valid(d)) || folders.some(f => !validFolder(f)) || !unique(documents) || !unique(folders)) throw new Error("Invalid saved documents");
+      return { documents, folders };
     }
   } catch { writable = false; }
-  return [createDocument(TEMPLATES[1])];
+  return { documents: [createDocument(TEMPLATES[1])], folders: [] };
 }
+export const loadDocuments = () => loadState().documents;
 export function createDocument(template = TEMPLATES[0], name) {
   const text = template.text;
-  return { id: crypto.randomUUID(), name: name ?? titleOf(text, template.name), text, updated: Date.now(), opened: Date.now() };
+  return { id: crypto.randomUUID(), name: name ?? titleOf(text, template.name), text, updated: Date.now(), opened: Date.now(), folder: null };
 }
-export function saveDocuments(documents) {
+export function saveState({ documents, folders = [] }) {
   if (!writable) return false;
-  try { localStorage.setItem(KEY, JSON.stringify({ documents })); return true; } catch { return false; }
+  try { localStorage.setItem(KEY, JSON.stringify({ documents, folders })); return true; } catch { return false; }
 }
+export const saveDocuments = documents => saveState({ documents });
+export function clearState() {
+  try { localStorage.removeItem(KEY); } catch { /* nothing to clear */ }
+}
+export const createFolder = name => ({ id: crypto.randomUUID(), name, updated: Date.now() });
 export function watchStorage(onConflict) {
   if (!writable) onConflict("Saved documents could not be read; original storage is preserved and saving is paused.");
   const handler = event => { if (event.key === KEY || event.key === null) { writable = false; onConflict("Another tab changed these documents; saving is paused. Download your changes before reloading."); } };

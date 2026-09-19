@@ -1,7 +1,7 @@
 <script>
   import { onMount, untrack } from "svelte";
   import { createWorkspace } from "@wtf/web";
-  import { titleOf, uriOf, createDocument, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
+  import { titleOf, uriOf, createDocument, createFolder, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
   import { lineStyle, reveal, stats } from "./lib/editing.js";
@@ -18,6 +18,9 @@
   import Book from "./lib/Book.svelte";
 
   let documents = $state([]);
+  let folders = $state([]);
+  let thumbs = $state.raw({});
+  let shareFolder = $state(null);
   let backends = $state.raw(null);
   const backend = $derived(backends?.backend);
   const account = $derived(backends?.cloud?.account ?? null);
@@ -76,8 +79,18 @@
       backends = await resolveBackend();
       unsubscribeBackend = backend.subscribe(event => { if (event.type === "paused") { saved = event.message; notice = event.message; paused = true; } });
       documents = await backend.list();
+      folders = await backend.listFolders();
       if (backends.cloud?.account) localCount = (await backends.local.stored()).length;
       for (const d of documents) await workspace.setDocument(uriOf(d.id), d.text);
+      // Template thumbnails are the templates themselves, resolved by the engine
+      // before any editor mounts, so nothing else is repainting meanwhile.
+      const rendered = {};
+      for (const t of TEMPLATES) {
+        const uri = `file:///workspace/templates/${t.id}.wtf`;
+        await workspace.setDocument(uri, t.text);
+        rendered[t.id] = (await workspace.analyze(uri, { force: true, editing: false }))?.html ?? "";
+      }
+      thumbs = rendered;
       route();
       ready = true;
       engine = "Rust / WebAssembly · runs in this tab";
@@ -148,8 +161,9 @@
       }
     }
   }
-  async function newDocument(template = TEMPLATES[0]) {
+  async function newDocument(template = TEMPLATES[0], folder = null) {
     const d = createDocument(template, template.id === "blank" ? "Untitled document" : undefined);
+    d.folder = folder;
     documents = [d, ...documents];
     await workspace.setDocument(uriOf(d.id), d.text);
     schedule(d);
@@ -220,18 +234,47 @@
     dirty.add(d.id);
     flush();
   }
+  // Folders group documents; sharing a folder shares everything in it.
+  async function newFolder(name = prompt("Folder name")) {
+    name = (name ?? "").trim();
+    if (!name) return;
+    const f = createFolder(name);
+    const saved = await backend.saveFolder(f).catch(error);
+    if (saved) folders = [...folders, { ...f, ...saved }];
+  }
+  async function renameFolder(f, name = prompt("Rename folder", f.name)) {
+    name = (name ?? "").trim();
+    if (!name || name === f.name) return;
+    f.name = name; f.updated = Date.now();
+    await backend.saveFolder($state.snapshot(f)).catch(error);
+  }
+  async function deleteFolder(f) {
+    if (!confirm(`Delete the folder "${f.name}"? Its documents stay and are just unfiled.`)) return;
+    folders = folders.filter(x => x.id !== f.id);
+    for (const d of documents) if (d.folder === f.id) d.folder = null;
+    await backend.deleteFolder(f.id).catch(error);
+  }
+  async function moveDocument(d, folder) {
+    d.folder = folder;
+    await backend.file($state.snapshot(d)).catch(error);
+  }
   // Documents saved in this browser before signing in can move to the account.
   async function moveLocal() {
-    const local = await backends.local.stored();
-    for (const d of local) {
-      if (documents.some(x => x.id === d.id)) continue;
-      await backends.cloud.save(d);
-      documents = [d, ...documents];
-      await workspace.setDocument(uriOf(d.id), d.text);
-    }
-    await backends.local.clear();
-    localCount = 0;
-    notice = `${local.length} document${local.length === 1 ? "" : "s"} moved to your account.`;
+    try {
+      const local = await backends.local.stored();
+      for (let d of local) {
+        if (documents.some(x => x.id === d.id)) continue;
+        d = { ...d, folder: null, version: undefined };
+        // An id the account cannot write to (taken elsewhere) gets a fresh one.
+        try { await backends.cloud.save(d); }
+        catch { d = { ...d, id: crypto.randomUUID() }; await backends.cloud.save(d); }
+        documents = [d, ...documents];
+        await workspace.setDocument(uriOf(d.id), d.text);
+      }
+      await backends.local.clear();
+      localCount = 0;
+      notice = `${local.length} document${local.length === 1 ? "" : "s"} moved to your account.`;
+    } catch (e) { error(e); }
   }
   function jump(symbol) {
     if (!controller) return;
@@ -285,19 +328,22 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, open, home, book, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
+    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, newFolder, moveDocument, get folders() { return folders; }, open, home, book, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
   }
 </script>
 
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
 <input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
 
+{#if shareFolder && backend?.folderAcl}
+  <Share acl={backend.folderAcl(shareFolder.id)} name={shareFolder.name} kind="folder" onClose={() => (shareFolder = null)} />
+{/if}
 {#if !ready}
   <div class="splash"><p>{engine}</p></div>
 {:else if view === "book"}
   <Book {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
 {:else if !active}
-  <Home {documents} {engine} {notice} {theme} {account} onBook={book} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+  <Home {documents} {folders} {thumbs} {engine} {notice} {theme} {account} onBook={book} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
   <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">

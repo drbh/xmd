@@ -41,7 +41,19 @@ export async function createBackend() {
     async save(doc) {
       // A document with a live session is saved by its room; nothing to send.
       if (rooms.has(doc.id)) return { version: doc.version };
-      return api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, version: doc.version } });
+      return api(`documents/${doc.id}`, { method: "PUT", body: { name: doc.name, text: doc.text, version: doc.version, folder: doc.folder ?? null } });
+    },
+    /** Filing changes the folder only; the text is left alone. */
+    async file(doc) { return api(`documents/${doc.id}`, { method: "PUT", body: { folder: doc.folder ?? null } }); },
+    async listFolders() { return api("folders"); },
+    async saveFolder(folder) { return api(`folders/${folder.id}`, { method: "PUT", body: { name: folder.name } }); },
+    async deleteFolder(id) { await api(`folders/${id}`, { method: "DELETE" }); },
+    folderAcl(id) {
+      return {
+        list: () => api(`folders/${id}/acl`),
+        add: (email, role) => api(`folders/${id}/acl`, { method: "PUT", body: { email, role } }),
+        remove: email => api(`folders/${id}/acl`, { method: "DELETE", body: { email } }),
+      };
     },
     async collaborate(doc) {
       const { createLive } = await import("./live.js");

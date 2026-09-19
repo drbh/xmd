@@ -100,6 +100,33 @@ test("an invite for an unseen email becomes access on first sign-in", async () =
   assert.deepEqual((await call(`/api/documents/${doc}/acl`)).data.invites, []);
 });
 
+test("folders: filing is owner-only, folder members reach its documents, deleting unfiles", async () => {
+  const folder = id(), doc = id();
+  assert.equal((await call(`/api/folders/${folder}`, { method: "PUT", body: { name: "Team" } })).status, 201);
+  assert.equal((await call(`/api/folders/${folder}`, { user: "bob@example.com", method: "PUT", body: { name: "Hijack" } })).status, 404);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { name: "Filed", text: "x", folder } })).status, 201);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { folder: id() } })).status, 404); // not a folder of mine
+  await call("/api/me", { user: "bob@example.com" });
+  assert.equal((await call(`/api/folders/${folder}/acl`, { method: "PUT", body: { email: "bob@example.com", role: "viewer" } })).status, 200);
+  const bobFolders = await call("/api/folders", { user: "bob@example.com" });
+  assert.ok(bobFolders.data.some(f => f.id === folder && f.role === "viewer" && f.owner === "alice@example.com"));
+  const bobDoc = await call(`/api/documents/${doc}`, { user: "bob@example.com" });
+  assert.equal(bobDoc.status, 200); assert.equal(bobDoc.data.role, "viewer"); assert.equal(bobDoc.data.folder, folder);
+  assert.equal((await call(`/api/documents/${doc}`, { user: "bob@example.com", method: "PUT", body: { name: "Filed", text: "y", version: 1 } })).status, 403);
+  // A direct editor grant outranks the folder's viewer role.
+  await call(`/api/documents/${doc}/acl`, { method: "PUT", body: { email: "bob@example.com", role: "editor" } });
+  assert.equal((await call(`/api/documents/${doc}`, { user: "bob@example.com" })).data.role, "editor");
+  // Bob cannot move the document; Alice can unfile it, and bob keeps only his direct grant.
+  assert.equal((await call(`/api/documents/${doc}`, { user: "bob@example.com", method: "PUT", body: { folder: null } })).status, 403);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { folder: null } })).status, 200);
+  assert.equal((await call(`/api/documents/${doc}`, { user: "bob@example.com" })).data.folder, null);
+  assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { folder } })).status, 200);
+  assert.equal((await call(`/api/folders/${folder}`, { user: "bob@example.com", method: "DELETE" })).status, 403);
+  assert.equal((await call(`/api/folders/${folder}`, { method: "DELETE" })).status, 200);
+  assert.equal((await call(`/api/documents/${doc}`)).data.folder, null);
+  assert.equal((await call("/api/folders")).data.some(f => f.id === folder), false);
+});
+
 test("validation and unauthenticated requests", async () => {
   assert.equal((await call("/api/documents/bad id", { method: "PUT", body: { name: "x", text: "y" } })).status, 400);
   assert.equal((await call(`/api/documents/${id()}`, { method: "PUT", body: { name: "x" } })).status, 400);

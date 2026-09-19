@@ -1,6 +1,7 @@
 //! Values: the kinds a note computes, their literals, display and arithmetic.
 use crate::{
-    error::{EvalError, EvalResult, Overflow, PropertyOwner},
+    error::{EvalError, EvalResult, Overflow},
+    lookups::Forecast,
     resources::Resource,
     timers::Timer,
 };
@@ -45,50 +46,6 @@ impl Currency {
 impl std::fmt::Display for Currency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
-    }
-}
-/// A day's weather from a cached lookup.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Forecast {
-    pub high: f64,
-    pub low: f64,
-    pub summary: String,
-    /// Chance of precipitation, 0 to 1, when the source reports it.
-    pub precipitation: Option<f64>,
-    pub fahrenheit: bool,
-}
-impl Forecast {
-    pub fn display(&self) -> String {
-        let unit = if self.fahrenheit { "°F" } else { "°C" };
-        let mut s = format!(
-            "{}{unit} / {}{unit} · {}",
-            decimal(self.high),
-            decimal(self.low),
-            self.summary
-        );
-        if let Some(p) = self.precipitation
-            && p >= 0.2
-        {
-            s.push_str(&format!(" · {}% rain", (p * 100.0).round()));
-        }
-        s
-    }
-    pub fn property(&self, name: &str) -> EvalResult<Value> {
-        match name {
-            "high" => Ok(Value::Number(self.high)),
-            "low" => Ok(Value::Number(self.low)),
-            "summary" => Ok(Value::Text(self.summary.clone())),
-            "rain" => self
-                .precipitation
-                .map(Value::Ratio)
-                .ok_or(EvalError::Message(
-                    "This forecast has no precipitation chance".into(),
-                )),
-            _ => Err(EvalError::UnknownProperty {
-                owner: PropertyOwner::Forecast,
-                name: name.into(),
-            }),
-        }
     }
 }
 /// A 3–5 letter uppercase name is a code literal (USD, EUR, NVDA), never a

@@ -5,9 +5,55 @@
 //! lens, through built-in keyless providers or commands from
 //! `.wtf/providers.json`.
 use crate::{
-    engine::{Currency, Forecast, Value},
-    error::{EvalError, EvalResult},
+    engine::{Currency, Value, decimal},
+    error::{EvalError, EvalResult, PropertyOwner},
 };
+
+/// A day's weather from a cached lookup: an object the store owns and a note
+/// reads from, not a kind the language can build.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Forecast {
+    pub high: f64,
+    pub low: f64,
+    pub summary: String,
+    /// Chance of precipitation, 0 to 1, when the source reports it.
+    pub precipitation: Option<f64>,
+    pub fahrenheit: bool,
+}
+impl Forecast {
+    pub fn display(&self) -> String {
+        let unit = if self.fahrenheit { "°F" } else { "°C" };
+        let mut s = format!(
+            "{}{unit} / {}{unit} · {}",
+            decimal(self.high),
+            decimal(self.low),
+            self.summary
+        );
+        if let Some(p) = self.precipitation
+            && p >= 0.2
+        {
+            s.push_str(&format!(" · {}% rain", (p * 100.0).round()));
+        }
+        s
+    }
+    pub fn property(&self, name: &str) -> EvalResult<Value> {
+        match name {
+            "high" => Ok(Value::Number(self.high)),
+            "low" => Ok(Value::Number(self.low)),
+            "summary" => Ok(Value::Text(self.summary.clone())),
+            "rain" => self
+                .precipitation
+                .map(Value::Ratio)
+                .ok_or(EvalError::Message(
+                    "This forecast has no precipitation chance".into(),
+                )),
+            _ => Err(EvalError::UnknownProperty {
+                owner: PropertyOwner::Forecast,
+                name: name.into(),
+            }),
+        }
+    }
+}
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

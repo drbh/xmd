@@ -1,0 +1,130 @@
+### 0 cli total
+$ wtf total
+--- stdin
+flights := $420.00
+hotel := $180.50
+total := flights + hotel
+exit 0
+--- stdout
+$600.50
+
+### 1 cli tasks | where !done | select {title} --json
+$ wtf tasks | where !done | select {title} --json
+--- stdin
+- [x] book flights
+- [ ] pack
+- [ ] print tickets
+exit 0
+--- stdout
+[
+  {
+    "title": "pack"
+  },
+  {
+    "title": "print tickets"
+  }
+]
+
+### 2 cli trip.wtf total
+$ wtf trip.wtf total
+exit 0
+--- stdout
+$600.50
+
+### 3 cli trip.wtf tasks | where !done | count
+$ wtf trip.wtf tasks | where !done | count
+exit 0
+--- stdout
+2
+
+### 4 cli --workspace tasks | where !done | count
+$ wtf --workspace tasks | where !done | count
+exit 0
+--- stdout
+2
+
+### 5 cli total
+$ wtf total
+--- stdin
+
+exit 1
+--- stderr
+wtf: Unknown name 'total'
+
+### 6 cli 
+$ wtf 
+exit 0
+--- stdout
+Reactive notes with a typed workspace query API. The default command is a query: name a note or pipe one in.
+
+Usage: wtf [OPTIONS] <QUERY>                (note on stdin)
+       wtf [OPTIONS] <FILE> <QUERY>
+       wtf [OPTIONS] --workspace <QUERY>
+       wtf <COMMAND> ...
+
+Commands:
+  lsp      Start the language server over stdin/stdout (for editor integrations)
+  query    Query tasks, values, tables, plans, resources and diagnostics
+  render   Export a saved note with the language server's colors and inline values
+  ast      Inspect syntax nodes, source text and expression trees for one note (JSON)
+  graph    Inspect dependencies between values, tasks and checklists in one note (JSON)
+  refresh  Explicitly refresh cached resource status and external lookups
+  sync     Keep a directory of notes in step with a folder in the web app
+  help     Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [FILE_OR_QUERY]  A note relative to --root, or the query itself when the note is piped in or --workspace is set
+  [QUERY]          A functional expression or collection pipeline; use - for stdin
+
+Options:
+      --workspace      Query all indexed notes instead of supplying a positional note file
+      --root <ROOT>    [default: .]
+      --json           Emit a JSON array, preserving dates, currencies and units
+      --jsonl          Emit one JSON value per line
+      --on <ON>        Evaluate at local midnight on this date
+      --now <NOW>      Freeze the clock and timezone offset using an RFC3339 timestamp
+      --fail-on-match  Return exit status 1 if the query returns any rows (useful for diagnostics)
+  -h, --help           Print help
+  -V, --version        Print version
+
+Examples: cat note.wtf | wtf 'total'
+          wtf note.wtf 'tasks | where !done' --json
+          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json
+          wtf lsp   # the language server, for editors
+Run `wtf query --help` for the query bindings, functions and stages.
+
+
+### 7 cli left
+$ wtf left
+--- stdin
+left := import("./other.wtf").budget - $200.00
+exit 0
+--- stdout
+$800
+
+### 8 cli query total
+$ wtf query total --root <root> --now 2026-09-16T12:00:00-04:00
+--- stdin
+total := $600.50
+exit 0
+--- stdout
+$600.50
+
+### 9 cli q tasks | count --json
+$ wtf q tasks | count --json
+--- stdin
+- [ ] pack
+exit 0
+--- stdout
+[
+  1
+]
+
+### 10 cli trip.wtf -
+$ wtf trip.wtf -
+--- stdin
+tasks | count
+exit 0
+--- stdout
+3
+

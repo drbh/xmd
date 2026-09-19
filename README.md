@@ -47,6 +47,15 @@ You can also query a specific file for its computed state.
 </picture>
 
 ```bash
-wtf query example.wtf 'total'
+cat example.wtf | wtf 'total'
 # $1,301.01
+```
+
+A query is the default command, so the note can be piped in or named on the
+command line; `wtf query` is the explicit form.
+
+```bash
+wtf example.wtf 'total'        # a note next to you
+wtf query example.wtf 'total'  # the same, spelled out
+wtf lsp                        # the language server, for editors
 ```

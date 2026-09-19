@@ -5,7 +5,7 @@ use crate::{
     timers::Timer,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset, Local, NaiveDate};
+use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -82,11 +82,6 @@ pub(super) struct RowScope {
     pub(super) decisions: BTreeMap<String, String>,
 }
 impl<'a> Engine<'a> {
-    pub fn new(workspace: &'a Workspace, today: NaiveDate) -> Self {
-        crate::RequestContext::new(workspace, Local::now().fixed_offset())
-            .with_today(today)
-            .engine()
-    }
     /// One clock snapshot per evaluation; injectable for deterministic tests.
     pub fn at(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
         crate::RequestContext::new(workspace, now).engine()

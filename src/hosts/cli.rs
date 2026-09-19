@@ -147,7 +147,7 @@ pub(crate) async fn refresh_in_memory(workspace: &mut Workspace) -> Vec<String> 
             Err(e) => errors.push(format!("{target}: {e}")),
         }
     }
-    errors.extend(crate::lookups::native::refresh(workspace).await);
+    errors.extend(crate::lookups::native::refresh(workspace, Local::now().fixed_offset()).await);
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {

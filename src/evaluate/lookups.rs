@@ -209,9 +209,10 @@ pub fn weather_summary(code: i64) -> &'static str {
 /// with a place want a forecast even without a `forecast(...)` call.
 pub fn wanted(
     ws: &crate::workspace::Workspace,
-    today: NaiveDate,
+    now: DateTime<chrono::FixedOffset>,
 ) -> std::collections::BTreeSet<LookupKey> {
-    let mut engine = crate::engine::Engine::new(ws, today);
+    let mut engine = crate::engine::Engine::at(ws, now);
+    let today = engine.today;
     for (path, doc) in &ws.documents {
         for symbol in ws.symbols().into_iter().filter(|s| s.path == *path) {
             let _ = engine.symbol(&symbol);
@@ -456,10 +457,14 @@ pub mod native {
             }
         }
     }
-    /// Refresh every lookup the notes want; returns the errors.
-    pub async fn refresh(ws: &mut crate::workspace::Workspace) -> Vec<String> {
+    /// Refresh every lookup the notes want, at the host's clock; returns the
+    /// errors.
+    pub async fn refresh(
+        ws: &mut crate::workspace::Workspace,
+        now: DateTime<chrono::FixedOffset>,
+    ) -> Vec<String> {
         let root = ws.root().to_path_buf();
-        let keys = super::wanted(ws, chrono::Local::now().date_naive());
+        let keys = super::wanted(ws, now);
         let mut errors = Vec::new();
         for key in keys {
             match fetch(&root, &key).await {

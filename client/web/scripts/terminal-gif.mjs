@@ -15,9 +15,11 @@ import { assemble, binary, keystroke, launch, option, record, requireFfmpeg, web
 import { finalNote, now } from "./lib/story.mjs";
 
 // Each session step is a comment, then a command whose `wtf …` is shown as
-// typed while `args` is what actually runs. Pauses let the answer be read.
+// typed while `args` is what actually runs. A step with `stdin` really pipes
+// the note in, and `shown` is then the pipeline as a person would type it.
+// Pauses let the answer be read.
 const session = [
-  { comment: "read one value", args: ["query", "trip.wtf", "total"] },
+  { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.wtf | wtf 'total'" },
   { comment: "filter and project, like SQL", args: ["query", "trip.wtf", "tasks | where !done | select {title, due}"] },
   { comment: "typed JSON for scripts", args: ["query", "trip.wtf", "car + groceries", "--json"] },
   { comment: "every value in the note, with its type", args: ["query", "trip.wtf", "values | select {name, type, display}"] },
@@ -35,12 +37,12 @@ requireFfmpeg();
 const root = await mkdtemp(join(tmpdir(), "wtf-terminal-"));
 await writeFile(join(root, "trip.wtf"), finalNote());
 
-const run = args => {
-  const result = spawnSync(binary, [...args, "--root", root, "--now", now], { encoding: "utf8", env: { ...process.env, TZ: "UTC" } });
+const run = (args, stdin) => {
+  const result = spawnSync(binary, [...args, "--root", root, "--now", now], { encoding: "utf8", input: stdin, env: { ...process.env, TZ: "UTC" } });
   if (result.error) throw new Error(`Cannot run ${binary}: ${result.error.message} (run \`cargo build\` first)`);
   return { text: (result.stdout + result.stderr).replace(/\n$/, ""), status: result.status };
 };
-const shown = args => `wtf ${args.map(a => (/[\s|!{}"()*]/.test(a) ? `'${a}'` : a)).join(" ")}`;
+const shown = step => step.shown ?? `wtf ${step.args.map(a => (/[\s|!{}"()*]/.test(a) ? `'${a}'` : a)).join(" ")}`;
 
 const palette = theme === "light"
   ? { paper: "#ffffff", ink: "#1f1f1f", dim: "#7a8088", prompt: "#2f6f9f", ok: "#3f7d3f", err: "#b2453d" }
@@ -77,12 +79,12 @@ try {
   for (const step of session) {
     await print(`<span class="dim"># ${escape(step.comment)}</span>\n<span class="prompt">$</span> `);
     await page.waitForTimeout(500);
-    for (const ch of shown(step.args)) {
+    for (const ch of shown(step)) {
       await print(escape(ch));
       await page.waitForTimeout(keystroke(ch));
     }
     await page.waitForTimeout(350);
-    const { text, status } = run(step.args);
+    const { text, status } = run(step.args, step.stdin);
     const body = text ? `${escape(text)}\n` : "";
     const exit = status === 0 && !text ? `<span class="ok">(no output, exit 0)</span>\n` : status !== 0 ? `<span class="err">exit ${status}</span>\n` : "";
     await print(`\n${body}${exit}\n`);

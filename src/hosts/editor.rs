@@ -65,7 +65,7 @@ impl Backend {
     async fn query(&self, params: QueryParams) -> Result<serde_json::Value> {
         let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
         self.rescan().await;
-        let now = params.now.unwrap_or_else(|| now());
+        let now = params.now.unwrap_or_else(now);
         let only = params
             .uri
             .map(|uri| {

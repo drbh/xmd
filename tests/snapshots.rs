@@ -33,7 +33,7 @@ fn cases_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cases")
 }
 
-/// One generated test per case directory; see `build.rs`.
+// One generated test per case directory; see `build.rs`.
 include!(concat!(env!("OUT_DIR"), "/cases.rs"));
 
 /// Runs one case and fails the test with its diff and kept workspace.

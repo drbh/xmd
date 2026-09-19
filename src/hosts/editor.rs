@@ -10,6 +10,7 @@ use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
     document::identifier,
     model::session::WorkspaceSession,
+    session::RefreshReport,
     workspace::{SymbolKind, Workspace},
 };
 use std::{
@@ -107,50 +108,28 @@ impl Backend {
             })),
         }
     }
+    /// Re-evaluate every open note and tell the client about all of it.
     async fn notify_changes(&self) {
-        let (diagnostics, hint_refresh, lens_refresh) = {
+        let (report, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
-            let now = now();
-            let paths: Vec<_> = state
-                .session
-                .versions()
-                .keys()
-                .filter(|p| state.session.workspace.documents.contains_key(*p))
-                .cloned()
-                .collect();
-            let (live, updates) = {
-                let request = crate::RequestContext::new(&state.session.workspace, now);
-                let live = paths
-                    .iter()
-                    .filter(|p| request.live_hints(p))
-                    .cloned()
-                    .collect();
-                let updates: Vec<_> = paths
-                    .into_iter()
-                    .map(|path| {
-                        let ds = request.diagnostics(&path, true);
-                        let lenses = request.code_lenses(&path, Capabilities::NATIVE);
-                        (path, ds, lenses)
-                    })
-                    .collect();
-                (live, updates)
-            };
-            state.session.live = live;
-            state.session.diagnostics.clear();
-            state.session.lenses.clear();
-            let mut diagnostics = Vec::new();
-            for (path, ds, lenses) in updates {
-                diagnostics.push((
-                    Url::from_file_path(&path).unwrap(),
-                    state.session.version(&path).unwrap_or_default(),
-                    ds.clone(),
-                ));
-                state.session.diagnostics.insert(path.clone(), ds);
-                state.session.lenses.insert(path, lenses);
-            }
-            (diagnostics, state.hint_refresh, state.lens_refresh)
+            let report = state.session.refresh(now());
+            (report, state.hint_refresh, state.lens_refresh)
         };
-        for (uri, version, diagnostics) in diagnostics {
+        self.publish(report, hint_refresh, lens_refresh).await;
+    }
+    /// A clock tick: only the notes that read the clock, and only what moved.
+    async fn tick(&self) {
+        let (report, hint_refresh, lens_refresh) = {
+            let mut state = self.state.write().await;
+            let Some(report) = state.session.refresh_live(now()) else {
+                return;
+            };
+            (report, state.hint_refresh, state.lens_refresh)
+        };
+        self.publish(report, hint_refresh, lens_refresh).await;
+    }
+    async fn publish(&self, report: RefreshReport, hint_refresh: bool, lens_refresh: bool) {
+        for (uri, version, diagnostics) in report.diagnostics {
             self.client
                 .publish_diagnostics(uri, diagnostics, Some(version))
                 .await;
@@ -160,75 +139,7 @@ impl Backend {
         if hint_refresh {
             let _ = self.client.inlay_hint_refresh().await;
         }
-        if lens_refresh {
-            let _ = self.client.code_lens_refresh().await;
-        }
-    }
-    async fn tick(&self) {
-        let (refresh, lens_refresh, diagnostics) = {
-            let mut state = self.state.write().await;
-            if state.session.live().is_empty() {
-                return;
-            }
-            let now = now();
-            let paths: Vec<_> = state
-                .session
-                .live()
-                .iter()
-                .filter(|p| {
-                    state.session.version(p).is_some()
-                        && state.session.workspace.documents.contains_key(*p)
-                })
-                .cloned()
-                .collect();
-            let (live, updates) = {
-                let request = crate::RequestContext::new(&state.session.workspace, now);
-                let updates: Vec<_> = paths
-                    .iter()
-                    .map(|path| {
-                        let ds = request.diagnostics(path, true);
-                        let lenses = request.code_lenses(path, Capabilities::NATIVE);
-                        (path.clone(), ds, lenses)
-                    })
-                    .collect();
-                let live = paths
-                    .into_iter()
-                    .filter(|p| request.live_hints(p))
-                    .collect();
-                (live, updates)
-            };
-            let mut diagnostics = Vec::new();
-            let mut lens_changed = false;
-            for (path, ds, lenses) in updates {
-                if state.session.diagnostics.get(&path) != Some(&ds) {
-                    diagnostics.push((
-                        Url::from_file_path(&path).unwrap(),
-                        state.session.version(&path).unwrap_or_default(),
-                        ds.clone(),
-                    ));
-                    state.session.diagnostics.insert(path.clone(), ds);
-                }
-                if state.session.lenses.get(&path) != Some(&lenses) {
-                    state.session.lenses.insert(path, lenses);
-                    lens_changed = true;
-                }
-            }
-            state.session.live = live;
-            (
-                state.hint_refresh,
-                state.lens_refresh && lens_changed,
-                diagnostics,
-            )
-        };
-        for (uri, version, ds) in diagnostics {
-            self.client
-                .publish_diagnostics(uri, ds, Some(version))
-                .await;
-        }
-        if refresh {
-            let _ = self.client.inlay_hint_refresh().await;
-        }
-        if lens_refresh {
+        if lens_refresh && report.lenses_changed {
             let _ = self.client.code_lens_refresh().await;
         }
     }

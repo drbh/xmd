@@ -191,7 +191,6 @@ pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
 pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
     let ws = request.workspace();
     let now = request.now();
-    let features = request.link_features();
     let mut engine = request.engine();
     let named = ws.named(symbol);
     if let SymbolKind::Column(t, c) = symbol.kind {
@@ -364,25 +363,13 @@ pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol)
             }
         }
     }
-    match value {
-        Ok(Value::Resource(r)) => out.push_str(&format!(
-            "\n\n{}",
-            r.presentation(&symbol.path, &ws.cache, now.to_utc(), features)
-                .hover
-        )),
-        Ok(Value::Timer(t)) => out.push_str(&t.hover()),
-        Ok(Value::Tasks(tasks)) => {
-            let done = tasks
-                .iter()
-                .filter(|(p, i)| engine.task_done(p, *i))
-                .count();
-            out.push_str(&format!(
-                "\n\n`{}` {done}/{} complete",
-                crate::charts::bar(done, tasks.len()),
-                tasks.len()
-            ));
-        }
-        _ => {}
+    // A host object adds what only it knows: a link's presentation, a timer's
+    // state, a checklist's progress.
+    if let Ok(value) = &value
+        && let Some(object) = value.host()
+        && let Some(detail) = object.hover(&mut engine, &symbol.path)
+    {
+        out.push_str(&detail);
     }
     out.push_str(&format!(
         "\n\nDefinition: {} · {}:{}",

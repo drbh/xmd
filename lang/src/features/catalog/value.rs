@@ -48,7 +48,12 @@ impl QueryValue {
             ),
         }
     }
+    /// Host objects describe themselves as plain language values; a namespace
+    /// has no such shape and stays the scalar it is.
     pub fn from_value(value: Value) -> Self {
+        if let Some(record) = value.host().and_then(crate::engine::HostObject::query) {
+            return Self::from_value(record);
+        }
         match value {
             Value::Null => Self::Null,
             Value::List(values) => Self::Array(values.into_iter().map(Self::from_value).collect()),
@@ -56,91 +61,6 @@ impl QueryValue {
                 fields
                     .into_iter()
                     .map(|(k, v)| (k, Self::from_value(v)))
-                    .collect(),
-            ),
-            Value::Plan(p) => Self::object([
-                ("goal", Self::text(p.goal.keyword())),
-                ("objective", Self::from_value(p.objective.clone())),
-                (
-                    "variables",
-                    Self::Object(
-                        p.variables
-                            .iter()
-                            .map(|(k, v)| (k.clone(), Self::from_value(v.clone())))
-                            .collect(),
-                    ),
-                ),
-                (
-                    "constraints",
-                    Self::Array(
-                        p.constraints
-                            .iter()
-                            .map(|c| {
-                                Self::object([
-                                    ("name", Self::text(&c.name)),
-                                    ("op", Self::text(c.op.as_str())),
-                                    ("lhs", Self::from_value(c.lhs.clone())),
-                                    ("rhs", Self::from_value(c.rhs.clone())),
-                                    ("slack", Self::from_value(c.slack.clone())),
-                                    ("binding", Self::boolean(c.binding)),
-                                ])
-                            })
-                            .collect(),
-                    ),
-                ),
-            ]),
-            Value::Table(t) => Self::Array(
-                t.rows
-                    .iter()
-                    .map(|row| {
-                        Self::Object(
-                            t.columns
-                                .iter()
-                                .cloned()
-                                .zip(row.iter().cloned().map(Self::from_value))
-                                .collect(),
-                        )
-                    })
-                    .collect(),
-            ),
-            Value::Timer(t) => Self::object([
-                ("state", Self::text(t.state().as_str())),
-                ("elapsed", Self::Scalar(Value::Duration(t.elapsed))),
-                (
-                    "limit",
-                    t.limit
-                        .map(|n| Self::Scalar(Value::Duration(n)))
-                        .unwrap_or(Self::Null),
-                ),
-                (
-                    "started",
-                    t.started
-                        .map(|d| Self::Scalar(Value::DateTime(d)))
-                        .unwrap_or(Self::Null),
-                ),
-            ]),
-            Value::Resource(r) => Self::object([("target", Self::text(r.target))]),
-            Value::Forecast(f) => Self::object([
-                ("high", Self::Scalar(Value::Number(f.high))),
-                ("low", Self::Scalar(Value::Number(f.low))),
-                ("summary", Self::text(f.summary)),
-                (
-                    "rain",
-                    f.precipitation
-                        .map(|n| Self::Scalar(Value::Ratio(n)))
-                        .unwrap_or(Self::Null),
-                ),
-                ("unit", Self::text(if f.fahrenheit { "F" } else { "C" })),
-            ]),
-            Value::Tasks(tasks) => Self::Array(
-                tasks
-                    .into_iter()
-                    .map(|(p, i)| {
-                        Self::object([
-                            ("path", Self::text(p.to_string_lossy())),
-                            ("task_index", Self::count(i)),
-                        ])
-                    })
                     .collect(),
             ),
             scalar => Self::Scalar(scalar),

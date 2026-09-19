@@ -70,9 +70,9 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
     }
 }
 /// The properties `value.` offers. Kinds whose fields are fixed answer from
-/// `ValueType::fields`, the same table `Value::property` reads; timers,
-/// forecasts, plans and records describe themselves, because their fields
-/// depend on the value rather than its type.
+/// `ValueType::fields`, the same table `Value::property` reads; a record and
+/// every host object describe themselves, because their fields depend on the
+/// value rather than its type.
 pub fn property_names(value: &Value) -> Vec<String> {
     property_names_with_links(value, crate::link_features::BUILTINS)
 }
@@ -80,27 +80,18 @@ fn property_names_with_links(
     value: &Value,
     links: crate::link_features::LinkFeatures<'_>,
 ) -> Vec<String> {
-    let names: Vec<&str> = match value {
-        Value::Timer(t) => {
-            let mut names = vec!["elapsed", "running", "done", "state"];
-            if t.limit.is_some() {
-                names.extend(["remaining", "duration"]);
-            }
-            names
-        }
-        Value::Resource(r) => {
-            let mut names = vec!["url".to_owned()];
-            names.extend(links.property_names(&r.target));
-            if !r.target.starts_with("http") && !r.target.starts_with("geo:") {
-                names.push("exists".into());
-            }
-            return names;
-        }
-        Value::Record(fields) => return fields.keys().cloned().collect(),
-        Value::Plan(p) => return p.property_names(),
-        _ => value.kind().fields().to_vec(),
-    };
-    names.into_iter().map(str::to_string).collect()
+    if let Some(object) = value.host() {
+        return object.fields(links);
+    }
+    match value {
+        Value::Record(fields) => fields.keys().cloned().collect(),
+        _ => value
+            .kind()
+            .fields()
+            .iter()
+            .map(|f| f.to_string())
+            .collect(),
+    }
 }
 pub(crate) fn completions(
     request: &crate::RequestContext<'_>,

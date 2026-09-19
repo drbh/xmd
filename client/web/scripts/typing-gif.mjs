@@ -2,7 +2,7 @@
 // appear as the note takes shape, and everything downstream moves when a
 // number changes.
 //
-//   node scripts/typing-gif.mjs [--theme light|dark] [--out dist/typing-<theme>.gif] [--port 4199]
+//   node scripts/typing-gif.mjs [--theme light|dark] [--out media/typing-<theme>.gif] [--port 4199]
 //
 // Needs a built site (`npm run build`), headless Chrome, and ffmpeg on PATH.
 // Only the page is captured, not the app's chrome, in a fixed-height frame
@@ -12,7 +12,7 @@ import { assemble, keystroke, launch, option, record, requireFfmpeg, serve, web 
 import { story } from "./lib/story.mjs";
 
 const theme = option("theme", "light");
-const out = resolve(web, option("out", `dist/typing-${theme}.gif`));
+const out = resolve(web, option("out", `media/typing-${theme}.gif`));
 const port = Number(option("port", "4199"));
 const fps = 10;
 const frameWidth = 720;

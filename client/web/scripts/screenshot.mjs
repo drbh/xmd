@@ -1,6 +1,6 @@
 // Emit a PNG of a rendered note, by default the README's minimal example.
 //
-//   node scripts/screenshot.mjs [--out dist/screenshot.png] [--theme dark|light]
+//   node scripts/screenshot.mjs [--out media/screenshot.png] [--theme dark|light]
 //                               [--source note.wtf] [--now 2026-09-18T12:00:00Z]
 //
 // The note is resolved by the native binary (`wtf render --format html`, so the
@@ -33,7 +33,7 @@ const option = (name, fallback) => {
   return at === -1 ? fallback : args[at + 1];
 };
 const web = fileURLToPath(new URL("../", import.meta.url));
-const out = resolve(web, option("out", "dist/screenshot.png"));
+const out = resolve(web, option("out", "media/screenshot.png"));
 const theme = option("theme", "dark");
 const now = option("now", "2026-09-18T12:00:00Z");
 const binary = resolve(web, "../../target/debug/wtf");

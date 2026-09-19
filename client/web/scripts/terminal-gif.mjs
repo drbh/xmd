@@ -1,6 +1,6 @@
 // Emit a GIF of the note from the typing GIF being queried from a terminal.
 //
-//   node scripts/terminal-gif.mjs [--theme light|dark] [--out dist/terminal-<theme>.gif]
+//   node scripts/terminal-gif.mjs [--theme light|dark] [--out media/terminal-<theme>.gif]
 //
 // The terminal is a styled page in headless Chrome, so both themes use the
 // note's own colors and fonts, but every answer is the real binary's output:
@@ -26,7 +26,7 @@ const session = [
 ];
 
 const theme = option("theme", "light");
-const out = resolve(web, option("out", `dist/terminal-${theme}.gif`));
+const out = resolve(web, option("out", `media/terminal-${theme}.gif`));
 const fps = 10;
 const frameWidth = 720;
 const frameHeight = 360;

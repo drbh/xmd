@@ -8,7 +8,8 @@ use crate::{
     document::Document,
     engine::{Engine, Value},
     inlays::{InlayContext, InlayFeature, InlaySink},
-    modules::{Hook, Module, ModuleKind, from_json, json, record},
+    modules::{Hook, Module, ModuleKind, from_json, json},
+    records::ToValue,
 };
 use chrono::NaiveDate;
 use lsp_types::{
@@ -30,33 +31,67 @@ impl InlayFeature for ModuleInlays {
         }
     }
 }
-fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
-    record(fields.into_iter().map(|(k, v)| (k.into(), v)))
-}
-
 /// The note a hook is looking at, with the record collections it declared.
 struct DocumentInput {
     path: String,
     uri: String,
     text: String,
     lines: Vec<String>,
+    /// The catalog collections the module asked for, under their own names.
     collections: Vec<(String, Value)>,
 }
 impl DocumentInput {
+    const PATH: &'static str = "path";
+    const URI: &'static str = "uri";
+    const TEXT: &'static str = "text";
+    const LINES: &'static str = "lines";
+}
+impl ToValue for DocumentInput {
     fn to_value(&self) -> Value {
-        let Value::Record(mut fields) = object([
-            ("path", Value::Text(self.path.clone())),
-            ("uri", Value::Text(self.uri.clone())),
-            ("text", Value::Text(self.text.clone())),
-            (
-                "lines",
-                Value::List(self.lines.iter().cloned().map(Value::Text).collect()),
-            ),
-        ]) else {
-            unreachable!()
-        };
+        let mut fields = std::collections::BTreeMap::from([
+            (Self::PATH.into(), self.path.to_value()),
+            (Self::URI.into(), self.uri.to_value()),
+            (Self::TEXT.into(), self.text.to_value()),
+            (Self::LINES.into(), self.lines.to_value()),
+        ]);
         fields.extend(self.collections.iter().cloned());
         Value::Record(fields)
+    }
+}
+
+/// Which module is asking, and at what revision.
+struct ModuleInput {
+    id: String,
+    revision: String,
+}
+impl ModuleInput {
+    const ID: &'static str = "id";
+    const REVISION: &'static str = "revision";
+}
+impl ToValue for ModuleInput {
+    fn to_value(&self) -> Value {
+        Value::Record(std::collections::BTreeMap::from([
+            (Self::ID.into(), self.id.to_value()),
+            (Self::REVISION.into(), self.revision.to_value()),
+        ]))
+    }
+}
+
+/// What the host can do with an action the module proposes.
+struct CapabilitiesInput {
+    refresh: bool,
+    views: bool,
+}
+impl CapabilitiesInput {
+    const REFRESH: &'static str = "refresh";
+    const VIEWS: &'static str = "views";
+}
+impl ToValue for CapabilitiesInput {
+    fn to_value(&self) -> Value {
+        Value::Record(std::collections::BTreeMap::from([
+            (Self::REFRESH.into(), self.refresh.to_value()),
+            (Self::VIEWS.into(), self.views.to_value()),
+        ]))
     }
 }
 
@@ -66,13 +101,18 @@ impl DocumentInput {
 pub(crate) struct HookInput {
     today: NaiveDate,
     document: DocumentInput,
-    module_id: String,
-    module_revision: String,
+    module: ModuleInput,
     range: Option<Range>,
     row: Option<usize>,
     capabilities: Option<Capabilities>,
 }
 impl HookInput {
+    const TODAY: &'static str = "today";
+    const DOCUMENT: &'static str = "document";
+    const MODULE: &'static str = "module";
+    const RANGE: &'static str = "range";
+    const ROW: &'static str = "row";
+    const CAPABILITIES: &'static str = "capabilities";
     fn with_range(mut self, range: Range) -> Self {
         self.range = Some(range);
         self
@@ -85,33 +125,30 @@ impl HookInput {
         self.capabilities = Some(capabilities);
         self
     }
+}
+impl ToValue for HookInput {
     fn to_value(&self) -> Value {
-        let Value::Record(mut fields) = object([
-            ("today", Value::Date(self.today)),
-            ("document", self.document.to_value()),
-            (
-                "module",
-                object([
-                    ("id", Value::Text(self.module_id.clone())),
-                    ("revision", Value::Text(self.module_revision.clone())),
-                ]),
-            ),
-        ]) else {
-            unreachable!()
-        };
+        let mut fields = std::collections::BTreeMap::from([
+            (Self::TODAY.into(), self.today.to_value()),
+            (Self::DOCUMENT.into(), self.document.to_value()),
+            (Self::MODULE.into(), self.module.to_value()),
+        ]);
+        // The optional three are absent, not null, when the call has no use
+        // for them: a hook tells them apart with `has`.
         if let Some(range) = self.range {
-            fields.insert("range".into(), from_json(&serde_json::json!(range)));
+            fields.insert(Self::RANGE.into(), from_json(&serde_json::json!(range)));
         }
         if let Some(row) = self.row {
-            fields.insert("row".into(), Value::Count(row));
+            fields.insert(Self::ROW.into(), row.to_value());
         }
         if let Some(capabilities) = self.capabilities {
             fields.insert(
-                "capabilities".into(),
-                object([
-                    ("refresh", Value::Bool(capabilities.refresh)),
-                    ("views", Value::Bool(capabilities.views)),
-                ]),
+                Self::CAPABILITIES.into(),
+                CapabilitiesInput {
+                    refresh: capabilities.refresh,
+                    views: capabilities.views,
+                }
+                .to_value(),
             );
         }
         Value::Record(fields)
@@ -273,8 +310,10 @@ pub(crate) fn input(
     Ok(HookInput {
         today: engine.today,
         document,
-        module_id: module.id.clone(),
-        module_revision: module.revision(),
+        module: ModuleInput {
+            id: module.id.clone(),
+            revision: module.revision(),
+        },
         range: None,
         row: None,
         capabilities: None,

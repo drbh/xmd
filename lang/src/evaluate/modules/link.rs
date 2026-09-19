@@ -7,6 +7,7 @@ use crate::error::{EvalError, EvalResult, PropertyOwner};
 use crate::{
     engine::Value,
     link_features::{LinkContext, LinkFeature, RefreshFormat, RefreshRequest},
+    records::{FromValue, LinkContextRecord, RefreshRecord, ToValue, UrlRecord},
     resources::Metadata,
 };
 use chrono::{DateTime, Utc};
@@ -17,26 +18,21 @@ impl Module {
         let cached = ctx
             .cached
             .filter(|m| m.provider.as_deref() == self.cache_key.as_deref());
-        super::record([
-            ("url".into(), url_value(ctx.url)),
-            ("native".into(), Value::Bool(!cfg!(target_arch = "wasm32"))),
-            (
-                "cached".into(),
-                cached
-                    .map(|m| {
-                        from_json(&m.data.clone().unwrap_or_else(|| {
+        LinkContextRecord {
+            url: UrlRecord::from(ctx.url),
+            native: !cfg!(target_arch = "wasm32"),
+            cached: cached
+                .map(|m| {
+                    from_json(
+                        &m.data.clone().unwrap_or_else(|| {
                             serde_json::to_value(m).expect("metadata serializes")
-                        }))
-                    })
-                    .unwrap_or(Value::Null),
-            ),
-            (
-                "fetched_at".into(),
-                cached
-                    .map(|m| Value::DateTime(m.fetched_at.fixed_offset()))
-                    .unwrap_or(Value::Null),
-            ),
-        ])
+                        }),
+                    )
+                })
+                .unwrap_or(Value::Null),
+            fetched_at: cached.map(|m| m.fetched_at.fixed_offset()),
+        }
+        .to_value()
     }
 }
 impl LinkFeature for Module {
@@ -118,43 +114,30 @@ impl LinkFeature for Module {
             return None;
         }
         // A request is data. The native host alone executes it on explicit refresh.
-        let Value::Record(fields) = self
-            .call(Hook::Refresh, vec![url_value(url)], epoch())
-            .ok()?
-        else {
-            return None;
-        };
-        let program = text(fields.get("program")?).ok()?;
-        let program = if program.starts_with("./") || program.starts_with("../") {
+        let request = RefreshRecord::from_value(
+            &self
+                .call(Hook::Refresh, vec![url_value(url)], epoch())
+                .ok()?,
+        )
+        .ok()?;
+        // A relative program is relative to the module that asked for it.
+        let program = if request.program.starts_with("./") || request.program.starts_with("../") {
             self.path
                 .parent()?
-                .join(program)
+                .join(request.program)
                 .to_string_lossy()
                 .into_owned()
         } else {
-            program
+            request.program
         };
         Some(RefreshRequest {
-            title: fields
-                .get("title")
-                .map(text)
-                .transpose()
-                .ok()?
-                .unwrap_or_else(|| "Module refresh".into()),
+            title: request.title.unwrap_or_else(|| "Module refresh".into()),
             program,
-            args: strings(fields.get("args")?).ok()?,
-            env: match fields.get("env") {
-                None => vec![],
-                Some(Value::Record(env)) => env
-                    .iter()
-                    .map(|(k, v)| text(v).map(|v| (k.clone(), v)))
-                    .collect::<Result<_, _>>()
-                    .ok()?,
-                _ => return None,
-            },
-            format: match fields.get("format") {
+            args: request.args,
+            env: request.env.unwrap_or_default().into_iter().collect(),
+            format: match request.format {
                 None => RefreshFormat::default(),
-                Some(value) => text(value).ok()?.parse().ok()?,
+                Some(format) => format.parse().ok()?,
             },
         })
     }

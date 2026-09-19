@@ -5,7 +5,8 @@ use crate::error::EvalResult;
 use crate::model::itinerary::{Day, Stop};
 use crate::{
     engine::Value,
-    modules::{ModuleRegistry, from_json, record},
+    modules::{ModuleRegistry, from_json},
+    records::{DayParts, DayRecord, DetailRecord, KindRecord, LineRecord, StopRecord, ToValue},
 };
 use chrono::{NaiveDate, Timelike};
 use lsp_types::{Position, Range};
@@ -20,7 +21,7 @@ pub(crate) fn try_dates(
     days: &[Day],
     today: NaiveDate,
 ) -> EvalResult<Vec<Option<NaiveDate>>> {
-    let input = Value::List(days.iter().map(day_parts).collect());
+    let input = Value::List(days.iter().map(|d| day_parts(d).to_value()).collect());
     let result = call(modules, "dates", vec![input, Value::Date(today)])?;
     Ok(crate::modules::list(&result)?
         .iter()
@@ -53,140 +54,82 @@ fn epoch() -> chrono::DateTime<chrono::FixedOffset> {
 pub(crate) fn call(modules: &ModuleRegistry, name: &str, args: Vec<Value>) -> EvalResult<Value> {
     modules.call("itinerary_core", name, args, epoch())
 }
-fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
-    record(fields.into_iter().map(|(k, v)| (k.into(), v)))
-}
 fn range(doc: Option<&Document>, span: Span) -> Value {
     doc.map(|d| from_json(&serde_json::json!(span.range(&d.text))))
         .unwrap_or(Value::Null)
 }
-fn line_fields(doc: Option<&Document>, row: usize) -> Vec<(String, Value)> {
-    vec![
-        ("line".into(), Value::Count(row)),
-        (
-            "raw".into(),
-            Value::Text(doc.map(|d| d.line(row)).unwrap_or("").into()),
-        ),
-        (
-            "line_range".into(),
-            doc.map(|d| {
+fn line_record(doc: Option<&Document>, row: usize) -> LineRecord {
+    LineRecord {
+        line: row,
+        raw: doc.map(|d| d.line(row)).unwrap_or("").into(),
+        line_range: doc
+            .map(|d| {
                 from_json(&serde_json::json!(Range::new(
                     Position::new(row as u32, 0),
                     d.line_end(row)
                 )))
             })
             .unwrap_or(Value::Null),
-        ),
-        (
-            "anchor".into(),
-            doc.map(|d| from_json(&serde_json::json!(d.line_end(row))))
-                .unwrap_or(Value::Null),
-        ),
-    ]
+        anchor: doc
+            .map(|d| from_json(&serde_json::json!(d.line_end(row))))
+            .unwrap_or(Value::Null),
+    }
 }
-fn day_parts(day: &Day) -> Value {
-    object([
-        ("month", Value::Count(day.month as usize)),
-        ("day", Value::Count(day.day as usize)),
-        (
-            "year",
-            day.year
-                .map(|y| Value::Number(y as f64))
-                .unwrap_or(Value::Null),
-        ),
-    ])
+fn day_parts(day: &Day) -> DayParts {
+    DayParts {
+        month: day.month as usize,
+        day: day.day as usize,
+        year: day.year.map(|y| y as f64),
+    }
 }
 pub(crate) fn day_record(day: &Day, doc: &Document) -> Value {
-    let Value::Record(mut fields) = day_parts(day) else {
-        unreachable!()
-    };
-    fields.extend(line_fields(Some(doc), day.line));
-    fields.extend([
-        (
-            "weekday".into(),
-            day.weekday
-                .map(|(w, _)| Value::Count(w.num_days_from_monday() as usize))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "weekday_range".into(),
-            day.weekday
-                .map(|(_, span)| range(Some(doc), span))
-                .unwrap_or(Value::Null),
-        ),
-        ("date_range".into(), range(Some(doc), day.date_span)),
-        (
-            "places".into(),
-            day.places
-                .as_ref()
-                .map(|(p, _)| Value::Text(p.clone()))
-                .unwrap_or(Value::Null),
-        ),
-        ("forecast".into(), Value::Null),
-        (
-            "stops".into(),
-            Value::List(
-                day.stops
-                    .iter()
-                    .map(|s| stop_record(s, Some(doc)))
-                    .collect(),
-            ),
-        ),
-    ]);
-    Value::Record(fields)
+    DayRecord {
+        parts: day_parts(day),
+        line: line_record(Some(doc), day.line),
+        weekday: day.weekday.map(|(w, _)| w.num_days_from_monday() as usize),
+        weekday_range: day
+            .weekday
+            .map(|(_, span)| range(Some(doc), span))
+            .unwrap_or(Value::Null),
+        date_range: range(Some(doc), day.date_span),
+        places: day.places.as_ref().map(|(p, _)| p.clone()),
+        forecast: Value::Null,
+        stops: day.stops.iter().map(|s| stop(s, Some(doc))).collect(),
+    }
+    .to_value()
 }
-pub(crate) fn stop_record(stop: &Stop, doc: Option<&Document>) -> Value {
-    record(
-        line_fields(doc, stop.line).into_iter().chain([
-            (
-                "kind".into(),
-                stop.kind
-                    .map(|k| {
-                        object([
-                            ("marker", Value::Text(k.marker.to_string())),
-                            ("name", Value::Text(k.name.into())),
-                        ])
-                    })
-                    .unwrap_or(Value::Null),
-            ),
-            (
-                "time".into(),
-                Value::Duration(stop.time.num_seconds_from_midnight() as i64),
-            ),
-            ("twelve_hour".into(), Value::Bool(stop.twelve_hour)),
-            ("title".into(), Value::Text(stop.title.clone())),
-            ("time_range".into(), range(doc, stop.time_span)),
-            ("title_range".into(), range(doc, stop.title_span)),
-            (
-                "range".into(),
-                range(
-                    doc,
-                    Span::new(stop.line, stop.time_span.start, stop.title_span.end),
-                ),
-            ),
-            (
-                "details".into(),
-                Value::List(
-                    stop.details
-                        .iter()
-                        .map(|d| {
-                            record(line_fields(doc, d.line).into_iter().chain([
-                                ("key".into(), Value::Text(d.key.clone())),
-                                ("value".into(), Value::Text(d.value.clone())),
-                            ]))
-                        })
-                        .collect(),
-                ),
-            ),
-            (
-                "notes".into(),
-                Value::List(
-                    stop.notes
-                        .iter()
-                        .map(|s| record(line_fields(doc, s.line)))
-                        .collect(),
-                ),
-            ),
-        ]),
-    )
+fn stop(stop: &Stop, doc: Option<&Document>) -> StopRecord {
+    StopRecord {
+        line: line_record(doc, stop.line),
+        kind: stop.kind.map(|k| KindRecord {
+            marker: k.marker.to_string(),
+            name: k.name.into(),
+        }),
+        time: stop.time.num_seconds_from_midnight() as i64,
+        twelve_hour: stop.twelve_hour,
+        title: stop.title.clone(),
+        time_range: range(doc, stop.time_span),
+        title_range: range(doc, stop.title_span),
+        range: range(
+            doc,
+            Span::new(stop.line, stop.time_span.start, stop.title_span.end),
+        ),
+        details: stop
+            .details
+            .iter()
+            .map(|d| DetailRecord {
+                line: line_record(doc, d.line),
+                key: d.key.clone(),
+                value: d.value.clone(),
+            })
+            .collect(),
+        notes: stop
+            .notes
+            .iter()
+            .map(|s| line_record(doc, s.line))
+            .collect(),
+    }
+}
+pub(crate) fn stop_record(value: &Stop, doc: Option<&Document>) -> Value {
+    stop(value, doc).to_value()
 }

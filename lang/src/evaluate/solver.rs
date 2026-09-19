@@ -3,6 +3,7 @@ use crate::error::{EvalError, EvalResult};
 use crate::{
     engine::{Comparison, Value},
     modules::{from_json, json},
+    records::FromValue,
 };
 use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
 use serde::Deserialize;
@@ -68,9 +69,18 @@ struct Model {
     objective: Form,
     constraints: Vec<Constraint>,
 }
+/// A model is the one record on this boundary that is pure JSON all the way
+/// down: numbers, text and nested records, with no unit or timestamp in it.
+/// `serde` is therefore the decoder, and the derived field names are the
+/// pinned ones; `FromValue` only puts it on the same footing as the rest.
+impl FromValue for Model {
+    fn from_value(value: &Value) -> EvalResult<Self> {
+        serde_json::from_value(json(value)?)
+            .map_err(|e| EvalError::Message(format!("Invalid linear model: {e}")))
+    }
+}
 pub fn solve(value: &Value) -> EvalResult<Value> {
-    let model: Model = serde_json::from_value(json(value)?)
-        .map_err(|e| EvalError::Message(format!("Invalid linear model: {e}")))?;
+    let model = Model::from_value(value)?;
     if model.variables.is_empty() || model.variables.len() > 512 || model.constraints.len() > 2048 {
         return Err(EvalError::Message(
             "Linear models require 1..512 variables and at most 2048 constraints".into(),

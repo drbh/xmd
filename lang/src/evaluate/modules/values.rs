@@ -1,6 +1,7 @@
 //! Converting between module values and the JSON and URLs hosts exchange.
 use crate::engine::Value;
 use crate::error::{EvalError, EvalResult};
+use crate::records::{ToValue, UrlRecord};
 use lsp_types::Url;
 
 pub(super) fn text(value: &Value) -> EvalResult<String> {
@@ -58,15 +59,7 @@ pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
     })
 }
 pub fn url_value(url: &Url) -> Value {
-    record([
-        ("raw".into(), Value::Text(url.to_string())),
-        (
-            "host".into(),
-            Value::Text(url.host_str().unwrap_or_default().into()),
-        ),
-        ("path".into(), Value::Text(url.path().into())),
-        ("scheme".into(), Value::Text(url.scheme().into())),
-    ])
+    UrlRecord::from(url).to_value()
 }
 pub(crate) fn list(value: &Value) -> EvalResult<&[Value]> {
     if let Value::List(items) = value {

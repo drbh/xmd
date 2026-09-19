@@ -10,6 +10,7 @@ use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
     document::identifier,
     model::session::WorkspaceSession,
+    paths,
     session::RefreshReport,
     workspace::{SymbolKind, Workspace},
 };
@@ -196,7 +197,7 @@ fn versioned_edit(path: &Path, edits: Vec<TextEdit>, version: Option<i32>) -> Wo
     WorkspaceEdit {
         document_changes: Some(DocumentChanges::Edits(vec![TextDocumentEdit {
             text_document: OptionalVersionedTextDocumentIdentifier {
-                uri: Url::from_file_path(path).unwrap(),
+                uri: paths::uri(path),
                 version,
             },
             edits: edits.into_iter().map(OneOf::Left).collect(),
@@ -441,7 +442,7 @@ impl LanguageServer for Backend {
         Ok(
             symbol_at(&state.session.workspace, &path, at.position).map(|(s, _)| {
                 GotoDefinitionResponse::Scalar(Location {
-                    uri: Url::from_file_path(&s.path).unwrap(),
+                    uri: paths::uri(&s.path),
                     range: state
                         .session
                         .workspace
@@ -464,7 +465,7 @@ impl LanguageServer for Backend {
             .into_iter()
             .skip(usize::from(!params.context.include_declaration))
             .map(|(p, span)| Location {
-                uri: Url::from_file_path(&p).unwrap(),
+                uri: paths::uri(&p),
                 range: span.range(&ws.documents[&p].text),
             })
             .collect();
@@ -496,7 +497,7 @@ impl LanguageServer for Backend {
             .into_iter()
             .map(|(p, edits)| TextDocumentEdit {
                 text_document: OptionalVersionedTextDocumentIdentifier {
-                    uri: Url::from_file_path(&p).unwrap(),
+                    uri: paths::uri(&p),
                     version: state.session.version(&p),
                 },
                 edits: edits.into_iter().map(OneOf::Left).collect(),
@@ -739,50 +740,12 @@ impl LanguageServer for Backend {
             }
             PreparedAction::ShowToday => {
                 self.rescan().await;
-                let now = now();
-                let today = now.date_naive();
                 let workspace = self.state.read().await.session.workspace.clone();
-                let compiled = crate::query::Query::parse(
-                    "import(\"agenda\").between(entries, today(), today())",
-                )
+                let content = crate::features::agenda::today_markdown(&crate::RequestContext::new(
+                    &workspace,
+                    now(),
+                ))
                 .map_err(Error::invalid_params)?;
-                let result = crate::RequestContext::new(&workspace, now)
-                    .query(&compiled, None)
-                    .map_err(Error::invalid_params)?;
-                let lines: Vec<_> = result
-                    .rows
-                    .iter()
-                    .map(|row| {
-                        let e = row.json();
-                        let path = Path::new(e["source"]["path"].as_str().unwrap_or(""));
-                        let blocked = e["blocked_by"]
-                            .as_array()
-                            .into_iter()
-                            .flatten()
-                            .filter_map(|v| v.as_str())
-                            .collect::<Vec<_>>();
-                        format!(
-                            "- [{}:{}](<{}>) — {}{}",
-                            path.file_name().unwrap_or_default().to_string_lossy(),
-                            e["source"]["line"],
-                            e["source"]["uri"].as_str().unwrap_or(""),
-                            e["title"].as_str().unwrap_or(""),
-                            if blocked.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" (blocked by {})", blocked.join(", "))
-                            }
-                        )
-                    })
-                    .collect();
-                let content = format!(
-                    "# Today — {today}\n\nGenerated view. Follow a link to edit the original note.\n\n{}\n",
-                    if lines.is_empty() {
-                        "Nothing scheduled.".into()
-                    } else {
-                        lines.join("\n")
-                    }
-                );
                 let dir = workspace.root().join(".wtf");
                 tokio::task::spawn_blocking({
                     let dir = dir.clone();
@@ -797,7 +760,7 @@ impl LanguageServer for Backend {
                 let _ = self
                     .client
                     .show_document(ShowDocumentParams {
-                        uri: Url::from_file_path(dir.join("today.md")).unwrap(),
+                        uri: paths::uri(dir.join("today.md")),
                         external: Some(false),
                         take_focus: Some(true),
                         selection: None,
@@ -833,7 +796,7 @@ impl LanguageServer for Backend {
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&s.path).unwrap(),
+                    uri: paths::uri(&s.path),
                     range: ws.named(&s).span.range(&ws.documents[&s.path].text),
                 },
                 container_name: Some(s.path.display().to_string()),

@@ -3,6 +3,7 @@
 //! methods on a request, which is the only way a host reaches them; the feature
 //! modules never reach into each other's internals.
 pub mod actions;
+pub mod agenda;
 pub mod catalog;
 pub mod commands;
 pub mod completion;

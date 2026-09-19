@@ -94,7 +94,7 @@ fn serialized(value: impl serde::Serialize) -> Result<Value, String> {
 impl BrowserWorkspace {
     fn edit(&self, changes: BTreeMap<PathBuf, Vec<TextEdit>>) -> Value {
         json!({"documentChanges": changes.into_iter().map(|(p,edits)| json!({
-            "textDocument":{"uri":paths::file_url(&p).unwrap(),"version":self.session.version(&p)}, "edits":edits
+            "textDocument":{"uri":paths::uri(&p),"version":self.session.version(&p)}, "edits":edits
         })).collect::<Vec<_>>()})
     }
     fn single_edit(&self, path: &Path, edits: Vec<TextEdit>) -> Value {
@@ -193,7 +193,7 @@ impl BrowserWorkspace {
         let request = crate::RequestContext::new(ws, now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &crate::workspace::Symbol| Location {
-            uri: paths::file_url(&symbol.path).unwrap(),
+            uri: paths::uri(&symbol.path),
             range: ws
                 .named(symbol)
                 .span
@@ -261,7 +261,7 @@ impl BrowserWorkspace {
                 let locations: Vec<Location> = intelligence::occurrences(ws, &symbol)
                     .into_iter()
                     .map(|(p, span)| Location {
-                        uri: paths::file_url(&p).unwrap(),
+                        uri: paths::uri(&p),
                         range: span.range(&ws.documents[&p].text),
                     })
                     .collect();
@@ -273,7 +273,7 @@ impl BrowserWorkspace {
                         locations
                             .into_iter()
                             .enumerate()
-                            .filter(|(_, l)| l.uri == paths::file_url(&path).unwrap())
+                            .filter(|(_, l)| l.uri == paths::uri(&path))
                             .map(|(i, l)| json!({"range":l.range,"kind":if i==0 {3} else {2}}))
                             .collect::<Vec<_>>()
                     ));

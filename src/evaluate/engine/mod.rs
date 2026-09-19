@@ -11,11 +11,13 @@ use std::{
     path::{Path, PathBuf},
 };
 mod arithmetic;
+mod builtins;
 mod linear;
 mod syntax;
 mod value;
 pub(crate) use arithmetic::binary;
 pub use arithmetic::{BinaryOp, Comparison, Operator, UnaryOp};
+pub use builtins::Builtin;
 pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};

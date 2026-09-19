@@ -44,7 +44,7 @@ const shown = args => `wtf ${args.map(a => (/[\s|!{}"()*]/.test(a) ? `'${a}'` : 
 
 const palette = theme === "light"
   ? { paper: "#ffffff", ink: "#1f1f1f", dim: "#7a8088", prompt: "#2f6f9f", ok: "#3f7d3f", err: "#b2453d" }
-  : { paper: "#171b19", ink: "#d4ded4", dim: "#7f8a80", prompt: "#8fcbff", ok: "#9ce8a0", err: "#ff8fa3" };
+  : { paper: "#202124", ink: "#e3e3e3", dim: "#9aa0a6", prompt: "#8ab4f8", ok: "#81c995", err: "#f28b82" };
 const fonts = new URL("../theme/fonts.css", import.meta.url).href;
 const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${fonts}"><style>
 html, body { margin: 0; background: ${palette.paper}; }

@@ -286,7 +286,7 @@ pub fn fragment(snapshot: &Snapshot<'_>) -> Result<String, String> {
 /// A standalone page has no scripts, fonts, or other external requests.
 pub fn document(title: &str, body: &str) -> String {
     format!(
-        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title><style>{}\nhtml {{ background: #171b19; }} body {{ margin: 0; padding: 28px; }} @media print {{ html {{ background: white; }} body {{ padding: 0; }} }}</style></head><body><pre class=\"wtf\"><code>{body}</code></pre></body></html>\n",
+        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title><style>{}\nhtml {{ background: #202124; }} body {{ margin: 0; padding: 28px; }} @media print {{ html {{ background: white; }} body {{ padding: 0; }} }}</style></head><body><pre class=\"wtf\"><code>{body}</code></pre></body></html>\n",
         escape(title),
         styles()
     )

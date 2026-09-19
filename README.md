@@ -1,61 +1,56 @@
 [![CI](https://github.com/drbh/jot/actions/workflows/ci.yml/badge.svg)](https://github.com/drbh/jot/actions/workflows/ci.yml)
 
-`.wtf` is markdown with reactive values, a computation graph, and an LSP-native runtime.
+# wtf
+
+Notes that compute. A `.wtf` file is Markdown where values have names, and
+everything that depends on them stays right — in your editor, from the shell,
+in a plain text file.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f62c327c-ba0c-4d6a-8a94-5304bad54ee1">
-  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://github.com/user-attachments/assets/4b1c9bbf-4af6-4395-a3a8-ade128acbc65" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/typing-dark.gif">
+  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
 </picture>
 
-* plain text first
-* reactive values inside notes
-* relationships form a computation graph
-* query resolved state, not just source text
-* only recompute what changed
-* LSP-first: references, values, errors, actions inline
-* stay unstructured until structure is useful
-* static file, computed overlay
+## The language, in seven lines
 
-## Basic Usage
-
-The best way to get started is to simply install the lsp into your editor and start writing `.wtf` files.
-
-The lsp will highlight and provide the computed values and errors inline. (example below uses `#` where the inlay hint would be shown)
-
-`example.wtf`
 ```wtf
-The most basic note could simply be a note with some expense
-
-$1,234:car
-
-$67:groceries
-
-$0.01:peanuts
-
-total := car + groceries + peanuts # = $1,301.01
-
-total was [total] # $1,301.01
+$1,234:car                          a value with a name
+total := car + $67                  a calculation          = $1,301
+We have [total] left.               any value in a sentence  $1,301
+2026-11-20:departure                dates do arithmetic
+- [ ] Pack @due(departure - 14d)    tasks know when they are due  → due 2026-11-06
+## Trip :trip                       a named heading counts its tasks  0/1 complete
+focus := countdown(25m)             timers are values        ◷ 25:00 remaining
 ```
 
-## Getting Data
+The right-hand column is what your editor shows inline. That is the whole
+model; everything else is a function you call or a module you add.
 
-You can also query a specific file for its computed state.
+## Ask the file a question
+
+```sh
+cat trip.wtf | wtf 'total'                        # $1,301
+wtf trip.wtf 'tasks | where !done' --json         # typed JSON
+wtf --workspace 'diagnostics' --fail-on-match     # a build check
+```
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/terminal-dark.gif">
   <img alt="Querying the note from a terminal: single values, filtered tasks, typed JSON, diagnostics for CI and a rendered text export" src="https://example.com/placeholder/terminal-light.gif" width="720">
 </picture>
 
-```bash
-cat example.wtf | wtf 'total'
-# $1,301.01
+## Install
+
+```sh
+cargo install --path lang     # the wtf binary: CLI and language server
 ```
 
-A query is the default command, so the note can be piped in or named on the
-command line; `wtf query` is the explicit form.
+Editors: [VS Code](client/ide/vscode) · [Neovim](client/ide/neovim) ·
+[Zed](client/ide/zed) · [Helix](client/ide/helix) — each runs `wtf lsp`.
+Or open a note in the [browser app](client/web) without installing anything.
 
-```bash
-wtf example.wtf 'total'        # a note next to you
-wtf query example.wtf 'total'  # the same, spelled out
-wtf lsp                        # the language server, for editors
-```
+## Go further
+
+- [Examples](lang/examples) — one short note per feature, in the order you'll meet them.
+- [Standard library](lang/stdlib) — the modules behind tasks, timers, plans, feeds and units, written in `.wtf`.
+- `wtf --help` and `wtf query --help` — every command, binding, function and stage.

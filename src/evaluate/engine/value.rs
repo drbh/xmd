@@ -389,6 +389,18 @@ pub fn date_value(s: &str) -> Option<Value> {
     }
     None
 }
+/// Whether `s` names a day relative to some other day (`today`, `tomorrow`,
+/// `yesterday`, `next friday`), without needing to know which day that is.
+pub fn is_relative_date(s: &str) -> bool {
+    let s = s.trim().to_lowercase();
+    matches!(s.as_str(), "today" | "tomorrow" | "yesterday")
+        || s.strip_prefix("next ").is_some_and(|day| {
+            matches!(
+                day,
+                "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+            )
+        })
+}
 pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
     let s = s.trim().to_lowercase();
     match s.as_str() {

@@ -20,8 +20,8 @@ pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};
 pub use value::{
-    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code, literal,
-    next_occurrence, relative_date,
+    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code,
+    is_relative_date, literal, next_occurrence, relative_date,
 };
 #[derive(Clone, Debug)]
 pub struct EvalFailure {

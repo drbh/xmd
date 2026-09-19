@@ -242,310 +242,472 @@ pub struct Document {
     pub problems: Vec<Problem>,
 }
 
+/// What a line is, decided before the document is touched: every branch the
+/// parse loop used to take at the top of an iteration.
+enum Line<'a> {
+    /// A fence delimiter, or a line inside an open fence; `open` is the fence
+    /// still open after this line.
+    Fence {
+        start: usize,
+        open: Option<(char, usize)>,
+    },
+    /// An HTML comment line (opening, inside or closing) or a `//` line;
+    /// `open` is whether the comment runs on past this line.
+    Comment { start: usize, open: bool },
+    /// `## Title :name`
+    Heading {
+        start: usize,
+        level: usize,
+        title: &'a str,
+        title_end: usize,
+        named: Option<Named>,
+    },
+    /// `- [ ] title`, with `checkbox` at the `[`.
+    Task { start: usize, checkbox: usize },
+    /// Whitespace only: it says nothing about the note.
+    Blank,
+    /// Everything else: prose, plain list items, table rows, event lines.
+    Prose { start: usize },
+}
+
+/// All a line needs to know about the lines before it. A table, plan or
+/// multiline expression in progress is not held here: the builder that read
+/// those rows reports how many it took, and they never reach the classifier.
+#[derive(Default)]
+struct BlockState {
+    /// The fence marker and the length of its run, while a fence is open.
+    fence: Option<(char, usize)>,
+    /// Whether an HTML comment is still open.
+    comment: bool,
+}
+
+/// Decide what a line is, without looking at the document being built.
+fn classify<'a>(line: &'a str, row: usize, state: &BlockState) -> Line<'a> {
+    let start = line.len() - line.trim_start().len();
+    let trimmed = &line[start..];
+    let marker = trimmed.chars().next().unwrap_or(' ');
+    let run = trimmed.chars().take_while(|c| *c == marker).count();
+    if let Some((kind, count)) = state.fence {
+        let closes = marker == kind && run >= count && trimmed[run..].trim().is_empty();
+        return Line::Fence {
+            start,
+            open: (!closes).then_some((kind, count)),
+        };
+    }
+    if (marker == '`' || marker == '~') && run >= 3 {
+        return Line::Fence {
+            start,
+            open: Some((marker, run)),
+        };
+    }
+    if state.comment || trimmed.starts_with("<!--") {
+        return Line::Comment {
+            start,
+            open: !trimmed.contains("-->"),
+        };
+    }
+    if trimmed.starts_with("//") {
+        return Line::Comment { start, open: false };
+    }
+    if marker == '#'
+        && run <= 6
+        && trimmed
+            .as_bytes()
+            .get(run)
+            .is_some_and(u8::is_ascii_whitespace)
+    {
+        let named = trailing_name(line, row);
+        let title_end = named
+            .as_ref()
+            .map(|n| n.span.start - 1)
+            .unwrap_or(line.len());
+        return Line::Heading {
+            start,
+            level: run,
+            title: line[start + run..title_end].trim(),
+            title_end,
+            named,
+        };
+    }
+    if trimmed.is_empty() {
+        return Line::Blank;
+    }
+    let checkbox = ["- [", "* [", "+ ["]
+        .iter()
+        .find(|prefix| trimmed.starts_with(**prefix))
+        .map(|_| start + 2)
+        .filter(|s| {
+            matches!(line.as_bytes().get(s + 1), Some(b' ' | b'x' | b'X'))
+                && line.as_bytes().get(s + 2) == Some(&b']')
+                && line
+                    .as_bytes()
+                    .get(s + 3)
+                    .is_none_or(u8::is_ascii_whitespace)
+        });
+    match checkbox {
+        Some(checkbox) => Line::Task { start, checkbox },
+        None => Line::Prose { start },
+    }
+}
+
 impl Document {
     pub fn parse(text: String) -> Self {
         let mut doc = Self {
             text: text.clone(),
             ..Self::default()
         };
-        let mut fence: Option<(char, usize)> = None;
-        let mut comment = false;
-        let mut parents: Vec<usize> = Vec::new();
         let lines: Vec<_> = text.lines().collect();
-        let mut table_end = 0;
-        for (row, line) in lines.iter().copied().enumerate() {
-            if row < table_end {
-                continue;
-            }
-            let start = line.len() - line.trim_start().len();
-            let trimmed = &line[start..];
-            let marker = trimmed.chars().next().unwrap_or(' ');
-            let run = trimmed.chars().take_while(|c| *c == marker).count();
-            if let Some((kind, count)) = fence {
-                if marker == kind && run >= count && trimmed[run..].trim().is_empty() {
-                    fence = None;
+        let mut state = BlockState::default();
+        let mut parents: Vec<usize> = Vec::new();
+        let mut row = 0;
+        while row < lines.len() {
+            let line = lines[row];
+            let mut consumed = 0;
+            match classify(line, row, &state) {
+                Line::Fence { start, open } => {
+                    state.fence = open;
+                    doc.mark(row, start, line.len(), HighlightKind::String);
                 }
-                doc.mark(row, start, line.len(), HighlightKind::String);
-                continue;
-            }
-            if (marker == '`' || marker == '~') && run >= 3 {
-                fence = Some((marker, run));
-                doc.mark(row, start, line.len(), HighlightKind::String);
-                continue;
-            }
-            if comment || trimmed.starts_with("<!--") {
-                comment = !trimmed.contains("-->");
-                doc.mark(row, start, line.len(), HighlightKind::Comment);
-                continue;
-            }
-            if trimmed.starts_with("//") {
-                doc.mark(row, start, line.len(), HighlightKind::Comment);
-                continue;
-            }
-            let heading = marker == '#'
-                && run <= 6
-                && trimmed
-                    .as_bytes()
-                    .get(run)
-                    .is_some_and(u8::is_ascii_whitespace);
-            if heading {
-                parents.clear();
-                for section in &mut doc.sections {
-                    if section.end_line == usize::MAX && section.level >= run {
-                        section.end_line = row;
+                Line::Comment { start, open } => {
+                    state.comment = open;
+                    doc.mark(row, start, line.len(), HighlightKind::Comment);
+                }
+                Line::Blank => {}
+                Line::Heading {
+                    start,
+                    level,
+                    title,
+                    title_end,
+                    named,
+                } => {
+                    parents.clear();
+                    doc.heading(line, row, start, level, title, title_end, named);
+                }
+                Line::Task { start, checkbox } => {
+                    let attrs = doc.attributes(line, row, checkbox + 3);
+                    doc.task(line, row, start, checkbox, &attrs, &mut parents);
+                    doc.prose(line, row, checkbox + 3, &attrs);
+                    consumed = doc.blocks(&text, &lines, row);
+                }
+                Line::Prose { start } => {
+                    let attrs = doc.attributes(line, row, start);
+                    if attrs.contains_key("at") {
+                        doc.event(line, row, start, &attrs);
                     }
-                }
-                let named = trailing_name(line, row);
-                let title_end = named
-                    .as_ref()
-                    .map(|n| n.span.start - 1)
-                    .unwrap_or(line.len());
-                doc.sections.push(Section {
-                    line: row,
-                    end_line: usize::MAX,
-                    level: run,
-                    title: line[start + run..title_end].trim().into(),
-                    named: named.clone(),
-                });
-                doc.mark(row, start, title_end, HighlightKind::Heading);
-                if let Some(n) = named {
-                    doc.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
-                }
-                doc.raw_links(line, row, start + run, title_end);
-                continue;
-            }
-            let checkbox_start = ["- [", "* [", "+ ["]
-                .iter()
-                .find(|prefix| trimmed.starts_with(**prefix))
-                .map(|_| start + 2);
-            let is_task = checkbox_start.filter(|s| {
-                matches!(line.as_bytes().get(s + 1), Some(b' ' | b'x' | b'X'))
-                    && line.as_bytes().get(s + 2) == Some(&b']')
-                    && line
-                        .as_bytes()
-                        .get(s + 3)
-                        .is_none_or(u8::is_ascii_whitespace)
-            });
-            let content_start = is_task.map(|s| s + 3).unwrap_or(start);
-            let attrs = doc.attributes(line, row, content_start);
-            if let Some(s) = is_task {
-                let named = trailing_name(line, row);
-                while parents
-                    .last()
-                    .is_some_and(|i| doc.tasks[*i].indent >= start)
-                {
-                    parents.pop();
-                }
-                let title_end = attrs
-                    .values()
-                    .map(|a| a.span.start)
-                    .chain(named.iter().map(|n| n.span.start - 1))
-                    .min()
-                    .unwrap_or(line.len());
-                let tags = line
-                    .split_whitespace()
-                    .filter_map(|t| t.strip_prefix('#'))
-                    .filter(|t| identifier(t))
-                    .map(str::to_owned)
-                    .chain(
-                        attrs
-                            .get("tag")
-                            .into_iter()
-                            .flat_map(|a| a.value.split(',').map(|s| s.trim().to_string())),
-                    )
-                    .collect();
-                doc.tasks.push(Task {
-                    line: row,
-                    indent: start,
-                    checked: line.as_bytes()[s + 1] != b' ',
-                    checkbox: Span::new(row, s, s + 3),
-                    title: line[s + 3..title_end].trim().into(),
-                    named: named.clone(),
-                    parent: parents.last().copied(),
-                    attributes: attrs.clone(),
-                    tags,
-                });
-                parents.push(doc.tasks.len() - 1);
-                doc.mark(row, s, s + 3, HighlightKind::Keyword);
-                if let Some(n) = named {
-                    doc.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
-                }
-            } else if attrs.contains_key("at") {
-                let end = attrs
-                    .values()
-                    .map(|a| a.span.start)
-                    .min()
-                    .unwrap_or(line.len());
-                doc.events.push(Event {
-                    line: row,
-                    title: line[start..end].trim().trim_start_matches("- ").into(),
-                    attributes: attrs.clone(),
-                });
-            }
-            doc.inline(line, row, content_start, &attrs);
-            if let Some(index) = doc.definitions.len().checked_sub(1)
-                && doc.definitions[index].expression
-                && doc.definitions[index].named.span.line == row
-            {
-                let span = doc.definitions[index].value_span;
-                let end_row = expression_end(&lines, row, span.start);
-                if end_row > row {
-                    let prefix: usize = text.split_inclusive('\n').take(row).map(str::len).sum();
-                    let length: usize = text[prefix..]
-                        .split_inclusive('\n')
-                        .take(end_row - row)
-                        .map(str::len)
-                        .sum();
-                    let end = length + lines[end_row].len();
-                    let block = &text[prefix..prefix + end];
-                    doc.references
-                        .retain(|r| r.span.line != row || r.span.start < span.start);
-                    doc.members
-                        .retain(|m| m.span.line != row || m.span.start < span.start);
-                    doc.highlights
-                        .retain(|h| h.span.line != row || h.span.end <= span.start);
-                    doc.definitions[index].source = block[span.start..].trim().into();
-                    doc.definitions[index].value_span.end = end;
-                    doc.definitions[index].end =
-                        Span::new(end_row, lines[end_row].len(), lines[end_row].len());
-                    doc.expression(block, row, span.start, end);
-                    table_end = end_row + 1;
-                }
-            }
-            // A line that is only math, with its variables in brackets, shows its
-            // result at the end: `[budget] - [spent]`.
-            if is_task.is_none()
-                && attrs.is_empty()
-                && let Some(source) = line_calculation(trimmed)
-            {
-                doc.calculations.push(Calculation {
-                    span: Span::new(row, start, start + trimmed.trim_end().len()),
-                    source,
-                    bracketed: false,
-                });
-            }
-            if let Some(index) = doc.definitions.len().checked_sub(1)
-                && doc.definitions[index].named.span.line == row
-                && doc.definitions[index].expression
-                && crate::plans::goal(&doc.definitions[index].source).is_some()
-            {
-                let mut plan = crate::plans::parse(&doc, index, &lines);
-                table_end = plan.end_line;
-                for column in &plan.columns {
-                    doc.mark(
-                        column.span.line,
-                        column.span.start,
-                        column.span.end,
-                        HighlightKind::Keyword,
-                    );
-                }
-                for constraint in &plan.constraints {
-                    let n = &constraint.named;
-                    doc.mark(
-                        n.span.line,
-                        n.span.start,
-                        n.span.end,
-                        HighlightKind::Variable,
-                    );
-                    doc.expression(
-                        lines[constraint.span.line],
-                        constraint.span.line,
-                        constraint.span.start,
-                        constraint.span.end,
-                    );
-                }
-                for reference in &doc.references {
-                    // Column names inside sum(table, ...) belong to the table.
-                    let in_sum = crate::plans::regions(&plan).any(|region| {
-                        region.contains(&doc.text, reference.span)
-                            && crate::engine::sum_scope_at(
-                                region.source(&doc.text),
-                                region.offset_of(&doc.text, reference.span).unwrap_or(0),
-                            )
-                            .is_some()
-                    });
-                    if crate::plans::contains(&plan, reference.span, &doc.text)
-                        && reference.property.is_none()
-                        && !in_sum
-                        && !plan.names.iter().any(|n| n.name == reference.name)
-                    {
-                        plan.names.push(Named {
-                            name: reference.name.clone(),
-                            span: reference.span,
-                        });
+                    doc.prose(line, row, start, &attrs);
+                    if attrs.is_empty() {
+                        doc.calculation(line, row, start);
                     }
+                    consumed = doc.blocks(&text, &lines, row);
                 }
-                doc.problems.extend(plan.problems.clone());
-                doc.plans.push(plan);
             }
-            if let Some(index) = doc.definitions.len().checked_sub(1)
-                && doc.definitions[index].named.span.line == row
-                && doc.definitions[index].expression
-                && doc.definitions[index].source == "table"
-            {
-                let table = crate::tables::parse(&doc, index, &lines);
-                table_end = table.end_line;
-                // The declaration keyword isn't a global reference.
-                doc.references
-                    .retain(|r| !(r.span.line == row && r.name == "table"));
-                for column in &table.columns {
-                    doc.mark(
-                        column.span.line,
-                        column.span.start,
-                        column.span.end,
-                        HighlightKind::Variable,
-                    );
-                }
-                for cells in &table.rows {
-                    for cell in cells {
-                        if let Some((_, span)) = &cell.expression {
-                            doc.mark(
-                                cell.span.line,
-                                cell.span.start,
-                                cell.span.start + 1,
-                                HighlightKind::Operator,
-                            );
-                            doc.mark(
-                                cell.span.line,
-                                cell.span.end - 1,
-                                cell.span.end,
-                                HighlightKind::Operator,
-                            );
-                            doc.expression(lines[span.line], span.line, span.start, span.end);
-                            continue;
-                        }
-                        if let Ok(crate::engine::Value::Resource(resource)) = &cell.value {
-                            doc.links.push(Link {
-                                span: cell.span,
-                                target: resource.target.clone(),
-                            });
-                        }
-                        doc.mark(
-                            cell.span.line,
-                            cell.span.start,
-                            cell.span.end,
-                            if matches!(
-                                &cell.value,
-                                Ok(crate::engine::Value::Text(_)
-                                    | crate::engine::Value::Resource(_))
-                            ) {
-                                HighlightKind::String
-                            } else {
-                                HighlightKind::Number
-                            },
-                        );
-                    }
-                }
-                doc.problems.extend(table.problems.clone());
-                doc.tables.push(table);
+            row += 1 + consumed;
+        }
+        doc.itinerary(&lines);
+        doc.finish(lines.len());
+        doc
+    }
+
+    /// `## Title :name`: opens a section, closes the ones it outranks, and
+    /// still shows the bare links written in its title.
+    fn heading(
+        &mut self,
+        line: &str,
+        row: usize,
+        start: usize,
+        level: usize,
+        title: &str,
+        title_end: usize,
+        named: Option<Named>,
+    ) {
+        for section in &mut self.sections {
+            if section.end_line == usize::MAX && section.level >= level {
+                section.end_line = row;
             }
         }
-        doc.days = crate::itinerary::parse(&lines);
-        for day in &doc.days {
+        self.sections.push(Section {
+            line: row,
+            end_line: usize::MAX,
+            level,
+            title: title.into(),
+            named: named.clone(),
+        });
+        self.mark(row, start, title_end, HighlightKind::Heading);
+        if let Some(n) = named {
+            self.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
+        }
+        self.raw_links(line, row, start + level, title_end);
+    }
+
+    /// `- [ ] title #tag @due(…) :name`: a checkbox item, nested under the
+    /// nearest open task indented less than it.
+    fn task(
+        &mut self,
+        line: &str,
+        row: usize,
+        start: usize,
+        checkbox: usize,
+        attrs: &BTreeMap<String, Attribute>,
+        parents: &mut Vec<usize>,
+    ) {
+        let named = trailing_name(line, row);
+        while parents
+            .last()
+            .is_some_and(|i| self.tasks[*i].indent >= start)
+        {
+            parents.pop();
+        }
+        let title_end = attrs
+            .values()
+            .map(|a| a.span.start)
+            .chain(named.iter().map(|n| n.span.start - 1))
+            .min()
+            .unwrap_or(line.len());
+        let tags = line
+            .split_whitespace()
+            .filter_map(|t| t.strip_prefix('#'))
+            .filter(|t| identifier(t))
+            .map(str::to_owned)
+            .chain(
+                attrs
+                    .get("tag")
+                    .into_iter()
+                    .flat_map(|a| a.value.split(',').map(|s| s.trim().to_string())),
+            )
+            .collect();
+        self.tasks.push(Task {
+            line: row,
+            indent: start,
+            checked: line.as_bytes()[checkbox + 1] != b' ',
+            checkbox: Span::new(row, checkbox, checkbox + 3),
+            title: line[checkbox + 3..title_end].trim().into(),
+            named: named.clone(),
+            parent: parents.last().copied(),
+            attributes: attrs.clone(),
+            tags,
+        });
+        parents.push(self.tasks.len() - 1);
+        self.mark(row, checkbox, checkbox + 3, HighlightKind::Keyword);
+        if let Some(n) = named {
+            self.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
+        }
+    }
+
+    /// A line with an `@at(…)` attribute and no checkbox: an event, titled by
+    /// the text in front of its first attribute.
+    fn event(&mut self, line: &str, row: usize, start: usize, attrs: &BTreeMap<String, Attribute>) {
+        let end = attrs
+            .values()
+            .map(|a| a.span.start)
+            .min()
+            .unwrap_or(line.len());
+        self.events.push(Event {
+            line: row,
+            title: line[start..end].trim().trim_start_matches("- ").into(),
+            attributes: attrs.clone(),
+        });
+    }
+
+    /// A line that is only math, with its variables in brackets, shows its
+    /// result at the end: `[budget] - [spent]`.
+    fn calculation(&mut self, line: &str, row: usize, start: usize) {
+        let trimmed = &line[start..];
+        if let Some(source) = line_calculation(trimmed) {
+            self.calculations.push(Calculation {
+                span: Span::new(row, start, start + trimmed.trim_end().len()),
+                source,
+                bracketed: false,
+            });
+        }
+    }
+
+    /// The block a line opens once its inline items are known: a multiline
+    /// expression, a plan or a table, each of which may read the lines below
+    /// it. Returns how many following rows were consumed.
+    fn blocks(&mut self, text: &str, lines: &[&str], row: usize) -> usize {
+        let mut consumed = self.definition(text, lines, row).unwrap_or(0);
+        if let Some(rows) = self.plan(lines, row) {
+            consumed = rows;
+        }
+        if let Some(rows) = self.table(lines, row) {
+            consumed = rows;
+        }
+        consumed
+    }
+
+    /// A `name :=` definition whose expression runs past the end of its line,
+    /// inside delimiters or after a dangling operator.
+    fn definition(&mut self, text: &str, lines: &[&str], row: usize) -> Option<usize> {
+        let index = self.definitions.len().checked_sub(1)?;
+        if !self.definitions[index].expression || self.definitions[index].named.span.line != row {
+            return None;
+        }
+        let span = self.definitions[index].value_span;
+        let end_row = expression_end(lines, row, span.start);
+        if end_row <= row {
+            return None;
+        }
+        let prefix: usize = text.split_inclusive('\n').take(row).map(str::len).sum();
+        let length: usize = text[prefix..]
+            .split_inclusive('\n')
+            .take(end_row - row)
+            .map(str::len)
+            .sum();
+        let end = length + lines[end_row].len();
+        let block = &text[prefix..prefix + end];
+        self.references
+            .retain(|r| r.span.line != row || r.span.start < span.start);
+        self.members
+            .retain(|m| m.span.line != row || m.span.start < span.start);
+        self.highlights
+            .retain(|h| h.span.line != row || h.span.end <= span.start);
+        self.definitions[index].source = block[span.start..].trim().into();
+        self.definitions[index].value_span.end = end;
+        self.definitions[index].end =
+            Span::new(end_row, lines[end_row].len(), lines[end_row].len());
+        self.expression(block, row, span.start, end);
+        Some(end_row - row)
+    }
+
+    /// A `name :=` definition whose expression states a goal: a plan, over the
+    /// columns, constraints and table rows written under it.
+    fn plan(&mut self, lines: &[&str], row: usize) -> Option<usize> {
+        let index = self.definitions.len().checked_sub(1)?;
+        let definition = &self.definitions[index];
+        if definition.named.span.line != row
+            || !definition.expression
+            || crate::plans::goal(&definition.source).is_none()
+        {
+            return None;
+        }
+        let mut plan = crate::plans::parse(self, index, lines);
+        let end_line = plan.end_line;
+        for column in &plan.columns {
+            self.mark(
+                column.span.line,
+                column.span.start,
+                column.span.end,
+                HighlightKind::Keyword,
+            );
+        }
+        for constraint in &plan.constraints {
+            let n = &constraint.named;
+            self.mark(
+                n.span.line,
+                n.span.start,
+                n.span.end,
+                HighlightKind::Variable,
+            );
+            self.expression(
+                lines[constraint.span.line],
+                constraint.span.line,
+                constraint.span.start,
+                constraint.span.end,
+            );
+        }
+        for reference in &self.references {
+            // Column names inside sum(table, ...) belong to the table.
+            let in_sum = crate::plans::regions(&plan).any(|region| {
+                region.contains(&self.text, reference.span)
+                    && crate::engine::sum_scope_at(
+                        region.source(&self.text),
+                        region.offset_of(&self.text, reference.span).unwrap_or(0),
+                    )
+                    .is_some()
+            });
+            if crate::plans::contains(&plan, reference.span, &self.text)
+                && reference.property.is_none()
+                && !in_sum
+                && !plan.names.iter().any(|n| n.name == reference.name)
+            {
+                plan.names.push(Named {
+                    name: reference.name.clone(),
+                    span: reference.span,
+                });
+            }
+        }
+        self.problems.extend(plan.problems.clone());
+        self.plans.push(plan);
+        Some(end_line.saturating_sub(row + 1))
+    }
+
+    /// `name := table` followed by a markdown table: its columns, and every
+    /// cell's literal, formula or link.
+    fn table(&mut self, lines: &[&str], row: usize) -> Option<usize> {
+        let index = self.definitions.len().checked_sub(1)?;
+        let definition = &self.definitions[index];
+        if definition.named.span.line != row
+            || !definition.expression
+            || definition.source != "table"
+        {
+            return None;
+        }
+        let table = crate::tables::parse(self, index, lines);
+        let end_line = table.end_line;
+        // The declaration keyword isn't a global reference.
+        self.references
+            .retain(|r| !(r.span.line == row && r.name == "table"));
+        for column in &table.columns {
+            self.mark(
+                column.span.line,
+                column.span.start,
+                column.span.end,
+                HighlightKind::Variable,
+            );
+        }
+        for cells in &table.rows {
+            for cell in cells {
+                if let Some((_, span)) = &cell.expression {
+                    self.mark(
+                        cell.span.line,
+                        cell.span.start,
+                        cell.span.start + 1,
+                        HighlightKind::Operator,
+                    );
+                    self.mark(
+                        cell.span.line,
+                        cell.span.end - 1,
+                        cell.span.end,
+                        HighlightKind::Operator,
+                    );
+                    self.expression(lines[span.line], span.line, span.start, span.end);
+                    continue;
+                }
+                if let Ok(crate::engine::Value::Resource(resource)) = &cell.value {
+                    self.links.push(Link {
+                        span: cell.span,
+                        target: resource.target.clone(),
+                    });
+                }
+                self.mark(
+                    cell.span.line,
+                    cell.span.start,
+                    cell.span.end,
+                    if matches!(
+                        &cell.value,
+                        Ok(crate::engine::Value::Text(_) | crate::engine::Value::Resource(_))
+                    ) {
+                        HighlightKind::String
+                    } else {
+                        HighlightKind::Number
+                    },
+                );
+            }
+        }
+        self.problems.extend(table.problems.clone());
+        self.tables.push(table);
+        Some(end_line.saturating_sub(row + 1))
+    }
+
+    /// Day and stop blocks, wherever in the note they are, and a map link for
+    /// every address they carry.
+    fn itinerary(&mut self, lines: &[&str]) {
+        self.days = crate::itinerary::parse(lines);
+        for day in &self.days {
             for stop in &day.stops {
                 for detail in &stop.details {
                     if detail.key.eq_ignore_ascii_case("address") && !detail.value.is_empty() {
-                        doc.links.push(Link {
+                        self.links.push(Link {
                             span: detail.value_span,
                             target: crate::itinerary::map_url(&detail.value),
                         });
@@ -553,18 +715,20 @@ impl Document {
                 }
             }
         }
-        let lines = text.lines().count();
-        for section in &mut doc.sections {
+    }
+
+    /// Close the sections still open at the end of the note, and put the
+    /// highlights in reading order.
+    fn finish(&mut self, lines: usize) {
+        for section in &mut self.sections {
             if section.end_line == usize::MAX {
                 section.end_line = lines;
             }
         }
-        doc.highlights
+        self.highlights
             .sort_by_key(|h| (h.span.line, h.span.start, h.span.end));
-        doc.highlights.dedup_by_key(|h| h.span);
-        doc
+        self.highlights.dedup_by_key(|h| h.span);
     }
-
     fn mark(&mut self, line: usize, start: usize, end: usize, kind: HighlightKind) {
         if end > start {
             self.highlights.push(Highlight {
@@ -649,8 +813,7 @@ impl Document {
             self.mark(row, i, open + 1, HighlightKind::Keyword);
             self.mark(row, end - 1, end, HighlightKind::Operator);
             if matches!(key, "due" | "scheduled" | "at")
-                && crate::engine::relative_date(&attr.value, chrono::Local::now().date_naive())
-                    .is_some()
+                && crate::engine::is_relative_date(&attr.value)
             {
                 self.mark(row, open + 1, end - 1, HighlightKind::Number);
             } else if matches!(
@@ -690,13 +853,9 @@ impl Document {
         attrs
     }
 
-    fn inline(
-        &mut self,
-        line: &str,
-        row: usize,
-        start: usize,
-        attrs: &BTreeMap<String, Attribute>,
-    ) {
+    /// The prose of a line: bare and bracketed definitions, references,
+    /// in-place calculations, code spans, comments and links.
+    fn prose(&mut self, line: &str, row: usize, start: usize, attrs: &BTreeMap<String, Attribute>) {
         let mut i = start;
         // `total := units * price` needs no brackets: the := says it all.
         if let Some(def) = bare_calculation(line, row, start) {

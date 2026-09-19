@@ -4,5 +4,6 @@ pub mod document;
 pub mod imports;
 pub mod itinerary;
 pub mod paths;
+pub mod session;
 pub mod tables;
 pub mod workspace;

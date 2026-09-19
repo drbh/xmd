@@ -20,6 +20,13 @@ pub fn file_url(path: impl AsRef<Path>) -> Result<Url, String> {
     }
 }
 
+/// The URI for a path a host already knows to be absolute: a note it read from
+/// disk, or a buffer an editor opened. A relative path is a bug in the caller.
+pub fn uri(path: impl AsRef<Path>) -> Url {
+    let path = path.as_ref();
+    file_url(path).unwrap_or_else(|e| panic!("{e}: {}", path.display()))
+}
+
 pub fn file_path(url: &Url) -> Result<PathBuf, String> {
     #[cfg(not(target_arch = "wasm32"))]
     return url

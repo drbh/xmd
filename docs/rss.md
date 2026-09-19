@@ -11,7 +11,7 @@ A `kind: "link"` module whose `matches(url)` accepts feed URLs — a path ending
 `.xml`, `.rss` or `.atom`, or a path segment of `feed`/`rss`/`atom` — and whose
 `inlay(ctx)` shows the latest item, e.g. `▸ "Typed notes" · 3d ago · 12 items`,
 falling back to `◌ feed (refresh)` with no cache. `hover(ctx)` lists the three
-most recent titles plus `fetched_at`, exactly as `stdlib/github.wtf` does for a
+most recent titles plus `fetched_at`, exactly as `lang/stdlib/github.wtf` does for a
 pull request.
 
 The obstacle is parsing. The module language has `split`, `slice` and `contains`

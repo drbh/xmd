@@ -37,7 +37,7 @@ jobs:
       - name: Test
         run: cargo test
       - name: Test (browser feature)
-        run: cargo test --features browser
+        run: cargo test -p wtf --features browser
 
   wasm:
     name: WASM and web
@@ -56,25 +56,25 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: client/web/package-lock.json
       - name: Install web dependencies
-        run: npm --prefix web ci
+        run: npm --prefix client/web ci
       - name: Build WASM
-        run: bash web/build.sh
+        run: bash client/web/build.sh
       - name: Build site
-        run: npm --prefix web run build
+        run: npm --prefix client/web run build
       - name: Node tests
-        run: npm --prefix web run test:unit
+        run: npm --prefix client/web run test:unit
       - name: Type tests
-        run: npm --prefix web run test:types
+        run: npm --prefix client/web run test:types
       - name: Build native binary
-        # web/tests/render.spec.mjs spawns target/debug/wtf for native parity.
+        # client/web/tests/render.spec.mjs spawns target/debug/wtf for native parity.
         run: cargo build
       - name: Install Playwright browser
         # playwright.config.mjs pins channel "chrome", so install Google Chrome.
-        run: npx --prefix web playwright install --with-deps chrome
+        run: npx --prefix client/web playwright install --with-deps chrome
       - name: Browser tests
-        working-directory: web
+        working-directory: client/web
         run: npx playwright test
       - name: Upload Playwright report
         if: failure()
@@ -82,8 +82,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            web/playwright-report
-            web/test-results
+            client/web/playwright-report
+            client/web/test-results
           if-no-files-found: ignore
           retention-days: 7
 
@@ -97,10 +97,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ide/vscode/package-lock.json
+          cache-dependency-path: client/ide/vscode/package-lock.json
       - name: Install extension dependencies
-        run: npm --prefix ide/vscode ci
+        run: npm --prefix client/ide/vscode ci
       # `npm run test` launches a real VS Code against target/debug/wtf and needs
       # a display; it is not run here. `check` syntax-checks the extension only.
       - name: Check extension sources
-        run: npm --prefix ide/vscode run check
+        run: npm --prefix client/ide/vscode run check

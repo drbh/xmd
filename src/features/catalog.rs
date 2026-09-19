@@ -637,7 +637,8 @@ fn days(
         if let Some(date) = date
             && let Some((places, _)) = &day.places
             && let Some(place) = crate::lookups::day_place(places)
-            && let Some(lookup) = ws.lookups.get(&crate::lookups::forecast_key(&place, date))
+            && let Some(lookup) =
+                crate::lookups::LookupKey::forecast(&place, date).lookup(&ws.lookups)
             && let Value::Record(fields) = &mut value
         {
             fields.insert(

@@ -74,14 +74,14 @@ impl<'a> RequestContext<'a> {
     pub fn engine(&self) -> Engine<'a> {
         Engine::in_request(self)
     }
-    pub fn with_link_features(mut self, links: LinkFeatures<'a>) -> Self {
-        self.links = links;
-        self.memo = Default::default();
-        self
-    }
     /// Compatibility for APIs that accept a calendar day separately from `now`.
     pub(crate) fn with_today(mut self, today: NaiveDate) -> Self {
         self.today = today;
+        self.memo = Default::default();
+        self
+    }
+    pub fn with_link_features(mut self, links: LinkFeatures<'a>) -> Self {
+        self.links = links;
         self.memo = Default::default();
         self
     }

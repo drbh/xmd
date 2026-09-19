@@ -353,17 +353,14 @@ pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol)
         let now = now.to_utc();
         out.push_str("\n\nLookups:");
         for key in keys {
-            match ws.lookups.get(&key) {
+            match key.lookup(&ws.lookups) {
                 Some(lookup) => out.push_str(&format!(
                     "\n- {} · {} · {}",
-                    crate::lookups::describe(&key),
+                    key.describe(),
                     crate::resources::ago(lookup.fetched_at, now),
                     lookup.source
                 )),
-                None => out.push_str(&format!(
-                    "\n- {} · not fetched yet",
-                    crate::lookups::describe(&key)
-                )),
+                None => out.push_str(&format!("\n- {} · not fetched yet", key.describe())),
             }
         }
     }

@@ -69,6 +69,10 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
         _ => true,
     }
 }
+/// The properties `value.` offers. Kinds whose fields are fixed answer from
+/// `ValueType::fields`, the same table `Value::property` reads; timers,
+/// forecasts, plans and records describe themselves, because their fields
+/// depend on the value rather than its type.
 pub fn property_names(value: &Value) -> Vec<String> {
     property_names_with_links(value, crate::link_features::BUILTINS)
 }
@@ -94,7 +98,7 @@ fn property_names_with_links(
         }
         Value::Record(fields) => return fields.keys().cloned().collect(),
         Value::Plan(p) => return p.property_names(),
-        _ => vec![],
+        _ => value.kind().fields().to_vec(),
     };
     names.into_iter().map(str::to_string).collect()
 }
@@ -269,7 +273,7 @@ pub(crate) fn completions(
                 CompletionItemKind::FUNCTION
             }),
             filter_text: Some(name.into()),
-            detail: Some(function.result.into()),
+            detail: Some(function.result.as_str().into()),
             documentation: Some(Documentation::MarkupContent(markup(
                 function.documentation.into(),
             ))),

@@ -12,16 +12,33 @@ pub struct Resource {
     pub target: String,
     pub origin: Option<PathBuf>,
 }
+/// One cached link status, as `.wtf/cache.json` stores it.
+///
+/// `data` is what the link module's `decode` returned, and is the whole truth
+/// about a link: modules see it as `ctx.cached`, and each names its own fields.
+///
+/// The five fields above it are the legacy GitHub projection. They predate link
+/// modules, when every cache entry was a pull request, and they remain because
+/// caches written back then have no `data` at all: `Module::context` falls back
+/// to serializing this struct, which is the only way those entries still render.
+/// Nothing in Rust reads them by name; they are the file format, not an API.
+/// Removing them would silently blank the labels of every pre-module cache.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Metadata {
+    #[serde(default)]
     pub title: String,
     /// Provider-defined, so it stays text: each link provider names its own
     /// states, and the workspace only passes them through.
+    #[serde(default)]
     pub state: String,
+    #[serde(default)]
     pub merged: Option<bool>,
+    #[serde(default)]
     pub checks: Option<String>,
+    #[serde(default)]
     pub review: Option<String>,
     pub fetched_at: DateTime<Utc>,
+    /// Which link module wrote this entry; `None` is the GitHub projection above.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -37,7 +37,7 @@ its source note, and aggregate rows use the query scope. Missing imports in
 unevaluated branches do not fail the query.
 
 Workspace libraries and features activate only through the explicit
-[modules manifest](../../stdlib/README.md#loading-and-replacement).
+modules manifest, `.wtf/modules.json`.
 
 `ast FILE` and `graph FILE` are shortcuts for `query FILE ast --json` and
 `query FILE graph --json`. Both accept `--query EXPRESSION`, `--root`,

@@ -1,0 +1,16 @@
+#!/bin/sh
+# A stand-in for the real `gh` CLI: prints the JSON the module asks for.
+case "$*" in
+  *"repos/org/repo/commits/"*)
+    printf '%s' '{"commit":{"message":"Commit subject\nbody"}}' ;;
+  "pr view 42"*)
+    printf '%s' '{"title":"Hello\nworld","state":"OPEN","isDraft":false,"mergedAt":null,"reviewDecision":"APPROVED","statusCheckRollup":[{"conclusion":"SUCCESS"}]}' ;;
+  "pr view 7"*)
+    printf '%s' '{"title":"Merged","state":"MERGED","mergedAt":"yesterday","reviewDecision":"CHANGES_REQUESTED","statusCheckRollup":[{"conclusion":"FAILURE"}]}' ;;
+  "issue view 3"*)
+    printf '%s' '{"title":"An issue","state":"CLOSED"}' ;;
+  "pr view 9"*)
+    printf '%s' '{"title":42,"state":"OPEN"}' ;;
+  *)
+    echo "unexpected gh invocation: $*" >&2; exit 1 ;;
+esac

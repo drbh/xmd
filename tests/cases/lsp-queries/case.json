@@ -1,0 +1,172 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "n.wtf"
+        },
+        {
+          "change": {
+            "file": "n.wtf",
+            "text": "$9:price\n- [ ] Unsaved\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "n.wtf"
+        },
+        {
+          "query": {
+            "query": "values | select {name, value, day:today(), clock:now()}"
+          }
+        },
+        {
+          "query": {
+            "query": "tasks | where leaf && !done | sort source.path, source.line | select title"
+          }
+        },
+        {
+          "change": {
+            "file": "n.wtf",
+            "text": "$12:price\n- [x] Finished\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "n.wtf"
+        },
+        {
+          "query": {
+            "query": "tasks | where leaf && !done | sort source.path, source.line"
+          }
+        },
+        {
+          "request": "wtf/query",
+          "params": {
+            "query": "tasks | where ("
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        "n.wtf"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "one.wtf"
+        },
+        {
+          "change": {
+            "file": "one.wtf",
+            "text": "answer := import(\"./two.wtf\").rate * 2\n- [ ] Local\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "one.wtf"
+        },
+        {
+          "query": {
+            "query": "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)",
+            "uri": "one.wtf"
+          }
+        },
+        {
+          "query": {
+            "query": "tasks | select title",
+            "uri": "one.wtf"
+          }
+        },
+        {
+          "query": {
+            "query": "length(tasks)"
+          }
+        },
+        {
+          "query": {
+            "query": "graph.nodes | where external | select name",
+            "uri": "one.wtf"
+          }
+        },
+        {
+          "request": "wtf/query",
+          "params": {
+            "uri": "https://example.com/n.wtf",
+            "query": "ast"
+          }
+        },
+        {
+          "request": "wtf/query",
+          "params": {
+            "uri": "${uri:missing.wtf}",
+            "query": "ast"
+          }
+        }
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "change": {
+            "file": "main.wtf",
+            "text": "src := import(\"./.hidden/values.wtf\")\nanswer := src.amount\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "query": {
+            "query": "answer",
+            "uri": "main.wtf"
+          }
+        },
+        {
+          "open": ".hidden/values.wtf"
+        },
+        {
+          "change": {
+            "file": ".hidden/values.wtf",
+            "text": "amount := 77\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": ".hidden/values.wtf"
+        },
+        {
+          "query": {
+            "query": "answer",
+            "uri": "main.wtf"
+          }
+        },
+        {
+          "close": ".hidden/values.wtf"
+        },
+        {
+          "query": {
+            "query": "answer",
+            "uri": "main.wtf"
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        "main.wtf",
+        ".hidden/values.wtf"
+      ]
+    }
+  ]
+}

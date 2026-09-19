@@ -1,0 +1,351 @@
+### 0 cli render games.wtf --format text
+$ wtf render games.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stdout
+# Scores
+https://www.espn.com/nba/game/_/gameId/401584896 ◌ score (refresh):game ◌ score (refresh)
+The score is [game.home_score] to [game.away_score], a margin of [game.margin].
+[game.winner] won, and the clock says [game.status].
+https://espn.com/nfl/game/_/gameId/401671793 ◌ score (refresh):live_game ◌ score (refresh)
+https://www.espn.com/soccer/eng.1/game/_/gameId/704321 ◌ score (refresh):upcoming ◌ score (refresh)
+scores := import("scores") = <collection>
+called := scores.resolve(112, 108) = home
+spread := scores.margin(112, 108) = 4
+drawn := scores.resolve(2, 2) = draw
+--- stderr
+<root>/games.wtf:3:20: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.wtf:3:41: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.wtf:3:72: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.wtf:4:7: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.wtf:4:45: error: Module sports.property: No cached score for this game; refresh the link first
+wtf: 5 error(s) while rendering
+
+### 1 cli render unsupported.wtf --format text
+$ wtf render unsupported.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+https://www.espn.com/nba/standings
+https://www.espn.com/nba/game/_/gameId/not-a-number
+https://www.espn.com/quidditch/game/_/gameId/1
+https://www.espn.com/soccer/game/_/gameId/704321
+https://www.espn.com.evil/nba/game/_/gameId/401584896
+
+### 2 cli refresh
+$ wtf refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (3 resources)
+
+### 3 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://espn.com/nfl/game/_/gameId/401671793": {
+    "title": "BUF @ KC",
+    "state": "live",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "sports:1",
+    "data": {
+      "away": "BUF",
+      "away_score": 14,
+      "completed": false,
+      "home": "KC",
+      "home_score": 17,
+      "state": "live",
+      "status": "8:12 - 3rd",
+      "title": "BUF @ KC",
+      "winner": null
+    }
+  },
+  "https://www.espn.com/nba/game/_/gameId/401584896": {
+    "title": "LAL @ BOS",
+    "state": "final",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "sports:1",
+    "data": {
+      "away": "LAL",
+      "away_score": 108,
+      "completed": true,
+      "home": "BOS",
+      "home_score": 112,
+      "state": "final",
+      "status": "Final",
+      "title": "LAL @ BOS",
+      "winner": "home"
+    }
+  },
+  "https://www.espn.com/soccer/eng.1/game/_/gameId/704321": {
+    "title": "CHE @ ARS",
+    "state": "scheduled",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "sports:1",
+    "data": {
+      "away": "CHE",
+      "away_score": null,
+      "completed": false,
+      "home": "ARS",
+      "home_score": null,
+      "state": "scheduled",
+      "status": "Wed, 7:30 PM",
+      "title": "CHE @ ARS",
+      "winner": null
+    }
+  }
+}
+
+### 4 write
+-- write .wtf/cache.json (1446 bytes)
+
+### 5 cli render games.wtf --format text
+$ wtf render games.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Scores
+https://www.espn.com/nba/game/_/gameId/401584896 ✓ BOS 112 – LAL 108 · Final:game ✓ BOS 112 – LAL 108 · Final
+The score is [game.home_score] 112 to [game.away_score] 108, a margin of [game.margin] 4.
+[game.winner] home won, and the clock says [game.status] Final.
+https://espn.com/nfl/game/_/gameId/401671793 ▸ KC 17 – BUF 14 · 8:12 - 3rd:live_game ▸ KC 17 – BUF 14 · 8:12 - 3rd
+https://www.espn.com/soccer/eng.1/game/_/gameId/704321 CHE @ ARS · Wed, 7:30 PM:upcoming CHE @ ARS · Wed, 7:30 PM
+scores := import("scores") = <collection>
+called := scores.resolve(112, 108) = home
+spread := scores.margin(112, 108) = 4
+drawn := scores.resolve(2, 2) = draw
+
+### 6 cli query games.wtf diagnostics | select {message, code} --json
+$ wtf query games.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[]
+
+### 7 lsp
+-- open games.wtf
+-- await textDocument/publishDiagnostics games.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/games.wtf",
+  "version": 1
+}
+-- request textDocument/hover games.wtf 2:15
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "game.home_score = 112\n\n**game · Resource**\n\nhttps://www.espn.com/nba/game/_/gameId/401584896\n\n[Open resource](<https://www.espn.com/nba/game/_/gameId/401584896>)\n\n**LAL @ BOS**\n\nBOS 112 – LAL 108 · Final\n\nResult: home\n\nFetched 2026-09-18 11:00 UTC.\n\nDefinition: [game](<file://<root>/games.wtf#L2>) · <root>/games.wtf:2"
+  },
+  "range": {
+    "end": {
+      "character": 29,
+      "line": 2
+    },
+    "start": {
+      "character": 14,
+      "line": 2
+    }
+  }
+}
+-- request textDocument/completion games.wtf 3:6
+[
+  {
+    "detail": "Text · https://www.espn.com/nba/game/_/gameId/401584896",
+    "kind": 10,
+    "label": "url",
+    "textEdit": {
+      "newText": "url",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · BOS",
+    "kind": 10,
+    "label": "home",
+    "textEdit": {
+      "newText": "home",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · LAL",
+    "kind": 10,
+    "label": "away",
+    "textEdit": {
+      "newText": "away",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Number · 112",
+    "kind": 10,
+    "label": "home_score",
+    "textEdit": {
+      "newText": "home_score",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Number · 108",
+    "kind": 10,
+    "label": "away_score",
+    "textEdit": {
+      "newText": "away_score",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · home",
+    "kind": 10,
+    "label": "winner",
+    "textEdit": {
+      "newText": "winner",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Text · Final",
+    "kind": 10,
+    "label": "status",
+    "textEdit": {
+      "newText": "status",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · true",
+    "kind": 10,
+    "label": "completed",
+    "textEdit": {
+      "newText": "completed",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Number · 4",
+    "kind": 10,
+    "label": "margin",
+    "textEdit": {
+      "newText": "margin",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 3
+        },
+        "start": {
+          "character": 6,
+          "line": 3
+        }
+      }
+    }
+  }
+]
+-- request textDocument/codeAction games.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+[
+  {
+    "arguments": [
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/games.wtf",
+          "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
+          "row": 1
+        },
+        "url": "https://www.espn.com/nba/game/_/gameId/401584896"
+      }
+    ],
+    "command": "wtf.openResource",
+    "title": "↗ open"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "refresh_resource",
+        "target": {
+          "document": "file://<root>/games.wtf",
+          "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
+          "row": 1
+        },
+        "url": "https://www.espn.com/nba/game/_/gameId/401584896"
+      }
+    ],
+    "command": "wtf.refreshResource",
+    "title": "⟳ score"
+  }
+]
+

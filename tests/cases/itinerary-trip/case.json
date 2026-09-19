@@ -1,0 +1,71 @@
+{
+  "steps": [
+    { "cli": ["render", "trip.wtf", "--format", "text"] },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "map(days, fn(d) => {line: d.line, month: d.value.month, day: d.value.day, year: d.value.year, places: d.value.places, stops: length(d.value.stops)})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, time: s.time, details: map(s.details, fn(d) => {key: d.key, value: d.value}), notes: s.notes})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "map(get(days, 1).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, notes: s.notes})",
+        "--json"
+      ]
+    },
+    { "cli": ["query", "trip.wtf", "stops | sort at | select {title, line, at, at_date}", "--json"] },
+    { "cli": ["query", "trip.wtf", "entries | sort at | select {kind, title, at}", "--json"] },
+    { "cli": ["query", "trip.wtf", "links | select {line, url}", "--json"] },
+    { "cli": ["query", "trip.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "trip.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "trip.wtf" },
+        { "request": "textDocument/hover", "file": "trip.wtf", "line": 9, "character": 3 },
+        { "request": "textDocument/documentSymbol", "file": "trip.wtf" },
+        { "request": "textDocument/foldingRange", "file": "trip.wtf" },
+        {
+          "request": "textDocument/formatting",
+          "file": "trip.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "trip.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        }
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\" | select {title, at}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.wtf",
+        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\" | select {title, at}",
+        "--json",
+        "--now",
+        "2026-11-20T12:00:00-05:00"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,490 @@
+//! Hovers: what the editor explains about the thing under the cursor.
+use crate::{
+    document::{Span, byte_at},
+    engine::Value,
+    intelligence::symbol_at,
+    resources,
+    workspace::{Symbol, SymbolKind, Workspace},
+};
+use lsp_types::*;
+use std::path::Path;
+
+pub fn markup(value: String) -> MarkupContent {
+    MarkupContent {
+        kind: MarkupKind::Markdown,
+        value,
+    }
+}
+
+/// The whole hover chain both hosts show, in one place: a feature module's own
+/// hovers first, then links, table cells, bracketed calculations, symbols (with
+/// a property preview when the reference reads one) and finally this row's task.
+pub(crate) fn hover_at(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+    let doc = ws.documents.get(path)?;
+    if let Some(hover) = crate::features::modules::hover(request, path, position) {
+        return Some(hover);
+    }
+    if let Some(hover) = link_hover(request, path, position) {
+        return Some(hover);
+    }
+    if let Some(hover) = cell_hover(request, path, position) {
+        return Some(hover);
+    }
+    let symbol = symbol_at(ws, path, position);
+    if symbol.is_none()
+        && let Some(hover) = calculation_hover(request, path, position)
+    {
+        return Some(hover);
+    }
+    if let Some((symbol, span)) = symbol {
+        let mut value = symbol_hover(request, &symbol);
+        let mut range = span.range(&doc.text);
+        if let Some(reference) = doc
+            .references
+            .iter()
+            .find(|r| r.span == span && r.property.is_some())
+        {
+            let preview = request
+                .engine()
+                .eval(path, &reference.expression())
+                .map(|v| v.display())
+                .unwrap_or_else(|e| e);
+            value = format!("{} = {preview}\n\n{value}", reference.expression());
+            range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
+        }
+        return Some(Hover {
+            contents: HoverContents::Markup(markup(value)),
+            range: Some(range),
+        });
+    }
+    task_hover(request, path, position)
+}
+
+/// A task's state, blockers, estimate, timer and subtask progress.
+fn task_hover(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+    let doc = ws.documents.get(path)?;
+    let (index, task) = doc
+        .tasks
+        .iter()
+        .enumerate()
+        .find(|(_, t)| t.line == position.line as usize)?;
+    let mut engine = request.engine();
+    let blocked = engine.blocked(path, index);
+    let mut value = format!(
+        "**{}**\n\n{}",
+        task.title,
+        if engine.task_done(path, index) {
+            "Complete"
+        } else {
+            "Incomplete"
+        }
+    );
+    match blocked {
+        Ok(names) if !names.is_empty() => {
+            let names = names
+                .into_iter()
+                .map(|name| {
+                    ws.resolve(path, &name)
+                        .map(|s| source_link(ws, &s))
+                        .unwrap_or(name)
+                })
+                .collect::<Vec<_>>();
+            value.push_str(&format!("\n\nBlocked by: {}", names.join(", ")));
+        }
+        Err(e) => value.push_str(&format!("\n\n{e}")),
+        _ => {}
+    }
+    if let Some(attr) = task.attributes.get("estimate")
+        && let Ok(v) = engine.eval(path, &attr.value)
+    {
+        value.push_str(&format!("\n\nEstimate: {}", v.display()));
+    }
+    if let Some(attr) = task.attributes.get("timer")
+        && let Ok(v) = engine.eval(path, &attr.value)
+    {
+        value.push_str(&format!("\n\nTimer: {}", v.display()));
+        if let Value::Timer(timer) = &v
+            && let Some(limit) = timer.limit
+        {
+            value.push_str(&format!(
+                "\n\n`{}`",
+                crate::charts::bar_fraction(timer.elapsed as f64 / limit as f64)
+            ));
+        }
+    }
+    let children: Vec<_> = doc
+        .tasks
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| t.parent == Some(index))
+        .map(|(j, _)| j)
+        .collect();
+    if !children.is_empty() {
+        let done = children
+            .iter()
+            .filter(|j| engine.task_done(path, **j))
+            .count();
+        value.push_str(&format!(
+            "\n\nSubtasks: `{}` {done}/{}",
+            crate::charts::bar(done, children.len()),
+            children.len()
+        ));
+    }
+    value.push_str(
+        "\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers.",
+    );
+    Some(Hover {
+        contents: HoverContents::Markup(markup(value)),
+        range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
+    })
+}
+
+pub(crate) fn link_hover(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
+    let doc = ws.documents.get(path)?;
+    let byte = byte_at(doc.line(position.line as usize), position.character)?;
+    let link = doc.links.iter().find(|l| {
+        l.span.line == position.line as usize && l.span.start <= byte && byte < l.span.end
+    })?;
+    let resource = resources::Resource {
+        target: link.target.clone(),
+        origin: None,
+    };
+    Some(Hover {
+        contents: HoverContents::Markup(markup(
+            resource
+                .presentation(
+                    path,
+                    &ws.cache,
+                    request.now().to_utc(),
+                    request.link_features(),
+                )
+                .hover,
+        )),
+        range: Some(link.span.range(&doc.text)),
+    })
+}
+
+pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
+    let named = ws.named(symbol);
+    let mut uri = crate::paths::file_url(&symbol.path).unwrap();
+    uri.set_fragment(Some(&format!("L{}", named.span.line + 1)));
+    format!("[{}](<{uri}>)", named.name)
+}
+
+/// Everything known about one definition, column or decision variable.
+pub(crate) fn symbol_hover(request: &crate::RequestContext<'_>, symbol: &Symbol) -> String {
+    let ws = request.workspace();
+    let now = request.now();
+    let features = request.link_features();
+    let mut engine = request.engine();
+    let named = ws.named(symbol);
+    if let SymbolKind::Column(t, c) = symbol.kind {
+        let doc = &ws.documents[&symbol.path];
+        let table = &doc.tables[t];
+        let name = &doc.definitions[table.definition].named.name;
+        let samples = table
+            .rows
+            .iter()
+            .filter_map(|r| r.get(c))
+            .take(8)
+            .map(|cell| {
+                cell.value
+                    .as_ref()
+                    .map(Value::display)
+                    .unwrap_or_else(|e| e.clone())
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let values: Vec<Value> = table
+            .rows
+            .iter()
+            .filter_map(|r| r.get(c))
+            .filter_map(|cell| cell.value.clone().ok())
+            .collect();
+        if let Some(domain) = table.domains[c] {
+            return format!(
+                "**{} · {}**\n\nDecision column of `{name}` ({}): a plan that sums over it chooses {} for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: {}",
+                named.name,
+                domain.value_type(),
+                match domain {
+                    crate::tables::Domain::Choice => "name?",
+                    crate::tables::Domain::Count => "name#",
+                },
+                match domain {
+                    crate::tables::Domain::Choice => "yes or no",
+                    crate::tables::Domain::Count => "a whole number",
+                },
+                source_link(ws, symbol)
+            );
+        }
+        let chart = crate::charts::series(&values)
+            .map(|chart| format!("\n\n{chart}"))
+            .unwrap_or_default();
+        return format!(
+            "**{} · {}**\n\nColumn of `{name}` · {} rows{chart}\n\nValues: {samples}\n\nDefinition: {}",
+            named.name,
+            table.types[c].map(|t| t.as_str()).unwrap_or("Unknown"),
+            table.rows.len(),
+            source_link(ws, symbol)
+        );
+    }
+    let value = engine.symbol(symbol);
+    let mut out = match &value {
+        Ok(v) => format!("**{} · {}**\n\n{}", named.name, v.type_name(), v.display()),
+        Err(e) => format!("**{}**\n\n{e}", named.name),
+    };
+    if let SymbolKind::Variable(p, _) = symbol.kind {
+        let plan = Symbol {
+            path: symbol.path.clone(),
+            kind: SymbolKind::Definition(ws.documents[&symbol.path].plans[p].definition),
+        };
+        out.push_str(&format!(
+            "\n\nDecision variable of {}: no note defines this name, so the plan chooses its value.",
+            source_link(ws, &plan)
+        ));
+    }
+    if let SymbolKind::Definition(i) = symbol.kind {
+        let def = &ws.documents[&symbol.path].definitions[i];
+        if def.expression && def.source != "table" {
+            let substituted = engine
+                .substituted(&symbol.path, &def.source)
+                .unwrap_or_else(|_| def.source.clone());
+            out.push_str(&format!(
+                "\n\n```text\n{}\n",
+                def.source.replace('`', "\\`")
+            ));
+            if substituted != def.source {
+                out.push_str(&format!("= {substituted}\n"));
+            }
+            if let Ok(v) = &value {
+                out.push_str(&format!("= {}\n", v.display()));
+            }
+            out.push_str("```");
+            if let Some(body) = crate::plans::seek_body(&def.source) {
+                let vars = [named.name.clone()].into_iter().collect();
+                if let Ok((lhs, op, rhs)) =
+                    engine.constraint(&symbol.path, body, def.value_span, &vars)
+                    && let Ok(difference) = lhs.minus(&rhs)
+                {
+                    let coefficient = difference.terms.get(&named.name).copied().unwrap_or(0.0);
+                    out.push_str(&format!(
+                        "\n\nGoal seek: {} `{body}`.",
+                        engine
+                            .call_module(
+                                "plan",
+                                "seek_summary",
+                                vec![
+                                    Value::Text(op.as_str().into()),
+                                    Value::Bool(coefficient > 0.0)
+                                ]
+                            )
+                            .map(|v| v.display())
+                            .unwrap_or_else(|e| e)
+                    ));
+                }
+            }
+            if let Ok(Value::Plan(plan)) = &value
+                && let Ok(text) = ws.modules.call("plan", "hover", vec![plan.record(ws)], now)
+            {
+                out.push_str(&text.display());
+            }
+            if let Some(contributions) = engine.sum_contributions(&symbol.path, &def.source) {
+                out.push_str("\n\nRow contributions:\n");
+                if let Some(chart) = crate::charts::series(&contributions) {
+                    out.push_str(&format!("\n{chart}\n"));
+                }
+                for (row, value) in contributions.iter().enumerate().take(30) {
+                    out.push_str(&format!("\n- Row {}: {}", row + 1, value.display()));
+                }
+                if contributions.len() > 30 {
+                    out.push_str(&format!("\n- … {} more rows", contributions.len() - 30));
+                }
+            }
+            let doc = &ws.documents[&symbol.path];
+            let mut inputs = std::collections::BTreeSet::new();
+            for member in doc
+                .members
+                .iter()
+                .filter(|m| def.value_span.contains(&doc.text, m.span))
+            {
+                if let Some(input) =
+                    crate::model::imports::member_symbol(ws, &symbol.path, &member.source)
+                {
+                    inputs.insert(source_link(ws, &input));
+                }
+            }
+            for reference in doc
+                .references
+                .iter()
+                .filter(|r| def.value_span.contains(&doc.text, r.span))
+            {
+                if let Ok(input) = crate::tables::resolve_reference(ws, &symbol.path, reference) {
+                    inputs.insert(source_link(ws, &input));
+                }
+            }
+            if !inputs.is_empty() {
+                out.push_str(&format!(
+                    "\n\nInputs: {}",
+                    inputs.into_iter().collect::<Vec<_>>().join(", ")
+                ));
+            }
+        }
+    }
+    if !engine.wanted.is_empty() {
+        let mut keys = engine.wanted.clone();
+        keys.sort();
+        keys.dedup();
+        let now = now.to_utc();
+        out.push_str("\n\nLookups:");
+        for key in keys {
+            match key.lookup(&ws.lookups) {
+                Some(lookup) => out.push_str(&format!(
+                    "\n- {} · {} · {}",
+                    key.describe(),
+                    crate::resources::ago(lookup.fetched_at, now),
+                    lookup.source
+                )),
+                None => out.push_str(&format!("\n- {} · not fetched yet", key.describe())),
+            }
+        }
+    }
+    match value {
+        Ok(Value::Resource(r)) => out.push_str(&format!(
+            "\n\n{}",
+            r.presentation(&symbol.path, &ws.cache, now.to_utc(), features)
+                .hover
+        )),
+        Ok(Value::Timer(t)) => out.push_str(&t.hover()),
+        Ok(Value::Tasks(tasks)) => {
+            let done = tasks
+                .iter()
+                .filter(|(p, i)| engine.task_done(p, *i))
+                .count();
+            out.push_str(&format!(
+                "\n\n`{}` {done}/{} complete",
+                crate::charts::bar(done, tasks.len()),
+                tasks.len()
+            ));
+        }
+        _ => {}
+    }
+    out.push_str(&format!(
+        "\n\nDefinition: {} · {}:{}",
+        source_link(ws, symbol),
+        symbol.path.display(),
+        named.span.line + 1
+    ));
+    out
+}
+
+/// A bracketed calculation in prose: its expression, substitution and value.
+pub(crate) fn calculation_hover(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
+    let doc = ws.documents.get(path)?;
+    let byte = byte_at(doc.line(position.line as usize), position.character)?;
+    let calculation = doc.calculations.iter().find(|c| {
+        c.span.line == position.line as usize
+            && byte + usize::from(c.bracketed) >= c.span.start
+            && byte <= c.span.end
+    })?;
+    let mut engine = request.engine();
+    let value = engine.eval_at(path, &calculation.source, calculation.span);
+    let mut text = match &value {
+        Ok(v) => format!("**{} · {}**", v.display(), v.type_name()),
+        Err(e) => format!("**Calculation**\n\n{e}"),
+    };
+    // Line calculations keep spaces where their brackets were; show them tidy.
+    let tidy = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    text.push_str(&format!(
+        "\n\n```text\n{}\n",
+        tidy(&calculation.source).replace('`', "\\`")
+    ));
+    if let Ok(substituted) = engine.substituted(path, &calculation.source)
+        && substituted != calculation.source
+    {
+        text.push_str(&format!("= {}\n", tidy(&substituted)));
+    }
+    if let Ok(v) = &value {
+        text.push_str(&format!("= {}\n", v.display()));
+    }
+    text.push_str("```");
+    Some(Hover {
+        contents: HoverContents::Markup(markup(text)),
+        range: Some(
+            Span::new(
+                calculation.span.line,
+                calculation.span.start - usize::from(calculation.bracketed),
+                calculation.span.end + usize::from(calculation.bracketed),
+            )
+            .range(&doc.text),
+        ),
+    })
+}
+pub(crate) fn cell_hover(
+    request: &crate::RequestContext<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Hover> {
+    let ws = request.workspace();
+
+    let doc = ws.documents.get(path)?;
+    let byte = byte_at(doc.line(position.line as usize), position.character)?;
+    for table in &doc.tables {
+        for (row, cells) in table.rows.iter().enumerate() {
+            for (column, cell) in cells.iter().enumerate().take(table.columns.len()) {
+                if cell.span.line == position.line as usize
+                    && byte >= cell.span.start
+                    && byte <= cell.span.end
+                {
+                    let value = match &cell.expression {
+                        Some((inner, _)) => request
+                            .engine()
+                            .eval(path, inner)
+                            .map(|v| (v, Some(inner.clone()))),
+                        None => cell.value.clone().map(|v| (v, None)),
+                    };
+                    let text = match value {
+                        Ok((value, expression)) => format!(
+                            "**{}.{} · {}**\n\nRow {}: {}{}",
+                            doc.definitions[table.definition].named.name,
+                            table.columns[column].name,
+                            value.type_name(),
+                            row + 1,
+                            value.display(),
+                            expression
+                                .map(|e| format!("\n\nCalculated from `{e}`"))
+                                .unwrap_or_default()
+                        ),
+                        Err(error) => error,
+                    };
+                    return Some(Hover {
+                        contents: HoverContents::Markup(markup(text)),
+                        range: Some(cell.span.range(&doc.text)),
+                    });
+                }
+            }
+        }
+    }
+    None
+}

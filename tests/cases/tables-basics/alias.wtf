@@ -1,0 +1,2 @@
+[alias] := import("./groceries.wtf").groceries
+[cost] := sum(alias, quantity * price)

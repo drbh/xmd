@@ -1,0 +1,132 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "defs.wtf",
+        "values | select {name, type, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "defs.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "defs.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "defs.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "defs.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "defs.wtf"
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "defs.wtf"
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "calc.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "calc.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "calc.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "calc.wtf",
+          "line": 2,
+          "character": 2
+        },
+        {
+          "open": "prose.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "prose.wtf"
+        }
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "prose.wtf",
+        "values | select {name}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "both.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "both.wtf"
+        },
+        {
+          "request": "textDocument/references",
+          "file": "both.wtf",
+          "line": 0,
+          "character": 28,
+          "extra": {
+            "context": {
+              "includeDeclaration": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/prepareRename",
+          "file": "both.wtf",
+          "line": 0,
+          "character": 28
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "both.wtf",
+          "line": 0,
+          "character": 28,
+          "extra": {
+            "newName": "outgoing"
+          }
+        }
+      ]
+    }
+  ]
+}

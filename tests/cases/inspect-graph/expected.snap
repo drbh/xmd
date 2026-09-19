@@ -1,0 +1,540 @@
+### 0 cli graph one.wtf --root notes
+$ wtf graph one.wtf --root notes --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "edges": [
+      {
+        "from": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 1,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 47,
+                "line": 0
+              },
+              "start": {
+                "character": 43,
+                "line": 0
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L1"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/two.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":1,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 2,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 1
+              },
+              "start": {
+                "character": 10,
+                "line": 1
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L2"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":2,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 3,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 12,
+                "line": 2
+              },
+              "start": {
+                "character": 8,
+                "line": 2
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L3"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":2,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":3,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 7,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 27,
+                "line": 6
+              },
+              "start": {
+                "character": 23,
+                "line": 6
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L7"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/two.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":0,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 10,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 7,
+                "line": 9
+              },
+              "start": {
+                "character": 4,
+                "line": 9
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L10"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":1,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":0,\"kind\":\"section\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 10,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 7,
+                "line": 9
+              },
+              "start": {
+                "character": 4,
+                "line": 9
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L10"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":1,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}"
+      },
+      {
+        "from": "{\"column\":0,\"index\":0,\"kind\":\"column\",\"path\":\"<root>/notes/one.wtf\"}",
+        "reads": [
+          {
+            "line": 5,
+            "path": "<root>/notes/one.wtf",
+            "range": {
+              "end": {
+                "character": 7,
+                "line": 4
+              },
+              "start": {
+                "character": 2,
+                "line": 4
+              }
+            },
+            "uri": "file://<root>/notes/one.wtf#L5"
+          }
+        ],
+        "to": "{\"column\":0,\"index\":3,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+      }
+    ],
+    "nodes": [
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "definition",
+        "name": "double",
+        "source": {
+          "line": 1,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 6,
+              "line": 0
+            },
+            "start": {
+              "character": 0,
+              "line": 0
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L1"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 0,
+          "kind": "definition",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":1,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "definition",
+        "name": "answer",
+        "source": {
+          "line": 2,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 6,
+              "line": 1
+            },
+            "start": {
+              "character": 0,
+              "line": 1
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L2"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 1,
+          "kind": "definition",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":2,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "definition",
+        "name": "loop",
+        "source": {
+          "line": 3,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 4,
+              "line": 2
+            },
+            "start": {
+              "character": 0,
+              "line": 2
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L3"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 2,
+          "kind": "definition",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":3,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "definition",
+        "name": "t",
+        "source": {
+          "line": 4,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 1,
+              "line": 3
+            },
+            "start": {
+              "character": 0,
+              "line": 3
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L4"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 3,
+          "kind": "definition",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":0,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "task",
+        "name": "Parent",
+        "source": {
+          "line": 9,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 12,
+              "line": 8
+            },
+            "start": {
+              "character": 6,
+              "line": 8
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L9"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 0,
+          "kind": "task",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":1,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "task",
+        "name": "Child",
+        "source": {
+          "line": 10,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 13,
+              "line": 9
+            },
+            "start": {
+              "character": 8,
+              "line": 9
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L10"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 1,
+          "kind": "task",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":0,\"kind\":\"section\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "section",
+        "name": "work",
+        "source": {
+          "line": 8,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 12,
+              "line": 7
+            },
+            "start": {
+              "character": 8,
+              "line": 7
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L8"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 0,
+          "kind": "section",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": false,
+        "id": "{\"column\":0,\"index\":0,\"kind\":\"column\",\"path\":\"<root>/notes/one.wtf\"}",
+        "kind": "column",
+        "name": "value",
+        "source": {
+          "line": 5,
+          "path": "<root>/notes/one.wtf",
+          "range": {
+            "end": {
+              "character": 7,
+              "line": 4
+            },
+            "start": {
+              "character": 2,
+              "line": 4
+            }
+          },
+          "uri": "file://<root>/notes/one.wtf#L5"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 0,
+          "kind": "column",
+          "path": "<root>/notes/one.wtf"
+        }
+      },
+      {
+        "external": true,
+        "id": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/two.wtf\"}",
+        "kind": "definition",
+        "name": "rate",
+        "source": {
+          "line": 1,
+          "path": "<root>/notes/two.wtf",
+          "range": {
+            "end": {
+              "character": 6,
+              "line": 0
+            },
+            "start": {
+              "character": 2,
+              "line": 0
+            }
+          },
+          "uri": "file://<root>/notes/two.wtf#L1"
+        },
+        "symbol": {
+          "column": 0,
+          "index": 0,
+          "kind": "definition",
+          "path": "<root>/notes/two.wtf"
+        }
+      }
+    ],
+    "schemaVersion": 1
+  }
+]
+
+### 1 cli graph one.wtf --root notes -q graph.nodes | where external | select name
+$ wtf graph one.wtf --root notes -q graph.nodes | where external | select name --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "rate"
+]
+
+### 2 cli graph one.wtf --root notes -q map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)})
+$ wtf graph one.wtf --root notes -q map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)}) --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "from": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      1
+    ],
+    "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/two.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":1,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      2
+    ],
+    "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":2,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      3
+    ],
+    "to": "{\"column\":0,\"index\":2,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":3,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      7
+    ],
+    "to": "{\"column\":0,\"index\":0,\"kind\":\"definition\",\"path\":\"<root>/notes/two.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":0,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      10
+    ],
+    "to": "{\"column\":0,\"index\":1,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":0,\"kind\":\"section\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      10
+    ],
+    "to": "{\"column\":0,\"index\":1,\"kind\":\"task\",\"path\":\"<root>/notes/one.wtf\"}"
+  },
+  {
+    "from": "{\"column\":0,\"index\":0,\"kind\":\"column\",\"path\":\"<root>/notes/one.wtf\"}",
+    "reads": [
+      5
+    ],
+    "to": "{\"column\":0,\"index\":3,\"kind\":\"definition\",\"path\":\"<root>/notes/one.wtf\"}"
+  }
+]
+
+### 3 cli query one.wtf length(graph.nodes) --root notes --json
+$ wtf query one.wtf length(graph.nodes) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  9
+]
+
+### 4 cli graph one.wtf --root notes -q length(graph.nodes)
+$ wtf graph one.wtf --root notes -q length(graph.nodes) --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  9
+]
+
+### 5 cli query --workspace length(filter(graph.nodes, fn(n) => n.external)) --root notes --json
+$ wtf query --workspace length(filter(graph.nodes, fn(n) => n.external)) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  0
+]
+
+### 6 cli ast one.wtf --root notes -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)
+$ wtf ast one.wtf --root notes -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name) --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "double",
+  "answer",
+  "loop",
+  "t"
+]
+
+### 7 cli graph ignored.wtf --root notes -q graph.nodes | select name
+$ wtf graph ignored.wtf --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "secret"
+]
+
+### 8 cli graph ../outside.wtf --root notes -q graph.nodes | select name
+$ wtf graph ../outside.wtf --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "Outside"
+]
+
+### 9 cli graph missing.wtf --root notes
+$ wtf graph missing.wtf --root notes --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+wtf: <root>/notes/missing.wtf: No such file or directory (os error 2)
+
+### 10 read notes/one.wtf notes/.wtf/cache.json
+-- notes/one.wtf
+double := fn(x) => x * import("./two.wtf").rate
+answer := double(2)
+loop := loop + 1
+t := table
+| value |
+|---|
+| [import("./two.wtf").rate] |
+# Work :work
+- [ ] Parent
+  - [ ] Child
+-- notes/.wtf/cache.json
+(missing: entity not found)
+

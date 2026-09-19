@@ -1,0 +1,448 @@
+### 0 cli query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
+$ wtf query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
+exit 0
+--- stdout
+[
+  {
+    "estimate": {
+      "seconds": 90,
+      "type": "duration"
+    },
+    "source": {
+      "line": 1,
+      "path": "<root>/agenda/n.wtf",
+      "range": {
+        "end": {
+          "character": 48,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/agenda/n.wtf#L1"
+    },
+    "title": "Open #work"
+  }
+]
+
+### 1 cli q --workspace map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title) --root agenda --json
+$ wtf q --workspace map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title) --root agenda --json
+exit 0
+--- stdout
+[
+  "Open #work"
+]
+
+### 2 cli query --workspace tasks | select {title} --root agenda --jsonl
+$ wtf query --workspace tasks | select {title} --root agenda --jsonl --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+{"title":"Open #work"}
+{"title":"Closed"}
+
+### 3 cli query --workspace tasks | select {title} --root agenda
+$ wtf query --workspace tasks | select {title} --root agenda --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+title=Open #work
+title=Closed
+
+### 4 cli query --workspace - --root agenda --json
+$ wtf query --workspace - --root agenda --json --now 2026-09-16T12:00:00-04:00
+--- stdin
+tasks | count
+exit 0
+--- stdout
+[
+  2
+]
+
+### 5 cli query one note.wtf - --root scopes --json
+$ wtf query one note.wtf - --root scopes --json --now 2026-09-16T12:00:00-04:00
+--- stdin
+// Count unfinished tasks.
+length(
+  filter(tasks, fn(t) => !t.done)
+)
+exit 0
+--- stdout
+[
+  1
+]
+
+### 6 cli query --workspace - --root scopes --json
+$ wtf query --workspace - --root scopes --json --now 2026-09-16T12:00:00-04:00
+--- stdin
+// Count unfinished tasks.
+length(
+  filter(tasks, fn(t) => !t.done)
+)
+exit 0
+--- stdout
+[
+  2
+]
+
+### 7 read agenda/n.wtf agenda/.wtf/cache.json
+-- agenda/n.wtf
+- [ ] Open #work @due(2026-09-16) @estimate(90s)
+- [x] Closed
+-- agenda/.wtf/cache.json
+(missing: entity not found)
+
+### 8 cli query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json
+$ wtf query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 9 cli query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json
+$ wtf query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stdout
+[
+  {
+    "line": 0,
+    "message": "Unknown name 'absent'"
+  }
+]
+--- stderr
+wtf: 1 matching result(s)
+
+### 10 cli query --workspace tasks | where ( --root broken
+$ wtf query --workspace tasks | where ( --root broken --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Unclosed delimiter in query
+
+### 11 cli query --workspace tasks --root broken --json --jsonl
+$ wtf query --workspace tasks --root broken --json --jsonl --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the argument '--json' cannot be used with '--jsonl'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 12 cli query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
+$ wtf query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
+exit 0
+--- stdout
+[
+  {
+    "type": "datetime",
+    "value": "2026-09-16T23:30:00-04:00"
+  },
+  {
+    "type": "date",
+    "value": "2026-09-16"
+  }
+]
+
+### 13 cli query --workspace values | select value --root clock --on 2026-09-16 --json
+$ wtf query --workspace values | select value --root clock --on 2026-09-16 --json
+exit 0
+--- stdout
+[
+  {
+    "type": "datetime",
+    "value": "2026-09-16T00:00:00+00:00"
+  },
+  {
+    "type": "date",
+    "value": "2026-09-16"
+  }
+]
+
+### 14 cli query --workspace tasks --root clock --on 2026-09-16 --now 2026-09-16T12:00:00Z
+$ wtf query --workspace tasks --root clock --on 2026-09-16 --now 2026-09-16T12:00:00Z
+exit 2
+--- stderr
+error: the argument '--on <ON>' cannot be used with '--now <NOW>'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 15 cli q one note.wtf length(tasks) --root scopes --json
+$ wtf q one note.wtf length(tasks) --root scopes --json
+exit 0
+--- stdout
+[
+  1
+]
+
+### 16 cli q --workspace length(tasks) --root scopes --json
+$ wtf q --workspace length(tasks) --root scopes --json
+exit 0
+--- stdout
+[
+  2
+]
+
+### 17 cli query length(tasks) --workspace --root scopes --json
+$ wtf query length(tasks) --workspace --root scopes --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  2
+]
+
+### 18 cli query --workspace "one note.wtf" --root scopes --json
+$ wtf query --workspace "one note.wtf" --root scopes --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "one note.wtf"
+]
+
+### 19 cli query ${root}/scopes/one note.wtf length(tasks) --root scopes --json
+$ wtf query <root>/scopes/one note.wtf length(tasks) --root scopes --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  1
+]
+
+### 20 cli query
+$ wtf query --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the following required arguments were not provided:
+  <FILE_OR_QUERY>
+  <QUERY>
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 21 cli query tasks
+$ wtf query tasks --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the following required arguments were not provided:
+  <QUERY>
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 22 cli query note.wtf
+$ wtf query note.wtf --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the following required arguments were not provided:
+  <QUERY>
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 23 cli query --workspace
+$ wtf query --workspace --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the following required arguments were not provided:
+  <FILE_OR_QUERY>
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 24 cli query -f expression.txt
+$ wtf query -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument '-f' found
+
+  tip: to pass '-f' as a value, use '-- -f'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 25 cli query note.wtf tasks --workspace
+$ wtf query note.wtf tasks --workspace --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: the argument '[QUERY]' cannot be used with '--workspace'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 26 cli query note.wtf tasks -f expression.txt
+$ wtf query note.wtf tasks -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument '-f' found
+
+  tip: to pass '-f' as a value, use '-- -f'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 27 cli query --workspace tasks --file expression.txt
+$ wtf query --workspace tasks --file expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument '--file' found
+
+  tip: to pass '--file' as a value, use '-- --file'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 28 cli query --workspace tasks -f -
+$ wtf query --workspace tasks -f - --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument '-f' found
+
+  tip: to pass '-f' as a value, use '-- -f'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 29 cli query tasks --in note.wtf
+$ wtf query tasks --in note.wtf --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument '--in' found
+
+  tip: a similar argument exists: '--fail-on-match'
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 30 cli query note.wtf tasks extra
+$ wtf query note.wtf tasks extra --root <root> --now 2026-09-16T12:00:00-04:00
+exit 2
+--- stderr
+error: unexpected argument 'extra' found
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+For more information, try '--help'.
+
+### 31 cli today
+$ wtf today
+exit 2
+--- stderr
+error: unrecognized subcommand 'today'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 32 cli agenda
+$ wtf agenda
+exit 2
+--- stderr
+error: unrecognized subcommand 'agenda'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 33 cli tasks
+$ wtf tasks
+exit 2
+--- stderr
+error: unrecognized subcommand 'tasks'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 34 cli check
+$ wtf check
+exit 2
+--- stderr
+error: unrecognized subcommand 'check'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 35 cli plan
+$ wtf plan
+exit 2
+--- stderr
+error: unrecognized subcommand 'plan'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 36 cli capture n.wtf
+$ wtf capture n.wtf
+exit 2
+--- stderr
+error: unrecognized subcommand 'capture'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 37 cli complete n.wtf
+$ wtf complete n.wtf
+exit 2
+--- stderr
+error: unrecognized subcommand 'complete'
+
+Usage: wtf [COMMAND]
+
+For more information, try '--help'.
+
+### 38 cli query --help
+$ wtf query --help --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+Query tasks, values, tables, plans, resources and diagnostics
+
+Usage: wtf query [OPTIONS] <FILE> <QUERY>
+       wtf query [OPTIONS] --workspace <QUERY>
+
+Arguments:
+  <FILE_OR_QUERY>  A note relative to --root, or the query expression when --workspace is set
+  [QUERY]          A functional expression or collection pipeline; use - for stdin
+
+Options:
+      --workspace      Query all indexed notes instead of supplying a positional note file
+      --root <ROOT>    [default: .]
+      --json           Emit a JSON array, preserving dates, currencies and units
+      --jsonl          Emit one JSON value per line
+      --on <ON>        Evaluate at local midnight on this date
+      --now <NOW>      Freeze the clock and timezone offset using an RFC3339 timestamp
+      --fail-on-match  Return exit status 1 if the query returns any rows (useful for diagnostics)
+  -h, --help           Print help
+
+Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes
+Functions: map, filter, fold, get, sort_by, group_by, sum, length
+Stages: where, select, sort, limit, count, sum, group
+Use - as QUERY to read an expression from stdin.
+Examples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json
+          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json
+          printf 'length(tasks)' | wtf query note.wtf -
+

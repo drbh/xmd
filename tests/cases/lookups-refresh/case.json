@@ -1,0 +1,18 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    { "cli": ["query", "trip.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["refresh"] },
+    { "read": [".wtf/lookups.json"] },
+    { "cli": ["render", "trip.wtf", "--format", "text"] },
+    { "cli": ["query", "trip.wtf", "values | select {name, display}", "--json"] },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\"",
+        "--fail-on-match"
+      ]
+    }
+  ]
+}

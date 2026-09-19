@@ -1,0 +1,306 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 2, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn() => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"other\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx, ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\nnot_decode := fn(url, data) => {title: data.summary, points: data.points}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/a.wtf": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n",
+        ".wtf/modules/b.wtf": "module := {api: 1, id: \"b\", kind: \"library\", imports: [\"a\"]}\n",
+        ".wtf/modules.json": "[\"./modules/a.wtf\", \"./modules/b.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules.json": "[\"./modules/tickets.wtf\"]\n",
+        ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n",
+        ".wtf/modules/a.wtf": null,
+        ".wtf/modules/b.wtf": null
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "await": "window/logMessage"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => inlay(ctx)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/tickets.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => text(ctx.file.exists)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/tickets.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 999, label: \"nowhere\"}]\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/tickets.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"partial\"}, {at: {line: 0, character: 9}, label: \"splits emoji\"}]\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/tickets.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/modules/tickets.wtf": "module := {api: 1, id: \"loops\", kind: \"library\"}\nspin := fn(x) => spin(x)\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/tickets.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "main.wtf",
+            "text": "spun := import(\"loops\").spin(1)\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "main.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "main.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

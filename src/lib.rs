@@ -22,8 +22,9 @@ pub use evaluate::{
 // `modules` at the root is the evaluator's registry; the feature adapter over
 // its hooks stays reachable as `wtf::features::modules`.
 pub use features::{
-    actions, catalog, commands, diagnostics, hierarchy, highlighting, inlays, intelligence,
-    interaction, presentation, prose, query, refactor, rendering, session, symbols, typing,
+    actions, catalog, commands, completion, diagnostics, hierarchy, highlighting, hover, inlays,
+    intelligence, interaction, presentation, prose, query, refactor, rendering, session, signature,
+    symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

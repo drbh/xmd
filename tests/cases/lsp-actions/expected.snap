@@ -1,0 +1,435 @@
+### 0 lsp
+-- open controls.wtf
+-- await textDocument/publishDiagnostics controls.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/controls.wtf",
+  "version": 1
+}
+-- request textDocument/codeLens controls.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/controls.wtf",
+          "expected": "- [ ] First :first",
+          "kind": "toggle_task",
+          "row": 0
+        }
+      ],
+      "command": "wtf.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 1
+          },
+          "url": "file://<root>/receipt.png"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ image"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "Use [receipt].",
+            "row": 2
+          },
+          "url": "file://<root>/receipt.png"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ image"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:controls.wtf}","expected":"[./receipt.png]:receipt","row":1},"url":"${uri:receipt.png}"}],"command":"wtf.openResource"}
+null
+-- await window/showDocument
+{
+  "external": false,
+  "takeFocus": true,
+  "uri": "file://<root>/receipt.png"
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.wtf}","expected":"- [ ] First :first","kind":"toggle_task","row":0}],"command":"wtf.task"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "x",
+            "range": {
+              "end": {
+                "character": 4,
+                "line": 0
+              },
+              "start": {
+                "character": 3,
+                "line": 0
+              }
+            }
+          },
+          {
+            "newText": " @completed(2026-09-16)",
+            "range": {
+              "end": {
+                "character": 18,
+                "line": 0
+              },
+              "start": {
+                "character": 18,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/controls.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- change controls.wtf (version 2)
+- [x] First :first @completed(2026-09-16)
+[./receipt.png]:receipt
+Use [receipt].
+-- await textDocument/publishDiagnostics controls.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/controls.wtf",
+  "version": 2
+}
+-- request textDocument/codeLens controls.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/controls.wtf",
+          "expected": "- [x] First :first @completed(2026-09-16)",
+          "kind": "toggle_task",
+          "row": 0
+        }
+      ],
+      "command": "wtf.task",
+      "title": "○ reopen"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 1
+          },
+          "url": "file://<root>/receipt.png"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ image"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "Use [receipt].",
+            "row": 2
+          },
+          "url": "file://<root>/receipt.png"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ image"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  }
+]
+-- change controls.wtf (version 3)
+- [ ] Different task
+- [x] First :first @completed(2026-09-16)
+[./receipt.png]:receipt
+Use [receipt].
+-- await textDocument/publishDiagnostics controls.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/controls.wtf",
+  "version": 3
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.wtf}","expected":"- [x] First :first @completed(2026-09-16)","kind":"toggle_task","row":0}],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+
+### 1 read .wtf/cache.json controls.wtf
+-- .wtf/cache.json
+(missing: entity not found)
+-- controls.wtf
+- [ ] First :first
+[./receipt.png]:receipt
+Use [receipt].
+
+### 2 lsp
+-- open edits.wtf
+-- await textDocument/publishDiagnostics edits.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/edits.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction edits.wtf {"end":{"character":0,"line":6},"start":{"character":0,"line":6}}
+[]
+-- request textDocument/codeAction edits.wtf {"end":{"character":24,"line":2},"start":{"character":10,"line":2}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[calculation] := budget - spent\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              }
+            },
+            {
+              "newText": "calculation",
+              "range": {
+                "end": {
+                  "character": 24,
+                  "line": 2
+                },
+                "start": {
+                  "character": 10,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/edits.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.extract",
+    "title": "Extract named calculation 'calculation'"
+  }
+]
+-- change edits.wtf (version 2)
+[$3,000]:budget
+[$1,410]:spent
+[calculation] := budget - spent
+[cash] := calculation
+Use [cash].
+[focus] := countdown(25m, 0s)
+- [ ] Review :review @timer(focus)
+Plain prose.
+-- await textDocument/publishDiagnostics edits.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/edits.wtf",
+  "version": 2
+}
+-- change edits.wtf (version 3)
+[$3,000]:budget
+[$1,410]:spent
+[calculation] := budget - spent
+[cash] := calculation
+Use [csah].
+[focus] := countdown(25m, 0s)
+- [ ] Review :review @timer(focus)
+Plain prose.
+-- await textDocument/publishDiagnostics edits.wtf
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'csah'",
+      "range": {
+        "end": {
+          "character": 9,
+          "line": 4
+        },
+        "start": {
+          "character": 5,
+          "line": 4
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/edits.wtf",
+  "version": 3
+}
+-- request textDocument/codeAction edits.wtf {"end":{"character":9,"line":4},"start":{"character":5,"line":4}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "cash",
+              "range": {
+                "end": {
+                  "character": 9,
+                  "line": 4
+                },
+                "start": {
+                  "character": 5,
+                  "line": 4
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/edits.wtf",
+            "version": 3
+          }
+        }
+      ]
+    },
+    "kind": "quickfix",
+    "title": "Change 'csah' to 'cash'"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[\"TODO\"]:csah\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 4
+                },
+                "start": {
+                  "character": 0,
+                  "line": 4
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/edits.wtf",
+            "version": 3
+          }
+        }
+      ]
+    },
+    "kind": "quickfix",
+    "title": "Create definition 'csah' (TODO placeholder)"
+  }
+]
+-- change edits.wtf (version 4)
+[$3,000]:budget
+[$1,410]:spent
+[calculation] := budget - spent
+[cash] := calculation
+Use [cash].
+[focus] := countdown(25m, 0s)
+- [ ] Review :review @timer(focus)
+Plain prose.
+-- await textDocument/publishDiagnostics edits.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/edits.wtf",
+  "version": 4
+}
+

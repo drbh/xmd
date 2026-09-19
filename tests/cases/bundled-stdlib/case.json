@@ -1,0 +1,76 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "baddates.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "bakery.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "choice.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "itinerary.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "tasks.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "timers.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "yearless.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "tasks.wtf",
+        "--format",
+        "html"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "timers.wtf",
+        "--format",
+        "html"
+      ]
+    }
+  ]
+}

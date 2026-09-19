@@ -1,0 +1,67 @@
+### 0 cli query bill.wtf tasks | select {title, due, done} --json
+$ wtf query bill.wtf tasks | select {title, due, done} --json --root <root> --now 2026-02-28T09:00:00-05:00
+exit 0
+--- stdout
+[
+  {
+    "done": false,
+    "due": {
+      "type": "date",
+      "value": "2026-02-28"
+    },
+    "title": "Pay bill"
+  }
+]
+
+### 1 cli query bill.wtf diagnostics | select {line, severity, message} --json
+$ wtf query bill.wtf diagnostics | select {line, severity, message} --json --root <root> --now 2026-02-28T09:00:00-05:00
+exit 0
+--- stdout
+[]
+
+### 2 lsp
+-- open bill.wtf
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:bill.wtf}","expected":"- [ ] Pay bill :bill @every(month) @due(2026-02-28) @repeat_from(2026-01-31)","kind":"toggle_task","row":0}],"command":"wtf.task"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "2026-03-31",
+            "range": {
+              "end": {
+                "character": 50,
+                "line": 0
+              },
+              "start": {
+                "character": 40,
+                "line": 0
+              }
+            }
+          },
+          {
+            "newText": "<!-- wtf-history {\"completed\":\"2026-02-28\",\"due\":\"2026-02-28\",\"next\":\"2026-03-31\",\"task\":\"bill\",\"title\":\"Pay bill\"} -->\n",
+            "range": {
+              "end": {
+                "character": 0,
+                "line": 2
+              },
+              "start": {
+                "character": 0,
+                "line": 2
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/bill.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,198 @@
+### 0 cli render values.wtf --format text
+$ wtf render values.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[$3,000]:budget
+[$1,410]:spent
+[remaining_cash] := budget - spent = $1,590
+[2026-09-25]:departure
+[focus] := countdown(25m) = ◷ ░░░░░░░░ 25:00 remaining · ○ idle
+[work] := stopwatch() = ◴ 00:00 elapsed · ○ idle
+[30m]:estimate
+[https://github.com/zed-industries/zed/pull/1]:pr ◌ PR #1 · refresh for status
+# Checklist :checklist ████████ 1/1 complete
+- [x] Done :done
+[watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
+Use [remaining_cash] $1,590 today.
+
+### 1 lsp
+-- open values.wtf
+-- await textDocument/publishDiagnostics values.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/values.wtf",
+  "version": 1
+}
+-- request textDocument/hover values.wtf 2:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**remaining_cash · Money**\n\n$1,590\n\n```text\nbudget - spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [budget](<file://<root>/values.wtf#L1>), [spent](<file://<root>/values.wtf#L2>)\n\nDefinition: [remaining_cash](<file://<root>/values.wtf#L3>) · <root>/values.wtf:3"
+  },
+  "range": {
+    "end": {
+      "character": 15,
+      "line": 2
+    },
+    "start": {
+      "character": 1,
+      "line": 2
+    }
+  }
+}
+-- request textDocument/hover values.wtf 0:10
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**budget · Money**\n\n$3,000\n\nDefinition: [budget](<file://<root>/values.wtf#L1>) · <root>/values.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 15,
+      "line": 0
+    },
+    "start": {
+      "character": 9,
+      "line": 0
+    }
+  }
+}
+-- request textDocument/hover values.wtf 4:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**focus · Countdown**\n\n◷ 25:00 remaining · ○ idle\n\n```text\ncountdown(25m)\n= ◷ 25:00 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/values.wtf#L5>) · <root>/values.wtf:5"
+  },
+  "range": {
+    "end": {
+      "character": 6,
+      "line": 4
+    },
+    "start": {
+      "character": 1,
+      "line": 4
+    }
+  }
+}
+-- request textDocument/hover values.wtf 10:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**watch · Stopwatch**\n\n◴ 01:13 elapsed · ‖ paused\n\n```text\nstopwatch(73s)\n= ◴ 01:13 elapsed · ‖ paused\n```\n\nElapsed: 1m 13s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/values.wtf#L11>) · <root>/values.wtf:11"
+  },
+  "range": {
+    "end": {
+      "character": 6,
+      "line": 10
+    },
+    "start": {
+      "character": 1,
+      "line": 10
+    }
+  }
+}
+-- request textDocument/hover values.wtf 7:47
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**pr · Resource**\n\nhttps://github.com/zed-industries/zed/pull/1\n\n[Open resource](<https://github.com/zed-industries/zed/pull/1>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\n\nDefinition: [pr](<file://<root>/values.wtf#L8>) · <root>/values.wtf:8"
+  },
+  "range": {
+    "end": {
+      "character": 49,
+      "line": 7
+    },
+    "start": {
+      "character": 47,
+      "line": 7
+    }
+  }
+}
+-- request textDocument/hover values.wtf 11:8
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**remaining_cash · Money**\n\n$1,590\n\n```text\nbudget - spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [budget](<file://<root>/values.wtf#L1>), [spent](<file://<root>/values.wtf#L2>)\n\nDefinition: [remaining_cash](<file://<root>/values.wtf#L3>) · <root>/values.wtf:3"
+  },
+  "range": {
+    "end": {
+      "character": 19,
+      "line": 11
+    },
+    "start": {
+      "character": 5,
+      "line": 11
+    }
+  }
+}
+-- request textDocument/hover values.wtf 8:15
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**checklist · Checklist**\n\n1 tasks\n\n`██████████ 100%` 1/1 complete\n\nDefinition: [checklist](<file://<root>/values.wtf#L9>) · <root>/values.wtf:9"
+  },
+  "range": {
+    "end": {
+      "character": 22,
+      "line": 8
+    },
+    "start": {
+      "character": 13,
+      "line": 8
+    }
+  }
+}
+-- open bakery.wtf
+-- await textDocument/publishDiagnostics bakery.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/bakery.wtf",
+  "version": 1
+}
+-- request textDocument/hover bakery.wtf 3:17
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/bakery.wtf#L1>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/bakery.wtf#L1>) · <root>/bakery.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 21,
+      "line": 3
+    },
+    "start": {
+      "character": 15,
+      "line": 3
+    }
+  }
+}
+-- request textDocument/hover bakery.wtf 0:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**bakery · Plan**\n\n$94.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 25.75 + $1.25 * 14)\n= $94.75\n```\n\nMaximizes the objective. Variables: bagels = 25.75, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- bagel_min: 25.75 ≥ 12 · ○ slack 13.75\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.wtf#L1>), [doughnuts](<file://<root>/bakery.wtf#L1>)\n\nDefinition: [bakery](<file://<root>/bakery.wtf#L1>) · <root>/bakery.wtf:1"
+  },
+  "range": {
+    "end": {
+      "character": 7,
+      "line": 0
+    },
+    "start": {
+      "character": 1,
+      "line": 0
+    }
+  }
+}
+
+### 2 cli render bakery.wtf --format text
+$ wtf render bakery.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[bakery] := maximize($3 * bagels + $1.25 * doughnuts) = $94.75 · bagels 25.75 · doughnuts 14
+| constraint | expression |
+| ---------- | ---------- |
+| flour | 12 * bagels + 6.5 * doughnuts <= 400 | ████████ 400 ≤ 400 · ● binding
+| bagel_min | bagels >= 12 | 25.75 ≥ 12 · ○ slack 13.75
+| doughnut_min | doughnuts >= 14 | 14 ≥ 14 · ● binding
+Bake [bakery.bagels] 25.75 bagels.
+

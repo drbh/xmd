@@ -1,0 +1,1017 @@
+### 0 browser
+-- setDocument money.wtf
+-- setDocument symbols.wtf
+-- setDocument trip.wtf
+-- semanticLegend {}
+{
+  "ok": true,
+  "result": {
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ]
+  }
+}
+-- render {"uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": false,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= 3",
+        "paddingLeft": true,
+        "position": {
+          "character": 10,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 9,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+        }
+      }
+    ],
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "lenses": [],
+    "lineClasses": [
+      "h1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "# Real 🦀\r\na := 1 + 2\r\nValue [a].\r\n```\r\n# Inert\r\n```\r\n",
+    "symbols": [
+      {
+        "children": [
+          {
+            "detail": "Number · 3",
+            "kind": 13,
+            "name": "a",
+            "range": {
+              "end": {
+                "character": 10,
+                "line": 1
+              },
+              "start": {
+                "character": 0,
+                "line": 1
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 1,
+                "line": 1
+              },
+              "start": {
+                "character": 0,
+                "line": 1
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Real 🦀",
+        "range": {
+          "end": {
+            "character": 3,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 9,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      8,
+      6,
+      0,
+      1,
+      0,
+      1,
+      3,
+      1,
+      0,
+      1,
+      3,
+      4,
+      0,
+      0,
+      4,
+      1,
+      2,
+      0,
+      0,
+      2,
+      1,
+      4,
+      0,
+      0,
+      2,
+      1,
+      2,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      1,
+      3,
+      0,
+      0,
+      1,
+      1,
+      15,
+      0,
+      1,
+      0,
+      3,
+      16,
+      0,
+      1,
+      0,
+      7,
+      16,
+      0,
+      1,
+      0,
+      3,
+      16,
+      0
+    ],
+    "uri": "file:///workspace/trip.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/money.wtf": 1,
+      "file:///workspace/symbols.wtf": 1,
+      "file:///workspace/trip.wtf": 1
+    }
+  }
+}
+-- analyze {"uri":"file:///workspace/trip.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= 3",
+        "paddingLeft": true,
+        "position": {
+          "character": 10,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+        }
+      },
+      {
+        "label": "3",
+        "paddingLeft": true,
+        "position": {
+          "character": 9,
+          "line": 2
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+        }
+      }
+    ],
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "lenses": [],
+    "lineClasses": [
+      "h1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "# Real 🦀\r\na := 1 + 2\r\nValue [a].\r\n```\r\n# Inert\r\n```\r\n",
+    "symbols": [
+      {
+        "children": [
+          {
+            "detail": "Number · 3",
+            "kind": 13,
+            "name": "a",
+            "range": {
+              "end": {
+                "character": 10,
+                "line": 1
+              },
+              "start": {
+                "character": 0,
+                "line": 1
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 1,
+                "line": 1
+              },
+              "start": {
+                "character": 0,
+                "line": 1
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Real 🦀",
+        "range": {
+          "end": {
+            "character": 3,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 9,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      8,
+      6,
+      0,
+      1,
+      0,
+      1,
+      3,
+      1,
+      0,
+      1,
+      3,
+      4,
+      0,
+      0,
+      4,
+      1,
+      2,
+      0,
+      0,
+      2,
+      1,
+      4,
+      0,
+      0,
+      2,
+      1,
+      2,
+      0,
+      1,
+      6,
+      1,
+      15,
+      0,
+      0,
+      1,
+      1,
+      3,
+      0,
+      0,
+      1,
+      1,
+      15,
+      0,
+      1,
+      0,
+      3,
+      16,
+      0,
+      1,
+      0,
+      7,
+      16,
+      0,
+      1,
+      0,
+      3,
+      16,
+      0
+    ],
+    "uri": "file:///workspace/trip.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/money.wtf": 1,
+      "file:///workspace/symbols.wtf": 1,
+      "file:///workspace/trip.wtf": 1
+    }
+  }
+}
+-- documentSymbols {"uri":"file:///workspace/symbols.wtf"}
+{
+  "ok": true,
+  "result": [
+    {
+      "children": [
+        {
+          "detail": "Money · $3,000",
+          "kind": 14,
+          "name": "budget",
+          "range": {
+            "end": {
+              "character": 15,
+              "line": 1
+            },
+            "start": {
+              "character": 0,
+              "line": 1
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 15,
+              "line": 1
+            },
+            "start": {
+              "character": 9,
+              "line": 1
+            }
+          }
+        },
+        {
+          "children": [
+            {
+              "detail": "Money · $556",
+              "kind": 13,
+              "name": "remaining",
+              "range": {
+                "end": {
+                  "character": 30,
+                  "line": 3
+                },
+                "start": {
+                  "character": 0,
+                  "line": 3
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 10,
+                  "line": 3
+                },
+                "start": {
+                  "character": 1,
+                  "line": 3
+                }
+              }
+            },
+            {
+              "children": [
+                {
+                  "detail": "Complete",
+                  "kind": 17,
+                  "name": "Passport",
+                  "range": {
+                    "end": {
+                      "character": 16,
+                      "line": 5
+                    },
+                    "start": {
+                      "character": 2,
+                      "line": 5
+                    }
+                  },
+                  "selectionRange": {
+                    "end": {
+                      "character": 16,
+                      "line": 5
+                    },
+                    "start": {
+                      "character": 2,
+                      "line": 5
+                    }
+                  }
+                }
+              ],
+              "detail": "Complete",
+              "kind": 17,
+              "name": "Pack",
+              "range": {
+                "end": {
+                  "character": 16,
+                  "line": 5
+                },
+                "start": {
+                  "character": 0,
+                  "line": 4
+                }
+              },
+              "selectionRange": {
+                "end": {
+                  "character": 10,
+                  "line": 4
+                },
+                "start": {
+                  "character": 0,
+                  "line": 4
+                }
+              }
+            }
+          ],
+          "detail": "",
+          "kind": 3,
+          "name": "Money",
+          "range": {
+            "end": {
+              "character": 16,
+              "line": 5
+            },
+            "start": {
+              "character": 0,
+              "line": 2
+            }
+          },
+          "selectionRange": {
+            "end": {
+              "character": 8,
+              "line": 2
+            },
+            "start": {
+              "character": 0,
+              "line": 2
+            }
+          }
+        }
+      ],
+      "detail": "",
+      "kind": 3,
+      "name": "Trip",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 6,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      }
+    }
+  ]
+}
+-- analyze {"uri":"file:///workspace/money.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= $3.30",
+        "paddingLeft": true,
+        "position": {
+          "character": 16,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.wtf#L1>) · /workspace/money.wtf:1"
+        }
+      },
+      {
+        "label": "$3.30",
+        "paddingLeft": true,
+        "position": {
+          "character": 12,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.wtf#L1>) · /workspace/money.wtf:1"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-wtfMoney\" title=\"\">$3.30</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.wtf#L1&gt;) · /workspace/money.wtf:1\"> = $3.30</span>\n</span><span class=\"line \" data-line=\"1\">Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.wtf#L1&gt;) · /workspace/money.wtf:1\"> $3.30</span>.\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [],
+    "lineClasses": [
+      "",
+      "",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "[value] := $3.30\nHave [value].\n",
+    "symbols": [
+      {
+        "detail": "Money · $3.30",
+        "kind": 13,
+        "name": "value",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 6,
+            "line": 0
+          },
+          "start": {
+            "character": 1,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      1,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      2,
+      2,
+      4,
+      0,
+      0,
+      3,
+      5,
+      10,
+      0,
+      1,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      1,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/money.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/money.wtf": 1,
+      "file:///workspace/symbols.wtf": 1,
+      "file:///workspace/trip.wtf": 1
+    }
+  }
+}
+
+### 1 cli render trip.wtf --format text
+$ wtf render trip.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Real 🦀␍
+a := 1 + 2 = 3␍
+Value [a] 3.␍
+```␍
+# Inert␍
+```␍
+
+### 2 lsp
+-- open trip.wtf
+-- open symbols.wtf
+-- open money.wtf
+-- request textDocument/documentSymbol symbols.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "Money · $3,000",
+        "kind": 14,
+        "name": "budget",
+        "range": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 15,
+            "line": 1
+          },
+          "start": {
+            "character": 9,
+            "line": 1
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "detail": "Money · $556",
+            "kind": 13,
+            "name": "remaining",
+            "range": {
+              "end": {
+                "character": 30,
+                "line": 3
+              },
+              "start": {
+                "character": 0,
+                "line": 3
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 3
+              },
+              "start": {
+                "character": 1,
+                "line": 3
+              }
+            }
+          },
+          {
+            "children": [
+              {
+                "detail": "Complete",
+                "kind": 17,
+                "name": "Passport",
+                "range": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 16,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                }
+              }
+            ],
+            "detail": "Complete",
+            "kind": 17,
+            "name": "Pack",
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 5
+              },
+              "start": {
+                "character": 0,
+                "line": 4
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 4
+              },
+              "start": {
+                "character": 0,
+                "line": 4
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Money",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 5
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 8,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "detail": "",
+    "kind": 3,
+    "name": "Trip",
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- request textDocument/semanticTokens/full money.wtf
+0:0+1 wtfPunctuation "["
+0:1+5 variable [declaration] "value"
+0:6+1 wtfPunctuation "]"
+0:8+2 operator ":="
+0:11+5 wtfMoney "$3.30"
+1:5+1 wtfPunctuation "["
+1:6+5 variable "value"
+1:11+1 wtfPunctuation "]"
+-- request textDocument/inlayHint trip.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= 3",
+    "paddingLeft": true,
+    "position": {
+      "character": 10,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.wtf#L2>) · <root>/trip.wtf:2"
+    }
+  },
+  {
+    "label": "3",
+    "paddingLeft": true,
+    "position": {
+      "character": 9,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.wtf#L2>) · <root>/trip.wtf:2"
+    }
+  }
+]
+

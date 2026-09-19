@@ -15,16 +15,85 @@ pub struct Lookup {
     pub fetched_at: DateTime<Utc>,
     pub source: String,
 }
+/// Keyed by the spelling `LookupKey` displays, because that is the on-disk
+/// format of `.wtf/lookups.json`.
 pub type Store = BTreeMap<String, Lookup>;
 
-pub fn rate_key(from: Currency, to: Currency) -> String {
-    format!("rate:{from}:{to}")
+/// What a note asked the world for. `Display` writes the key `.wtf/lookups.json`
+/// is stored under and `FromStr` reads one back, so the spelling is defined
+/// once instead of being formatted and re-parsed at every use.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LookupKey {
+    Rate { from: Currency, to: Currency },
+    Quote(String),
+    Forecast { place: String, date: NaiveDate },
 }
-pub fn quote_key(symbol: &str) -> String {
-    format!("quote:{}", symbol.to_ascii_uppercase())
+impl LookupKey {
+    pub fn rate(from: Currency, to: Currency) -> Self {
+        Self::Rate { from, to }
+    }
+    /// Tickers are compared in upper case, so `quote(nvda)` and `quote(NVDA)`
+    /// share one cache entry.
+    pub fn quote(symbol: &str) -> Self {
+        Self::Quote(symbol.to_ascii_uppercase())
+    }
+    /// Place names are compared trimmed and lowercased, for the same reason.
+    pub fn forecast(place: &str, date: NaiveDate) -> Self {
+        Self::Forecast {
+            place: place.trim().to_lowercase(),
+            date,
+        }
+    }
+    /// A readable form for hovers: `rate EUR→USD`.
+    pub fn describe(&self) -> String {
+        match self {
+            Self::Rate { from, to } => format!("rate {from}→{to}"),
+            Self::Quote(symbol) => format!("quote {symbol}"),
+            Self::Forecast { place, date } => format!("forecast {place} {date}"),
+        }
+    }
+    pub fn lookup<'s>(&self, store: &'s Store) -> Option<&'s Lookup> {
+        store.get(&self.to_string())
+    }
 }
-pub fn forecast_key(place: &str, date: NaiveDate) -> String {
-    format!("forecast:{}:{date}", place.trim().to_lowercase())
+impl std::fmt::Display for LookupKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Rate { from, to } => write!(f, "rate:{from}:{to}"),
+            Self::Quote(symbol) => write!(f, "quote:{symbol}"),
+            Self::Forecast { place, date } => write!(f, "forecast:{place}:{date}"),
+        }
+    }
+}
+impl std::str::FromStr for LookupKey {
+    type Err = String;
+    fn from_str(key: &str) -> Result<Self, String> {
+        // A place may contain colons, so a forecast key is read from the right.
+        if let Some(rest) = key.strip_prefix("forecast:") {
+            let (place, date) = rest.rsplit_once(':').ok_or("Malformed forecast key")?;
+            let date = date.parse().map_err(|_| "Malformed forecast date")?;
+            return Ok(Self::forecast(place, date));
+        }
+        let currency =
+            |code: &str| Currency::parse(code).ok_or_else(|| format!("Unknown currency '{code}'"));
+        match key.splitn(3, ':').collect::<Vec<_>>().as_slice() {
+            ["rate", from, to] => Ok(Self::rate(currency(from)?, currency(to)?)),
+            ["quote", symbol] => Ok(Self::quote(symbol)),
+            _ => Err(format!("Unknown lookup '{key}'")),
+        }
+    }
+}
+/// Ordered by the spelling, so a sorted list of keys reads the same way the
+/// store and the file do.
+impl Ord for LookupKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.to_string().cmp(&other.to_string())
+    }
+}
+impl PartialOrd for LookupKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 /// The place a day's forecast is for: the destination when the heading lists
 /// a route such as `New York | Oaxaca`.
@@ -35,26 +104,12 @@ pub fn day_place(places: &str) -> Option<String> {
         .find(|p| !p.is_empty())
         .map(str::to_string)
 }
-/// A readable form of a key for hovers: `rate EUR→USD`.
-pub fn describe(key: &str) -> String {
-    if let Some(rest) = key.strip_prefix("forecast:") {
-        let (place, date) = rest.rsplit_once(':').unwrap_or((rest, ""));
-        return format!("forecast {place} {date}");
-    }
-    let parts: Vec<&str> = key.splitn(3, ':').collect();
-    match parts.as_slice() {
-        ["rate", from, to] => format!("rate {from}→{to}"),
-        ["quote", symbol] => format!("quote {symbol}"),
-        _ => key.to_string(),
-    }
-}
 
 pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> {
     if from == to {
         return Ok(1.0);
     }
-    let key = rate_key(from, to);
-    let lookup = store.get(&key).ok_or_else(|| {
+    let lookup = LookupKey::rate(from, to).lookup(store).ok_or_else(|| {
         format!("No cached rate {from}→{to}; run wtf refresh or use the ⟳ lookups lens")
     })?;
     lookup.value["rate"]
@@ -68,8 +123,7 @@ pub fn rate(store: &Store, from: Currency, to: Currency) -> Result<f64, String> 
         })
 }
 pub fn quote(store: &Store, symbol: &str) -> Result<Value, String> {
-    let key = quote_key(symbol);
-    let lookup = store.get(&key).ok_or_else(|| {
+    let lookup = LookupKey::quote(symbol).lookup(store).ok_or_else(|| {
         format!("No cached quote for {symbol}; run wtf refresh or use the ⟳ lookups lens")
     })?;
     let price = lookup.value["price"]
@@ -93,8 +147,7 @@ pub fn forecast(
     date: NaiveDate,
     fahrenheit: bool,
 ) -> Result<Forecast, String> {
-    let key = forecast_key(place, date);
-    let lookup = store.get(&key).ok_or_else(|| {
+    let lookup = LookupKey::forecast(place, date).lookup(store).ok_or_else(|| {
         format!(
             "No cached forecast for {place} on {date}; run wtf refresh or use the ⟳ lookups lens"
         )
@@ -156,9 +209,10 @@ pub fn weather_summary(code: i64) -> &'static str {
 /// with a place want a forecast even without a `forecast(...)` call.
 pub fn wanted(
     ws: &crate::workspace::Workspace,
-    today: NaiveDate,
-) -> std::collections::BTreeSet<String> {
-    let mut engine = crate::engine::Engine::new(ws, today);
+    now: DateTime<chrono::FixedOffset>,
+) -> std::collections::BTreeSet<LookupKey> {
+    let mut engine = crate::engine::Engine::at(ws, now);
+    let today = engine.today;
     for (path, doc) in &ws.documents {
         for symbol in ws.symbols().into_iter().filter(|s| s.path == *path) {
             let _ = engine.symbol(&symbol);
@@ -173,7 +227,7 @@ pub fn wanted(
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)
             {
-                engine.wanted.push(forecast_key(&place, *date));
+                engine.wanted.push(LookupKey::forecast(&place, *date));
             }
         }
     }
@@ -260,15 +314,17 @@ pub mod native {
     }
     /// Fetch one key: (value, source). Provider errors become a value with an
     /// `error` field, so the note shows the problem instead of a stale success.
-    pub async fn fetch(root: &Path, key: &str) -> Result<(serde_json::Value, String), String> {
+    pub async fn fetch(
+        root: &Path,
+        key: &LookupKey,
+    ) -> Result<(serde_json::Value, String), String> {
         let providers = providers(root);
-        if let Some(rest) = key.strip_prefix("forecast:") {
-            let (place, date) = rest.rsplit_once(':').ok_or("Malformed forecast key")?;
-            return fetch_forecast(&providers, place, date).await;
-        }
-        let parts: Vec<&str> = key.splitn(3, ':').collect();
-        match parts.as_slice() {
-            ["rate", from, to] => {
+        match key {
+            LookupKey::Forecast { place, date } => {
+                fetch_forecast(&providers, place, &date.to_string()).await
+            }
+            LookupKey::Rate { from, to } => {
+                let (from, to) = (&from.to_string(), &to.to_string());
                 if let Some(command) = providers.get("rate") {
                     let value = run(command, &[("from", from), ("to", to)]).await?;
                     return Ok((
@@ -286,12 +342,12 @@ pub mod native {
                 .await?;
                 let data: serde_json::Value =
                     serde_json::from_str(&body).map_err(|e| e.to_string())?;
-                let rate = data["rates"][*to]
+                let rate = data["rates"][to.as_str()]
                     .as_f64()
                     .ok_or_else(|| format!("No rate {from}→{to} from frankfurter.dev"))?;
                 Ok((serde_json::json!({"rate": rate}), "frankfurter.dev".into()))
             }
-            ["quote", symbol] => {
+            LookupKey::Quote(symbol) => {
                 if let Some(command) = providers.get("quote") {
                     let value = run(command, &[("symbol", symbol)]).await?;
                     return Ok((
@@ -325,7 +381,6 @@ pub mod native {
                     "finance.yahoo.com".into(),
                 ))
             }
-            _ => Err(format!("Unknown lookup '{key}'")),
         }
     }
     async fn fetch_forecast(
@@ -402,16 +457,20 @@ pub mod native {
             }
         }
     }
-    /// Refresh every lookup the notes want; returns the errors.
-    pub async fn refresh(ws: &mut crate::workspace::Workspace) -> Vec<String> {
+    /// Refresh every lookup the notes want, at the host's clock; returns the
+    /// errors.
+    pub async fn refresh(
+        ws: &mut crate::workspace::Workspace,
+        now: DateTime<chrono::FixedOffset>,
+    ) -> Vec<String> {
         let root = ws.root().to_path_buf();
-        let keys = super::wanted(ws, chrono::Local::now().date_naive());
+        let keys = super::wanted(ws, now);
         let mut errors = Vec::new();
         for key in keys {
             match fetch(&root, &key).await {
                 Ok((value, source)) => {
                     ws.lookups.insert(
-                        key,
+                        key.to_string(),
                         Lookup {
                             value,
                             fetched_at: Utc::now(),
@@ -419,7 +478,7 @@ pub mod native {
                         },
                     );
                 }
-                Err(e) => errors.push(format!("{}: {e}", describe(&key))),
+                Err(e) => errors.push(format!("{}: {e}", key.describe())),
             }
         }
         if let Err(e) = save(&root, &ws.lookups) {

@@ -142,6 +142,19 @@ impl ValueType {
             Self::Choice => "Choice",
         }
     }
+    /// The properties every value of this kind has, as `Value::property` reads
+    /// them and completion offers them. `Timer`, `Forecast`, `Plan` and
+    /// `Record` are missing on purpose: their fields depend on the value (a
+    /// countdown has `remaining`, a record has whatever it was built with), so
+    /// they answer for themselves instead.
+    pub fn fields(self) -> &'static [&'static str] {
+        match self {
+            Self::Money => &["amount", "currency", "type"],
+            Self::Duration => &["seconds", "type"],
+            Self::Date | Self::DateTime | Self::Ratio => &["value", "type"],
+            _ => &[],
+        }
+    }
 }
 impl std::fmt::Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -191,17 +204,18 @@ impl Value {
             (Timer(v), _) => v.property(key),
             (Forecast(v), _) => v.property(key),
             (Plan(v), _) => v.property(key),
-            (Money(amount, _), "amount") => Ok(Number(*amount)),
-            (Money(_, currency), "currency") => Ok(Text(currency.as_str().into())),
-            (Duration(seconds), "seconds") => Ok(Number(*seconds as f64)),
-            (Date(date), "value") => Ok(Text(date.to_string())),
-            (DateTime(date), "value") => Ok(Text(date.to_rfc3339())),
-            (Ratio(value), "value") => Ok(Number(*value)),
-            (Money(..), "type") => Ok(Text("money".into())),
-            (Duration(_), "type") => Ok(Text("duration".into())),
-            (Date(_), "type") => Ok(Text("date".into())),
-            (DateTime(_), "type") => Ok(Text("datetime".into())),
-            (Ratio(_), "type") => Ok(Text("ratio".into())),
+            // Every other kind answers only for the fields its type owns.
+            (value, key) if value.kind().fields().contains(&key) => Ok(match (value, key) {
+                (Money(amount, _), "amount") => Number(*amount),
+                (Money(_, currency), "currency") => Text(currency.as_str().into()),
+                (Duration(seconds), "seconds") => Number(*seconds as f64),
+                (Date(date), "value") => Text(date.to_string()),
+                (DateTime(date), "value") => Text(date.to_rfc3339()),
+                (Ratio(value), "value") => Number(*value),
+                // The remaining field these kinds list is `type`, the kind's
+                // own name in the lowercase spelling notes compare against.
+                _ => Text(value.type_name().to_lowercase()),
+            }),
             _ => Err(format!("Unknown field '{key}' on {}", self.type_name())),
         }
     }
@@ -388,6 +402,18 @@ pub fn date_value(s: &str) -> Option<Value> {
         }
     }
     None
+}
+/// Whether `s` names a day relative to some other day (`today`, `tomorrow`,
+/// `yesterday`, `next friday`), without needing to know which day that is.
+pub fn is_relative_date(s: &str) -> bool {
+    let s = s.trim().to_lowercase();
+    matches!(s.as_str(), "today" | "tomorrow" | "yesterday")
+        || s.strip_prefix("next ").is_some_and(|day| {
+            matches!(
+                day,
+                "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+            )
+        })
 }
 pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
     let s = s.trim().to_lowercase();

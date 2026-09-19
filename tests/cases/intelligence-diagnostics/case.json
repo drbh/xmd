@@ -1,0 +1,77 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "types.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "syntax.wtf",
+        "diagnostics | select {line, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "clock.wtf",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "clock.wtf",
+        "diagnostics | select {line, message}",
+        "--json",
+        "--now",
+        "2026-09-16T14:00:01-04:00"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "types.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "types.wtf"
+        },
+        {
+          "open": "syntax.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "syntax.wtf"
+        },
+        {
+          "open": "cycles.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "cycles.wtf"
+        },
+        {
+          "open": "ambiguous.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "ambiguous.wtf"
+        },
+        {
+          "open": "tasks.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "tasks.wtf"
+        }
+      ]
+    }
+  ]
+}

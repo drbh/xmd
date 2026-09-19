@@ -1,0 +1,335 @@
+### 0 cli render gear.wtf --format text
+$ wtf render gear.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[gear] := table = 4 rows · 4 columns
+| item   | weight | value | take? |
+| ------ | ------ | ----- | ----- |
+| tent   | 3      | 9     |        ☑ yes|
+| stove  | 1      | 4     |        ☑ yes|
+| camera | 2      | 7     |        ☑ yes|
+| books  | 4      | 3     |        ☐ no|
+[pack] := maximize(sum(gear, value * take)) = 20 · take 3 of 4
+| constraint | expression                    |
+| ---------- | ----------------------------- |
+| weight     | sum(gear, weight * take) <= 6 | ████████ 6 ≤ 6 · ● binding
+[menu] := table = 2 rows · 4 columns
+| dish  | cost | protein | servings# |
+| ----- | ---- | ------- | --------- |
+| beans | $2   | 15      |            → 4|
+| eggs  | $3   | 12      |            → 0|
+[diet] := minimize(sum(menu, cost * servings)) = $8 · servings 4
+| constraint | expression                          |
+| ---------- | ----------------------------------- |
+| protein    | sum(menu, protein * servings) >= 50 | 60 ≥ 50 · ○ slack 10
+[wrong] := sum(gear, weight * take)
+--- stderr
+<root>/gear.wtf:21:31: error: 'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize
+wtf: 1 error(s) while rendering
+
+### 1 cli query gear.wtf plans | select {name, display} --json
+$ wtf query gear.wtf plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "20",
+    "name": "pack"
+  },
+  {
+    "display": "$8",
+    "name": "diet"
+  }
+]
+
+### 2 cli query gear.wtf decisions | select {title, plan, line, value} --json
+$ wtf query gear.wtf decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 3,
+    "plan": "pack",
+    "title": "pack",
+    "value": true
+  },
+  {
+    "line": 4,
+    "plan": "pack",
+    "title": "pack",
+    "value": true
+  },
+  {
+    "line": 5,
+    "plan": "pack",
+    "title": "pack",
+    "value": true
+  },
+  {
+    "line": 6,
+    "plan": "pack",
+    "title": "pack",
+    "value": false
+  },
+  {
+    "line": 14,
+    "plan": "diet",
+    "title": "diet",
+    "value": 4.0
+  },
+  {
+    "line": 15,
+    "plan": "diet",
+    "title": "diet",
+    "value": 0.0
+  }
+]
+
+### 3 cli query gear.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query gear.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 20,
+    "message": "'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize",
+    "severity": "error"
+  }
+]
+
+### 4 lsp
+-- open gear.wtf
+-- await textDocument/publishDiagnostics gear.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize",
+      "range": {
+        "end": {
+          "character": 34,
+          "line": 20
+        },
+        "start": {
+          "character": 30,
+          "line": 20
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/gear.wtf",
+  "version": 1
+}
+-- request textDocument/hover gear.wtf 1:29
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**take · Choice**\n\nDecision column of `gear` (name?): a plan that sums over it chooses yes or no for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: [take](<file://<root>/gear.wtf#L2>)"
+  },
+  "range": {
+    "end": {
+      "character": 32,
+      "line": 1
+    },
+    "start": {
+      "character": 28,
+      "line": 1
+    }
+  }
+}
+-- request textDocument/hover gear.wtf 7:2
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**pack · Plan**\n\n20\n\n```text\nmaximize(sum(gear, value * take))\n= 20\n```\n\ntake: tent, stove, camera, ~~books~~\n\nMaximizes the objective. Variables: \n\nConstraints:\n\n- weight: `██████████ 100%` 6 ≤ 6 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [gear](<file://<root>/gear.wtf#L1>), [take](<file://<root>/gear.wtf#L2>), [value](<file://<root>/gear.wtf#L2>)\n\nDefinition: [pack](<file://<root>/gear.wtf#L8>) · <root>/gear.wtf:8"
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 7
+    },
+    "start": {
+      "character": 1,
+      "line": 7
+    }
+  }
+}
+-- request textDocument/hover gear.wtf 16:2
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**diet · Plan**\n\n$8\n\n```text\nminimize(sum(menu, cost * servings))\n= $8\n```\n\nservings: beans × 4, eggs × 0\n\nMinimizes the objective. Variables: \n\nConstraints:\n\n- protein: 60 ≥ 50 · ○ slack 10\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [cost](<file://<root>/gear.wtf#L13>), [menu](<file://<root>/gear.wtf#L12>), [servings](<file://<root>/gear.wtf#L13>)\n\nDefinition: [diet](<file://<root>/gear.wtf#L17>) · <root>/gear.wtf:17"
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 16
+    },
+    "start": {
+      "character": 1,
+      "line": 16
+    }
+  }
+}
+-- request textDocument/codeAction gear.wtf {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": " yes   ",
+              "range": {
+                "end": {
+                  "character": 34,
+                  "line": 3
+                },
+                "start": {
+                  "character": 27,
+                  "line": 3
+                }
+              }
+            },
+            {
+              "newText": " yes   ",
+              "range": {
+                "end": {
+                  "character": 34,
+                  "line": 4
+                },
+                "start": {
+                  "character": 27,
+                  "line": 4
+                }
+              }
+            },
+            {
+              "newText": " yes   ",
+              "range": {
+                "end": {
+                  "character": 34,
+                  "line": 5
+                },
+                "start": {
+                  "character": 27,
+                  "line": 5
+                }
+              }
+            },
+            {
+              "newText": " no    ",
+              "range": {
+                "end": {
+                  "character": 34,
+                  "line": 6
+                },
+                "start": {
+                  "character": 27,
+                  "line": 6
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/gear.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Write the plan's choices into the table"
+  }
+]
+
+### 5 cli render packed.wtf --format text
+$ wtf render packed.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[gear] := table = 4 rows · 4 columns
+| item   | weight | value | take? |
+| ------ | ------ | ----- | ----- |
+| tent   | 3      | 9     | yes ☑ yes   |
+| stove  | 1      | 4     | yes ☑ yes   |
+| camera | 2      | 7     | yes ☑ yes   |
+| books  | 4      | 3     | no ☐ no    |
+[pack] := maximize(sum(gear, value * take)) = 20 · take 3 of 4
+| constraint | expression                    |
+| ---------- | ----------------------------- |
+| weight     | sum(gear, weight * take) <= 6 | ████████ 6 ≤ 6 · ● binding
+
+### 6 cli query packed.wtf plans | select {name, display} --json
+$ wtf query packed.wtf plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "20",
+    "name": "pack"
+  }
+]
+
+### 7 cli query packed.wtf rows | select {table, line, cells} --json
+$ wtf query packed.wtf rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "cells": {
+      "item": "tent",
+      "take": "yes",
+      "value": 9.0,
+      "weight": 3.0
+    },
+    "line": 3,
+    "table": "gear"
+  },
+  {
+    "cells": {
+      "item": "stove",
+      "take": "yes",
+      "value": 4.0,
+      "weight": 1.0
+    },
+    "line": 4,
+    "table": "gear"
+  },
+  {
+    "cells": {
+      "item": "camera",
+      "take": "yes",
+      "value": 7.0,
+      "weight": 2.0
+    },
+    "line": 5,
+    "table": "gear"
+  },
+  {
+    "cells": {
+      "item": "books",
+      "take": "no",
+      "value": 3.0,
+      "weight": 4.0
+    },
+    "line": 6,
+    "table": "gear"
+  }
+]
+
+### 8 lsp
+-- open packed.wtf
+-- await textDocument/publishDiagnostics packed.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/packed.wtf",
+  "version": 1
+}
+-- request textDocument/formatting packed.wtf
+[]
+-- request textDocument/codeAction packed.wtf {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
+[]
+

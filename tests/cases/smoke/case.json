@@ -1,0 +1,12 @@
+{
+  "steps": [
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "main.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "main.wtf" },
+        { "request": "textDocument/semanticTokens/full", "file": "main.wtf" }
+      ]
+    }
+  ]
+}

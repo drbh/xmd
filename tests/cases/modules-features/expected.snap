@@ -1,0 +1,263 @@
+### 0 cli render calc.wtf --format text
+$ wtf render calc.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+🦀 [round(2.6)] custom 3
+
+### 1 cli query calc.wtf calculations | select anchor --json
+$ wtf query calc.wtf calculations | select anchor --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "character": 15,
+    "line": 0
+  }
+]
+
+### 2 write
+-- write .wtf/modules/custom.wtf (72 bytes)
+
+### 3 cli render calc.wtf --format text
+$ wtf render calc.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+🦀 [round(2.6)]
+
+### 4 write
+-- write .wtf/modules/custom.wtf (462 bytes)
+
+### 5 lsp
+-- open hello.wtf
+-- await textDocument/publishDiagnostics hello.wtf
+{
+  "diagnostics": [
+    {
+      "code": "greeting",
+      "message": "Check greeting",
+      "range": {
+        "end": {
+          "character": 5,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 2,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/hello.wtf",
+  "version": 1
+}
+-- request textDocument/hover hello.wtf 0:1
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "Greeting"
+  },
+  "range": {
+    "end": {
+      "character": 5,
+      "line": 0
+    },
+    "start": {
+      "character": 0,
+      "line": 0
+    }
+  }
+}
+-- request textDocument/formatting hello.wtf
+[
+  {
+    "newText": "HELLO",
+    "range": {
+      "end": {
+        "character": 5,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- applied to hello.wtf (version 2)
+HELLO
+
+### 6 write
+-- write .wtf/modules/custom.wtf (317 bytes)
+
+### 7 lsp
+-- open hello.wtf
+-- await textDocument/publishDiagnostics hello.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/hello.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction hello.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/hello.wtf",
+        "edits": [
+          {
+            "newText": "Hello ",
+            "range": {
+              "end": {
+                "character": 0,
+                "line": 0
+              },
+              "start": {
+                "character": 0,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "expected": "Hello\n",
+        "kind": "edit"
+      }
+    ],
+    "command": "wtf.applyEdits",
+    "title": "Insert greeting"
+  }
+]
+-- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "Hello ",
+            "range": {
+              "end": {
+                "character": 0,
+                "line": 0
+              },
+              "start": {
+                "character": 0,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/hello.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- change hello.wtf (version 2)
+changed
+-- await textDocument/publishDiagnostics hello.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/hello.wtf",
+  "version": 2
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.wtf}","edits":[{"newText":"Hello ","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello\n","kind":"edit"}],"command":"wtf.applyEdits"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+
+### 8 write
+-- write .wtf/modules/custom.wtf (456 bytes)
+
+### 9 lsp
+-- open hello.wtf
+-- await textDocument/publishDiagnostics hello.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/hello.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction hello.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/hello.wtf",
+        "event": {},
+        "expected": "Hello\n",
+        "kind": "invoke",
+        "module": "stamp",
+        "revision": "24ac349b2d658cf7"
+      }
+    ],
+    "command": "wtf.invoke",
+    "title": "Stamp"
+  }
+]
+-- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "2026-09-16T14:00:00-04:00",
+            "range": {
+              "end": {
+                "character": 0,
+                "line": 0
+              },
+              "start": {
+                "character": 0,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/hello.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- write .wtf/modules/custom.wtf (460 bytes)
+-- watched .wtf/modules/custom.wtf
+-- await textDocument/publishDiagnostics hello.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/hello.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction hello.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/hello.wtf",
+        "event": {},
+        "expected": "Hello\n",
+        "kind": "invoke",
+        "module": "stamp",
+        "revision": "e7b49df83ee85799"
+      }
+    ],
+    "command": "wtf.invoke",
+    "title": "New stamp"
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.wtf}","event":{},"expected":"Hello\n","kind":"invoke","module":"stamp","revision":"0"}],"command":"wtf.invoke"}
+error: {
+  "code": -32602,
+  "message": "Module changed; request fresh controls"
+}
+

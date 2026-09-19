@@ -1,0 +1,338 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "import(\"agenda\").between(entries, today(), today()) | select {title, estimate, source}",
+        "--root",
+        "agenda",
+        "--on",
+        "2026-09-16",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "q",
+        "--workspace",
+        "map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title)",
+        "--root",
+        "agenda",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | select {title}",
+        "--root",
+        "agenda",
+        "--jsonl"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | select {title}",
+        "--root",
+        "agenda"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "-",
+        "--root",
+        "agenda",
+        "--json"
+      ],
+      "stdin": "tasks | count"
+    },
+    {
+      "cli": [
+        "query",
+        "one note.wtf",
+        "-",
+        "--root",
+        "scopes",
+        "--json"
+      ],
+      "stdin": "// Count unfinished tasks.\nlength(\n  filter(tasks, fn(t) => !t.done)\n)\n"
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "-",
+        "--root",
+        "scopes",
+        "--json"
+      ],
+      "stdin": "// Count unfinished tasks.\nlength(\n  filter(tasks, fn(t) => !t.done)\n)\n"
+    },
+    {
+      "read": [
+        "agenda/n.wtf",
+        "agenda/.wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\"",
+        "--root",
+        "clean",
+        "--fail-on-match",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\" | select {line, message}",
+        "--root",
+        "broken",
+        "--fail-on-match",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | where (",
+        "--root",
+        "broken"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks",
+        "--root",
+        "broken",
+        "--json",
+        "--jsonl"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | select value",
+        "--root",
+        "clock",
+        "--now",
+        "2026-09-16T23:30:00-04:00",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | select value",
+        "--root",
+        "clock",
+        "--on",
+        "2026-09-16",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks",
+        "--root",
+        "clock",
+        "--on",
+        "2026-09-16",
+        "--now",
+        "2026-09-16T12:00:00Z"
+      ]
+    },
+    {
+      "cli": [
+        "q",
+        "one note.wtf",
+        "length(tasks)",
+        "--root",
+        "scopes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "q",
+        "--workspace",
+        "length(tasks)",
+        "--root",
+        "scopes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "length(tasks)",
+        "--workspace",
+        "--root",
+        "scopes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "\"one note.wtf\"",
+        "--root",
+        "scopes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "${root}/scopes/one note.wtf",
+        "length(tasks)",
+        "--root",
+        "scopes",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "note.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "-f",
+        "expression.txt"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "note.wtf",
+        "tasks",
+        "--workspace"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "note.wtf",
+        "tasks",
+        "-f",
+        "expression.txt"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks",
+        "--file",
+        "expression.txt"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks",
+        "-f",
+        "-"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks",
+        "--in",
+        "note.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "note.wtf",
+        "tasks",
+        "extra"
+      ]
+    },
+    {
+      "cli": [
+        "today"
+      ]
+    },
+    {
+      "cli": [
+        "agenda"
+      ]
+    },
+    {
+      "cli": [
+        "tasks"
+      ]
+    },
+    {
+      "cli": [
+        "check"
+      ]
+    },
+    {
+      "cli": [
+        "plan"
+      ]
+    },
+    {
+      "cli": [
+        "capture",
+        "n.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "complete",
+        "n.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--help"
+      ]
+    }
+  ]
+}

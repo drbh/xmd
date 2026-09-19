@@ -1,0 +1,1 @@
+amount := import("../../external.wtf").amount

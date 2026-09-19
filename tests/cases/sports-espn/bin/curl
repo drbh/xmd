@@ -1,0 +1,12 @@
+#!/bin/sh
+# Stands in for curl: answers exactly the ESPN summary endpoints the module builds.
+case "$2" in
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401584896")
+    printf '%s' '{"header":{"competitions":[{"status":{"type":{"completed":true,"state":"post","detail":"Final","shortDetail":"Final"}},"competitors":[{"homeAway":"home","winner":true,"score":"112","team":{"abbreviation":"BOS","displayName":"Boston Celtics"}},{"homeAway":"away","winner":false,"score":"108","team":{"abbreviation":"LAL","displayName":"Los Angeles Lakers"}}]}]}}' ;;
+  "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=401671793")
+    printf '%s' '{"header":{"competitions":[{"status":{"type":{"completed":false,"state":"in","shortDetail":"8:12 - 3rd"}},"competitors":[{"homeAway":"home","winner":false,"score":"17","team":{"abbreviation":"KC","displayName":"Kansas City Chiefs"}},{"homeAway":"away","winner":false,"score":"14","team":{"abbreviation":"BUF","displayName":"Buffalo Bills"}}]}]}}' ;;
+  "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/summary?event=704321")
+    printf '%s' '{"header":{"competitions":[{"status":{"type":{"completed":false,"state":"pre","shortDetail":"Wed, 7:30 PM"}},"competitors":[{"homeAway":"home","winner":false,"score":null,"team":{"abbreviation":"ARS","displayName":"Arsenal"}},{"homeAway":"away","winner":false,"score":null,"team":{"abbreviation":"CHE","displayName":"Chelsea"}}]}]}}' ;;
+  *)
+    echo "unexpected curl request: $*" >&2; exit 1 ;;
+esac

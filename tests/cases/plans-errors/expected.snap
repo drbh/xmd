@@ -1,0 +1,249 @@
+### 0 cli render units.wtf --format text
+$ wtf render units.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[budget] := minimize(30m * calls + 1h * visits) = 200m · calls 0 · visits 3.3333
+| constraint | expression               |
+| ---------- | ------------------------ |
+| coverage   | calls + 3 * visits >= 10 | 10 ≥ 10 · ● binding
+
+### 1 cli query units.wtf plans | select {name, display, solution} --json
+$ wtf query units.wtf plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "200m",
+    "name": "budget",
+    "solution": {
+      "columns": [],
+      "constraints": [
+        {
+          "anchor": {
+            "character": 41.0,
+            "line": 3.0
+          },
+          "binding": true,
+          "lhs": 10.0,
+          "name": "coverage",
+          "op": ">=",
+          "range": {
+            "end": {
+              "character": 39.0,
+              "line": 3.0
+            },
+            "start": {
+              "character": 15.0,
+              "line": 3.0
+            }
+          },
+          "rhs": 10.0,
+          "slack": 0.0
+        }
+      ],
+      "goal": "minimize",
+      "objective": {
+        "seconds": 12000,
+        "type": "duration"
+      },
+      "variable_order": [
+        "calls",
+        "visits"
+      ],
+      "variables": {
+        "calls": 0.0,
+        "visits": 3.3333
+      }
+    }
+  }
+]
+
+### 2 cli query units.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query units.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 3 cli query mixed.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query mixed.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "Cannot add Money and Duration",
+    "severity": "error"
+  }
+]
+
+### 4 cli query quadratic.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query quadratic.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "Plans must stay linear: multiply variables by constants only",
+    "severity": "error"
+  }
+]
+
+### 5 cli query strict.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query strict.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 3,
+    "message": "Constraints use <=, >=, or ==, not <",
+    "severity": "error"
+  }
+]
+
+### 6 cli query shape.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query shape.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "syntax",
+    "line": 1,
+    "message": "Plan tables have two columns: | constraint | expression |",
+    "severity": "error"
+  },
+  {
+    "code": "syntax",
+    "line": 3,
+    "message": "Expected a constraint name and an expression, found 1 cells",
+    "severity": "error"
+  }
+]
+
+### 7 cli render unbounded.wtf --format text
+$ wtf render unbounded.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[p] := maximize(x)
+| constraint | expression |
+| ---------- | ---------- |
+| floor      | x >= 1     |
+--- stderr
+<root>/unbounded.wtf:1:17: error: The objective can be raised without limit; add a constraint that bounds it
+wtf: 1 error(s) while rendering
+
+### 8 cli query unbounded.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query unbounded.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "The objective can be raised without limit; add a constraint that bounds it",
+    "severity": "error"
+  }
+]
+
+### 9 cli render infeasible.wtf --format text
+$ wtf render infeasible.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+[p] := minimize(x)
+| constraint | expression |
+| ---------- | ---------- |
+| low        | x <= 1     |
+| high       | x >= 2     |
+--- stderr
+<root>/infeasible.wtf:1:17: error: No values satisfy every constraint; relax one of them
+wtf: 1 error(s) while rendering
+
+### 10 cli query infeasible.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query infeasible.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 0,
+    "message": "No values satisfy every constraint; relax one of them",
+    "severity": "error"
+  }
+]
+
+### 11 lsp
+-- open unbounded.wtf
+-- await textDocument/publishDiagnostics unbounded.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "The objective can be raised without limit; add a constraint that bounds it",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 0
+        },
+        "start": {
+          "character": 16,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/unbounded.wtf",
+  "version": 1
+}
+-- open infeasible.wtf
+-- await textDocument/publishDiagnostics infeasible.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "No values satisfy every constraint; relax one of them",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 0
+        },
+        "start": {
+          "character": 16,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/infeasible.wtf",
+  "version": 1
+}
+-- open mixed.wtf
+-- await textDocument/publishDiagnostics mixed.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "Cannot add Money and Duration",
+      "range": {
+        "end": {
+          "character": 31,
+          "line": 0
+        },
+        "start": {
+          "character": 16,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/mixed.wtf",
+  "version": 1
+}
+

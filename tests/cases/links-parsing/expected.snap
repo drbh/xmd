@@ -1,0 +1,247 @@
+### 0 cli query prose.wtf links | select {url, line} --json
+$ wtf query prose.wtf links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 0,
+    "url": "https://example.com/docs?q=1#part"
+  },
+  {
+    "line": 0,
+    "url": "https://example.com/a_(b)"
+  },
+  {
+    "line": 1,
+    "url": "./notes.wtf"
+  },
+  {
+    "line": 1,
+    "url": "../src/main.rs"
+  },
+  {
+    "line": 1,
+    "url": "src/lib.rs"
+  },
+  {
+    "line": 1,
+    "url": "README.md"
+  },
+  {
+    "line": 2,
+    "url": "/tmp/log.txt"
+  },
+  {
+    "line": 2,
+    "url": "file:///tmp/a%20b.txt"
+  },
+  {
+    "line": 3,
+    "url": "geo:40.7,-74.0"
+  },
+  {
+    "line": 4,
+    "url": "https://github.com/zed-industries/zed"
+  },
+  {
+    "line": 5,
+    "url": "https://example.com/@at(today)/[page]"
+  }
+]
+
+### 1 cli query prose.wtf references --json
+$ wtf query prose.wtf references --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 2 cli query prose.wtf diagnostics --json
+$ wtf query prose.wtf diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 3 cli query prose.wtf tasks | select attributes --json
+$ wtf query prose.wtf tasks | select attributes --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "estimate": "5m"
+  }
+]
+
+### 4 cli query code.wtf links | select {url, line} --json
+$ wtf query code.wtf links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 7,
+    "url": "./one.wtf"
+  }
+]
+
+### 5 cli query code.wtf values | select name --json
+$ wtf query code.wtf values | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "a",
+  "site"
+]
+
+### 6 cli query malicious.wtf links --json
+$ wtf query malicious.wtf links --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 7 lsp
+-- open trips/today.wtf
+-- await textDocument/publishDiagnostics trips/today.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/trips/today.wtf",
+  "version": 1
+}
+-- request textDocument/documentLink trips/today.wtf
+[
+  {
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 0
+      },
+      "start": {
+        "character": 3,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/packing.wtf",
+    "tooltip": "Open file://<root>/packing.wtf"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 38,
+        "line": 0
+      },
+      "start": {
+        "character": 22,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/trips/images/map.png",
+    "tooltip": "Open file://<root>/trips/images/map.png"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 1
+      },
+      "start": {
+        "character": 1,
+        "line": 1
+      }
+    },
+    "target": "file://<root>/trips/src/main.rs",
+    "tooltip": "Open file://<root>/trips/src/main.rs"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 2
+      },
+      "start": {
+        "character": 6,
+        "line": 2
+      }
+    },
+    "target": "file://<root>/trips/src/main.rs",
+    "tooltip": "Open file://<root>/trips/src/main.rs"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 24,
+        "line": 6
+      },
+      "start": {
+        "character": 8,
+        "line": 6
+      }
+    },
+    "target": "file://<root>/trips/images/map.png",
+    "tooltip": "Open file://<root>/trips/images/map.png"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 22,
+        "line": 7
+      },
+      "start": {
+        "character": 8,
+        "line": 7
+      }
+    },
+    "target": "file://<root>/trips/maps/%E6%97%A5%E6%9C%AC%E8%AA%9E.png",
+    "tooltip": "Open file://<root>/trips/maps/%E6%97%A5%E6%9C%AC%E8%AA%9E.png"
+  }
+]
+-- request textDocument/hover trips/today.wtf 0:4
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "[Open resource](<file://<root>/packing.wtf>)"
+  },
+  "range": {
+    "end": {
+      "character": 17,
+      "line": 0
+    },
+    "start": {
+      "character": 3,
+      "line": 0
+    }
+  }
+}
+-- request textDocument/hover trips/today.wtf 0:1
+null
+-- request textDocument/codeAction trips/today.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/trips/today.wtf",
+          "expected": "🦀 ../packing.wtf and ./images/map.png",
+          "row": 0
+        },
+        "url": "file://<root>/packing.wtf"
+      }
+    ],
+    "command": "wtf.openResource",
+    "title": "↗ open"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/trips/today.wtf",
+          "expected": "🦀 ../packing.wtf and ./images/map.png",
+          "row": 0
+        },
+        "url": "file://<root>/trips/images/map.png"
+      }
+    ],
+    "command": "wtf.openResource",
+    "title": "↗ image"
+  }
+]
+

@@ -1,7 +1,7 @@
 # Images and files
 
-../notes/assets/sample-receipt.svg:receipt_image
-![Sample receipt](../notes/assets/sample-receipt.svg)
+./assets/sample-receipt.svg:receipt_image
+![Sample receipt](./assets/sample-receipt.svg)
 ./01-values.wtf:first_example
 
 - [ ] Expense lunch using [receipt_image]

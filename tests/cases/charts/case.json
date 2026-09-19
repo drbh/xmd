@@ -1,0 +1,111 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "table.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "timers.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "table.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "table.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "table.wtf",
+          "line": 1,
+          "character": 10
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "table.wtf",
+          "line": 1,
+          "character": 3
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "table.wtf",
+          "line": 6,
+          "character": 2
+        },
+        {
+          "open": "timers.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "timers.wtf",
+          "line": 0,
+          "character": 2
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "timers.wtf",
+          "line": 1,
+          "character": 8
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "timers.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "edges.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "edges.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "edges.wtf",
+          "line": 0,
+          "character": 8
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "edges.wtf",
+          "line": 3,
+          "character": 9
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "edges.wtf",
+          "line": 6,
+          "character": 11
+        }
+      ]
+    }
+  ]
+}

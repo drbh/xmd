@@ -24,7 +24,11 @@ export async function mount(element, options = {}) {
     latest = snapshot;
     if (paused) return;
     const selection = selectionOf(view);
-    if (view.innerHTML !== snapshot.html) { view.innerHTML = snapshot.html; restoreSelection(view, selection); }
+    // An editable pre cannot place a caret after its final newline. A trailing
+    // zero-width, non-editable span gives that position a line box (a <br> would
+    // be dropped by the browser as a placeholder). textOf and setCaret skip it.
+    const html = options.trailingBreak ? `${snapshot.html}<span class="eol" contenteditable="false">\u200b</span>` : snapshot.html;
+    if (view.innerHTML !== html) { view.innerHTML = html; restoreSelection(view, selection); }
     if (controls) {
       controls.replaceChildren();
       if (options.interactive !== false) for (const lens of snapshot.lenses) {

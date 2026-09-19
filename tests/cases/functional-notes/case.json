@@ -1,0 +1,157 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "multiline.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline.wtf",
+        "add(2)(3)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline.wtf",
+        "config.title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline.wtf",
+        "references | select {name, line: source.line}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline.wtf",
+        "[length(sections), length(tasks), length(links)]",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline_crlf.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "multiline_crlf.wtf",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "unfinished_prose.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "unfinished_indent.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "unfinished_comment.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "errors.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "errors.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "loop.wtf",
+        "loop(1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "hello.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "multiline.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "multiline.wtf"
+        },
+        {
+          "request": "textDocument/foldingRange",
+          "file": "multiline.wtf"
+        },
+        {
+          "open": "hello.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "hello.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 2,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

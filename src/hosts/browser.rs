@@ -2,8 +2,10 @@
 use crate::{
     actions::TaskToggle,
     commands::{Action, Capabilities, PreparedAction},
-    document::{Document, identifier},
-    intelligence, paths, presentation,
+    document::identifier,
+    intelligence,
+    model::session::WorkspaceSession,
+    paths, presentation,
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset};
@@ -18,8 +20,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct BrowserWorkspace {
-    workspace: Workspace,
-    versions: BTreeMap<PathBuf, i32>,
+    session: WorkspaceSession,
 }
 
 impl Default for BrowserWorkspace {
@@ -33,14 +34,13 @@ impl BrowserWorkspace {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            workspace: Workspace {
+            session: WorkspaceSession::browser(Workspace {
                 roots: vec!["/workspace".into()],
                 documents: BTreeMap::new(),
                 cache: BTreeMap::new(),
                 lookups: Default::default(),
                 modules: Default::default(),
-            },
-            versions: BTreeMap::new(),
+            }),
         }
     }
 
@@ -92,15 +92,9 @@ fn serialized(value: impl serde::Serialize) -> Result<Value, String> {
 }
 
 impl BrowserWorkspace {
-    fn versions_json(&self) -> Value {
-        self.versions
-            .iter()
-            .map(|(p, v)| (paths::file_url(p).unwrap().to_string(), json!(v)))
-            .collect()
-    }
     fn edit(&self, changes: BTreeMap<PathBuf, Vec<TextEdit>>) -> Value {
         json!({"documentChanges": changes.into_iter().map(|(p,edits)| json!({
-            "textDocument":{"uri":paths::file_url(&p).unwrap(),"version":self.versions[&p]}, "edits":edits
+            "textDocument":{"uri":paths::uri(&p),"version":self.session.version(&p)}, "edits":edits
         })).collect::<Vec<_>>()})
     }
     fn single_edit(&self, path: &Path, edits: Vec<TextEdit>) -> Value {
@@ -120,11 +114,12 @@ impl BrowserWorkspace {
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
             let data: Value = field(&params, "data")?;
-            let metadata =
-                self.workspace
-                    .link_features()
-                    .decode_refresh(&target, &data, now.to_utc())?;
-            self.workspace.cache.insert(target, metadata);
+            let metadata = self.session.workspace.link_features().decode_refresh(
+                &target,
+                &data,
+                now.to_utc(),
+            )?;
+            self.session.workspace.cache.insert(target, metadata);
             return Ok(Value::Null);
         }
         if method == "setModules" {
@@ -146,7 +141,7 @@ impl BrowserWorkspace {
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
             let modules = crate::modules::ModuleRegistry::compile(sources)?;
-            self.workspace.modules = std::sync::Arc::new(modules);
+            self.session.workspace.modules = std::sync::Arc::new(modules);
             return Ok(Value::Null);
         }
         if method == "setDocument" {
@@ -156,23 +151,17 @@ impl BrowserWorkspace {
             if text.len() > 1_000_000 {
                 return Err("Notes are limited to 1 MB in the browser".into());
             }
-            if self.versions.get(&path).is_some_and(|old| version <= *old) {
-                return Err("Stale document version".into());
-            }
-            self.workspace
-                .documents
-                .insert(path.clone(), Document::parse(text));
-            self.versions.insert(path, version);
+            self.session.open(&path, version, text)?;
             return Ok(Value::Null);
         }
         if method == "removeDocument" {
             let path = virtual_path(&field::<String>(&params, "uri")?)?;
-            self.workspace.documents.remove(&path);
-            self.versions.remove(&path);
+            self.session.workspace.documents.remove(&path);
+            self.session.close(&path);
             return Ok(Value::Null);
         }
         if method == "execute" {
-            if params["versions"] != self.versions_json() {
+            if params["versions"] != self.session.versions_json() {
                 return Err(
                     "Notes changed; request fresh controls before applying this action".into(),
                 );
@@ -187,23 +176,24 @@ impl BrowserWorkspace {
                 .filter(|v| !v.is_null())
                 .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
                 .transpose()?;
-            let result = crate::RequestContext::new(&self.workspace, now)
+            let result = crate::RequestContext::new(&self.session.workspace, now)
                 .query(&compiled, only.as_deref())?;
             return Ok(
-                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.versions_json()}),
+                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.session.versions_json()}),
             );
         }
         let path = virtual_path(&field::<String>(&params, "uri")?)?;
         let doc = self
+            .session
             .workspace
             .documents
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
-        let ws = &self.workspace;
+        let ws = &self.session.workspace;
         let request = crate::RequestContext::new(ws, now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &crate::workspace::Symbol| Location {
-            uri: paths::file_url(&symbol.path).unwrap(),
+            uri: paths::uri(&symbol.path),
             range: ws
                 .named(symbol)
                 .span
@@ -245,7 +235,7 @@ impl BrowserWorkspace {
                 let diagnostics = request.diagnostics(&path, editing);
                 let html = crate::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":crate::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.versions[&path],"versions":self.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":crate::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )
@@ -271,7 +261,7 @@ impl BrowserWorkspace {
                 let locations: Vec<Location> = intelligence::occurrences(ws, &symbol)
                     .into_iter()
                     .map(|(p, span)| Location {
-                        uri: paths::file_url(&p).unwrap(),
+                        uri: paths::uri(&p),
                         range: span.range(&ws.documents[&p].text),
                     })
                     .collect();
@@ -283,7 +273,7 @@ impl BrowserWorkspace {
                         locations
                             .into_iter()
                             .enumerate()
-                            .filter(|(_, l)| l.uri == paths::file_url(&path).unwrap())
+                            .filter(|(_, l)| l.uri == paths::uri(&path))
                             .map(|(i, l)| json!({"range":l.range,"kind":if i==0 {3} else {2}}))
                             .collect::<Vec<_>>()
                     ));
@@ -316,7 +306,7 @@ impl BrowserWorkspace {
                         }),
                     })
                     .collect();
-                Ok(json!({"actions":choices,"versions":self.versions_json()}))
+                Ok(json!({"actions":choices,"versions":self.session.versions_json()}))
             }
             _ => Err(format!("Unknown browser request: {method}")),
         }
@@ -331,7 +321,7 @@ impl BrowserWorkspace {
         if let Some(document) = action.document() {
             virtual_path(document.as_str())?;
         }
-        let request = crate::RequestContext::new(&self.workspace, now);
+        let request = crate::RequestContext::new(&self.session.workspace, now);
         match action.prepare(&request, Capabilities::BROWSER)? {
             PreparedAction::Edit { path, edits } => {
                 Ok(json!({"edit":self.single_edit(&path, edits)}))

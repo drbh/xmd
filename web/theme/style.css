@@ -14,8 +14,15 @@
 .wtf[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
 .wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
 .wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
+.wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
 .wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
 .wtf-controls button { font: inherit; cursor: pointer; }
+.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f1f1f); background: var(--wtf-background, #ffffff); }
+.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3c4653); background: var(--wtf-inlay-background, #eef0f3); }
+.wtf-light .wtf a { text-decoration-color: #2f6f9f; }
+.wtf-light .wtf .error { text-decoration-color: #c9463a; }
+.wtf-light .wtf .warning { text-decoration-color: #b47a12; }
+.wtf-light .wtf .info, .wtf-light .wtf .hint { text-decoration-color: #2f6f9f; }
 
 .wtf .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
 .wtf .t-property.declaration { color: #83D6CF; font-weight: bold; }
@@ -45,8 +52,8 @@
 .wtf .t-wtfPunctuation { color: #85938B; }
 .wtf .t-wtfCode { color: #A1AE9B; }
 .wtf .t-wtfLink { color: #90BED8; text-decoration-line: underline; }
-.wtf .t-wtfCheckbox { color: #FFD580; font-weight: bold; }
-.wtf .t-wtfCheckboxChecked { color: #91E6AC; font-weight: bold; }
+.wtf .t-wtfCheckbox { color: #FFD580; }
+.wtf .t-wtfCheckboxChecked { color: #91E6AC; }
 .wtf .t-wtfTaskDone { color: #87A788; text-decoration-line: line-through; }
 .wtf .t-wtfDay { color: #FF9ECF; font-weight: bold; }
 .wtf .t-wtfPlace { color: #E2C4FF; }
@@ -58,6 +65,47 @@
 .wtf .t-wtfMeal { color: #FF8FA3; }
 .wtf .t-wtfVisit { color: #F6E38A; }
 .wtf .t-wtfExplore { color: #7FE3D0; }
+.wtf-light .wtf .t-variable.declaration { color: #1a4c9e; }
+.wtf-light .wtf .t-property.declaration { color: #35837c; }
+.wtf-light .wtf .t-wtfDepart.declaration { color: #9e551a; }
+.wtf-light .wtf .t-wtfArrive.declaration { color: #2b8c30; }
+.wtf-light .wtf .t-wtfTransit.declaration { color: #1a619e; }
+.wtf-light .wtf .t-wtfStay.declaration { color: #4f1a9e; }
+.wtf-light .wtf .t-wtfMeal.declaration { color: #9e1a31; }
+.wtf-light .wtf .t-wtfVisit.declaration { color: #9e871a; }
+.wtf-light .wtf .t-wtfExplore.declaration { color: #2a8e7b; }
+.wtf-light .wtf .t-comment { color: #596354; }
+.wtf-light .wtf .t-keyword { color: #9a4b1e; }
+.wtf-light .wtf .t-number { color: #836435; }
+.wtf-light .wtf .t-variable { color: #1a4c9e; }
+.wtf-light .wtf .t-function { color: #541b9c; }
+.wtf-light .wtf .t-property { color: #35837c; }
+.wtf-light .wtf .t-decorator { color: #813752; }
+.wtf-light .wtf .t-operator { color: #965622; }
+.wtf-light .wtf .t-string { color: #71793f; }
+.wtf-light .wtf .t-heading { color: #242424; }
+.wtf-light .wtf .t-wtfMoney { color: #5e8434; }
+.wtf-light .wtf .t-wtfDate { color: #932569; }
+.wtf-light .wtf .t-wtfTime { color: #29818f; }
+.wtf-light .wtf .t-wtfDuration { color: #9e5f1a; }
+.wtf-light .wtf .t-wtfRatio { color: #946724; }
+.wtf-light .wtf .t-wtfBoolean { color: #541b9c; }
+.wtf-light .wtf .t-wtfPunctuation { color: #66716a; }
+.wtf-light .wtf .t-wtfCode { color: #687562; }
+.wtf-light .wtf .t-wtfLink { color: #366681; }
+.wtf-light .wtf .t-wtfCheckbox { color: #9e721a; }
+.wtf-light .wtf .t-wtfCheckboxChecked { color: #2b8d4a; }
+.wtf-light .wtf .t-wtfTaskDone { color: #506851; }
+.wtf-light .wtf .t-wtfDay { color: #9e1a5c; }
+.wtf-light .wtf .t-wtfPlace { color: #5d1a9e; }
+.wtf-light .wtf .t-wtfDetailKey { color: #52665a; }
+.wtf-light .wtf .t-wtfDepart { color: #9e551a; }
+.wtf-light .wtf .t-wtfArrive { color: #2b8c30; }
+.wtf-light .wtf .t-wtfTransit { color: #1a619e; }
+.wtf-light .wtf .t-wtfStay { color: #4f1a9e; }
+.wtf-light .wtf .t-wtfMeal { color: #9e1a31; }
+.wtf-light .wtf .t-wtfVisit { color: #9e871a; }
+.wtf-light .wtf .t-wtfExplore { color: #2a8e7b; }
 @media print {
   .wtf { color-scheme: light; background: white; color: #202820; font-size: 10px; }
   .wtf [class] { color: inherit !important; }

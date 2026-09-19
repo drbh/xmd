@@ -1,0 +1,638 @@
+### 0 lsp
+-- open nested.wtf
+-- request textDocument/documentSymbol nested.wtf
+[
+  {
+    "detail": "Number · 1",
+    "kind": 14,
+    "name": "before",
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 10,
+        "line": 0
+      },
+      "start": {
+        "character": 4,
+        "line": 0
+      }
+    }
+  },
+  {
+    "children": [
+      {
+        "detail": "Money · $3,000",
+        "kind": 14,
+        "name": "budget",
+        "range": {
+          "end": {
+            "character": 29,
+            "line": 2
+          },
+          "start": {
+            "character": 14,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 29,
+            "line": 2
+          },
+          "start": {
+            "character": 23,
+            "line": 2
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "detail": "Complete · :passport",
+                "kind": 17,
+                "name": "Passport",
+                "range": {
+                  "end": {
+                    "character": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 5
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "character": 18,
+                    "line": 5
+                  }
+                }
+              },
+              {
+                "detail": "Incomplete",
+                "kind": 17,
+                "name": "Tickets",
+                "range": {
+                  "end": {
+                    "character": 15,
+                    "line": 6
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 6
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 15,
+                    "line": 6
+                  },
+                  "start": {
+                    "character": 2,
+                    "line": 6
+                  }
+                }
+              }
+            ],
+            "detail": "Incomplete · :pack",
+            "kind": 17,
+            "name": "Pack",
+            "range": {
+              "end": {
+                "character": 15,
+                "line": 6
+              },
+              "start": {
+                "character": 0,
+                "line": 4
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 16,
+                "line": 4
+              },
+              "start": {
+                "character": 12,
+                "line": 4
+              }
+            }
+          },
+          {
+            "detail": "Incomplete",
+            "kind": 17,
+            "name": "Book hotel",
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 7
+              },
+              "start": {
+                "character": 0,
+                "line": 7
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 16,
+                "line": 7
+              },
+              "start": {
+                "character": 0,
+                "line": 7
+              }
+            }
+          },
+          {
+            "children": [
+              {
+                "detail": "@at(2026-09-20T10:00:00-04:00)",
+                "kind": 24,
+                "name": "Flight",
+                "range": {
+                  "end": {
+                    "character": 37,
+                    "line": 9
+                  },
+                  "start": {
+                    "character": 0,
+                    "line": 9
+                  }
+                },
+                "selectionRange": {
+                  "end": {
+                    "character": 37,
+                    "line": 9
+                  },
+                  "start": {
+                    "character": 0,
+                    "line": 9
+                  }
+                }
+              }
+            ],
+            "detail": "",
+            "kind": 3,
+            "name": "Travel",
+            "range": {
+              "end": {
+                "character": 37,
+                "line": 9
+              },
+              "start": {
+                "character": 0,
+                "line": 8
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 8
+              },
+              "start": {
+                "character": 0,
+                "line": 8
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Packing",
+        "range": {
+          "end": {
+            "character": 37,
+            "line": 9
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 10,
+            "line": 3
+          },
+          "start": {
+            "character": 0,
+            "line": 3
+          }
+        }
+      },
+      {
+        "children": [
+          {
+            "detail": "Money · $556",
+            "kind": 13,
+            "name": "remaining",
+            "range": {
+              "end": {
+                "character": 30,
+                "line": 11
+              },
+              "start": {
+                "character": 0,
+                "line": 11
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 10,
+                "line": 11
+              },
+              "start": {
+                "character": 1,
+                "line": 11
+              }
+            }
+          },
+          {
+            "detail": "Countdown · ◷ 25:00 remaining · ○ idle",
+            "kind": 13,
+            "name": "focus",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 12
+              },
+              "start": {
+                "character": 0,
+                "line": 12
+              }
+            },
+            "selectionRange": {
+              "end": {
+                "character": 6,
+                "line": 12
+              },
+              "start": {
+                "character": 1,
+                "line": 12
+              }
+            }
+          }
+        ],
+        "detail": "",
+        "kind": 3,
+        "name": "Money",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 12
+          },
+          "start": {
+            "character": 0,
+            "line": 10
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 8,
+            "line": 10
+          },
+          "start": {
+            "character": 0,
+            "line": 10
+          }
+        }
+      }
+    ],
+    "detail": ":trip",
+    "kind": 3,
+    "name": "Trip",
+    "range": {
+      "end": {
+        "character": 25,
+        "line": 12
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 12,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "detail": "",
+    "kind": 3,
+    "name": "Home",
+    "range": {
+      "end": {
+        "character": 6,
+        "line": 13
+      },
+      "start": {
+        "character": 0,
+        "line": 13
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 13
+      },
+      "start": {
+        "character": 0,
+        "line": 13
+      }
+    }
+  }
+]
+-- open crlf.wtf
+-- request textDocument/documentSymbol crlf.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "Date · 2026-09-20",
+        "kind": 14,
+        "name": "departure",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 1
+          },
+          "start": {
+            "character": 3,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 25,
+            "line": 1
+          },
+          "start": {
+            "character": 16,
+            "line": 1
+          }
+        }
+      },
+      {
+        "detail": "Number · 2",
+        "kind": 14,
+        "name": "days",
+        "range": {
+          "end": {
+            "character": 38,
+            "line": 1
+          },
+          "start": {
+            "character": 30,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 38,
+            "line": 1
+          },
+          "start": {
+            "character": 34,
+            "line": 1
+          }
+        }
+      },
+      {
+        "detail": "Date · 2026-09-22",
+        "kind": 13,
+        "name": "finish",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 2
+          },
+          "start": {
+            "character": 0,
+            "line": 2
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 7,
+            "line": 2
+          },
+          "start": {
+            "character": 1,
+            "line": 2
+          }
+        }
+      }
+    ],
+    "detail": "",
+    "kind": 3,
+    "name": "🦀 Trip",
+    "range": {
+      "end": {
+        "character": 3,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 9,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- open flat.wtf
+-- request textDocument/documentSymbol flat.wtf
+[
+  {
+    "detail": "Money · $100",
+    "kind": 13,
+    "name": "cost",
+    "range": {
+      "end": {
+        "character": 44,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 0
+      },
+      "start": {
+        "character": 1,
+        "line": 0
+      }
+    }
+  },
+  {
+    "detail": "Error · Unknown name 'missing'",
+    "kind": 13,
+    "name": "bad",
+    "range": {
+      "end": {
+        "character": 20,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 4,
+        "line": 1
+      },
+      "start": {
+        "character": 1,
+        "line": 1
+      }
+    }
+  },
+  {
+    "detail": "Incomplete",
+    "kind": 17,
+    "name": "Untitled task",
+    "range": {
+      "end": {
+        "character": 5,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "detail": "",
+    "kind": 3,
+    "name": "Untitled section",
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 1,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+-- open trailing.wtf
+-- request textDocument/documentSymbol trailing.wtf
+[
+  {
+    "children": [
+      {
+        "detail": "Number · 42",
+        "kind": 13,
+        "name": "answer",
+        "range": {
+          "end": {
+            "character": 14,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 7,
+            "line": 1
+          },
+          "start": {
+            "character": 1,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "detail": "",
+    "kind": 3,
+    "name": "One",
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]
+-- open empty.wtf
+-- request textDocument/documentSymbol empty.wtf
+[]
+-- open prose.wtf
+-- request textDocument/documentSymbol prose.wtf
+[]
+

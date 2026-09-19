@@ -1,0 +1,350 @@
+### 0 cli query a.wtf map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json
+$ wtf query a.wtf map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "First"
+]
+
+### 1 cli query a.wtf tasks | where !done | select title --root notes --json
+$ wtf query a.wtf tasks | where !done | select title --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "First"
+]
+
+### 2 cli query a.wtf {count: length(tasks), value: double(n)} --root notes --json
+$ wtf query a.wtf {count: length(tasks), value: double(n)} --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "count": 2,
+    "value": 2.0
+  }
+]
+
+### 3 cli query a.wtf sum(tasks.estimate) --root notes --json
+$ wtf query a.wtf sum(tasks.estimate) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "seconds": 1800,
+    "type": "duration"
+  }
+]
+
+### 4 cli query --workspace length(tasks) --root notes --json
+$ wtf query --workspace length(tasks) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  3
+]
+
+### 5 cli query a.wtf map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json
+$ wtf query a.wtf map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "DONE",
+  "FIRST"
+]
+
+### 6 cli query a.wtf map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json
+$ wtf query a.wtf map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "count": 1,
+    "done": false
+  },
+  {
+    "count": 1,
+    "done": true
+  }
+]
+
+### 7 cli query scope.wtf tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json
+$ wtf query scope.wtf tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "local": [
+      101.0
+    ],
+    "named": 7.0
+  }
+]
+
+### 8 cli query scope.wtf tasks | select map([1], fn(title) => title + 1) --json
+$ wtf query scope.wtf tasks | select map([1], fn(title) => title + 1) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  [
+    2.0
+  ]
+]
+
+### 9 cli query scope.wtf tasks | select if(false, nonexistent, title) --json
+$ wtf query scope.wtf tasks | select if(false, nonexistent, title) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "A"
+]
+
+### 10 cli query scope.wtf if(true, 1, values) --json
+$ wtf query scope.wtf if(true, 1, values) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  1.0
+]
+
+### 11 cli query scope.wtf tasks | select { // | , } inside a comment
+ title, nested: {title}} --json
+$ wtf query scope.wtf tasks | select { // | , } inside a comment
+ title, nested: {title}} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "nested": {
+      "title": "A"
+    },
+    "title": "A"
+  }
+]
+
+### 12 cli query scope.wtf [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json
+$ wtf query scope.wtf [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  [
+    2.0
+  ]
+]
+
+### 13 cli query lib.wtf add(2)(3) --json
+$ wtf query lib.wtf add(2)(3) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  5.0
+]
+
+### 14 cli query lib.wtf values | select {name, type, display} --json
+$ wtf query lib.wtf values | select {name, type, display} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": "10%",
+    "name": "rate",
+    "type": "Ratio"
+  },
+  {
+    "display": "<function>",
+    "name": "add",
+    "type": "Function"
+  },
+  {
+    "display": "<function>",
+    "name": "add_tax",
+    "type": "Function"
+  },
+  {
+    "display": "<function>",
+    "name": "caller",
+    "type": "Function"
+  },
+  {
+    "display": "10",
+    "name": "result",
+    "type": "Number"
+  }
+]
+
+### 15 cli query lib.wtf caller(90%) --json
+$ wtf query lib.wtf caller(90%) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "amount": 110.0,
+    "currency": "USD",
+    "type": "money"
+  }
+]
+
+### 16 cli query lib.wtf map([$2, $3], add_tax) --json
+$ wtf query lib.wtf map([$2, $3], add_tax) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "amount": 2.2,
+    "currency": "USD",
+    "type": "money"
+  },
+  {
+    "amount": 3.3,
+    "currency": "USD",
+    "type": "money"
+  }
+]
+
+### 17 cli query lib.wtf values | where name == "result" | select {value, display} --json
+$ wtf query lib.wtf values | where name == "result" | select {value, display} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "display": "10",
+    "value": 10.0
+  }
+]
+
+### 18 cli query lib.wtf values | where name == "result" | select map([1, 2], fn(x) => x + value) --json
+$ wtf query lib.wtf values | where name == "result" | select map([1, 2], fn(x) => x + value) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  [
+    11.0,
+    12.0
+  ]
+]
+
+### 19 cli query lib.wtf if(true, {title: upper("hello")}, 1 / 0).title --json
+$ wtf query lib.wtf if(true, {title: upper("hello")}, 1 / 0).title --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "HELLO"
+]
+
+### 20 cli query lib.wtf coalesce(get({}, "missing"), get([3, 4], 1)) --json
+$ wtf query lib.wtf coalesce(get({}, "missing"), get([3, 4], 1)) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  4.0
+]
+
+### 21 cli query lib.wtf [get([], 0), get({a: 1}, "a"), length([])] --json
+$ wtf query lib.wtf [get([], 0), get({a: 1}, "a"), length([])] --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  null,
+  1.0,
+  0
+]
+
+### 22 cli query data.wtf {name, cost:money.amount}.name --json
+$ wtf query data.wtf {name, cost:money.amount}.name --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  "Example"
+]
+
+### 23 cli query data.wtf sum([{x:30m}, {x:null}, {x:90s}].x) --json
+$ wtf query data.wtf sum([{x:30m}, {x:null}, {x:90s}].x) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "seconds": 1890,
+    "type": "duration"
+  }
+]
+
+### 24 cli query data.wtf map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json
+$ wtf query data.wtf map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  1.0,
+  3.0,
+  null
+]
+
+### 25 cli query data.wtf length(group_by([1, 2, 1], fn(x) => x)) --json
+$ wtf query data.wtf length(group_by([1, 2, 1], fn(x) => x)) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  2
+]
+
+### 26 cli query data.wtf [null < today(), "a" < "b", date(now()) == today()] --json
+$ wtf query data.wtf [null < today(), "a" < "b", date(now()) == today()] --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  false,
+  true,
+  true
+]
+
+### 27 cli query shadow.wtf read_clock() --json
+$ wtf query shadow.wtf read_clock() --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "type": "datetime",
+    "value": "2026-09-18T12:00:00+00:00"
+  }
+]
+
+### 28 cli query shadow.wtf values | where name == "now" | select value --json
+$ wtf query shadow.wtf values | where name == "now" | select value --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  1.0
+]
+
+### 29 cli query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), day: format_date(today(), "%Y-%m-%d"), trimmed: trim("  hi  ")} --json
+$ wtf query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), day: format_date(today(), "%Y-%m-%d"), trimmed: trim("  hi  ")} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "bar": "███",
+    "day": "2026-09-18",
+    "joined": "a/b",
+    "slice": "🦀",
+    "trimmed": "hi"
+  }
+]
+
+### 30 cli query data.wtf length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json
+$ wtf query data.wtf length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  1003
+]
+
+### 31 cli query lib.wtf eval("rate") --json
+$ wtf query lib.wtf eval("rate") --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "type": "ratio",
+    "value": 0.1
+  }
+]
+

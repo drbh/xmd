@@ -1,0 +1,250 @@
+### 0 lsp
+-- open ragged.wtf
+-- await textDocument/publishDiagnostics ragged.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/ragged.wtf",
+  "version": 1
+}
+-- request textDocument/formatting ragged.wtf
+[
+  {
+    "newText": "| constraint | expression |",
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "newText": "| ---------- | ---------- |",
+    "range": {
+      "end": {
+        "character": 9,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| a          | x <= 4     |",
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "newText": "| b          | y <= x     |",
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  }
+]
+-- applied to ragged.wtf (version 2)
+[p] := maximize(x + y)
+| constraint | expression |
+| ---------- | ---------- |
+| a          | x <= 4     |
+| b          | y <= x     |
+-- request textDocument/formatting ragged.wtf
+[]
+-- open ragged-ontype.wtf
+-- request textDocument/onTypeFormatting ragged-ontype.wtf 4:10
+[
+  {
+    "newText": "| constraint | expression |",
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "newText": "| ---------- | ---------- |",
+    "range": {
+      "end": {
+        "character": 9,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| a          | x <= 4     |",
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "newText": "| b          | y <= x     |",
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  }
+]
+-- applied to ragged-ontype.wtf (version 2)
+[p] := maximize(x + y)
+| constraint | expression |
+| ---------- | ---------- |
+| a          | x <= 4     |
+| b          | y <= x     |
+
+### 1 lsp
+-- open crlf.wtf
+-- await textDocument/publishDiagnostics crlf.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/crlf.wtf",
+  "version": 1
+}
+-- request textDocument/formatting crlf.wtf
+[
+  {
+    "newText": "| item        | n    |",
+    "range": {
+      "end": {
+        "character": 8,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| :---------: | ---: |",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "newText": "| \"梨 | pear\" | 2    |",
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  },
+  {
+    "newText": "| apple\\|pear | 4    |",
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    }
+  }
+]
+-- applied to crlf.wtf (version 2)
+# Shopping␍
+[t] := table␍
+| item        | n    |␍
+| :---------: | ---: |␍
+| "梨 | pear" | 2    |␍
+| apple\|pear | 4    |␍
+␍
+| ordinary | table |␍
+|---|---|␍
+|leave|alone|
+-- request textDocument/formatting crlf.wtf
+[]
+
+### 2 cli query crlf.wtf sum(t, n) --json
+$ wtf query crlf.wtf sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  6.0
+]
+
+### 3 cli query crlf.wtf tables | select {name, display} --json
+$ wtf query crlf.wtf tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "2 rows · 2 columns",
+    "name": "t"
+  }
+]
+
+### 4 cli query inert.wtf tables | select {name, display} --json
+$ wtf query inert.wtf tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 5 cli render inert.wtf --format text
+$ wtf render inert.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+```wtf
+[t] := table
+|n|
+|---|
+|1|
+```
+<!--
+[t] := table
+-->
+

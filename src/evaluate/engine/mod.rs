@@ -5,7 +5,7 @@ use crate::{
     timers::Timer,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use chrono::{DateTime, FixedOffset, Local, NaiveDate};
+use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -20,8 +20,8 @@ pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};
 pub use value::{
-    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code, literal,
-    next_occurrence, relative_date,
+    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code,
+    is_relative_date, literal, next_occurrence, relative_date,
 };
 #[derive(Clone, Debug)]
 pub struct EvalFailure {
@@ -39,7 +39,7 @@ pub(crate) enum MemoKey {
 pub(crate) struct MemoEntry {
     value: Result<Value, String>,
     failure: Option<EvalFailure>,
-    wanted: Vec<String>,
+    wanted: Vec<crate::lookups::LookupKey>,
     time_dependent: bool,
 }
 /// Host-provided names are resolved lazily by the same evaluator as note functions.
@@ -62,7 +62,7 @@ pub struct Engine<'a> {
     /// Decision-column variables met while linearizing a plan.
     pub row_variables: Vec<RowVariable>,
     /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
-    pub wanted: Vec<String>,
+    pub wanted: Vec<crate::lookups::LookupKey>,
     /// Definitions being walked symbolically, separate from the value stack:
     /// a goal seek is legitimately on both at once.
     linear_stack: Vec<Symbol>,
@@ -82,11 +82,6 @@ pub(super) struct RowScope {
     pub(super) decisions: BTreeMap<String, String>,
 }
 impl<'a> Engine<'a> {
-    pub fn new(workspace: &'a Workspace, today: NaiveDate) -> Self {
-        crate::RequestContext::new(workspace, Local::now().fixed_offset())
-            .with_today(today)
-            .engine()
-    }
     /// One clock snapshot per evaluation; injectable for deterministic tests.
     pub fn at(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
         crate::RequestContext::new(workspace, now).engine()
@@ -1170,7 +1165,7 @@ impl<'a> Engine<'a> {
                 let from = currency(&code(self.expr(path, &args[0])?, "The first currency")?)?;
                 let to = currency(&code(self.expr(path, &args[1])?, "The second currency")?)?;
                 if from != to {
-                    self.wanted.push(crate::lookups::rate_key(from, to));
+                    self.wanted.push(crate::lookups::LookupKey::rate(from, to));
                 }
                 crate::lookups::rate(&self.workspace.lookups, from, to).map(Value::Number)
             }
@@ -1185,7 +1180,7 @@ impl<'a> Engine<'a> {
                 };
                 let to = currency(&code(self.expr(path, &args[1])?, "The currency")?)?;
                 if from != to {
-                    self.wanted.push(crate::lookups::rate_key(from, to));
+                    self.wanted.push(crate::lookups::LookupKey::rate(from, to));
                 }
                 let rate = crate::lookups::rate(&self.workspace.lookups, from, to)?;
                 Ok(Value::Money(amount * rate, to))
@@ -1195,7 +1190,7 @@ impl<'a> Engine<'a> {
                     return Err("quote expects a ticker symbol: quote(NVDA)".into());
                 }
                 let symbol = code(self.expr(path, &args[0])?, "The ticker")?;
-                self.wanted.push(crate::lookups::quote_key(&symbol));
+                self.wanted.push(crate::lookups::LookupKey::quote(&symbol));
                 crate::lookups::quote(&self.workspace.lookups, &symbol)
             }
             _ => {
@@ -1222,7 +1217,8 @@ impl<'a> Engine<'a> {
                     },
                     None => false,
                 };
-                self.wanted.push(crate::lookups::forecast_key(&place, date));
+                self.wanted
+                    .push(crate::lookups::LookupKey::forecast(&place, date));
                 crate::lookups::forecast(&self.workspace.lookups, &place, date, fahrenheit)
                     .map(Value::Forecast)
             }

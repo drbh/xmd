@@ -1,0 +1,394 @@
+### 0 cli render idle.wtf --format text
+$ wtf render idle.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+🦀 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle␍
+Keep this prose.␍
+
+### 1 cli render idle.wtf --now 2026-09-17T14:00:00-04:00 --format text
+$ wtf render idle.wtf --now 2026-09-17T14:00:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+🦀 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle␍
+Keep this prose.␍
+
+### 2 cli query idle.wtf timers --json
+$ wtf query idle.wtf timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 25,
+      "line": 0
+    },
+    "definition": true,
+    "errors": [],
+    "inlay": true,
+    "kind": "timer",
+    "line": 0,
+    "name": "watch",
+    "origin": {
+      "document": "file://<root>/idle.wtf",
+      "name": "watch"
+    },
+    "source": {
+      "line": 1,
+      "path": "<root>/idle.wtf",
+      "range": {
+        "end": {
+          "character": 25,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/idle.wtf#L1"
+    },
+    "title": "watch",
+    "value": {
+      "elapsed": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "idle": true,
+      "limit": null,
+      "started": null
+    }
+  }
+]
+
+### 3 lsp
+-- open idle.wtf
+-- await textDocument/publishDiagnostics idle.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/idle.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:idle.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Cannot pause a idle timer"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:idle.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 0
+              },
+              "start": {
+                "character": 13,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/idle.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+
+### 4 cli render running.wtf --format text
+$ wtf render running.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00) = ◴ 01:13 elapsed · ▸ running
+Keep this prose.
+
+### 5 cli render running.wtf --now 2026-09-16T14:01:00-04:00 --format text
+$ wtf render running.wtf --now 2026-09-16T14:01:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00) = ◴ 02:13 elapsed · ▸ running
+Keep this prose.
+
+### 6 cli query running.wtf timers --json
+$ wtf query running.wtf timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 51,
+      "line": 0
+    },
+    "definition": true,
+    "errors": [],
+    "inlay": true,
+    "kind": "timer",
+    "line": 0,
+    "name": "watch",
+    "origin": {
+      "document": "file://<root>/running.wtf",
+      "name": "watch"
+    },
+    "source": {
+      "line": 1,
+      "path": "<root>/running.wtf",
+      "range": {
+        "end": {
+          "character": 51,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/running.wtf#L1"
+    },
+    "title": "watch",
+    "value": {
+      "elapsed": {
+        "seconds": 73,
+        "type": "duration"
+      },
+      "idle": false,
+      "limit": null,
+      "started": {
+        "type": "datetime",
+        "value": "2026-09-16T13:58:47-04:00"
+      }
+    }
+  }
+]
+
+### 7 lsp
+-- open running.wtf
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:running.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(73s)",
+            "range": {
+              "end": {
+                "character": 51,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/running.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:running.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch()",
+            "range": {
+              "end": {
+                "character": 51,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/running.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+
+### 8 cli render paused.wtf --format text
+$ wtf render paused.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
+Keep this prose.
+
+### 9 cli render paused.wtf --now 2026-09-16T15:00:00-04:00 --format text
+$ wtf render paused.wtf --now 2026-09-16T15:00:00-04:00 --format text --root <root>
+exit 0
+--- stdout
+[watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
+Keep this prose.
+
+### 10 cli query paused.wtf timers --json
+$ wtf query paused.wtf timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 25,
+      "line": 0
+    },
+    "definition": true,
+    "errors": [],
+    "inlay": true,
+    "kind": "timer",
+    "line": 0,
+    "name": "watch",
+    "origin": {
+      "document": "file://<root>/paused.wtf",
+      "name": "watch"
+    },
+    "source": {
+      "line": 1,
+      "path": "<root>/paused.wtf",
+      "range": {
+        "end": {
+          "character": 25,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/paused.wtf#L1"
+    },
+    "title": "watch",
+    "value": {
+      "elapsed": {
+        "seconds": 73,
+        "type": "duration"
+      },
+      "idle": false,
+      "limit": null,
+      "started": null
+    }
+  }
+]
+
+### 11 lsp
+-- open paused.wtf
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:paused.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+error: {
+  "code": -32602,
+  "message": "Cannot start a paused timer"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"resume","document":"${uri:paused.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " stopwatch(73s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/paused.wtf",
+          "version": 1
+        }
+      }
+    ]
+  }
+}
+
+### 12 cli render alias.wtf --format text
+$ wtf render alias.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[alias] := import("./shared.wtf").focus = ◷ ░░░░░░░░ 25:00 remaining · ○ idle
+Remaining [alias.remaining] 25m.
+- [ ] Work @timer(alias) ◷ ░░░░░░░░ 25:00 remaining · ○ idle
+
+### 13 lsp
+-- open alias.wtf
+-- await textDocument/publishDiagnostics alias.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/alias.wtf",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.wtf}","kind":"timer","name":"alias"}],"command":"wtf.timer"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": " countdown(25m, 0s, 2026-09-16T14:00:00-04:00)",
+            "range": {
+              "end": {
+                "character": 25,
+                "line": 0
+              },
+              "start": {
+                "character": 10,
+                "line": 0
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/shared.wtf",
+          "version": null
+        }
+      }
+    ]
+  }
+}
+
+### 14 read idle.wtf running.wtf paused.wtf shared.wtf
+-- idle.wtf
+🦀 [watch] := stopwatch()␍
+Keep this prose.␍
+-- running.wtf
+[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)
+Keep this prose.
+-- paused.wtf
+[watch] := stopwatch(73s)
+Keep this prose.
+-- shared.wtf
+[focus] := countdown(25m)
+

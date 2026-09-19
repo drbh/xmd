@@ -1,0 +1,127 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "checkbox.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "checkbox.wtf"
+        },
+        {
+          "open": "checklists.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "checklists.wtf"
+        },
+        {
+          "open": "codeword.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "codeword.wtf"
+        },
+        {
+          "open": "crlf_only.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "crlf_only.wtf"
+        },
+        {
+          "open": "empty.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "empty.wtf"
+        },
+        {
+          "open": "functions.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "functions.wtf"
+        },
+        {
+          "open": "functions_crlf.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "functions_crlf.wtf"
+        },
+        {
+          "open": "halftable.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "halftable.wtf"
+        },
+        {
+          "open": "inert.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "inert.wtf"
+        },
+        {
+          "open": "itinerary.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "itinerary.wtf"
+        },
+        {
+          "open": "kinds.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "kinds.wtf"
+        },
+        {
+          "open": "links.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "links.wtf"
+        },
+        {
+          "open": "malformed.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "malformed.wtf"
+        },
+        {
+          "open": "prose.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "prose.wtf"
+        },
+        {
+          "open": "tables.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "tables.wtf"
+        },
+        {
+          "open": "unclosed_string.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "unclosed_string.wtf"
+        },
+        {
+          "open": "unterminated.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "unterminated.wtf"
+        }
+      ]
+    }
+  ]
+}

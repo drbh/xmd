@@ -1,0 +1,200 @@
+### 0 cli render work.wtf --format text
+$ wtf render work.wtf --format text --root <root> --now 2026-09-16T18:05:00+00:00
+exit 1
+--- stdout
+[https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · 2h ago
+See [pr] ✓ merged · ● checks · 2h ago and https://github.com/acme/app/pull/42 ✓ merged · ● checks · 2h ago.
+Merged [pr.merged] true, checks [pr.checks_passed] true, titled [pr.title] Ship it.
+Unknown [pr.nope].
+- [ ] multicast https://github.com/NVlabs/cuda-oxide/pull/606 ✓ merged · ● checks · approved · 2h ago
+See [the fix](https://github.com/NVlabs/cuda-oxide/pull/975) ○ open · ✗ checks FAILING · changes requested · ! stale · 9d ago and https://github.com/NVlabs/cuda-oxide/pull/1286 ◌ PR #1286 · refresh for status.
+Not a PR: https://github.com/drbh/kawaii
+--- stderr
+<root>/work.wtf:4:13: error: Unknown resource property 'nope'
+wtf: 1 error(s) while rendering
+
+### 1 cli query work.wtf diagnostics | select {message, code} --json
+$ wtf query work.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "code": "property",
+    "message": "Unknown resource property 'nope'"
+  }
+]
+
+### 2 cli query work.wtf resources | select {target, metadata} --json
+$ wtf query work.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "metadata": {
+      "checks": "passing",
+      "fetched_at": "2026-09-16T16:00:00Z",
+      "merged": true,
+      "review": null,
+      "state": "merged",
+      "title": "Ship it"
+    },
+    "target": "https://github.com/acme/app/pull/42"
+  },
+  {
+    "metadata": {
+      "checks": "passing",
+      "fetched_at": "2026-09-16T16:00:00Z",
+      "merged": true,
+      "review": "approved",
+      "state": "merged",
+      "title": "multicast"
+    },
+    "target": "https://github.com/NVlabs/cuda-oxide/pull/606"
+  },
+  {
+    "metadata": {
+      "checks": "failing",
+      "fetched_at": "2026-09-07T16:00:00Z",
+      "merged": false,
+      "review": "changes_requested",
+      "state": "open",
+      "title": "mir pass"
+    },
+    "target": "https://github.com/NVlabs/cuda-oxide/pull/975"
+  },
+  {
+    "metadata": null,
+    "target": "https://github.com/NVlabs/cuda-oxide/pull/1286"
+  },
+  {
+    "metadata": null,
+    "target": "https://github.com/drbh/kawaii"
+  },
+  {
+    "metadata": {
+      "checks": "passing",
+      "fetched_at": "2026-09-16T16:00:00Z",
+      "merged": true,
+      "review": null,
+      "state": "merged",
+      "title": "Ship it"
+    },
+    "target": "https://github.com/acme/app/pull/42"
+  }
+]
+
+### 3 lsp
+-- open work.wtf
+-- await textDocument/publishDiagnostics work.wtf
+{
+  "diagnostics": [
+    {
+      "code": "property",
+      "message": "Unknown resource property 'nope'",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 3
+        },
+        "start": {
+          "character": 12,
+          "line": 3
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/work.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint work.wtf {"end":{"character":0,"line":6},"start":{"character":0,"line":4}}
+[
+  {
+    "label": "✓ merged · ● checks · approved · 2h ago",
+    "paddingLeft": true,
+    "position": {
+      "character": 61,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://github.com/NVlabs/cuda-oxide/pull/606>)\n\n**multicast**\n\nmerged · checks passing · approved · cached 2026-09-16 16:00 UTC\n\nLast refreshed: 2026-09-16T16:00:00+00:00. Use **⟳ github** to update."
+    }
+  },
+  {
+    "label": "○ open · ✗ checks FAILING · changes requested · ! stale · 9d ago",
+    "paddingLeft": true,
+    "position": {
+      "character": 60,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://github.com/NVlabs/cuda-oxide/pull/975>)\n\n**mir pass**\n\nopen · checks failing · changes requested · cached 2026-09-07 16:00 UTC\n\nLast refreshed: 2026-09-07T16:00:00+00:00. Use **⟳ github** to update."
+    }
+  },
+  {
+    "label": "◌ PR #1286 · refresh for status",
+    "paddingLeft": true,
+    "position": {
+      "character": 111,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "[Open resource](<https://github.com/NVlabs/cuda-oxide/pull/1286>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+    }
+  }
+]
+-- request textDocument/codeAction work.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+[
+  {
+    "arguments": [
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "See [pr] and https://github.com/acme/app/pull/42.",
+          "row": 1
+        },
+        "url": "https://github.com/acme/app/pull/42"
+      }
+    ],
+    "command": "wtf.openResource",
+    "title": "↗ open"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "refresh_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "See [pr] and https://github.com/acme/app/pull/42.",
+          "row": 1
+        },
+        "url": "https://github.com/acme/app/pull/42"
+      }
+    ],
+    "command": "wtf.refreshResource",
+    "title": "⟳ github"
+  }
+]
+-- request textDocument/hover work.wtf 1:20
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\n**Ship it**\n\nmerged · checks passing · cached 2026-09-16 16:00 UTC\n\nLast refreshed: 2026-09-16T16:00:00+00:00. Use **⟳ github** to update."
+  },
+  "range": {
+    "end": {
+      "character": 48,
+      "line": 1
+    },
+    "start": {
+      "character": 13,
+      "line": 1
+    }
+  }
+}
+

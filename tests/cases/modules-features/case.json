@@ -1,0 +1,244 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "calc.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "calc.wtf",
+        "calculations | select anchor",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"calculations\", kind: \"feature\", enabled: false}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "calc.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"hooks\", kind: \"feature\", inputs: [\"diagnostics\"]}\nhovers := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, contents: \"Greeting\"}]\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, severity: 2, message: \"Check greeting\", code: \"greeting\"}]\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"HELLO\"}]\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "hello.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "hello.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "hello.wtf",
+          "line": 0,
+          "character": 1
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "hello.wtf",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        }
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"insert\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Insert greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: \"Hello \"}]}}], [])\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "hello.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "hello.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "hello.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "${last:/0/command}",
+            "arguments": "${last:/0/arguments}"
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "change": {
+            "file": "hello.wtf",
+            "text": "changed\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "hello.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "edit",
+                "document": "${uri:hello.wtf}",
+                "expected": "Hello\n",
+                "edits": [
+                  {
+                    "range": {
+                      "start": {
+                        "line": 0,
+                        "character": 0
+                      },
+                      "end": {
+                        "line": 0,
+                        "character": 0
+                      }
+                    },
+                    "newText": "Hello "
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"Stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "hello.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "hello.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "hello.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "${last:/0/command}",
+            "arguments": "${last:/0/arguments}"
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "write": {
+            ".wtf/modules/custom.wtf": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"New stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/modules/custom.wtf"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "hello.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "hello.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.invoke",
+            "arguments": [
+              {
+                "kind": "invoke",
+                "document": "${uri:hello.wtf}",
+                "expected": "Hello\n",
+                "module": "stamp",
+                "revision": "0",
+                "event": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

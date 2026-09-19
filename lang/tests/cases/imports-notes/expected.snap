@@ -40,7 +40,7 @@ exit 0
 --- stdout
 [
   {
-    "widgets": 4.0
+    "widgets": 4
   }
 ]
 
@@ -76,7 +76,7 @@ $ wtf query main.wtf get(src, "amount") --root lazy --json --now 2026-09-18T12:0
 exit 0
 --- stdout
 [
-  21.0
+  21
 ]
 
 ### 5 cli query main.wtf get(src, "absent") --root lazy --json
@@ -98,8 +98,8 @@ $ wtf query main.wtf [src, src].amount --root lazy --json --now 2026-09-18T12:00
 exit 0
 --- stdout
 [
-  21.0,
-  21.0
+  21,
+  21
 ]
 
 ### 8 cli query main.wtf resources | select {target, path: source.path} --root lazy --json

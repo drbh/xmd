@@ -18,14 +18,14 @@ test("switching documents with a running timer preserves the new document and su
     window.firstId = wtfDocs.documents[0].id;
     wtfDocs.newDocument();
   });
-  await page.waitForFunction(() => wtfDocs.controller?.uri === `file:///workspace/docs/${wtfDocs.documents[0].id}.wtf`);
+  await page.waitForFunction(() => wtfDocs.controller && wtfDocs.active?.id === wtfDocs.documents[0].id);
   await page.waitForTimeout(1300);
   const documents = await page.evaluate(() => wtfDocs.documents.map(d => ({ id: d.id, text: d.text })));
   expect(documents[0].text).toBe("# Untitled document\n\n");
   expect(documents[1].text).toContain("# First\nwatch := stopwatch");
   await page.locator(".logo").click();
   await page.locator(".doc-row .open", { hasText: "First" }).click();
-  await page.waitForFunction(() => wtfDocs.controller?.uri === `file:///workspace/docs/${firstId}.wtf`);
+  await page.waitForFunction(() => wtfDocs.controller && wtfDocs.active?.id === firstId);
   await page.evaluate(async () => { for (let n = 0; n < 20; n++) await wtfDocs.controller.setSource(`# First\nx := ${n}\n`); });
   await expect(page.locator(".view")).toContainText("= 19");
   expect(errors).toEqual([]);

@@ -249,7 +249,7 @@ $ wtf query n.wtf good(2) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
-  3.0
+  3
 ]
 
 ### 42 cli query n.wtf 1 + 2 --json
@@ -257,7 +257,7 @@ $ wtf query n.wtf 1 + 2 --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
-  3.0
+  3
 ]
 
 ### 43 cli query broken.wtf diagnostics | select {line, severity, code, message} --json

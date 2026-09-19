@@ -123,7 +123,8 @@ exit 2
 --- stderr
 error: the argument '--json' cannot be used with '--jsonl'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -164,7 +165,8 @@ exit 2
 --- stderr
 error: the argument '--on <ON>' cannot be used with '--now <NOW>'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -211,52 +213,25 @@ exit 0
 
 ### 20 cli query
 $ wtf query --root <root> --now 2026-09-16T12:00:00-04:00
-exit 2
+exit 1
 --- stderr
-error: the following required arguments were not provided:
-  <FILE_OR_QUERY>
-  <QUERY>
-
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
-
-For more information, try '--help'.
+wtf: Supply a query expression: wtf 'total' < note.wtf
 
 ### 21 cli query tasks
 $ wtf query tasks --root <root> --now 2026-09-16T12:00:00-04:00
-exit 2
---- stderr
-error: the following required arguments were not provided:
-  <QUERY>
-
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
-
-For more information, try '--help'.
+exit 0
 
 ### 22 cli query note.wtf
 $ wtf query note.wtf --root <root> --now 2026-09-16T12:00:00-04:00
-exit 2
+exit 1
 --- stderr
-error: the following required arguments were not provided:
-  <QUERY>
-
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
-
-For more information, try '--help'.
+wtf: Unknown name 'note'
 
 ### 23 cli query --workspace
 $ wtf query --workspace --root <root> --now 2026-09-16T12:00:00-04:00
-exit 2
+exit 1
 --- stderr
-error: the following required arguments were not provided:
-  <FILE_OR_QUERY>
-
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
-
-For more information, try '--help'.
+wtf: Supply a query expression: wtf 'total' < note.wtf
 
 ### 24 cli query -f expression.txt
 $ wtf query -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
@@ -266,7 +241,8 @@ error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -277,7 +253,8 @@ exit 2
 --- stderr
 error: the argument '[QUERY]' cannot be used with '--workspace'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -290,7 +267,8 @@ error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -303,7 +281,8 @@ error: unexpected argument '--file' found
 
   tip: to pass '--file' as a value, use '-- --file'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -316,7 +295,8 @@ error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -329,7 +309,8 @@ error: unexpected argument '--in' found
 
   tip: a similar argument exists: '--fail-on-match'
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
@@ -340,80 +321,51 @@ exit 2
 --- stderr
 error: unexpected argument 'extra' found
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 31 cli today
 $ wtf today
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'today'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: Unknown name 'today'
 
 ### 32 cli agenda
 $ wtf agenda
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'agenda'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: Unknown name 'agenda'
 
 ### 33 cli tasks
 $ wtf tasks
-exit 2
---- stderr
-error: unrecognized subcommand 'tasks'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+exit 0
 
 ### 34 cli check
 $ wtf check
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'check'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: Unknown name 'check'
 
 ### 35 cli plan
 $ wtf plan
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'plan'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: Unknown name 'plan'
 
 ### 36 cli capture n.wtf
 $ wtf capture n.wtf
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'capture'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: <root>/capture: No such file or directory (os error 2)
 
 ### 37 cli complete n.wtf
 $ wtf complete n.wtf
-exit 2
+exit 1
 --- stderr
-error: unrecognized subcommand 'complete'
-
-Usage: wtf [COMMAND]
-
-For more information, try '--help'.
+wtf: <root>/complete: No such file or directory (os error 2)
 
 ### 38 cli query --help
 $ wtf query --help --root <root> --now 2026-09-16T12:00:00-04:00
@@ -421,11 +373,12 @@ exit 0
 --- stdout
 Query tasks, values, tables, plans, resources and diagnostics
 
-Usage: wtf query [OPTIONS] <FILE> <QUERY>
+Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
+       wtf query [OPTIONS] <FILE> <QUERY>
        wtf query [OPTIONS] --workspace <QUERY>
 
 Arguments:
-  <FILE_OR_QUERY>  A note relative to --root, or the query expression when --workspace is set
+  [FILE_OR_QUERY]  A note relative to --root, or the query itself when the note is piped in or --workspace is set
   [QUERY]          A functional expression or collection pipeline; use - for stdin
 
 Options:
@@ -441,8 +394,9 @@ Options:
 Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes
 Functions: map, filter, fold, get, sort_by, group_by, sum, length
 Stages: where, select, sort, limit, count, sum, group
-Use - as QUERY to read an expression from stdin.
+Use - as QUERY to read an expression from stdin; the note then has to be a file.
 Examples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json
+          cat note.wtf | wtf query 'length(tasks)'
           wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json
           printf 'length(tasks)' | wtf query note.wtf -
 

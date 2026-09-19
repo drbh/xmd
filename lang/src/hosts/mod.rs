@@ -6,3 +6,5 @@ pub mod browser;
 pub mod cli;
 #[cfg(feature = "native")]
 pub mod editor;
+#[cfg(feature = "native")]
+pub mod sync;

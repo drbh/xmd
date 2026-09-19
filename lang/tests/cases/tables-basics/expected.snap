@@ -60,7 +60,7 @@ exit 0
         "currency": "USD",
         "type": "money"
       },
-      "quantity": 2.0
+      "quantity": 2
     },
     "line": 3,
     "table": "groceries"
@@ -73,7 +73,7 @@ exit 0
         "currency": "USD",
         "type": "money"
       },
-      "quantity": 4.0
+      "quantity": 4
     },
     "line": 4,
     "table": "groceries"
@@ -93,7 +93,7 @@ exit 0
   {
     "line": 3,
     "title": "2",
-    "value": 2.0
+    "value": 2
   },
   {
     "line": 3,
@@ -112,7 +112,7 @@ exit 0
   {
     "line": 4,
     "title": "4",
-    "value": 4.0
+    "value": 4
   },
   {
     "line": 4,

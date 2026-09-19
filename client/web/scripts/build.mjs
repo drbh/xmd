@@ -10,8 +10,13 @@ await mkdir(new URL("lib/", dist), { recursive: true });
 for (const name of ["src", "adapters", "theme", "pkg"]) {
   await cp(new URL(name, root), new URL(`lib/${name}`, dist), { recursive: true });
 }
+// Static hosts that honour _headers (Cloudflare) let other sites load lib/.
+await writeFile(new URL("_headers", dist), "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400\n");
 // The site root opens the document app; the book lives beside it.
 await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>WTF Docs</title><a href="docs/">Open WTF Docs</a>\n');
+// The embedding example: a plain page that loads the library like any other site would.
+await mkdir(new URL("embed/", dist), { recursive: true });
+await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
 // The book is a view inside the document app; keep its old address working.
 await mkdir(new URL("book/", dist), { recursive: true });
 await writeFile(new URL("book/index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=../docs/#/book"><title>The WTF Book</title><a href="../docs/#/book">Open the book</a>\n');

@@ -22,15 +22,18 @@ const SNIPPETS = {
 
 /** `ctx` is the application: it supplies the editor and app-level operations. */
 export function createCommands(ctx) {
-  const editor = fn => () => { const c = ctx.editor(); if (c) return Promise.resolve(fn(c)).catch(ctx.error); };
+  // Editing commands do nothing in a read-only document (a viewer, or offline without a local copy).
+  const editor = fn => () => { const c = ctx.editor(); if (c && !ctx.readOnly?.()) return Promise.resolve(fn(c)).catch(ctx.error); };
   const insert = key => editor(c => c.insertAtCaret(typeof SNIPPETS[key] === "function" ? SNIPPETS[key]() : SNIPPETS[key]));
+  const writable = () => !ctx.readOnly?.();
   const list = [
     // File
     { id: "new", menu: "File", label: "New document", shortcut: "mod+alt+n", run: ctx.newDocument },
     { id: "open", menu: "File", label: "Open…", shortcut: "mod+o", run: ctx.home },
     { id: "copy", menu: "File", label: "Make a copy", run: ctx.duplicate },
     { id: "import", menu: "File", label: "Import .wtf files…", run: ctx.importFiles, separator: true },
-    { id: "rename", menu: "File", label: "Rename", run: ctx.rename },
+    { id: "rename", menu: "File", label: "Rename", when: writable, run: ctx.rename },
+    { id: "details", menu: "File", label: "Document details", run: () => ctx.dialog("details") },
     { id: "share", menu: "File", label: "Share…", when: ctx.canShare, run: () => ctx.dialog("share"), separator: true },
     { id: "download", menu: "File", label: "Download (.wtf)", shortcut: "mod+shift+s", run: ctx.download },
     { id: "print", menu: "File", label: "Print", shortcut: "mod+p", icon: "print", run: ctx.print, separator: true },
@@ -92,7 +95,8 @@ export function createCommands(ctx) {
     { id: "book", menu: "Help", label: "The WTF Book", run: ctx.book },
   ];
   const byId = Object.fromEntries(list.map(c => [c.id, c]));
-  return { list, byId, menus: ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, get items() { return list.filter(c => c.menu === name && (!c.when || c.when())); } })) };
+  const menus = ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, get items() { return list.filter(c => c.menu === name && (!c.when || c.when())); } }));
+  return { list, byId, get menus() { return menus.filter(m => writable() || !["Insert", "Format"].includes(m.name)); } };
 }
 
 /** Human-readable shortcut label, e.g. "⌘⇧Z" or "Ctrl+Shift+Z". */

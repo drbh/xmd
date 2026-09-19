@@ -61,12 +61,12 @@ exit 0
 --- stdout
 [
   {
-    "amount": 450.0,
+    "amount": 450,
     "currency": "EUR",
     "type": "money"
   },
   {
-    "amount": 700.0,
+    "amount": 700,
     "currency": "MXN",
     "type": "money"
   },
@@ -76,23 +76,23 @@ exit 0
     "type": "money"
   },
   {
-    "amount": 2000.0,
+    "amount": 2000,
     "currency": "JPY",
     "type": "money"
   },
   {
-    "amount": 7.0,
+    "amount": 7,
     "currency": "USD",
     "type": "money"
   },
   {
-    "amount": 1350.0,
+    "amount": 1350,
     "currency": "EUR",
     "type": "money"
   },
   {
     "type": "ratio",
-    "value": 9.0
+    "value": 9
   },
   "USD",
   "NVDA",

@@ -1,6 +1,7 @@
 <script>
   import { onMount, tick, untrack } from "svelte";
   import { mountEditor } from "@wtf/web/contenteditable";
+  import { renderHover } from "@wtf/web";
   import { lineOf, rangeOf } from "./editing.js";
   import Icon from "./Icon.svelte";
   let { workspace, uri, text, readOnly = false, frame = "page", live = null, onSnapshot, onCaret, onError, controller = $bindable() } = $props();
@@ -11,6 +12,21 @@
   // On a phone there is no room beside the text: only the caret's line shows its actions, under the line.
   const phone = matchMedia("(max-width: 640px)");
   let caretLine = -1;
+  // Touch screens cannot hover: a tap on a name shows the same explanation as a sheet.
+  const touch = matchMedia("(hover: none)");
+  let inspect = $state(null);
+  async function inspectAt() {
+    if (!touch.matches || !controller || controller.destroyed) return;
+    const selection = controller.selection();
+    if (!selection || selection.anchor !== selection.focus) { inspect = null; return; }
+    const source = controller.getSource();
+    const before = source.slice(0, selection.focus).split("\n");
+    const position = { line: before.length - 1, character: before[before.length - 1].length };
+    try {
+      const result = await workspace.query(uri, "hover", { position });
+      inspect = result ? renderHover(typeof result.contents === "string" ? result.contents : result.contents.value) : null;
+    } catch { inspect = null; }
+  }
   // Other people's carets and selections, drawn over the page from source offsets.
   let people = $state.raw([]), carets = $state.raw([]);
   const PALETTE = 8;
@@ -95,7 +111,8 @@
 </script>
 
 <div class={frame === "page" ? "page" : "block"} bind:this={page}>
-  <pre class="view" bind:this={view} aria-label="Document"></pre>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
+  <pre class="view" bind:this={view} aria-label="Document" onclick={() => { if (touch.matches) setTimeout(inspectAt, 50); }}></pre>
   {#each carets as caret (caret.id)}
     <div class="presence-caret" style={`top:${caret.top}px;left:${caret.left}px;height:${caret.height}px;--presence:${caret.color}`}><span class="presence-name">{caret.name}</span></div>
   {/each}
@@ -108,3 +125,9 @@
   {/each}
 </div>
 <div class="hover" bind:this={hover} hidden></div>
+{#if inspect}
+  <div class="inspect" role="dialog" aria-label="Explanation">
+    <button type="button" class="tool" aria-label="Close" onclick={() => (inspect = null)}><Icon name="close" size={16} /></button>
+    <div class="inspect-body">{@html inspect}</div>
+  </div>
+{/if}

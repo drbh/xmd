@@ -1,0 +1,6 @@
+# One toolchain for everyone: rustfmt and clippy differ between releases, so
+# CI and every checkout format and lint with the same version.
+[toolchain]
+channel = "1.98.0"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]

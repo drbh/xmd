@@ -106,6 +106,16 @@ impl Workspace {
         result.reload_modules()?;
         Ok(result)
     }
+    /// A note that arrived on stdin: one document at a synthetic path inside
+    /// the root, so relative imports and modules resolve like a saved note.
+    #[cfg(feature = "native")]
+    pub fn load_source(roots: Vec<PathBuf>, path: &Path, text: String) -> Result<Self, String> {
+        let mut result = Self::empty_notes(roots);
+        result.documents.insert(path.into(), Document::parse(text));
+        result.load_imports();
+        result.reload_modules()?;
+        Ok(result)
+    }
     #[cfg(feature = "native")]
     pub(crate) fn include_file(&mut self, path: &Path) -> Result<(), String> {
         if path.extension().is_none_or(|s| s != "wtf") {

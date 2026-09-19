@@ -28,9 +28,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/note.wtf",
-        "focus",
-        "start"
+        {
+          "action": "start",
+          "document": "file://<root>/note.wtf",
+          "kind": "timer",
+          "name": "focus"
+        }
       ],
       "command": "wtf.timer",
       "title": "▸ start focus"
@@ -49,9 +52,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/note.wtf",
-        1,
-        "- [ ] Task"
+        {
+          "document": "file://<root>/note.wtf",
+          "expected": "- [ ] Task",
+          "kind": "toggle_task",
+          "row": 1
+        }
       ],
       "command": "wtf.task",
       "title": "✓ done"
@@ -70,10 +76,15 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/note.wtf",
-        2,
-        "https://github.com/acme/app/pull/42",
-        "https://github.com/acme/app/pull/42"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/note.wtf",
+            "expected": "https://github.com/acme/app/pull/42",
+            "row": 2
+          },
+          "url": "https://github.com/acme/app/pull/42"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ open"
@@ -92,10 +103,15 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/note.wtf",
-        2,
-        "https://github.com/acme/app/pull/42",
-        "https://github.com/acme/app/pull/42"
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/note.wtf",
+            "expected": "https://github.com/acme/app/pull/42",
+            "row": 2
+          },
+          "url": "https://github.com/acme/app/pull/42"
+        }
       ],
       "command": "wtf.refreshResource",
       "title": "⟳ github"
@@ -114,7 +130,10 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/note.wtf"
+        {
+          "document": "file://<root>/note.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"
@@ -142,9 +161,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/note.wtf",
-            "focus",
-            "start"
+            {
+              "action": "start",
+              "document": "file:///workspace/note.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "▸ start focus"
@@ -165,9 +187,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/note.wtf",
-            1,
-            "- [ ] Task"
+            {
+              "document": "file:///workspace/note.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 1
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -188,10 +213,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/note.wtf",
-            2,
-            "https://github.com/acme/app/pull/42",
-            "https://github.com/acme/app/pull/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/note.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 2
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -214,7 +244,7 @@
     }
   }
 }
--- execute {"command":{"arguments":["file:///workspace/note.wtf",1,"- [ ] Task"],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.wtf","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":1}}
 {
   "ok": true,
   "result": {
@@ -258,7 +288,7 @@
     }
   }
 }
--- execute {"command":{"arguments":["file:///workspace/note.wtf","focus","start"],"command":"wtf.timer","title":""},"versions":{"file:///workspace/note.wtf":1}}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/note.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":""},"versions":{"file:///workspace/note.wtf":1}}
 {
   "ok": true,
   "result": {
@@ -289,22 +319,22 @@
     }
   }
 }
--- execute {"command":{"arguments":[],"command":"wtf.refresh","title":""},"versions":{"file:///workspace/note.wtf":1}}
+-- execute {"command":{"arguments":[{"document":null,"kind":"refresh"}],"command":"wtf.refresh","title":""},"versions":{"file:///workspace/note.wtf":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[],"command":"wtf.today","title":""},"versions":{"file:///workspace/note.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"show_today"}],"command":"wtf.today","title":""},"versions":{"file:///workspace/note.wtf":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":["file:///workspace/note.wtf",2,"https://github.com/acme/app/pull/42","https://github.com/acme/app/pull/42"],"command":"wtf.refreshResource","title":""},"versions":{"file:///workspace/note.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/note.wtf","expected":"https://github.com/acme/app/pull/42","row":2},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":""},"versions":{"file:///workspace/note.wtf":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":["file:///workspace/note.wtf",1,"- [ ] Task"],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":2}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.wtf","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"wtf.task","title":""},"versions":{"file:///workspace/note.wtf":2}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false

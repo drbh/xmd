@@ -349,18 +349,24 @@
 [
   {
     "arguments": [
-      "file://<root>/freeze.wtf",
-      "watch",
-      "resume"
+      {
+        "action": "resume",
+        "document": "file://<root>/freeze.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
     ],
     "command": "wtf.timer",
     "title": "▸ resume watch"
   },
   {
     "arguments": [
-      "file://<root>/freeze.wtf",
-      "watch",
-      "reset"
+      {
+        "action": "reset",
+        "document": "file://<root>/freeze.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
     ],
     "command": "wtf.timer",
     "title": "↺ reset watch"

@@ -92,9 +92,12 @@
               "title": "",
               "command": "wtf.task",
               "arguments": [
-                "file:///workspace/note.wtf",
-                1,
-                "- [ ] Task"
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/note.wtf",
+                  "row": 1,
+                  "expected": "- [ ] Task"
+                }
               ]
             }
           }
@@ -109,9 +112,12 @@
               "title": "",
               "command": "wtf.timer",
               "arguments": [
-                "file:///workspace/note.wtf",
-                "focus",
-                "start"
+                {
+                  "kind": "timer",
+                  "document": "file:///workspace/note.wtf",
+                  "name": "focus",
+                  "action": "start"
+                }
               ]
             }
           }
@@ -125,7 +131,12 @@
             "command": {
               "title": "",
               "command": "wtf.refresh",
-              "arguments": []
+              "arguments": [
+                {
+                  "kind": "refresh",
+                  "document": null
+                }
+              ]
             }
           }
         },
@@ -138,7 +149,11 @@
             "command": {
               "title": "",
               "command": "wtf.today",
-              "arguments": []
+              "arguments": [
+                {
+                  "kind": "show_today"
+                }
+              ]
             }
           }
         },
@@ -152,10 +167,15 @@
               "title": "",
               "command": "wtf.refreshResource",
               "arguments": [
-                "file:///workspace/note.wtf",
-                2,
-                "https://github.com/acme/app/pull/42",
-                "https://github.com/acme/app/pull/42"
+                {
+                  "kind": "refresh_resource",
+                  "target": {
+                    "document": "file:///workspace/note.wtf",
+                    "row": 2,
+                    "expected": "https://github.com/acme/app/pull/42"
+                  },
+                  "url": "https://github.com/acme/app/pull/42"
+                }
               ]
             }
           }
@@ -170,9 +190,12 @@
               "title": "",
               "command": "wtf.task",
               "arguments": [
-                "file:///workspace/note.wtf",
-                1,
-                "- [ ] Task"
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/note.wtf",
+                  "row": 1,
+                  "expected": "- [ ] Task"
+                }
               ]
             }
           }

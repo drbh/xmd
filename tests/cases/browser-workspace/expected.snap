@@ -64,9 +64,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/trip.wtf",
-            5,
-            "- [ ] Open @estimate(90s)"
+            {
+              "document": "file:///workspace/trip.wtf",
+              "expected": "- [ ] Open @estimate(90s)",
+              "kind": "toggle_task",
+              "row": 5
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"

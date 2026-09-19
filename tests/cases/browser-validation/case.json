@@ -42,7 +42,12 @@
             "command": {
               "title": "⟳ refresh",
               "command": "wtf.refresh",
-              "arguments": ["file:///workspace/refresh.wtf"]
+              "arguments": [
+                {
+                  "kind": "refresh",
+                  "document": "file:///workspace/refresh.wtf"
+                }
+              ]
             },
             "versions": { "file:///workspace/refresh.wtf": 1 }
           }
@@ -54,10 +59,15 @@
               "title": "⟳ github",
               "command": "wtf.refreshResource",
               "arguments": [
-                "file:///workspace/refresh.wtf",
-                1,
-                "https://github.com/acme/app/pull/42",
-                "https://github.com/acme/app/pull/42"
+                {
+                  "kind": "refresh_resource",
+                  "target": {
+                    "document": "file:///workspace/refresh.wtf",
+                    "row": 1,
+                    "expected": "https://github.com/acme/app/pull/42"
+                  },
+                  "url": "https://github.com/acme/app/pull/42"
+                }
               ]
             },
             "versions": { "file:///workspace/refresh.wtf": 1 }
@@ -69,7 +79,15 @@
             "command": {
               "title": "bad",
               "command": "wtf.task",
-              "arguments": ["file:///workspace/refresh.wtf", 2, "- [ ] Task", "extra"]
+              "arguments": [
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/refresh.wtf",
+                  "row": 2,
+                  "expected": "- [ ] Task"
+                },
+                "extra"
+              ]
             },
             "versions": { "file:///workspace/refresh.wtf": 1 }
           }
@@ -80,7 +98,14 @@
             "command": {
               "title": "toggle",
               "command": "wtf.task",
-              "arguments": ["file:///workspace/refresh.wtf", 2, "- [ ] Task"]
+              "arguments": [
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/refresh.wtf",
+                  "row": 2,
+                  "expected": "- [ ] Task"
+                }
+              ]
             },
             "versions": { "file:///workspace/refresh.wtf": 1 }
           }
@@ -92,10 +117,15 @@
               "title": "open",
               "command": "wtf.openResource",
               "arguments": [
-                "file:///workspace/refresh.wtf",
-                3,
-                "https://example.com/page",
-                "https://example.com/page"
+                {
+                  "kind": "open_resource",
+                  "target": {
+                    "document": "file:///workspace/refresh.wtf",
+                    "row": 3,
+                    "expected": "https://example.com/page"
+                  },
+                  "url": "https://example.com/page"
+                }
               ]
             },
             "versions": { "file:///workspace/refresh.wtf": 1 }

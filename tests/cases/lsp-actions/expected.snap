@@ -11,9 +11,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        0,
-        "- [ ] First :first"
+        {
+          "document": "file://<root>/controls.wtf",
+          "expected": "- [ ] First :first",
+          "kind": "toggle_task",
+          "row": 0
+        }
       ],
       "command": "wtf.task",
       "title": "✓ done"
@@ -32,10 +35,15 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        1,
-        "[./receipt.png]:receipt",
-        "file://<root>/receipt.png"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 1
+          },
+          "url": "file://<root>/receipt.png"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ image"
@@ -54,10 +62,15 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        2,
-        "Use [receipt].",
-        "file://<root>/receipt.png"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "Use [receipt].",
+            "row": 2
+          },
+          "url": "file://<root>/receipt.png"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ image"
@@ -74,7 +87,7 @@
     }
   }
 ]
--- request workspace/executeCommand {"arguments":["${uri:controls.wtf}",1,"[./receipt.png]:receipt","${uri:receipt.png}"],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:controls.wtf}","expected":"[./receipt.png]:receipt","row":1},"url":"${uri:receipt.png}"}],"command":"wtf.openResource"}
 null
 -- await window/showDocument
 {
@@ -82,7 +95,7 @@ null
   "takeFocus": true,
   "uri": "file://<root>/receipt.png"
 }
--- request workspace/executeCommand {"arguments":["${uri:controls.wtf}",0,"- [ ] First :first"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.wtf}","expected":"- [ ] First :first","kind":"toggle_task","row":0}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {
@@ -140,9 +153,12 @@ Use [receipt].
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        0,
-        "- [x] First :first @completed(2026-09-16)"
+        {
+          "document": "file://<root>/controls.wtf",
+          "expected": "- [x] First :first @completed(2026-09-16)",
+          "kind": "toggle_task",
+          "row": 0
+        }
       ],
       "command": "wtf.task",
       "title": "○ reopen"
@@ -161,10 +177,15 @@ Use [receipt].
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        1,
-        "[./receipt.png]:receipt",
-        "file://<root>/receipt.png"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 1
+          },
+          "url": "file://<root>/receipt.png"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ image"
@@ -183,10 +204,15 @@ Use [receipt].
   {
     "command": {
       "arguments": [
-        "file://<root>/controls.wtf",
-        2,
-        "Use [receipt].",
-        "file://<root>/receipt.png"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/controls.wtf",
+            "expected": "Use [receipt].",
+            "row": 2
+          },
+          "url": "file://<root>/receipt.png"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ image"
@@ -214,7 +240,7 @@ Use [receipt].
   "uri": "file://<root>/controls.wtf",
   "version": 3
 }
--- request workspace/executeCommand {"arguments":["${uri:controls.wtf}",0,"- [x] First :first @completed(2026-09-16)"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.wtf}","expected":"- [x] First :first @completed(2026-09-16)","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"

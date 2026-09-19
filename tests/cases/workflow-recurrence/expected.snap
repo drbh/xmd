@@ -15,7 +15,7 @@ exit 0
 
 ### 1 lsp
 -- open bill.wtf
--- request workspace/executeCommand {"arguments":["${uri:bill.wtf}",0,"- [ ] Pay bill :bill @every(month) @due(2026-01-31)"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:bill.wtf}","expected":"- [ ] Pay bill :bill @every(month) @due(2026-01-31)","kind":"toggle_task","row":0}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {

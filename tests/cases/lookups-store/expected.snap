@@ -178,7 +178,10 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   {
     "command": {
       "arguments": [
-        "file://<root>/money.wtf"
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"
@@ -197,7 +200,10 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   {
     "command": {
       "arguments": [
-        "file://<root>/money.wtf"
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"
@@ -216,7 +222,10 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   {
     "command": {
       "arguments": [
-        "file://<root>/money.wtf"
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"
@@ -235,7 +244,10 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   {
     "command": {
       "arguments": [
-        "file://<root>/money.wtf"
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"
@@ -254,7 +266,10 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   {
     "command": {
       "arguments": [
-        "file://<root>/money.wtf"
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
       ],
       "command": "wtf.refresh",
       "title": "⟳ lookups"

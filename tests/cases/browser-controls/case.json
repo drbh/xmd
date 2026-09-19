@@ -27,7 +27,14 @@
             "command": {
               "title": "▸ start focus",
               "command": "wtf.timer",
-              "arguments": ["file:///workspace/timers.wtf", "focus", "start"]
+              "arguments": [
+                {
+                  "kind": "timer",
+                  "document": "file:///workspace/timers.wtf",
+                  "name": "focus",
+                  "action": "start"
+                }
+              ]
             },
             "versions": { "file:///workspace/timers.wtf": 1 }
           }

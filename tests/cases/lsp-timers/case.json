@@ -47,9 +47,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:timers.wtf}",
-              "watch",
-              "start"
+              {
+                "kind": "timer",
+                "document": "${uri:timers.wtf}",
+                "name": "watch",
+                "action": "start"
+              }
             ]
           }
         },
@@ -85,9 +88,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:timers.wtf}",
-              "watch",
-              "start"
+              {
+                "kind": "timer",
+                "document": "${uri:timers.wtf}",
+                "name": "watch",
+                "action": "start"
+              }
             ]
           }
         },
@@ -96,9 +102,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:timers.wtf}",
-              "watch",
-              "pause"
+              {
+                "kind": "timer",
+                "document": "${uri:timers.wtf}",
+                "name": "watch",
+                "action": "pause"
+              }
             ]
           }
         },
@@ -134,9 +143,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:timers.wtf}",
-              "watch",
-              "reset"
+              {
+                "kind": "timer",
+                "document": "${uri:timers.wtf}",
+                "name": "watch",
+                "action": "reset"
+              }
             ]
           }
         },

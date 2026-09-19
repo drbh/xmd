@@ -73,10 +73,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            1,
-            "https://github.com/acme/app/pull/42",
-            "https://github.com/acme/app/pull/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -95,9 +100,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            2,
-            "- [ ] Task"
+            {
+              "document": "file:///workspace/refresh.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 2
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -116,10 +124,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            3,
-            "https://example.com/page",
-            "https://example.com/page"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://example.com/page",
+                "row": 3
+              },
+              "url": "https://example.com/page"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -344,10 +357,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            1,
-            "https://github.com/acme/app/pull/42",
-            "https://github.com/acme/app/pull/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -360,22 +378,22 @@
     }
   }
 }
--- execute {"command":{"arguments":["file:///workspace/refresh.wtf"],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","kind":"refresh"}],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.wtf":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":["file:///workspace/refresh.wtf",1,"https://github.com/acme/app/pull/42","https://github.com/acme/app/pull/42"],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.wtf":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":["file:///workspace/refresh.wtf",2,"- [ ] Task","extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.wtf":1}}
 {
-  "error": "wtf.task expects 3 arguments",
+  "error": "wtf.task expects a single action argument",
   "ok": false
 }
--- execute {"command":{"arguments":["file:///workspace/refresh.wtf",2,"- [ ] Task"],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.wtf":1}}
 {
   "ok": true,
   "result": {
@@ -419,7 +437,7 @@
     }
   }
 }
--- execute {"command":{"arguments":["file:///workspace/refresh.wtf",3,"https://example.com/page","https://example.com/page"],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.wtf":1}}
 {
   "ok": true,
   "result": {
@@ -489,10 +507,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            1,
-            "https://github.com/acme/app/pull/42",
-            "https://github.com/acme/app/pull/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://github.com/acme/app/pull/42",
+                "row": 1
+              },
+              "url": "https://github.com/acme/app/pull/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -511,9 +534,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            2,
-            "- [ ] Task"
+            {
+              "document": "file:///workspace/refresh.wtf",
+              "expected": "- [ ] Task",
+              "kind": "toggle_task",
+              "row": 2
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -532,10 +558,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/refresh.wtf",
-            3,
-            "https://example.com/page",
-            "https://example.com/page"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/refresh.wtf",
+                "expected": "https://example.com/page",
+                "row": 3
+              },
+              "url": "https://example.com/page"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"

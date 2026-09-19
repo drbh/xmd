@@ -21,9 +21,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:note.wtf}",
-              0,
-              "- [ ] Task",
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0,
+                "expected": "- [ ] Task"
+              },
               "extra"
             ]
           }
@@ -33,9 +36,9 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:note.wtf}",
-              -1,
-              "- [ ] Task"
+              {
+                "kind": "show_today"
+              }
             ]
           }
         },
@@ -44,9 +47,10 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:note.wtf}",
-              "0",
-              "- [ ] Task"
+              {
+                "kind": "explode",
+                "document": "${uri:note.wtf}"
+              }
             ]
           }
         },
@@ -55,9 +59,11 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:note.wtf}",
-              0,
-              null
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0
+              }
             ]
           }
         },
@@ -66,9 +72,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "https://example.com",
-              0,
-              "- [ ] Task"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": -1,
+                "expected": "- [ ] Task"
+              }
             ]
           }
         },
@@ -77,9 +86,40 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "file:///workspace/note.wtf#L1",
-              0,
-              "- [ ] Task"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": "0",
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "https://example.com",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "file:///workspace/note.wtf#L1",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
             ]
           }
         },
@@ -88,9 +128,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:note.wtf}",
-              "focus",
-              "explode"
+              {
+                "kind": "timer",
+                "document": "${uri:note.wtf}",
+                "name": "focus",
+                "action": "explode"
+              }
             ]
           }
         },
@@ -99,9 +142,12 @@
           "params": {
             "command": "wtf.timer",
             "arguments": [
-              "${uri:note.wtf}",
-              12,
-              "start"
+              {
+                "kind": "timer",
+                "document": "${uri:note.wtf}",
+                "name": 12,
+                "action": "start"
+              }
             ]
           }
         },
@@ -110,10 +156,15 @@
           "params": {
             "command": "wtf.openResource",
             "arguments": [
-              "${uri:note.wtf}",
-              0,
-              "- [ ] Task",
-              "not a URL"
+              {
+                "kind": "open_resource",
+                "target": {
+                  "document": "${uri:note.wtf}",
+                  "row": 0,
+                  "expected": "- [ ] Task"
+                },
+                "url": "not a URL"
+              }
             ]
           }
         },
@@ -122,10 +173,15 @@
           "params": {
             "command": "wtf.openResource",
             "arguments": [
-              "${uri:note.wtf}",
-              -1,
-              "- [ ] Task",
-              "https://example.com"
+              {
+                "kind": "refresh_resource",
+                "target": {
+                  "document": "${uri:note.wtf}",
+                  "row": 0,
+                  "expected": "- [ ] Task"
+                },
+                "url": "https://example.com"
+              }
             ]
           }
         },
@@ -134,7 +190,10 @@
           "params": {
             "command": "wtf.refresh",
             "arguments": [
-              "${uri:note.wtf}",
+              {
+                "kind": "refresh",
+                "document": "${uri:note.wtf}"
+              },
               "extra"
             ]
           }
@@ -154,7 +213,21 @@
             "command": "wtf.applyEdits",
             "arguments": [
               {
-                "kind": "toggle_task"
+                "kind": "toggle_task",
+                "document": "${uri:note.wtf}",
+                "row": 0,
+                "expected": "- [ ] Task"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.applyEdits",
+            "arguments": [
+              {
+                "kind": "edit"
               }
             ]
           }

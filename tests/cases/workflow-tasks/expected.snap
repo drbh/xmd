@@ -130,7 +130,7 @@ exit 0
     }
   }
 ]
--- request workspace/executeCommand {"arguments":["${uri:release.wtf}",1,"- [ ] Parent"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:release.wtf}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {
@@ -236,7 +236,7 @@ null
     "title": "✓ done"
   }
 ]
--- request workspace/executeCommand {"arguments":["${uri:blocked.wtf}",1,"- [ ] Publish @after(review)"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.wtf}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Blocked by review"
@@ -425,7 +425,7 @@ error: {
   }
 ]
 -- open walk.wtf
--- request workspace/executeCommand {"arguments":["${uri:walk.wtf}",1,"- [ ] Walk @every(day)"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.wtf}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {

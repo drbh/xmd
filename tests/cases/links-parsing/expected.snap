@@ -215,20 +215,30 @@ null
 [
   {
     "arguments": [
-      "file://<root>/trips/today.wtf",
-      0,
-      "🦀 ../packing.wtf and ./images/map.png",
-      "file://<root>/packing.wtf"
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/trips/today.wtf",
+          "expected": "🦀 ../packing.wtf and ./images/map.png",
+          "row": 0
+        },
+        "url": "file://<root>/packing.wtf"
+      }
     ],
     "command": "wtf.openResource",
     "title": "↗ open"
   },
   {
     "arguments": [
-      "file://<root>/trips/today.wtf",
-      0,
-      "🦀 ../packing.wtf and ./images/map.png",
-      "file://<root>/trips/images/map.png"
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/trips/today.wtf",
+          "expected": "🦀 ../packing.wtf and ./images/map.png",
+          "row": 0
+        },
+        "url": "file://<root>/trips/images/map.png"
+      }
     ],
     "command": "wtf.openResource",
     "title": "↗ image"

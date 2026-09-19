@@ -6,7 +6,11 @@
           "request": "workspace/executeCommand",
           "params": {
             "command": "wtf.today",
-            "arguments": []
+            "arguments": [
+              {
+                "kind": "show_today"
+              }
+            ]
           }
         },
         {
@@ -37,7 +41,11 @@
           "request": "workspace/executeCommand",
           "params": {
             "command": "wtf.today",
-            "arguments": []
+            "arguments": [
+              {
+                "kind": "show_today"
+              }
+            ]
           }
         },
         {

@@ -62,9 +62,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/timers.wtf",
-        "watch",
-        "start"
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
       ],
       "command": "wtf.timer",
       "title": "▸ start watch"
@@ -83,9 +86,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/timers.wtf",
-        "focus",
-        "start"
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "focus"
+        }
       ],
       "command": "wtf.timer",
       "title": "▸ start focus"
@@ -104,9 +110,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/timers.wtf",
-        2,
-        "- [ ] Work @timer(watch)"
+        {
+          "document": "file://<root>/timers.wtf",
+          "expected": "- [ ] Work @timer(watch)",
+          "kind": "toggle_task",
+          "row": 2
+        }
       ],
       "command": "wtf.task",
       "title": "✓ done"
@@ -125,9 +134,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/timers.wtf",
-        "watch",
-        "start"
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
       ],
       "command": "wtf.timer",
       "title": "▸ start watch"
@@ -146,9 +158,12 @@
   {
     "command": {
       "arguments": [
-        "file://<root>/timers.wtf",
-        "watch",
-        "start"
+        {
+          "action": "start",
+          "document": "file://<root>/timers.wtf",
+          "kind": "timer",
+          "name": "watch"
+        }
       ],
       "command": "wtf.timer",
       "title": "▸ start watch"
@@ -292,7 +307,7 @@
     }
   ]
 }
--- request workspace/executeCommand {"arguments":["${uri:timers.wtf}","watch","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -384,12 +399,12 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":["${uri:timers.wtf}","watch","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "Cannot start a running timer"
 }
--- request workspace/executeCommand {"arguments":["${uri:timers.wtf}","watch","pause"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -481,7 +496,7 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":["${uri:timers.wtf}","watch","reset"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -562,9 +577,12 @@ null
   {
     "command": {
       "arguments": [
-        "file://<root>/expired.wtf",
-        "tea",
-        "reset"
+        {
+          "action": "reset",
+          "document": "file://<root>/expired.wtf",
+          "kind": "timer",
+          "name": "tea"
+        }
       ],
       "command": "wtf.timer",
       "title": "↺ reset tea"
@@ -583,9 +601,12 @@ null
   {
     "command": {
       "arguments": [
-        "file://<root>/expired.wtf",
-        1,
-        "- [ ] Work @timer(tea)"
+        {
+          "document": "file://<root>/expired.wtf",
+          "expected": "- [ ] Work @timer(tea)",
+          "kind": "toggle_task",
+          "row": 1
+        }
       ],
       "command": "wtf.task",
       "title": "✓ done"
@@ -604,9 +625,12 @@ null
   {
     "command": {
       "arguments": [
-        "file://<root>/expired.wtf",
-        "tea",
-        "reset"
+        {
+          "action": "reset",
+          "document": "file://<root>/expired.wtf",
+          "kind": "timer",
+          "name": "tea"
+        }
       ],
       "command": "wtf.timer",
       "title": "↺ reset tea"
@@ -625,10 +649,15 @@ null
   {
     "command": {
       "arguments": [
-        "file://<root>/expired.wtf",
-        3,
-        "[./receipt.png]:receipt",
-        "file://<root>/receipt.png"
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/expired.wtf",
+            "expected": "[./receipt.png]:receipt",
+            "row": 3
+          },
+          "url": "file://<root>/receipt.png"
+        }
       ],
       "command": "wtf.openResource",
       "title": "↗ image"

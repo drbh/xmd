@@ -24,9 +24,6 @@ impl RowTarget {
         }
         Ok(path)
     }
-    fn arguments(&self) -> Vec<Value> {
-        vec![json!(self.document), json!(self.row), json!(self.expected)]
-    }
 }
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -96,16 +93,69 @@ pub enum PreparedAction {
 }
 
 impl Action {
-    pub const COMMANDS: &'static [&'static str] = &[
-        "wtf.invoke",
-        "wtf.applyEdits",
-        "wtf.task",
-        "wtf.timer",
-        "wtf.openResource",
-        "wtf.refreshResource",
-        "wtf.refresh",
-        "wtf.today",
+    /// The one place an LSP command ID is tied to a variant: the ID editors
+    /// register, how an action recognizes itself, and what to say when the
+    /// argument decodes to some other kind of action.
+    pub const COMMAND_IDS: &'static [(&'static str, fn(&Self) -> bool, &'static str)] = &[
+        (
+            "wtf.invoke",
+            |a| matches!(a, Self::Invoke { .. }),
+            "an invocation action",
+        ),
+        (
+            "wtf.applyEdits",
+            |a| matches!(a, Self::Edit { .. }),
+            "an edit action",
+        ),
+        (
+            "wtf.task",
+            |a| matches!(a, Self::ToggleTask(_)),
+            "a task action",
+        ),
+        (
+            "wtf.timer",
+            |a| matches!(a, Self::Timer { .. }),
+            "a timer action",
+        ),
+        (
+            "wtf.openResource",
+            |a| matches!(a, Self::OpenResource { .. }),
+            "an open-resource action",
+        ),
+        (
+            "wtf.refreshResource",
+            |a| matches!(a, Self::RefreshResource { .. }),
+            "a refresh-resource action",
+        ),
+        (
+            "wtf.refresh",
+            |a| matches!(a, Self::Refresh { .. }),
+            "a refresh action",
+        ),
+        (
+            "wtf.today",
+            |a| matches!(a, Self::ShowToday),
+            "a show-today action",
+        ),
     ];
+    /// Those IDs, in order, for the server's `executeCommandProvider`.
+    pub const COMMANDS: [&'static str; Self::COMMAND_IDS.len()] = {
+        let mut ids = [""; Self::COMMAND_IDS.len()];
+        let mut i = 0;
+        while i < ids.len() {
+            ids[i] = Self::COMMAND_IDS[i].0;
+            i += 1;
+        }
+        ids
+    };
+    /// The LSP command ID this action travels under.
+    pub fn id(&self) -> &'static str {
+        Self::COMMAND_IDS
+            .iter()
+            .find(|(_, is_kind, _)| is_kind(self))
+            .expect("every action variant has a command ID")
+            .0
+    }
     pub fn document(&self) -> Option<&Url> {
         match self {
             Self::ToggleTask(target)
@@ -118,131 +168,27 @@ impl Action {
             Self::ShowToday => None,
         }
     }
-    /// Retain the existing LSP command IDs and argument arrays at the boundary.
+    /// One command ID per variant, and the action itself as the sole argument.
     pub fn command(&self, title: impl Into<String>) -> Command {
-        let (command, arguments) = match self {
-            Self::Invoke { .. } => ("wtf.invoke", vec![json!(self)]),
-            Self::Edit { .. } => ("wtf.applyEdits", vec![json!(self)]),
-            Self::ToggleTask(target) => ("wtf.task", target.arguments()),
-            Self::Timer {
-                document,
-                name,
-                action,
-            } => (
-                "wtf.timer",
-                vec![json!(document), json!(name), json!(action.as_str())],
-            ),
-            Self::OpenResource { target, url } | Self::RefreshResource { target, url } => {
-                let mut args = target.arguments();
-                args.push(json!(url));
-                (
-                    if matches!(self, Self::OpenResource { .. }) {
-                        "wtf.openResource"
-                    } else {
-                        "wtf.refreshResource"
-                    },
-                    args,
-                )
-            }
-            Self::Refresh { document } => {
-                ("wtf.refresh", document.iter().map(|u| json!(u)).collect())
-            }
-            Self::ShowToday => ("wtf.today", vec![]),
-        };
         Command {
             title: title.into(),
-            command: command.into(),
-            arguments: Some(arguments),
+            command: self.id().into(),
+            arguments: Some(vec![json!(self)]),
         }
     }
     pub fn decode(command: &str, args: &[Value]) -> Result<Self, String> {
-        let exact = |count| {
-            if args.len() == count {
-                Ok(())
-            } else {
-                Err(format!("{command} expects {count} arguments"))
-            }
+        let (_, is_kind, expected) = Self::COMMAND_IDS
+            .iter()
+            .find(|(id, _, _)| *id == command)
+            .ok_or_else(|| format!("Unknown command: {command}"))?;
+        let [argument] = args else {
+            return Err(format!("{command} expects a single action argument"));
         };
-        let text = |i: usize| {
-            args.get(i)
-                .and_then(Value::as_str)
-                .ok_or_else(|| format!("Expected text argument {} for {command}", i + 1))
-        };
-        let document = || {
-            let url = Url::parse(text(0)?).map_err(|e| e.to_string())?;
-            document_path(&url)?;
-            Ok::<_, String>(url)
-        };
-        let row_target = || {
-            Ok::<_, String>(RowTarget {
-                document: document()?,
-                row: args
-                    .get(1)
-                    .and_then(Value::as_u64)
-                    .and_then(|n| usize::try_from(n).ok())
-                    .ok_or("Expected line number")?,
-                expected: text(2)?.into(),
-            })
-        };
-        match command {
-            "wtf.invoke" => {
-                exact(1)?;
-                let action: Self =
-                    serde_json::from_value(args[0].clone()).map_err(|e| e.to_string())?;
-                if !matches!(action, Self::Invoke { .. }) {
-                    return Err("Expected an invocation action".into());
-                }
-                Ok(action)
-            }
-            "wtf.applyEdits" => {
-                exact(1)?;
-                let action: Self =
-                    serde_json::from_value(args[0].clone()).map_err(|e| e.to_string())?;
-                if !matches!(action, Self::Edit { .. }) {
-                    return Err("Expected an edit action".into());
-                }
-                Ok(action)
-            }
-            "wtf.task" => {
-                exact(3)?;
-                Ok(Self::ToggleTask(row_target()?))
-            }
-            "wtf.timer" => {
-                exact(3)?;
-                Ok(Self::Timer {
-                    document: document()?,
-                    name: text(1)?.into(),
-                    action: text(2)?.parse()?,
-                })
-            }
-            "wtf.openResource" | "wtf.refreshResource" => {
-                exact(4)?;
-                let target = row_target()?;
-                let url = Url::parse(text(3)?).map_err(|e| e.to_string())?;
-                Ok(if command == "wtf.openResource" {
-                    Self::OpenResource { target, url }
-                } else {
-                    Self::RefreshResource { target, url }
-                })
-            }
-            "wtf.refresh" => {
-                if args.len() > 1 {
-                    return Err("wtf.refresh expects zero arguments or a document URI".into());
-                }
-                Ok(Self::Refresh {
-                    document: if args.is_empty() {
-                        None
-                    } else {
-                        Some(document()?)
-                    },
-                })
-            }
-            "wtf.today" => {
-                exact(0)?;
-                Ok(Self::ShowToday)
-            }
-            _ => Err(format!("Unknown command: {command}")),
+        let action: Self = serde_json::from_value(argument.clone()).map_err(|e| e.to_string())?;
+        if !is_kind(&action) {
+            return Err(format!("Expected {expected}"));
         }
+        Ok(action)
     }
     pub(crate) fn validate_invocation(&self, request: &RequestContext<'_>) -> Result<(), String> {
         let Self::Invoke {

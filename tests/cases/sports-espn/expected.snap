@@ -319,20 +319,30 @@ exit 0
 [
   {
     "arguments": [
-      "file://<root>/games.wtf",
-      1,
-      "https://www.espn.com/nba/game/_/gameId/401584896:game",
-      "https://www.espn.com/nba/game/_/gameId/401584896"
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/games.wtf",
+          "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
+          "row": 1
+        },
+        "url": "https://www.espn.com/nba/game/_/gameId/401584896"
+      }
     ],
     "command": "wtf.openResource",
     "title": "↗ open"
   },
   {
     "arguments": [
-      "file://<root>/games.wtf",
-      1,
-      "https://www.espn.com/nba/game/_/gameId/401584896:game",
-      "https://www.espn.com/nba/game/_/gameId/401584896"
+      {
+        "kind": "refresh_resource",
+        "target": {
+          "document": "file://<root>/games.wtf",
+          "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
+          "row": 1
+        },
+        "url": "https://www.espn.com/nba/game/_/gameId/401584896"
+      }
     ],
     "command": "wtf.refreshResource",
     "title": "⟳ score"

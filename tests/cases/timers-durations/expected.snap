@@ -104,7 +104,7 @@ exit 0
   "uri": "file://<root>/durations.wtf",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":["${uri:durations.wtf}",3,"- [ ] Water plants @every(2w) @due(2026-09-16)"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:durations.wtf}","expected":"- [ ] Water plants @every(2w) @due(2026-09-16)","kind":"toggle_task","row":3}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {

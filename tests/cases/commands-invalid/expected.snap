@@ -9,69 +9,84 @@
 -- request workspace/executeCommand {"arguments":[],"command":"wtf.task"}
 error: {
   "code": -32602,
-  "message": "wtf.task expects 3 arguments"
+  "message": "wtf.task expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,"- [ ] Task","extra"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":0},"extra"],"command":"wtf.task"}
 error: {
   "code": -32602,
-  "message": "wtf.task expects 3 arguments"
+  "message": "wtf.task expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",-1,"- [ ] Task"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.task"}
 error: {
   "code": -32602,
-  "message": "Expected line number"
+  "message": "Expected a task action"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}","0","- [ ] Task"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"explode"}],"command":"wtf.task"}
 error: {
   "code": -32602,
-  "message": "Expected line number"
+  "message": "unknown variant `explode`, expected one of `invoke`, `edit`, `toggle_task`, `timer`, `open_resource`, `refresh_resource`, `refresh`, `show_today`"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,null],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
-  "message": "Expected text argument 3 for wtf.task"
+  "message": "missing field `expected`"
 }
--- request workspace/executeCommand {"arguments":["https://example.com",0,"- [ ] Task"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":-1}],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "invalid value: integer `-1`, expected usize"
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":"0"}],"command":"wtf.task"}
+error: {
+  "code": -32602,
+  "message": "invalid type: string \"0\", expected usize"
+}
+-- request workspace/executeCommand {"arguments":[{"document":"https://example.com","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Expected a local file URI"
 }
--- request workspace/executeCommand {"arguments":["file:///workspace/note.wtf#L1",0,"- [ ] Task"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"file:///workspace/note.wtf#L1","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Document URIs cannot contain queries or fragments"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}","focus","explode"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"explode","document":"${uri:note.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
-  "message": "Unknown timer action 'explode'"
+  "message": "unknown variant `explode`, expected one of `start`, `pause`, `resume`, `reset`"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",12,"start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:note.wtf}","kind":"timer","name":12}],"command":"wtf.timer"}
 error: {
   "code": -32602,
-  "message": "Expected text argument 2 for wtf.timer"
+  "message": "invalid type: integer `12`, expected a string"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",0,"- [ ] Task","not a URL"],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:note.wtf}","expected":"- [ ] Task","row":0},"url":"not a URL"}],"command":"wtf.openResource"}
 error: {
   "code": -32602,
-  "message": "relative URL without a base"
+  "message": "relative URL without a base: \"not a URL\""
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}",-1,"- [ ] Task","https://example.com"],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"refresh_resource","target":{"document":"${uri:note.wtf}","expected":"- [ ] Task","row":0},"url":"https://example.com"}],"command":"wtf.openResource"}
 error: {
   "code": -32602,
-  "message": "Expected line number"
+  "message": "Expected an open-resource action"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}","extra"],"command":"wtf.refresh"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"refresh"},"extra"],"command":"wtf.refresh"}
 error: {
   "code": -32602,
-  "message": "wtf.refresh expects zero arguments or a document URI"
+  "message": "wtf.refresh expects a single action argument"
 }
 -- request workspace/executeCommand {"arguments":["${uri:note.wtf}"],"command":"wtf.today"}
 error: {
   "code": -32602,
-  "message": "wtf.today expects 0 arguments"
+  "message": "invalid type: string \"file://<root>/note.wtf\", expected internally tagged enum Action"
 }
--- request workspace/executeCommand {"arguments":[{"kind":"toggle_task"}],"command":"wtf.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.applyEdits"}
+error: {
+  "code": -32602,
+  "message": "Expected an edit action"
+}
+-- request workspace/executeCommand {"arguments":[{"kind":"edit"}],"command":"wtf.applyEdits"}
 error: {
   "code": -32602,
   "message": "missing field `document`"

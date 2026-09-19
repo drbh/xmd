@@ -68,12 +68,12 @@ exit 0
   "uri": "file://<root>/idle.wtf",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":["${uri:idle.wtf}","watch","pause"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:idle.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "Cannot pause a idle timer"
 }
--- request workspace/executeCommand {"arguments":["${uri:idle.wtf}","watch","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:idle.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -171,7 +171,7 @@ exit 0
 
 ### 7 lsp
 -- open running.wtf
--- request workspace/executeCommand {"arguments":["${uri:running.wtf}","watch","pause"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:running.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -201,7 +201,7 @@ null
     ]
   }
 }
--- request workspace/executeCommand {"arguments":["${uri:running.wtf}","watch","reset"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:running.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -296,12 +296,12 @@ exit 0
 
 ### 11 lsp
 -- open paused.wtf
--- request workspace/executeCommand {"arguments":["${uri:paused.wtf}","watch","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:paused.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "Cannot start a paused timer"
 }
--- request workspace/executeCommand {"arguments":["${uri:paused.wtf}","watch","resume"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"resume","document":"${uri:paused.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -348,7 +348,7 @@ Remaining [alias.remaining] 25m.
   "uri": "file://<root>/alias.wtf",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":["${uri:alias.wtf}","alias","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.wtf}","kind":"timer","name":"alias"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {

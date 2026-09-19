@@ -18,10 +18,15 @@
           "params": {
             "command": "wtf.openResource",
             "arguments": [
-              "${uri:controls.wtf}",
-              1,
-              "[./receipt.png]:receipt",
-              "${uri:receipt.png}"
+              {
+                "kind": "open_resource",
+                "target": {
+                  "document": "${uri:controls.wtf}",
+                  "row": 1,
+                  "expected": "[./receipt.png]:receipt"
+                },
+                "url": "${uri:receipt.png}"
+              }
             ]
           }
         },
@@ -33,9 +38,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:controls.wtf}",
-              0,
-              "- [ ] First :first"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:controls.wtf}",
+                "row": 0,
+                "expected": "- [ ] First :first"
+              }
             ]
           }
         },
@@ -71,9 +79,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:controls.wtf}",
-              0,
-              "- [x] First :first @completed(2026-09-16)"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:controls.wtf}",
+                "row": 0,
+                "expected": "- [x] First :first @completed(2026-09-16)"
+              }
             ]
           }
         }

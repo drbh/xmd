@@ -38,9 +38,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "start"
+            {
+              "action": "start",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "▸ start focus"
@@ -59,9 +62,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            1,
-            "- [ ] Review @timer(focus)"
+            {
+              "document": "file:///workspace/timers.wtf",
+              "expected": "- [ ] Review @timer(focus)",
+              "kind": "toggle_task",
+              "row": 1
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -80,9 +86,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "start"
+            {
+              "action": "start",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "▸ start focus"
@@ -278,7 +287,7 @@
     }
   }
 }
--- execute {"command":{"arguments":["file:///workspace/timers.wtf","focus","start"],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
 {
   "ok": true,
   "result": {
@@ -347,9 +356,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "start"
+            {
+              "action": "start",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "▸ start focus"
@@ -368,9 +380,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            1,
-            "- [ ] Review @timer(focus)"
+            {
+              "document": "file:///workspace/timers.wtf",
+              "expected": "- [ ] Review @timer(focus)",
+              "kind": "toggle_task",
+              "row": 1
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -389,9 +404,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "start"
+            {
+              "action": "start",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "▸ start focus"
@@ -592,7 +610,7 @@
   "ok": true,
   "result": null
 }
--- execute {"command":{"arguments":["file:///workspace/timers.wtf","focus","start"],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false
@@ -635,9 +653,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "pause"
+            {
+              "action": "pause",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "‖ pause focus"
@@ -656,9 +677,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "reset"
+            {
+              "action": "reset",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "↺ reset focus"
@@ -677,9 +701,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            1,
-            "- [ ] Review @timer(focus)"
+            {
+              "document": "file:///workspace/timers.wtf",
+              "expected": "- [ ] Review @timer(focus)",
+              "kind": "toggle_task",
+              "row": 1
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -698,9 +725,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "pause"
+            {
+              "action": "pause",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "‖ pause focus"
@@ -719,9 +749,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "reset"
+            {
+              "action": "reset",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "↺ reset focus"
@@ -975,9 +1008,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "reset"
+            {
+              "action": "reset",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "↺ reset focus"
@@ -996,9 +1032,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            1,
-            "- [ ] Review @timer(focus)"
+            {
+              "document": "file:///workspace/timers.wtf",
+              "expected": "- [ ] Review @timer(focus)",
+              "kind": "toggle_task",
+              "row": 1
+            }
           ],
           "command": "wtf.task",
           "title": "✓ done"
@@ -1017,9 +1056,12 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/timers.wtf",
-            "focus",
-            "reset"
+            {
+              "action": "reset",
+              "document": "file:///workspace/timers.wtf",
+              "kind": "timer",
+              "name": "focus"
+            }
           ],
           "command": "wtf.timer",
           "title": "↺ reset focus"

@@ -73,9 +73,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:release.wtf}",
-              1,
-              "- [ ] Parent"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:release.wtf}",
+                "row": 1,
+                "expected": "- [ ] Parent"
+              }
             ]
           }
         },
@@ -109,9 +112,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:blocked.wtf}",
-              1,
-              "- [ ] Publish @after(review)"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:blocked.wtf}",
+                "row": 1,
+                "expected": "- [ ] Publish @after(review)"
+              }
             ]
           }
         },
@@ -171,9 +177,12 @@
           "params": {
             "command": "wtf.task",
             "arguments": [
-              "${uri:walk.wtf}",
-              1,
-              "- [ ] Walk @every(day)"
+              {
+                "kind": "toggle_task",
+                "document": "${uri:walk.wtf}",
+                "row": 1,
+                "expected": "- [ ] Walk @every(day)"
+              }
             ]
           }
         },

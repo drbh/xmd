@@ -183,20 +183,30 @@ null
 [
   {
     "arguments": [
-      "file://<root>/work.wtf",
-      0,
-      "[https://builds.example/runs/42]:build",
-      "https://builds.example/runs/42"
+      {
+        "kind": "open_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "[https://builds.example/runs/42]:build",
+          "row": 0
+        },
+        "url": "https://builds.example/runs/42"
+      }
     ],
     "command": "wtf.openResource",
     "title": "↗ open"
   },
   {
     "arguments": [
-      "file://<root>/work.wtf",
-      0,
-      "[https://builds.example/runs/42]:build",
-      "https://builds.example/runs/42"
+      {
+        "kind": "refresh_resource",
+        "target": {
+          "document": "file://<root>/work.wtf",
+          "expected": "[https://builds.example/runs/42]:build",
+          "row": 0
+        },
+        "url": "https://builds.example/runs/42"
+      }
     ],
     "command": "wtf.refreshResource",
     "title": "⟳ build"

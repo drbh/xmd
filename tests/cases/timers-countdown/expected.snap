@@ -154,7 +154,7 @@ exit 0
   "uri": "file://<root>/multiline.wtf",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":["${uri:multiline.wtf}","focus","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -185,7 +185,7 @@ null
   }
 }
 -- open multiline-crlf.wtf
--- request workspace/executeCommand {"arguments":["${uri:multiline-crlf.wtf}","focus","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -216,7 +216,7 @@ null
   }
 }
 -- open grouped.wtf
--- request workspace/executeCommand {"arguments":["${uri:grouped.wtf}","watch","start"],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {

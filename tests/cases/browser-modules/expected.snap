@@ -55,10 +55,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            0,
-            "https://issues.example/tickets/42:ticket",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -77,10 +82,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            1,
-            "Points [ticket.points].",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "Points [ticket.points].",
+                "row": 1
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -329,10 +339,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            0,
-            "https://issues.example/tickets/42:ticket",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -351,10 +366,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            1,
-            "Points [ticket.points].",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "Points [ticket.points].",
+                "row": 1
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -631,10 +651,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            0,
-            "https://issues.example/tickets/42:ticket",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -653,10 +678,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            1,
-            "Points [ticket.points].",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "Points [ticket.points].",
+                "row": 1
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -937,10 +967,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            0,
-            "https://issues.example/tickets/42:ticket",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -997,10 +1032,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            1,
-            "Points [ticket.points].",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "Points [ticket.points].",
+                "row": 1
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -1359,10 +1399,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            0,
-            "https://issues.example/tickets/42:ticket",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"
@@ -1381,10 +1426,15 @@
       {
         "command": {
           "arguments": [
-            "file:///workspace/main.wtf",
-            1,
-            "Points [ticket.points].",
-            "https://issues.example/tickets/42"
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.wtf",
+                "expected": "Points [ticket.points].",
+                "row": 1
+              },
+              "url": "https://issues.example/tickets/42"
+            }
           ],
           "command": "wtf.openResource",
           "title": "↗ open"

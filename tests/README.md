@@ -7,18 +7,35 @@ tests that build a `Workspace` in memory and assert on individual values, and no
 new ones should be added: if a behaviour cannot be seen from outside the
 binary, it is not yet a feature.
 
-One test binary drives everything: `tests/snapshots.rs`.
+One test binary drives everything: `tests/snapshots.rs`. Each case is its own
+`#[test]`, so cargo runs them in parallel across cores and its usual name filter
+picks one out.
 
 ```sh
-cargo test --test snapshots                  # run every case
-SNAPSHOT_CASE=charts cargo test --test snapshots   # run one case
+cargo test --test snapshots                  # run every case, in parallel
+cargo test --test snapshots charts           # run one case (name filter)
+cargo test --test snapshots -- --ignored     # run the browser cases... which need
+cargo test --features browser --test snapshots     # ...the feature to do anything
 UPDATE_SNAPSHOTS=1 cargo test --test snapshots     # rewrite expected.snap
-cargo test --features browser --test snapshots     # also run browser cases
 ```
 
-Failures are reported for *all* cases, not just the first, with a unified line
-diff and the path of the temporary workspace, which is kept on failure so it can
-be poked at by hand.
+The test functions are generated: `build.rs` lists `tests/cases/*` at build time
+and writes one `#[test] fn <name_with_underscores>()` per directory into
+`$OUT_DIR/cases.rs`, which `tests/snapshots.rs` includes. A case directory named
+`plans-bakery` is therefore the test `plans_bakery`. Adding or removing a case
+directory re-runs the build script, so nothing needs registering by hand.
+
+A case with `"requires": "browser"` is emitted as an `#[ignore]`d test unless the
+crate is built with `--features browser`, so it is still visible (as `ignored`)
+in plain `cargo test` output rather than silently missing. Running it with
+`--ignored` but without the feature just prints a skip line: the feature is what
+makes those cases do anything.
+
+Each case has its own temporary workspace and its own child processes (the CLI
+and `wtf lsp` get their root, clock and `PATH` per `Command`), so cases do not
+step on each other when several run at once. Every failing case is reported
+independently, with a unified line diff and the path of its temporary workspace,
+which is kept on failure so it can be poked at by hand.
 
 ## A case
 
@@ -205,7 +222,7 @@ from an `analyze` is executed:
 1. `mkdir tests/cases/<name>` and drop the notes in.
 2. Write `case.json` with the steps that make the behaviour visible.
 3. `touch tests/cases/<name>/expected.snap`.
-4. `UPDATE_SNAPSHOTS=1 SNAPSHOT_CASE=<name> cargo test --test snapshots`.
+4. `UPDATE_SNAPSHOTS=1 cargo test --test snapshots <name_with_underscores>`.
 5. **Read the snapshot.** It is the test; if it does not show the behaviour you
    meant to pin down, change the steps, not the assertion.
 6. Re-run without `UPDATE_SNAPSHOTS` and commit both the case and the snapshot.

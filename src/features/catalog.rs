@@ -5,6 +5,7 @@ use crate::{
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{NaiveDate, TimeZone};
+use lsp_types::{Position, Range};
 use serde::{Serialize, Serializer};
 use serde_json::json;
 use std::{
@@ -210,6 +211,627 @@ impl Serialize for QueryValue {
     }
 }
 
+/// Every catalog record is a struct that knows its own field names: these
+/// `fields` implementations are the only place those names are written down.
+trait Fields {
+    fn fields(self) -> BTreeMap<String, QueryValue>;
+}
+fn entries<const N: usize>(items: [(&str, QueryValue); N]) -> BTreeMap<String, QueryValue> {
+    items.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
+}
+
+/// Where a record was found. Every record carries one under `source`.
+#[derive(Clone, Debug)]
+struct SourceRef {
+    path: PathBuf,
+    uri: String,
+    line: usize,
+    range: Range,
+}
+impl SourceRef {
+    fn new(ws: &Workspace, path: &Path, span: Span) -> Self {
+        let mut uri = crate::paths::file_url(path)
+            .map(|u| u.to_string())
+            .unwrap_or_default();
+        uri.push_str(&format!("#L{}", span.line + 1));
+        Self {
+            path: path.into(),
+            uri,
+            line: span.line + 1,
+            range: span.range(&ws.documents[path].text),
+        }
+    }
+}
+impl Fields for SourceRef {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("path", QueryValue::text(self.path.to_string_lossy())),
+            ("uri", QueryValue::text(self.uri)),
+            ("line", QueryValue::count(self.line)),
+            ("range", QueryValue::from_json(json!(self.range))),
+        ])
+    }
+}
+
+/// What every record carries, whatever its kind.
+#[derive(Clone, Debug)]
+struct Base {
+    kind: RecordKind,
+    title: String,
+    line: usize,
+    anchor: Position,
+    source: SourceRef,
+    errors: Vec<String>,
+}
+impl Base {
+    fn new(
+        ws: &Workspace,
+        path: &Path,
+        line: usize,
+        kind: RecordKind,
+        title: impl Into<String>,
+    ) -> Self {
+        let doc = &ws.documents[path];
+        Self {
+            kind,
+            title: title.into(),
+            line,
+            anchor: doc.line_end(line),
+            source: SourceRef::new(ws, path, Span::new(line, 0, doc.line(line).len())),
+            errors: Vec::new(),
+        }
+    }
+}
+impl Fields for Base {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("kind", QueryValue::text(self.kind.as_str())),
+            ("title", QueryValue::text(self.title)),
+            ("line", QueryValue::count(self.line)),
+            ("anchor", QueryValue::from_json(json!(self.anchor))),
+            ("source", QueryValue::Object(self.source.fields())),
+            ("errors", QueryValue::strings(self.errors)),
+        ])
+    }
+}
+
+/// The scheduling attributes a task reads, and the fields they land in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum When {
+    Due,
+    Scheduled,
+    At,
+    Estimate,
+}
+impl When {
+    const ALL: [When; 4] = [Self::Due, Self::Scheduled, Self::At, Self::Estimate];
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Due => "due",
+            Self::Scheduled => "scheduled",
+            Self::At => "at",
+            Self::Estimate => "estimate",
+        }
+    }
+}
+
+/// Tasks, events and stops share one shape, so a query can sort them together.
+#[derive(Clone, Debug)]
+struct Scheduling {
+    due: QueryValue,
+    scheduled: QueryValue,
+    at: QueryValue,
+    at_date: QueryValue,
+    estimate: QueryValue,
+    parent: QueryValue,
+    tags: Vec<String>,
+    blocked_by: Vec<String>,
+    done: bool,
+    leaf: bool,
+}
+impl Default for Scheduling {
+    fn default() -> Self {
+        Self {
+            due: QueryValue::Null,
+            scheduled: QueryValue::Null,
+            at: QueryValue::Null,
+            at_date: QueryValue::Null,
+            estimate: QueryValue::Null,
+            parent: QueryValue::Null,
+            tags: Vec::new(),
+            blocked_by: Vec::new(),
+            done: false,
+            leaf: true,
+        }
+    }
+}
+impl Scheduling {
+    fn set(&mut self, when: When, value: QueryValue) {
+        match when {
+            When::Due => self.due = value,
+            When::Scheduled => self.scheduled = value,
+            When::At => self.at = value,
+            When::Estimate => self.estimate = value,
+        }
+    }
+}
+impl Fields for Scheduling {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            (When::Due.as_str(), self.due),
+            (When::Scheduled.as_str(), self.scheduled),
+            (When::At.as_str(), self.at),
+            (When::Estimate.as_str(), self.estimate),
+            ("at_date", self.at_date),
+            ("parent", self.parent),
+            ("tags", QueryValue::strings(self.tags)),
+            ("blocked_by", QueryValue::strings(self.blocked_by)),
+            ("done", QueryValue::boolean(self.done)),
+            ("leaf", QueryValue::boolean(self.leaf)),
+        ])
+    }
+}
+
+/// One `@due`/`@scheduled`/`@at` attribute as the task read it.
+#[derive(Clone, Debug)]
+struct ScheduleEntry {
+    key: When,
+    value: QueryValue,
+    error: QueryValue,
+}
+impl Fields for ScheduleEntry {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("key", QueryValue::text(self.key.as_str())),
+            ("value", self.value),
+            ("error", self.error),
+        ])
+    }
+}
+#[derive(Clone, Debug)]
+struct ChildTask {
+    line: usize,
+    done: bool,
+}
+impl Fields for ChildTask {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("line", QueryValue::count(self.line)),
+            ("done", QueryValue::boolean(self.done)),
+        ])
+    }
+}
+fn list(items: impl IntoIterator<Item = impl Fields>) -> QueryValue {
+    QueryValue::Array(
+        items
+            .into_iter()
+            .map(|item| QueryValue::Object(item.fields()))
+            .collect(),
+    )
+}
+
+#[derive(Clone, Debug)]
+struct TaskRecord {
+    base: Base,
+    scheduling: Scheduling,
+    checked: bool,
+    name: QueryValue,
+    attributes: BTreeMap<String, QueryValue>,
+    blocked_error: QueryValue,
+    schedule: Vec<ScheduleEntry>,
+    children: Vec<ChildTask>,
+    timer: QueryValue,
+}
+impl Fields for TaskRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.scheduling.fields());
+        fields.extend(entries([
+            ("checked", QueryValue::boolean(self.checked)),
+            ("name", self.name),
+            ("attributes", QueryValue::Object(self.attributes)),
+            ("blocked_error", self.blocked_error),
+            ("schedule", list(self.schedule)),
+            ("children", list(self.children)),
+            ("timer", self.timer),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct EventRecord {
+    base: Base,
+    scheduling: Scheduling,
+}
+impl Fields for EventRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.scheduling.fields());
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct StopRecord {
+    base: Base,
+    scheduling: Scheduling,
+}
+impl Fields for StopRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.scheduling.fields());
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct DayRecord {
+    base: Base,
+    value: QueryValue,
+}
+impl Fields for DayRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([("value", self.value)]));
+        fields
+    }
+}
+
+/// Where a running timer was started, when that is another note's definition.
+#[derive(Clone, Debug)]
+struct TimerOrigin {
+    document: String,
+    name: String,
+}
+impl Fields for TimerOrigin {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("document", QueryValue::text(self.document)),
+            ("name", QueryValue::text(self.name)),
+        ])
+    }
+}
+#[derive(Clone, Debug)]
+struct TimerRecord {
+    base: Base,
+    name: String,
+    definition: bool,
+    inlay: bool,
+    value: QueryValue,
+    origin: Option<TimerOrigin>,
+}
+impl Fields for TimerRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            ("name", QueryValue::text(self.name)),
+            ("definition", QueryValue::boolean(self.definition)),
+            ("inlay", QueryValue::boolean(self.inlay)),
+            ("value", self.value),
+            (
+                "origin",
+                self.origin
+                    .map(|o| QueryValue::Object(o.fields()))
+                    .unwrap_or(QueryValue::Null),
+            ),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct LinkRecord {
+    base: Base,
+    url: String,
+}
+impl Fields for LinkRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([("url", QueryValue::text(self.url))]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct SectionRecord {
+    base: Base,
+    end_line: usize,
+    level: usize,
+}
+impl Fields for SectionRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            ("end_line", QueryValue::count(self.end_line)),
+            ("level", QueryValue::count(self.level)),
+        ]));
+        fields
+    }
+}
+
+/// Calculations, bracketed references and table cells all project one evaluated
+/// expression; only the surrounding fields differ.
+#[derive(Clone, Debug)]
+struct Expression {
+    expression: String,
+    value: QueryValue,
+    type_name: QueryValue,
+    display: QueryValue,
+}
+impl Expression {
+    /// Returns the projection and the errors that belong on the record's base.
+    fn new(expression: &str, value: Result<Value, String>) -> (Self, Vec<String>) {
+        match value {
+            Ok(v) => (
+                Self {
+                    expression: expression.into(),
+                    type_name: QueryValue::text(v.type_name()),
+                    display: QueryValue::text(v.display()),
+                    value: QueryValue::from_value(v),
+                },
+                Vec::new(),
+            ),
+            Err(e) => (
+                Self {
+                    expression: expression.into(),
+                    value: QueryValue::Null,
+                    type_name: QueryValue::Null,
+                    display: QueryValue::Null,
+                },
+                vec![e],
+            ),
+        }
+    }
+}
+impl Fields for Expression {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            (EXPRESSION, QueryValue::text(self.expression)),
+            (LazyField::Value.as_str(), self.value),
+            (LazyField::Type.as_str(), self.type_name),
+            (LazyField::Display.as_str(), self.display),
+        ])
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CalculationRecord {
+    base: Base,
+    expression: Expression,
+    bracketed: bool,
+}
+impl Fields for CalculationRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.expression.fields());
+        fields.extend(entries([(
+            "bracketed",
+            QueryValue::boolean(self.bracketed),
+        )]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct ReferenceRecord {
+    base: Base,
+    expression: Expression,
+    name: String,
+    property: QueryValue,
+}
+impl Fields for ReferenceRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.expression.fields());
+        fields.extend(entries([
+            (NAME, QueryValue::text(self.name)),
+            (PROPERTY, self.property),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CellRecord {
+    base: Base,
+    expression: Expression,
+    computed: bool,
+    table: String,
+    row: usize,
+    column: QueryValue,
+}
+impl Fields for CellRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(self.expression.fields());
+        fields.extend(entries([
+            ("computed", QueryValue::boolean(self.computed)),
+            ("table", QueryValue::text(self.table)),
+            ("row", QueryValue::count(self.row)),
+            ("column", self.column),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct NoteRecord {
+    base: Base,
+    text: String,
+}
+impl Fields for NoteRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([("text", QueryValue::text(self.text))]));
+        fields
+    }
+}
+
+/// Values, plans and tables are one definition each. Their value, type, display
+/// and (for a plan) solution stay null until the record is evaluated.
+#[derive(Clone, Debug)]
+struct DefinitionRecord {
+    base: Base,
+    name: String,
+    expression: String,
+    computed: bool,
+    solution: bool,
+}
+impl Fields for DefinitionRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            (NAME, QueryValue::text(self.name)),
+            (EXPRESSION, QueryValue::text(self.expression)),
+            (LazyField::Value.as_str(), QueryValue::Null),
+            (LazyField::Type.as_str(), QueryValue::Null),
+            (LazyField::Display.as_str(), QueryValue::Null),
+            ("computed", QueryValue::boolean(self.computed)),
+        ]));
+        if self.solution {
+            fields.insert(LazyField::Solution.as_str().into(), QueryValue::Null);
+        }
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RowRecord {
+    base: Base,
+    table: String,
+    cells: BTreeMap<String, QueryValue>,
+}
+impl Fields for RowRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            ("table", QueryValue::text(self.table)),
+            ("cells", QueryValue::Object(self.cells)),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct DecisionRecord {
+    base: Base,
+    value: QueryValue,
+    plan: String,
+}
+impl Fields for DecisionRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            (LazyField::Value.as_str(), self.value),
+            ("plan", QueryValue::text(self.plan)),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct ResourceRecord {
+    base: Base,
+    target: String,
+    metadata: QueryValue,
+}
+impl Fields for ResourceRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            ("target", QueryValue::text(self.target)),
+            ("metadata", self.metadata),
+        ]));
+        fields
+    }
+}
+
+#[derive(Clone, Debug)]
+struct DiagnosticRecord {
+    base: Base,
+    message: String,
+    severity: String,
+    code: QueryValue,
+}
+impl Fields for DiagnosticRecord {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        let mut fields = self.base.fields();
+        fields.extend(entries([
+            ("message", QueryValue::text(self.message)),
+            ("severity", QueryValue::text(self.severity)),
+            ("code", self.code),
+        ]));
+        fields
+    }
+}
+
+/// How a link or resource wants to be shown, asked for only when read.
+#[derive(Clone, Debug)]
+struct Presentation {
+    label: String,
+    hover: String,
+    known: bool,
+}
+impl Fields for Presentation {
+    fn fields(self) -> BTreeMap<String, QueryValue> {
+        entries([
+            ("label", QueryValue::text(self.label)),
+            ("hover", QueryValue::text(self.hover)),
+            ("known", QueryValue::boolean(self.known)),
+        ])
+    }
+}
+
+/// Field names the lazy accessors read back off a record they did not build.
+const NAME: &str = "name";
+const EXPRESSION: &str = "expression";
+const PROPERTY: &str = "property";
+
+/// Fields a record only produces when they are read: evaluating a definition, or
+/// asking the workspace for a link's presentation or a name's hover.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LazyField {
+    Presentation,
+    Hover,
+    Value,
+    Type,
+    Solution,
+    Errors,
+    Display,
+}
+impl LazyField {
+    const ALL: [LazyField; 7] = [
+        Self::Presentation,
+        Self::Hover,
+        Self::Value,
+        Self::Type,
+        Self::Solution,
+        Self::Errors,
+        Self::Display,
+    ];
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Presentation => "presentation",
+            Self::Hover => "hover",
+            Self::Value => "value",
+            Self::Type => "type",
+            Self::Solution => "solution",
+            Self::Errors => "errors",
+            Self::Display => "display",
+        }
+    }
+}
+impl std::str::FromStr for LazyField {
+    type Err = ();
+    fn from_str(value: &str) -> Result<Self, ()> {
+        Self::ALL
+            .into_iter()
+            .find(|field| field.as_str() == value)
+            .ok_or(())
+    }
+}
+
 /// Definitions are evaluated only when their value, type, solution or errors are read.
 #[derive(Clone, Debug)]
 pub(crate) struct Record {
@@ -227,53 +849,81 @@ impl Record {
             resource: None,
         }
     }
+    fn typed(path: &Path, record: impl Fields) -> Self {
+        Self::projected(path.into(), record.fields())
+    }
+    /// Whether a name binds on this record, counting the lazily produced hover.
+    pub fn has(&self, name: &str) -> bool {
+        self.fields.contains_key(name)
+            || matches!(name.parse(), Ok(LazyField::Hover)) && self.fields.contains_key(NAME)
+    }
     pub fn field(&mut self, key: &str, engine: &mut Engine<'_>) -> Result<QueryValue, String> {
-        if key == "presentation" {
-            self.evaluate(engine);
-            let Some(resource) = &self.resource else {
-                return Ok(QueryValue::Null);
-            };
-            let view = resource.presentation(
-                &self.path,
-                &engine.workspace.cache,
-                engine.now.to_utc(),
-                engine.link_features(),
-            );
-            engine.time_dependent |= view.time_dependent;
-            return Ok(QueryValue::object([
-                ("label", QueryValue::text(view.label)),
-                ("hover", QueryValue::text(view.hover)),
-                ("known", QueryValue::boolean(view.known_link)),
-            ]));
-        }
-        if key == "hover"
-            && let Some(QueryValue::Scalar(Value::Text(name))) = self.fields.get("name")
-        {
-            let expression = self
-                .fields
-                .get("expression")
-                .cloned()
-                .unwrap_or(QueryValue::Null);
-            if self
-                .fields
-                .get("property")
-                .is_some_and(|v| *v != QueryValue::Null)
-            {
-                return Ok(expression);
+        match key.parse::<LazyField>() {
+            Ok(LazyField::Presentation) => return Ok(self.presentation(engine)),
+            Ok(LazyField::Hover) => {
+                if let Some(hover) = self.hover(engine) {
+                    return Ok(hover);
+                }
             }
-            return Ok(engine
-                .workspace
-                .resolve(&self.path, name)
-                .map(|symbol| QueryValue::text(engine.request().symbol_hover(&symbol)))
-                .unwrap_or(expression));
-        }
-        if matches!(key, "value" | "type" | "solution" | "errors" | "display") {
-            self.evaluate(engine);
+            Ok(
+                LazyField::Value
+                | LazyField::Type
+                | LazyField::Solution
+                | LazyField::Errors
+                | LazyField::Display,
+            ) => self.evaluate(engine),
+            Err(()) => {}
         }
         self.fields
             .get(key)
             .cloned()
             .ok_or_else(|| format!("Unknown field '{key}'"))
+    }
+    fn presentation(&mut self, engine: &mut Engine<'_>) -> QueryValue {
+        self.evaluate(engine);
+        let Some(resource) = &self.resource else {
+            return QueryValue::Null;
+        };
+        let view = resource.presentation(
+            &self.path,
+            &engine.workspace.cache,
+            engine.now.to_utc(),
+            engine.link_features(),
+        );
+        engine.time_dependent |= view.time_dependent;
+        QueryValue::Object(
+            Presentation {
+                label: view.label,
+                hover: view.hover,
+                known: view.known_link,
+            }
+            .fields(),
+        )
+    }
+    /// A named record hovers as its symbol does; a property reference as itself.
+    fn hover(&self, engine: &mut Engine<'_>) -> Option<QueryValue> {
+        let Some(QueryValue::Scalar(Value::Text(name))) = self.fields.get(NAME) else {
+            return None;
+        };
+        let expression = self
+            .fields
+            .get(EXPRESSION)
+            .cloned()
+            .unwrap_or(QueryValue::Null);
+        if self
+            .fields
+            .get(PROPERTY)
+            .is_some_and(|v| *v != QueryValue::Null)
+        {
+            return Some(expression);
+        }
+        Some(
+            engine
+                .workspace
+                .resolve(&self.path, name)
+                .map(|symbol| QueryValue::text(engine.request().symbol_hover(&symbol)))
+                .unwrap_or(expression),
+        )
     }
     fn evaluate(&mut self, engine: &mut Engine<'_>) {
         let Some(symbol) = self.deferred.take() else {
@@ -284,22 +934,27 @@ impl Record {
                 if let Value::Resource(resource) = &value {
                     self.resource = Some(resource.clone());
                 }
-                self.fields
-                    .insert("type".into(), QueryValue::text(value.type_name()));
-                self.fields
-                    .insert("display".into(), QueryValue::text(value.display()));
+                self.fields.insert(
+                    LazyField::Type.as_str().into(),
+                    QueryValue::text(value.type_name()),
+                );
+                self.fields.insert(
+                    LazyField::Display.as_str().into(),
+                    QueryValue::text(value.display()),
+                );
                 let value = QueryValue::from_value(match value {
                     Value::Plan(p) => p.record(engine.workspace),
                     other => other,
                 });
-                if self.fields.contains_key("solution") {
-                    self.fields.insert("solution".into(), value.clone());
+                if self.fields.contains_key(LazyField::Solution.as_str()) {
+                    self.fields
+                        .insert(LazyField::Solution.as_str().into(), value.clone());
                 }
-                self.fields.insert("value".into(), value);
+                self.fields.insert(LazyField::Value.as_str().into(), value);
             }
             Err(e) => {
                 self.fields
-                    .insert("errors".into(), QueryValue::strings([e]));
+                    .insert(LazyField::Errors.as_str().into(), QueryValue::strings([e]));
             }
         }
     }
@@ -309,57 +964,13 @@ impl Record {
     }
 }
 pub(crate) fn source(ws: &Workspace, path: &Path, span: Span) -> QueryValue {
-    let mut uri = crate::paths::file_url(path)
-        .map(|u| u.to_string())
-        .unwrap_or_default();
-    uri.push_str(&format!("#L{}", span.line + 1));
-    QueryValue::object([
-        ("path", QueryValue::text(path.to_string_lossy())),
-        ("uri", QueryValue::text(uri)),
-        ("line", QueryValue::count(span.line + 1)),
-        (
-            "range",
-            QueryValue::from_json(json!(span.range(&ws.documents[path].text))),
-        ),
-    ])
-}
-fn base(ws: &Workspace, path: &Path, line: usize, kind: RecordKind, title: &str) -> Record {
-    let span = Span::new(line, 0, ws.documents[path].line(line).len());
-    let QueryValue::Object(fields) = QueryValue::object([
-        ("kind", QueryValue::text(kind.as_str())),
-        ("title", QueryValue::text(title)),
-        ("line", QueryValue::count(line)),
-        (
-            "anchor",
-            QueryValue::from_json(json!(ws.documents[path].line_end(line))),
-        ),
-        ("source", source(ws, path, span)),
-        ("errors", QueryValue::Array(vec![])),
-    ]) else {
-        unreachable!()
-    };
-    Record::projected(path.into(), fields)
-}
-fn schedule(record: &mut Record) {
-    for key in ["due", "scheduled", "at", "at_date", "estimate", "parent"] {
-        record.fields.insert(key.into(), QueryValue::Null);
-    }
-    for key in ["tags", "blocked_by"] {
-        record.fields.insert(key.into(), QueryValue::Array(vec![]));
-    }
-    record
-        .fields
-        .insert("done".into(), QueryValue::boolean(false));
-    record
-        .fields
-        .insert("leaf".into(), QueryValue::boolean(true));
+    QueryValue::Object(SourceRef::new(ws, path, span).fields())
 }
 fn date_field(value: Option<NaiveDate>) -> QueryValue {
     value
         .map(|d| QueryValue::Scalar(Value::Date(d)))
         .unwrap_or(QueryValue::Null)
 }
-
 /// The `kind` field every catalog record carries. Queries and .wtf modules
 /// match on these names, so they are part of the workspace's data contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -599,26 +1210,23 @@ fn decisions(
                 else {
                     continue;
                 };
-                let mut r = base(
+                let name = &doc.definitions[plan.definition].named.name;
+                let mut base = Base::new(
                     ws,
                     &row.table.path,
                     cell.span.line,
                     RecordKind::Decision,
-                    &doc.definitions[plan.definition].named.name,
+                    name,
                 );
-                r.fields
-                    .insert("value".into(), QueryValue::from_value(value.clone()));
-                r.fields.insert(
-                    "plan".into(),
-                    QueryValue::text(&doc.definitions[plan.definition].named.name),
-                );
-                r.fields.insert(
-                    "anchor".into(),
-                    QueryValue::from_json(json!(
-                        cell.span.range(&ws.documents[&row.table.path].text).end
-                    )),
-                );
-                records.push(r);
+                base.anchor = cell.span.range(&ws.documents[&row.table.path].text).end;
+                records.push(Record::typed(
+                    &row.table.path,
+                    DecisionRecord {
+                        base,
+                        value: QueryValue::from_value(value.clone()),
+                        plan: name.clone(),
+                    },
+                ));
             }
         }
     }
@@ -661,10 +1269,13 @@ fn days(
                 ]),
             );
         }
-        let mut r = base(ws, path, day.line, RecordKind::Day, doc.line(day.line));
-        r.fields
-            .insert("value".into(), QueryValue::from_value(value));
-        records.push(r);
+        records.push(Record::typed(
+            path,
+            DayRecord {
+                base: Base::new(ws, path, day.line, RecordKind::Day, doc.line(day.line)),
+                value: QueryValue::from_value(value),
+            },
+        ));
     }
     Ok(())
 }
@@ -706,63 +1317,55 @@ fn timers(
         let Ok(Value::Timer(timer)) = engine.named(path, name) else {
             continue;
         };
-        let mut r = base(ws, path, line, RecordKind::Timer, name);
-        r.fields.extend([
-            ("name".into(), QueryValue::text(name)),
-            ("anchor".into(), QueryValue::from_json(json!(anchor))),
-            ("definition".into(), QueryValue::boolean(definition)),
-            ("inlay".into(), QueryValue::boolean(inlay)),
-            ("value".into(), QueryValue::from_value(timer.record())),
-            (
-                "origin".into(),
-                timer
-                    .origin
-                    .as_ref()
-                    .map(|origin| {
-                        QueryValue::object([
-                            (
-                                "document",
-                                QueryValue::text(
-                                    crate::paths::file_url(&origin.path).unwrap().as_str(),
-                                ),
-                            ),
-                            ("name", QueryValue::text(&ws.named(origin).name)),
-                        ])
-                    })
-                    .unwrap_or(QueryValue::Null),
-            ),
-        ]);
-        records.push(r);
+        let mut base = Base::new(ws, path, line, RecordKind::Timer, name);
+        base.anchor = anchor;
+        records.push(Record::typed(
+            path,
+            TimerRecord {
+                base,
+                name: name.into(),
+                definition,
+                inlay,
+                value: QueryValue::from_value(timer.record()),
+                origin: timer.origin.as_ref().map(|origin| TimerOrigin {
+                    document: crate::paths::file_url(&origin.path).unwrap().into(),
+                    name: ws.named(origin).name.clone(),
+                }),
+            },
+        ));
     }
 }
 
 fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
     for link in &doc.links {
-        let mut r = base(ws, path, link.span.line, RecordKind::Link, &link.target);
+        let mut base = Base::new(ws, path, link.span.line, RecordKind::Link, &link.target);
+        base.source = SourceRef::new(ws, path, link.span);
+        base.anchor = link.span.range(&doc.text).end;
+        let mut r = Record::typed(
+            path,
+            LinkRecord {
+                base,
+                url: link.target.clone(),
+            },
+        );
         r.resource = Some(crate::resources::Resource {
             target: link.target.clone(),
             origin: Some(path.into()),
         });
-        r.fields
-            .insert("url".into(), QueryValue::text(&link.target));
-        r.fields
-            .insert("source".into(), source(ws, path, link.span));
-        r.fields.insert(
-            "anchor".into(),
-            QueryValue::from_json(json!(link.span.range(&doc.text).end)),
-        );
         records.push(r);
     }
 }
 
 fn sections(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
     for section in &doc.sections {
-        let mut r = base(ws, path, section.line, RecordKind::Section, &section.title);
-        r.fields
-            .insert("end_line".into(), QueryValue::count(section.end_line));
-        r.fields
-            .insert("level".into(), QueryValue::count(section.level));
-        records.push(r);
+        records.push(Record::typed(
+            path,
+            SectionRecord {
+                base: Base::new(ws, path, section.line, RecordKind::Section, &section.title),
+                end_line: section.end_line,
+                level: section.level,
+            },
+        ));
     }
 }
 
@@ -774,7 +1377,7 @@ fn calculations(
     records: &mut Vec<Record>,
 ) {
     for calculation in &doc.calculations {
-        let mut r = expression_record(
+        let (mut base, expression, resource) = expression_base(
             ws,
             path,
             RecordKind::Calculation,
@@ -783,18 +1386,18 @@ fn calculations(
             engine.eval_at(path, &calculation.source, calculation.span),
         );
         let end = calculation.span.end + usize::from(calculation.bracketed);
-        r.fields.insert(
-            "anchor".into(),
-            QueryValue::from_json(json!(
-                Span::new(calculation.span.line, end, end)
-                    .range(&doc.text)
-                    .end
-            )),
+        base.anchor = Span::new(calculation.span.line, end, end)
+            .range(&doc.text)
+            .end;
+        let mut r = Record::typed(
+            path,
+            CalculationRecord {
+                base,
+                expression,
+                bracketed: calculation.bracketed,
+            },
         );
-        r.fields.insert(
-            "bracketed".into(),
-            QueryValue::boolean(calculation.bracketed),
-        );
+        r.resource = resource;
         records.push(r);
     }
 }
@@ -807,38 +1410,37 @@ fn references(
     records: &mut Vec<Record>,
 ) {
     for reference in doc.references.iter().filter(|r| r.bracket) {
-        let expression = reference.expression();
+        let source = reference.expression();
         let end = reference.end()
             + doc.line(reference.span.line)[reference.end()..]
                 .find(']')
                 .unwrap_or(0)
             + 1;
-        let mut r = expression_record(
+        let (mut base, expression, resource) = expression_base(
             ws,
             path,
             RecordKind::Reference,
-            &expression,
+            &source,
             reference.span,
-            engine.eval(path, &expression),
+            engine.eval(path, &source),
         );
-        r.fields.insert(
-            "anchor".into(),
-            QueryValue::from_json(json!(
-                Span::new(reference.span.line, end, end)
-                    .range(&doc.text)
-                    .end
-            )),
+        base.anchor = Span::new(reference.span.line, end, end)
+            .range(&doc.text)
+            .end;
+        let mut r = Record::typed(
+            path,
+            ReferenceRecord {
+                base,
+                expression,
+                name: reference.name.clone(),
+                property: reference
+                    .property
+                    .as_ref()
+                    .map(QueryValue::text)
+                    .unwrap_or(QueryValue::Null),
+            },
         );
-        r.fields
-            .insert("name".into(), QueryValue::text(&reference.name));
-        r.fields.insert(
-            "property".into(),
-            reference
-                .property
-                .as_ref()
-                .map(QueryValue::text)
-                .unwrap_or(QueryValue::Null),
-        );
+        r.resource = resource;
         records.push(r);
     }
 }
@@ -857,32 +1459,30 @@ fn cells(
                     Some((source, span)) => engine.eval_at(path, source, *span),
                     None => cell.value.clone(),
                 };
-                let expression = cell
+                let source = cell
                     .expression
                     .as_ref()
                     .map(|(s, _)| s.as_str())
                     .unwrap_or(&cell.source);
-                let mut r =
-                    expression_record(ws, path, RecordKind::Cell, expression, cell.span, value);
-                r.fields.insert(
-                    "anchor".into(),
-                    QueryValue::from_json(json!(cell.span.range(&doc.text).end)),
+                let (mut base, expression, resource) =
+                    expression_base(ws, path, RecordKind::Cell, source, cell.span, value);
+                base.anchor = cell.span.range(&doc.text).end;
+                let mut r = Record::typed(
+                    path,
+                    CellRecord {
+                        base,
+                        expression,
+                        computed: cell.calculated(),
+                        table: doc.definitions[table.definition].named.name.clone(),
+                        row,
+                        column: table
+                            .columns
+                            .get(column)
+                            .map(|c| QueryValue::text(&c.name))
+                            .unwrap_or(QueryValue::Null),
+                    },
                 );
-                r.fields
-                    .insert("computed".into(), QueryValue::boolean(cell.calculated()));
-                r.fields.insert(
-                    "table".into(),
-                    QueryValue::text(&doc.definitions[table.definition].named.name),
-                );
-                r.fields.insert("row".into(), QueryValue::count(row));
-                r.fields.insert(
-                    "column".into(),
-                    table
-                        .columns
-                        .get(column)
-                        .map(|c| QueryValue::text(&c.name))
-                        .unwrap_or(QueryValue::Null),
-                );
+                r.resource = resource;
                 records.push(r);
             }
         }
@@ -890,18 +1490,19 @@ fn cells(
 }
 
 fn notes(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
-    let mut r = base(
-        ws,
+    records.push(Record::typed(
         path,
-        0,
-        RecordKind::Note,
-        path.file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .as_ref(),
-    );
-    r.fields.insert("text".into(), QueryValue::text(&doc.text));
-    records.push(r);
+        NoteRecord {
+            base: Base::new(
+                ws,
+                path,
+                0,
+                RecordKind::Note,
+                path.file_name().unwrap_or_default().to_string_lossy(),
+            ),
+            text: doc.text.clone(),
+        },
+    ));
 }
 
 fn tasks(
@@ -920,149 +1521,123 @@ fn tasks(
         if leaves_only && !leaf {
             continue;
         }
-        let mut r = base(ws, path, task.line, RecordKind::Task, &task.title);
-        schedule(&mut r);
-        r.fields.insert("leaf".into(), QueryValue::boolean(leaf));
-        r.fields
-            .insert("checked".into(), QueryValue::boolean(task.checked));
-        r.fields.insert(
-            "done".into(),
-            QueryValue::boolean(engine.task_done(path, i)),
-        );
-        r.fields.insert(
-            "name".into(),
-            task.named
+        let mut record = TaskRecord {
+            base: Base::new(ws, path, task.line, RecordKind::Task, &task.title),
+            scheduling: Scheduling {
+                leaf,
+                done: engine.task_done(path, i),
+                parent: task
+                    .parent
+                    .map(|i| source(ws, path, doc.tasks[i].checkbox))
+                    .unwrap_or(QueryValue::Null),
+                tags: task.tags.clone(),
+                ..Scheduling::default()
+            },
+            checked: task.checked,
+            name: task
+                .named
                 .as_ref()
                 .map(|n| QueryValue::text(&n.name))
                 .unwrap_or(QueryValue::Null),
-        );
-        r.fields.insert(
-            "parent".into(),
-            task.parent
-                .map(|i| source(ws, path, doc.tasks[i].checkbox))
-                .unwrap_or(QueryValue::Null),
-        );
-        r.fields
-            .insert("tags".into(), QueryValue::strings(task.tags.clone()));
-        r.fields.insert(
-            "attributes".into(),
-            QueryValue::Object(
-                task.attributes
-                    .iter()
-                    .map(|(k, a)| (k.clone(), QueryValue::text(&a.value)))
-                    .collect(),
-            ),
-        );
+            attributes: task
+                .attributes
+                .iter()
+                .map(|(k, a)| (k.clone(), QueryValue::text(&a.value)))
+                .collect(),
+            blocked_error: QueryValue::Null,
+            schedule: Vec::new(),
+            children: doc
+                .tasks
+                .iter()
+                .enumerate()
+                .filter(|(_, child)| child.parent == Some(i))
+                .map(|(index, child)| ChildTask {
+                    line: child.line,
+                    done: engine.task_done(path, index),
+                })
+                .collect(),
+            timer: QueryValue::Null,
+        };
         let mut errors = Vec::new();
-        let mut schedule_values = Vec::new();
-        for key in ["due", "scheduled", "at", "estimate"] {
-            if let Some(a) = task.attributes.get(key) {
-                let value = if key == "estimate" {
-                    engine.eval(path, &a.value)
-                } else {
-                    engine.when(path, &a.value)
-                };
-                if key != "estimate" {
-                    schedule_values.push(QueryValue::object([
-                        ("key", QueryValue::text(key)),
-                        (
-                            "value",
-                            value
-                                .as_ref()
-                                .ok()
-                                .and_then(|v| ctx.date(v))
-                                .map(|v| QueryValue::Scalar(Value::Date(v)))
-                                .unwrap_or(QueryValue::Null),
-                        ),
-                        (
-                            "error",
-                            value
-                                .as_ref()
-                                .err()
-                                .map(QueryValue::text)
-                                .unwrap_or(QueryValue::Null),
-                        ),
-                    ]));
+        for when in When::ALL {
+            let Some(attribute) = task.attributes.get(when.as_str()) else {
+                continue;
+            };
+            let value = if when == When::Estimate {
+                engine.eval(path, &attribute.value)
+            } else {
+                engine.when(path, &attribute.value)
+            };
+            if when != When::Estimate {
+                record.schedule.push(ScheduleEntry {
+                    key: when,
+                    value: value
+                        .as_ref()
+                        .ok()
+                        .and_then(|v| ctx.date(v))
+                        .map(|v| QueryValue::Scalar(Value::Date(v)))
+                        .unwrap_or(QueryValue::Null),
+                    error: value
+                        .as_ref()
+                        .err()
+                        .map(QueryValue::text)
+                        .unwrap_or(QueryValue::Null),
+                });
+            }
+            match value {
+                Ok(Value::Duration(s)) if when == When::Estimate && s >= 0 => {
+                    record
+                        .scheduling
+                        .set(when, QueryValue::Scalar(Value::Duration(s)));
                 }
-                match value {
-                    Ok(Value::Duration(s)) if key == "estimate" && s >= 0 => {
-                        r.fields
-                            .insert(key.into(), QueryValue::Scalar(Value::Duration(s)));
-                    }
-                    Ok(v) if key != "estimate" && ctx.date(&v).is_some() => {
-                        let date = ctx.date(&v);
-                        r.fields.insert(
-                            key.into(),
-                            if key == "at" {
-                                QueryValue::from_value(v)
-                            } else {
-                                date_field(date)
-                            },
-                        );
-                        if key == "at" {
-                            r.fields.insert("at_date".into(), date_field(date));
-                        }
-                    }
-                    Ok(_) => errors.push(format!(
-                        "@{key}: expected {}",
-                        if key == "estimate" {
-                            "a nonnegative duration"
+                Ok(v) if when != When::Estimate && ctx.date(&v).is_some() => {
+                    let date = ctx.date(&v);
+                    let at = when == When::At;
+                    record.scheduling.set(
+                        when,
+                        if at {
+                            QueryValue::from_value(v)
                         } else {
-                            "a date or timestamp"
-                        }
-                    )),
-                    Err(e) => errors.push(format!("@{key}: {e}")),
+                            date_field(date)
+                        },
+                    );
+                    if at {
+                        record.scheduling.at_date = date_field(date);
+                    }
                 }
+                Ok(_) => errors.push(format!(
+                    "@{}: expected {}",
+                    when.as_str(),
+                    if when == When::Estimate {
+                        "a nonnegative duration"
+                    } else {
+                        "a date or timestamp"
+                    }
+                )),
+                Err(e) => errors.push(format!("@{}: {e}", when.as_str())),
             }
         }
-        if r.fields["due"] == QueryValue::Null && task.attributes.contains_key("every") {
-            r.fields.insert("due".into(), date_field(Some(ctx.today())));
+        // A repeating task with no explicit due date is due today.
+        if record.scheduling.due == QueryValue::Null && task.attributes.contains_key("every") {
+            record.scheduling.due = date_field(Some(ctx.today()));
         }
         match engine.blocked(path, i) {
-            Ok(v) => {
-                r.fields.insert("blocked_by".into(), QueryValue::strings(v));
-            }
+            Ok(v) => record.scheduling.blocked_by = v,
             Err(e) => {
-                r.fields
-                    .insert("blocked_error".into(), QueryValue::text(&e));
+                record.blocked_error = QueryValue::text(&e);
                 errors.push(e);
             }
         }
-        r.fields
-            .entry("blocked_error".into())
-            .or_insert(QueryValue::Null);
-        r.fields
-            .insert("schedule".into(), QueryValue::Array(schedule_values));
-        r.fields.insert(
-            "children".into(),
-            QueryValue::Array(
-                doc.tasks
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, child)| child.parent == Some(i))
-                    .map(|(index, child)| {
-                        QueryValue::object([
-                            ("line", QueryValue::count(child.line)),
-                            ("done", QueryValue::boolean(engine.task_done(path, index))),
-                        ])
-                    })
-                    .collect(),
-            ),
-        );
-        let timer = task
+        record.timer = match task
             .attributes
             .get("timer")
-            .and_then(|a| engine.eval(path, &a.value).ok());
-        r.fields.insert(
-            "timer".into(),
-            match timer {
-                Some(Value::Timer(timer)) => QueryValue::from_value(timer.record()),
-                _ => QueryValue::Null,
-            },
-        );
-        r.fields
-            .insert("errors".into(), QueryValue::strings(errors));
-        records.push(r);
+            .and_then(|a| engine.eval(path, &a.value).ok())
+        {
+            Some(Value::Timer(timer)) => QueryValue::from_value(timer.record()),
+            _ => QueryValue::Null,
+        };
+        record.base.errors = errors;
+        records.push(Record::typed(path, record));
     }
 }
 
@@ -1075,23 +1650,22 @@ fn events(
     records: &mut Vec<Record>,
 ) {
     for event in &doc.events {
-        let mut r = base(ws, path, event.line, RecordKind::Event, &event.title);
-        schedule(&mut r);
-        match engine.when(path, &event.attributes["at"].value) {
+        let mut base = Base::new(ws, path, event.line, RecordKind::Event, &event.title);
+        let mut scheduling = Scheduling::default();
+        match engine.when(path, &event.attributes[When::At.as_str()].value) {
             Ok(v) if ctx.date(&v).is_some() => {
-                r.fields.insert("at_date".into(), date_field(ctx.date(&v)));
-                r.fields.insert("at".into(), QueryValue::from_value(v));
+                scheduling.at_date = date_field(ctx.date(&v));
+                scheduling.at = QueryValue::from_value(v);
             }
             other => {
-                r.fields.insert(
-                    "errors".into(),
-                    QueryValue::strings([other
+                base.errors = vec![
+                    other
                         .err()
-                        .unwrap_or_else(|| "@at requires a date or timestamp".into())]),
-                );
+                        .unwrap_or_else(|| "@at requires a date or timestamp".into()),
+                ];
             }
         }
-        records.push(r);
+        records.push(Record::typed(path, EventRecord { base, scheduling }));
     }
 }
 
@@ -1105,27 +1679,33 @@ fn stops(
     let dates = crate::itinerary::dates(&ws.modules, &doc.days, ctx.today());
     for (day, date) in doc.days.iter().zip(dates) {
         for stop in &day.stops {
-            let mut r = base(
-                ws,
-                path,
-                stop.line,
-                RecordKind::Stop,
-                &crate::itinerary::label(&ws.modules, stop),
-            );
-            schedule(&mut r);
-            r.fields.insert("at_date".into(), date_field(date));
             let at = date.and_then(|d| {
                 ctx.now
                     .offset()
                     .from_local_datetime(&d.and_time(stop.time))
                     .single()
             });
-            r.fields.insert(
-                "at".into(),
-                at.map(|d| QueryValue::Scalar(Value::DateTime(d)))
-                    .unwrap_or_else(|| QueryValue::text(stop.time.format("%H:%M").to_string())),
-            );
-            records.push(r);
+            records.push(Record::typed(
+                path,
+                StopRecord {
+                    base: Base::new(
+                        ws,
+                        path,
+                        stop.line,
+                        RecordKind::Stop,
+                        crate::itinerary::label(&ws.modules, stop),
+                    ),
+                    scheduling: Scheduling {
+                        at_date: date_field(date),
+                        at: at
+                            .map(|d| QueryValue::Scalar(Value::DateTime(d)))
+                            .unwrap_or_else(|| {
+                                QueryValue::text(stop.time.format("%H:%M").to_string())
+                            }),
+                        ..Scheduling::default()
+                    },
+                },
+            ));
         }
     }
 }
@@ -1155,26 +1735,25 @@ fn definitions(
             match engine.symbol(&symbol) {
                 Ok(Value::Table(t)) => {
                     for (row, values) in t.rows.iter().enumerate() {
-                        let mut r = base(
-                            ws,
+                        records.push(Record::typed(
                             path,
-                            table.unwrap().rows[row][0].span.line,
-                            RecordKind::Row,
-                            &def.named.name,
-                        );
-                        r.fields
-                            .insert("table".into(), QueryValue::text(&def.named.name));
-                        r.fields.insert(
-                            "cells".into(),
-                            QueryValue::Object(
-                                t.columns
+                            RowRecord {
+                                base: Base::new(
+                                    ws,
+                                    path,
+                                    table.unwrap().rows[row][0].span.line,
+                                    RecordKind::Row,
+                                    &def.named.name,
+                                ),
+                                table: def.named.name.clone(),
+                                cells: t
+                                    .columns
                                     .iter()
                                     .cloned()
                                     .zip(values.iter().cloned().map(QueryValue::from_value))
                                     .collect(),
-                            ),
-                        );
-                        records.push(r);
+                            },
+                        ));
                     }
                 }
                 Err(e) => {
@@ -1188,7 +1767,7 @@ fn definitions(
             }
             continue;
         }
-        let mut r = base(
+        let mut base = Base::new(
             ws,
             path,
             def.named.span.line,
@@ -1201,22 +1780,17 @@ fn definitions(
             },
             &def.named.name,
         );
-        r.fields
-            .insert("name".into(), QueryValue::text(&def.named.name));
-        r.fields
-            .insert("expression".into(), QueryValue::text(&def.source));
-        r.fields.insert("value".into(), QueryValue::Null);
-        r.fields.insert("type".into(), QueryValue::Null);
-        r.fields.insert("display".into(), QueryValue::Null);
-        r.fields
-            .insert("computed".into(), QueryValue::boolean(def.expression));
-        r.fields.insert(
-            "anchor".into(),
-            QueryValue::from_json(json!(def.end.range(&doc.text).end)),
+        base.anchor = def.end.range(&doc.text).end;
+        let mut r = Record::typed(
+            path,
+            DefinitionRecord {
+                base,
+                name: def.named.name.clone(),
+                expression: def.source.clone(),
+                computed: def.expression,
+                solution: plan,
+            },
         );
-        if plan {
-            r.fields.insert("solution".into(), QueryValue::Null);
-        }
         r.deferred = Some(symbol);
         records.push(r);
     }
@@ -1231,17 +1805,20 @@ fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Reco
             .map(|d| (d.value_span, d.source.as_str())),
     );
     for (span, target) in targets {
-        let mut r = base(ws, path, span.line, RecordKind::Resource, target);
-        r.fields.insert("source".into(), source(ws, path, span));
-        r.fields.insert("target".into(), QueryValue::text(target));
-        r.fields.insert(
-            "metadata".into(),
-            ws.cache
-                .get(target)
-                .map(|m| QueryValue::from_json(json!(m)))
-                .unwrap_or(QueryValue::Null),
-        );
-        records.push(r);
+        let mut base = Base::new(ws, path, span.line, RecordKind::Resource, target);
+        base.source = SourceRef::new(ws, path, span);
+        records.push(Record::typed(
+            path,
+            ResourceRecord {
+                base,
+                target: target.into(),
+                metadata: ws
+                    .cache
+                    .get(target)
+                    .map(|m| QueryValue::from_json(json!(m)))
+                    .unwrap_or(QueryValue::Null),
+            },
+        ));
     }
 }
 
@@ -1259,69 +1836,42 @@ fn diagnostics(
         crate::diagnostics::collect_native(&request, path, false)
     };
     for d in diagnostics {
-        let mut r = base(
+        let mut base = Base::new(
             ws,
             path,
             d.range.start.line as usize,
             RecordKind::Diagnostic,
             &d.message,
         );
-        if let Some(QueryValue::Object(s)) = r.fields.get_mut("source") {
-            s.insert("range".into(), QueryValue::from_json(json!(d.range)));
-        }
-        r.fields
-            .insert("message".into(), QueryValue::text(d.message));
-        r.fields.insert(
-            "severity".into(),
-            QueryValue::text(crate::diagnostics::severity_name(d.severity)),
-        );
-        r.fields
-            .insert("code".into(), QueryValue::from_json(json!(d.code)));
-        records.push(r);
+        base.source.range = d.range;
+        records.push(Record::typed(
+            path,
+            DiagnosticRecord {
+                base,
+                message: d.message,
+                severity: crate::diagnostics::severity_name(d.severity).into(),
+                code: QueryValue::from_json(json!(d.code)),
+            },
+        ));
     }
 }
 
-fn expression_record(
+/// A calculation, bracketed reference or table cell: one expression, evaluated.
+fn expression_base(
     ws: &Workspace,
     path: &Path,
     kind: RecordKind,
-    expression: &str,
+    source: &str,
     span: Span,
     value: Result<Value, String>,
-) -> Record {
-    let mut record = base(ws, path, span.line, kind, expression);
-    if let Ok(Value::Resource(resource)) = &value {
-        record.resource = Some(resource.clone());
-    }
-    record
-        .fields
-        .insert("source".into(), source(ws, path, span));
-    record
-        .fields
-        .insert("expression".into(), QueryValue::text(expression));
-    let (value, kind, display, errors) = match value {
-        Ok(v) => {
-            let kind = QueryValue::text(v.type_name());
-            let display = QueryValue::text(v.display());
-            (
-                QueryValue::from_value(v),
-                kind,
-                display,
-                QueryValue::Array(vec![]),
-            )
-        }
-        Err(e) => (
-            QueryValue::Null,
-            QueryValue::Null,
-            QueryValue::Null,
-            QueryValue::strings([e]),
-        ),
+) -> (Base, Expression, Option<crate::resources::Resource>) {
+    let mut base = Base::new(ws, path, span.line, kind, source);
+    base.source = SourceRef::new(ws, path, span);
+    let resource = match &value {
+        Ok(Value::Resource(resource)) => Some(resource.clone()),
+        _ => None,
     };
-    record.fields.extend([
-        ("value".into(), value),
-        ("type".into(), kind),
-        ("display".into(), display),
-        ("errors".into(), errors),
-    ]);
-    record
+    let (expression, errors) = Expression::new(source, value);
+    base.errors = errors;
+    (base, expression, resource)
 }

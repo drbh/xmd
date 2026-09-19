@@ -252,10 +252,7 @@ impl Bindings for RowBindings {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<Result<Value, String>> {
         let mut item = self.0.lock().expect("query row poisoned");
         let exists = match &*item {
-            Item::Record(record) => {
-                record.fields.contains_key(name)
-                    || name == "hover" && record.fields.contains_key("name")
-            }
+            Item::Record(record) => record.has(name),
             Item::Value(value, _) => value.property(name).is_ok(),
         };
         exists.then(|| item.field(name, engine).map(|v| v.value()))

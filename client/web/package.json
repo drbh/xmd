@@ -36,6 +36,7 @@
     "build": "bash build.sh && npm run build:site",
     "build:site": "node scripts/build.mjs",
     "start": "node serve.mjs",
+    "screenshot": "node scripts/screenshot.mjs",
     "test": "npm run test:unit && npm run test:types && playwright test",
     "test:unit": "node --test tests/*.test.mjs",
     "prepack": "bash build.sh && node scripts/theme.mjs",

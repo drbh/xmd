@@ -8,7 +8,7 @@
   import { parts } from "./chapters.js";
   import { examples, bookUri } from "./examples.js";
   let { workspace, theme, onToggleTheme, onHome, onError } = $props();
-  let loaded = $state(false), problems = $state({}), current = $state(""), main;
+  let loaded = $state(false), problems = $state({}), current = $state(""), main, tocOpen = $state(false);
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
   const blocks = parts.flatMap(part => part.chapters.flatMap(c => [c.file, c.companion].filter(Boolean)));
   onMount(() => {
@@ -24,7 +24,7 @@
     })().catch(onError);
     return () => observer?.disconnect();
   });
-  function jump(id) { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); history.replaceState(null, "", `#/book/${id}`); }
+  function jump(id) { tocOpen = false; document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); history.replaceState(null, "", `#/book/${id}`); }
 </script>
 
 <div class="app book">
@@ -39,7 +39,7 @@
     </div>
   </header>
   <div class="workspace">
-    <nav class="sidebar toc" aria-label="Contents">
+    <nav class="sidebar toc" class:mobile-open={tocOpen} aria-label="Contents">
       <h2>Contents</h2>
       <ol>
         {#each parts as part, p}
@@ -84,4 +84,5 @@
       </article>
     </main>
   </div>
+  <button type="button" class="chip outline-toggle" aria-label="Contents" onclick={() => (tocOpen = !tocOpen)}><Icon name="outline" size={16} /></button>
 </div>

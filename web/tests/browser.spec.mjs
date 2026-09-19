@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, devices } from "@playwright/test";
 
 test("the book runs every example as a live block inside the document app", async ({ page }) => {
   const errors = [];
@@ -200,4 +200,39 @@ test("the document app writes like a document editor: typing, formatting, find, 
   await page.locator(".dropdown [role=menuitemcheckbox]", { hasText: "Light theme" }).click();
   await expect(page.locator("html")).toHaveClass(/wtf-light/);
   expect(errors).toEqual([]);
+});
+
+test.describe("on a phone", () => {
+  const { defaultBrowserType, ...phone } = devices["iPhone 14"];
+  test.use(phone);
+  test("the app fits the screen, edits, and shows actions for the caret's line", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto("/docs/?test");
+    await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+    const noSideways = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll(".home, .app, .canvas")].every(el => el.scrollWidth <= el.clientWidth + 1));
+    expect(await noSideways()).toBe(true);
+    await expect(page.locator(".home-bar .search")).toBeVisible();
+    await page.locator(".doc-row .open").first().tap();
+    await page.waitForFunction(() => window.wtfDocs.controller);
+    expect(await noSideways()).toBe(true);
+    // Only the caret's line shows its lens, under the line.
+    await expect(page.locator(".lens")).toHaveCount(0);
+    await page.evaluate(() => window.wtfDocs.controller.select(window.wtfDocs.controller.getSource().indexOf("focus :=") + 3));
+    await expect(page.locator(".lenses.below .lens")).toHaveCount(1);
+    await page.locator(".lenses.below .lens").tap();
+    await expect(page.locator(".view")).toContainText("running", { timeout: 10_000 });
+    // Typing works and menus open as sheets.
+    await page.evaluate(() => window.wtfDocs.controller.select(window.wtfDocs.controller.getSource().length));
+    await page.keyboard.type("\nfrom a phone");
+    await expect.poll(() => page.evaluate(() => window.wtfDocs.controller.getSource())).toMatch(/from a phone$/);
+    await page.locator(".menubar > .menu > button", { hasText: "Insert" }).tap();
+    await expect(page.locator(".dropdown")).toBeVisible();
+    expect(await page.locator(".dropdown").evaluate(el => getComputedStyle(el).position)).toBe("fixed");
+    await page.keyboard.press("Escape");
+    // The outline opens as a drawer.
+    await page.locator(".chip.outline-toggle").tap();
+    await expect(page.locator(".sidebar")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
 });

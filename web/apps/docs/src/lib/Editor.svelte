@@ -8,6 +8,9 @@
   // Code lenses drawn as chips at the end of their line, positioned over the
   // page so the editable text itself is never modified.
   let lenses = $state.raw([]), versions = $state.raw({}), chips = $state.raw([]);
+  // On a phone there is no room beside the text: only the caret's line shows its actions, under the line.
+  const phone = matchMedia("(max-width: 640px)");
+  let caretLine = -1;
   // Other people's carets and selections, drawn over the page from source offsets.
   let people = $state.raw([]), carets = $state.raw([]);
   const PALETTE = 8;
@@ -33,6 +36,7 @@
     const origin = page.getBoundingClientRect();
     const byLine = new Map();
     for (const lens of lenses) {
+      if (phone.matches && lens.range.start.line !== caretLine) continue;
       const line = view.querySelector(`.line[data-line="${lens.range.start.line}"]`);
       if (!line) continue;
       const rects = line.getClientRects();
@@ -40,9 +44,13 @@
       const list = byLine.get(line) || [];
       list.push(lens);
       byLine.set(line, list);
-      if (list.length === 1) list.at = { top: rect.top - origin.top, left: rect.right - origin.left, height: rect.height };
+      if (list.length === 1) list.at = phone.matches
+        ? { top: rect.bottom - origin.top + 2, left: 0, right: 12, height: 24, below: true }
+        : { top: rect.top - origin.top, left: rect.right - origin.left, height: rect.height };
     }
-    chips = [...byLine.values()].map(list => ({ ...list.at, lenses: list }));
+    // Chips sit after the line's text, but never past the page edge.
+    const width = list => list.reduce((n, l) => n + 30 + l.command.title.length * 6.2, 0) + (list.length - 1) * 4;
+    chips = [...byLine.values()].map(list => ({ ...list.at, left: list.at.below ? null : Math.max(8, Math.min(list.at.left, origin.width - width(list) - 12)), lenses: list }));
   }
   // A live session binds once both it and the editor exist.
   $effect(() => {
@@ -70,9 +78,11 @@
       if (stopped) result.destroy(); else { controller = result; if (readOnly) result.element.contentEditable = "false"; report(); }
     }).catch(onError);
     const report = () => {
-      if (!onCaret || !mounted || mounted.destroyed) return;
+      if (!mounted || mounted.destroyed) return;
       const selection = mounted.selection();
-      onCaret?.(selection ? lineOf(mounted.getSource(), selection.focus) : -1, selection);
+      const line = selection ? lineOf(mounted.getSource(), selection.focus) : -1;
+      if (line !== caretLine) { caretLine = line; if (phone.matches) place(); }
+      onCaret?.(line, selection);
     };
     const observer = new ResizeObserver(() => { place(); placePeople(); });
     observer.observe(view);
@@ -88,7 +98,7 @@
     <div class="presence-caret" style={`top:${caret.top}px;left:${caret.left}px;height:${caret.height}px;--presence:${caret.color}`}><span class="presence-name">{caret.name}</span></div>
   {/each}
   {#each chips as chip}
-    <div class="lenses" style={`top:${chip.top}px;left:${chip.left}px;height:${chip.height}px`}>
+    <div class="lenses" class:below={chip.below} style={chip.below ? `top:${chip.top}px;right:${chip.right}px;height:${chip.height}px` : `top:${chip.top}px;left:${chip.left}px;height:${chip.height}px`}>
       {#each chip.lenses as lens}
         <button type="button" class="lens" onmousedown={e => e.preventDefault()} onclick={() => run(lens)}><Icon name="play" size={12} /> {lens.command.title}</button>
       {/each}

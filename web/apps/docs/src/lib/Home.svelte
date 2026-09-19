@@ -80,8 +80,8 @@
   <header class="home-bar">
     <div class="brand"><span class="logo"><Icon name="doc" size={22} /></span> WTF Docs</div>
     <label class="search"><Icon name="search" /><input type="search" placeholder="Search documents" aria-label="Search documents" bind:value={query}></label>
-    <button type="button" class="button" onclick={onBook}><Icon name="doc" /> The Book</button>
-    <label class="button primary"><Icon name="upload" /> Import<input type="file" accept=".wtf,text/plain" multiple hidden onchange={onImport}></label>
+    <button type="button" class="button" onclick={onBook} title="The Book"><Icon name="doc" /><span class="text">The Book</span></button>
+    <label class="button primary" title="Import"><Icon name="upload" /><span class="text">Import</span><input type="file" accept=".wtf,text/plain" multiple hidden onchange={onImport}></label>
     <button type="button" class="tool theme-toggle" title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme" onclick={onToggleTheme}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     {#if account}
       <div class="account-menu">
@@ -104,7 +104,7 @@
   {/if}
 
   <section class="templates" aria-label="Start a new document">
-    <div class="section-head"><h2>Start a new document{#if folder} in {folder.name}{/if}</h2><button type="button" class="link" onclick={onBook}>New here? Read the book: every feature as a live note →</button></div>
+    <div class="section-head"><h2>Start a new document{#if folder} in {folder.name}{/if}</h2><button type="button" class="link book-link" onclick={onBook}><span class="text">New here? Read the book: every feature as a live note</span><span class="short">Read the book</span> →</button></div>
     <div class="template-row">
       {#each TEMPLATES as t (t.id)}
         <button type="button" class="template" onclick={() => onNew(t, folder && !isShared(folder) ? folder.id : null)}>

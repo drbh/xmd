@@ -82,7 +82,7 @@ Spent [total] this week, about [per_day] per day.
 ];
 
 const ID = /^[a-zA-Z0-9_-]+$/;
-const valid = d => ID.test(d.id) && typeof d.name === "string" && typeof d.text === "string" && Number.isFinite(d.updated) && (d.folder == null || ID.test(d.folder));
+const valid = d => ID.test(d.id) && typeof d.name === "string" && typeof d.text === "string" && Number.isFinite(d.updated) && (d.folder == null || ID.test(d.folder)) && (d.file == null || typeof d.file === "string");
 const validFolder = f => ID.test(f.id) && typeof f.name === "string" && Number.isFinite(f.updated);
 const unique = list => new Set(list.map(x => x.id)).size === list.length;
 /** Whether this browser holds documents someone actually saved (not just the starter). */
@@ -95,21 +95,33 @@ export function loadState() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      const documents = parsed.documents, folders = parsed.folders ?? [];
-      if (!Array.isArray(documents) || !Array.isArray(folders) || documents.some(d => !valid(d)) || folders.some(f => !validFolder(f)) || !unique(documents) || !unique(folders)) throw new Error("Invalid saved documents");
-      return { documents, folders };
+      const documents = parsed.documents, folders = parsed.folders ?? [], trash = parsed.trash ?? [];
+      if (!Array.isArray(documents) || !Array.isArray(folders) || !Array.isArray(trash) || documents.some(d => !valid(d)) || trash.some(d => !valid(d)) || folders.some(f => !validFolder(f)) || !unique(documents) || !unique(folders)) throw new Error("Invalid saved documents");
+      return { documents, folders, trash };
     }
   } catch { writable = false; }
-  return { documents: [createDocument(TEMPLATES[1])], folders: [] };
+  return { documents: [createDocument(TEMPLATES[1])], folders: [], trash: [] };
 }
 export const loadDocuments = () => loadState().documents;
 export function createDocument(template = TEMPLATES[0], name) {
   const text = template.text;
-  return { id: crypto.randomUUID(), name: name ?? titleOf(text, template.name), text, updated: Date.now(), opened: Date.now(), folder: null };
+  const title = name ?? titleOf(text, template.name);
+  return { id: crypto.randomUUID(), name: title, file: fileNameFor(title), named: false, text, updated: Date.now(), opened: Date.now(), folder: null };
 }
-export function saveState({ documents, folders = [] }) {
+/** A file name for a document: the name without path separators or control characters, never empty. */
+export function fileNameFor(name) {
+  const clean = String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim().replace(/\.wtf$/i, "").slice(0, 120);
+  return clean || "Untitled document";
+}
+/** `file`, or the first "file 2", "file 3"… not used by another document in the same folder. */
+export function uniqueFile(file, folder, documents, except) {
+  const taken = new Set(documents.filter(d => d.id !== except && (d.folder ?? null) === (folder ?? null)).map(d => (d.file ?? fileNameFor(d.name)).toLowerCase()));
+  if (!taken.has(file.toLowerCase())) return file;
+  for (let n = 2; ; n++) if (!taken.has(`${file} ${n}`.toLowerCase())) return `${file} ${n}`;
+}
+export function saveState({ documents, folders = [], trash = [] }) {
   if (!writable) return false;
-  try { localStorage.setItem(KEY, JSON.stringify({ documents, folders })); return true; } catch { return false; }
+  try { localStorage.setItem(KEY, JSON.stringify({ documents, folders, trash })); return true; } catch { return false; }
 }
 export const saveDocuments = documents => saveState({ documents });
 export function clearState() {
@@ -126,7 +138,15 @@ export function titleOf(text, fallback) {
   const heading = text.split("\n").find(l => /^#+\s+\S/.test(l));
   return heading ? heading.replace(/^#+\s+/, "").replace(/\s+:\w+$/, "").trim() : fallback;
 }
-export const uriOf = id => `file:///workspace/docs/${id}.wtf`;
+// Documents live in a virtual directory shaped like a synced folder on disk:
+// docs/<Folder name>/<File name>.wtf, so imports use the same relative paths
+// in the app, on disk, and through `wtf sync`.
+const segment = s => encodeURIComponent(s);
+export function uriOf(doc, folders = []) {
+  const folder = doc.folder ? folders.find(f => f.id === doc.folder) : null;
+  const dir = folder ? `${segment(fileNameFor(folder.name))}/` : "";
+  return `file:///workspace/docs/${dir}${segment(doc.file ?? fileNameFor(doc.name))}.wtf`;
+}
 
 // Appearance preferences are per browser and never block editing when unavailable.
 const DEFAULT_PREFS = { theme: "light", zoom: 100, outline: false, pageless: false, wordCount: false, console: false, consoleHeight: 260 };

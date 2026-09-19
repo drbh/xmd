@@ -36,7 +36,7 @@ $9:price
       },
       "name": "price",
       "value": {
-        "amount": 9.0,
+        "amount": 9,
         "currency": "USD",
         "type": "money"
       }
@@ -51,7 +51,7 @@ $9:price
         "value": "2026-09-16"
       },
       "name": "saved",
-      "value": 1.0
+      "value": 1
     },
     {
       "clock": {
@@ -63,7 +63,7 @@ $9:price
         "value": "2026-09-16"
       },
       "name": "rate",
-      "value": 3.0
+      "value": 3
     }
   ],
   "schemaVersion": 1,
@@ -259,7 +259,7 @@ answer := src.amount
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
-    42.0
+    42
   ],
   "schemaVersion": 1,
   "versions": {
@@ -279,7 +279,7 @@ amount := 77
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
-    77.0
+    77
   ],
   "schemaVersion": 1,
   "versions": {
@@ -292,7 +292,7 @@ amount := 77
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
-    42.0
+    42
   ],
   "schemaVersion": 1,
   "versions": {

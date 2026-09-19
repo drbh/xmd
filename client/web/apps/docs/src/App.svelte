@@ -1,7 +1,7 @@
 <script>
   import { onMount, untrack } from "svelte";
   import { createWorkspace } from "@wtf/web";
-  import { titleOf, uriOf, createDocument, createFolder, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
+  import { titleOf, uriOf as documentUri, createDocument, createFolder, fileNameFor, uniqueFile, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
   import { lineStyle, reveal, stats } from "./lib/editing.js";
@@ -16,11 +16,17 @@
   import Console from "./lib/Console.svelte";
   import Share from "./lib/Share.svelte";
   import Book from "./lib/Book.svelte";
+  import Keys from "./lib/Keys.svelte";
 
   let documents = $state([]);
   let folders = $state([]);
+  // A document's address in the engine follows its folder and file name.
+  const uriOf = d => documentUri(d, folders);
+  const byUri = uri => documents.find(d => uriOf(d) === uri);
   let thumbs = $state.raw({});
   let shareFolder = $state(null);
+  let keysOpen = $state(false);
+  let homeFolder = $state(null);
   let backends = $state.raw(null);
   const backend = $derived(backends?.backend);
   const account = $derived(backends?.cloud?.account ?? null);
@@ -44,7 +50,7 @@
   $effect(() => {
     // A room needs the document to exist on the server: wait for the first save (version) before joining.
     const id = activeId, persisted = active?.version !== undefined;
-    const session = untrack(() => backend?.collaborate && active && persisted ? backend.collaborate({ id, role: active.role }) : null);
+    const session = untrack(() => backend?.collaborate && active && persisted && active.role !== "link" ? backend.collaborate({ id, role: active.role }) : null);
     if (!session) { live = null; liveStatus = ""; people = []; return; }
     let current = null, cancelled = false, stops = [];
     session.then(s => {
@@ -58,7 +64,7 @@
   let titleInput = $state(null), sidebarOpenMobile = $state(false), accountMenu = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
   const counts = $derived(active ? stats(active.text) : null);
-  const readOnly = $derived(active?.role === "viewer" || liveStatus === "locked");
+  const readOnly = $derived(active?.role === "viewer" || active?.role === "link" || liveStatus === "locked");
   let online = $state(navigator.onLine);
   let update = $state(null);
   const symbolNames = $derived.by(() => { const out = new Set(); const walk = list => { for (const s of list) { if (/^[A-Za-z_]\w*$/.test(s.name)) out.add(s.name); walk(s.children || []); } }; walk(symbols); return [...out]; });
@@ -86,8 +92,15 @@
       });
       documents = await backend.list();
       folders = await backend.listFolders();
+      // Older documents have no file name yet; derive one, keeping names unique per folder.
+      for (const d of documents) if (!d.file) d.file = uniqueFile(fileNameFor(d.name), d.folder, documents, d.id);
+      // A file name follows the heading until someone renames the document on purpose.
+      for (const d of documents) if (!d.named && d.role !== "viewer" && d.role !== "editor" && fileNameFor(d.name) !== d.file) {
+        d.file = uniqueFile(fileNameFor(d.name), d.folder, documents, d.id);
+        backend.file?.($state.snapshot(d)).catch(() => {});
+      }
       if (backends.cloud?.account) localCount = (await backends.local.stored()).length;
-      for (const d of documents) await workspace.setDocument(uriOf(d.id), d.text);
+      for (const d of documents) await workspace.setDocument(uriOf(d), d.text);
       // Template thumbnails are the templates themselves, resolved by the engine
       // before any editor mounts, so nothing else is repainting meanwhile.
       const rendered = {};
@@ -109,23 +122,47 @@
   function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
   function route() {
     if (/^#\/book(\/|$)/.test(location.hash)) { view = "book"; activeId = null; return; }
+    const link = /^#\/s\/([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (link) { openShared(link[1]); return; }
     activeId = idFromHash();
     view = activeId ? "doc" : "home";
   }
   $effect(() => {
     if (!ready) return;
-    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : activeId ? `#/d/${activeId}` : "#/";
+    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : active?.role === "link" ? `#/s/${active.token}` : activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
   function onHashChange() { route(); }
-  function book() { view = "book"; activeId = null; find = null; dialog = null; }
+  function book() { const leaving = active; view = "book"; activeId = null; find = null; dialog = null; settleFile(leaving); }
+  // Leaving a document is when its file name catches up with its heading.
+  async function settleFile(d) {
+    if (!d || d.named || (d.role && d.role !== "owner")) return;
+    const wanted = fileNameFor(d.name);
+    if (wanted === d.file) return;
+    const before = uriOf(d);
+    d.file = uniqueFile(wanted, d.folder, documents, d.id);
+    await readdress(d, before);
+    await backend.file?.($state.snapshot(d)).catch(error);
+  }
   function open(id) {
     const d = documents.find(x => x.id === id);
     if (!d) return;
+    if (active && active.id !== id) settleFile(active);
     d.opened = Date.now();
     activeId = id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
   }
-  function home() { activeId = null; view = "home"; find = null; dialog = null; }
+  // A document shared by link: fetched without an account, shown read-only, never saved here.
+  async function openShared(token) {
+    try {
+      const module = await import(/* @vite-ignore */ new URL("./backend.js", document.baseURI).href);
+      const shared = await module.sharedDocument(token);
+      const d = { ...shared, token, folder: null, updated: shared.updated ?? Date.now() };
+      documents = [d, ...documents.filter(x => x.id !== d.id)];
+      await workspace.setDocument(uriOf(d), d.text);
+      activeId = d.id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
+    } catch (e) { view = "home"; activeId = null; notice = e.message || "This link no longer works"; }
+  }
+  function home() { const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving); }
 
   // Saving: edits are debounced, then handed to the backend one document at a
   // time. A conflict or unavailable store pauses saving for that document and
@@ -133,18 +170,19 @@
   let saveTimer, paused = $state(false);
   const dirty = new Set();
   function persist({ uri, source }) {
-    const document = documents.find(d => uriOf(d.id) === uri);
+    const document = byUri(uri);
     if (!document || document.text === source) return;
     document.text = source;
     document.name = titleOf(source, document.name);
     document.updated = Date.now();
     now = document.updated;
-    // A live document is saved by its room, so there is nothing to schedule.
-    if (live && live.id === document.id) return;
+    // A live document is saved by its room, so there is nothing to schedule; a linked one is not ours.
+    if ((live && live.id === document.id) || document.role === "link") return;
     schedule(document);
   }
   function schedule(document) {
     dirty.add(document.id);
+    if (saved !== "Saving…" && saved !== backend?.label) notice = ""; // a new edit clears an old error
     saved = "Saving…";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 300);
@@ -170,8 +208,11 @@
   async function newDocument(template = TEMPLATES[0], folder = null) {
     const d = createDocument(template, template.id === "blank" ? "Untitled document" : undefined);
     d.folder = folder;
+    d.file = uniqueFile(d.file, folder, documents);
+    // A second "Trip budget" is "Trip budget 2" in its heading too, so lists tell them apart.
+    if (d.file !== fileNameFor(d.name)) { d.text = d.text.replace(/^(#+\s+)(.*?)(\s+:\w+)?$/m, (m, hashes, _title, tag) => `${hashes}${d.file}${tag || ""}`); d.name = titleOf(d.text, d.file); }
     documents = [d, ...documents];
-    await workspace.setDocument(uriOf(d.id), d.text);
+    await workspace.setDocument(uriOf(d), d.text);
     schedule(d);
     open(d.id);
     // Land the caret on the empty line after the heading so typing starts immediately.
@@ -179,19 +220,27 @@
   }
   async function duplicate(d = active) {
     if (!d) return;
-    const copy = { ...createDocument({ text: d.text }), name: `Copy of ${d.name}` };
+    const copy = { ...createDocument({ text: d.text }), name: `Copy of ${d.name}`, folder: d.role && d.role !== "owner" ? null : d.folder ?? null };
+    copy.file = uniqueFile(`Copy of ${d.file ?? fileNameFor(d.name)}`, copy.folder, documents);
     documents = [copy, ...documents];
-    await workspace.setDocument(uriOf(copy.id), copy.text);
+    await workspace.setDocument(uriOf(copy), copy.text);
     schedule(copy);
     open(copy.id);
   }
   async function remove(d = active) {
-    if (!d || !confirm(`Remove "${d.name}"? This cannot be undone.`)) return;
+    if (!d || !confirm(`Move "${d.name}" to the trash?`)) return;
     documents = documents.filter(x => x.id !== d.id);
     if (activeId === d.id) home();
     dirty.delete(d.id);
     backend.delete(d.id).catch(error);
-    try { await rpc("removeDocument", { uri: uriOf(d.id) }); } catch { /* the workspace may not know it yet */ }
+    try { await rpc("removeDocument", { uri: uriOf(d) }); } catch { /* the workspace may not know it yet */ }
+  }
+  // Re-address a document in the engine after its file name or folder changes.
+  async function readdress(d, before) {
+    const after = uriOf(d);
+    if (after === before) return;
+    try { await rpc("removeDocument", { uri: before }); } catch { /* not open yet */ }
+    await workspace.setDocument(after, d.text);
   }
   function download(d = active) {
     if (!d) return;
@@ -208,7 +257,8 @@
       const text = await file.text();
       const d = createDocument({ text }, titleOf(text, file.name.replace(/\.wtf$/, "")));
       documents = [d, ...documents];
-      await rpc("setDocument", { uri: uriOf(d.id), text, version: 1 });
+      d.file = uniqueFile(fileNameFor(d.name), null, documents);
+      await workspace.setDocument(uriOf(d), text);
       dirty.add(d.id);
       last = d.id;
     }
@@ -226,6 +276,7 @@
       if (name === null) return;
     }
     name = name.trim() || "Untitled document";
+    const before = uriOf(d);
     const lines = d.text.split("\n");
     const at = lines.findIndex(l => /^#+\s+\S/.test(l));
     if (at !== -1) {
@@ -234,11 +285,26 @@
       const next = `${m[1]}${name}${m[3] || ""}`;
       const start = lines.slice(0, at).reduce((n, l) => n + l.length + 1, 0);
       if (d.id === activeId && controller) await controller.replaceRange(start, start + line.length, next, { anchor: start + next.length }).catch(error);
-      else { lines[at] = next; d.text = lines.join("\n"); await workspace.setDocument(uriOf(d.id), d.text); }
+      else { lines[at] = next; d.text = lines.join("\n"); await workspace.setDocument(before, d.text); }
     }
-    d.name = name; d.updated = Date.now();
+    // An explicit rename also renames the file, which is what imports refer to.
+    const wanted = fileNameFor(name);
+    d.name = name; d.file = uniqueFile(wanted, d.folder, documents, d.id); d.named = true; d.updated = Date.now();
+    if (d.file !== wanted) notice = `Another document here is already called “${wanted}”, so this one's file is “${d.file}”.`;
+    await readdress(d, before);
     dirty.add(d.id);
-    flush();
+    await flush();
+    if (backend.file) await backend.file($state.snapshot(d)).catch(error);
+  }
+  // Trash: a removed document comes back with a free file name, into its folder if that still exists.
+  async function restore(d) {
+    try {
+      const result = await backend.trash.restore(d.id);
+      const back = { ...d, folder: result.folder ?? null, file: result.file ?? d.file, deleted: undefined, role: d.role ?? "owner" };
+      documents = [back, ...documents];
+      await workspace.setDocument(uriOf(back), back.text);
+      notice = `Restored “${back.name}”.`;
+    } catch (e) { error(e); }
   }
   // Folders group documents; sharing a folder shares everything in it.
   async function newFolder(name = prompt("Folder name")) {
@@ -251,17 +317,24 @@
   async function renameFolder(f, name = prompt("Rename folder", f.name)) {
     name = (name ?? "").trim();
     if (!name || name === f.name) return;
+    const inside = documents.filter(d => d.folder === f.id).map(d => [d, uriOf(d)]);
     f.name = name; f.updated = Date.now();
     await backend.saveFolder($state.snapshot(f)).catch(error);
+    for (const [d, before] of inside) await readdress(d, before);
   }
   async function deleteFolder(f) {
     if (!confirm(`Delete the folder "${f.name}"? Its documents stay and are just unfiled.`)) return;
+    const inside = documents.filter(d => d.folder === f.id).map(d => [d, uriOf(d)]);
     folders = folders.filter(x => x.id !== f.id);
-    for (const d of documents) if (d.folder === f.id) d.folder = null;
+    for (const [d] of inside) { d.folder = null; d.file = uniqueFile(d.file, null, documents, d.id); }
     await backend.deleteFolder(f.id).catch(error);
+    for (const [d, before] of inside) await readdress(d, before);
   }
   async function moveDocument(d, folder) {
+    const before = uriOf(d);
     d.folder = folder;
+    d.file = uniqueFile(d.file ?? fileNameFor(d.name), folder, documents, d.id);
+    await readdress(d, before);
     await backend.file($state.snapshot(d)).catch(error);
   }
   // Documents saved in this browser before signing in can move to the account.
@@ -270,12 +343,12 @@
       const local = await backends.local.stored();
       for (let d of local) {
         if (documents.some(x => x.id === d.id)) continue;
-        d = { ...d, folder: null, version: undefined };
+        d = { ...d, folder: null, version: undefined, file: uniqueFile(d.file ?? fileNameFor(d.name), null, documents) };
         // An id the account cannot write to (taken elsewhere) gets a fresh one.
         try { await backends.cloud.save(d); }
         catch { d = { ...d, id: crypto.randomUUID() }; await backends.cloud.save(d); }
         documents = [d, ...documents];
-        await workspace.setDocument(uriOf(d.id), d.text);
+        await workspace.setDocument(uriOf(d), d.text);
       }
       await backends.local.clear();
       localCount = 0;
@@ -312,6 +385,7 @@
     find: replace => (find = { replace }),
     dialog: name => (dialog = name),
     canShare: () => !!backend?.acl,
+    readOnly: () => readOnly,
     book,
   });
   function keydown(event) {
@@ -341,6 +415,9 @@
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onwtf:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
 <input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
 
+{#if keysOpen && backend?.keys}
+  <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (keysOpen = false)} />
+{/if}
 {#if shareFolder && backend?.folderAcl}
   <Share acl={backend.folderAcl(shareFolder.id)} name={shareFolder.name} kind="folder" onClose={() => (shareFolder = null)} />
 {/if}
@@ -349,7 +426,7 @@
 {:else if view === "book"}
   <Book {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
 {:else if !active}
-  <Home {documents} {folders} {thumbs} {engine} {notice} {theme} {account} onBook={book} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+  <Home {documents} {folders} {thumbs} {engine} {notice} bind:current={homeFolder} onDismiss={() => (notice = "")} trash={backend?.trash} onRestore={restore} {theme} {account} onBook={book} onKeys={backend?.keys ? () => (keysOpen = true) : null} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
   <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">
@@ -357,11 +434,14 @@
         <button type="button" class="logo" title="Back to documents" aria-label="Documents home" onclick={home}><Icon name="doc" size={26} /></button>
         <div class="title-block">
           <div class="title-row">
+            {#if active.folder && folders.some(f => f.id === active.folder)}
+              <button type="button" class="crumb" title="Open folder" onclick={() => { const f = active.folder; home(); homeFolder = f; }}><Icon name="folder" size={14} /> {folders.find(f => f.id === active.folder).name}<span class="crumb-sep">›</span></button>
+            {/if}
             <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false" readonly={readOnly}
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
-              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
+              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : active.role === "link" ? `Shared by ${active.owner} · view only` : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
             {#if !online}
               <span class="live off" title="Working offline. Changes are kept on this device and sent when the network returns."><span class="dot"></span><span>Offline</span></span>
@@ -395,6 +475,7 @@
                   <hr>
                   <button type="button" role="menuitem" onclick={() => { accountMenu = false; home(); }}><span class="mark"></span><span class="label">All documents</span></button>
                   <button type="button" role="menuitem" onclick={() => { accountMenu = false; download(); }}><span class="mark"></span><span class="label">Download this document</span></button>
+                  {#if backend?.keys}<button type="button" role="menuitem" onclick={() => { accountMenu = false; dialog = "keys"; }}><span class="mark"></span><span class="label">API keys…</span></button>{/if}
                   <button type="button" role="menuitem" onclick={() => backends.cloud.signOut()}><span class="mark"></span><span class="label">Sign out</span></button>
                 </div>
               {/if}
@@ -424,8 +505,8 @@
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
       <main class="canvas" onclick={e => { if (e.target === e.currentTarget && controller) { controller.select(controller.getSource().length); } }}>
         {#if ready}
-          {#key active.id}
-            <Editor {workspace} uri={uriOf(active.id)} text={active.text} {readOnly} {live}
+          {#key uriOf(active)}
+            <Editor {workspace} uri={uriOf(active)} text={active.text} {readOnly} {live}
               onSnapshot={(snapshot, list) => { symbols = snapshot.symbols || []; problems = list; engineVersion = snapshot.engineVersion || ""; }}
               {onCaret} onError={error} bind:controller />
           {/key}
@@ -435,7 +516,7 @@
       </main>
     </div>
 
-    {#if prefs.console}<Console {rpc} uri={uriOf(active.id)} names={symbolNames} bind:height={prefs.consoleHeight} onClose={() => { prefs.console = false; controller?.element.focus(); }} />{/if}
+    {#if prefs.console}<Console {rpc} uri={uriOf(active)} names={symbolNames} bind:height={prefs.consoleHeight} onClose={() => { prefs.console = false; controller?.element.focus(); }} />{/if}
     {#if find}<FindBar {controller} replace={find.replace} onClose={at => { find = null; controller?.select(at); }} />{/if}
     {#if prefs.wordCount && counts}<button type="button" class="chip words" title="Word count" onclick={() => (dialog = "stats")}>{counts.words} words</button>{/if}
     {#if problems.length}<button type="button" class="chip problems-chip" onclick={() => (dialog = "problems")}><Icon name="warning" size={14} /> {problems.length} problem{problems.length === 1 ? "" : "s"}</button>{/if}
@@ -459,7 +540,21 @@
         <label class="option"><input type="checkbox" bind:checked={prefs.wordCount}> Display word count while typing</label>
       </Dialog>
     {:else if dialog === "share" && backend?.acl}
-      <Share acl={backend.acl(active.id)} name={active.name} onClose={() => (dialog = null)} />
+      <Share acl={backend.acl(active.id)} link={backend.link?.(active.id)} name={active.name} onClose={() => (dialog = null)} />
+    {:else if dialog === "keys" && backend?.keys}
+      <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (dialog = null)} />
+    {:else if dialog === "details"}
+      <Dialog title="Document details" onClose={() => (dialog = null)}>
+        <table class="stats"><tbody>
+          <tr><td>File</td><td><code>{active.file}.wtf</code></td></tr>
+          <tr><td>Folder</td><td>{folders.find(f => f.id === active.folder)?.name ?? "—"}</td></tr>
+          <tr><td>Import as</td><td><code>import("./{active.file}.wtf")</code></td></tr>
+          <tr><td>Your access</td><td>{active.role ?? "owner"}{#if active.owner && active.role !== "owner"} · shared by {active.owner}{/if}</td></tr>
+          <tr><td>Last edit</td><td>{new Date(active.updated).toLocaleString()}</td></tr>
+          <tr><td>Link</td><td><code>{location.href.replace(/\?test/, "")}</code></td></tr>
+        </tbody></table>
+        <p class="muted">The file name is what other documents and <code>wtf sync</code> use; it follows the first heading until you rename the document yourself.</p>
+      </Dialog>
     {:else if dialog === "problems"}
       <Dialog title="Problems" onClose={() => (dialog = null)}>
         {#if problems.length}

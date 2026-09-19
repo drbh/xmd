@@ -7,6 +7,7 @@
 /client/web/apps/*/node_modules/
 /client/web/apps/*/dist/
 /client/web/dist/
+/client/web/media/
 /client/web/*.tgz
 /client/web/test-results/
 /client/web/playwright-report/
@@ -17,3 +18,6 @@
 output
 .hidden
 /client/web/cloud/.wrangler/
+.env
+
+.DS_Store

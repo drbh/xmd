@@ -53,3 +53,23 @@ async function verify(token, env) {
   if (!claims.sub || !claims.email) throw new Error("Missing identity");
   return claims;
 }
+
+/** A person from an API key (`Authorization: Bearer wtf_…`), or null. */
+export async function authenticateKey(request, env) {
+  const header = request.headers.get("authorization") || "";
+  const m = /^Bearer\s+(wtf_[A-Za-z0-9_-]{20,})$/.exec(header);
+  if (!m) return null;
+  const hash = await sha256(m[1]);
+  const row = await env.DB.prepare("SELECT k.id AS key_id, u.id, u.email, u.name FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.hash = ?1 AND k.revoked_at IS NULL").bind(hash).first();
+  if (!row) return null;
+  await env.DB.prepare("UPDATE api_keys SET last_used_at = ?1 WHERE id = ?2").bind(Date.now(), row.key_id).run();
+  return { id: row.id, email: row.email, name: row.name, viaKey: row.key_id };
+}
+export async function sha256(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+export function newKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return "wtf_" + btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}

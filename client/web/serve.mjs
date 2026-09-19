@@ -18,7 +18,9 @@ const server = http.createServer(async (request, response) => {
     const file = resolve(root, `.${path.endsWith("/") ? path + "index.html" : path}`);
     if (!file.startsWith(resolve(root) + sep) || !types[extname(file)]) { response.writeHead(403).end(); return; }
     const body = await readFile(file);
-    response.writeHead(200, { "Content-Type": types[extname(file)], "Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff" });
+    // lib/ is a library other sites may load from here.
+    const cors = path.startsWith("/lib/") ? { "Access-Control-Allow-Origin": "*" } : {};
+    response.writeHead(200, { "Content-Type": types[extname(file)], "Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff", ...cors });
     response.end(request.method === "HEAD" ? undefined : body);
   } catch { response.writeHead(404).end("Not found. Run npm --prefix client/web run build first."); }
 });

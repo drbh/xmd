@@ -581,7 +581,7 @@
   "result": {
     "now": "2026-09-18T12:00:00+00:00",
     "rows": [
-      3.0
+      3
     ],
     "schemaVersion": 1,
     "versions": {
@@ -899,7 +899,7 @@
   "result": {
     "now": "2026-09-18T12:00:00+00:00",
     "rows": [
-      3.0
+      3
     ],
     "schemaVersion": 1,
     "versions": {

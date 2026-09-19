@@ -7,7 +7,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{
     collections::BTreeSet,
     ffi::OsString,
-    io::{self, Read, Write},
+    io::{self, IsTerminal, Read, Write},
     path::PathBuf,
 };
 
@@ -15,18 +15,28 @@ use std::{
 #[command(
     name = "wtf",
     version,
-    about = "Reactive notes with a typed workspace query API. No arguments starts the language server."
+    about = "Reactive notes with a typed workspace query API. The default command is a query: name a note or pipe one in.",
+    args_conflicts_with_subcommands = true,
+    subcommand_negates_reqs = true,
+    override_usage = "wtf [OPTIONS] <QUERY>                (note on stdin)\n       wtf [OPTIONS] <FILE> <QUERY>\n       wtf [OPTIONS] --workspace <QUERY>\n       wtf <COMMAND> ...",
+    after_help = "Examples: cat note.wtf | wtf 'total'\n          wtf note.wtf 'tasks | where !done' --json\n          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          wtf lsp   # the language server, for editors\nRun `wtf query --help` for the query bindings, functions and stages."
 )]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Command>,
+    #[command(flatten)]
+    pub query: QueryOptions,
 }
 #[derive(Subcommand)]
 pub enum Command {
-    /// Start the language server over stdin/stdout (also the default).
+    /// Start the language server over stdin/stdout (for editor integrations).
     Lsp,
     /// Query tasks, values, tables, plans, resources and diagnostics.
-    #[command(alias = "q")]
+    #[command(
+        alias = "q",
+        override_usage = "wtf query [OPTIONS] <QUERY>                (note on stdin)\n       wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] --workspace <QUERY>",
+        after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          cat note.wtf | wtf query 'length(tasks)'\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query note.wtf -"
+    )]
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
     Render(RenderOptions),
@@ -39,22 +49,16 @@ pub enum Command {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
+    /// Keep a directory of notes in step with a folder in the web app.
+    Sync(crate::hosts::sync::SyncOptions),
 }
 #[derive(Args)]
-#[command(
-    override_usage = "wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] --workspace <QUERY>",
-    after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin.\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query note.wtf -"
-)]
 pub struct QueryOptions {
-    /// A note relative to --root, or the query expression when --workspace is set.
+    /// A note relative to --root, or the query itself when the note is piped in or --workspace is set.
     #[arg(value_name = "FILE_OR_QUERY")]
-    pub input: OsString,
+    pub input: Option<OsString>,
     /// A functional expression or collection pipeline; use - for stdin.
-    #[arg(
-        value_name = "QUERY",
-        required_unless_present = "workspace",
-        conflicts_with = "workspace"
-    )]
+    #[arg(value_name = "QUERY", conflicts_with = "workspace")]
     pub source: Option<String>,
     /// Query all indexed notes instead of supplying a positional note file.
     #[arg(long)]
@@ -162,6 +166,7 @@ pub async fn run(command: Command) -> Result<(), String> {
         Command::Render(options) => render_command(options),
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
+        Command::Sync(options) => crate::hosts::sync::run(options),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -180,47 +185,80 @@ fn inspect_command(view: &str, mut options: InspectOptions) -> Result<(), String
     options.output.json = !options.output.jsonl;
     run_query(
         options.query.unwrap_or_else(|| view.into()),
-        Some(options.file),
+        Some(Note::File(options.file)),
         options.output,
     )
 }
-fn query_command(options: QueryOptions) -> Result<(), String> {
-    let (within, mut source) = if options.workspace {
-        (
-            None,
-            options
-                .input
-                .into_string()
-                .map_err(|_| "Query must be UTF-8")?,
-        )
+/// The note a query runs against: one saved file, or the text piped to stdin.
+pub(crate) enum Note {
+    File(PathBuf),
+    Piped(String),
+}
+/// Notes read from stdin are capped at the 1 MB the browser host allows.
+const MAX_PIPED_NOTE: usize = 1_000_000;
+/// The synthetic path a piped note is filed under, inside `--root` so its
+/// relative imports and `.wtf/modules.json` resolve like a saved note's.
+pub(crate) const PIPED_NOTE_NAME: &str = "<stdin>.wtf";
+
+pub(crate) fn query_command(options: QueryOptions) -> Result<(), String> {
+    let input = options
+        .input
+        .ok_or("Supply a query expression: wtf 'total' < note.wtf")?;
+    let (note, mut source) = if options.workspace {
+        (None, into_query(input)?)
+    } else if let Some(source) = options.source {
+        (Some(Note::File(PathBuf::from(input))), source)
+    } else if io::stdin().is_terminal() {
+        return Err("Supply a note file, or pipe one in: cat note.wtf | wtf 'total'".into());
     } else {
-        (
-            Some(PathBuf::from(options.input)),
-            options.source.ok_or("Supply a query expression")?,
-        )
+        (Some(Note::Piped(read_piped_note()?)), into_query(input)?)
     };
     if source == "-" {
+        if matches!(note, Some(Note::Piped(_))) {
+            return Err("Stdin is already the note; pass the query as an argument".into());
+        }
         source.clear();
         io::stdin()
             .take(65_537)
             .read_to_string(&mut source)
             .map_err(|e| e.to_string())?;
     }
-    run_query(source, within, options.output)
+    run_query(source, note, options.output)
 }
-fn run_query(source: String, within: Option<PathBuf>, options: QueryOutput) -> Result<(), String> {
+fn into_query(input: OsString) -> Result<String, String> {
+    input
+        .into_string()
+        .map_err(|_| "Query must be UTF-8".into())
+}
+fn read_piped_note() -> Result<String, String> {
+    let mut text = String::new();
+    io::stdin()
+        .take(MAX_PIPED_NOTE as u64 + 1)
+        .read_to_string(&mut text)
+        .map_err(|e| format!("Reading the note from stdin: {e}"))?;
+    if text.len() > MAX_PIPED_NOTE {
+        return Err("Notes from stdin are limited to 1 MB".into());
+    }
+    Ok(text)
+}
+fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result<(), String> {
     let compiled = query::Query::parse(&source)?;
     let now = request_time(options.on, options.now)?;
     let root = std::fs::canonicalize(options.root).map_err(|e| e.to_string())?;
-    let only = within
-        .map(|file| {
+    let (only, mut workspace) = match note {
+        Some(Note::File(file)) => {
             let path = root.join(file);
-            std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))
-        })
-        .transpose()?;
-    let mut workspace = match &only {
-        Some(path) => Workspace::load_file(vec![root], path)?,
-        None => Workspace::load(vec![root])?,
+            let path =
+                std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let workspace = Workspace::load_file(vec![root], &path)?;
+            (Some(path), workspace)
+        }
+        Some(Note::Piped(text)) => {
+            let path = root.join(PIPED_NOTE_NAME);
+            let workspace = Workspace::load_source(vec![root], &path, text)?;
+            (Some(path), workspace)
+        }
+        None => (None, Workspace::load(vec![root])?),
     };
     compiled.load_imports(&mut workspace, only.as_deref());
     let result = crate::RequestContext::new(&workspace, now).query(&compiled, only.as_deref())?;

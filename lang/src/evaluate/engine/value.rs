@@ -97,6 +97,48 @@ pub fn is_code(name: &str) -> bool {
     (name.len() == 1 || (3..=5).contains(&name.len()))
         && name.bytes().all(|b| b.is_ascii_uppercase())
 }
+/// A code a note writes bare: a currency (USD), a ticker (NVDA), a temperature
+/// unit (F). The shape is decided once, where the note is parsed, instead of
+/// being read back out of a string at every lookup.
+///
+/// A code is still *text* to a note: it displays as its letters, `type` calls
+/// it Text, and it compares and concatenates with text, because that is what
+/// notes and the stdlib already rely on. What it adds is that the evaluator
+/// can tell a code from a string that happens to be uppercase.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Code {
+    letters: [u8; 5],
+    length: u8,
+}
+impl Code {
+    pub fn parse(name: &str) -> Option<Self> {
+        is_code(name).then(|| {
+            let mut letters = [0; 5];
+            letters[..name.len()].copy_from_slice(name.as_bytes());
+            Code {
+                letters,
+                length: name.len() as u8,
+            }
+        })
+    }
+    pub fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.letters[..self.length as usize]).unwrap_or("???")
+    }
+    /// The ISO 4217 currency this code names, if it names one.
+    pub fn currency(self) -> Option<Currency> {
+        Currency::parse(self.as_str())
+    }
+}
+impl std::fmt::Display for Code {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+impl std::fmt::Debug for Code {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Code({})", self.as_str())
+    }
+}
 /// The kind of a value, named exactly as a note or query sees it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ValueType {
@@ -189,6 +231,8 @@ pub enum Value {
     DateTime(DateTime<FixedOffset>),
     Bool(bool),
     Text(String),
+    /// An uppercase code literal: text, with its shape already known.
+    Code(Code),
     Resource(Resource),
     Tasks(Vec<TaskKey>),
     Timer(std::sync::Arc<Timer>),
@@ -252,7 +296,8 @@ impl Value {
             Self::Date(_) => ValueType::Date,
             Self::DateTime(_) => ValueType::DateTime,
             Self::Bool(_) => ValueType::Boolean,
-            Self::Text(_) => ValueType::Text,
+            // A code is a kind of text, and notes compare `type` against it.
+            Self::Text(_) | Self::Code(_) => ValueType::Text,
             Self::Resource(_) => ValueType::Resource,
             Self::Tasks(_) => ValueType::Checklist,
             Self::Timer(t) if t.limit.is_some() => ValueType::Countdown,
@@ -301,6 +346,7 @@ impl Value {
             Self::DateTime(d) => d.to_rfc3339(),
             Self::Bool(b) => b.to_string(),
             Self::Text(s) => serde_json::to_string(s).ok()?,
+            Self::Code(code) => serde_json::to_string(code.as_str()).ok()?,
             _ => return None,
         })
     }
@@ -340,6 +386,7 @@ impl Value {
             Self::DateTime(d) => d.format("%Y-%m-%d %H:%M:%S %:z").to_string(),
             Self::Bool(b) => b.to_string(),
             Self::Text(s) => s.clone(),
+            Self::Code(code) => code.as_str().into(),
             Self::Resource(r) => r.target.clone(),
             Self::Tasks(t) => format!("{} tasks", t.len()),
             Self::Timer(t) => t.display(),
@@ -352,6 +399,14 @@ impl Value {
             Self::Date(d) => Ok(*d),
             Self::DateTime(d) => Ok(d.with_timezone(&Local).date_naive()),
             _ => Err(EvalError::Expected("a date or appointment time")),
+        }
+    }
+    /// The same value with a code spelled out as text, which is how every
+    /// operation but a lookup sees one.
+    pub(crate) fn plain(self) -> Self {
+        match self {
+            Self::Code(code) => Self::Text(code.as_str().into()),
+            other => other,
         }
     }
     pub(super) fn scalar(&self) -> Option<f64> {

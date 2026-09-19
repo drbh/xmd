@@ -23,7 +23,7 @@ pub use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::{Expr, Parser, expression_names, is_builtin_function, lex_with_comments};
 pub use syntax::{Lexeme, Token, lex, simple_name, sum_scope_at, timer_arguments};
 pub use value::{
-    Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code,
+    Code, Currency, Forecast, TaskKey, Value, ValueType, date_value, decimal, duration, is_code,
     is_relative_date, literal, next_occurrence, relative_date,
 };
 #[derive(Clone, Debug)]
@@ -192,7 +192,7 @@ impl<'a> Engine<'a> {
     ) -> EvalResult<Value> {
         let height = self.frames.len();
         self.frames.push(Frame::Bindings(Some(bindings)));
-        let result = self.expr(path, expr);
+        let result = self.expr(path, expr).map(Value::plain);
         self.frames.truncate(height);
         result
     }
@@ -309,7 +309,8 @@ impl<'a> Engine<'a> {
             .map(Ok)
             .unwrap_or_else(|| Parser::parse(expression));
         let result = match parsed {
-            Ok(expr) => self.expr(path, &expr),
+            // A code never outlives the expression it was written in.
+            Ok(expr) => self.expr(path, &expr).map(Value::plain),
             Err(message) => {
                 let tokens = lex(expression).unwrap_or_default();
                 let bounds = tokens
@@ -605,15 +606,18 @@ impl<'a> Engine<'a> {
             }
         }
     }
-    /// Every argument of a call or list, left to right.
+    /// Every argument of a call or list, left to right. A code spells itself
+    /// out here: only a lookup, which reads its arguments itself, wants one.
     pub(crate) fn values(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Vec<Value>> {
-        args.iter().map(|e| self.expr(path, e)).collect()
+        args.iter()
+            .map(|e| self.expr(path, e).map(Value::plain))
+            .collect()
     }
     fn record(&mut self, path: &Path, fields: &[(String, Expr)]) -> EvalResult<Value> {
         let value = Value::Record(
             fields
                 .iter()
-                .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?)))
+                .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?.plain())))
                 .collect::<EvalResult<BTreeMap<_, _>>>()?,
         );
         sized(value)
@@ -657,7 +661,6 @@ impl<'a> Engine<'a> {
             "null" => return Ok(Value::Null),
             "true" => return Ok(Value::Bool(true)),
             "false" => return Ok(Value::Bool(false)),
-            code if is_code(code) => return Ok(Value::Text(code.to_string())),
             _ => (),
         }
         if let Some(value) = self.local(n) {

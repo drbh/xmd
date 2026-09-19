@@ -188,7 +188,7 @@ impl Engine<'_> {
                 "import expects a module ID or a literal note path".into(),
             ));
         };
-        let Value::Text(id) = self.expr(path, arg)? else {
+        let Value::Text(id) = self.expr(path, arg)?.plain() else {
             return Err(EvalError::Message("import expects text".into()));
         };
         if crate::model::imports::is_note_path(&id) {
@@ -250,10 +250,7 @@ impl Engine<'_> {
     }
     /// `stopwatch(…)` and `countdown(…)`: the timer module resolves the state.
     fn call_timer(&mut self, path: &Path, builtin: Builtin, args: &[Expr]) -> EvalResult<Value> {
-        let values = args
-            .iter()
-            .map(|a| self.expr(path, a))
-            .collect::<Result<Vec<_>, _>>()?;
+        let values = self.values(path, args)?;
         let time_dependent = self.time_dependent;
         let timer = Timer::new(self, builtin.as_str(), &values)?;
         // The module declares whether this resolved state still needs a clock.
@@ -271,7 +268,7 @@ impl Engine<'_> {
         if args.len() != 1 {
             return Err(EvalError::Arity(builtin));
         }
-        let value = self.expr(path, &args[0])?;
+        let value = self.expr(path, &args[0])?.plain();
         if builtin == Builtin::Date {
             return match value {
                 Value::Text(s) => date_value(&s)
@@ -477,7 +474,10 @@ impl Engine<'_> {
     /// Rows of a table, evaluating calculated cells and checking that each
     /// column keeps one type. Failures point at the offending cell.
     fn lookup(&mut self, path: &Path, name: Builtin, args: &[Expr]) -> EvalResult<Value> {
+        // A code literal is what these calls are written with; text is still
+        // accepted, so a computed name works too.
         let code = |value: Value, what: &str| match value {
+            Value::Code(code) => Ok(code.to_string()),
             Value::Text(code) => Ok(code),
             other => Err(EvalError::Message(format!(
                 "{what} must be a code such as USD, found {}",

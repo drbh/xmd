@@ -1,6 +1,8 @@
 //! Syntax: the lexer, the expression tree, and the tolerant source scans the
 //! editor features read without evaluating anything.
-use super::{BinaryOp, Builtin, Currency, Operator, UnaryOp, Value, date_value, is_code, literal};
+use super::{
+    BinaryOp, Builtin, Code, Currency, Operator, UnaryOp, Value, date_value, is_code, literal,
+};
 use std::collections::BTreeSet;
 #[derive(Clone, Debug)]
 pub enum Lexeme {
@@ -574,8 +576,12 @@ impl Parser {
         self.depth -= 1;
         Ok(lhs)
     }
-    /// A bare name, resolved to a parameter slot when it names one.
+    /// A bare name: an uppercase code is a literal, and a name that spells a
+    /// parameter of the enclosing lambda is resolved to its slot.
     fn name(&self, name: String) -> Expr {
+        if let Some(code) = Code::parse(&name) {
+            return Expr::Value(Value::Code(code));
+        }
         match self.parameters.iter().position(|p| *p == name) {
             Some(index) => Expr::Param { name, index },
             None => Expr::Name(name),

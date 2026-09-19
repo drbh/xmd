@@ -228,6 +228,9 @@ impl std::fmt::Display for UnaryOp {
 }
 pub(crate) fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
     use Value::*;
+    // An operator sees a code as the text it spells, so `USD == "USD"` holds
+    // and a code concatenates like any other text.
+    let (a, b) = (a.plain(), b.plain());
     if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) {
         let equal = a
             .scalar()

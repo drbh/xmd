@@ -1,0 +1,815 @@
+### 0 cli render feeds.wtf --format text
+$ wtf render feeds.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+# Feeds
+https://example.com/blog/feed.xml ◌ feed (refresh):blog ◌ feed (refresh)
+https://notes.example.org/atom ◌ feed (refresh):notes ◌ feed (refresh)
+https://broken.example.net/rss ◌ feed (refresh):broken ◌ feed (refresh)
+Newest post: [blog.latest] ([blog.updated]), [blog.count] in the archive.
+The blog lives at [blog.link], titled [blog.title].
+Notes: [notes.latest] updated [notes.updated].
+Titles: [map(blog.items, fn(i) => i.title)]
+Dates: [map(blog.items, fn(i) => i.published)]
+--- stderr
+<root>/feeds.wtf:5:20: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:5:35: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:5:52: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:6:25: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:6:45: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:7:15: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:7:38: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:8:14: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.wtf:9:13: warning: Module rss.property: No cached feed; run wtf refresh
+
+### 1 cli query feeds.wtf diagnostics | select {message, code} --json
+$ wtf query feeds.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "property",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "evaluation",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  },
+  {
+    "code": "evaluation",
+    "message": "Module rss.property: No cached feed; run wtf refresh"
+  }
+]
+
+### 2 cli refresh
+$ wtf refresh --root <root>
+exit 1
+--- stderr
+wtf: https://broken.example.net/rss: Not an RSS or Atom feed
+
+### 3 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://example.com/blog/feed.xml": {
+    "title": "Typed & Notes",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "rss:1",
+    "data": {
+      "count": 3,
+      "items": [
+        {
+          "link": "https://example.com/blog/typed-notes",
+          "published": "2026-09-14T09:30:00Z",
+          "summary": "Why a note should compute",
+          "title": "Typed notes"
+        },
+        {
+          "link": "https://example.com/blog/dates",
+          "published": "2026-09-01T12:00:00Z",
+          "summary": "Relative dates, plainly.",
+          "title": "Dates & durations"
+        },
+        {
+          "link": "https://example.com/blog/older",
+          "published": "2025-08-15T12:00:00Z",
+          "summary": null,
+          "title": "An older post"
+        }
+      ],
+      "latest": "Typed notes",
+      "latest_link": "https://example.com/blog/typed-notes",
+      "link": "https://example.com/blog",
+      "title": "Typed & Notes",
+      "updated": "2026-09-14T09:30:00Z"
+    }
+  },
+  "https://notes.example.org/atom": {
+    "title": "Field Notes",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "<clock>",
+    "provider": "rss:1",
+    "data": {
+      "count": 2,
+      "items": [
+        {
+          "link": "https://notes.example.org/feeds",
+          "published": "2026-09-15T07:45:00Z",
+          "summary": "The host parses, the module decodes.",
+          "title": "Reading a feed — natively"
+        },
+        {
+          "link": "https://notes.example.org/tags",
+          "published": "2026-08-30T17:00:00Z",
+          "summary": null,
+          "title": "Unclosed <tags> happen"
+        }
+      ],
+      "latest": "Reading a feed — natively",
+      "latest_link": "https://notes.example.org/feeds",
+      "link": "https://notes.example.org/",
+      "title": "Field Notes",
+      "updated": "2026-09-15T07:45:00Z"
+    }
+  }
+}
+
+### 4 cli render feeds.wtf --format text
+$ wtf render feeds.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+# Feeds
+https://example.com/blog/feed.xml ▸ Typed notes · just now · 3 items:blog ▸ Typed notes · just now · 3 items
+https://notes.example.org/atom ▸ Reading a feed — natively · just now · 2 items:notes ▸ Reading a feed — natively · just now · 2 items
+https://broken.example.net/rss ◌ feed (refresh):broken ◌ feed (refresh)
+Newest post: [blog.latest] Typed notes ([blog.updated] 2026-09-14 09:30:00 +00:00), [blog.count] 3 in the archive.
+The blog lives at [blog.link] https://example.com/blog, titled [blog.title] Typed & Notes.
+Notes: [notes.latest] Reading a feed — natively updated [notes.updated] 2026-09-15 07:45:00 +00:00.
+Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations", "An older post"]
+Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
+
+### 5 cli query feeds.wtf resources | select {target, metadata} --json
+$ wtf query feeds.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "count": 3,
+        "items": [
+          {
+            "link": "https://example.com/blog/typed-notes",
+            "published": "2026-09-14T09:30:00Z",
+            "summary": "Why a note should compute",
+            "title": "Typed notes"
+          },
+          {
+            "link": "https://example.com/blog/dates",
+            "published": "2026-09-01T12:00:00Z",
+            "summary": "Relative dates, plainly.",
+            "title": "Dates & durations"
+          },
+          {
+            "link": "https://example.com/blog/older",
+            "published": "2025-08-15T12:00:00Z",
+            "summary": null,
+            "title": "An older post"
+          }
+        ],
+        "latest": "Typed notes",
+        "latest_link": "https://example.com/blog/typed-notes",
+        "link": "https://example.com/blog",
+        "title": "Typed & Notes",
+        "updated": "2026-09-14T09:30:00Z"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "provider": "rss:1",
+      "review": null,
+      "state": "",
+      "title": "Typed & Notes"
+    },
+    "target": "https://example.com/blog/feed.xml"
+  },
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "count": 2,
+        "items": [
+          {
+            "link": "https://notes.example.org/feeds",
+            "published": "2026-09-15T07:45:00Z",
+            "summary": "The host parses, the module decodes.",
+            "title": "Reading a feed — natively"
+          },
+          {
+            "link": "https://notes.example.org/tags",
+            "published": "2026-08-30T17:00:00Z",
+            "summary": null,
+            "title": "Unclosed <tags> happen"
+          }
+        ],
+        "latest": "Reading a feed — natively",
+        "latest_link": "https://notes.example.org/feeds",
+        "link": "https://notes.example.org/",
+        "title": "Field Notes",
+        "updated": "2026-09-15T07:45:00Z"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "provider": "rss:1",
+      "review": null,
+      "state": "",
+      "title": "Field Notes"
+    },
+    "target": "https://notes.example.org/atom"
+  },
+  {
+    "metadata": null,
+    "target": "https://broken.example.net/rss"
+  },
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "count": 3,
+        "items": [
+          {
+            "link": "https://example.com/blog/typed-notes",
+            "published": "2026-09-14T09:30:00Z",
+            "summary": "Why a note should compute",
+            "title": "Typed notes"
+          },
+          {
+            "link": "https://example.com/blog/dates",
+            "published": "2026-09-01T12:00:00Z",
+            "summary": "Relative dates, plainly.",
+            "title": "Dates & durations"
+          },
+          {
+            "link": "https://example.com/blog/older",
+            "published": "2025-08-15T12:00:00Z",
+            "summary": null,
+            "title": "An older post"
+          }
+        ],
+        "latest": "Typed notes",
+        "latest_link": "https://example.com/blog/typed-notes",
+        "link": "https://example.com/blog",
+        "title": "Typed & Notes",
+        "updated": "2026-09-14T09:30:00Z"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "provider": "rss:1",
+      "review": null,
+      "state": "",
+      "title": "Typed & Notes"
+    },
+    "target": "https://example.com/blog/feed.xml"
+  },
+  {
+    "metadata": {
+      "checks": null,
+      "data": {
+        "count": 2,
+        "items": [
+          {
+            "link": "https://notes.example.org/feeds",
+            "published": "2026-09-15T07:45:00Z",
+            "summary": "The host parses, the module decodes.",
+            "title": "Reading a feed — natively"
+          },
+          {
+            "link": "https://notes.example.org/tags",
+            "published": "2026-08-30T17:00:00Z",
+            "summary": null,
+            "title": "Unclosed <tags> happen"
+          }
+        ],
+        "latest": "Reading a feed — natively",
+        "latest_link": "https://notes.example.org/feeds",
+        "link": "https://notes.example.org/",
+        "title": "Field Notes",
+        "updated": "2026-09-15T07:45:00Z"
+      },
+      "fetched_at": "<clock>",
+      "merged": null,
+      "provider": "rss:1",
+      "review": null,
+      "state": "",
+      "title": "Field Notes"
+    },
+    "target": "https://notes.example.org/atom"
+  },
+  {
+    "metadata": null,
+    "target": "https://broken.example.net/rss"
+  }
+]
+
+### 6 cli render feeds.wtf --format text --on 2026-10-01
+$ wtf render feeds.wtf --format text --on 2026-10-01 --root <root>
+exit 0
+--- stdout
+# Feeds
+https://example.com/blog/feed.xml ▸ Typed notes · ! stale · 11d ago · 3 items:blog ▸ Typed notes · ! stale · 11d ago · 3 items
+https://notes.example.org/atom ▸ Reading a feed — natively · ! stale · 11d ago · 2 items:notes ▸ Reading a feed — natively · ! stale · 11d ago · 2 items
+https://broken.example.net/rss ◌ feed (refresh):broken ◌ feed (refresh)
+Newest post: [blog.latest] Typed notes ([blog.updated] 2026-09-14 09:30:00 +00:00), [blog.count] 3 in the archive.
+The blog lives at [blog.link] https://example.com/blog, titled [blog.title] Typed & Notes.
+Notes: [notes.latest] Reading a feed — natively updated [notes.updated] 2026-09-15 07:45:00 +00:00.
+Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations", "An older post"]
+Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
+
+### 7 lsp
+-- open feeds.wtf
+-- await textDocument/publishDiagnostics feeds.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/feeds.wtf",
+  "version": 1
+}
+-- request textDocument/hover feeds.wtf 1:12
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "[Open resource](<https://example.com/blog/feed.xml>)\n\n**Typed & Notes**\n\n- [Typed notes](https://example.com/blog/typed-notes) (2026-09-14)\n- [Dates & durations](https://example.com/blog/dates) (2026-09-01)\n- [An older post](https://example.com/blog/older) (2025-08-15)\n\nfetched at <clock>"
+  },
+  "range": {
+    "end": {
+      "character": 33,
+      "line": 1
+    },
+    "start": {
+      "character": 0,
+      "line": 1
+    }
+  }
+}
+-- request textDocument/hover feeds.wtf 2:12
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "[Open resource](<https://notes.example.org/atom>)\n\n**Field Notes**\n\n- [Reading a feed — natively](https://notes.example.org/feeds) (2026-09-15)\n- [Unclosed <tags> happen](https://notes.example.org/tags) (2026-08-30)\n\nfetched at <clock>"
+  },
+  "range": {
+    "end": {
+      "character": 30,
+      "line": 2
+    },
+    "start": {
+      "character": 0,
+      "line": 2
+    }
+  }
+}
+-- request textDocument/codeLens feeds.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://example.com/blog/feed.xml:blog",
+            "row": 1
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://example.com/blog/feed.xml:blog",
+            "row": 1
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://notes.example.org/atom:notes",
+            "row": 2
+          },
+          "url": "https://notes.example.org/atom"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://notes.example.org/atom:notes",
+            "row": 2
+          },
+          "url": "https://notes.example.org/atom"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://broken.example.net/rss:broken",
+            "row": 3
+          },
+          "url": "https://broken.example.net/rss"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "https://broken.example.net/rss:broken",
+            "row": 3
+          },
+          "url": "https://broken.example.net/rss"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Newest post: [blog.latest] ([blog.updated]), [blog.count] in the archive.",
+            "row": 4
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Newest post: [blog.latest] ([blog.updated]), [blog.count] in the archive.",
+            "row": 4
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "The blog lives at [blog.link], titled [blog.title].",
+            "row": 5
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "The blog lives at [blog.link], titled [blog.title].",
+            "row": 5
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Notes: [notes.latest] updated [notes.updated].",
+            "row": 6
+          },
+          "url": "https://notes.example.org/atom"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Notes: [notes.latest] updated [notes.updated].",
+            "row": 6
+          },
+          "url": "https://notes.example.org/atom"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Titles: [map(blog.items, fn(i) => i.title)]",
+            "row": 7
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 7
+      },
+      "start": {
+        "character": 0,
+        "line": 7
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Titles: [map(blog.items, fn(i) => i.title)]",
+            "row": 7
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 7
+      },
+      "start": {
+        "character": 0,
+        "line": 7
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Dates: [map(blog.items, fn(i) => i.published)]",
+            "row": 8
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.openResource",
+      "title": "↗ open"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 8
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "refresh_resource",
+          "target": {
+            "document": "file://<root>/feeds.wtf",
+            "expected": "Dates: [map(blog.items, fn(i) => i.published)]",
+            "row": 8
+          },
+          "url": "https://example.com/blog/feed.xml"
+        }
+      ],
+      "command": "wtf.refreshResource",
+      "title": "⟳ feed"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 8
+      }
+    }
+  }
+]
+

@@ -242,6 +242,14 @@ pub struct Document {
     pub problems: Vec<Problem>,
 }
 
+/// What a heading line carries: its indentation, level, title and trailing `:name`.
+struct Heading<'a> {
+    start: usize,
+    level: usize,
+    title: &'a str,
+    title_end: usize,
+    named: Option<Named>,
+}
 /// What a line is, decided before the document is touched: every branch the
 /// parse loop used to take at the top of an iteration.
 enum Line<'a> {
@@ -255,13 +263,7 @@ enum Line<'a> {
     /// `open` is whether the comment runs on past this line.
     Comment { start: usize, open: bool },
     /// `## Title :name`
-    Heading {
-        start: usize,
-        level: usize,
-        title: &'a str,
-        title_end: usize,
-        named: Option<Named>,
-    },
+    Heading(Heading<'a>),
     /// `- [ ] title`, with `checkbox` at the `[`.
     Task { start: usize, checkbox: usize },
     /// Whitespace only: it says nothing about the note.
@@ -321,13 +323,13 @@ fn classify<'a>(line: &'a str, row: usize, state: &BlockState) -> Line<'a> {
             .as_ref()
             .map(|n| n.span.start - 1)
             .unwrap_or(line.len());
-        return Line::Heading {
+        return Line::Heading(Heading {
             start,
             level: run,
             title: line[start + run..title_end].trim(),
             title_end,
             named,
-        };
+        });
     }
     if trimmed.is_empty() {
         return Line::Blank;
@@ -373,15 +375,9 @@ impl Document {
                     doc.mark(row, start, line.len(), HighlightKind::Comment);
                 }
                 Line::Blank => {}
-                Line::Heading {
-                    start,
-                    level,
-                    title,
-                    title_end,
-                    named,
-                } => {
+                Line::Heading(heading) => {
                     parents.clear();
-                    doc.heading(line, row, start, level, title, title_end, named);
+                    doc.heading(line, row, heading);
                 }
                 Line::Task { start, checkbox } => {
                     let attrs = doc.attributes(line, row, checkbox + 3);
@@ -410,16 +406,14 @@ impl Document {
 
     /// `## Title :name`: opens a section, closes the ones it outranks, and
     /// still shows the bare links written in its title.
-    fn heading(
-        &mut self,
-        line: &str,
-        row: usize,
-        start: usize,
-        level: usize,
-        title: &str,
-        title_end: usize,
-        named: Option<Named>,
-    ) {
+    fn heading(&mut self, line: &str, row: usize, heading: Heading<'_>) {
+        let Heading {
+            start,
+            level,
+            title,
+            title_end,
+            named,
+        } = heading;
         for section in &mut self.sections {
             if section.end_line == usize::MAX && section.level >= level {
                 section.end_line = row;

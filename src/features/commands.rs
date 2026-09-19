@@ -92,11 +92,15 @@ pub enum PreparedAction {
     ShowToday,
 }
 
+/// An LSP command ID, the test for the `Action` variant it carries, and the
+/// noun used when the argument decodes to some other kind of action.
+pub type CommandId = (&'static str, fn(&Action) -> bool, &'static str);
+
 impl Action {
     /// The one place an LSP command ID is tied to a variant: the ID editors
     /// register, how an action recognizes itself, and what to say when the
     /// argument decodes to some other kind of action.
-    pub const COMMAND_IDS: &'static [(&'static str, fn(&Self) -> bool, &'static str)] = &[
+    pub const COMMAND_IDS: &'static [CommandId] = &[
         (
             "wtf.invoke",
             |a| matches!(a, Self::Invoke { .. }),

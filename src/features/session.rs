@@ -146,6 +146,9 @@ pub struct RefreshReport {
     pub live: std::collections::BTreeSet<std::path::PathBuf>,
 }
 
+/// An open note's path and version with its freshly computed diagnostics and lenses.
+type NoteUpdate = (std::path::PathBuf, i32, Vec<Diagnostic>, Vec<CodeLens>);
+
 /// One evaluation of the open notes: their diagnostics, their lenses, and which
 /// of them read the clock.
 fn evaluate(
@@ -154,7 +157,7 @@ fn evaluate(
     paths: Vec<(std::path::PathBuf, i32)>,
 ) -> (
     std::collections::BTreeSet<std::path::PathBuf>,
-    Vec<(std::path::PathBuf, i32, Vec<Diagnostic>, Vec<CodeLens>)>,
+    Vec<NoteUpdate>,
 ) {
     let request = RequestContext::new(&session.workspace, now);
     let live = paths

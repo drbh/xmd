@@ -173,6 +173,24 @@ test("the trash keeps removed documents until restored or purged, and file names
   assert.equal((await call(`/api/documents/${doc}`, { method: "PUT", body: { name: "Draft", text: "again" } })).status, 201); // the id is free again
 });
 
+test("a view-only link lets anyone read a document until the owner turns it off", async () => {
+  const doc = id();
+  await call(`/api/documents/${doc}`, { method: "PUT", body: { name: "Public", text: "# Public\n\nhello\n" } });
+  assert.deepEqual((await call(`/api/documents/${doc}/link`)).data, { enabled: false, token: null, created: null });
+  assert.equal((await call(`/api/documents/${doc}/link`, { user: "bob@example.com", method: "POST" })).status, 404);
+  const on = await call(`/api/documents/${doc}/link`, { method: "POST" });
+  assert.equal(on.status, 201); assert.ok(on.data.token.length >= 20);
+  assert.equal((await call(`/api/documents/${doc}/link`)).data.token, on.data.token);
+  // No sign-in of any kind on the public path.
+  const anon = await fetch(`${BASE}/public/v1/${on.data.token}`);
+  assert.equal(anon.status, 200);
+  const shared = await anon.json();
+  assert.equal(shared.role, "link"); assert.equal(shared.text, "# Public\n\nhello\n"); assert.equal(shared.owner, "alice@example.com");
+  assert.equal((await fetch(`${BASE}/public/v1/not-a-real-token-at-all-000`)).status, 404);
+  assert.equal((await call(`/api/documents/${doc}/link`, { method: "DELETE" })).data.enabled, false);
+  assert.equal((await fetch(`${BASE}/public/v1/${on.data.token}`)).status, 404);
+});
+
 test("validation and unauthenticated requests", async () => {
   assert.equal((await call("/api/documents/bad id", { method: "PUT", body: { name: "x", text: "y" } })).status, 400);
   assert.equal((await call(`/api/documents/${id()}`, { method: "PUT", body: { name: "x" } })).status, 400);

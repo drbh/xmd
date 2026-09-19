@@ -141,3 +141,29 @@ test("a document's file follows its heading until renamed; viewers cannot edit; 
   expect([...alice.errors, ...bob.errors]).toEqual([]);
   await alice.context.close(); await bob.context.close();
 });
+
+test("anyone with the link can read a document without signing in, read-only", async ({ browser }) => {
+  const owner = await openAs(browser, `linker-${Date.now()}@example.com`);
+  await owner.page.locator(".template", { hasText: "Trip budget" }).click();
+  await owner.page.waitForFunction(() => window.wtfDocs.controller && window.wtfDocs.live?.status === "connected");
+  await owner.page.locator(".share-button").click();
+  await owner.page.locator(".link-row .button", { hasText: "Turn on" }).click();
+  const url = await owner.page.locator(".link-url code").textContent();
+  // A visitor with no account at all.
+  const anon = await browser.newContext();
+  const page = await anon.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto(url.replace("/docs/#", "/docs/?test#"));
+  await page.waitForFunction(() => window.wtfDocs?.ready && window.wtfDocs.controller, null, { timeout: 60_000 });
+  await expect(page.locator(".view")).toContainText("$556");
+  await expect(page.locator(".status")).toContainText("view only");
+  expect(await page.evaluate(() => window.wtfDocs.controller.element.isContentEditable)).toBe(false);
+  await expect(page.locator(".share-button")).toHaveCount(0);
+  await owner.page.locator(".link-row .button", { hasText: "Turn off" }).click();
+  await page.reload();
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 60_000 });
+  await expect(page.locator(".notice")).toContainText("no longer works");
+  expect(errors).toEqual([]);
+  await anon.close(); await owner.context.close();
+});

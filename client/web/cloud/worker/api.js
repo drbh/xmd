@@ -136,11 +136,32 @@ export async function handle(request, env, user) {
     throw new HttpError(405, "Method not allowed");
   }
 
-  const m = /^\/api\/documents\/([^/]+)(\/acl)?$/.exec(path);
+  const m = /^\/api\/documents\/([^/]+)(\/acl|\/link)?$/.exec(path);
   if (!m) throw new HttpError(404, "No such endpoint");
   const id = m[1];
   if (!ID.test(id)) throw new HttpError(400, "Invalid document id");
   const access = await roleOf(db, user, id);
+
+  // "Anyone with the link": one view-only token per document, owner-managed.
+  if (m[2] === "/link") {
+    if (user.viaKey) throw new HttpError(403, "Not available with an API key");
+    requireRead(access);
+    if (method === "GET") {
+      const row = await db.prepare("SELECT token, created_at FROM share_links WHERE document_id = ?1").bind(id).first();
+      return json({ enabled: !!row, token: access.role === "owner" ? row?.token ?? null : null, created: row?.created_at ?? null });
+    }
+    requireOwner(access);
+    if (method === "POST") {
+      const token = newKey().replace(/^wtf_/, "");
+      await db.prepare("INSERT OR REPLACE INTO share_links (document_id, token, created_by, created_at) VALUES (?1, ?2, ?3, ?4)").bind(id, token, user.id, Date.now()).run();
+      return json({ enabled: true, token }, 201);
+    }
+    if (method === "DELETE") {
+      await db.prepare("DELETE FROM share_links WHERE document_id = ?1").bind(id).run();
+      return json({ enabled: false });
+    }
+    throw new HttpError(405, "Method not allowed");
+  }
 
   if (!m[2]) {
     if (method === "GET") return json(present(requireRead(access), access.role));
@@ -279,3 +300,14 @@ async function folders(db, user, path, method, request) {
 }
 
 export { json };
+
+/** A document for anyone holding its link: read-only, no sign-in. */
+export async function publicDocument(db, token) {
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) throw new HttpError(404, "No such link");
+  const row = await db.prepare(`
+    SELECT d.id, d.name, d.file, d.text, d.version, d.updated_at, u.email AS owner_email
+    FROM share_links l JOIN documents d ON d.id = l.document_id JOIN users u ON u.id = d.owner_id
+    WHERE l.token = ?1 AND d.deleted_at IS NULL`).bind(token).first();
+  if (!row) throw new HttpError(404, "This link no longer works");
+  return json({ id: row.id, name: row.name, file: row.file ?? fileNameFor(row.name), text: row.text, version: row.version, updated: row.updated_at, owner: row.owner_email, role: "link" });
+}

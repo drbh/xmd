@@ -1,12 +1,18 @@
 // Serves the built site from client/web/dist and the accounts API under /api.
 import { routePartykitRequest } from "partyserver";
 import { authenticate, authenticateKey } from "./auth.js";
-import { handle, json, HttpError, roleOf, ensureUser } from "./api.js";
+import { handle, json, HttpError, roleOf, ensureUser, publicDocument } from "./api.js";
 export { Room } from "./room.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Link sharing: a view-only document for anyone with its token, no sign-in.
+    const shared = /\/public\/v1\/([^/]+)$/.exec(url.pathname);
+    if (shared && request.method === "GET") {
+      try { return await publicDocument(env.DB, shared[1]); }
+      catch (e) { return e instanceof HttpError ? json({ error: e.message }, e.status) : json({ error: "Something went wrong" }, 500); }
+    }
     // The sync API lives outside the browser sign-in and takes an API key instead.
     const sync = /^(.*)\/sync\/v1(\/.*)?$/.exec(url.pathname);
     if (sync) {

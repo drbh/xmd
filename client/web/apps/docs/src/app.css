@@ -180,6 +180,13 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .people .who { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .people .role { color: var(--muted); font-size: 12px; text-transform: capitalize; }
 .error-text { color: var(--error); margin: 0 0 8px; }
+.link-share { margin: 4px 0 14px; padding: 10px 12px; border: 1px solid var(--rule-soft); border-radius: 10px; background: var(--bg); }
+.link-row { display: flex; align-items: center; gap: 10px; }
+.link-icon { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 16px; background: var(--active); color: var(--accent-ink); flex: none; }
+.link-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.link-text .muted { font-size: 12px; }
+.link-url { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.link-url code { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; background: var(--chrome); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
 .people .avatar.tiny { margin-right: 4px; }
 .role-select { height: 28px; font-size: 12px; }
 .share-foot { display: flex; align-items: center; gap: 12px; }

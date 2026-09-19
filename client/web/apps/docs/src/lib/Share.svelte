@@ -4,8 +4,18 @@
   import Dialog from "./Dialog.svelte";
   import Icon from "./Icon.svelte";
   import { colorFor } from "./store.js";
-  let { acl, name, kind = "document", onClose } = $props();
+  let { acl, link = null, name, kind = "document", onClose } = $props();
   let state = $state(null), email = $state(""), role = $state("editor"), error = $state(""), busy = $state(false), copied = $state(false);
+  // "Anyone with the link": one view-only link per document.
+  let linkState = $state(null), linkCopied = $state(false);
+  const linkUrl = token => `${location.origin}${location.pathname}#/s/${token}`;
+  async function loadLink() { if (!link) return; try { linkState = await link.get(); } catch { linkState = null; } }
+  $effect(() => { loadLink(); });
+  async function toggleLink(on) {
+    busy = true; error = "";
+    try { linkState = on ? await link.enable() : await link.disable(); } catch (e) { error = e.message; } finally { busy = false; }
+  }
+  async function copyShareLink() { try { await navigator.clipboard.writeText(linkUrl(linkState.token)); linkCopied = true; setTimeout(() => (linkCopied = false), 2000); } catch { /* select it by hand */ } }
   async function copyLink() {
     try { await navigator.clipboard.writeText(location.href.replace(/\?test/, "")); copied = true; setTimeout(() => (copied = false), 2000); } catch { error = "Copy the address bar link instead."; }
   }
@@ -50,9 +60,23 @@
         </li>
       {/each}
     </ul>
-    <div class="share-foot">
-      {#if kind === "document"}<button type="button" class="button" onclick={copyLink}><Icon name="link" /> {copied ? "Link copied" : "Copy link"}</button>{/if}
-      <span class="muted">{kind === "folder" ? "People here can open every document in the folder, now and later." : "Only people listed here can open it."} Anyone who hasn't signed in yet gets access the first time they do.</span>
-    </div>
+    {#if link && linkState}
+      <div class="link-share">
+        <div class="link-row">
+          <span class="link-icon"><Icon name="link" /></span>
+          <div class="link-text"><strong>Anyone with the link</strong><span class="muted">{linkState.enabled ? "can view this document, no sign-in needed" : "Off · only the people above can open it"}</span></div>
+          {#if state.role === "owner"}<button type="button" class="button" disabled={busy} onclick={() => toggleLink(!linkState.enabled)}>{linkState.enabled ? "Turn off" : "Turn on"}</button>{/if}
+        </div>
+        {#if linkState.enabled && linkState.token}
+          <div class="link-url"><code>{linkUrl(linkState.token)}</code><button type="button" class="button primary" onclick={copyShareLink}>{linkCopied ? "Copied" : "Copy link"}</button></div>
+        {/if}
+      </div>
+    {/if}
+    {#if !linkState?.enabled}
+      <div class="share-foot">
+        {#if kind === "document"}<button type="button" class="button" onclick={copyLink}><Icon name="link" /> {copied ? "Link copied" : "Copy link"}</button>{/if}
+        <span class="muted">{kind === "folder" ? "People here can open every document in the folder, now and later." : "Only people listed here can open it."} Anyone who hasn't signed in yet gets access the first time they do.</span>
+      </div>
+    {/if}
   {/if}
 </Dialog>

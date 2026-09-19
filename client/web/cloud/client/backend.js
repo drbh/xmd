@@ -30,6 +30,14 @@ async function api(path, options = {}) {
   return data;
 }
 
+/** A document shared by link, readable without an account. */
+export async function sharedDocument(token) {
+  const response = await fetch(new URL(`public/v1/${encodeURIComponent(token)}`, base), { headers: { accept: "application/json" } });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new BackendError("failed", data?.error || "This link no longer works");
+  return data;
+}
+
 export async function createBackend() {
   let account = null, offline = false;
   const cached = read(CACHE) || {};
@@ -109,6 +117,13 @@ export async function createBackend() {
     },
     async saveFolder(folder) { return api(`folders/${folder.id}`, { method: "PUT", body: { name: folder.name } }); },
     async deleteFolder(id) { await api(`folders/${id}`, { method: "DELETE" }); },
+    link(id) {
+      return {
+        get: () => api(`documents/${id}/link`),
+        enable: () => api(`documents/${id}/link`, { method: "POST" }),
+        disable: () => api(`documents/${id}/link`, { method: "DELETE" }),
+      };
+    },
     keys: {
       list: () => api("keys"),
       create: name => api("keys", { method: "POST", body: { name } }),

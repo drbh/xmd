@@ -50,7 +50,7 @@
   $effect(() => {
     // A room needs the document to exist on the server: wait for the first save (version) before joining.
     const id = activeId, persisted = active?.version !== undefined;
-    const session = untrack(() => backend?.collaborate && active && persisted ? backend.collaborate({ id, role: active.role }) : null);
+    const session = untrack(() => backend?.collaborate && active && persisted && active.role !== "link" ? backend.collaborate({ id, role: active.role }) : null);
     if (!session) { live = null; liveStatus = ""; people = []; return; }
     let current = null, cancelled = false, stops = [];
     session.then(s => {
@@ -64,7 +64,7 @@
   let titleInput = $state(null), sidebarOpenMobile = $state(false), accountMenu = $state(false);
   const active = $derived(documents.find(d => d.id === activeId));
   const counts = $derived(active ? stats(active.text) : null);
-  const readOnly = $derived(active?.role === "viewer" || liveStatus === "locked");
+  const readOnly = $derived(active?.role === "viewer" || active?.role === "link" || liveStatus === "locked");
   let online = $state(navigator.onLine);
   let update = $state(null);
   const symbolNames = $derived.by(() => { const out = new Set(); const walk = list => { for (const s of list) { if (/^[A-Za-z_]\w*$/.test(s.name)) out.add(s.name); walk(s.children || []); } }; walk(symbols); return [...out]; });
@@ -122,12 +122,14 @@
   function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
   function route() {
     if (/^#\/book(\/|$)/.test(location.hash)) { view = "book"; activeId = null; return; }
+    const link = /^#\/s\/([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (link) { openShared(link[1]); return; }
     activeId = idFromHash();
     view = activeId ? "doc" : "home";
   }
   $effect(() => {
     if (!ready) return;
-    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : activeId ? `#/d/${activeId}` : "#/";
+    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : active?.role === "link" ? `#/s/${active.token}` : activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
   function onHashChange() { route(); }
@@ -149,6 +151,17 @@
     d.opened = Date.now();
     activeId = id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
   }
+  // A document shared by link: fetched without an account, shown read-only, never saved here.
+  async function openShared(token) {
+    try {
+      const module = await import(/* @vite-ignore */ new URL("./backend.js", document.baseURI).href);
+      const shared = await module.sharedDocument(token);
+      const d = { ...shared, token, folder: null, updated: shared.updated ?? Date.now() };
+      documents = [d, ...documents.filter(x => x.id !== d.id)];
+      await workspace.setDocument(uriOf(d), d.text);
+      activeId = d.id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
+    } catch (e) { view = "home"; activeId = null; notice = e.message || "This link no longer works"; }
+  }
   function home() { const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving); }
 
   // Saving: edits are debounced, then handed to the backend one document at a
@@ -163,8 +176,8 @@
     document.name = titleOf(source, document.name);
     document.updated = Date.now();
     now = document.updated;
-    // A live document is saved by its room, so there is nothing to schedule.
-    if (live && live.id === document.id) return;
+    // A live document is saved by its room, so there is nothing to schedule; a linked one is not ours.
+    if ((live && live.id === document.id) || document.role === "link") return;
     schedule(document);
   }
   function schedule(document) {
@@ -428,7 +441,7 @@
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
-              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
+              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : active.role === "link" ? `Shared by ${active.owner} · view only` : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
             {#if !online}
               <span class="live off" title="Working offline. Changes are kept on this device and sent when the network returns."><span class="dot"></span><span>Offline</span></span>
@@ -527,7 +540,7 @@
         <label class="option"><input type="checkbox" bind:checked={prefs.wordCount}> Display word count while typing</label>
       </Dialog>
     {:else if dialog === "share" && backend?.acl}
-      <Share acl={backend.acl(active.id)} name={active.name} onClose={() => (dialog = null)} />
+      <Share acl={backend.acl(active.id)} link={backend.link?.(active.id)} name={active.name} onClose={() => (dialog = null)} />
     {:else if dialog === "keys" && backend?.keys}
       <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (dialog = null)} />
     {:else if dialog === "details"}

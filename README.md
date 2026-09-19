@@ -3,8 +3,8 @@
 `.wtf` is markdown with reactive values, a computation graph, and an LSP-native runtime.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/typing-dark.gif">
-  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f62c327c-ba0c-4d6a-8a94-5304bad54ee1">
+  <img alt="Writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://github.com/user-attachments/assets/4b1c9bbf-4af6-4395-a3a8-ade128acbc65" width="720">
 </picture>
 
 * plain text first

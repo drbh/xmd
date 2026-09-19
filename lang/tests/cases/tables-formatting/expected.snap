@@ -214,7 +214,7 @@ $ wtf query crlf.wtf sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04
 exit 0
 --- stdout
 [
-  6.0
+  6
 ]
 
 ### 3 cli query crlf.wtf tables | select {name, display} --json

@@ -75,13 +75,13 @@ exit 0
     "line": 14,
     "plan": "diet",
     "title": "diet",
-    "value": 4.0
+    "value": 4
   },
   {
     "line": 15,
     "plan": "diet",
     "title": "diet",
-    "value": 0.0
+    "value": 0
   }
 ]
 
@@ -282,8 +282,8 @@ exit 0
     "cells": {
       "item": "tent",
       "take": "yes",
-      "value": 9.0,
-      "weight": 3.0
+      "value": 9,
+      "weight": 3
     },
     "line": 3,
     "table": "gear"
@@ -292,8 +292,8 @@ exit 0
     "cells": {
       "item": "stove",
       "take": "yes",
-      "value": 4.0,
-      "weight": 1.0
+      "value": 4,
+      "weight": 1
     },
     "line": 4,
     "table": "gear"
@@ -302,8 +302,8 @@ exit 0
     "cells": {
       "item": "camera",
       "take": "yes",
-      "value": 7.0,
-      "weight": 2.0
+      "value": 7,
+      "weight": 2
     },
     "line": 5,
     "table": "gear"
@@ -312,8 +312,8 @@ exit 0
     "cells": {
       "item": "books",
       "take": "no",
-      "value": 3.0,
-      "weight": 4.0
+      "value": 3,
+      "weight": 4
     },
     "line": 6,
     "table": "gear"

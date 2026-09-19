@@ -17,3 +17,6 @@
 output
 .hidden
 /client/web/cloud/.wrangler/
+.env
+
+.DS_Store

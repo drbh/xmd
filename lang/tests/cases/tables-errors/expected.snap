@@ -271,13 +271,13 @@ exit 0
 --- stdout
 [
   {
-    "amount": 2.1999999999999997,
+    "amount": 2.2,
     "currency": "USD",
     "type": "money"
   },
   {
     "type": "ratio",
-    "value": 0.30000000000000004
+    "value": 0.3
   },
   {
     "seconds": 5400,

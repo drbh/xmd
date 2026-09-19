@@ -21,7 +21,7 @@ exit 0
 [
   {
     "count": 2,
-    "value": 2.0
+    "value": 2
   }
 ]
 
@@ -75,9 +75,9 @@ exit 0
 [
   {
     "local": [
-      101.0
+      101
     ],
-    "named": 7.0
+    "named": 7
   }
 ]
 
@@ -87,7 +87,7 @@ exit 0
 --- stdout
 [
   [
-    2.0
+    2
   ]
 ]
 
@@ -104,7 +104,7 @@ $ wtf query scope.wtf if(true, 1, values) --json --root <root> --now 2026-09-18T
 exit 0
 --- stdout
 [
-  1.0
+  1
 ]
 
 ### 11 cli query scope.wtf tasks | select { // | , } inside a comment
@@ -128,7 +128,7 @@ exit 0
 --- stdout
 [
   [
-    2.0
+    2
   ]
 ]
 
@@ -137,7 +137,7 @@ $ wtf query lib.wtf add(2)(3) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
-  5.0
+  5
 ]
 
 ### 14 cli query lib.wtf values | select {name, type, display} --json
@@ -178,7 +178,7 @@ exit 0
 --- stdout
 [
   {
-    "amount": 110.0,
+    "amount": 110,
     "currency": "USD",
     "type": "money"
   }
@@ -208,7 +208,7 @@ exit 0
 [
   {
     "display": "10",
-    "value": 10.0
+    "value": 10
   }
 ]
 
@@ -218,8 +218,8 @@ exit 0
 --- stdout
 [
   [
-    11.0,
-    12.0
+    11,
+    12
   ]
 ]
 
@@ -236,7 +236,7 @@ $ wtf query lib.wtf coalesce(get({}, "missing"), get([3, 4], 1)) --json --root <
 exit 0
 --- stdout
 [
-  4.0
+  4
 ]
 
 ### 21 cli query lib.wtf [get([], 0), get({a: 1}, "a"), length([])] --json
@@ -245,7 +245,7 @@ exit 0
 --- stdout
 [
   null,
-  1.0,
+  1,
   0
 ]
 
@@ -273,8 +273,8 @@ $ wtf query data.wtf map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json -
 exit 0
 --- stdout
 [
-  1.0,
-  3.0,
+  1,
+  3,
   null
 ]
 
@@ -312,7 +312,7 @@ $ wtf query shadow.wtf values | where name == "now" | select value --json --root
 exit 0
 --- stdout
 [
-  1.0
+  1
 ]
 
 ### 29 cli query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), day: format_date(today(), "%Y-%m-%d"), trimmed: trim("  hi  ")} --json

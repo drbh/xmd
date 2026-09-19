@@ -200,7 +200,7 @@ exit 0
 $ wtf query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
-columns=[]	constraints=[{"anchor":{"character":56.0,"line":4.0},"binding":true,"lhs":400.0,"name":"flour","op":"<=","range":{"end":{"character":54.0,"line":4.0},"start":{"character":10.0,"line":4.0}},"rhs":400.0,"slack":0.0},{"anchor":{"character":28.0,"line":5.0},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26.0,"line":5.0},"start":{"character":14.0,"line":5.0}},"rhs":12.0,"slack":13.75},{"anchor":{"character":34.0,"line":6.0},"binding":true,"lhs":14.0,"name":"doughnut_min","op":">=","range":{"end":{"character":32.0,"line":6.0},"start":{"character":17.0,"line":6.0}},"rhs":14.0,"slack":0.0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14.0}
+columns=[]	constraints=[{"anchor":{"character":56,"line":4},"binding":true,"lhs":400,"name":"flour","op":"<=","range":{"end":{"character":54,"line":4},"start":{"character":10,"line":4}},"rhs":400,"slack":0},{"anchor":{"character":28,"line":5},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26,"line":5},"start":{"character":14,"line":5}},"rhs":12,"slack":13.75},{"anchor":{"character":34,"line":6},"binding":true,"lhs":14,"name":"doughnut_min","op":">=","range":{"end":{"character":32,"line":6},"start":{"character":17,"line":6}},"rhs":14,"slack":0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14}
 
 ### 12 cli query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json
 $ wtf query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
@@ -211,30 +211,30 @@ exit 0
     "binding": [
       {
         "anchor": {
-          "character": 56.0,
-          "line": 4.0
+          "character": 56,
+          "line": 4
         },
         "binding": true,
-        "lhs": 400.0,
+        "lhs": 400,
         "name": "flour",
         "op": "<=",
         "range": {
           "end": {
-            "character": 54.0,
-            "line": 4.0
+            "character": 54,
+            "line": 4
           },
           "start": {
-            "character": 10.0,
-            "line": 4.0
+            "character": 10,
+            "line": 4
           }
         },
-        "rhs": 400.0,
-        "slack": 0.0
+        "rhs": 400,
+        "slack": 0
       },
       {
         "anchor": {
-          "character": 28.0,
-          "line": 5.0
+          "character": 28,
+          "line": 5
         },
         "binding": false,
         "lhs": 25.75,
@@ -242,38 +242,38 @@ exit 0
         "op": ">=",
         "range": {
           "end": {
-            "character": 26.0,
-            "line": 5.0
+            "character": 26,
+            "line": 5
           },
           "start": {
-            "character": 14.0,
-            "line": 5.0
+            "character": 14,
+            "line": 5
           }
         },
-        "rhs": 12.0,
+        "rhs": 12,
         "slack": 13.75
       },
       {
         "anchor": {
-          "character": 34.0,
-          "line": 6.0
+          "character": 34,
+          "line": 6
         },
         "binding": true,
-        "lhs": 14.0,
+        "lhs": 14,
         "name": "doughnut_min",
         "op": ">=",
         "range": {
           "end": {
-            "character": 32.0,
-            "line": 6.0
+            "character": 32,
+            "line": 6
           },
           "start": {
-            "character": 17.0,
-            "line": 6.0
+            "character": 17,
+            "line": 6
           }
         },
-        "rhs": 14.0,
-        "slack": 0.0
+        "rhs": 14,
+        "slack": 0
       }
     ],
     "objective": {

@@ -82,17 +82,17 @@ impl QueryValue {
             Self::Scalar(v) => match v {
                 Value::Function(_) => json!({"type":"function"}),
                 Value::Namespace(path) => json!({"type":"namespace", "path":path.path()}),
-                Value::Number(n) => json!(n),
+                Value::Number(n) => number(*n, 10),
                 Value::Count(n) => json!(n),
                 Value::Text(s) => json!(s),
                 Value::Bool(b) => json!(b),
                 Value::Money(amount, currency) => {
-                    json!({"type":"money","amount":amount,"currency":currency.as_str()})
+                    json!({"type":"money","amount":number(*amount, 2),"currency":currency.as_str()})
                 }
                 Value::Duration(seconds) => json!({"type":"duration","seconds":seconds}),
                 Value::Date(d) => json!({"type":"date","value":d.to_string()}),
                 Value::DateTime(d) => json!({"type":"datetime","value":d.to_rfc3339()}),
-                Value::Ratio(n) => json!({"type":"ratio","value":n}),
+                Value::Ratio(n) => json!({"type":"ratio","value":number(*n, 10)}),
                 other => Self::from_value(other.clone()).json(),
             },
             Self::Array(values) => {
@@ -115,6 +115,21 @@ impl QueryValue {
             .property(key)
             .map(Self::from_value)
             .map_err(|e| e.to_string())
+    }
+}
+/// A number as scripts expect to read it: rounded to `decimals` places so
+/// binary floating point noise (`23.799999999999997`) never reaches the JSON,
+/// and written as an integer when it is one (`1904`, not `1904.0`).
+fn number(n: f64, decimals: i32) -> serde_json::Value {
+    if !n.is_finite() {
+        return json!(n);
+    }
+    let scale = 10f64.powi(decimals);
+    let rounded = (n * scale).round() / scale;
+    if rounded.fract() == 0.0 && rounded.abs() < 9007199254740992.0 {
+        json!(rounded as i64)
+    } else {
+        json!(rounded)
     }
 }
 impl Serialize for QueryValue {

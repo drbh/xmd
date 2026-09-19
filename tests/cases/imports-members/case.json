@@ -1,0 +1,92 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "grouped.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "graph",
+        "main.wtf",
+        "-q",
+        "map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path})"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.wtf"
+        },
+        {
+          "open": "values.wtf"
+        },
+        {
+          "open": "grouped.wtf"
+        },
+        {
+          "request": "textDocument/definition",
+          "file": "main.wtf",
+          "line": 1,
+          "character": 16
+        },
+        {
+          "request": "textDocument/definition",
+          "file": "main.wtf",
+          "line": 2,
+          "character": 10
+        },
+        {
+          "request": "textDocument/references",
+          "file": "main.wtf",
+          "line": 1,
+          "character": 16,
+          "extra": {
+            "context": {
+              "includeDeclaration": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "main.wtf",
+          "line": 1,
+          "character": 16,
+          "extra": {
+            "newName": "total"
+          }
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "main.wtf",
+          "line": 1,
+          "character": 14
+        },
+        {
+          "request": "textDocument/definition",
+          "file": "grouped.wtf",
+          "line": 5,
+          "character": 7
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "grouped.wtf",
+          "line": 5,
+          "character": 7
+        }
+      ]
+    }
+  ]
+}

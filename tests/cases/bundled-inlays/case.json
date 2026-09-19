@@ -1,0 +1,113 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "checklists.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "formula.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "table.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plain.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "checklists.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "checklists.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "open": "formula.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "formula.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "formula.wtf"
+        },
+        {
+          "open": "table.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "table.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "open": "plain.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "plain.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

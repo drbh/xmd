@@ -1,0 +1,98 @@
+### 0 cli query trip.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query trip.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 1,
+    "message": "No cached rate EUR→USD; run wtf refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  },
+  {
+    "code": "evaluation",
+    "line": 2,
+    "message": "No cached quote for NVDA; run wtf refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  }
+]
+
+### 1 cli refresh
+$ wtf refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (0 resources)
+
+### 2 read .wtf/lookups.json
+-- .wtf/lookups.json
+{
+  "forecast:oaxaca:2026-11-20": {
+    "value": {
+      "high": 24.2,
+      "low": 11.8,
+      "place": "Oaxaca",
+      "precipitation": 0.4,
+      "summary": "light rain"
+    },
+    "fetched_at": "<clock>",
+    "source": "open-meteo.com"
+  },
+  "forecast:oaxaca:2026-12-05": {
+    "value": {
+      "error": "no forecast yet; forecasts cover about 16 days"
+    },
+    "fetched_at": "<clock>",
+    "source": "open-meteo.com"
+  },
+  "quote:NVDA": {
+    "value": {
+      "currency": "EUR",
+      "price": 42.5
+    },
+    "fetched_at": "<clock>",
+    "source": "my-quote"
+  },
+  "rate:EUR:USD": {
+    "value": {
+      "rate": 1.09
+    },
+    "fetched_at": "<clock>",
+    "source": "frankfurter.dev"
+  }
+}
+
+### 3 cli render trip.wtf --format text
+$ wtf render trip.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[€450]:hotel
+[usd] := to(hotel, USD) = $490.50
+[nvda] := quote(NVDA) = €42.50
+
+## Friday, November 20, 2026 · Oaxaca 0 stops · in 64 days · 24°C / 12°C · light rain · 40% rain
+
+## Saturday, December 5, 2026 · Oaxaca 0 stops · in 79 days · no forecast yet; forecasts cover about 16 days
+
+### 4 cli query trip.wtf values | select {name, display} --json
+$ wtf query trip.wtf values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "display": "€450",
+    "name": "hotel"
+  },
+  {
+    "display": "$490.50",
+    "name": "usd"
+  },
+  {
+    "display": "€42.50",
+    "name": "nvda"
+  }
+]
+
+### 5 cli query --workspace diagnostics | where severity == "error" --fail-on-match
+$ wtf query --workspace diagnostics | where severity == "error" --fail-on-match --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+

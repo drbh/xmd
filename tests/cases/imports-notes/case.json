@@ -1,0 +1,145 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "local",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "diagnostics | select {line, severity, message}",
+        "--root",
+        "local",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "plans | where name == \"plan\" | select solution.variables",
+        "--root",
+        "local",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "get(src, \"amount\")",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "get(src, \"absent\")",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "get(src, \"broken\")",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "[src, src].amount",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "resources | select {target, path: source.path}",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--root",
+        "lazy",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "import(\"./\" + \"sub/values.wtf\")",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "import(\"values.wtf\")",
+        "--root",
+        "lazy",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "notes/main.wtf",
+        "values | select {name, display}",
+        "--root",
+        "hidden",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "notes/main.wtf",
+        "notes | select {title, path: source.path}",
+        "--root",
+        "hidden",
+        "--json"
+      ]
+    }
+  ]
+}

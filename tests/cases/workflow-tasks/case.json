@@ -1,0 +1,195 @@
+{
+  "now": "2026-09-16T00:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "release.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "released.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "relative.wtf",
+        "[length(entries), length(diagnostics)]",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "relative.wtf",
+        "import(\"agenda\").between(entries, today(), today()) | select title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "cycle.wtf",
+        "diagnostics | select {line, severity, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "unicode.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "release.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "release.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 8,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:release.wtf}",
+                "row": 1,
+                "expected": "- [ ] Parent"
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        },
+        {
+          "open": "blocked.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "blocked.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:blocked.wtf}",
+                "row": 1,
+                "expected": "- [ ] Publish @after(review)"
+              }
+            ]
+          }
+        },
+        {
+          "open": "relative.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "relative.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 2,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "unicode.wtf"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "unicode.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "unicode.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "walk.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:walk.wtf}",
+                "row": 1,
+                "expected": "- [ ] Walk @every(day)"
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        }
+      ]
+    }
+  ]
+}

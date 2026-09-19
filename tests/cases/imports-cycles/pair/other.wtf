@@ -1,0 +1,3 @@
+main := import("./main.wtf")
+b := main.a
+safe := 12

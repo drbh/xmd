@@ -1,12 +1,21 @@
+//! The language server host.
+//!
+//! Every request evaluates the workspace at "now". Tests need that clock to be
+//! reproducible, so `WTF_NOW` freezes it: set it to an RFC3339 timestamp (for
+//! example `2026-09-16T14:00:00-04:00`) and [`now`] returns that instant for
+//! the life of the process instead of reading the system clock. An unset or
+//! unparseable value is ignored and the real clock is used.
 use crate::actions::TaskToggle;
 use crate::commands::{Action, Capabilities, PreparedAction};
 use crate::{
-    document::{Document, identifier},
+    document::identifier,
+    model::session::WorkspaceSession,
+    paths,
+    session::RefreshReport,
     workspace::{SymbolKind, Workspace},
 };
-use chrono::Local;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -20,18 +29,26 @@ use tower_lsp::{
 pub use crate::presentation::semantic_tokens;
 use crate::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
 
+/// The current time, or the instant pinned by the `WTF_NOW` environment
+/// variable (read once, at startup).
+pub fn now() -> chrono::DateTime<chrono::FixedOffset> {
+    static FROZEN: std::sync::OnceLock<Option<chrono::DateTime<chrono::FixedOffset>>> =
+        std::sync::OnceLock::new();
+    (*FROZEN.get_or_init(|| {
+        std::env::var("WTF_NOW")
+            .ok()
+            .and_then(|text| chrono::DateTime::parse_from_rfc3339(text.trim()).ok())
+    }))
+    .unwrap_or_else(|| chrono::Local::now().fixed_offset())
+}
+
 struct State {
-    workspace: Workspace,
-    open: BTreeMap<PathBuf, i32>,
-    module_buffers: BTreeMap<PathBuf, Document>,
+    session: WorkspaceSession,
     hint_refresh: bool,
     watch: bool,
-    live: BTreeSet<PathBuf>,
     lens_refresh: bool,
     snippets: bool,
     hierarchical_symbols: bool,
-    diagnostics: BTreeMap<PathBuf, Vec<Diagnostic>>,
-    lenses: BTreeMap<PathBuf, Vec<CodeLens>>,
 }
 #[derive(Clone)]
 pub struct Backend {
@@ -48,7 +65,7 @@ impl Backend {
     async fn query(&self, params: QueryParams) -> Result<serde_json::Value> {
         let compiled = crate::query::Query::parse(&params.query).map_err(Error::invalid_params)?;
         self.rescan().await;
-        let now = params.now.unwrap_or_else(|| Local::now().fixed_offset());
+        let now = params.now.unwrap_or_else(|| now());
         let only = params
             .uri
             .map(|uri| {
@@ -59,23 +76,16 @@ impl Backend {
         let mut state = self.state.write().await;
         if let Some(path) = &only {
             state
+                .session
                 .workspace
                 .include_file(path)
                 .map_err(Error::invalid_params)?;
         }
-        compiled.load_imports(&mut state.workspace, only.as_deref());
-        let result = crate::RequestContext::new(&state.workspace, now)
+        compiled.load_imports(&mut state.session.workspace, only.as_deref());
+        let result = crate::RequestContext::new(&state.session.workspace, now)
             .query(&compiled, only.as_deref())
             .map_err(Error::invalid_params)?;
-        let versions = state
-            .open
-            .iter()
-            .filter_map(|(path, version)| {
-                crate::paths::file_url(path)
-                    .ok()
-                    .map(|uri| (uri.to_string(), serde_json::json!(version)))
-            })
-            .collect::<serde_json::Map<_, _>>();
+        let versions = state.session.versions_json();
         Ok(
             serde_json::json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":versions}),
         )
@@ -84,69 +94,43 @@ impl Backend {
         Self {
             client,
             state: Arc::new(RwLock::new(State {
-                workspace: Workspace {
+                session: WorkspaceSession::editor(Workspace {
                     roots: Vec::new(),
                     documents: BTreeMap::new(),
                     cache: BTreeMap::new(),
                     lookups: BTreeMap::new(),
                     modules: Default::default(),
-                },
-                open: BTreeMap::new(),
-                module_buffers: BTreeMap::new(),
+                }),
                 hint_refresh: false,
                 watch: false,
-                live: BTreeSet::new(),
                 lens_refresh: false,
                 snippets: false,
                 hierarchical_symbols: false,
-                diagnostics: BTreeMap::new(),
-                lenses: BTreeMap::new(),
             })),
         }
     }
+    /// Re-evaluate every open note and tell the client about all of it.
     async fn notify_changes(&self) {
-        let (diagnostics, hint_refresh, lens_refresh) = {
+        let (report, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
-            let now = Local::now().fixed_offset();
-            let paths: Vec<_> = state
-                .open
-                .keys()
-                .filter(|p| state.workspace.documents.contains_key(*p))
-                .cloned()
-                .collect();
-            let (live, updates) = {
-                let request = crate::RequestContext::new(&state.workspace, now);
-                let live = paths
-                    .iter()
-                    .filter(|p| request.live_hints(p))
-                    .cloned()
-                    .collect();
-                let updates: Vec<_> = paths
-                    .into_iter()
-                    .map(|path| {
-                        let ds = request.diagnostics(&path, true);
-                        let lenses = request.code_lenses(&path, Capabilities::NATIVE);
-                        (path, ds, lenses)
-                    })
-                    .collect();
-                (live, updates)
-            };
-            state.live = live;
-            state.diagnostics.clear();
-            state.lenses.clear();
-            let mut diagnostics = Vec::new();
-            for (path, ds, lenses) in updates {
-                diagnostics.push((
-                    Url::from_file_path(&path).unwrap(),
-                    state.open[&path],
-                    ds.clone(),
-                ));
-                state.diagnostics.insert(path.clone(), ds);
-                state.lenses.insert(path, lenses);
-            }
-            (diagnostics, state.hint_refresh, state.lens_refresh)
+            let report = state.session.refresh(now());
+            (report, state.hint_refresh, state.lens_refresh)
         };
-        for (uri, version, diagnostics) in diagnostics {
+        self.publish(report, hint_refresh, lens_refresh).await;
+    }
+    /// A clock tick: only the notes that read the clock, and only what moved.
+    async fn tick(&self) {
+        let (report, hint_refresh, lens_refresh) = {
+            let mut state = self.state.write().await;
+            let Some(report) = state.session.refresh_live(now()) else {
+                return;
+            };
+            (report, state.hint_refresh, state.lens_refresh)
+        };
+        self.publish(report, hint_refresh, lens_refresh).await;
+    }
+    async fn publish(&self, report: RefreshReport, hint_refresh: bool, lens_refresh: bool) {
+        for (uri, version, diagnostics) in report.diagnostics {
             self.client
                 .publish_diagnostics(uri, diagnostics, Some(version))
                 .await;
@@ -156,114 +140,26 @@ impl Backend {
         if hint_refresh {
             let _ = self.client.inlay_hint_refresh().await;
         }
-        if lens_refresh {
-            let _ = self.client.code_lens_refresh().await;
-        }
-    }
-    async fn tick(&self) {
-        let (refresh, lens_refresh, diagnostics) = {
-            let mut state = self.state.write().await;
-            if state.live.is_empty() {
-                return;
-            }
-            let now = Local::now().fixed_offset();
-            let paths: Vec<_> = state
-                .live
-                .iter()
-                .filter(|p| {
-                    state.open.contains_key(*p) && state.workspace.documents.contains_key(*p)
-                })
-                .cloned()
-                .collect();
-            let (live, updates) = {
-                let request = crate::RequestContext::new(&state.workspace, now);
-                let updates: Vec<_> = paths
-                    .iter()
-                    .map(|path| {
-                        let ds = request.diagnostics(path, true);
-                        let lenses = request.code_lenses(path, Capabilities::NATIVE);
-                        (path.clone(), ds, lenses)
-                    })
-                    .collect();
-                let live = paths
-                    .into_iter()
-                    .filter(|p| request.live_hints(p))
-                    .collect();
-                (live, updates)
-            };
-            let mut diagnostics = Vec::new();
-            let mut lens_changed = false;
-            for (path, ds, lenses) in updates {
-                if state.diagnostics.get(&path) != Some(&ds) {
-                    diagnostics.push((
-                        Url::from_file_path(&path).unwrap(),
-                        state.open[&path],
-                        ds.clone(),
-                    ));
-                    state.diagnostics.insert(path.clone(), ds);
-                }
-                if state.lenses.get(&path) != Some(&lenses) {
-                    state.lenses.insert(path, lenses);
-                    lens_changed = true;
-                }
-            }
-            state.live = live;
-            (
-                state.hint_refresh,
-                state.lens_refresh && lens_changed,
-                diagnostics,
-            )
-        };
-        for (uri, version, ds) in diagnostics {
-            self.client
-                .publish_diagnostics(uri, ds, Some(version))
-                .await;
-        }
-        if refresh {
-            let _ = self.client.inlay_hint_refresh().await;
-        }
-        if lens_refresh {
+        if lens_refresh && report.lenses_changed {
             let _ = self.client.code_lens_refresh().await;
         }
     }
     async fn update(&self, uri: Url, version: i32, text: String) {
         if let Ok(path) = uri.to_file_path() {
             let mut state = self.state.write().await;
-            if state.open.get(&path).is_some_and(|v| *v > version) {
+            if state.session.open(&path, version, text).is_err() {
                 return;
             }
-            if crate::modules::is_module_path(&path)
-                || state
-                    .workspace
-                    .modules
-                    .modules
-                    .iter()
-                    .any(|m| m.path == path)
-            {
-                // Highlight unsaved module source without activating it or adding
-                // its definitions to the note workspace. Reload still uses disk.
-                state
-                    .module_buffers
-                    .insert(path.clone(), Document::parse(text));
-            } else {
-                // Open notes bypass discovery filters, including hidden/ignored
-                // directories and workspace roots. Rescans preserve these buffers.
-                state
-                    .workspace
-                    .documents
-                    .insert(path.clone(), Document::parse(text));
-                state.workspace.load_imports();
-            }
-            state.open.insert(path, version);
         }
         self.notify_changes().await;
     }
+    /// Reload the notes on disk, keeping the open buffers on top of them.
     async fn rescan(&self) {
         let (roots, modules) = {
             let state = self.state.read().await;
             (
-                state.workspace.roots.clone(),
-                state.workspace.modules.clone(),
+                state.session.workspace.roots.clone(),
+                state.session.workspace.modules.clone(),
             )
         };
         let result = tokio::task::spawn_blocking(move || {
@@ -274,32 +170,11 @@ impl Backend {
         })
         .await;
         match result {
-            Ok(Ok((mut workspace, error))) => {
+            Ok(Ok((workspace, error))) => {
                 if let Some(error) = error {
                     self.client.log_message(MessageType::ERROR, error).await;
                 }
-                let mut state = self.state.write().await;
-                let open: Vec<_> = state.open.keys().cloned().collect();
-                for path in open {
-                    let module = crate::modules::is_module_path(&path)
-                        || workspace.modules.modules.iter().any(|m| m.path == path);
-                    if module {
-                        if let Some(doc) = state.workspace.documents.get(&path).cloned() {
-                            state.module_buffers.insert(path, doc);
-                        }
-                    } else if let Some(doc) = state
-                        .module_buffers
-                        .remove(&path)
-                        .or_else(|| state.workspace.documents.get(&path).cloned())
-                    {
-                        workspace.documents.insert(path, doc);
-                    }
-                }
-                workspace.load_imports();
-                workspace
-                    .documents
-                    .retain(|path, _| !workspace.modules.modules.iter().any(|m| m.path == *path));
-                state.workspace = workspace;
+                self.state.write().await.session.rescan(workspace);
             }
             Ok(Err(e)) => self.client.log_message(MessageType::ERROR, e).await,
             Err(e) => {
@@ -316,13 +191,13 @@ fn file(uri: &Url) -> Result<PathBuf> {
 }
 use crate::intelligence::symbol_at;
 fn edit_for(state: &State, path: &Path, edits: Vec<TextEdit>) -> WorkspaceEdit {
-    versioned_edit(path, edits, state.open.get(path).copied())
+    versioned_edit(path, edits, state.session.version(path))
 }
 fn versioned_edit(path: &Path, edits: Vec<TextEdit>, version: Option<i32>) -> WorkspaceEdit {
     WorkspaceEdit {
         document_changes: Some(DocumentChanges::Edits(vec![TextDocumentEdit {
             text_document: OptionalVersionedTextDocumentIdentifier {
-                uri: Url::from_file_path(path).unwrap(),
+                uri: paths::uri(path),
                 version,
             },
             edits: edits.into_iter().map(OneOf::Left).collect(),
@@ -352,7 +227,7 @@ impl LanguageServer for Backend {
         }
         {
             let mut state = self.state.write().await;
-            state.workspace.roots = roots;
+            state.session.workspace.roots = roots;
             state.hierarchical_symbols = params
                 .capabilities
                 .text_document
@@ -466,12 +341,12 @@ impl LanguageServer for Backend {
         }
         let backend = self.clone();
         tokio::spawn(async move {
-            let mut today = Local::now().date_naive();
+            let mut today = now().date_naive();
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
                 interval.tick().await;
-                let next = Local::now().date_naive();
+                let next = now().date_naive();
                 if next != today {
                     today = next;
                     backend.notify_changes().await;
@@ -482,7 +357,7 @@ impl LanguageServer for Backend {
         });
     }
     async fn shutdown(&self) -> Result<()> {
-        self.state.write().await.live.clear();
+        self.state.write().await.session.clear_live();
         Ok(())
     }
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
@@ -507,11 +382,7 @@ impl LanguageServer for Backend {
     }
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         if let Ok(path) = params.text_document.uri.to_file_path() {
-            {
-                let mut state = self.state.write().await;
-                state.open.remove(&path);
-                state.module_buffers.remove(&path);
-            }
+            self.state.write().await.session.close(&path);
             self.rescan().await;
             self.client
                 .publish_diagnostics(params.text_document.uri, vec![], None)
@@ -530,11 +401,16 @@ impl LanguageServer for Backend {
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state.workspace.documents.contains_key(&path).then(|| {
-            crate::RequestContext::new(&state.workspace, Local::now().fixed_offset())
-                .hints(&path, params.range)
-                .hints
-        }))
+        Ok(state
+            .session
+            .workspace
+            .documents
+            .contains_key(&path)
+            .then(|| {
+                crate::RequestContext::new(&state.session.workspace, now())
+                    .hints(&path, params.range)
+                    .hints
+            }))
     }
     async fn semantic_tokens_full(
         &self,
@@ -542,22 +418,18 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state
-            .module_buffers
-            .get(&path)
-            .or_else(|| state.workspace.documents.get(&path))
-            .map(|doc| {
-                SemanticTokensResult::Tokens(SemanticTokens {
-                    result_id: None,
-                    data: semantic_tokens(doc),
-                })
-            }))
+        Ok(state.session.document_for_highlighting(&path).map(|doc| {
+            SemanticTokensResult::Tokens(SemanticTokens {
+                result_id: None,
+                data: semantic_tokens(doc),
+            })
+        }))
     }
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         Ok(request.hover(&path, at.position))
     }
     async fn goto_definition(
@@ -568,14 +440,15 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         Ok(
-            symbol_at(&state.workspace, &path, at.position).map(|(s, _)| {
+            symbol_at(&state.session.workspace, &path, at.position).map(|(s, _)| {
                 GotoDefinitionResponse::Scalar(Location {
-                    uri: Url::from_file_path(&s.path).unwrap(),
+                    uri: paths::uri(&s.path),
                     range: state
+                        .session
                         .workspace
                         .named(&s)
                         .span
-                        .range(&state.workspace.documents[&s.path].text),
+                        .range(&state.session.workspace.documents[&s.path].text),
                 })
             }),
         )
@@ -584,7 +457,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
@@ -592,7 +465,7 @@ impl LanguageServer for Backend {
             .into_iter()
             .skip(usize::from(!params.context.include_declaration))
             .map(|(p, span)| Location {
-                uri: Url::from_file_path(&p).unwrap(),
+                uri: paths::uri(&p),
                 range: span.range(&ws.documents[&p].text),
             })
             .collect();
@@ -607,7 +480,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
@@ -624,8 +497,8 @@ impl LanguageServer for Backend {
             .into_iter()
             .map(|(p, edits)| TextDocumentEdit {
                 text_document: OptionalVersionedTextDocumentIdentifier {
-                    uri: Url::from_file_path(&p).unwrap(),
-                    version: state.open.get(&p).copied(),
+                    uri: paths::uri(&p),
+                    version: state.session.version(&p),
                 },
                 edits: edits.into_iter().map(OneOf::Left).collect(),
             })
@@ -639,7 +512,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         Ok(Some(CompletionResponse::Array(request.completions(
             &path,
             at.position,
@@ -651,6 +524,7 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
+            .session
             .workspace
             .documents
             .get(&path)
@@ -659,7 +533,7 @@ impl LanguageServer for Backend {
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
     async fn document_highlight(
@@ -669,7 +543,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
@@ -696,10 +570,10 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(
-            symbol_at(&state.workspace, &path, params.position).map(|(s, span)| {
+            symbol_at(&state.session.workspace, &path, params.position).map(|(s, span)| {
                 PrepareRenameResponse::RangeWithPlaceholder {
-                    range: span.range(&state.workspace.documents[&path].text),
-                    placeholder: state.workspace.named(&s).name.clone(),
+                    range: span.range(&state.session.workspace.documents[&path].text),
+                    placeholder: state.session.workspace.named(&s).name.clone(),
                 }
             }),
         )
@@ -707,19 +581,19 @@ impl LanguageServer for Backend {
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        if !state.workspace.documents.contains_key(&path) {
+        if !state.session.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         Ok(Some(request.document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        if !state.workspace.documents.contains_key(&path) {
+        if !state.session.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         let mut result: Vec<_> = request
             .code_actions(
                 &path,
@@ -765,12 +639,12 @@ impl LanguageServer for Backend {
         self.rescan().await;
         let (prepared, version) = {
             let state = self.state.read().await;
-            let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+            let request = crate::RequestContext::new(&state.session.workspace, now());
             let prepared = action
                 .prepare(&request, Capabilities::NATIVE)
                 .map_err(Error::invalid_params)?;
             let version = match &prepared {
-                PreparedAction::Edit { path, .. } => state.open.get(path).copied(),
+                PreparedAction::Edit { path, .. } => state.session.version(path),
                 _ => None,
             };
             (prepared, version)
@@ -803,7 +677,7 @@ impl LanguageServer for Backend {
                 }
             }
             PreparedAction::RefreshResource { resource } => {
-                let snapshot = self.state.read().await.workspace.clone();
+                let snapshot = self.state.read().await.session.workspace.clone();
                 let metadata = snapshot
                     .link_features()
                     .fetch(&resource.target)
@@ -811,13 +685,17 @@ impl LanguageServer for Backend {
                     .map_err(Error::invalid_params)?;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&snapshot.modules, &state.workspace.modules) {
+                    if !Arc::ptr_eq(&snapshot.modules, &state.session.workspace.modules) {
                         return Err(Error::invalid_params(
                             "Modules changed during refresh; refresh again",
                         ));
                     }
-                    state.workspace.cache.insert(resource.target, metadata);
-                    state.workspace.clone()
+                    state
+                        .session
+                        .workspace
+                        .cache
+                        .insert(resource.target, metadata);
+                    state.session.workspace.clone()
                 };
                 tokio::task::spawn_blocking(move || workspace.save_cache())
                     .await
@@ -826,18 +704,18 @@ impl LanguageServer for Backend {
                 self.notify_changes().await;
             }
             PreparedAction::Refresh => {
-                let mut workspace = self.state.read().await.workspace.clone();
+                let mut workspace = self.state.read().await.session.workspace.clone();
                 let mut errors = crate::cli::refresh_in_memory(&mut workspace).await;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&workspace.modules, &state.workspace.modules) {
+                    if !Arc::ptr_eq(&workspace.modules, &state.session.workspace.modules) {
                         return Err(Error::invalid_params(
                             "Modules changed during refresh; refresh again",
                         ));
                     }
-                    state.workspace.cache = workspace.cache;
-                    state.workspace.lookups = workspace.lookups;
-                    state.workspace.clone()
+                    state.session.workspace.cache = workspace.cache;
+                    state.session.workspace.lookups = workspace.lookups;
+                    state.session.workspace.clone()
                 };
                 match tokio::task::spawn_blocking(move || workspace.save_cache()).await {
                     Ok(Ok(())) => (),
@@ -862,50 +740,12 @@ impl LanguageServer for Backend {
             }
             PreparedAction::ShowToday => {
                 self.rescan().await;
-                let now = Local::now().fixed_offset();
-                let today = now.date_naive();
-                let workspace = self.state.read().await.workspace.clone();
-                let compiled = crate::query::Query::parse(
-                    "import(\"agenda\").between(entries, today(), today())",
-                )
+                let workspace = self.state.read().await.session.workspace.clone();
+                let content = crate::features::agenda::today_markdown(&crate::RequestContext::new(
+                    &workspace,
+                    now(),
+                ))
                 .map_err(Error::invalid_params)?;
-                let result = crate::RequestContext::new(&workspace, now)
-                    .query(&compiled, None)
-                    .map_err(Error::invalid_params)?;
-                let lines: Vec<_> = result
-                    .rows
-                    .iter()
-                    .map(|row| {
-                        let e = row.json();
-                        let path = Path::new(e["source"]["path"].as_str().unwrap_or(""));
-                        let blocked = e["blocked_by"]
-                            .as_array()
-                            .into_iter()
-                            .flatten()
-                            .filter_map(|v| v.as_str())
-                            .collect::<Vec<_>>();
-                        format!(
-                            "- [{}:{}](<{}>) — {}{}",
-                            path.file_name().unwrap_or_default().to_string_lossy(),
-                            e["source"]["line"],
-                            e["source"]["uri"].as_str().unwrap_or(""),
-                            e["title"].as_str().unwrap_or(""),
-                            if blocked.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" (blocked by {})", blocked.join(", "))
-                            }
-                        )
-                    })
-                    .collect();
-                let content = format!(
-                    "# Today — {today}\n\nGenerated view. Follow a link to edit the original note.\n\n{}\n",
-                    if lines.is_empty() {
-                        "Nothing scheduled.".into()
-                    } else {
-                        lines.join("\n")
-                    }
-                );
                 let dir = workspace.root().join(".wtf");
                 tokio::task::spawn_blocking({
                     let dir = dir.clone();
@@ -920,7 +760,7 @@ impl LanguageServer for Backend {
                 let _ = self
                     .client
                     .show_document(ShowDocumentParams {
-                        uri: Url::from_file_path(dir.join("today.md")).unwrap(),
+                        uri: paths::uri(dir.join("today.md")),
                         external: Some(false),
                         take_focus: Some(true),
                         selection: None,
@@ -935,7 +775,7 @@ impl LanguageServer for Backend {
         params: WorkspaceSymbolParams,
     ) -> Result<Option<Vec<SymbolInformation>>> {
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         #[allow(deprecated)]
         let result = ws
             .symbols()
@@ -956,7 +796,7 @@ impl LanguageServer for Backend {
                 tags: None,
                 deprecated: None,
                 location: Location {
-                    uri: Url::from_file_path(&s.path).unwrap(),
+                    uri: paths::uri(&s.path),
                     range: ws.named(&s).span.range(&ws.documents[&s.path].text),
                 },
                 container_name: Some(s.path.display().to_string()),
@@ -970,12 +810,11 @@ impl LanguageServer for Backend {
     ) -> Result<Option<DocumentSymbolResponse>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         if !ws.documents.contains_key(&path) {
             return Ok(None);
         }
-        let symbols =
-            crate::RequestContext::new(ws, Local::now().fixed_offset()).document_symbols(&path);
+        let symbols = crate::RequestContext::new(ws, now()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
         } else {
@@ -993,6 +832,7 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
+            .session
             .workspace
             .documents
             .get(&path)
@@ -1005,8 +845,8 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let ws = &state.workspace;
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let ws = &state.session.workspace;
+        let request = crate::RequestContext::new(ws, now());
         Ok(crate::hierarchy::prepare(ws, &path, at.position)
             .map(|symbol| vec![request.hierarchy_item(&symbol)]))
     }
@@ -1015,11 +855,11 @@ impl LanguageServer for Backend {
         params: CallHierarchyIncomingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(ws, now());
         Ok(Some(
             crate::hierarchy::dependents(ws, &symbol)
                 .into_iter()
@@ -1035,11 +875,11 @@ impl LanguageServer for Backend {
         params: CallHierarchyOutgoingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
         let state = self.state.read().await;
-        let ws = &state.workspace;
+        let ws = &state.session.workspace;
         let Some(symbol) = crate::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = crate::RequestContext::new(ws, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(ws, now());
         Ok(Some(
             crate::hierarchy::dependencies(ws, &symbol)
                 .into_iter()
@@ -1054,15 +894,14 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         Ok(state
-            .module_buffers
-            .get(&path)
-            .or_else(|| state.workspace.documents.get(&path))
+            .session
+            .document_for_highlighting(&path)
             .map(crate::symbols::folding_ranges))
     }
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = crate::RequestContext::new(&state.workspace, Local::now().fixed_offset());
+        let request = crate::RequestContext::new(&state.session.workspace, now());
         request
             .formatting(&path)
             .map(Some)

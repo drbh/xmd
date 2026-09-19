@@ -1,0 +1,120 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "calc.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "calc.wtf",
+        "calculations | select {line, expression, bracketed, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "calc.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "calc.wtf",
+        "length(filter(references, fn(r) => r.name == \"budget\"))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "math.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "math.wtf",
+        "calculations | select {line, expression, bracketed, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "math.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "errors.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "errors.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "unknown.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "ratio.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "ratio.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "ratio.wtf",
+          "line": 2,
+          "character": 13
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "ratio.wtf",
+          "line": 2,
+          "character": 8
+        },
+        {
+          "open": "math.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "math.wtf",
+          "line": 2,
+          "character": 10
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "calc.wtf"
+        }
+      ]
+    }
+  ]
+}

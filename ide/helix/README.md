@@ -41,6 +41,6 @@ versions do not support. Links can still be opened using the editor's usual
 navigation facilities. Core calculations, diagnostics, formatting, navigation,
 rename, and task/timer edits remain in Rust.
 
-Use `examples/editor-smoke` and the checklist in `docs/editors.md` for an
+Use `examples/editor-smoke` for an
 interactive verification. Basic Markdown colors will differ from WTF's richer
 semantic colors in the other editors.

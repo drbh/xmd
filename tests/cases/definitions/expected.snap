@@ -1,0 +1,355 @@
+### 0 cli query defs.wtf values | select {name, type, display} --json
+$ wtf query defs.wtf values | select {name, type, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$3,000",
+    "name": "budget",
+    "type": "Money"
+  },
+  {
+    "display": "$2,444",
+    "name": "spent",
+    "type": "Money"
+  },
+  {
+    "display": "2026-11-20",
+    "name": "departure",
+    "type": "Date"
+  },
+  {
+    "display": "Oaxaca City",
+    "name": "city",
+    "type": "Text"
+  },
+  {
+    "display": "47%",
+    "name": "share",
+    "type": "Ratio"
+  },
+  {
+    "display": "2h",
+    "name": "slot",
+    "type": "Duration"
+  },
+  {
+    "display": "true",
+    "name": "flag",
+    "type": "Boolean"
+  },
+  {
+    "display": "12",
+    "name": "count",
+    "type": "Number"
+  },
+  {
+    "display": "https://github.com/zed-industries/zed/pull/1",
+    "name": "zed_pr",
+    "type": "Resource"
+  },
+  {
+    "display": "geo:17.06,-96.72",
+    "name": "zocalo",
+    "type": "Resource"
+  },
+  {
+    "display": "€450",
+    "name": "hotel",
+    "type": "Money"
+  }
+]
+
+### 1 cli render defs.wtf --format text
+$ wtf render defs.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+Our budget is $3,000:budget and we've spent $2,444:spent.
+Departure 2026-11-20:departure, "Oaxaca City":city, 47%:share, 2h:slot, true:flag, 12:count.
+PR https://github.com/zed-industries/zed/pull/1 ◌ PR #1 · refresh for status:zed_pr ◌ PR #1 · refresh for status and geo:17.06,-96.72:zocalo place · open map (€450:hotel).
+
+### 2 cli query defs.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query defs.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 3 lsp
+-- open defs.wtf
+-- await textDocument/publishDiagnostics defs.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/defs.wtf",
+  "version": 1
+}
+-- request textDocument/semanticTokens/full defs.wtf
+0:14+6 wtfMoney "$3,000"
+0:20+1 wtfPunctuation ":"
+0:21+6 variable [declaration] "budget"
+0:44+6 wtfMoney "$2,444"
+0:50+1 wtfPunctuation ":"
+0:51+5 variable [declaration] "spent"
+1:10+10 wtfDate "2026-11-20"
+1:20+1 wtfPunctuation ":"
+1:21+9 variable [declaration] "departure"
+1:32+13 string "\"Oaxaca City\""
+1:45+1 wtfPunctuation ":"
+1:46+4 variable [declaration] "city"
+1:52+3 wtfRatio "47%"
+1:55+1 wtfPunctuation ":"
+1:56+5 variable [declaration] "share"
+1:63+2 wtfDuration "2h"
+1:65+1 wtfPunctuation ":"
+1:66+4 variable [declaration] "slot"
+1:72+4 wtfBoolean "true"
+1:76+1 wtfPunctuation ":"
+1:77+4 variable [declaration] "flag"
+1:83+2 number "12"
+1:85+1 wtfPunctuation ":"
+1:86+5 variable [declaration] "count"
+2:3+44 wtfLink "https://github.com/zed-industries/zed/pull/1"
+2:47+1 wtfPunctuation ":"
+2:48+6 variable [declaration] "zed_pr"
+2:59+16 wtfLink "geo:17.06,-96.72"
+2:75+1 wtfPunctuation ":"
+2:76+6 variable [declaration] "zocalo"
+2:84+4 wtfMoney "€450"
+2:88+1 wtfPunctuation ":"
+2:89+5 variable [declaration] "hotel"
+-- request textDocument/documentLink defs.wtf
+[
+  {
+    "range": {
+      "end": {
+        "character": 47,
+        "line": 2
+      },
+      "start": {
+        "character": 3,
+        "line": 2
+      }
+    },
+    "target": "https://github.com/zed-industries/zed/pull/1",
+    "tooltip": "Open https://github.com/zed-industries/zed/pull/1"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 75,
+        "line": 2
+      },
+      "start": {
+        "character": 59,
+        "line": 2
+      }
+    },
+    "target": "https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72",
+    "tooltip": "Open https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72"
+  }
+]
+
+### 4 cli render calc.wtf --format text
+$ wtf render calc.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+$3,000:budget
+$2,444:spent
+remaining := budget - spent = $556
+share := remaining / budget = 18.5333%
+We have [remaining] $556 left ([share] 18.5333%).
+
+### 5 cli query calc.wtf values | select {name, display} --json
+$ wtf query calc.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$3,000",
+    "name": "budget"
+  },
+  {
+    "display": "$2,444",
+    "name": "spent"
+  },
+  {
+    "display": "$556",
+    "name": "remaining"
+  },
+  {
+    "display": "18.5333%",
+    "name": "share"
+  }
+]
+
+### 6 lsp
+-- open calc.wtf
+-- request textDocument/hover calc.wtf 2:2
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**remaining · Money**\n\n$556\n\n```text\nbudget - spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](<file://<root>/calc.wtf#L1>), [spent](<file://<root>/calc.wtf#L2>)\n\nDefinition: [remaining](<file://<root>/calc.wtf#L3>) · <root>/calc.wtf:3"
+  },
+  "range": {
+    "end": {
+      "character": 9,
+      "line": 2
+    },
+    "start": {
+      "character": 0,
+      "line": 2
+    }
+  }
+}
+-- open prose.wtf
+-- request textDocument/documentSymbol prose.wtf
+[
+  {
+    "detail": "Incomplete · :deposit",
+    "kind": 17,
+    "name": "Pay",
+    "range": {
+      "end": {
+        "character": 18,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 18,
+        "line": 2
+      },
+      "start": {
+        "character": 11,
+        "line": 2
+      }
+    }
+  },
+  {
+    "detail": ":launch",
+    "kind": 3,
+    "name": "Launch",
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 17,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+
+### 7 cli query prose.wtf values | select {name} --json
+$ wtf query prose.wtf values | select {name} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 8 cli render both.wtf --format text
+$ wtf render both.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[$3,000]:budget and $2,444:spent
+cash := budget - spent = $556
+
+### 9 lsp
+-- open both.wtf
+-- request textDocument/references both.wtf 0:28
+[
+  {
+    "range": {
+      "end": {
+        "character": 32,
+        "line": 0
+      },
+      "start": {
+        "character": 27,
+        "line": 0
+      }
+    },
+    "uri": "file://<root>/both.wtf"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 22,
+        "line": 1
+      },
+      "start": {
+        "character": 17,
+        "line": 1
+      }
+    },
+    "uri": "file://<root>/both.wtf"
+  }
+]
+-- request textDocument/prepareRename both.wtf 0:28
+{
+  "placeholder": "spent",
+  "range": {
+    "end": {
+      "character": 32,
+      "line": 0
+    },
+    "start": {
+      "character": 27,
+      "line": 0
+    }
+  }
+}
+-- request textDocument/rename both.wtf 0:28
+{
+  "documentChanges": [
+    {
+      "edits": [
+        {
+          "newText": "outgoing",
+          "range": {
+            "end": {
+              "character": 32,
+              "line": 0
+            },
+            "start": {
+              "character": 27,
+              "line": 0
+            }
+          }
+        },
+        {
+          "newText": "outgoing",
+          "range": {
+            "end": {
+              "character": 22,
+              "line": 1
+            },
+            "start": {
+              "character": 17,
+              "line": 1
+            }
+          }
+        }
+      ],
+      "textDocument": {
+        "uri": "file://<root>/both.wtf",
+        "version": 1
+      }
+    }
+  ]
+}
+

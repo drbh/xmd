@@ -1,0 +1,33 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        { "method": "documentLinks", "params": { "uri": "file:///workspace/trip.wtf" } },
+        {
+          "method": "hover",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "position": { "line": 0, "character": 4 }
+          }
+        },
+        {
+          "method": "hover",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "position": { "line": 2, "character": 8 }
+          }
+        },
+        { "method": "documentSymbols", "params": { "uri": "file:///workspace/trip.wtf" } },
+        {
+          "method": "query",
+          "params": {
+            "uri": "file:///workspace/trip.wtf",
+            "query": "values | select {name, display}"
+          }
+        }
+      ]
+    }
+  ]
+}

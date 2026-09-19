@@ -1,0 +1,428 @@
+### 0 cli query --workspace values | select {name, value, type, display, errors} --root money --json
+$ wtf query --workspace values | select {name, value, type, display, errors} --root money --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "€7",
+    "errors": [],
+    "name": "price",
+    "type": "Money",
+    "value": {
+      "amount": 7.0,
+      "currency": "EUR",
+      "type": "money"
+    }
+  },
+  {
+    "display": "€21",
+    "errors": [],
+    "name": "total",
+    "type": "Money",
+    "value": {
+      "amount": 21.0,
+      "currency": "EUR",
+      "type": "money"
+    }
+  },
+  {
+    "display": "$5",
+    "errors": [],
+    "name": "price",
+    "type": "Money",
+    "value": {
+      "amount": 5.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  },
+  {
+    "display": "$10",
+    "errors": [],
+    "name": "total",
+    "type": "Money",
+    "value": {
+      "amount": 10.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+
+### 1 cli query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json
+$ wtf query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "amount": 21.0,
+    "currency": "EUR",
+    "local": {
+      "amount": 7.0,
+      "currency": "EUR",
+      "type": "money"
+    },
+    "value": {
+      "amount": 21.0,
+      "currency": "EUR",
+      "type": "money"
+    }
+  },
+  {
+    "amount": 10.0,
+    "currency": "USD",
+    "local": {
+      "amount": 5.0,
+      "currency": "USD",
+      "type": "money"
+    },
+    "value": {
+      "amount": 10.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+
+### 2 cli query --workspace values | where name == "price" | sum value --root money --json
+$ wtf query --workspace values | where name == "price" | sum value --root money --json --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stderr
+wtf: Stage 2: Cannot combine EUR and USD; convert with to(value, USD)
+
+### 3 cli query usd.wtf values | where name == "total" | select {name, hover} --root money --json
+$ wtf query usd.wtf values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "hover": "**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](<file://<root>/money/usd.wtf#L1>)\n\nDefinition: [total](<file://<root>/money/usd.wtf#L2>) · <root>/money/usd.wtf:2",
+    "name": "total"
+  }
+]
+
+### 4 cli query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json
+$ wtf query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "kind": "note",
+    "path": "<root>/money/eur.wtf",
+    "size": 28,
+    "title": "eur.wtf"
+  },
+  {
+    "kind": "note",
+    "path": "<root>/money/usd.wtf",
+    "size": 28,
+    "title": "usd.wtf"
+  }
+]
+
+### 5 cli query tables.wtf tables | select {name} --json
+$ wtf query tables.wtf tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "name": "groceries"
+  }
+]
+
+### 6 cli query tables.wtf rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json
+$ wtf query tables.wtf rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "cost": {
+      "amount": 17.2,
+      "currency": "USD",
+      "type": "money"
+    },
+    "item": "pear"
+  }
+]
+
+### 7 cli query tables.wtf values | where name == "total" | select {name, value, display} --json
+$ wtf query tables.wtf values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$23.80",
+    "name": "total",
+    "value": {
+      "amount": 23.799999999999997,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+
+### 8 cli query plans.wtf plans | select {name} --json
+$ wtf query plans.wtf plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "name": "bakery"
+  }
+]
+
+### 9 cli query plans.wtf plans | where name == "bakery" | select solution --json
+$ wtf query plans.wtf plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "columns": [],
+    "constraints": [
+      {
+        "anchor": {
+          "character": 63.0,
+          "line": 10.0
+        },
+        "binding": true,
+        "lhs": 400.0,
+        "name": "flour",
+        "op": "<=",
+        "range": {
+          "end": {
+            "character": 61.0,
+            "line": 10.0
+          },
+          "start": {
+            "character": 17.0,
+            "line": 10.0
+          }
+        },
+        "rhs": 400.0,
+        "slack": 0.0
+      },
+      {
+        "anchor": {
+          "character": 63.0,
+          "line": 11.0
+        },
+        "binding": false,
+        "lhs": 32.75,
+        "name": "milk",
+        "op": "<=",
+        "range": {
+          "end": {
+            "character": 48.0,
+            "line": 11.0
+          },
+          "start": {
+            "character": 17.0,
+            "line": 11.0
+          }
+        },
+        "rhs": 200.0,
+        "slack": 167.25
+      },
+      {
+        "anchor": {
+          "character": 63.0,
+          "line": 12.0
+        },
+        "binding": false,
+        "lhs": 25.75,
+        "name": "bagel_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 29.0,
+            "line": 12.0
+          },
+          "start": {
+            "character": 17.0,
+            "line": 12.0
+          }
+        },
+        "rhs": 12.0,
+        "slack": 13.75
+      },
+      {
+        "anchor": {
+          "character": 63.0,
+          "line": 13.0
+        },
+        "binding": true,
+        "lhs": 14.0,
+        "name": "doughnut_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 32.0,
+            "line": 13.0
+          },
+          "start": {
+            "character": 17.0,
+            "line": 13.0
+          }
+        },
+        "rhs": 14.0,
+        "slack": 0.0
+      }
+    ],
+    "goal": "maximize",
+    "objective": {
+      "amount": 94.75,
+      "currency": "USD",
+      "type": "money"
+    },
+    "variable_order": [
+      "bagels",
+      "doughnuts"
+    ],
+    "variables": {
+      "bagels": 25.75,
+      "doughnuts": 14.0
+    }
+  }
+]
+
+### 10 cli query links.wtf resources | select {target, metadata} --json
+$ wtf query links.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "metadata": {
+      "checks": "passing",
+      "data": {
+        "checks": "passing",
+        "merged": false,
+        "review": "APPROVED",
+        "state": "open",
+        "title": "Cached"
+      },
+      "fetched_at": "2026-09-16T11:00:00Z",
+      "merged": false,
+      "review": "APPROVED",
+      "state": "open",
+      "title": "Cached"
+    },
+    "target": "https://github.com/org/repo/pull/1"
+  }
+]
+
+### 11 cli query links.wtf resources | where metadata != null | select metadata.title --json
+$ wtf query links.wtf resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "Cached"
+]
+
+### 12 cli query bad.wtf values | select {name, value, errors} --json
+$ wtf query bad.wtf values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "errors": [
+      "Unknown name 'missing'"
+    ],
+    "name": "bad",
+    "value": null
+  }
+]
+
+### 13 cli query bad.wtf tasks | select {title, due, errors} --json
+$ wtf query bad.wtf tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "due": null,
+    "errors": [
+      "@due: Unknown name 'missing'"
+    ],
+    "title": "Broken"
+  },
+  {
+    "due": null,
+    "errors": [],
+    "title": "Undated"
+  }
+]
+
+### 14 cli query bad.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query bad.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "unknown-name",
+    "line": 0,
+    "message": "Unknown name 'missing'",
+    "severity": "error"
+  },
+  {
+    "code": "unknown-name",
+    "line": 1,
+    "message": "Unknown name 'missing'",
+    "severity": "error"
+  }
+]
+
+### 15 lsp
+-- open bad.wtf
+-- query tasks | select {title, errors}
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "rows": [
+    {
+      "errors": [
+        "@due: Unknown name 'missing'"
+      ],
+      "title": "Broken"
+    },
+    {
+      "errors": [],
+      "title": "Undated"
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/bad.wtf": 1
+  }
+}
+-- change bad.wtf (version 2)
+good := 41 + 1
+- [ ] Fixed @due(2026-09-17)
+-- query values | select {name, display}
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "rows": [
+    {
+      "display": "42",
+      "name": "good"
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/bad.wtf": 2
+  }
+}
+-- query length(tasks)
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "rows": [
+    2
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/bad.wtf": 2
+  }
+}
+-- request wtf/query {"query":"tasks","uri":"${uri:missing.wtf}"}
+error: {
+  "code": -32602,
+  "message": "<root>/missing.wtf: No such file or directory (os error 2)"
+}
+

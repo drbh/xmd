@@ -1,0 +1,204 @@
+### 0 cli render calc.wtf --format text
+$ wtf render calc.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[$10]:unit
+[3]:qty
+[groceries] := table = 3 rows · 2 columns
+| item  | price        |
+| ----- | ------------ |
+| apple | $3.30        |
+| bulk  | [unit * qty] $30 |
+| one   | [unit] $10       |
+[total] := sum(groceries, price) = $43.30
+
+### 1 cli query calc.wtf cells | select {title, line, value} --json
+$ wtf query calc.wtf cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 5,
+    "title": "apple",
+    "value": "apple"
+  },
+  {
+    "line": 5,
+    "title": "$3.30",
+    "value": {
+      "amount": 3.3,
+      "currency": "USD",
+      "type": "money"
+    }
+  },
+  {
+    "line": 6,
+    "title": "bulk",
+    "value": "bulk"
+  },
+  {
+    "line": 6,
+    "title": "unit * qty",
+    "value": {
+      "amount": 30.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  },
+  {
+    "line": 7,
+    "title": "one",
+    "value": "one"
+  },
+  {
+    "line": 7,
+    "title": "unit",
+    "value": {
+      "amount": 10.0,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+
+### 2 cli query calc.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query calc.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 3 lsp
+-- open calc.wtf
+-- await textDocument/publishDiagnostics calc.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/calc.wtf",
+  "version": 1
+}
+-- request textDocument/hover calc.wtf 6:11
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**groceries.price · Money**\n\nRow 2: $30\n\nCalculated from `unit * qty`"
+  },
+  "range": {
+    "end": {
+      "character": 22,
+      "line": 6
+    },
+    "start": {
+      "character": 10,
+      "line": 6
+    }
+  }
+}
+-- request textDocument/references calc.wtf 0:7
+[
+  {
+    "range": {
+      "end": {
+        "character": 10,
+        "line": 0
+      },
+      "start": {
+        "character": 6,
+        "line": 0
+      }
+    },
+    "uri": "file://<root>/calc.wtf"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 6
+      },
+      "start": {
+        "character": 11,
+        "line": 6
+      }
+    },
+    "uri": "file://<root>/calc.wtf"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 7
+      },
+      "start": {
+        "character": 11,
+        "line": 7
+      }
+    },
+    "uri": "file://<root>/calc.wtf"
+  }
+]
+-- request textDocument/formatting calc.wtf
+[]
+
+### 4 cli query wrong.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query wrong.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 7,
+    "message": "Column 'price' expects Money, found Number",
+    "severity": "error"
+  }
+]
+
+### 5 lsp
+-- open wrong.wtf
+-- await textDocument/publishDiagnostics wrong.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "Column 'price' expects Money, found Number",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 7
+        },
+        "start": {
+          "character": 11,
+          "line": 7
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/wrong.wtf",
+  "version": 1
+}
+
+### 6 cli query unknown.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query unknown.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "unknown-name",
+    "line": 3,
+    "message": "Unknown name 'nope'",
+    "severity": "error"
+  }
+]
+
+### 7 cli query empty.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query empty.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "syntax",
+    "line": 3,
+    "message": "Empty calculation; write a name or expression inside the brackets",
+    "severity": "error"
+  }
+]
+

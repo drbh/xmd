@@ -1,0 +1,83 @@
+{
+  "requires": "browser",
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "browser": [
+        { "method": "analyze", "params": { "uri": "file:///workspace/fruit.wtf" } },
+        {
+          "method": "definition",
+          "params": {
+            "uri": "file:///workspace/fruit.wtf",
+            "position": { "line": 5, "character": 29 }
+          }
+        },
+        {
+          "method": "rename",
+          "params": {
+            "uri": "file:///workspace/fruit.wtf",
+            "position": { "line": 5, "character": 29 },
+            "newName": "unit_price"
+          }
+        },
+        { "method": "formatting", "params": { "uri": "file:///workspace/fruit.wtf" } },
+        {
+          "method": "onTypeFormatting",
+          "params": {
+            "uri": "file:///workspace/typing.wtf",
+            "position": { "line": 3, "character": 9 },
+            "ch": "|"
+          }
+        },
+        {
+          "method": "onTypeFormatting",
+          "params": {
+            "uri": "file:///workspace/typing.wtf",
+            "position": { "line": 5, "character": 0 },
+            "ch": "\n"
+          }
+        }
+      ]
+    },
+    {
+      "lsp": [
+        { "open": "fruit.wtf" },
+        { "open": "typing.wtf" },
+        {
+          "request": "textDocument/definition",
+          "file": "fruit.wtf",
+          "line": 5,
+          "character": 29
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "fruit.wtf",
+          "line": 5,
+          "character": 29,
+          "extra": { "newName": "unit_price" }
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "fruit.wtf",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "typing.wtf",
+          "line": 3,
+          "character": 9,
+          "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "typing.wtf",
+          "line": 5,
+          "character": 0,
+          "extra": { "ch": "\n", "options": { "tabSize": 2, "insertSpaces": true } },
+          "apply": true
+        }
+      ]
+    }
+  ]
+}

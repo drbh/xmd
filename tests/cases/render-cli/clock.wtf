@@ -1,0 +1,2 @@
+clock := now()
+day := today()

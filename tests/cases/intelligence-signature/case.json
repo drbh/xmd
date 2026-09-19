@@ -1,0 +1,51 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "sig.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "sig.wtf"
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 0,
+          "character": 26
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 0,
+          "character": 17
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 0,
+          "character": 30
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 1,
+          "character": 11
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 2,
+          "character": 25
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.wtf",
+          "line": 7,
+          "character": 26
+        }
+      ]
+    }
+  ]
+}

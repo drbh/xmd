@@ -1,0 +1,1413 @@
+### 0 lsp
+-- open plan.wtf
+-- await textDocument/publishDiagnostics plan.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/plan.wtf",
+  "version": 1
+}
+-- request textDocument/prepareCallHierarchy plan.wtf 2:3
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 2,
+      "kind": "definition",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Money · $1,590",
+    "kind": 13,
+    "name": "cash",
+    "range": {
+      "end": {
+        "character": 24,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 2
+      },
+      "start": {
+        "character": 1,
+        "line": 2
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 16,
+          "line": 2
+        },
+        "start": {
+          "character": 10,
+          "line": 2
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 0,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $3,000",
+      "kind": 14,
+      "name": "budget",
+      "range": {
+        "end": {
+          "character": 15,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 15,
+          "line": 0
+        },
+        "start": {
+          "character": 9,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 24,
+          "line": 2
+        },
+        "start": {
+          "character": 19,
+          "line": 2
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 1,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $1,410",
+      "kind": 14,
+      "name": "spent",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 14,
+          "line": 1
+        },
+        "start": {
+          "character": 9,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 2:3
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 2,
+      "kind": "definition",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Money · $1,590",
+    "kind": 13,
+    "name": "cash",
+    "range": {
+      "end": {
+        "character": 24,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 2
+      },
+      "start": {
+        "character": 1,
+        "line": 2
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[
+  {
+    "from": {
+      "data": {
+        "column": 0,
+        "index": 3,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $795",
+      "kind": 13,
+      "name": "half",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 5,
+          "line": 3
+        },
+        "start": {
+          "character": 1,
+          "line": 3
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    },
+    "fromRanges": [
+      {
+        "end": {
+          "character": 14,
+          "line": 3
+        },
+        "start": {
+          "character": 10,
+          "line": 3
+        }
+      }
+    ]
+  },
+  {
+    "from": {
+      "data": {
+        "column": 0,
+        "index": 3,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · blocked by buy",
+      "kind": 17,
+      "name": "Ship",
+      "range": {
+        "end": {
+          "character": 36,
+          "line": 13
+        },
+        "start": {
+          "character": 0,
+          "line": 13
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 10,
+          "line": 13
+        },
+        "start": {
+          "character": 6,
+          "line": 13
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    },
+    "fromRanges": [
+      {
+        "end": {
+          "character": 27,
+          "line": 13
+        },
+        "start": {
+          "character": 23,
+          "line": 13
+        }
+      }
+    ]
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 3:14
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 2,
+      "kind": "definition",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Money · $1,590",
+    "kind": 13,
+    "name": "cash",
+    "range": {
+      "end": {
+        "character": 24,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 5,
+        "line": 2
+      },
+      "start": {
+        "character": 1,
+        "line": 2
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 8:4
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 5,
+      "kind": "definition",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Money · $6",
+    "kind": 13,
+    "name": "total",
+    "range": {
+      "end": {
+        "character": 30,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 8
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 8
+      },
+      "start": {
+        "character": 1,
+        "line": 8
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 16,
+          "line": 8
+        },
+        "start": {
+          "character": 15,
+          "line": 8
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 4,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "table · 1 rows",
+      "kind": 23,
+      "name": "t",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 7
+        },
+        "start": {
+          "character": 0,
+          "line": 4
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 2,
+          "line": 4
+        },
+        "start": {
+          "character": 1,
+          "line": 4
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 21,
+          "line": 8
+        },
+        "start": {
+          "character": 18,
+          "line": 8
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 1,
+        "index": 0,
+        "kind": "column",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Number · column of t",
+      "kind": 8,
+      "name": "qty",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 5
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 12,
+          "line": 5
+        },
+        "start": {
+          "character": 9,
+          "line": 5
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 29,
+          "line": 8
+        },
+        "start": {
+          "character": 24,
+          "line": 8
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 2,
+        "index": 0,
+        "kind": "column",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · column of t",
+      "kind": 8,
+      "name": "price",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 5
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 20,
+          "line": 5
+        },
+        "start": {
+          "character": 15,
+          "line": 5
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 8:4
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 5,
+      "kind": "definition",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Money · $6",
+    "kind": 13,
+    "name": "total",
+    "range": {
+      "end": {
+        "character": 30,
+        "line": 8
+      },
+      "start": {
+        "character": 0,
+        "line": 8
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 8
+      },
+      "start": {
+        "character": 1,
+        "line": 8
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[]
+-- request textDocument/prepareCallHierarchy plan.wtf 5:10
+[
+  {
+    "data": {
+      "column": 1,
+      "index": 0,
+      "kind": "column",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Number · column of t",
+    "kind": 8,
+    "name": "qty",
+    "range": {
+      "end": {
+        "character": 22,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 12,
+        "line": 5
+      },
+      "start": {
+        "character": 9,
+        "line": 5
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 12,
+          "line": 5
+        },
+        "start": {
+          "character": 9,
+          "line": 5
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 4,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "table · 1 rows",
+      "kind": 23,
+      "name": "t",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 7
+        },
+        "start": {
+          "character": 0,
+          "line": 4
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 2,
+          "line": 4
+        },
+        "start": {
+          "character": 1,
+          "line": 4
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 5:10
+[
+  {
+    "data": {
+      "column": 1,
+      "index": 0,
+      "kind": "column",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "Number · column of t",
+    "kind": 8,
+    "name": "qty",
+    "range": {
+      "end": {
+        "character": 22,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 12,
+        "line": 5
+      },
+      "start": {
+        "character": 9,
+        "line": 5
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[
+  {
+    "from": {
+      "data": {
+        "column": 0,
+        "index": 5,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $6",
+      "kind": 13,
+      "name": "total",
+      "range": {
+        "end": {
+          "character": 30,
+          "line": 8
+        },
+        "start": {
+          "character": 0,
+          "line": 8
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 6,
+          "line": 8
+        },
+        "start": {
+          "character": 1,
+          "line": 8
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    },
+    "fromRanges": [
+      {
+        "end": {
+          "character": 21,
+          "line": 8
+        },
+        "start": {
+          "character": 18,
+          "line": 8
+        }
+      }
+    ]
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 13:3
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 3,
+      "kind": "task",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "task · blocked by buy",
+    "kind": 17,
+    "name": "Ship",
+    "range": {
+      "end": {
+        "character": 36,
+        "line": 13
+      },
+      "start": {
+        "character": 0,
+        "line": 13
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 10,
+        "line": 13
+      },
+      "start": {
+        "character": 6,
+        "line": 13
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 21,
+          "line": 13
+        },
+        "start": {
+          "character": 18,
+          "line": 13
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 0,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · incomplete",
+      "kind": 17,
+      "name": "buy",
+      "range": {
+        "end": {
+          "character": 29,
+          "line": 10
+        },
+        "start": {
+          "character": 0,
+          "line": 10
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 14,
+          "line": 10
+        },
+        "start": {
+          "character": 11,
+          "line": 10
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 27,
+          "line": 13
+        },
+        "start": {
+          "character": 23,
+          "line": 13
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 2,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $1,590",
+      "kind": 13,
+      "name": "cash",
+      "range": {
+        "end": {
+          "character": 24,
+          "line": 2
+        },
+        "start": {
+          "character": 0,
+          "line": 2
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 5,
+          "line": 2
+        },
+        "start": {
+          "character": 1,
+          "line": 2
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 35,
+          "line": 13
+        },
+        "start": {
+          "character": 30,
+          "line": 13
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 1,
+        "kind": "definition",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "Money · $1,410",
+      "kind": 14,
+      "name": "spent",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 14,
+          "line": 1
+        },
+        "start": {
+          "character": 9,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 13:3
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 3,
+      "kind": "task",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "task · blocked by buy",
+    "kind": 17,
+    "name": "Ship",
+    "range": {
+      "end": {
+        "character": 36,
+        "line": 13
+      },
+      "start": {
+        "character": 0,
+        "line": 13
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 10,
+        "line": 13
+      },
+      "start": {
+        "character": 6,
+        "line": 13
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[
+  {
+    "from": {
+      "data": {
+        "column": 0,
+        "index": 0,
+        "kind": "section",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "checklist · 1/3 complete",
+      "kind": 3,
+      "name": "plan",
+      "range": {
+        "end": {
+          "character": 12,
+          "line": 9
+        },
+        "start": {
+          "character": 0,
+          "line": 9
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 12,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    },
+    "fromRanges": [
+      {
+        "end": {
+          "character": 5,
+          "line": 13
+        },
+        "start": {
+          "character": 2,
+          "line": 13
+        }
+      }
+    ]
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 10:13
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 0,
+      "kind": "task",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "task · incomplete",
+    "kind": 17,
+    "name": "buy",
+    "range": {
+      "end": {
+        "character": 29,
+        "line": 10
+      },
+      "start": {
+        "character": 0,
+        "line": 10
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 14,
+        "line": 10
+      },
+      "start": {
+        "character": 11,
+        "line": 10
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 7,
+          "line": 11
+        },
+        "start": {
+          "character": 4,
+          "line": 11
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 1,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · complete",
+      "kind": 17,
+      "name": "pick",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 11
+        },
+        "start": {
+          "character": 0,
+          "line": 11
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 18,
+          "line": 11
+        },
+        "start": {
+          "character": 14,
+          "line": 11
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 7,
+          "line": 12
+        },
+        "start": {
+          "character": 4,
+          "line": 12
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 2,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · incomplete",
+      "kind": 17,
+      "name": "Pay",
+      "range": {
+        "end": {
+          "character": 24,
+          "line": 12
+        },
+        "start": {
+          "character": 0,
+          "line": 12
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 11,
+          "line": 12
+        },
+        "start": {
+          "character": 8,
+          "line": 12
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 10:13
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 0,
+      "kind": "task",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "task · incomplete",
+    "kind": 17,
+    "name": "buy",
+    "range": {
+      "end": {
+        "character": 29,
+        "line": 10
+      },
+      "start": {
+        "character": 0,
+        "line": 10
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 14,
+        "line": 10
+      },
+      "start": {
+        "character": 11,
+        "line": 10
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[
+  {
+    "from": {
+      "data": {
+        "column": 0,
+        "index": 3,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · blocked by buy",
+      "kind": 17,
+      "name": "Ship",
+      "range": {
+        "end": {
+          "character": 36,
+          "line": 13
+        },
+        "start": {
+          "character": 0,
+          "line": 13
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 10,
+          "line": 13
+        },
+        "start": {
+          "character": 6,
+          "line": 13
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    },
+    "fromRanges": [
+      {
+        "end": {
+          "character": 21,
+          "line": 13
+        },
+        "start": {
+          "character": 18,
+          "line": 13
+        }
+      }
+    ]
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 9:10
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 0,
+      "kind": "section",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "checklist · 1/3 complete",
+    "kind": 3,
+    "name": "plan",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 9
+      },
+      "start": {
+        "character": 0,
+        "line": 9
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 12,
+        "line": 9
+      },
+      "start": {
+        "character": 8,
+        "line": 9
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/outgoingCalls {"item":"${last.0}"}
+[
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 7,
+          "line": 11
+        },
+        "start": {
+          "character": 4,
+          "line": 11
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 1,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · complete",
+      "kind": 17,
+      "name": "pick",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 11
+        },
+        "start": {
+          "character": 0,
+          "line": 11
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 18,
+          "line": 11
+        },
+        "start": {
+          "character": 14,
+          "line": 11
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 7,
+          "line": 12
+        },
+        "start": {
+          "character": 4,
+          "line": 12
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 2,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · incomplete",
+      "kind": 17,
+      "name": "Pay",
+      "range": {
+        "end": {
+          "character": 24,
+          "line": 12
+        },
+        "start": {
+          "character": 0,
+          "line": 12
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 11,
+          "line": 12
+        },
+        "start": {
+          "character": 8,
+          "line": 12
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  },
+  {
+    "fromRanges": [
+      {
+        "end": {
+          "character": 5,
+          "line": 13
+        },
+        "start": {
+          "character": 2,
+          "line": 13
+        }
+      }
+    ],
+    "to": {
+      "data": {
+        "column": 0,
+        "index": 3,
+        "kind": "task",
+        "path": "<root>/plan.wtf"
+      },
+      "detail": "task · blocked by buy",
+      "kind": 17,
+      "name": "Ship",
+      "range": {
+        "end": {
+          "character": 36,
+          "line": 13
+        },
+        "start": {
+          "character": 0,
+          "line": 13
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 10,
+          "line": 13
+        },
+        "start": {
+          "character": 6,
+          "line": 13
+        }
+      },
+      "uri": "file://<root>/plan.wtf"
+    }
+  }
+]
+-- request textDocument/prepareCallHierarchy plan.wtf 9:10
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 0,
+      "kind": "section",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "checklist · 1/3 complete",
+    "kind": 3,
+    "name": "plan",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 9
+      },
+      "start": {
+        "character": 0,
+        "line": 9
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 12,
+        "line": 9
+      },
+      "start": {
+        "character": 8,
+        "line": 9
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":"${last.0}"}
+[]
+-- request textDocument/prepareCallHierarchy plan.wtf 14:0
+null
+-- request textDocument/prepareCallHierarchy plan.wtf 13:3
+[
+  {
+    "data": {
+      "column": 0,
+      "index": 3,
+      "kind": "task",
+      "path": "<root>/plan.wtf"
+    },
+    "detail": "task · blocked by buy",
+    "kind": 17,
+    "name": "Ship",
+    "range": {
+      "end": {
+        "character": 36,
+        "line": 13
+      },
+      "start": {
+        "character": 0,
+        "line": 13
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 10,
+        "line": 13
+      },
+      "start": {
+        "character": 6,
+        "line": 13
+      }
+    },
+    "uri": "file://<root>/plan.wtf"
+  }
+]
+-- request callHierarchy/incomingCalls {"item":{"data":{"column":0,"index":0,"kind":"task","path":"${root}/other.wtf"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"selectionRange":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"uri":"${uri:other.wtf}"}}
+null
+-- request callHierarchy/outgoingCalls {"item":{"data":{"column":0,"index":99,"kind":"task","path":"${root}/plan.wtf"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"selectionRange":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"uri":"${uri:plan.wtf}"}}
+null
+

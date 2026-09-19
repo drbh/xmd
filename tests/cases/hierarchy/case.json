@@ -1,0 +1,249 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "plan.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "plan.wtf"
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 2,
+          "character": 3
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 2,
+          "character": 3
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 3,
+          "character": 14
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 8,
+          "character": 4
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 8,
+          "character": 4
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 5,
+          "character": 10
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 5,
+          "character": 10
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 13,
+          "character": 3
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 13,
+          "character": 3
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 10,
+          "character": 13
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 10,
+          "character": 13
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 9,
+          "character": 10
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 9,
+          "character": 10
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": "${last.0}"
+          }
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 14,
+          "character": 0
+        },
+        {
+          "request": "textDocument/prepareCallHierarchy",
+          "file": "plan.wtf",
+          "line": 13,
+          "character": 3
+        },
+        {
+          "request": "callHierarchy/incomingCalls",
+          "params": {
+            "item": {
+              "name": "Ship",
+              "kind": 13,
+              "uri": "${uri:other.wtf}",
+              "range": {
+                "start": {
+                  "line": 0,
+                  "character": 0
+                },
+                "end": {
+                  "line": 0,
+                  "character": 1
+                }
+              },
+              "selectionRange": {
+                "start": {
+                  "line": 0,
+                  "character": 0
+                },
+                "end": {
+                  "line": 0,
+                  "character": 1
+                }
+              },
+              "data": {
+                "path": "${root}/other.wtf",
+                "kind": "task",
+                "index": 0,
+                "column": 0
+              }
+            }
+          }
+        },
+        {
+          "request": "callHierarchy/outgoingCalls",
+          "params": {
+            "item": {
+              "name": "Ship",
+              "kind": 13,
+              "uri": "${uri:plan.wtf}",
+              "range": {
+                "start": {
+                  "line": 13,
+                  "character": 0
+                },
+                "end": {
+                  "line": 13,
+                  "character": 1
+                }
+              },
+              "selectionRange": {
+                "start": {
+                  "line": 13,
+                  "character": 0
+                },
+                "end": {
+                  "line": 13,
+                  "character": 1
+                }
+              },
+              "data": {
+                "path": "${root}/plan.wtf",
+                "kind": "task",
+                "index": 99,
+                "column": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "import(\"./.hidden/values.wtf\").price",
+        "--root",
+        "flat",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "tasks | select import(\"./.hidden/values.wtf\").price",
+        "--root",
+        "flat",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "price",
+        "--root",
+        "flat",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | select import(\"./.hidden/value.wtf\").amount",
+        "--root",
+        "rows",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "one/main.wtf",
+        "if(false, import(\"./absent.wtf\").amount, 42)",
+        "--root",
+        "rows",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "one/main.wtf",
+        "import(\"./absent.wtf\").amount",
+        "--root",
+        "rows",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "one/main.wtf",
+        "tasks | count | select import(\"./.hidden/value.wtf\").amount",
+        "--root",
+        "rows",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "import(\"./\" + \".hidden/values.wtf\")",
+        "--root",
+        "flat",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "import(\"values.wtf\").price",
+        "--root",
+        "flat",
+        "--json"
+      ]
+    },
+    {
+      "read": [
+        "flat/main.wtf",
+        ".wtf/cache.json"
+      ]
+    }
+  ]
+}

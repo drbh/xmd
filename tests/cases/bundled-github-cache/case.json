@@ -1,0 +1,54 @@
+{
+  "now": "2026-09-16T18:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "links.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "links.wtf",
+        "resources | select {target, metadata}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "links.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "links.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "links.wtf",
+          "line": 1,
+          "character": 5
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "links.wtf",
+          "line": 5,
+          "character": 5
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "links.wtf",
+          "line": 8,
+          "character": 5
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "links.wtf"
+        }
+      ]
+    }
+  ]
+}

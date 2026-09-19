@@ -1,0 +1,102 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "solver.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "solver.wtf",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "badmodels.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "validate.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "calendar.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "imports.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "notes | select import(\"format\").human(125m) | limit 1",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "runaway.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plans.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "plans.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "plans.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "plans.wtf",
+          "line": 0,
+          "character": 2
+        }
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "precision.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "daily.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "daily.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "daily.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "daily.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "daily.wtf",
+          "line": 2,
+          "character": 18
+        },
+        {
+          "request": "textDocument/definition",
+          "file": "daily.wtf",
+          "line": 2,
+          "character": 18
+        },
+        {
+          "request": "textDocument/documentLink",
+          "file": "daily.wtf"
+        },
+        {
+          "request": "textDocument/rename",
+          "file": "daily.wtf",
+          "line": 2,
+          "character": 18,
+          "extra": {
+            "newName": "lunch_receipt"
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "daily.wtf",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 0
+            },
+            "end": {
+              "line": 2,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "daily.wtf",
+            "text": "# Release :release\n- [x] Parser\n- [x] Review [src.receipt] :review @estimate(30m) @completed(2026-09-16)\n- [ ] Publish @after(review) @due(src.departure-7d)\n[progress] := completed(release)/total(release)\nsrc := import(\"./resources.wtf\")\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "daily.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "daily.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "notify": "workspace/didChangeWatchedFiles",
+          "params": {
+            "changes": [
+              {
+                "uri": "${uri:resources.wtf}",
+                "type": 2
+              }
+            ]
+          }
+        },
+        {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "daily.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 200,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "shutdown",
+          "params": null
+        }
+      ]
+    },
+    {
+      "read": [
+        "daily.wtf",
+        "resources.wtf"
+      ]
+    }
+  ]
+}

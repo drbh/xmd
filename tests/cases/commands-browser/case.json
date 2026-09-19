@@ -1,0 +1,206 @@
+{
+  "requires": "browser",
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "note.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "note.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "note.wtf"
+        }
+      ]
+    },
+    {
+      "browser": [
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 0
+              },
+              "end": {
+                "line": 0,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 2,
+                "character": 0
+              },
+              "end": {
+                "line": 2,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/note.wtf",
+            "range": {
+              "start": {
+                "line": 3,
+                "character": 0
+              },
+              "end": {
+                "line": 3,
+                "character": 0
+              }
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.task",
+              "arguments": [
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/note.wtf",
+                  "row": 1,
+                  "expected": "- [ ] Task"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.timer",
+              "arguments": [
+                {
+                  "kind": "timer",
+                  "document": "file:///workspace/note.wtf",
+                  "name": "focus",
+                  "action": "start"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.refresh",
+              "arguments": [
+                {
+                  "kind": "refresh",
+                  "document": null
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.today",
+              "arguments": [
+                {
+                  "kind": "show_today"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 1
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.refreshResource",
+              "arguments": [
+                {
+                  "kind": "refresh_resource",
+                  "target": {
+                    "document": "file:///workspace/note.wtf",
+                    "row": 2,
+                    "expected": "https://github.com/acme/app/pull/42"
+                  },
+                  "url": "https://github.com/acme/app/pull/42"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "execute",
+          "params": {
+            "versions": {
+              "file:///workspace/note.wtf": 2
+            },
+            "command": {
+              "title": "",
+              "command": "wtf.task",
+              "arguments": [
+                {
+                  "kind": "toggle_task",
+                  "document": "file:///workspace/note.wtf",
+                  "row": 1,
+                  "expected": "- [ ] Task"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

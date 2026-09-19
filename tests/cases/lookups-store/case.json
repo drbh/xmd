@@ -1,0 +1,27 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    { "cli": ["render", "money.wtf", "--format", "text"] },
+    { "cli": ["query", "money.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "money.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "cli": [
+        "query",
+        "money.wtf",
+        "[€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h]",
+        "--json"
+      ]
+    },
+    { "cli": ["query", "money.wtf", "€450 + $5", "--json"] },
+    { "cli": ["query", "money.wtf", "€450 > $5", "--json"] },
+    {
+      "lsp": [
+        { "open": "money.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "money.wtf" },
+        { "request": "textDocument/hover", "file": "money.wtf", "line": 1, "character": 3 },
+        { "request": "textDocument/hover", "file": "money.wtf", "line": 5, "character": 3 },
+        { "request": "textDocument/codeLens", "file": "money.wtf" }
+      ]
+    }
+  ]
+}

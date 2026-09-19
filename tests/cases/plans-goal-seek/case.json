@@ -1,0 +1,19 @@
+{
+  "steps": [
+    { "cli": ["render", "savings.wtf", "--format", "text"] },
+    { "cli": ["query", "savings.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "savings.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "savings.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "savings.wtf" },
+        { "request": "textDocument/hover", "file": "savings.wtf", "line": 3, "character": 3 }
+      ]
+    },
+    { "cli": ["render", "units.wtf", "--format", "text"] },
+    { "cli": ["query", "units.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "unknowns.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["render", "broken.wtf", "--format", "text"] },
+    { "cli": ["query", "broken.wtf", "diagnostics | select {line, severity, code, message}", "--json"] }
+  ]
+}

@@ -1,0 +1,289 @@
+### 0 cli render money.wtf --format text
+$ wtf render money.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[€450]:hotel
+[hotel_usd] := to(hotel, USD) = $490.50
+[same] := to(hotel, EUR) = €450
+[nvda] := quote(NVDA) * 12 = $2,178
+[cost] := rate(EUR, USD) * 2 = 2.18
+[missing] := rate(GBP, USD)
+--- stderr
+<root>/money.wtf:6:14: warning: No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens
+
+### 1 cli query money.wtf values | select {name, display} --json
+$ wtf query money.wtf values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "display": "€450",
+    "name": "hotel"
+  },
+  {
+    "display": "$490.50",
+    "name": "hotel_usd"
+  },
+  {
+    "display": "€450",
+    "name": "same"
+  },
+  {
+    "display": "$2,178",
+    "name": "nvda"
+  },
+  {
+    "display": "2.18",
+    "name": "cost"
+  },
+  {
+    "display": null,
+    "name": "missing"
+  }
+]
+
+### 2 cli query money.wtf diagnostics | select {line, severity, code, message} --json
+$ wtf query money.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "code": "evaluation",
+    "line": 5,
+    "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  }
+]
+
+### 3 cli query money.wtf [€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h] --json
+$ wtf query money.wtf [€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h] --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "amount": 450.0,
+    "currency": "EUR",
+    "type": "money"
+  },
+  {
+    "amount": 700.0,
+    "currency": "MXN",
+    "type": "money"
+  },
+  {
+    "amount": -12.5,
+    "currency": "GBP",
+    "type": "money"
+  },
+  {
+    "amount": 2000.0,
+    "currency": "JPY",
+    "type": "money"
+  },
+  {
+    "amount": 7.0,
+    "currency": "USD",
+    "type": "money"
+  },
+  {
+    "amount": 1350.0,
+    "currency": "EUR",
+    "type": "money"
+  },
+  {
+    "type": "ratio",
+    "value": 9.0
+  },
+  "USD",
+  "NVDA",
+  {
+    "seconds": 9000,
+    "type": "duration"
+  }
+]
+
+### 4 cli query money.wtf €450 + $5 --json
+$ wtf query money.wtf €450 + $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 1
+--- stderr
+wtf: Cannot combine EUR and USD; convert with to(value, USD) (Money + Money)
+
+### 5 cli query money.wtf €450 > $5 --json
+$ wtf query money.wtf €450 > $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 1
+--- stderr
+wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
+
+### 6 lsp
+-- open money.wtf
+-- await textDocument/publishDiagnostics money.wtf
+{
+  "diagnostics": [
+    {
+      "code": "evaluation",
+      "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+      "range": {
+        "end": {
+          "character": 27,
+          "line": 5
+        },
+        "start": {
+          "character": 13,
+          "line": 5
+        }
+      },
+      "severity": 2,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/money.wtf",
+  "version": 1
+}
+-- request textDocument/hover money.wtf 1:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**hotel_usd · Money**\n\n$490.50\n\n```text\nto(hotel, USD)\n= to(€450, USD)\n= $490.50\n```\n\nInputs: [hotel](<file://<root>/money.wtf#L1>)\n\nLookups:\n- rate EUR→USD · 2h ago · frankfurter.app\n\nDefinition: [hotel_usd](<file://<root>/money.wtf#L2>) · <root>/money.wtf:2"
+  },
+  "range": {
+    "end": {
+      "character": 10,
+      "line": 1
+    },
+    "start": {
+      "character": 1,
+      "line": 1
+    }
+  }
+}
+-- request textDocument/hover money.wtf 5:3
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**missing**\n\nNo cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.wtf#L6>) · <root>/money.wtf:6"
+  },
+  "range": {
+    "end": {
+      "character": 8,
+      "line": 5
+    },
+    "start": {
+      "character": 1,
+      "line": 5
+    }
+  }
+}
+-- request textDocument/codeLens money.wtf
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/money.wtf",
+          "kind": "refresh"
+        }
+      ],
+      "command": "wtf.refresh",
+      "title": "⟳ lookups"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    }
+  }
+]
+

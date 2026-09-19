@@ -1,0 +1,4 @@
+src := import("./sub/values.wtf")
+amount := 999
+result := src.double(src.amount)
+link := src.receipt

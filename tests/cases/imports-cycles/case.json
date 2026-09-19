@@ -1,0 +1,75 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "pair",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "a",
+        "--root",
+        "pair",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "main.wtf",
+        "safe",
+        "--root",
+        "pair",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "daily.wtf",
+        "values | select {name, display, errors}",
+        "--root",
+        "self",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "daily.wtf",
+        "--root",
+        "self",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "daily.wtf",
+        "diagnostics | select {line, severity, message}",
+        "--root",
+        "ambiguous",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "daily.wtf",
+        "--root",
+        "ambiguous",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

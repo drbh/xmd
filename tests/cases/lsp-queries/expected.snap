@@ -1,0 +1,308 @@
+### 0 lsp
+-- open n.wtf
+-- change n.wtf (version 2)
+$9:price
+- [ ] Unsaved
+-- await textDocument/publishDiagnostics n.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/n.wtf",
+  "version": 1
+}
+-- query values | select {name, value, day:today(), clock:now()}
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    {
+      "clock": {
+        "type": "datetime",
+        "value": "2026-09-16T14:00:00-04:00"
+      },
+      "day": {
+        "type": "date",
+        "value": "2026-09-16"
+      },
+      "name": "answer",
+      "value": null
+    },
+    {
+      "clock": {
+        "type": "datetime",
+        "value": "2026-09-16T14:00:00-04:00"
+      },
+      "day": {
+        "type": "date",
+        "value": "2026-09-16"
+      },
+      "name": "price",
+      "value": {
+        "amount": 9.0,
+        "currency": "USD",
+        "type": "money"
+      }
+    },
+    {
+      "clock": {
+        "type": "datetime",
+        "value": "2026-09-16T14:00:00-04:00"
+      },
+      "day": {
+        "type": "date",
+        "value": "2026-09-16"
+      },
+      "name": "saved",
+      "value": 1.0
+    },
+    {
+      "clock": {
+        "type": "datetime",
+        "value": "2026-09-16T14:00:00-04:00"
+      },
+      "day": {
+        "type": "date",
+        "value": "2026-09-16"
+      },
+      "name": "rate",
+      "value": 3.0
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/n.wtf": 2
+  }
+}
+-- query tasks | where leaf && !done | sort source.path, source.line | select title
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    "Unsaved",
+    "Other"
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/n.wtf": 2
+  }
+}
+-- change n.wtf (version 3)
+$12:price
+- [x] Finished
+-- await textDocument/publishDiagnostics n.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/n.wtf",
+  "version": 2
+}
+-- query tasks | where leaf && !done | sort source.path, source.line
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    {
+      "anchor": {
+        "character": 11,
+        "line": 1
+      },
+      "at": null,
+      "at_date": null,
+      "attributes": {},
+      "blocked_by": [],
+      "blocked_error": null,
+      "checked": false,
+      "children": [],
+      "done": false,
+      "due": null,
+      "errors": [],
+      "estimate": null,
+      "kind": "task",
+      "leaf": true,
+      "line": 1,
+      "name": null,
+      "parent": null,
+      "schedule": [],
+      "scheduled": null,
+      "source": {
+        "line": 2,
+        "path": "<root>/two.wtf",
+        "range": {
+          "end": {
+            "character": 11,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "uri": "file://<root>/two.wtf#L2"
+      },
+      "tags": [],
+      "timer": null,
+      "title": "Other"
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/n.wtf": 3
+  }
+}
+-- request wtf/query {"query":"tasks | where ("}
+error: {
+  "code": -32602,
+  "message": "Unclosed delimiter in query"
+}
+
+### 1 read n.wtf
+-- n.wtf
+$5:price
+- [ ] Saved
+
+### 2 lsp
+-- open one.wtf
+-- change one.wtf (version 2)
+answer := import("./two.wtf").rate * 2
+- [ ] Local
+-- await textDocument/publishDiagnostics one.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/one.wtf",
+  "version": 1
+}
+-- query map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    "answer"
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/one.wtf": 2
+  }
+}
+-- query tasks | select title
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    "Local"
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/one.wtf": 2
+  }
+}
+-- query length(tasks)
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    3
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/one.wtf": 2
+  }
+}
+-- query graph.nodes | where external | select name
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    "rate"
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/one.wtf": 2
+  }
+}
+-- request wtf/query {"query":"ast","uri":"https://example.com/n.wtf"}
+error: {
+  "code": -32602,
+  "message": "Query uri must be a local file URI"
+}
+-- request wtf/query {"query":"ast","uri":"${uri:missing.wtf}"}
+error: {
+  "code": -32602,
+  "message": "<root>/missing.wtf: No such file or directory (os error 2)"
+}
+
+### 3 lsp
+-- open main.wtf
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'amount'",
+      "range": {
+        "end": {
+          "character": 16,
+          "line": 0
+        },
+        "start": {
+          "character": 10,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/main.wtf",
+  "version": 1
+}
+-- change main.wtf (version 2)
+src := import("./.hidden/values.wtf")
+answer := src.amount
+-- await textDocument/publishDiagnostics main.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/main.wtf",
+  "version": 2
+}
+-- query answer
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    42.0
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/main.wtf": 2
+  }
+}
+-- open .hidden/values.wtf
+-- change .hidden/values.wtf (version 2)
+amount := 77
+-- await textDocument/publishDiagnostics .hidden/values.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/.hidden/values.wtf",
+  "version": 1
+}
+-- query answer
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    77.0
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/.hidden/values.wtf": 2,
+    "file://<root>/main.wtf": 2
+  }
+}
+-- close .hidden/values.wtf
+-- query answer
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    42.0
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/main.wtf": 2
+  }
+}
+
+### 4 read main.wtf .hidden/values.wtf
+-- main.wtf
+answer := amount
+-- .hidden/values.wtf
+amount := 42
+

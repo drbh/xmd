@@ -1,0 +1,51 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "initialize": true
+        },
+        {
+          "open": "plan.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "plan.wtf"
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "plan.wtf",
+          "line": 7,
+          "character": 0,
+          "extra": {
+            "ch": "\n",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "plan.wtf",
+          "line": 4,
+          "character": 13,
+          "extra": {
+            "ch": "|",
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        }
+      ]
+    },
+    {
+      "read": [
+        "plan.wtf"
+      ]
+    }
+  ]
+}

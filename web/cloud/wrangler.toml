@@ -1,0 +1,34 @@
+# Hosted deployment of the docs app: static site plus an accounts API.
+# Everything Cloudflare-specific lives in this folder; the app itself only
+# knows the optional `backend.js` module that build.mjs places beside it.
+name = "wtf-docs"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+account_id = "1d9f1ba803a2b9c6118173364bde3155"
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+not_found_handling = "none"
+
+[[durable_objects.bindings]]
+name = "Room"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wtf-docs"
+database_id = "7138a96c-8e07-42b7-8aae-a887571c67fc"
+migrations_dir = "migrations"
+
+[vars]
+# Cloudflare Access application in front of this hostname (enabled from the
+# Worker's Domains & Routes settings). Empty values report sign-in as not
+# configured. The AUD tag is on the application's page in Zero Trust, and also
+# appears as `kid`/`aud` in the login redirect for the hostname.
+ACCESS_TEAM_DOMAIN = "drbh.cloudflareaccess.com"
+ACCESS_AUD = "8f3623199c0d1ee9ab946c638bb9cb63b9b8dbfcbdd1b69ff352b58afa7834a2"

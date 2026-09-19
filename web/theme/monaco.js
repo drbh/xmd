@@ -143,12 +143,12 @@ export default [
   {
     "token": "wtfCheckbox",
     "foreground": "FFD580",
-    "fontStyle": "bold"
+    "fontStyle": ""
   },
   {
     "token": "wtfCheckboxChecked",
     "foreground": "91E6AC",
-    "fontStyle": "bold"
+    "fontStyle": ""
   },
   {
     "token": "wtfTaskDone",

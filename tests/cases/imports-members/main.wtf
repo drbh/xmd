@@ -1,0 +1,4 @@
+src := import("./values.wtf")
+result := src.amount + 1
+See [src.amount].
+local := fn(src) => src.amount

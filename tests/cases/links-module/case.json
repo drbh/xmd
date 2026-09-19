@@ -1,0 +1,157 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "work.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".wtf/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "shapes.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "read": [
+        "shapes.wtf"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "broken.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "work.wtf",
+        "diagnostics | select {message, code}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "work.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "work.wtf"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "work.wtf",
+          "line": 0,
+          "character": 5
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "work.wtf",
+          "line": 1,
+          "character": 9
+        },
+        {
+          "request": "textDocument/completion",
+          "file": "work.wtf",
+          "line": 1,
+          "character": 14
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "work.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/builds.wtf": "module := {api: 1, id: \"builds\", kind: \"link\", hosts: [\"builds.example\"], properties: [\"state\"], cache_version: 2}\nmatches := fn(url) => starts_with(url.path, \"/runs/\")\ninlay := fn(ctx) => if(ctx.cached == null, \"build · refresh for status\", \"build · \" + ctx.cached.state)\nproperty := fn(ctx, name) => if(ctx.cached == null, error(\"Refresh build first\"), get(ctx.cached, name))\nrefresh := fn(url) => {title: \"⟳ build\", program: \"fake-build\", args: [url.path], env: {WTF_FIXTURE_READY: \"yes\"}}\ndecode := fn(url, data) => {title: data.title, state: data.state}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/builds.wtf": "module := {api: 1, id: \"builds\", kind: \"link\", enabled: false}\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/aaa_first.wtf": "module := {api: 1, id: \"first\", kind: \"link\", hosts: [\"builds.example\"]}\ninlay := fn(ctx) => \"first wins\"\n",
+        ".wtf/modules/builds.wtf": "// A workspace link module for a build service, with cached state and refresh.\nmodule := {\n  api: 1,\n  id: \"builds\",\n  kind: \"link\",\n  hosts: [\"builds.example\"],\n  properties: [\"state\", \"observed\", \"title\"],\n  cache_version: 1\n}\n\nmatches := fn(url) => starts_with(url.path, \"/runs/\")\n\ninlay := fn(ctx) => (\n  if(\n    ctx.cached == null,\n    \"build · refresh for status\",\n    \"build · \" + ctx.cached.state\n  )\n)\n\nhover := fn(ctx) => \"Build status at \" + text(now())\n\ntime_dependent := fn(ctx) => true\n\nproperty_names := fn(url) => if(url.path == \"/runs/42\", [\"state\", \"title\"], [])\n\nproperty := fn(ctx, name) => (\n  if(\n    ctx.cached == null,\n    error(\"Refresh build first\"),\n    if(\n      name == \"observed\",\n      now(),\n      if(\n        name == \"state\" || name == \"title\",\n        get(ctx.cached, name),\n        error(\"Unknown build property '\" + name + \"'\")\n      )\n    )\n  )\n)\n\nrefresh := fn(url) => {\n  title: \"⟳ build\",\n  program: \"fake-build\",\n  args: [url.path],\n  env: {WTF_FIXTURE_READY: \"yes\"}\n}\n\ndecode := fn(url, data) => {title: data.title, state: data.state}\n",
+        ".wtf/modules.json": "[\"./modules/aaa_first.wtf\", \"./modules/builds.wtf\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "work.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+### 0 lsp
+-- initialize
+{
+  "capabilities": {
+    "callHierarchyProvider": true,
+    "codeActionProvider": true,
+    "codeLensProvider": {
+      "resolveProvider": false
+    },
+    "completionProvider": {
+      "triggerCharacters": [
+        "[",
+        "@",
+        "."
+      ]
+    },
+    "definitionProvider": true,
+    "documentFormattingProvider": true,
+    "documentHighlightProvider": true,
+    "documentLinkProvider": {
+      "resolveProvider": false
+    },
+    "documentOnTypeFormattingProvider": {
+      "firstTriggerCharacter": "\n",
+      "moreTriggerCharacter": [
+        "|"
+      ]
+    },
+    "documentSymbolProvider": true,
+    "executeCommandProvider": {
+      "commands": [
+        "wtf.invoke",
+        "wtf.applyEdits",
+        "wtf.task",
+        "wtf.timer",
+        "wtf.openResource",
+        "wtf.refreshResource",
+        "wtf.refresh",
+        "wtf.today"
+      ]
+    },
+    "experimental": {
+      "wtfQuery": {
+        "method": "wtf/query",
+        "schemaVersion": 1
+      }
+    },
+    "foldingRangeProvider": true,
+    "hoverProvider": true,
+    "inlayHintProvider": true,
+    "referencesProvider": true,
+    "renameProvider": {
+      "prepareProvider": true
+    },
+    "semanticTokensProvider": {
+      "full": true,
+      "legend": {
+        "tokenModifiers": [
+          "declaration",
+          "defaultLibrary"
+        ],
+        "tokenTypes": [
+          "comment",
+          "keyword",
+          "number",
+          "variable",
+          "operator",
+          "string",
+          "heading",
+          "function",
+          "property",
+          "decorator",
+          "wtfMoney",
+          "wtfDate",
+          "wtfDuration",
+          "wtfRatio",
+          "wtfBoolean",
+          "wtfPunctuation",
+          "wtfCode",
+          "wtfLink",
+          "wtfCheckbox",
+          "wtfTaskDone",
+          "wtfCheckboxChecked",
+          "wtfTime",
+          "wtfDay",
+          "wtfPlace",
+          "wtfDetailKey",
+          "wtfDepart",
+          "wtfArrive",
+          "wtfTransit",
+          "wtfStay",
+          "wtfMeal",
+          "wtfVisit",
+          "wtfExplore"
+        ]
+      }
+    },
+    "signatureHelpProvider": {
+      "retriggerCharacters": [
+        ")"
+      ],
+      "triggerCharacters": [
+        "(",
+        ","
+      ]
+    },
+    "textDocumentSync": 1,
+    "workspaceSymbolProvider": true
+  },
+  "serverInfo": {
+    "name": "WTF",
+    "version": "0.1.0"
+  }
+}
+-- open plan.wtf
+-- await textDocument/publishDiagnostics plan.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/plan.wtf",
+  "version": 1
+}
+-- request textDocument/onTypeFormatting plan.wtf 7:0
+[
+  {
+    "newText": "- [ ] ",
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 7
+      },
+      "start": {
+        "character": 0,
+        "line": 7
+      }
+    }
+  }
+]
+-- applied to plan.wtf (version 2)
+[$3,000]:budget
+[t] := table
+| item | qty |
+|---|---|
+| apple | 2 |
+# Plan :plan
+- [ ] Buy :buy @after(budget > $0)
+- [ ] 
+-- request textDocument/onTypeFormatting plan.wtf 4:13
+[
+  {
+    "newText": "| item  | qty |",
+    "range": {
+      "end": {
+        "character": 14,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "newText": "| ----- | --- |",
+    "range": {
+      "end": {
+        "character": 9,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "newText": "   ",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 4
+      },
+      "start": {
+        "character": 11,
+        "line": 4
+      }
+    }
+  }
+]
+-- applied to plan.wtf (version 3)
+[$3,000]:budget
+[t] := table
+| item  | qty |
+| ----- | --- |
+| apple | 2   |
+# Plan :plan
+- [ ] Buy :buy @after(budget > $0)
+- [ ] 
+
+### 1 read plan.wtf
+-- plan.wtf
+[$3,000]:budget
+[t] := table
+| item | qty |
+|---|---|
+| apple | 2 |
+# Plan :plan
+- [ ] Buy :buy @after(budget > $0)
+
+

@@ -1,0 +1,7 @@
+src := (
+  import("./bridge.wtf")
+)
+answer := (
+  (src.remote
+    .amount)
+)

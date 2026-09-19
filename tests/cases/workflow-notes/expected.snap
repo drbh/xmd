@@ -1,0 +1,286 @@
+### 0 cli render daily.wtf --root parse --format text
+$ wtf render daily.wtf --root parse --format text --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+# Heading ░░░░░░░░ 0/1 complete · 20m estimated left
+Budget [$3,000]:budget. Spent [$1,410]:spent.
+[remaining] := budget-spent = $1,590
+- [ ] Review [remaining] $1,590 @estimate(20m)
+[Website](https://example.com) ![pic](./image.png)
+`[ignored] := 44`
+```wtf
+[also_ignored] := 9
+```
+<!-- [hidden] := 5 -->
+[日本語]:label
+
+### 1 cli query daily.wtf values | select {name, display} --root parse --json
+$ wtf query daily.wtf values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$3,000",
+    "name": "budget"
+  },
+  {
+    "display": "$1,410",
+    "name": "spent"
+  },
+  {
+    "display": "$1,590",
+    "name": "remaining"
+  },
+  {
+    "display": "日本語",
+    "name": "label"
+  }
+]
+
+### 2 cli query daily.wtf [length(tasks), length(links), length(diagnostics)] --root parse --json
+$ wtf query daily.wtf [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  1,
+  2,
+  0
+]
+
+### 3 cli query expressions.wtf values | select {name, display, errors} --root parse --json
+$ wtf query expressions.wtf values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "14",
+    "errors": [],
+    "name": "n"
+  },
+  {
+    "display": "20",
+    "errors": [],
+    "name": "grouped"
+  },
+  {
+    "display": "5",
+    "errors": [],
+    "name": "division"
+  },
+  {
+    "display": "60%",
+    "errors": [],
+    "name": "ratio"
+  },
+  {
+    "display": "2026-09-25",
+    "errors": [],
+    "name": "departure"
+  },
+  {
+    "display": "2026-09-18",
+    "errors": [],
+    "name": "due"
+  },
+  {
+    "display": "2h",
+    "errors": [],
+    "name": "time"
+  },
+  {
+    "display": "true",
+    "errors": [],
+    "name": "ok"
+  },
+  {
+    "display": "false",
+    "errors": [],
+    "name": "short"
+  }
+]
+
+### 4 cli query places.wtf values | select {name, display, errors} --root parse --json
+$ wtf query places.wtf values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "./assets/receipt.png",
+    "errors": [],
+    "name": "alias"
+  },
+  {
+    "display": "geo:40.73,-73.98",
+    "errors": [],
+    "name": "spot"
+  },
+  {
+    "display": "geo:91,0",
+    "errors": [],
+    "name": "nowhere"
+  }
+]
+
+### 5 lsp
+-- open parse/places.wtf
+-- request textDocument/documentLink parse/places.wtf
+[
+  {
+    "range": {
+      "end": {
+        "character": 52,
+        "line": 0
+      },
+      "start": {
+        "character": 10,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/parse/project/assets/receipt.png",
+    "tooltip": "Open file://<root>/parse/project/assets/receipt.png"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 1
+      },
+      "start": {
+        "character": 1,
+        "line": 1
+      }
+    },
+    "target": "https://www.openstreetmap.org/?mlat=40.73&mlon=-73.98#map=16/40.73/-73.98",
+    "tooltip": "Open https://www.openstreetmap.org/?mlat=40.73&mlon=-73.98#map=16/40.73/-73.98"
+  }
+]
+
+### 6 cli render lookalike.wtf --root parse --format text
+$ wtf render lookalike.wtf --root parse --format text --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stdout
+[https://github.com.evil.example/acme/app/pull/42]:fake link
+[ok] := fake.merged
+--- stderr
+<root>/parse/lookalike.wtf:2:9: error: Unknown resource property 'merged'
+wtf: 1 error(s) while rendering
+
+### 7 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json
+$ wtf query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "title": "Call dentist #errands"
+  }
+]
+
+### 8 cli query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+$ wtf query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+exit 0
+--- stdout
+[
+  "Call dentist #errands"
+]
+
+### 9 cli query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json
+$ wtf query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 10 read cli/inbox.wtf cli/.wtf/cache.json
+-- cli/inbox.wtf
+- [ ] Call dentist #errands @due(2026-09-18)
+-- cli/.wtf/cache.json
+(missing: entity not found)
+
+### 11 cli query --workspace plans | where name == "bakery" | select solution --root plan
+$ wtf query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+columns=[]	constraints=[{"anchor":{"character":56.0,"line":4.0},"binding":true,"lhs":400.0,"name":"flour","op":"<=","range":{"end":{"character":54.0,"line":4.0},"start":{"character":10.0,"line":4.0}},"rhs":400.0,"slack":0.0},{"anchor":{"character":28.0,"line":5.0},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26.0,"line":5.0},"start":{"character":14.0,"line":5.0}},"rhs":12.0,"slack":13.75},{"anchor":{"character":34.0,"line":6.0},"binding":true,"lhs":14.0,"name":"doughnut_min","op":">=","range":{"end":{"character":32.0,"line":6.0},"start":{"character":17.0,"line":6.0}},"rhs":14.0,"slack":0.0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14.0}
+
+### 12 cli query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json
+$ wtf query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "binding": [
+      {
+        "anchor": {
+          "character": 56.0,
+          "line": 4.0
+        },
+        "binding": true,
+        "lhs": 400.0,
+        "name": "flour",
+        "op": "<=",
+        "range": {
+          "end": {
+            "character": 54.0,
+            "line": 4.0
+          },
+          "start": {
+            "character": 10.0,
+            "line": 4.0
+          }
+        },
+        "rhs": 400.0,
+        "slack": 0.0
+      },
+      {
+        "anchor": {
+          "character": 28.0,
+          "line": 5.0
+        },
+        "binding": false,
+        "lhs": 25.75,
+        "name": "bagel_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 26.0,
+            "line": 5.0
+          },
+          "start": {
+            "character": 14.0,
+            "line": 5.0
+          }
+        },
+        "rhs": 12.0,
+        "slack": 13.75
+      },
+      {
+        "anchor": {
+          "character": 34.0,
+          "line": 6.0
+        },
+        "binding": true,
+        "lhs": 14.0,
+        "name": "doughnut_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 32.0,
+            "line": 6.0
+          },
+          "start": {
+            "character": 17.0,
+            "line": 6.0
+          }
+        },
+        "rhs": 14.0,
+        "slack": 0.0
+      }
+    ],
+    "objective": {
+      "amount": 94.75,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+

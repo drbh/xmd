@@ -1,0 +1,616 @@
+### 0 lsp
+-- open extract.wtf
+-- await textDocument/publishDiagnostics extract.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/extract.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction extract.wtf {"end":{"character":16,"line":1},"start":{"character":10,"line":1}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[$3,000]:amount",
+              "range": {
+                "end": {
+                  "character": 16,
+                  "line": 1
+                },
+                "start": {
+                  "character": 10,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/extract.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.extract",
+    "title": "Extract named value 'amount'"
+  }
+]
+-- request textDocument/codeAction extract.wtf {"end":{"character":21,"line":2},"start":{"character":16,"line":2}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[calculation_1] := 3 * 4\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              }
+            },
+            {
+              "newText": "calculation_1",
+              "range": {
+                "end": {
+                  "character": 21,
+                  "line": 2
+                },
+                "start": {
+                  "character": 16,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/extract.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.extract",
+    "title": "Extract named calculation 'calculation_1'"
+  }
+]
+-- request textDocument/codeAction extract.wtf {"end":{"character":17,"line":2},"start":{"character":12,"line":2}}
+[]
+-- open grouping.wtf
+-- request textDocument/codeAction grouping.wtf {"end":{"character":13,"line":0},"start":{"character":8,"line":0}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[calculation] := 2 + 3\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 0
+                },
+                "start": {
+                  "character": 0,
+                  "line": 0
+                }
+              }
+            },
+            {
+              "newText": "calculation",
+              "range": {
+                "end": {
+                  "character": 13,
+                  "line": 0
+                },
+                "start": {
+                  "character": 8,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/grouping.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.extract",
+    "title": "Extract named calculation 'calculation'"
+  }
+]
+-- request textDocument/codeAction grouping.wtf {"end":{"character":22,"line":1},"start":{"character":20,"line":1}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": " @due(2026-09-30) @repeat_from(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 23,
+                  "line": 1
+                },
+                "start": {
+                  "character": 23,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "newText": "<!-- wtf-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Repeat\"} -->\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 2
+                },
+                "start": {
+                  "character": 0,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/grouping.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "↻ next"
+  }
+]
+-- open inline.wtf
+-- await textDocument/publishDiagnostics inline.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/inline.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction inline.wtf {"end":{"character":27,"line":1},"start":{"character":19,"line":1}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(12)",
+              "range": {
+                "end": {
+                  "character": 27,
+                  "line": 1
+                },
+                "start": {
+                  "character": 12,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/inline.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Freeze current value"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(import(\"./other.wtf\"))",
+              "range": {
+                "end": {
+                  "character": 18,
+                  "line": 1
+                },
+                "start": {
+                  "character": 12,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/inline.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.inline",
+    "title": "Inline expression"
+  }
+]
+-- request textDocument/codeAction inline.wtf {"end":{"character":21,"line":2},"start":{"character":4,"line":2}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "12",
+              "range": {
+                "end": {
+                  "character": 21,
+                  "line": 2
+                },
+                "start": {
+                  "character": 4,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/inline.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Freeze current value"
+  }
+]
+-- open simple.wtf
+-- request textDocument/codeAction simple.wtf {"end":{"character":18,"line":1},"start":{"character":13,"line":1}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(7)",
+              "range": {
+                "end": {
+                  "character": 18,
+                  "line": 1
+                },
+                "start": {
+                  "character": 13,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/simple.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Freeze current value"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(3 + 4)",
+              "range": {
+                "end": {
+                  "character": 18,
+                  "line": 1
+                },
+                "start": {
+                  "character": 13,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/simple.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.inline",
+    "title": "Inline expression"
+  }
+]
+-- open freeze.wtf
+-- await textDocument/publishDiagnostics freeze.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/freeze.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction freeze.wtf {"end":{"character":26,"line":1},"start":{"character":13,"line":1}}
+[
+  {
+    "arguments": [
+      {
+        "action": "resume",
+        "document": "file://<root>/freeze.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
+    ],
+    "command": "wtf.timer",
+    "title": "▸ resume watch"
+  },
+  {
+    "arguments": [
+      {
+        "action": "reset",
+        "document": "file://<root>/freeze.wtf",
+        "kind": "timer",
+        "name": "watch"
+      }
+    ],
+    "command": "wtf.timer",
+    "title": "↺ reset watch"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[calculation] := watch.elapsed\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 1
+                },
+                "start": {
+                  "character": 0,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "newText": "calculation",
+              "range": {
+                "end": {
+                  "character": 26,
+                  "line": 1
+                },
+                "start": {
+                  "character": 13,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.extract",
+    "title": "Extract named calculation 'calculation'"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(73s)",
+              "range": {
+                "end": {
+                  "character": 26,
+                  "line": 1
+                },
+                "start": {
+                  "character": 13,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Freeze current value"
+  }
+]
+-- request textDocument/codeAction freeze.wtf {"end":{"character":16,"line":5},"start":{"character":11,"line":5}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "(completed(work))",
+              "range": {
+                "end": {
+                  "character": 16,
+                  "line": 5
+                },
+                "start": {
+                  "character": 11,
+                  "line": 5
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.inline",
+    "title": "Inline expression"
+  }
+]
+-- request textDocument/codeAction freeze.wtf {"end":{"character":13,"line":6},"start":{"character":6,"line":6}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "1",
+              "range": {
+                "end": {
+                  "character": 13,
+                  "line": 6
+                },
+                "start": {
+                  "character": 6,
+                  "line": 6
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "Freeze current value"
+  }
+]
+-- request textDocument/codeAction freeze.wtf {"end":{"character":11,"line":8},"start":{"character":5,"line":8}}
+[]
+-- open fixes.wtf
+-- await textDocument/publishDiagnostics fixes.wtf
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'budegt'",
+      "range": {
+        "end": {
+          "character": 14,
+          "line": 1
+        },
+        "start": {
+          "character": 8,
+          "line": 1
+        }
+      },
+      "severity": 1,
+      "source": "wtf"
+    }
+  ],
+  "uri": "file://<root>/fixes.wtf",
+  "version": 1
+}
+-- request textDocument/codeAction fixes.wtf {"end":{"character":14,"line":1},"start":{"character":8,"line":1}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "budget",
+              "range": {
+                "end": {
+                  "character": 14,
+                  "line": 1
+                },
+                "start": {
+                  "character": 8,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/fixes.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "quickfix",
+    "title": "Change 'budegt' to 'budget'"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "[\"TODO\"]:budegt\n",
+              "range": {
+                "end": {
+                  "character": 0,
+                  "line": 1
+                },
+                "start": {
+                  "character": 0,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/fixes.wtf",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "quickfix",
+    "title": "Create definition 'budegt' (TODO placeholder)"
+  }
+]
+
+### 1 read extract.wtf freeze.wtf fixes.wtf
+-- extract.wtf
+[calculation] := 100
+🦀 Budget $3,000 today.
+[result] := 2 + 3 * 4
+-- freeze.wtf
+[watch] := stopwatch(73s)
+[seconds] := watch.elapsed / 1s
+# Work :work
+- [x] Done
+[count] := completed(work)
+[ratio] := count / total(work)
+Done: [count].
+[text] := "[watch]"
+Show [text].
+-- fixes.wtf
+[$30]:budget
+🦀 Use [budegt].
+

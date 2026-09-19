@@ -1,0 +1,7 @@
+[€450]:hotel
+[usd] := to(hotel, USD)
+[nvda] := quote(NVDA)
+
+## Friday, November 20, 2026 · Oaxaca
+
+## Saturday, December 5, 2026 · Oaxaca

@@ -1,0 +1,299 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "extract.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "extract.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "extract.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 10
+            },
+            "end": {
+              "line": 1,
+              "character": 16
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "extract.wtf",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 16
+            },
+            "end": {
+              "line": 2,
+              "character": 21
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "extract.wtf",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 12
+            },
+            "end": {
+              "line": 2,
+              "character": 17
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "grouping.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "grouping.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 8
+            },
+            "end": {
+              "line": 0,
+              "character": 13
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "grouping.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 20
+            },
+            "end": {
+              "line": 1,
+              "character": 22
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "inline.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "inline.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "inline.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 19
+            },
+            "end": {
+              "line": 1,
+              "character": 27
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "inline.wtf",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 4
+            },
+            "end": {
+              "line": 2,
+              "character": 21
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "simple.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "simple.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 13
+            },
+            "end": {
+              "line": 1,
+              "character": 18
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "freeze.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "freeze.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "freeze.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 13
+            },
+            "end": {
+              "line": 1,
+              "character": 26
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "freeze.wtf",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 11
+            },
+            "end": {
+              "line": 5,
+              "character": 16
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "freeze.wtf",
+          "range": {
+            "start": {
+              "line": 6,
+              "character": 6
+            },
+            "end": {
+              "line": 6,
+              "character": 13
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "freeze.wtf",
+          "range": {
+            "start": {
+              "line": 8,
+              "character": 5
+            },
+            "end": {
+              "line": 8,
+              "character": 11
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "open": "fixes.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "fixes.wtf"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "fixes.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 8
+            },
+            "end": {
+              "line": 1,
+              "character": 14
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": [],
+              "only": [
+                "quickfix"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        "extract.wtf",
+        "freeze.wtf",
+        "fixes.wtf"
+      ]
+    }
+  ]
+}

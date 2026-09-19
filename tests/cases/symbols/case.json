@@ -1,0 +1,50 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "nested.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "nested.wtf"
+        },
+        {
+          "open": "crlf.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "crlf.wtf"
+        },
+        {
+          "open": "flat.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "flat.wtf"
+        },
+        {
+          "open": "trailing.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "trailing.wtf"
+        },
+        {
+          "open": "empty.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "empty.wtf"
+        },
+        {
+          "open": "prose.wtf"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "prose.wtf"
+        }
+      ]
+    }
+  ]
+}

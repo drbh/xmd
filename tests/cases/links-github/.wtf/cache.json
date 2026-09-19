@@ -1,0 +1,26 @@
+{
+  "https://github.com/acme/app/pull/42": {
+    "title": "Ship it",
+    "state": "merged",
+    "merged": true,
+    "checks": "passing",
+    "review": null,
+    "fetched_at": "2026-09-16T16:00:00Z"
+  },
+  "https://github.com/NVlabs/cuda-oxide/pull/606": {
+    "title": "multicast",
+    "state": "merged",
+    "merged": true,
+    "checks": "passing",
+    "review": "approved",
+    "fetched_at": "2026-09-16T16:00:00Z"
+  },
+  "https://github.com/NVlabs/cuda-oxide/pull/975": {
+    "title": "mir pass",
+    "state": "open",
+    "merged": false,
+    "checks": "failing",
+    "review": "changes_requested",
+    "fetched_at": "2026-09-07T16:00:00Z"
+  }
+}

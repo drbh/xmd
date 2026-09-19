@@ -1,0 +1,30 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    { "cli": ["query", "prose.wtf", "links | select {url, line}", "--json"] },
+    { "cli": ["query", "prose.wtf", "references", "--json"] },
+    { "cli": ["query", "prose.wtf", "diagnostics", "--json"] },
+    { "cli": ["query", "prose.wtf", "tasks | select attributes", "--json"] },
+    { "cli": ["query", "code.wtf", "links | select {url, line}", "--json"] },
+    { "cli": ["query", "code.wtf", "values | select name", "--json"] },
+    { "cli": ["query", "malicious.wtf", "links", "--json"] },
+    {
+      "lsp": [
+        { "open": "trips/today.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "trips/today.wtf" },
+        { "request": "textDocument/documentLink", "file": "trips/today.wtf" },
+        { "request": "textDocument/hover", "file": "trips/today.wtf", "line": 0, "character": 4 },
+        { "request": "textDocument/hover", "file": "trips/today.wtf", "line": 0, "character": 1 },
+        {
+          "request": "textDocument/codeAction",
+          "file": "trips/today.wtf",
+          "range": {
+            "start": { "line": 0, "character": 0 },
+            "end": { "line": 0, "character": 0 }
+          },
+          "extra": { "context": { "diagnostics": [] } }
+        }
+      ]
+    }
+  ]
+}

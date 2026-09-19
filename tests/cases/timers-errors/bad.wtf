@@ -1,0 +1,14 @@
+[e1] := countdown()
+[e2] := countdown(0s)
+[e3] := countdown(-1m)
+[e4] := countdown(25)
+[e5] := stopwatch(-1s)
+[e6] := stopwatch(0s, 2026-09-16)
+[e7] := stopwatch(0s, true)
+[e8] := stopwatch(0s, now(), 1s)
+[e9] := countdown(1m, -1s)
+[e10] := countdown(1m, 0s, now(), 1s)
+[e11] := stopwatch().remaining
+[e12] := countdown(1m).bogus
+[e13] := countdown(0.1s)
+[e14] := stopwatch(9223372036854775808s)

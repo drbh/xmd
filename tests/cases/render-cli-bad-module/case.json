@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

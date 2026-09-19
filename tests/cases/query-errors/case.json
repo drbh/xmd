@@ -1,0 +1,365 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks |",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | where (true",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select {a:1,a:2}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | limit -1",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | explode",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select {x:}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "@today",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "@week",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "@tasks",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "@check",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "@unknown",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | where (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | where title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | where dne",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select title.dne",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select bogus()",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | sort tags",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "tasks | select {x: 1 + 2d}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "unknown",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "1/0",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "2026-09-25 + 1h",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "sort_by([1, \"two\"], fn(x) => x)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "repeat(\"a\", 1000000000)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "slice([], 2, 1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "format_date(today(), \"%H\")",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "format_date(today(), \"%Q\")",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "error(\"bad\")",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "fn(x, x) => x",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "{x: 1, x: 2}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "map([1], fn(x) => x)(2)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "if(1, 2, 3)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "good()",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "loop(1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "bad(2)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "eval(code)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "fold([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0, fn(a, x) => grow(a))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "mixed.wtf",
+        "values | sort value | select name",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "divide(1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "good(2)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "n.wtf",
+        "1 + 2",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "broken.wtf",
+        "diagnostics | select {line, severity, code, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "missing.wtf",
+        "tasks",
+        "--json"
+      ]
+    }
+  ]
+}

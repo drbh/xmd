@@ -14,7 +14,7 @@ const server = http.createServer(async (request, response) => {
     let path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     if (prefix && path !== prefix && !path.startsWith(prefix + "/")) { response.writeHead(404).end(); return; }
     path = path.slice(prefix.length) || "/";
-    if (["/docs", "/book"].includes(path) || path === "/" && prefix && request.url === prefix) { response.writeHead(302, { Location: `${prefix}${path === "/" ? "/" : path + "/"}` }).end(); return; }
+    if (path === "/docs" || path === "/" && prefix && request.url === prefix) { response.writeHead(302, { Location: `${prefix}${path === "/" ? "/" : path + "/"}` }).end(); return; }
     const file = resolve(root, `.${path.endsWith("/") ? path + "index.html" : path}`);
     if (!file.startsWith(resolve(root) + sep) || !types[extname(file)]) { response.writeHead(403).end(); return; }
     const body = await readFile(file);

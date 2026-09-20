@@ -10,7 +10,12 @@
   <style>
     body { max-width: 720px; margin: 40px auto; padding: 0 20px; font: 16px/1.6 system-ui, sans-serif; color: #1f1f1f; }
     #note { padding: 24px; border: 1px solid #dadce0; border-radius: 8px; --wtf-background: #fff; }
-    pre.example { background: #f6f8fa; padding: 12px 16px; border-radius: 8px; overflow: auto; font-size: 13px; }
+    .snippet { position: relative; background: #f6f8fa; border: 1px solid #e3e6ea; border-radius: 8px; }
+    .snippet pre { margin: 0; padding: 14px 16px; overflow: auto; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #1f1f1f; }
+    .snippet .copy { position: absolute; top: 8px; right: 8px; height: 28px; padding: 0 12px; border: 1px solid #dadce0; border-radius: 14px; background: #fff; color: #1f1f1f; font: 500 12px system-ui, sans-serif; cursor: pointer; }
+    .snippet .copy:hover { background: #eef0f3; }
+    .snippet .copy.done { color: #188038; border-color: #188038; }
+    .tag { color: #22863a; } .attr { color: #6f42c1; } .str { color: #032f62; } .kw { color: #d73a49; } .fn { color: #005cc5; } .cmt { color: #6a737d; }
   </style>
 </head>
 <body class="wtf-light">
@@ -42,12 +47,37 @@ That leaves [remaining] for food and fun, [remaining / 2] a day.
   </script>
 
   <h2>That's the whole thing</h2>
-  <pre class="example">&lt;link rel="stylesheet" href="https://wtf-docs.drbh.workers.dev/lib/theme/style.css"&gt;
-&lt;div id="note"&gt;&lt;/div&gt;
-&lt;script type="module"&gt;
+  <div class="snippet">
+    <button type="button" class="copy" id="copy" aria-label="Copy the snippet">Copy</button>
+    <pre id="snippet"></pre>
+  </div>
+  <script type="module">
+    // The snippet is highlighted by hand: it is four lines, so a real
+    // highlighter would be heavier than the thing it colours.
+    const snippet = `<link rel="stylesheet" href="https://wtf-docs.drbh.workers.dev/lib/theme/style.css">
+<div id="note"></div>
+<script type="module">
   import { mountEditor } from "https://wtf-docs.drbh.workers.dev/lib/adapters/contenteditable.js";
-  mountEditor(document.querySelector("#note"), { source: "rent := $900\nfood := $250\nTotal [rent + food]\n" });
-&lt;/script&gt;</pre>
-  <p>Use <code>mount</code> instead of <code>mountEditor</code> for a read-only view, <code>render</code> for static HTML, and <code>onChange</code> to save what people type. <a href="https://wtf-docs.drbh.workers.dev/docs/">The document app</a> and <a href="https://wtf-docs.drbh.workers.dev/docs/#/book">the book</a> show everything the language can do.</p>
+  mountEditor(document.querySelector("#note"), { source: "rent := $900\\nfood := $250\\nTotal [rent + food]\\n" });
+<\/script>`;
+    const escape = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    // One pass over the escaped text, so a rule never re-colours another rule's output.
+    const html = escape(snippet).replace(
+      /(&lt;\/?)([a-z]+)|(\s)([a-z-]+)(=)("[^"]*")|\b(import|from)\b|\b(mountEditor|querySelector)(?=\()|("(?:[^"\\]|\\.)*")/g,
+      (m, lt, tag, space, attr, eq, value, kw, fn, str) =>
+        tag ? `${lt}<span class="tag">${tag}</span>`
+        : attr ? `${space}<span class="attr">${attr}</span>${eq}<span class="str">${value}</span>`
+        : kw ? `<span class="kw">${kw}</span>`
+        : fn ? `<span class="fn">${fn}</span>`
+        : `<span class="str">${str}</span>`);
+    document.querySelector("#snippet").innerHTML = html;
+    const button = document.querySelector("#copy");
+    button.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(snippet); button.textContent = "Copied"; button.classList.add("done"); }
+      catch { button.textContent = "Select and copy"; }
+      setTimeout(() => { button.textContent = "Copy"; button.classList.remove("done"); }, 2000);
+    });
+  </script>
+  <p>Use <code>mount</code> instead of <code>mountEditor</code> for a read-only view, <code>render</code> for static HTML, and <code>onChange</code> to save what people type. <a href="https://wtf-docs.drbh.workers.dev/docs/">The document app</a> and <a href="https://wtf-docs.drbh.workers.dev/docs/#/reference">the reference</a> show everything the language can do.</p>
 </body>
 </html>

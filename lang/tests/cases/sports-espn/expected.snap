@@ -45,7 +45,7 @@ Resource cache updated (3 resources)
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-18T12:00:00Z",
     "provider": "sports:1",
     "data": {
       "away": "BUF",
@@ -65,7 +65,7 @@ Resource cache updated (3 resources)
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-18T12:00:00Z",
     "provider": "sports:1",
     "data": {
       "away": "LAL",
@@ -85,7 +85,7 @@ Resource cache updated (3 resources)
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-18T12:00:00Z",
     "provider": "sports:1",
     "data": {
       "away": "CHE",

@@ -111,6 +111,9 @@ impl BrowserWorkspace {
                 json!({"tokenTypes": presentation::TOKEN_TYPES, "tokenModifiers": presentation::TOKEN_MODIFIERS}),
             );
         }
+        if method == "reference" {
+            return Ok(crate::reference::model(&self.session.workspace.modules));
+        }
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
             let data: Value = field(&params, "data")?;
@@ -242,7 +245,7 @@ impl BrowserWorkspace {
                 )
             }
             "completion" => serialized(request.completions(&path, position()?, true)),
-            "signature" => serialized(intelligence::signature(doc, position()?)),
+            "signature" => serialized(intelligence::signature(doc, &path, position()?)),
             "hover" => match request.hover(&path, position()?) {
                 Some(hover) => serialized(hover),
                 None => Ok(Value::Null),

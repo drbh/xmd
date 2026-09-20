@@ -1,0 +1,58 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    { "cli": ["query", "main.wtf", "diagnostics | select {line, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "main.wtf" },
+        { "await": "textDocument/publishDiagnostics", "file": "main.wtf" },
+        { "change": { "file": "main.wtf", "text": "lib := import(\"lib\")\nx := import(\"lib\").\ny := lib.\n" } },
+        { "request": "textDocument/completion", "file": "main.wtf", "line": 1, "character": 19 },
+        { "request": "textDocument/completion", "file": "main.wtf", "line": 2, "character": 9 }
+      ]
+    },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"missing\"]}\na := fn(x) => x + 1\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"_c\"]}\na := fn(x) => x + 1\n_c := fn(x) => x\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"module\"]}\na := fn(x) => x + 1\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"a\"]}\na := fn(x) => x + 1\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"library\", exports: \"a\"}\na := fn(x) => x + 1\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: [\"collect\"]}\ncollect := fn(ctx) => []\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] },
+    {
+      "write": {
+        ".wtf/modules/lib.wtf": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: []}\ncollect := fn(ctx) => []\n"
+      }
+    },
+    { "cli": ["render", "main.wtf", "--format", "text"] }
+  ]
+}

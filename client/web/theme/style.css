@@ -15,8 +15,11 @@
 .wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
 .wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
 .wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
-.wtf-controls { display: flex; flex-wrap: wrap; gap: .5em; font: 12px monospace; }
-.wtf-controls button { font: inherit; cursor: pointer; }
+.wtf-controls { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.wtf-lenses { position: absolute; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.wtf-lens { pointer-events: auto; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--wtf-lens-border, #3a4a3e); background: var(--wtf-lens-background, #1f2622); color: var(--wtf-lens-foreground, #9fb3a4); font: 500 11px system-ui, sans-serif; cursor: pointer; opacity: .9; }
+.wtf-lens:hover { opacity: 1; border-color: var(--wtf-lens-hover, #90bed8); color: var(--wtf-lens-hover, #90bed8); }
+.wtf-light .wtf-lens { --wtf-lens-border: #dadce0; --wtf-lens-background: #fff; --wtf-lens-foreground: #5f6368; --wtf-lens-hover: #185abc; }
 .wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f1f1f); background: var(--wtf-background, #ffffff); }
 .wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3c4653); background: var(--wtf-inlay-background, #eef0f3); }
 .wtf-light .wtf a { text-decoration-color: #2f6f9f; }

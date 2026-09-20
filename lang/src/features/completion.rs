@@ -147,11 +147,23 @@ pub(crate) fn completions(
         return result;
     }
     if start > 0 && line.as_bytes()[start - 1] == b'.' {
-        let receiver = line[..start - 1]
+        let before = &line[..start - 1];
+        let named = before
             .rsplit(|c: char| !c.is_ascii_alphanumeric() && c != '_')
             .next()
             .unwrap_or("");
-        if let Ok(value) = engine.named(path, receiver) {
+        // `import("id").` offers the library's exports: the same record a
+        // note would bind, so the members are exactly `Module::public_names`.
+        let imported = (named.is_empty() && before.ends_with(')'))
+            .then(|| before.rfind("import(").map(|at| &before[at..]))
+            .flatten();
+        let receiver = imported.unwrap_or(named);
+        let value = if imported.is_some() {
+            engine.eval(path, receiver)
+        } else {
+            engine.named(path, receiver)
+        };
+        if let Ok(value) = value {
             let names = match &value {
                 Value::Namespace(path) => ws
                     .symbols()
@@ -223,8 +235,12 @@ pub(crate) fn completions(
     let prose = line[..byte]
         .rfind('[')
         .is_some_and(|i| !line[i..byte].contains(']'));
+    // The module-tier built-ins are not names a note has, so they are not
+    // offered in one either; a module buffer still sees its own primitives.
+    let module = crate::modules::is_module_path(path);
     for function in BUILTINS {
-        if attribute != function.name.starts_with('@')
+        if (!module && function.tier == crate::signature::Tier::Module)
+            || attribute != function.name.starts_with('@')
             || (!attribute && (prose || context.as_ref().is_some_and(|(n, _)| n == "@timer")))
         {
             continue;

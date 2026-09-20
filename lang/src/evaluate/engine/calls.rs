@@ -20,6 +20,11 @@ impl Engine<'_> {
         builtin: Builtin,
         args: &[Expr],
     ) -> EvalResult<Value> {
+        // A module-tier built-in is not a name a note has: outside module code
+        // it fails exactly as a misspelling would.
+        if builtin.tier() == crate::signature::Tier::Module && !self.module_code(path) {
+            return Err(EvalError::UnknownFunction(builtin.as_str().into()));
+        }
         match builtin {
             Builtin::Import => self.call_import(path, args),
             Builtin::If => self.call_if(path, args),
@@ -72,6 +77,7 @@ impl Engine<'_> {
     fn module_engine<'b>(&self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
         let mut engine = Engine::at(workspace, self.now)
             .pure()
+            .module()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]))
             .with_environment(workspace.clone());
         engine.budget.steps = self.budget.steps;
@@ -116,7 +122,12 @@ impl Engine<'_> {
         self.absorb_module(&engine);
         result
     }
-    fn import(&mut self, id: &str) -> EvalResult<Value> {
+    /// `import(id)` reaches libraries and nothing else: a link or feature
+    /// module is the host's to call, so naming one from a note is an error
+    /// rather than a record of hooks. A note sees the library's declared
+    /// `exports`; module code, which the engine trusts the way it trusts its
+    /// own adapters, sees every non-`_` member of a library it imports.
+    fn import(&mut self, path: &Path, id: &str) -> EvalResult<Value> {
         let module = self
             .workspace
             .modules
@@ -124,19 +135,34 @@ impl Engine<'_> {
             .find(|m| m.id == id)
             .ok_or_else(|| EvalError::UnknownImport(id.into()))?
             .clone();
+        if module.kind != crate::modules::ModuleKind::Library {
+            return Err(EvalError::NotALibrary {
+                id: id.into(),
+                kind: module.kind,
+            });
+        }
         let workspace = module.environment();
         let mut engine = self
             .module_engine(&workspace)
             .with_expressions(module.expressions.clone());
-        let result = workspace.documents[&module.path]
-            .definitions
-            .iter()
-            .filter(|d| d.named.name != "module" && !d.named.name.starts_with('_'))
-            .map(|d| {
-                Ok((
-                    d.named.name.clone(),
-                    engine.named(&module.path, &d.named.name)?,
-                ))
+        let names = if self.module_code(path) {
+            module.member_names()
+        } else {
+            let names = module.public_names();
+            if names.is_empty() {
+                // The engine's own libraries: called by name, never imported.
+                return Err(EvalError::NotALibrary {
+                    id: id.into(),
+                    kind: module.kind,
+                });
+            }
+            names
+        };
+        let result = names
+            .into_iter()
+            .map(|name| {
+                let value = engine.named(&module.path, &name)?;
+                Ok((name, value))
             })
             .collect::<EvalResult<BTreeMap<_, _>>>()
             .map(Value::Record);
@@ -207,7 +233,7 @@ impl Engine<'_> {
             }
             return Ok(Value::Namespace(crate::engine::Namespace(target)));
         }
-        self.import(&id)
+        self.import(path, &id)
     }
     /// `if(condition, then, else)`: only the chosen branch is evaluated.
     fn call_if(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {

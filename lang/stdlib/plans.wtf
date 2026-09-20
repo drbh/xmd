@@ -1,3 +1,4 @@
+// Plans present the solver's answer: decisions, constraint slack and errors.
 module := {
   api: 1,
   id: "plans",

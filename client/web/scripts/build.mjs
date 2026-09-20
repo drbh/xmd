@@ -4,6 +4,16 @@ import { fileURLToPath } from "node:url";
 import "./theme.mjs";
 
 const root = new URL("../", import.meta.url);
+// The reference view's offline copy of the engine's reference: regenerated from the
+// built binary when it is around, so a stale copy shows up as a git diff.
+{
+  const { spawnSync } = await import("node:child_process");
+  const binary = fileURLToPath(new URL("../../target/debug/wtf", root));
+  const generated = spawnSync(binary, ["reference", "--json"], { encoding: "utf8" });
+  if (generated.status === 0 && generated.stdout) {
+    await writeFile(new URL("apps/docs/src/lib/reference.fixture.json", root), generated.stdout);
+  }
+}
 const dist = new URL("dist/", root);
 await rm(dist, { recursive: true, force: true });
 await mkdir(new URL("lib/", dist), { recursive: true });
@@ -12,14 +22,11 @@ for (const name of ["src", "adapters", "theme", "pkg"]) {
 }
 // Static hosts that honour _headers (Cloudflare) let other sites load lib/.
 await writeFile(new URL("_headers", dist), "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400\n");
-// The site root opens the document app; the book lives beside it.
+// The site root opens the document app.
 await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>WTF Docs</title><a href="docs/">Open WTF Docs</a>\n');
 // The embedding example: a plain page that loads the library like any other site would.
 await mkdir(new URL("embed/", dist), { recursive: true });
 await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
-// The book is a view inside the document app; keep its old address working.
-await mkdir(new URL("book/", dist), { recursive: true });
-await writeFile(new URL("book/index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=../docs/#/book"><title>The WTF Book</title><a href="../docs/#/book">Open the book</a>\n');
 execFileSync("npm", ["run", "build", "--workspace", "wtf-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
 const docsIndex = new URL("docs/index.html", dist);
 await writeFile(docsIndex, (await readFile(docsIndex, "utf8")).replace("<head>", '<head><link rel="stylesheet" href="../lib/theme/style.css"><link rel="stylesheet" href="../lib/theme/fonts.css">'));

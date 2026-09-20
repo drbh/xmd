@@ -1,7 +1,11 @@
 [package]
 name = "wtf-zed-extension"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
+
+# Its own workspace: this crate is built for wasm32-wasip2 by Zed and by the
+# release workflow, never as part of the repository's Cargo workspace.
+[workspace]
 
 [lib]
 crate-type = ["cdylib"]

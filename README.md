@@ -2,28 +2,31 @@
 
 # wtf
 
-notes that compute. a `.wtf` file is markdown where values have names and
-anything that depends on them stays current, in your editor and from the
-shell. its still a plain text file
+a plain text note format with a language server. the numbers, dates and
+tasks in a `.wtf` file have names, so when one changes the rest follow,
+in your editor and from the shell
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/typing-dark.gif">
-  <img alt="writing a note: values, calculations, dates, tables, tasks, checklists and timers resolve as they are typed" src="https://example.com/placeholder/typing-light.gif" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/drbh/jot/releases/download/media/typing-dark.gif">
+  <img alt="a finished trip note: one number changes and the total follows, the departure date changes and the countdown and due date follow, then tables, checklists and timers are typed in" src="https://github.com/drbh/jot/releases/download/media/typing-light.gif" width="720">
 </picture>
 
-## the language in seven lines
+for anyone who keeps a trip, a budget or a project in a text file and has
+found the number in it was wrong. the note above was written days ago;
+change `$67` and the total follows, change the date and the countdown and
+the due date follow. everything else is one of seven things
 
 ```wtf
 $1,234:car                          a value with a name
 total := car + $67                  a calculation          = $1,301
 We have [total] left.               any value in a sentence  $1,301
 2026-11-20:departure                dates do arithmetic
-- [ ] Pack @due(departure - 14d)    tasks know when they are due  → due 2026-11-06
 ## Trip :trip                       a named heading counts its tasks  0/1 complete
-focus := countdown(25m)             timers are values        ◷ 25:00 remaining
+- [ ] Pack @due(departure - 14d)    tasks know when they are due  due 2026-11-06
+focus := countdown(25m)             timers are values        25:00 remaining
 ```
 
-the right column is what the editor shows inline. thats the whole model,
+the right column is what the editor shows inline. thats the whole language;
 the rest is functions you call and modules you add
 
 ## ask the file a question
@@ -52,20 +55,39 @@ $1,301
 the last one exits 1 when any note has an error, so it works as a ci check
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://example.com/placeholder/terminal-dark.gif">
-  <img alt="querying the note from a terminal: single values, filtered tasks, typed json, diagnostics for ci and a rendered text export" src="https://example.com/placeholder/terminal-light.gif" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/drbh/jot/releases/download/media/terminal-dark.gif">
+  <img alt="querying the note from a terminal: single values, filtered tasks, typed json, diagnostics for ci and a rendered text export" src="https://github.com/drbh/jot/releases/download/media/terminal-light.gif" width="720">
 </picture>
 
 ## install
 
+mac and linux:
+
 ```bash
-cargo install --path lang
+curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
 ```
 
-that is the cli and the language server in one binary. editor setups are in
-`client/ide/vscode`, `client/ide/neovim`, `client/ide/zed` and
-`client/ide/helix`, each runs `wtf lsp`. `client/web` is the browser app if
-you dont want to install anything
+windows (powershell):
+
+```powershell
+irm https://github.com/drbh/jot/releases/latest/download/install.ps1 | iex
+```
+
+that is the cli and the language server in one binary, `wtf`, in `~/.local/bin`
+(or `%LOCALAPPDATA%\wtf\bin`). or grab a binary from the releases page:
+https://github.com/drbh/jot/releases
+
+editors:
+
+- vs code: install the extension from the `.vsix` on the releases page
+  (Extensions view > ... > Install from VSIX); it downloads the server itself
+- zed: install the extension (unpack `wtf-zed.tar.gz` from the releases page,
+  Extensions > Install Dev Extension > that folder); it downloads the server itself
+- neovim and helix: install the binary with the one-liner, then the config file
+  in `client/ide/neovim` or `client/ide/helix`
+
+from a checkout, `cargo install --path lang` builds the same binary.
+`client/web` is the browser app if you dont want to install anything
 
 ## put a note on your own page
 
@@ -84,10 +106,20 @@ hosted app into a worker in the page
 `mount` gives a read-only view, `render` static html, `onChange` tells you what
 people typed. https://wtf-docs.drbh.workers.dev/embed/ is that page, live
 
+## when not to use it
+
+its a file. there is no sync, no accounts and no phone app unless you use
+the hosted app, and the browser cannot fetch feeds, rates or github status
+(that needs the cli, `wtf refresh`). money math is decimal but not
+accounting-grade, and the solver does linear plans only. if your notes are
+mostly prose with no numbers in them, markdown is already enough
+
 ## go further
 
-`lang/examples` has one short note per feature, numbered in the order you
-tend to meet them. `lang/stdlib` is the standard library, tasks, timers,
-plans, feeds and units are all written in `.wtf` and you can replace any of
-them. `wtf --help` and `wtf query --help` list every command, binding,
-function and stage
+`wtf reference` prints the whole language, every function, attribute, type,
+collection and library export with a snippet you can paste, and
+`wtf reference --json` is the same for tools. `lang/examples` has one short
+note per feature, numbered in the order you tend to meet them. `lang/stdlib`
+is the standard library, tasks, timers, plans, feeds and units are all
+written in `.wtf` and you can replace any of them. `wtf --help` and
+`wtf query --help` list every command, binding, function and stage

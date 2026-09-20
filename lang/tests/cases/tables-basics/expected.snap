@@ -707,7 +707,7 @@ exit 0
     {
       "documentation": {
         "kind": "markdown",
-        "value": "Sum a list of compatible quantities, skipping nulls, or evaluate a row expression for each table row and add the results. Units are preserved."
+        "value": "Add compatible quantities from a list, skipping nulls, or a row expression over each table row, keeping units."
       },
       "label": "sum(items: List or Table, expression?: row calculation) → Number, Money, Ratio, or Duration",
       "parameters": [

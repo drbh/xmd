@@ -1,3 +1,4 @@
+// Timers show their own state, and only ask for live refreshes while one runs.
 module := {
   api: 1,
   id: "timers",

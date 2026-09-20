@@ -1,7 +1,7 @@
 //! Day records: one per itinerary day, with its forecast when one is cached.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Fields, Record, entries},
+    record::{Base, Fields, Record, projected},
 };
 use crate::{
     document::Document,
@@ -11,14 +11,17 @@ use crate::{
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct DayRecord {
+pub(super) struct DayRecord {
     base: Base,
     value: QueryValue,
+}
+impl DayRecord {
+    pub(super) const FIELDS: [&'static str; 1] = ["value"];
 }
 impl Fields for DayRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([("value", self.value)]));
+        fields.extend(projected(DayRecord::FIELDS, [self.value]));
         fields
     }
 }

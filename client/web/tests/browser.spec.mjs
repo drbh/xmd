@@ -1,59 +1,92 @@
 import { test, expect, devices } from "@playwright/test";
 
-test("the book runs every example as a live block inside the document app", async ({ page }) => {
-  const errors = [];
+test("the reference lists the language and runs its snippets", async ({ page }) => {
+  const errors = [], logs = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.goto("/docs/?test#/book");
+  page.on("console", message => { if (message.text().startsWith("reference:")) logs.push(message.text()); });
+  const opened = Date.now();
+  await page.goto("/docs/?test#/reference");
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
-  const first = page.locator('.wtf-block[data-file="01-values.wtf"]');
-  await expect(first.locator(".view")).toContainText("$556", { timeout: 20_000 });
-  // Tokens use the light-paper palette on the book's white page.
-  await expect(page.locator("html")).toHaveClass(/wtf-light/);
-  await expect(first.locator(".view .t-wtfMoney").first()).toHaveCSS("color", "rgb(94, 132, 52)");
-  // Editing a block re-solves it on the app's own workspace.
-  await page.evaluate(() => window.wtfDocs.workspace.setDocument("file:///workspace/book/01-values.wtf", "[$10]:a\n[$4]:b\n[c] := a + b\n"));
-  await expect(first.locator(".view")).toContainText("= $14");
-  // Inlays sit inline at their anchor, right after the definition, not at the line end.
-  const inlay = first.locator(".view .inlay").first();
-  await expect(inlay).toHaveText("= $14");
-  expect(await inlay.evaluate(el => el.previousSibling?.textContent?.endsWith("a + b") || el.previousSibling?.textContent?.endsWith("b"))).toBe(true);
-  // Cross-note values resolve because every block shares one workspace.
-  await expect(page.locator('.wtf-block[data-file="27-cross-note-values.wtf"] .view')).toContainText("$3,040");
-  // Plans solve in the page, and itineraries paint their kinds.
-  await expect(page.locator('.wtf-block[data-file="14-plans.wtf"] .view')).toContainText("= $94.75");
-  await expect(page.locator('.wtf-block[data-file="19-itinerary.wtf"] .view .t-wtfDepart').first()).toBeVisible();
-  // Hovering a name shows a floating box with the engine's hover, not a panel below.
-  const box = page.locator('.wtf-block[data-file="02-calculations.wtf"]');
-  await box.scrollIntoViewIfNeeded();
-  const view = box.locator(".view");
-  const text = await view.evaluate(el => el.textContent);
-  const line = text.split("\n").findIndex(l => l.startsWith("total :="));
-  const lineBox = await view.evaluate((el, line) => {
-    const style = getComputedStyle(el);
-    const r = el.getBoundingClientRect();
-    return { x: r.left + parseFloat(style.paddingLeft), y: r.top + parseFloat(style.paddingTop) + (line + 0.5) * parseFloat(style.lineHeight), char: parseFloat(style.fontSize) * 0.6 };
-  }, line);
-  await page.mouse.move(lineBox.x + lineBox.char * 3, lineBox.y);
-  await page.mouse.move(lineBox.x + lineBox.char * 3.2, lineBox.y);
-  const hover = box.locator(".hover");
-  await expect(hover).toBeVisible();
-  await expect(hover).toContainText("total");
-  expect(await hover.evaluate(el => getComputedStyle(el).position)).toBe("fixed");
-  await page.mouse.move(5, 5);
-  await expect(hover).toBeHidden();
-  // The bundled monospace font is served and applied to blocks.
-  await expect(first.locator(".view")).toHaveCSS("font-family", /Ioskeley Mono/);
-  expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('14px "Ioskeley Mono"'); })).toBe(true);
-  // Unfetched lookups are warnings, listed under the block.
-  await expect(page.locator('.wtf-block[data-file="05-currencies.wtf"] .problems .warn').first()).toContainText("No cached rate");
-  // Contents navigation and the way back to documents.
-  await page.locator(".toc .row", { hasText: "3.1 Tables" }).click();
-  await expect(page).toHaveURL(/#\/book\/tables$/);
+  // The page opens on its name and the syntax table, one highlighted row each.
+  await expect(page.locator(".prose .title h1")).toHaveText("Reference");
+  await expect(page.locator("#syntax table.syntaxes tbody tr")).toHaveCount(7);
+  await expect(page.locator("#syntax table.syntaxes tbody tr").first()).toContainText("a value with a name");
+  await expect(page.locator("#syntax .syntaxes .snippet.wtf .t-wtfMoney").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#syntax .syntaxes .snippet.wtf:not(.pending)")).toHaveCount(7);
+  const firstPaint = Date.now() - opened;
+  // The reference is generated: the live request when the engine answers it,
+  // the checked-in fixture otherwise. Either way the sections are the same,
+  // in the reader's order, with module authoring last.
+  const ids = await page.locator("section.ref-section").evaluateAll(list => list.map(s => s.id));
+  expect(ids).toEqual(["functions", "attributes", "types", "query", "library", "authoring"]);
+  // A signature reads like the language: the name as a function, its
+  // parameters as variables, the types muted.
+  const sum = page.locator('#functions .ref-row[data-name="sum"]');
+  await expect(sum.locator(".sig .t-function")).toHaveText("sum");
+  await expect(sum.locator(".sig .t-variable").first()).toHaveText("items");
+  await expect(sum.locator(".sig .sig-type").first()).toHaveText("List or Table");
+  await expect(sum.locator(".sig .tier")).toHaveCount(0);
+  await expect(page.locator('#functions .ref-row[data-name="map"] .sig .tier')).toHaveText("toolkit");
+  // Every row shows its snippet, drawn by the engine with its result, before
+  // any click; the whole page renders in batches, and the canvas says when.
+  await expect(sum.locator(".run .snippet.wtf")).toContainText("= $7.50", { timeout: 20_000 });
+  await expect(sum.locator(".run .snippet.wtf .inlay").last()).toHaveText(/= \$7\.50/);
+  await page.waitForFunction(() => document.querySelector("main.canvas").dataset.snippets, null, { timeout: 60_000 });
+  const rendered = await page.locator("main.canvas").getAttribute("data-snippets");
+  console.log(`reference: first paint in ${firstPaint} ms; ${rendered}; ${logs.join("; ")}`);
+  expect(rendered).toMatch(/^\d+ snippets in \d+ ms$/);
+  await expect(page.locator(".snippet.pending")).toHaveCount(0);
+  // Module authoring is one section at the end: its primitives carry the
+  // module badge and are not among the functions a note calls.
+  await expect(page.locator('#functions .ref-row[data-name="eval"]')).toHaveCount(0);
+  await expect(page.locator('#authoring .ref-row[data-name="eval"]')).toBeVisible();
+  await expect(page.locator('#authoring .ref-row[data-name="eval"] .sig .tier')).toHaveText("module");
+  await expect(page.locator('#authoring-bundled .ref-row[data-name="github"]')).toBeVisible();
+  await expect(page.locator('#authoring-hooks .ref-row[data-name="collect"]')).toBeVisible();
+  // Types: the scalars a note writes as rows, the engine's objects as a list.
+  await expect(page.locator('#types-list .ref-row[data-name="Money"]')).toBeVisible();
+  for (const name of ["Choice", "Namespace", "Function"]) {
+    await expect(page.locator(`#types-list .ref-row[data-name="${name}"]`)).toHaveCount(0);
+    await expect(page.locator(`#types-objects .ref-row[data-name="${name}"]`)).toHaveCount(1);
+  }
+  await expect(page.locator('#types-objects .ref-row[data-name="Countdown"] .snippet.wtf')).toBeVisible();
+  // The library lists only what a note can import, and a private member is not a row.
+  await expect(page.locator('#library .ref-row[data-name="units.convert"]')).toBeVisible();
+  await expect(page.locator('#library .ref-row[data-name="format.clamp"]')).toHaveCount(0);
+  await expect(page.locator("#library-github")).toHaveCount(0);
+  // "edit" swaps the static snippet for one live block, seeded with the entry's snippet.
+  await sum.locator(".edit").click();
+  await expect(sum.locator(".run .snippet")).toHaveCount(0);
+  const widget = page.locator("#functions .try-widget");
+  await expect(widget.locator(".view")).toContainText("= $7.50", { timeout: 20_000 });
+  // Only one try is open per section.
+  await page.locator('.ref-row[data-name="filter"] .edit').click();
+  await expect(page.locator("#functions .try-widget")).toHaveCount(1);
+  await expect(sum.locator(".run .snippet.wtf")).toBeVisible();
+  await expect(widget.locator(".view")).toContainText("[2, 3]");
+  // Reset puts the snippet back after an edit.
+  await page.evaluate(() => window.wtfDocs.workspace.setDocument("file:///workspace/reference/try/functions/filter.wtf", "prices := [$3, $12, $4.50]\nbig := sum(prices)\n"));
+  await expect(widget.locator(".view")).toContainText("= $19.50");
+  await widget.locator(".try-reset").click();
+  await expect(widget.locator(".view")).toContainText("[2, 3]");
+  await expect(widget.locator(".view")).not.toContainText("= $19.50");
+  // A collection's snippet is a query, run against the sample note.
+  await page.locator('#query .ref-row[data-name="tasks"] .edit').click();
+  await expect(page.locator("#query .try-rows")).toContainText('"title": "Pack"', { timeout: 20_000 });
+  await expect(page.locator("#query .try-rows")).not.toContainText("Choose the dates");
+  await page.locator('#query .ref-row[data-name="values"] .edit').click();
+  await expect(page.locator("#query .try-rows")).toContainText('"name": "total"');
+  // The contents scroll to a group, and an entry can be linked to directly.
+  await page.locator(".toc .row", { hasText: "Dates" }).click();
+  await expect(page).toHaveURL(/#\/reference\/functions-dates$/);
+  await page.goto("/docs/?test#/reference/sum");
+  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  await expect(page.locator('.ref-row[data-name="sum"]')).toBeInViewport({ timeout: 20_000 });
+  // The way back to the documents, and the way in from the home screen.
   await page.locator(".logo").click();
   await expect(page.locator(".template").first()).toBeVisible();
-  // The old address still lands on the book.
-  await page.goto("/book/");
-  await expect(page).toHaveURL(/docs\/#\/book$/);
+  await page.locator(".home-bar .button", { hasText: "Reference" }).click();
+  await expect(page).toHaveURL(/#\/reference$/);
   expect(errors).toEqual([]);
 });
 

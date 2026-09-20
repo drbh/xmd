@@ -1,0 +1,28 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    { "cli": ["reference", "--json"] },
+    { "cli": ["reference"] },
+    { "cli": ["reference", "--notes", "snippets"] },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | where severity == \"error\" | select {message, source}",
+        "--root",
+        "snippets",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "diagnostics | select {severity, message} | sort message",
+        "--root",
+        "snippets",
+        "--json"
+      ]
+    }
+  ]
+}

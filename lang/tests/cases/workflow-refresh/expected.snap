@@ -36,7 +36,7 @@ Resource cache updated (1 resources)
     "merged": true,
     "checks": "passing",
     "review": "APPROVED",
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": "passing",
       "merged": true,
@@ -101,7 +101,7 @@ wtf: https://github.com/acme/app/pull/42: gh failed: fixture failure
     "merged": true,
     "checks": "passing",
     "review": "APPROVED",
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": "passing",
       "merged": true,

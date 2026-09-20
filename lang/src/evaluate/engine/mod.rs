@@ -96,8 +96,11 @@ pub struct Engine<'a> {
     /// Decision-column variables met while linearizing a plan.
     pub row_variables: Vec<RowVariable>,
     /// A module's evaluation: immutable inputs only, its own workspace, and
-    /// the expressions its note was parsed into.
+    /// the expressions its note was parsed into. `module` is the plain answer
+    /// to "am I running module code", which decides whether the module-tier
+    /// built-ins are names at all.
     pure: bool,
+    module: bool,
     environment: Option<std::sync::Arc<Workspace>>,
     expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
 }
@@ -157,6 +160,7 @@ impl<'a> Engine<'a> {
             time_dependent: false,
             row_variables: Vec::new(),
             pure: false,
+            module: false,
             environment: None,
             expressions: None,
         }
@@ -604,7 +608,22 @@ impl<'a> Engine<'a> {
             Expr::Binary(op, a, b) => self.binary_expr(path, *op, a, b),
             Expr::Property(v, key) => {
                 let value = self.expr(path, v)?;
-                self.access(path, value, key)
+                let result = self.access(path, value, key);
+                // `import("id").name` names a member the library keeps
+                // private, or has no such member at all: either way, the
+                // module is the thing to blame, not an anonymous record.
+                match (result, v.bare()) {
+                    (Err(EvalError::UnknownField { .. }), Expr::Builtin(Builtin::Import, args))
+                        if let [arg] = args.as_slice()
+                            && let Expr::Value(Value::Text(id)) = arg.bare() =>
+                    {
+                        Err(EvalError::NotExported {
+                            id: id.clone(),
+                            name: key.clone(),
+                        })
+                    }
+                    (result, _) => result,
+                }
             }
         }
     }
@@ -790,6 +809,16 @@ impl<'a> Engine<'a> {
     pub fn pure(mut self) -> Self {
         self.pure = true;
         self
+    }
+    /// This evaluation is a module's own: the module-tier built-ins answer.
+    pub fn module(mut self) -> Self {
+        self.module = true;
+        self
+    }
+    /// Whether module code is running: a module engine, or a buffer that lives
+    /// where modules live, so an author still sees their own file evaluate.
+    pub(crate) fn module_code(&self, path: &Path) -> bool {
+        self.module || crate::modules::is_module_path(path)
     }
     pub(crate) fn with_expressions(
         mut self,

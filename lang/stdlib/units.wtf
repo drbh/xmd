@@ -1,8 +1,14 @@
 // Unit conversion is ordinary pure arithmetic over named factor tables.
-module := {api: 1, id: "units", kind: "library", inputs: []}
+module := {
+  api: 1,
+  id: "units",
+  kind: "library",
+  inputs: [],
+  exports: ["dimension", "convert", "format", "show", "c_to_f", "f_to_c", "km_to_mi", "mi_to_km", "kg_to_lb", "lb_to_kg"]
+}
 
 // Spelled-out unit names map onto the short canonical symbols.
-aliases := {
+_aliases := {
   celsius: "c",
   centigrade: "c",
   fahrenheit: "f",
@@ -45,7 +51,7 @@ aliases := {
 }
 
 // Each dimension converts through one base unit: m, g, ml, m/s, m², or bytes.
-tables := {
+_tables := {
   distance: {
     mm: 0.001,
     cm: 0.01,
@@ -74,22 +80,22 @@ tables := {
 }
 
 // Temperatures are offsets rather than factors, so they convert separately.
-temperatures := ["c", "f", "k"]
+_temperatures := ["c", "f", "k"]
 
 // Accept aliases and surrounding space, and keep units lowercase.
-canonical := fn(unit) => (
+_canonical := fn(unit) => (
   if(
     type(unit) != "Text",
     error("Units must be text, e.g. convert(100, \"km\", \"mi\")"),
-    coalesce(get(aliases, lower(trim(unit))), lower(trim(unit)))
+    coalesce(get(_aliases, lower(trim(unit))), lower(trim(unit)))
   )
 )
 
 // Search the factor tables for the dimension that declares this unit.
-lookup := fn(unit) => (
+_lookup := fn(unit) => (
   get(
     fold(
-      entries(tables),
+      entries(_tables),
       {name: null},
       fn(found, table) => if(get(table.value, unit) == null, found, {name: table.key})
     ),
@@ -100,27 +106,27 @@ lookup := fn(unit) => (
 // Name the dimension a unit belongs to, or report that it is unknown.
 dimension := fn(unit) => (
   if(
-    contains(temperatures, canonical(unit)),
+    contains(_temperatures, _canonical(unit)),
     "temperature",
     coalesce(
-      lookup(canonical(unit)),
-      error("Unknown unit '" + canonical(unit) + "'")
+      _lookup(_canonical(unit)),
+      error("Unknown unit '" + _canonical(unit) + "'")
     )
   )
 )
 
 // Read the unit's factor towards the base unit of its dimension.
-factor := fn(unit) => (
-  get(get(tables, dimension(unit)), canonical(unit))
+_factor := fn(unit) => (
+  get(get(_tables, dimension(unit)), _canonical(unit))
 )
 
 // Kelvin is the pivot for every temperature scale.
-to_kelvin := fn(value, unit) => (
+_to_kelvin := fn(value, unit) => (
   if(unit == "k", value, if(unit == "c", value + 273.15, (value - 32) * 5 / 9 + 273.15))
 )
 
 // Convert back out of kelvin into the requested scale.
-from_kelvin := fn(value, unit) => (
+_from_kelvin := fn(value, unit) => (
   if(unit == "k", value, if(unit == "c", value - 273.15, (value - 273.15) * 9 / 5 + 32))
 )
 
@@ -128,18 +134,18 @@ from_kelvin := fn(value, unit) => (
 convert := fn(value, from, to) => (
   if(
     dimension(from) != dimension(to),
-    error("Cannot convert " + canonical(from) + " to " + canonical(to)),
+    error("Cannot convert " + _canonical(from) + " to " + _canonical(to)),
     if(
       dimension(from) == "temperature",
-      from_kelvin(to_kelvin(value, canonical(from)), canonical(to)),
-      value * factor(from) / factor(to)
+      _from_kelvin(_to_kelvin(value, _canonical(from)), _canonical(to)),
+      value * _factor(from) / _factor(to)
     )
   )
 )
 
 // Round to two decimals and append the canonical unit for display.
 format := fn(value, unit) => (
-  text(round(value * 100) / 100) + " " + canonical(unit)
+  text(round(value * 100) / 100) + " " + _canonical(unit)
 )
 
 // Convert and format in one step.

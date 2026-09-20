@@ -80,7 +80,7 @@ wtf: https://broken.example.net/rss: Not an RSS or Atom feed
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "provider": "rss:1",
     "data": {
       "count": 3,
@@ -117,7 +117,7 @@ wtf: https://broken.example.net/rss: Not an RSS or Atom feed
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "provider": "rss:1",
     "data": {
       "count": 2,
@@ -194,7 +194,7 @@ exit 0
         "title": "Typed & Notes",
         "updated": "2026-09-14T09:30:00Z"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "provider": "rss:1",
       "review": null,
@@ -228,7 +228,7 @@ exit 0
         "title": "Field Notes",
         "updated": "2026-09-15T07:45:00Z"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "provider": "rss:1",
       "review": null,
@@ -272,7 +272,7 @@ exit 0
         "title": "Typed & Notes",
         "updated": "2026-09-14T09:30:00Z"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "provider": "rss:1",
       "review": null,
@@ -306,7 +306,7 @@ exit 0
         "title": "Field Notes",
         "updated": "2026-09-15T07:45:00Z"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "provider": "rss:1",
       "review": null,
@@ -326,8 +326,8 @@ $ wtf render feeds.wtf --format text --on 2026-10-01 --root <root>
 exit 0
 --- stdout
 # Feeds
-https://example.com/blog/feed.xml ▸ Typed notes · ! stale · 11d ago · 3 items:blog ▸ Typed notes · ! stale · 11d ago · 3 items
-https://notes.example.org/atom ▸ Reading a feed — natively · ! stale · 11d ago · 2 items:notes ▸ Reading a feed — natively · ! stale · 11d ago · 2 items
+https://example.com/blog/feed.xml ▸ Typed notes · ! stale · 2w ago · 3 items:blog ▸ Typed notes · ! stale · 2w ago · 3 items
+https://notes.example.org/atom ▸ Reading a feed — natively · ! stale · 2w ago · 2 items:notes ▸ Reading a feed — natively · ! stale · 2w ago · 2 items
 https://broken.example.net/rss ◌ feed (refresh):broken ◌ feed (refresh)
 Newest post: [blog.latest] Typed notes ([blog.updated] 2026-09-14 09:30:00 +00:00), [blog.count] 3 in the archive.
 The blog lives at [blog.link] https://example.com/blog, titled [blog.title] Typed & Notes.
@@ -347,7 +347,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
 {
   "contents": {
     "kind": "markdown",
-    "value": "[Open resource](<https://example.com/blog/feed.xml>)\n\n**Typed & Notes**\n\n- [Typed notes](https://example.com/blog/typed-notes) (2026-09-14)\n- [Dates & durations](https://example.com/blog/dates) (2026-09-01)\n- [An older post](https://example.com/blog/older) (2025-08-15)\n\nfetched at <clock>"
+    "value": "[Open resource](<https://example.com/blog/feed.xml>)\n\n**Typed & Notes**\n\n- [Typed notes](https://example.com/blog/typed-notes) (2026-09-14)\n- [Dates & durations](https://example.com/blog/dates) (2026-09-01)\n- [An older post](https://example.com/blog/older) (2025-08-15)\n\nfetched at 2026-09-16T18:00:00+00:00"
   },
   "range": {
     "end": {
@@ -364,7 +364,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
 {
   "contents": {
     "kind": "markdown",
-    "value": "[Open resource](<https://notes.example.org/atom>)\n\n**Field Notes**\n\n- [Reading a feed — natively](https://notes.example.org/feeds) (2026-09-15)\n- [Unclosed <tags> happen](https://notes.example.org/tags) (2026-08-30)\n\nfetched at <clock>"
+    "value": "[Open resource](<https://notes.example.org/atom>)\n\n**Field Notes**\n\n- [Reading a feed — natively](https://notes.example.org/feeds) (2026-09-15)\n- [Unclosed <tags> happen](https://notes.example.org/tags) (2026-08-30)\n\nfetched at 2026-09-16T18:00:00+00:00"
   },
   "range": {
     "end": {

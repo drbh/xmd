@@ -1,9 +1,12 @@
--- Neovim 0.11+. Set vim.g.wtf_server_path to an absolute executable path,
--- then dofile('/absolute/path/to/wtf/client/ide/neovim/wtf.lua') from init.lua.
+-- Neovim 0.11+. With `wtf` on PATH, just
+-- dofile('/path/to/jot/client/ide/neovim/wtf.lua') from init.lua.
+-- vim.g.wtf_server_path overrides the executable.
 assert(vim.fn.has('nvim-0.11') == 1, 'WTF configuration requires Neovim 0.11+')
-local binary = vim.g.wtf_server_path
-assert(type(binary) == 'string' and vim.fn.executable(binary) == 1,
-  'Set vim.g.wtf_server_path to the WTF executable built with cargo build')
+local binary = vim.g.wtf_server_path or 'wtf'
+assert(vim.fn.executable(binary) == 1,
+  'wtf is not on PATH: install it with'
+  .. ' `curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh`,'
+  .. ' or set vim.g.wtf_server_path')
 
 vim.filetype.add({ extension = { wtf = 'wtf' } })
 

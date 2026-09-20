@@ -2,8 +2,8 @@
 use super::{
     QueryContext, QueryValue, RecordKind,
     record::{
-        Base, ChildTask, Fields, Record, ScheduleEntry, Scheduling, When, date_field, entries,
-        list, source,
+        Base, ChildTask, Fields, Record, ScheduleEntry, Scheduling, When, date_field, list,
+        projected, source,
     },
 };
 use crate::{
@@ -15,7 +15,7 @@ use chrono::TimeZone;
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct TaskRecord {
+pub(super) struct TaskRecord {
     base: Base,
     scheduling: Scheduling,
     checked: bool,
@@ -26,25 +26,39 @@ struct TaskRecord {
     children: Vec<ChildTask>,
     timer: QueryValue,
 }
+impl TaskRecord {
+    pub(super) const FIELDS: [&'static str; 7] = [
+        "checked",
+        "name",
+        "attributes",
+        "blocked_error",
+        "schedule",
+        "children",
+        "timer",
+    ];
+}
 impl Fields for TaskRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
         fields.extend(self.scheduling.fields());
-        fields.extend(entries([
-            ("checked", QueryValue::boolean(self.checked)),
-            ("name", self.name),
-            ("attributes", QueryValue::Object(self.attributes)),
-            ("blocked_error", self.blocked_error),
-            ("schedule", list(self.schedule)),
-            ("children", list(self.children)),
-            ("timer", self.timer),
-        ]));
+        fields.extend(projected(
+            TaskRecord::FIELDS,
+            [
+                QueryValue::boolean(self.checked),
+                self.name,
+                QueryValue::Object(self.attributes),
+                self.blocked_error,
+                list(self.schedule),
+                list(self.children),
+                self.timer,
+            ],
+        ));
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct EventRecord {
+pub(super) struct EventRecord {
     base: Base,
     scheduling: Scheduling,
 }
@@ -57,7 +71,7 @@ impl Fields for EventRecord {
 }
 
 #[derive(Clone, Debug)]
-struct StopRecord {
+pub(super) struct StopRecord {
     base: Base,
     scheduling: Scheduling,
 }

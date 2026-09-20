@@ -9,7 +9,7 @@ name: Release
 # Every asset is uploaded twice: under its versioned name (what the release
 # page shows) and under a stable, version-free name that
 # `releases/latest/download/<name>` can serve, which is what install.sh,
-# install.ps1 and the Zed extension fetch.
+# the Zed extension fetch.
 
 on:
   push:
@@ -83,14 +83,14 @@ jobs:
           - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm }
           - { target: aarch64-apple-darwin,      os: macos-14 }
           - { target: x86_64-apple-darwin,       os: macos-14 }
-          - { target: x86_64-pc-windows-msvc,    os: windows-latest }
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.version.outputs.tag }}
-      # The toolchain version comes from rust-toolchain.toml; only the target is added.
+      # The action needs the version spelled out; keep it equal to rust-toolchain.toml.
       - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.98.0"
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
@@ -105,7 +105,6 @@ jobs:
         run: |
           set -euo pipefail
           exe=wtf
-          case "$TARGET" in *windows*) exe=wtf.exe ;; esac
           "target/$TARGET/release/$exe" --version
           rm -rf dist stage && mkdir -p dist stage
           # The binary sits at the archive root, next to the README (and the
@@ -113,18 +112,9 @@ jobs:
           cp "target/$TARGET/release/$exe" README.md stage/
           files="$exe README.md"
           if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
-          case "$TARGET" in
-            *windows*)
-              name="wtf-$VERSION-$TARGET.zip"
-              stable="wtf-$TARGET.zip"
-              (cd stage && 7z a -tzip -bd "../dist/$name" $files > /dev/null)
-              ;;
-            *)
-              name="wtf-$VERSION-$TARGET.tar.gz"
-              stable="wtf-$TARGET.tar.gz"
-              tar -C stage -czf "dist/$name" $files
-              ;;
-          esac
+          name="wtf-$VERSION-$TARGET.tar.gz"
+          stable="wtf-$TARGET.tar.gz"
+          tar -C stage -czf "dist/$name" $files
           cp "dist/$name" "dist/$stable"
           cd dist
           for f in "$name" "$stable"; do
@@ -187,6 +177,7 @@ jobs:
           ref: ${{ needs.version.outputs.tag }}
       - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.98.0"
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
         with:
@@ -235,9 +226,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp install.sh install.ps1 assets/
+          cp install.sh assets/
           cd assets
-          # One checksums file for install.sh, install.ps1 and the editors;
+          # One checksums file for install.sh and the editors;
           # the per-file sidecars stay for anyone checking a single download.
           cat ./*.sha256 | sort -k2 > checksums.txt
           ls -l

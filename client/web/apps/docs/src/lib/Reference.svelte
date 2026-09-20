@@ -142,10 +142,7 @@
         <section class="start" id="start">
           <h2>Getting started</h2>
           <p>One binary is the command line and the language server. One command installs it; no Rust toolchain needed.</p>
-          <pre class="setup"><code># macOS and Linux
-curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
-# Windows (PowerShell)
-irm https://github.com/drbh/jot/releases/latest/download/install.ps1 | iex
+          <pre class="setup"><code>curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
 wtf --version</code></pre>
           <p>Or grab a binary from the <a href="https://github.com/drbh/jot/releases">releases page</a>. Then tell your editor. Each setup finds <code>wtf</code> on <code>PATH</code>; a setting overrides that if it lives elsewhere.</p>
           <dl class="editors">

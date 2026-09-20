@@ -24,7 +24,7 @@ arch=$(uname -m)
 case "$os" in
   Darwin) os_target="apple-darwin" ;;
   Linux) os_target="unknown-linux-gnu" ;;
-  MINGW* | MSYS* | CYGWIN*) fail "on Windows run: irm https://github.com/$repo/releases/latest/download/install.ps1 | iex" ;;
+  MINGW* | MSYS* | CYGWIN*) fail "Windows is not supported; use WSL" ;;
   *) fail "no prebuilt binary for $os; build one with: cargo install --git https://github.com/$repo wtf" ;;
 esac
 case "$arch" in

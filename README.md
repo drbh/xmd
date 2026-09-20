@@ -67,14 +67,8 @@ mac and linux:
 curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
 ```
 
-windows (powershell):
-
-```powershell
-irm https://github.com/drbh/jot/releases/latest/download/install.ps1 | iex
-```
-
-that is the cli and the language server in one binary, `wtf`, in `~/.local/bin`
-(or `%LOCALAPPDATA%\wtf\bin`). or grab a binary from the releases page:
+that is the cli and the language server in one binary, `wtf`, in `~/.local/bin`.
+or grab a binary from the releases page:
 https://github.com/drbh/jot/releases
 
 editors:

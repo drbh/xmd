@@ -21,12 +21,12 @@ async function version(binary) {
 
 // The release asset for this machine, named as the release workflow names it.
 function asset() {
-  const os = { darwin: "apple-darwin", linux: "unknown-linux-gnu", win32: "pc-windows-msvc" }[process.platform];
+  const os = { darwin: "apple-darwin", linux: "unknown-linux-gnu" }[process.platform];
   const arch = { x64: "x86_64", arm64: "aarch64" }[process.arch];
-  if (!os || !arch || (os === "pc-windows-msvc" && arch !== "x86_64")) {
+  if (!os || !arch) {
     throw new Error(`no prebuilt language server for ${process.platform}/${process.arch}. Build one with \`cargo install --git https://github.com/${REPO} wtf\` and set wtf.serverPath.`);
   }
-  return `wtf-${arch}-${os}.${os === "pc-windows-msvc" ? "zip" : "tar.gz"}`;
+  return `wtf-${arch}-${os}.tar.gz`;
 }
 
 async function get(url) {

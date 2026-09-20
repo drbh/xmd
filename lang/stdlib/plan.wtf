@@ -1,30 +1,30 @@
 // Plan policy surrounds the generic numerical primitive.
-module := {api: 1, id: "plan", kind: "library", imports: ["format"], inputs: []}
+module := {api: 1, id: "plan", kind: "library", imports: ["format"], inputs: [], exports: []}
 fmt := import("format")
 
 // Round displayed solver results to four decimal places.
-tidy := fn(n) => (
+_tidy := fn(n) => (
   round(n * 10000) / 10000
 )
 
 // Restore units, rounding durations to whole seconds.
-typed := fn(unit, n) => (
+_typed := fn(unit, n) => (
   if(type(unit) == "Duration", unit * round(n), unit * n)
 )
 
 // Strip unit metadata before passing a form to the numerical solver.
-raw := fn(form) => (
+_raw := fn(form) => (
   {constant: form.constant, terms: form.terms}
 )
 
 // Substitute the raw solution into a linear form.
-evaluate := fn(form, values) => (
+_evaluate := fn(form, values) => (
   form.constant
   + fold(entries(form.terms), 0, fn(total, term) => total + term.value * get(values, term.key))
 )
 
 // Give plan variables nonnegative bounds and decision-column domains.
-variables := fn(model) => (
+_variables := fn(model) => (
   object(
     concat(
       map(model.names, fn(name) => {key: name, value: {kind: "continuous", lower: 0}}),
@@ -34,51 +34,51 @@ variables := fn(model) => (
 )
 
 // Build the numerical model while preserving source variable order.
-solve_raw := fn(model) => (
+_solve_raw := fn(model) => (
   solve_linear(
     {
       goal: model.goal,
-      variables: variables(model),
+      variables: _variables(model),
       order: concat(model.names, map(model.decisions, fn(v) => v.name)),
-      objective: raw(model.objective),
-      constraints: map(model.constraints, fn(c) => {lhs: raw(c.lhs), op: c.op, rhs: raw(c.rhs)})
+      objective: _raw(model.objective),
+      constraints: map(model.constraints, fn(c) => {lhs: _raw(c.lhs), op: c.op, rhs: _raw(c.rhs)})
     }
   )
 )
 
 // Measure unused room on the permitted side of a constraint.
-slack := fn(op, lhs, rhs) => (
-  tidy(if(op == "<=", rhs - lhs, if(op == ">=", lhs - rhs, 0)))
+_slack := fn(op, lhs, rhs) => (
+  _tidy(if(op == "<=", rhs - lhs, if(op == ">=", lhs - rhs, 0)))
 )
 
 // Assemble typed constraint values and binding status.
-constraint_result := fn(c, lhs, rhs, unit) => (
+_constraint_result := fn(c, lhs, rhs, unit) => (
   {
     name: c.name,
     op: c.op,
-    lhs: typed(unit, lhs),
-    rhs: typed(unit, rhs),
-    slack: typed(unit, slack(c.op, lhs, rhs)),
-    binding: slack(c.op, lhs, rhs) == 0
+    lhs: _typed(unit, lhs),
+    rhs: _typed(unit, rhs),
+    slack: _typed(unit, _slack(c.op, lhs, rhs)),
+    binding: _slack(c.op, lhs, rhs) == 0
   }
 )
 
 // Evaluate both sides from raw values before rounding for display.
-constraint := fn(c, values) => (
-  constraint_result(
+_constraint := fn(c, values) => (
+  _constraint_result(
     c,
-    tidy(evaluate(c.lhs, values)),
-    tidy(evaluate(c.rhs, values)),
+    _tidy(_evaluate(c.lhs, values)),
+    _tidy(_evaluate(c.rhs, values)),
     if(type(c.lhs.unit) == "Number", c.rhs.unit, c.lhs.unit)
   )
 )
 
 // Restore units and interpret decision cells from the raw solution.
-result := fn(model, values) => (
+_result := fn(model, values) => (
   {
-    objective: typed(model.objective.unit, tidy(evaluate(model.objective, values))),
-    variables: map(model.names, fn(n) => {name: n, value: tidy(get(values, n))}),
-    constraints: map(model.constraints, fn(c) => constraint(c, values)),
+    objective: _typed(model.objective.unit, _tidy(_evaluate(model.objective, values))),
+    variables: map(model.names, fn(n) => {name: n, value: _tidy(get(values, n))}),
+    constraints: map(model.constraints, fn(c) => _constraint(c, values)),
     rows: object(
       map(
         model.decisions,
@@ -86,8 +86,8 @@ result := fn(model, values) => (
           key: d.name,
           value: if(
             d.kind == "binary",
-            tidy(get(values, d.name)) >= 0.5,
-            round(tidy(get(values, d.name)))
+            _tidy(get(values, d.name)) >= 0.5,
+            round(_tidy(get(values, d.name)))
           )
         }
       )
@@ -96,10 +96,10 @@ result := fn(model, values) => (
 )
 
 // Translate solver statuses into a solution or an actionable error.
-checked := fn(model, solution) => (
+_checked := fn(model, solution) => (
   if(
     solution.status == "optimal",
-    result(model, solution.values),
+    _result(model, solution.values),
     error(
       if(
         solution.status == "infeasible",
@@ -112,23 +112,29 @@ checked := fn(model, solution) => (
   )
 )
 
+// Engine contract: the plan evaluator calls solve_model, seek_boundary,
+// seek_summary, hover, write_edits and write_title by name, and the plans
+// feature module calls constraint_label, constraint_hover, inlay and choice.
+// These names are the engine's, not a note's: `exports: []` keeps them out
+// of import().
+
 // Solve the assembled model and interpret its result.
 solve_model := fn(model) => (
-  checked(model, solve_raw(model))
+  _checked(model, _solve_raw(model))
 )
 
 // Use compact mathematical symbols for displayed comparisons.
-comparison := fn(op) => (
+_comparison := fn(op) => (
   if(op == "<=", "≤", if(op == ">=", "≥", "="))
 )
 
 // Distinguish binding constraints from those with unused room.
-status := fn(c) => (
+_status := fn(c) => (
   if(c.binding, "● binding", "○ slack " + text(c.slack))
 )
 
 // Add a usage bar when a positive upper bound makes it meaningful.
-usage := fn(c, wide) => (
+_usage := fn(c, wide) => (
   if(
     c.op == "<=" && number(c.rhs) > 0,
     if(
@@ -142,7 +148,7 @@ usage := fn(c, wide) => (
 
 // Combine usage, comparison, and slack into a constraint label.
 constraint_label := fn(c) => (
-  usage(c, false) + text(c.lhs) + " " + comparison(c.op) + " " + text(c.rhs) + " · " + status(c)
+  _usage(c, false) + text(c.lhs) + " " + _comparison(c.op) + " " + text(c.rhs) + " · " + _status(c)
 )
 
 // Explain a constraint's displayed result and binding status.
@@ -155,7 +161,7 @@ constraint_hover := fn(c) => (
 )
 
 // Summarize selected choices or total a decision-count column.
-column_label := fn(c) => (
+_column_label := fn(c) => (
   c.name
   + " "
   + if(
@@ -171,7 +177,7 @@ inlay := fn(p) => (
     concat(
       ["= " + text(p.objective)],
       map(p.variable_order, fn(name) => name + " " + text(get(p.variables, name))),
-      map(p.columns, column_label)
+      map(p.columns, _column_label)
     ),
     " · "
   )
@@ -183,7 +189,7 @@ choice := fn(value) => (
 )
 
 // List chosen rows, striking out rejected boolean choices.
-column_hover := fn(c) => (
+_column_hover := fn(c) => (
   "\n\n"
   + c.name
   + ": "
@@ -202,7 +208,7 @@ column_hover := fn(c) => (
 
 // Explain the solution, constraint usage, and default variable bounds.
 hover := fn(p) => (
-  join(map(p.columns, column_hover), "")
+  join(map(p.columns, _column_hover), "")
   + "\n\n"
   + if(p.goal == "maximize", "Maximizes", "Minimizes")
   + " the objective. Variables: "
@@ -214,14 +220,14 @@ hover := fn(p) => (
         fn(c) => "\n- "
         + c.name
         + ": "
-        + usage(c, true)
+        + _usage(c, true)
         + text(c.lhs)
         + " "
-        + comparison(c.op)
+        + _comparison(c.op)
         + " "
         + text(c.rhs)
         + " · "
-        + status(c)
+        + _status(c)
       ),
       ""
     )
@@ -229,7 +235,7 @@ hover := fn(p) => (
 )
 
 // Preserve a decision cell's padding when writing its result.
-write_choice := fn(cell) => (
+_write_choice := fn(cell) => (
   " "
   + pad_end(
       if(type(cell.value) == "Boolean", if(cell.value, "yes", "no"), text(cell.value)),
@@ -240,7 +246,7 @@ write_choice := fn(cell) => (
 )
 
 // Convert a decision value to writable table-cell text.
-write_text := fn(value) => (
+_write_text := fn(value) => (
   if(type(value) == "Boolean", if(value, "yes", "no"), text(value))
 )
 
@@ -249,9 +255,9 @@ write_edits := fn(p, document) => (
   map(
     filter(
       fold(p.columns, [], fn(cells, column) => concat(cells, column.cells)),
-      fn(cell) => cell.document == document && cell.source != write_text(cell.value)
+      fn(cell) => cell.document == document && cell.source != _write_text(cell.value)
     ),
-    fn(cell) => {range: cell.range, newText: write_choice(cell)}
+    fn(cell) => {range: cell.range, newText: _write_choice(cell)}
   )
 )
 
@@ -277,7 +283,7 @@ seek_boundary := fn(name, form, unit) => (
         error(
           "Cannot tell the unit of the answer; the unknown is scaled by two different units"
         ),
-        typed(unit, -form.constant / get(form.terms, name))
+        _typed(unit, -form.constant / get(form.terms, name))
       )
     )
   )

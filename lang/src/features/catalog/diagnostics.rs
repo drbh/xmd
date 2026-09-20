@@ -1,27 +1,33 @@
 //! Diagnostic records: the workspace's own diagnostics, as queryable rows.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Fields, Record, entries},
+    record::{Base, Fields, Record, projected},
 };
 use crate::{engine::Engine, workspace::Workspace};
 use serde_json::json;
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct DiagnosticRecord {
+pub(super) struct DiagnosticRecord {
     base: Base,
     message: String,
     severity: String,
     code: QueryValue,
 }
+impl DiagnosticRecord {
+    pub(super) const FIELDS: [&'static str; 3] = ["message", "severity", "code"];
+}
 impl Fields for DiagnosticRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            ("message", QueryValue::text(self.message)),
-            ("severity", QueryValue::text(self.severity)),
-            ("code", self.code),
-        ]));
+        fields.extend(projected(
+            DiagnosticRecord::FIELDS,
+            [
+                QueryValue::text(self.message),
+                QueryValue::text(self.severity),
+                self.code,
+            ],
+        ));
         fields
     }
 }

@@ -1,5 +1,5 @@
 // Pure score arithmetic, shared by the sports link module and by notes.
-module := {api: 1, id: "scores", kind: "library", inputs: []}
+module := {api: 1, id: "scores", kind: "library", inputs: [], exports: ["resolve", "margin", "scoreline", "outcome"]}
 
 // Name the side that won, or "draw" when the scores are level.
 resolve := fn(home_score, away_score) => (

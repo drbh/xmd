@@ -9,7 +9,7 @@
 // that scrolls with the caret. The story lives in lib/story.mjs.
 import { resolve } from "node:path";
 import { assemble, keystroke, launch, option, record, requireFfmpeg, serve, web } from "./lib/capture.mjs";
-import { story } from "./lib/story.mjs";
+import { opening, story } from "./lib/story.mjs";
 
 const theme = option("theme", "light");
 const out = resolve(web, option("out", `media/typing-${theme}.gif`));
@@ -36,7 +36,8 @@ try {
   // Start from an empty page (the blank template carries a heading) and let
   // the page fill the frame: no menus, toolbar or console chip.
   await page.addStyleTag({ content: "header.chrome, .toolbar, .chip, .console-chip, .status { display: none !important; } .canvas { padding-top: 0 !important; }" });
-  await page.evaluate(() => window.wtfDocs.controller.setSource(""));
+  // The note is already written; the first thing the viewer sees is it changing.
+  await page.evaluate(text => window.wtfDocs.controller.setSource(text), opening);
   await page.evaluate(() => window.wtfDocs.controller.select(0));
   await page.waitForTimeout(400);
   const box = await page.locator(".view").boundingBox();
@@ -86,6 +87,17 @@ try {
       await caret(at + step.after.length);
       await follow();
       await page.waitForTimeout(500);
+    } else if (step.replace) {
+      // Select the old text, hold so the selection reads, then type over it.
+      const at = (await source()).indexOf(step.replace);
+      if (at === -1) throw new Error(`"${step.replace}" is not in the note`);
+      await page.evaluate(([a, b]) => window.wtfDocs.controller.select(a, b), [at, at + step.replace.length]);
+      await follow();
+      await page.waitForTimeout(700);
+      for (const ch of step.with) {
+        await page.keyboard.type(ch);
+        await page.waitForTimeout(keystroke(ch));
+      }
     } else if (step.end) {
       await caret((await source()).length);
       await follow();

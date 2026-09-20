@@ -360,6 +360,22 @@
         "tasks",
         "--json"
       ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "import(\"tasks\")",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "import(\"github\")",
+        "--json"
+      ]
     }
   ]
 }

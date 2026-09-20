@@ -40,7 +40,13 @@
           "type": "string",
           "default": "",
           "scope": "machine-overridable",
-          "description": "Absolute path to the WTF executable built with cargo build. The extension runs it with the lsp argument."
+          "description": "Path to the WTF executable. Leave empty to use `wtf` from PATH, or the language server the extension downloads from the GitHub release. The extension runs it with the lsp argument."
+        },
+        "wtf.autoDownload": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine",
+          "description": "When `wtf` is not on PATH, offer to download the language server matching this extension's version from the GitHub release (asked once)."
         }
       }
     },

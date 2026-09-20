@@ -1,5 +1,5 @@
 // Shared presentation functions are ordinary library exports.
-module := {api: 1, id: "format", kind: "library", inputs: []}
+module := {api: 1, id: "format", kind: "library", inputs: [], exports: ["gauge", "bar", "clock", "human", "age"]}
 
 // Keep a value within the supplied bounds.
 clamp := fn(value, low, high) => (
@@ -18,7 +18,7 @@ bar := fn(fraction) => (
 )
 
 // Render hours, minutes, and seconds without numeric grouping.
-clock_parts := fn(p) => (
+_clock_parts := fn(p) => (
   if(p.hours == 0, "", pad_start(source(p.hours), 2, "0") + ":")
   + pad_start(source(p.minutes), 2, "0")
   + ":"
@@ -27,11 +27,11 @@ clock_parts := fn(p) => (
 
 // Format a duration as mm:ss or hh:mm:ss without losing seconds.
 clock := fn(duration) => (
-  clock_parts(duration_parts(duration))
+  _clock_parts(duration_parts(duration))
 )
 
 // Omit zero components from a compact travel duration.
-human_parts := fn(p) => (
+_human_parts := fn(p) => (
   if(
     p.hours == 0,
     source(p.minutes) + "m",
@@ -41,7 +41,7 @@ human_parts := fn(p) => (
 
 // Describe a duration in hours and whole minutes.
 human := fn(duration) => (
-  human_parts(duration_parts(duration))
+  _human_parts(duration_parts(duration))
 )
 
 // Describe cache age with progressively coarser time units.

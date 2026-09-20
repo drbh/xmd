@@ -12,8 +12,17 @@ export async function mount(element, options = {}) {
   view.classList.add("wtf");
   view.dataset.layout = options.layout || "source";
   if (options.interactive !== false) view.dataset.interactive = "";
+  // Lenses (complete a task, start a timer) are chips drawn at the end of
+  // their line, over the text, so the note itself is never changed. They sit
+  // in a layer after the view; the host element becomes the positioning box.
   const controls = options.controls === false ? null : element.ownerDocument.createElement("div");
-  if (controls) { controls.className = "wtf-controls"; view.after(controls); }
+  if (controls) {
+    controls.className = "wtf-controls";
+    view.after(controls);
+    const host = view.parentElement;
+    if (host && getComputedStyle(host).position === "static") host.style.position = "relative";
+  }
+  let placer = null;
   const error = e => { if (!dead) options.onError?.(e); };
   const open = url => {
     if (options.onOpen) return options.onOpen(url);
@@ -31,15 +40,41 @@ export async function mount(element, options = {}) {
     if (view.innerHTML !== html) { view.innerHTML = html; restoreSelection(view, selection); }
     if (controls) {
       controls.replaceChildren();
-      if (options.interactive !== false) for (const lens of snapshot.lenses) {
-        const button = element.ownerDocument.createElement("button");
-        button.type = "button";
-        button.textContent = lens.command.title;
-        button.onclick = () => execute(lens.command, snapshot.versions).catch(error);
-        controls.append(button);
+      if (options.interactive !== false) {
+        const byLine = new Map();
+        for (const lens of snapshot.lenses) {
+          const line = lens.range.start.line;
+          if (!byLine.has(line)) { const group = element.ownerDocument.createElement("div"); group.className = "wtf-lenses"; group.dataset.line = line; byLine.set(line, group); controls.append(group); }
+          const button = element.ownerDocument.createElement("button");
+          button.type = "button";
+          button.className = "wtf-lens";
+          button.textContent = lens.command.title;
+          button.onmousedown = e => e.preventDefault(); // keep the caret where it is
+          button.onclick = () => execute(lens.command, snapshot.versions).catch(error);
+          byLine.get(line).append(button);
+        }
+        placeLenses();
       }
     }
     options.onRender?.(snapshot);
+  }
+  // Chips follow their line's last box, clamped to the host's right edge.
+  function placeLenses() {
+    if (!controls) return;
+    const host = view.parentElement;
+    if (!host) return;
+    const origin = host.getBoundingClientRect();
+    for (const group of controls.children) {
+      const line = view.querySelector(`.line[data-line="${group.dataset.line}"]`);
+      if (!line) { group.hidden = true; continue; }
+      group.hidden = false;
+      const rects = line.getClientRects();
+      const rect = rects[rects.length - 1] || line.getBoundingClientRect();
+      const width = group.offsetWidth || 0;
+      group.style.top = `${rect.top - origin.top + host.scrollTop}px`;
+      group.style.left = `${Math.max(8, Math.min(rect.right - origin.left + host.scrollLeft + 10, origin.width - width - 8))}px`;
+      group.style.height = `${rect.height}px`;
+    }
   }
   async function execute(command, versions) {
     if (dead) throw new Error("View was destroyed");
@@ -48,6 +83,8 @@ export async function mount(element, options = {}) {
     return result;
   }
   const unsubscribe = workspace.subscribe(uri, draw, { editing: options.editing ?? true });
+  if (controls && typeof ResizeObserver !== "undefined") { placer = new ResizeObserver(placeLenses); placer.observe(view); }
+  if (controls) element.ownerDocument.fonts?.ready.then(placeLenses);
   const unchange = workspace.onChange(change => { if (!dead && change.uri === uri) options.onChange?.(change); });
   const listen = (type, handler) => view.addEventListener(type, handler, { signal: abort.signal });
   listen("click", event => {
@@ -107,7 +144,7 @@ export async function mount(element, options = {}) {
       dead = true;
       abort.abort(); unsubscribe(); unchange(); clearTimeout(hoverTimer);
       if (hover) hover.hidden = true;
-      controls?.remove();
+      controls?.remove(); placer?.disconnect();
       delete view.dataset.interactive;
       if (owned) workspace.destroy();
     },

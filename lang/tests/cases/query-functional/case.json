@@ -251,7 +251,7 @@
       "cli": [
         "query",
         "data.wtf",
-        "{slice: slice(\"a\ud83e\udd80z\", 1, 2), joined: join(concat([\"a\"], [\"b\"]), \"/\"), bar: repeat(\"\u2588\", round(2.6)), day: format_date(today(), \"%Y-%m-%d\"), trimmed: trim(\"  hi  \")}",
+        "{slice: slice(\"a\ud83e\udd80z\", 1, 2), joined: join(concat([\"a\"], [\"b\"]), \"/\"), bar: repeat(\"\u2588\", round(2.6)), trimmed: trim(\"  hi  \")}",
         "--json"
       ]
     },

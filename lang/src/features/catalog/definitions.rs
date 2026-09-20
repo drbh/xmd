@@ -1,7 +1,7 @@
 //! Definition, row and decision records: values, plans and tables.
 use super::{
     Collection, QueryValue, RecordKind,
-    record::{Base, EXPRESSION, Fields, LazyField, NAME, Record, entries},
+    record::{Base, EXPRESSION, Fields, LazyField, NAME, Record, projected},
 };
 use crate::{
     document::Document,
@@ -13,61 +13,82 @@ use std::{collections::BTreeMap, path::Path};
 /// Values, plans and tables are one definition each. Their value, type, display
 /// and (for a plan) solution stay null until the record is evaluated.
 #[derive(Clone, Debug)]
-struct DefinitionRecord {
+pub(super) struct DefinitionRecord {
     base: Base,
     name: String,
     expression: String,
     computed: bool,
     solution: bool,
 }
+impl DefinitionRecord {
+    pub(super) const FIELDS: [&'static str; 6] = [
+        NAME,
+        EXPRESSION,
+        LazyField::Value.as_str(),
+        LazyField::Type.as_str(),
+        LazyField::Display.as_str(),
+        "computed",
+    ];
+    /// Only a plan carries a solution, so it is not part of every definition.
+    pub(super) const SOLUTION: [&'static str; 1] = [LazyField::Solution.as_str()];
+}
 impl Fields for DefinitionRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            (NAME, QueryValue::text(self.name)),
-            (EXPRESSION, QueryValue::text(self.expression)),
-            (LazyField::Value.as_str(), QueryValue::Null),
-            (LazyField::Type.as_str(), QueryValue::Null),
-            (LazyField::Display.as_str(), QueryValue::Null),
-            ("computed", QueryValue::boolean(self.computed)),
-        ]));
+        fields.extend(projected(
+            DefinitionRecord::FIELDS,
+            [
+                QueryValue::text(self.name),
+                QueryValue::text(self.expression),
+                QueryValue::Null,
+                QueryValue::Null,
+                QueryValue::Null,
+                QueryValue::boolean(self.computed),
+            ],
+        ));
         if self.solution {
-            fields.insert(LazyField::Solution.as_str().into(), QueryValue::Null);
+            fields.extend(projected(DefinitionRecord::SOLUTION, [QueryValue::Null]));
         }
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct RowRecord {
+pub(super) struct RowRecord {
     base: Base,
     table: String,
     cells: BTreeMap<String, QueryValue>,
 }
+impl RowRecord {
+    pub(super) const FIELDS: [&'static str; 2] = ["table", "cells"];
+}
 impl Fields for RowRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            ("table", QueryValue::text(self.table)),
-            ("cells", QueryValue::Object(self.cells)),
-        ]));
+        fields.extend(projected(
+            RowRecord::FIELDS,
+            [QueryValue::text(self.table), QueryValue::Object(self.cells)],
+        ));
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct DecisionRecord {
+pub(super) struct DecisionRecord {
     base: Base,
     value: QueryValue,
     plan: String,
 }
+impl DecisionRecord {
+    pub(super) const FIELDS: [&'static str; 2] = [LazyField::Value.as_str(), "plan"];
+}
 impl Fields for DecisionRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            (LazyField::Value.as_str(), self.value),
-            ("plan", QueryValue::text(self.plan)),
-        ]));
+        fields.extend(projected(
+            DecisionRecord::FIELDS,
+            [self.value, QueryValue::text(self.plan)],
+        ));
         fields
     }
 }

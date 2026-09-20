@@ -1,7 +1,7 @@
 //! Calculation, reference and cell records: one evaluated expression each.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Expression, Fields, NAME, PROPERTY, Record, SourceRef, entries},
+    record::{Base, Expression, Fields, NAME, PROPERTY, Record, SourceRef, projected},
 };
 use crate::{
     document::{Document, Span},
@@ -11,44 +11,50 @@ use crate::{
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct CalculationRecord {
+pub(super) struct CalculationRecord {
     base: Base,
     expression: Expression,
     bracketed: bool,
+}
+impl CalculationRecord {
+    pub(super) const FIELDS: [&'static str; 1] = ["bracketed"];
 }
 impl Fields for CalculationRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
         fields.extend(self.expression.fields());
-        fields.extend(entries([(
-            "bracketed",
-            QueryValue::boolean(self.bracketed),
-        )]));
+        fields.extend(projected(
+            CalculationRecord::FIELDS,
+            [QueryValue::boolean(self.bracketed)],
+        ));
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct ReferenceRecord {
+pub(super) struct ReferenceRecord {
     base: Base,
     expression: Expression,
     name: String,
     property: QueryValue,
 }
+impl ReferenceRecord {
+    pub(super) const FIELDS: [&'static str; 2] = [NAME, PROPERTY];
+}
 impl Fields for ReferenceRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
         fields.extend(self.expression.fields());
-        fields.extend(entries([
-            (NAME, QueryValue::text(self.name)),
-            (PROPERTY, self.property),
-        ]));
+        fields.extend(projected(
+            ReferenceRecord::FIELDS,
+            [QueryValue::text(self.name), self.property],
+        ));
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct CellRecord {
+pub(super) struct CellRecord {
     base: Base,
     expression: Expression,
     computed: bool,
@@ -56,16 +62,22 @@ struct CellRecord {
     row: usize,
     column: QueryValue,
 }
+impl CellRecord {
+    pub(super) const FIELDS: [&'static str; 4] = ["computed", "table", "row", "column"];
+}
 impl Fields for CellRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
         fields.extend(self.expression.fields());
-        fields.extend(entries([
-            ("computed", QueryValue::boolean(self.computed)),
-            ("table", QueryValue::text(self.table)),
-            ("row", QueryValue::count(self.row)),
-            ("column", self.column),
-        ]));
+        fields.extend(projected(
+            CellRecord::FIELDS,
+            [
+                QueryValue::boolean(self.computed),
+                QueryValue::text(self.table),
+                QueryValue::count(self.row),
+                self.column,
+            ],
+        ));
         fields
     }
 }

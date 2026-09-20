@@ -23,6 +23,19 @@ pub(super) fn entries<const N: usize>(
 ) -> BTreeMap<String, QueryValue> {
     items.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
 }
+/// A projection built from the record family's own `FIELDS` list, so those
+/// names are written once: here for the query, and in `Collection::fields` for
+/// the reference. The two arities have to match, which the compiler checks.
+pub(super) fn projected<const N: usize>(
+    names: [&str; N],
+    values: [QueryValue; N],
+) -> BTreeMap<String, QueryValue> {
+    names
+        .into_iter()
+        .zip(values)
+        .map(|(k, v)| (k.to_string(), v))
+        .collect()
+}
 
 /// Where a record was found. Every record carries one under `source`.
 #[derive(Clone, Debug)]
@@ -33,6 +46,7 @@ pub(super) struct SourceRef {
     pub(super) range: Range,
 }
 impl SourceRef {
+    pub(super) const FIELDS: [&'static str; 4] = ["path", "uri", "line", "range"];
     pub(super) fn new(ws: &Workspace, path: &Path, span: Span) -> Self {
         let mut uri = crate::paths::file_url(path)
             .map(|u| u.to_string())
@@ -48,12 +62,15 @@ impl SourceRef {
 }
 impl Fields for SourceRef {
     fn fields(self) -> BTreeMap<String, QueryValue> {
-        entries([
-            ("path", QueryValue::text(self.path.to_string_lossy())),
-            ("uri", QueryValue::text(self.uri)),
-            ("line", QueryValue::count(self.line)),
-            ("range", QueryValue::from_json(json!(self.range))),
-        ])
+        projected(
+            Self::FIELDS,
+            [
+                QueryValue::text(self.path.to_string_lossy()),
+                QueryValue::text(self.uri),
+                QueryValue::count(self.line),
+                QueryValue::from_json(json!(self.range)),
+            ],
+        )
     }
 }
 
@@ -68,6 +85,8 @@ pub(super) struct Base {
     pub(super) errors: Vec<String>,
 }
 impl Base {
+    pub(super) const FIELDS: [&'static str; 6] =
+        ["kind", "title", "line", "anchor", "source", "errors"];
     pub(super) fn new(
         ws: &Workspace,
         path: &Path,
@@ -88,14 +107,17 @@ impl Base {
 }
 impl Fields for Base {
     fn fields(self) -> BTreeMap<String, QueryValue> {
-        entries([
-            ("kind", QueryValue::text(self.kind.as_str())),
-            ("title", QueryValue::text(self.title)),
-            ("line", QueryValue::count(self.line)),
-            ("anchor", QueryValue::from_json(json!(self.anchor))),
-            ("source", QueryValue::Object(self.source.fields())),
-            ("errors", QueryValue::strings(self.errors)),
-        ])
+        projected(
+            Self::FIELDS,
+            [
+                QueryValue::text(self.kind.as_str()),
+                QueryValue::text(self.title),
+                QueryValue::count(self.line),
+                QueryValue::from_json(json!(self.anchor)),
+                QueryValue::Object(self.source.fields()),
+                QueryValue::strings(self.errors),
+            ],
+        )
     }
 }
 
@@ -109,7 +131,7 @@ pub(super) enum When {
 }
 impl When {
     pub(super) const ALL: [When; 4] = [Self::Due, Self::Scheduled, Self::At, Self::Estimate];
-    pub(super) fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Due => "due",
             Self::Scheduled => "scheduled",
@@ -150,6 +172,19 @@ impl Default for Scheduling {
     }
 }
 impl Scheduling {
+    /// The timeline fields tasks, events and stops share.
+    pub(super) const FIELDS: [&'static str; 10] = [
+        When::Due.as_str(),
+        When::Scheduled.as_str(),
+        When::At.as_str(),
+        When::Estimate.as_str(),
+        "at_date",
+        "parent",
+        "tags",
+        "blocked_by",
+        "done",
+        "leaf",
+    ];
     pub(super) fn set(&mut self, when: When, value: QueryValue) {
         match when {
             When::Due => self.due = value,
@@ -161,18 +196,21 @@ impl Scheduling {
 }
 impl Fields for Scheduling {
     fn fields(self) -> BTreeMap<String, QueryValue> {
-        entries([
-            (When::Due.as_str(), self.due),
-            (When::Scheduled.as_str(), self.scheduled),
-            (When::At.as_str(), self.at),
-            (When::Estimate.as_str(), self.estimate),
-            ("at_date", self.at_date),
-            ("parent", self.parent),
-            ("tags", QueryValue::strings(self.tags)),
-            ("blocked_by", QueryValue::strings(self.blocked_by)),
-            ("done", QueryValue::boolean(self.done)),
-            ("leaf", QueryValue::boolean(self.leaf)),
-        ])
+        projected(
+            Self::FIELDS,
+            [
+                self.due,
+                self.scheduled,
+                self.at,
+                self.estimate,
+                self.at_date,
+                self.parent,
+                QueryValue::strings(self.tags),
+                QueryValue::strings(self.blocked_by),
+                QueryValue::boolean(self.done),
+                QueryValue::boolean(self.leaf),
+            ],
+        )
     }
 }
 
@@ -239,6 +277,13 @@ pub(super) struct Expression {
     display: QueryValue,
 }
 impl Expression {
+    /// The projection a calculation, reference or cell shares.
+    pub(super) const FIELDS: [&'static str; 4] = [
+        EXPRESSION,
+        LazyField::Value.as_str(),
+        LazyField::Type.as_str(),
+        LazyField::Display.as_str(),
+    ];
     /// Returns the projection and the errors that belong on the record's base.
     pub(super) fn new(expression: &str, value: Result<Value, String>) -> (Self, Vec<String>) {
         match value {
@@ -265,12 +310,15 @@ impl Expression {
 }
 impl Fields for Expression {
     fn fields(self) -> BTreeMap<String, QueryValue> {
-        entries([
-            (EXPRESSION, QueryValue::text(self.expression)),
-            (LazyField::Value.as_str(), self.value),
-            (LazyField::Type.as_str(), self.type_name),
-            (LazyField::Display.as_str(), self.display),
-        ])
+        projected(
+            Self::FIELDS,
+            [
+                QueryValue::text(self.expression),
+                self.value,
+                self.type_name,
+                self.display,
+            ],
+        )
     }
 }
 
@@ -318,7 +366,7 @@ impl LazyField {
         Self::Errors,
         Self::Display,
     ];
-    pub(super) fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Presentation => "presentation",
             Self::Hover => "hover",

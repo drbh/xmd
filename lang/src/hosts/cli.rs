@@ -51,6 +51,20 @@ pub enum Command {
     },
     /// Keep a directory of notes in step with a folder in the web app.
     Sync(crate::hosts::sync::SyncOptions),
+    /// Print the whole language reference: Markdown, or --json for tools.
+    #[command(
+        after_help = "The reference is generated from the code, so it cannot drift.\nExamples: wtf reference\n          wtf reference --json | jq '.functions[] | .name'\n          wtf reference --notes ./snippets   # every try snippet as a note"
+    )]
+    Reference(ReferenceOptions),
+}
+#[derive(Args)]
+pub struct ReferenceOptions {
+    /// Emit the reference model as JSON instead of Markdown.
+    #[arg(long)]
+    pub json: bool,
+    /// Write every runnable snippet into this directory, one note each.
+    #[arg(long, value_name = "DIR")]
+    pub notes: Option<PathBuf>,
 }
 #[derive(Args)]
 pub struct QueryOptions {
@@ -167,6 +181,7 @@ pub async fn run(command: Command) -> Result<(), String> {
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
         Command::Sync(options) => crate::hosts::sync::run(options),
+        Command::Reference(options) => reference_command(options),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -181,6 +196,37 @@ pub async fn run(command: Command) -> Result<(), String> {
         }
     }
 }
+/// The reference describes the language itself, so it needs no workspace: the
+/// bundled modules are the library it reports.
+fn reference_command(options: ReferenceOptions) -> Result<(), String> {
+    if let Some(directory) = options.notes {
+        let mut written = 0;
+        std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
+        for (name, source) in crate::reference::snippets() {
+            let path = directory.join(format!("{name}.wtf"));
+            std::fs::write(&path, format!("{source}\n"))
+                .map_err(|e| format!("{}: {e}", path.display()))?;
+            written += 1;
+        }
+        println!("{written} snippets written to {}", directory.display());
+        return Ok(());
+    }
+    let modules = crate::modules::ModuleRegistry::default();
+    let text = if options.json {
+        serde_json::to_string_pretty(&crate::reference::model(&modules))
+            .map_err(|e| e.to_string())?
+    } else {
+        crate::reference::markdown(&modules)
+    };
+    let stdout = io::stdout();
+    let mut output = io::BufWriter::new(stdout.lock());
+    match writeln!(output, "{}", text.trim_end()).and_then(|_| output.flush()) {
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+        Err(e) => Err(e.to_string()),
+        Ok(()) => Ok(()),
+    }
+}
+
 fn inspect_command(view: &str, mut options: InspectOptions) -> Result<(), String> {
     options.output.json = !options.output.jsonl;
     run_query(

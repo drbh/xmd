@@ -1,8 +1,8 @@
 // Agenda selection is ordinary library code over the query API's entry records.
-module := {api: 1, id: "agenda", kind: "library", inputs: []}
+module := {api: 1, id: "agenda", kind: "library", inputs: [], exports: ["between"]}
 
 // Keep overdue and undated tasks, scheduled events, and unresolved appointments.
-included := fn(entry, first, last) => (
+_included := fn(entry, first, last) => (
   !entry.done && if(
     entry.kind == "task",
     entry.due <= last || entry.scheduled <= last || entry.at_date <= last
@@ -12,7 +12,7 @@ included := fn(entry, first, last) => (
 )
 
 // Stable sorts put dates first, then time, document path, and source line.
-ordered := fn(entries, first) => (
+_ordered := fn(entries, first) => (
   sort_by(
     sort_by(
       sort_by(
@@ -27,5 +27,5 @@ ordered := fn(entries, first) => (
 
 // Select an inclusive date window from file-scoped or workspace entry records.
 between := fn(entries, first, last) => (
-  ordered(filter(entries, fn(e) => included(e, first, last)), first)
+  _ordered(filter(entries, fn(e) => _included(e, first, last)), first)
 )

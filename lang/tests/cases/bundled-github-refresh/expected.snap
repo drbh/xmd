@@ -13,7 +13,7 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": null,
       "merged": null,
@@ -28,7 +28,7 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": null,
       "merged": null,
@@ -43,7 +43,7 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
     "merged": false,
     "checks": "passing",
     "review": "APPROVED",
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": "passing",
       "merged": false,
@@ -58,7 +58,7 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
     "merged": true,
     "checks": "failing",
     "review": "CHANGES_REQUESTED",
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "data": {
       "checks": "failing",
       "merged": true,
@@ -94,7 +94,7 @@ exit 0
         "state": "open",
         "title": "Hello"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": false,
       "review": "APPROVED",
       "state": "open",
@@ -112,7 +112,7 @@ exit 0
         "state": "merged",
         "title": "Merged"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": true,
       "review": "CHANGES_REQUESTED",
       "state": "merged",
@@ -130,7 +130,7 @@ exit 0
         "state": "closed",
         "title": "An issue"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "review": null,
       "state": "closed",
@@ -148,7 +148,7 @@ exit 0
         "state": "commit",
         "title": "Commit subject"
       },
-      "fetched_at": "<clock>",
+      "fetched_at": "2026-09-16T18:00:00Z",
       "merged": null,
       "review": null,
       "state": "commit",

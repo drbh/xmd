@@ -527,7 +527,7 @@ pub mod native {
                         key.to_string(),
                         Lookup {
                             value,
-                            fetched_at: Utc::now(),
+                            fetched_at: now.to_utc(),
                             source,
                         },
                     );

@@ -26,8 +26,8 @@ pub use evaluate::{
 // its hooks stays reachable as `wtf::features::modules`.
 pub use features::{
     actions, catalog, commands, completion, diagnostics, hierarchy, highlighting, hover, inlays,
-    intelligence, interaction, presentation, prose, query, refactor, rendering, session, signature,
-    symbols, typing,
+    intelligence, interaction, presentation, prose, query, refactor, reference, rendering, session,
+    signature, symbols, typing,
 };
 #[cfg(feature = "browser")]
 pub use hosts::browser;

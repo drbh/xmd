@@ -1,38 +1,44 @@
 //! Link and resource records: the targets a note points at.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Fields, Record, SourceRef, entries},
+    record::{Base, Fields, Record, SourceRef, projected},
 };
 use crate::{document::Document, workspace::Workspace};
 use serde_json::json;
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct LinkRecord {
+pub(super) struct LinkRecord {
     base: Base,
     url: String,
+}
+impl LinkRecord {
+    pub(super) const FIELDS: [&'static str; 1] = ["url"];
 }
 impl Fields for LinkRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([("url", QueryValue::text(self.url))]));
+        fields.extend(projected(LinkRecord::FIELDS, [QueryValue::text(self.url)]));
         fields
     }
 }
 
 #[derive(Clone, Debug)]
-struct ResourceRecord {
+pub(super) struct ResourceRecord {
     base: Base,
     target: String,
     metadata: QueryValue,
 }
+impl ResourceRecord {
+    pub(super) const FIELDS: [&'static str; 2] = ["target", "metadata"];
+}
 impl Fields for ResourceRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            ("target", QueryValue::text(self.target)),
-            ("metadata", self.metadata),
-        ]));
+        fields.extend(projected(
+            ResourceRecord::FIELDS,
+            [QueryValue::text(self.target), self.metadata],
+        ));
         fields
     }
 }

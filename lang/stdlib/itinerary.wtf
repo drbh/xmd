@@ -1,3 +1,4 @@
+// Itinerary days are decorated from the parsed day records the catalog holds.
 module := {
   api: 1,
   id: "itinerary",

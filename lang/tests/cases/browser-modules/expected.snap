@@ -558,17 +558,8 @@
 }
 -- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
 {
-  "ok": true,
-  "result": {
-    "now": "2026-09-18T12:00:00+00:00",
-    "rows": [
-      null
-    ],
-    "schemaVersion": 1,
-    "versions": {
-      "file:///workspace/main.wtf": 1
-    }
-  }
+  "error": "Stage 2: Unknown function 'eval'",
+  "ok": false
 }
 -- setResourceData {"data":{"points":3,"summary":"Browser"},"url":"https://issues.example/tickets/42"}
 {
@@ -577,17 +568,8 @@
 }
 -- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
 {
-  "ok": true,
-  "result": {
-    "now": "2026-09-18T12:00:00+00:00",
-    "rows": [
-      3
-    ],
-    "schemaVersion": 1,
-    "versions": {
-      "file:///workspace/main.wtf": 1
-    }
-  }
+  "error": "Stage 2: Unknown function 'eval'",
+  "ok": false
 }
 -- analyze {"uri":"file:///workspace/main.wtf"}
 {
@@ -895,17 +877,8 @@
 }
 -- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
 {
-  "ok": true,
-  "result": {
-    "now": "2026-09-18T12:00:00+00:00",
-    "rows": [
-      3
-    ],
-    "schemaVersion": 1,
-    "versions": {
-      "file:///workspace/main.wtf": 1
-    }
-  }
+  "error": "Stage 2: Unknown function 'eval'",
+  "ok": false
 }
 -- setModules {"sources":{"custom.wtf":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
 {

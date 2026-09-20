@@ -1,7 +1,9 @@
 # Merge into ~/.config/helix/languages.toml, or a project's .helix/languages.toml.
-# Replace this with the absolute path to your cargo-built WTF binary.
+# `wtf` comes from PATH; install it with
+#   curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
+# or use an absolute path below if it lives elsewhere.
 [language-server.wtf]
-command = "/absolute/path/to/wtf/target/debug/wtf"
+command = "wtf"
 args = ["lsp"]
 
 [[language]]

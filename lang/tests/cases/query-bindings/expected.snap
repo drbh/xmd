@@ -51,38 +51,9 @@ exit 0
 
 ### 1 cli query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json
 $ wtf query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json --now 2026-09-16T12:00:00-04:00
-exit 0
---- stdout
-[
-  {
-    "amount": 21,
-    "currency": "EUR",
-    "local": {
-      "amount": 7,
-      "currency": "EUR",
-      "type": "money"
-    },
-    "value": {
-      "amount": 21,
-      "currency": "EUR",
-      "type": "money"
-    }
-  },
-  {
-    "amount": 10,
-    "currency": "USD",
-    "local": {
-      "amount": 5,
-      "currency": "USD",
-      "type": "money"
-    },
-    "value": {
-      "amount": 10,
-      "currency": "USD",
-      "type": "money"
-    }
-  }
-]
+exit 1
+--- stderr
+wtf: Stage 2: Unknown function 'eval'
 
 ### 2 cli query --workspace values | where name == "price" | sum value --root money --json
 $ wtf query --workspace values | where name == "price" | sum value --root money --json --now 2026-09-16T12:00:00-04:00

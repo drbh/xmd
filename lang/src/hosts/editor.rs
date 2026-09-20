@@ -528,7 +528,7 @@ impl LanguageServer for Backend {
             .workspace
             .documents
             .get(&path)
-            .and_then(|doc| crate::intelligence::signature(doc, at.position)))
+            .and_then(|doc| crate::intelligence::signature(doc, &path, at.position)))
     }
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;

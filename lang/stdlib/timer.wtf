@@ -1,9 +1,9 @@
 // Timer state and transitions. Rust carries the typed value and applies edits.
-module := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: []}
+module := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: [], exports: []}
 fmt := import("format")
 
 // Require a nonnegative duration measured in whole seconds.
-duration := fn(v) => (
+_duration := fn(v) => (
   if(
     type(v) == "Duration" && v >= 0s,
     v,
@@ -12,11 +12,11 @@ duration := fn(v) => (
 )
 
 // Validate a countdown's positive limit; stopwatches have no limit.
-limit := fn(kind, args) => (
+_limit := fn(kind, args) => (
   if(
     kind == "countdown",
     if(
-      duration(get(args, 0)) == 0s,
+      _duration(get(args, 0)) == 0s,
       error("Countdown duration must be greater than zero"),
       get(args, 0)
     ),
@@ -25,7 +25,7 @@ limit := fn(kind, args) => (
 )
 
 // Require an explicit timestamp for a running timer segment.
-started := fn(value) => (
+_started := fn(value) => (
   if(
     type(value) == "DateTime",
     value,
@@ -34,7 +34,7 @@ started := fn(value) => (
 )
 
 // Add elapsed segments and clamp countdowns at their limit.
-assemble := fn(bound, accumulated, since, idle) => (
+_assemble := fn(bound, accumulated, since, idle) => (
   {
     limit: bound,
     elapsed: if(
@@ -47,10 +47,10 @@ assemble := fn(bound, accumulated, since, idle) => (
 )
 
 // Ignore backwards clock movement when measuring the current segment.
-create_at := fn(bound, accumulated, start, idle, clock) => (
+_create_at := fn(bound, accumulated, start, idle, clock) => (
   {
     limit: bound,
-    elapsed: assemble(
+    elapsed: _assemble(
       bound,
       accumulated,
       if(start == null || clock < start, 0s, clock - start),
@@ -60,6 +60,11 @@ create_at := fn(bound, accumulated, start, idle, clock) => (
     idle: idle
   }
 )
+
+// Engine contract: the Rust timer adapter calls create, done, running,
+// time_dependent, state, display, inlay, hover, property, actions and
+// transition by name; the rest of this file is private to it. These names
+// are the engine's, not a note's: `exports: []` keeps them out of import().
 
 // Validate constructor arguments and evaluate state at the request clock.
 create := fn(kind, args) => (
@@ -72,9 +77,9 @@ create := fn(kind, args) => (
         "stopwatch accepts optional elapsed and a start timestamp"
       )
     ),
-    create_at(
-      limit(kind, args),
-      duration(
+    _create_at(
+      _limit(kind, args),
+      _duration(
         if(
           length(args) > if(kind == "countdown", 1, 0),
           get(args, if(kind == "countdown", 1, 0)),
@@ -83,7 +88,7 @@ create := fn(kind, args) => (
       ),
       if(
         length(args) > if(kind == "countdown", 2, 1),
-        started(get(args, if(kind == "countdown", 2, 1))),
+        _started(get(args, if(kind == "countdown", 2, 1))),
         null
       ),
       length(args) == if(kind == "countdown", 1, 0),
@@ -113,33 +118,33 @@ state := fn(t) => (
 )
 
 // Choose the visual marker for the timer's current state.
-state_icon := fn(t) => (
+_state_icon := fn(t) => (
   get({running: "▸", paused: "‖", done: "✓", idle: "○"}, state(t))
 )
 
 // Display elapsed time for stopwatches and remaining time for countdowns.
-clock := fn(t) => (
+_clock := fn(t) => (
   fmt.clock(if(t.limit == null, t.elapsed, t.limit - t.elapsed))
 )
 
 // Combine the clock, its meaning, and the current state.
-suffix := fn(t) => (
-  clock(t)
+_suffix := fn(t) => (
+  _clock(t)
   + if(t.limit == null, " elapsed", " remaining")
   + " · "
-  + state_icon(t)
+  + _state_icon(t)
   + " "
   + state(t)
 )
 
 // Prefix the timer summary with its timer-kind icon.
 display := fn(t) => (
-  if(t.limit == null, "◴ ", "◷ ") + suffix(t)
+  if(t.limit == null, "◴ ", "◷ ") + _suffix(t)
 )
 
 // Add countdown progress to the compact timer summary.
 inlay := fn(t) => (
-  if(t.limit == null, "◴ ", "◷ " + fmt.gauge(t.elapsed / t.limit, 8) + " ") + suffix(t)
+  if(t.limit == null, "◴ ", "◷ " + fmt.gauge(t.elapsed / t.limit, 8) + " ") + _suffix(t)
 )
 
 // Expose timer properties and reject countdown-only stopwatch reads.

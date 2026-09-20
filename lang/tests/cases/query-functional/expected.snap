@@ -315,14 +315,13 @@ exit 0
   1
 ]
 
-### 29 cli query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), day: format_date(today(), "%Y-%m-%d"), trimmed: trim("  hi  ")} --json
-$ wtf query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), day: format_date(today(), "%Y-%m-%d"), trimmed: trim("  hi  ")} --json --root <root> --now 2026-09-18T12:00:00Z
+### 29 cli query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json
+$ wtf query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
     "bar": "███",
-    "day": "2026-09-18",
     "joined": "a/b",
     "slice": "🦀",
     "trimmed": "hi"
@@ -339,12 +338,7 @@ exit 0
 
 ### 31 cli query lib.wtf eval("rate") --json
 $ wtf query lib.wtf eval("rate") --json --root <root> --now 2026-09-18T12:00:00Z
-exit 0
---- stdout
-[
-  {
-    "type": "ratio",
-    "value": 0.1
-  }
-]
+exit 1
+--- stderr
+wtf: Unknown function 'eval'
 

@@ -317,7 +317,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .home { display: none; }
 }
 @media (max-width: 900px) {
-  .sidebar, .book .sidebar { display: block; position: fixed; left: 0; top: 0; bottom: 0; z-index: 15; width: min(85vw, 320px); transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 24px rgba(0,0,0,.25); padding-top: calc(24px + env(safe-area-inset-top)); background: var(--chrome); }
+  .sidebar, .reference-view .sidebar { display: block; position: fixed; left: 0; top: 0; bottom: 0; z-index: 15; width: min(85vw, 320px); transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 24px rgba(0,0,0,.25); padding-top: calc(24px + env(safe-area-inset-top)); background: var(--chrome); }
   .sidebar.mobile-open, .no-outline .sidebar.mobile-open { display: block; transform: none; }
   .chip.outline-toggle { display: inline-flex; }
   .title-actions .edited, .title-actions > .button:not(.share-button) { display: none; }
@@ -334,11 +334,14 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .shortcut-columns { grid-template-columns: 1fr; }
 }
 
-/* The book: the editor's chrome around prose and live example blocks */
-.book-title { display: flex; flex-direction: column; justify-content: center; }
-.book-title .brand { font-size: 18px; color: var(--ink); }
-.book-title .subtitle { color: var(--muted); font-size: 12px; }
-.book .sidebar { display: block; width: 260px; }
+/* The reference: the editor's chrome around prose and live example blocks */
+.reference-title { display: flex; flex-direction: column; justify-content: center; }
+.reference-title .brand { font-size: 18px; color: var(--ink); }
+.reference-title .subtitle { color: var(--muted); font-size: 12px; }
+.reference-view .sidebar { display: block; width: 200px; }
+/* A reference is a wide table, not a sheet of paper: let it use the window. */
+.reference-view .page { width: min(100%, 1400px); }
+.reference-view .prose { --prose-pad: 40px; }
 .toc ol { list-style: none; margin: 0; padding: 0; }
 .toc > ol > li { margin-bottom: 10px; }
 .toc .row { display: block; width: 100%; text-align: left; padding: 4px 10px 4px 12px; border-radius: 16px; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -346,30 +349,99 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .toc ol ol .row { padding-left: 24px; }
 .toc .row:hover { color: var(--ink); background: var(--hover); }
 .toc .row[aria-current] { color: var(--accent-ink); }
-.book .canvas { scroll-behavior: smooth; cursor: auto; }
-.prose { padding: 56px 64px 80px; font-family: var(--ui); }
+.reference-view .canvas { scroll-behavior: smooth; cursor: auto; }
+.prose { --prose-pad: 64px; padding: 56px var(--prose-pad) 80px; font-family: var(--ui); }
 .prose .title h1 { font-size: 36px; font-weight: 500; margin: 0 0 16px; letter-spacing: -.5px; }
 .prose h1 { font-size: 28px; font-weight: 500; margin: 0 0 12px; }
 .prose h2 { font-size: 20px; font-weight: 500; margin: 44px 0 12px; scroll-margin-top: 24px; }
-.prose h2 .number { color: var(--muted); font-weight: 400; margin-right: 6px; }
-.prose .kicker { text-transform: uppercase; letter-spacing: 2px; font-size: 11px; font-weight: 600; color: var(--accent-ink); margin: 56px 0 8px; }
-.prose .part { border-top: 1px solid var(--rule-soft); margin-top: 40px; scroll-margin-top: 24px; }
-.prose .part:first-of-type { border-top: 0; }
+.prose h3 { font-size: 15px; font-weight: 600; margin: 28px 0 8px; scroll-margin-top: 24px; }
 .prose p { font-size: 15px; line-height: 1.7; margin: 0 0 14px; }
 .prose .lead { font-size: 16px; color: var(--muted); }
 .prose p code { font: 0.9em var(--mono); background: var(--hover); padding: 1px 5px; border-radius: 4px; }
-.prose footer { margin-top: 56px; border-top: 1px solid var(--rule-soft); padding-top: 16px; color: var(--muted); font-size: 12px; }
+/* The reference: one table per group, generated from the engine's own answer.
+   Every signature and snippet is marked up with the editor's token classes,
+   so the page reads as the language in whichever theme the app is in. */
+.reference { border-top: 1px solid var(--rule-soft); margin-top: 40px; }
+.reference .offline { color: var(--muted); font-size: 11px; margin: 0 0 8px; }
+.ref-section { scroll-margin-top: 24px; }
+.ref-group { scroll-margin-top: 24px; }
+.ref-group h3 .kind { margin-left: 8px; color: var(--faint); font-weight: 400; font-size: 11px; }
+.ref-group .group-doc { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+/* Getting started: the one install and the four editor setups. */
+.start pre.setup { margin: 8px 0 16px; padding: 10px 14px; border-radius: 6px; background: var(--bg); font: 12px/1.7 var(--mono); color: var(--ink); overflow-x: auto; }
+.start .editors { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: 0 0 16px; }
+.start .editors dt { font-weight: 600; font-size: 13px; line-height: 1.6; }
+.start .editors dd { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.start .editors code, .start p code { font: 0.9em var(--mono); background: var(--hover); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.start a { color: var(--accent-ink); }
+table.ref, table.syntaxes { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.syntaxes { margin: 0 0 8px; }
+table.ref td, table.syntaxes td { padding: 6px 8px; border-top: 1px solid var(--rule-soft); font-size: 13px; line-height: 1.6; vertical-align: top; }
+table.ref .sig { width: 24%; }
+table.syntaxes .sig { width: 42%; }
+/* A signature sits in the theme's own colours: the name as a function, the
+   parameters as variables, and the types and result muted. */
+table.ref .sig code.wtf { display: inline; font: 12px/1.6 var(--mono); color: var(--ink); background: transparent; white-space: normal; overflow-wrap: anywhere; }
+.sig .sig-type, .sig .sig-result { color: var(--faint); font-weight: 400; }
+.sig .sig-result { white-space: normal; }
+/* Rows a note rarely needs carry a tier badge: toolkit, or module-only. */
+table.ref .sig .tier { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; background: var(--hover); color: var(--faint); font: 500 10px/16px var(--ui); vertical-align: 1px; }
+table.ref .fields-row td { padding: 0 8px 8px; border: 0; }
+table.ref .fields { display: flex; flex-wrap: wrap; gap: 4px; }
+table.ref .fields code { padding: 0 6px; border-radius: 4px; background: var(--hover); color: var(--muted); font: 11px/18px var(--mono); }
+/* Rows without snippets are two columns that use the whole width. */
+table.ref.plain .sig { width: 30%; }
+table.ref.plain .doc { width: auto; }
+table.ref.plain .run, table.ref.plain .act { display: none; }
+table.ref .doc, table.syntaxes .doc { color: var(--muted); }
+table.ref .doc { width: 24%; }
+/* The snippet, drawn by the engine with its inlays, is what every row shows;
+   `edit` swaps it for a live block. */
+.snippet { margin: 0; padding: 2px 8px; border-radius: 6px; font: 12px/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); }
+.snippet.wtf { color: var(--ink); }
+.snippet.pending { color: var(--faint); }
+.snippet.query { color: var(--ink); }
+.snippet .inlay { font-size: 11px; padding: 0 4px; white-space: pre-wrap; }
+table.ref .act { width: 48px; text-align: right; }
+table.ref .edit { padding: 2px 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--chrome); color: var(--muted); font: 500 11px var(--ui); cursor: pointer; }
+table.ref .edit:hover { color: var(--accent-ink); border-color: var(--accent); background: var(--active); }
+table.ref .try-row td { padding: 4px 0 12px; }
+/* A compact group (the engine's objects, the bundled modules) is a list:
+   name and meaning on one line, the snippet beneath. */
+table.ref.compact, table.ref.compact tbody, table.ref.compact tr { display: block; }
+table.ref.compact tr.ref-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 6px 0; border-top: 1px solid var(--rule-soft); }
+table.ref.compact td { display: block; width: auto; border: 0; padding: 0 8px; }
+table.ref.compact .sig { grid-column: 1; }
+table.ref.compact .doc { grid-column: 1; font-size: 12px; }
+table.ref.compact .run { grid-column: 1; padding-top: 4px; }
+table.ref.compact .act { grid-column: 2; grid-row: 1; }
+table.ref.compact .run:empty { display: none; }
+.try-widget { margin: 0; }
+.try-reset { color: var(--accent-ink); font: 11px var(--ui); cursor: pointer; }
+.try-query { margin: 0; padding: 12px 20px 0; font: 12px/1.7 var(--mono); color: var(--ink); white-space: pre-wrap; }
+.try-rows { margin: 0; padding: 8px 20px 14px; max-height: 260px; overflow: auto; font: 11px/1.6 var(--mono); color: var(--muted); white-space: pre-wrap; }
+.try-failed { margin: 0; padding: 8px 20px 14px; color: var(--error); font-size: 12px; }
 .wtf-block { margin: 20px 0 28px; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--paper); }
 .wtf-block figcaption { display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; font: 11px var(--ui); color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--rule-soft); }
 .block { position: relative; }
 .block .view { padding: 16px 20px 16px; min-height: 40px; font: 14px/1.75 var(--mono); }
 .wtf-block .problems { margin: 0; padding: 8px 20px; list-style: none; border-top: 1px solid var(--rule-soft); font: 12px/1.6 var(--ui); display: block; }
 .wtf-block .problems li.error { color: var(--error); } .wtf-block .problems li.warn { color: var(--warn); }
-@media (max-width: 900px) { .prose { padding: 32px 20px 60px; } .book .title-actions .button { display: none; } }
+@media (max-width: 900px) {
+  .prose { --prose-pad: 20px; padding: 32px var(--prose-pad) 60px; } .reference-view .title-actions .button { display: none; }
+  /* Narrow screens stack each row: signature, meaning, then the snippet. */
+  table.ref:not(.compact), table.ref:not(.compact) tbody, table.ref:not(.compact) tr { display: block; }
+  table.ref:not(.compact) tr.ref-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 6px 0; border-top: 1px solid var(--rule-soft); }
+  table.ref:not(.compact) td { display: block; width: auto; border: 0; padding: 0 8px; }
+  table.ref:not(.compact) .sig, table.ref:not(.compact) .doc, table.ref:not(.compact) .run { grid-column: 1; }
+  table.ref:not(.compact) .run { padding-top: 4px; }
+  table.ref:not(.compact) .act { grid-column: 2; grid-row: 1; }
+  table.ref .try-row td { padding: 4px 0 12px; }
+}
 @media print { .toc { display: none !important; } }
 
 /* Phones */
-.book-link .short { display: none; }
+.reference-link .short { display: none; }
 @media (max-width: 640px) {
   :root { -webkit-text-size-adjust: 100%; }
   /* iOS zooms into inputs smaller than 16px; keep every text field at 16px. */
@@ -382,7 +454,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .home-bar .button { height: 36px; width: 36px; padding: 0; justify-content: center; border-radius: 18px; }
   .home-bar .button .text { display: none; }
   .section-head { flex-wrap: wrap; gap: 4px 12px; padding: 0 16px; }
-  .book-link .text { display: none; } .book-link .short { display: inline; }
+  .reference-link .text { display: none; } .reference-link .short { display: inline; }
   .template-row { padding: 0 16px; gap: 12px; }
   .template { width: 128px; } .template .thumb { height: 160px; }
   .folder-grid, .doc-list { padding: 0 8px; }
@@ -425,9 +497,9 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .dialog, .dialog.wide { width: 100vw; max-width: none; margin: auto 0 0; border-radius: 16px 16px 0 0; max-height: 85vh; overflow: auto; }
   .dialog .body { padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
   .share-add { flex-wrap: wrap; } .share-add input { flex-basis: 100%; }
-  /* Book */
-  .prose { padding: 24px 16px 60px; }
+  /* Reference */
+  .prose { --prose-pad: 16px; padding: 24px var(--prose-pad) 60px; }
   .prose .title h1 { font-size: 28px; }
-  .book-title .brand { font-size: 16px; }
-  .book .title-actions .button { display: none; }
+  .reference-title .brand { font-size: 16px; }
+  .reference-view .title-actions .button { display: none; }
 }

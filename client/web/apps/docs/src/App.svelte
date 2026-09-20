@@ -15,7 +15,7 @@
   import Icon from "./lib/Icon.svelte";
   import Console from "./lib/Console.svelte";
   import Share from "./lib/Share.svelte";
-  import Book from "./lib/Book.svelte";
+  import Reference from "./lib/Reference.svelte";
   import Keys from "./lib/Keys.svelte";
 
   let documents = $state([]);
@@ -33,7 +33,7 @@
   let localCount = $state(0);
   let prefs = $state(loadPrefs());
   let activeId = $state(null);
-  let view = $state("home"); // "home" | "doc" | "book"
+  let view = $state("home"); // "home" | "doc" | "reference"
   let engine = $state("Starting the engine…");
   let engineVersion = $state("");
   let saved = $state("");
@@ -118,10 +118,10 @@
   });
 
   // Routing: the home screen is "#/", a document is "#/d/<id>".
-  // Routing: "#/" is home, "#/d/<id>" a document, "#/book" (or "#/book/<chapter>") the book.
+  // Routing: "#/" is home, "#/d/<id>" a document, "#/reference" (or "#/reference/<entry>") the reference.
   function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
   function route() {
-    if (/^#\/book(\/|$)/.test(location.hash)) { view = "book"; activeId = null; return; }
+    if (/^#\/reference(\/|$)/.test(location.hash)) { view = "reference"; activeId = null; return; }
     const link = /^#\/s\/([A-Za-z0-9_-]+)/.exec(location.hash);
     if (link) { openShared(link[1]); return; }
     activeId = idFromHash();
@@ -129,11 +129,11 @@
   }
   $effect(() => {
     if (!ready) return;
-    const hash = view === "book" ? (location.hash.startsWith("#/book") ? location.hash : "#/book") : active?.role === "link" ? `#/s/${active.token}` : activeId ? `#/d/${activeId}` : "#/";
+    const hash = view === "reference" ? (location.hash.startsWith("#/reference") ? location.hash : "#/reference") : active?.role === "link" ? `#/s/${active.token}` : activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
   function onHashChange() { route(); }
-  function book() { const leaving = active; view = "book"; activeId = null; find = null; dialog = null; settleFile(leaving); }
+  function reference() { const leaving = active; view = "reference"; activeId = null; find = null; dialog = null; settleFile(leaving); }
   // Leaving a document is when its file name catches up with its heading.
   async function settleFile(d) {
     if (!d || d.named || (d.role && d.role !== "owner")) return;
@@ -386,7 +386,7 @@
     dialog: name => (dialog = name),
     canShare: () => !!backend?.acl,
     readOnly: () => readOnly,
-    book,
+    reference,
   });
   function keydown(event) {
     if (!active) return;
@@ -408,7 +408,7 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, newFolder, moveDocument, get folders() { return folders; }, open, home, book, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
+    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, newFolder, moveDocument, get folders() { return folders; }, open, home, reference, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
   }
 </script>
 
@@ -423,10 +423,10 @@
 {/if}
 {#if !ready}
   <div class="splash"><p>{engine}</p></div>
-{:else if view === "book"}
-  <Book {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
+{:else if view === "reference"}
+  <Reference {workspace} {theme} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onHome={home} onError={error} />
 {:else if !active}
-  <Home {documents} {folders} {thumbs} {engine} {notice} bind:current={homeFolder} onDismiss={() => (notice = "")} trash={backend?.trash} onRestore={restore} {theme} {account} onBook={book} onKeys={backend?.keys ? () => (keysOpen = true) : null} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
+  <Home {documents} {folders} {thumbs} {engine} {notice} bind:current={homeFolder} onDismiss={() => (notice = "")} trash={backend?.trash} onRestore={restore} {theme} {account} onReference={reference} onKeys={backend?.keys ? () => (keysOpen = true) : null} onNewFolder={() => newFolder()} onRenameFolder={f => renameFolder(f)} onDeleteFolder={deleteFolder} onShareFolder={f => (shareFolder = f)} onMove={moveDocument} canShare={!!backend?.folderAcl} {localCount} cloud={backends?.cloud} onMoveLocal={moveLocal} onToggleTheme={() => (prefs.theme = theme === "dark" ? "light" : "dark")} onOpen={open} onNew={newDocument} onImport={importFiles} onRename={d => rename(d)} onDuplicate={duplicate} onDownload={download} onDelete={remove} />
 {:else}
   <div class="app" class:pageless={prefs.pageless} class:no-outline={!prefs.outline} class:read-only={readOnly} style={`--zoom:${prefs.zoom / 100}`}>
     <header class="chrome">

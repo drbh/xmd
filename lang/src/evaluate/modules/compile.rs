@@ -1,4 +1,19 @@
 //! The module compiler: parse a module's source and validate its contract.
+//!
+//! A module is a `.wtf` file whose `module :=` record says what it is:
+//! `{api: 1, id, kind, inputs?, imports?, hosts?, path_prefix?, properties?,
+//! enabled?, cache_version?, cache_namespace?, exports?}`.
+//!
+//! `exports` is an optional list of text naming a library's public API.
+//! `import(id)` from a note returns exactly those members, the reference lists
+//! exactly those, and completion offers exactly those. Each name must be a
+//! top-level definition that is neither `module` nor `_`-prefixed, and may
+//! appear once. A library that declares no `exports` keeps the older rule,
+//! every non-`_` definition is public; `exports: []` is a library only the
+//! engine and other modules call. Link and feature modules have hooks, not
+//! exports, so for them the field must be absent or empty. Another module's
+//! `imports:` is not bound by `exports`: module code may reach any non-`_`
+//! name of a library it declares (see `Module::member_names`).
 use super::{
     Hook, Module, ModuleKind, ModuleRegistry, epoch,
     values::{strings, text},
@@ -58,6 +73,7 @@ impl Module {
         });
         let mut engine = Engine::at(&workspace, epoch())
             .pure()
+            .module()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]));
         let Value::Record(config) = engine.named(&path, "module")? else {
             return Err(EvalError::Message("module must be a record".into()));
@@ -171,6 +187,34 @@ impl Module {
         if !properties.is_empty() && !names.contains(Hook::Property.name()) {
             return Err("Declared properties need a property function".into());
         }
+        let exports = config
+            .get("exports")
+            .map(strings)
+            .transpose()
+            .map_err(|_| EvalError::Message("module.exports must be a list of text".into()))?;
+        if let Some(exports) = &exports {
+            if kind != ModuleKind::Library && !exports.is_empty() {
+                return Err(EvalError::Message(format!(
+                    "A {kind} module has no exports; its hooks are called by the host"
+                )));
+            }
+            let mut seen = BTreeSet::new();
+            for name in exports {
+                if name == "module" || name.starts_with('_') {
+                    return Err(EvalError::Message(format!(
+                        "'{name}' cannot be exported; 'module' and '_' names are private"
+                    )));
+                }
+                if !names.contains(name) {
+                    return Err(EvalError::Message(format!(
+                        "exports names '{name}', which this module does not define"
+                    )));
+                }
+                if !seen.insert(name) {
+                    return Err(EvalError::Message(format!("Duplicate export '{name}'")));
+                }
+            }
+        }
         let version = match config.get("cache_version") {
             None => "1".into(),
             Some(Value::Number(n)) if *n >= 1.0 && n.fract() == 0.0 => n.to_string(),
@@ -198,6 +242,7 @@ impl Module {
             hosts,
             prefix,
             properties,
+            exports,
             cache_key,
             expressions: Arc::new(expressions),
             workspace,

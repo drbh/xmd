@@ -60,6 +60,12 @@ jobs:
         run: bash client/web/build.sh
       - name: Build site
         run: npm --prefix client/web run build
+      - name: Keep the WASM package for the deploy job
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-pkg
+          path: client/web/pkg
+          retention-days: 1
       - name: Node tests
         run: npm --prefix client/web run test:unit
       - name: Type tests
@@ -101,3 +107,46 @@ jobs:
       # a display; it is not run here. `check` syntax-checks the extension only.
       - name: Check extension sources
         run: npm --prefix client/ide/vscode run check
+
+  deploy:
+    # The hosted docs app at wtf-docs.drbh.workers.dev is rebuilt from every
+    # green push to main, so what is deployed never lags what is merged. Needs
+    # the CLOUDFLARE_API_TOKEN repository secret (Workers Scripts:Edit, D1:Edit).
+    name: Deploy docs app
+    needs: [rust, wasm]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: deploy-docs
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            client/web/package-lock.json
+            client/web/cloud/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm-pkg
+          path: client/web/pkg
+      - name: Install dependencies
+        run: |
+          npm --prefix client/web ci
+          npm --prefix client/web/cloud ci
+      - name: Build the site and the backend module
+        # The WASM package comes from the wasm job above; only the site is built here.
+        run: npm --prefix client/web/cloud run build
+      - name: Apply database migrations
+        working-directory: client/web/cloud
+        run: npx wrangler d1 migrations apply wtf-docs --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Deploy
+        working-directory: client/web/cloud
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

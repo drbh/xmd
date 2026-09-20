@@ -9,6 +9,10 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::Path;
 
+/// Every syntax node carries these; the `add` below builds exactly them, and
+/// the reference reads them back for the `ast` collection.
+pub const AST_FIELDS: [&str; 7] = ["id", "kind", "name", "parent", "children", "text", "source"];
+
 struct Syntax<'a> {
     ws: &'a Workspace,
     path: &'a Path,

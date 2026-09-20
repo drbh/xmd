@@ -1,7 +1,7 @@
 //! Timer records: every definition and reference that evaluates to a timer.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Fields, Record, TimerOrigin, entries},
+    record::{Base, Fields, Record, TimerOrigin, projected},
 };
 use crate::{
     document::{Document, Span},
@@ -11,7 +11,7 @@ use crate::{
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct TimerRecord {
+pub(super) struct TimerRecord {
     base: Base,
     name: String,
     definition: bool,
@@ -19,21 +19,24 @@ struct TimerRecord {
     value: QueryValue,
     origin: Option<TimerOrigin>,
 }
+impl TimerRecord {
+    pub(super) const FIELDS: [&'static str; 5] = ["name", "definition", "inlay", "value", "origin"];
+}
 impl Fields for TimerRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([
-            ("name", QueryValue::text(self.name)),
-            ("definition", QueryValue::boolean(self.definition)),
-            ("inlay", QueryValue::boolean(self.inlay)),
-            ("value", self.value),
-            (
-                "origin",
+        fields.extend(projected(
+            TimerRecord::FIELDS,
+            [
+                QueryValue::text(self.name),
+                QueryValue::boolean(self.definition),
+                QueryValue::boolean(self.inlay),
+                self.value,
                 self.origin
                     .map(|o| QueryValue::Object(o.fields()))
                     .unwrap_or(QueryValue::Null),
-            ),
-        ]));
+            ],
+        ));
         fields
     }
 }

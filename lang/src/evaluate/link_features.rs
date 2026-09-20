@@ -252,8 +252,9 @@ impl<'a> LinkFeatures<'a> {
                 &String::from_utf8_lossy(&output.stdout),
             )?),
         };
+        // The request clock, so a frozen `WTF_NOW` also freezes `fetched_at`.
         feature
-            .decode_refresh(&url, &data, Utc::now())
+            .decode_refresh(&url, &data, crate::editor::now().to_utc())
             .map_err(|e| e.to_string())
     }
 }

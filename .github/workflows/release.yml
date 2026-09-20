@@ -1,0 +1,251 @@
+name: Release
+
+# Pushing a tag `vX.Y.Z` builds `wtf` for every supported platform, packages
+# the VS Code and Zed extensions, and publishes all of it as a GitHub Release
+# together with the install scripts. `workflow_dispatch` re-runs the same
+# pipeline for an existing tag, so a release can be repaired or the pipeline
+# exercised without cutting a new version.
+#
+# Every asset is uploaded twice: under its versioned name (what the release
+# page shows) and under a stable, version-free name that
+# `releases/latest/download/<name>` can serve, which is what install.sh,
+# install.ps1 and the Zed extension fetch.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build and publish, e.g. v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  # Strip symbols at link time on every platform; `strip` is not needed.
+  CARGO_PROFILE_RELEASE_STRIP: symbols
+
+jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+      - name: The tag must match every manifest
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ github.event.inputs.tag || github.ref_name }}'
+          version="${tag#v}"
+          if [ "$version" = "$tag" ]; then
+            echo "::error::tag '$tag' does not start with v" >&2
+            exit 1
+          fi
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' lang/Cargo.toml | head -n1)
+          vscode=$(node -p 'require("./client/ide/vscode/package.json").version')
+          zed=$(sed -n 's/^version = "\(.*\)"/\1/p' client/ide/zed/extension.toml | head -n1)
+          echo "tag $tag; lang/Cargo.toml $crate; vscode $vscode; zed $zed"
+          for found in "$crate" "$vscode" "$zed"; do
+            if [ "$found" != "$version" ]; then
+              echo "::error::tag $tag does not match version $found; bump the manifests first" >&2
+              exit 1
+            fi
+          done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Older Ubuntu for an older glibc, so the binary runs on more distributions.
+          - { target: x86_64-unknown-linux-gnu,  os: ubuntu-22.04 }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm }
+          - { target: aarch64-apple-darwin,      os: macos-14 }
+          - { target: x86_64-apple-darwin,       os: macos-14 }
+          - { target: x86_64-pc-windows-msvc,    os: windows-latest }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      # The toolchain version comes from rust-toolchain.toml; only the target is added.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release -p wtf --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          exe=wtf
+          case "$TARGET" in *windows*) exe=wtf.exe ;; esac
+          "target/$TARGET/release/$exe" --version
+          rm -rf dist stage && mkdir -p dist stage
+          # The binary sits at the archive root, next to the README (and the
+          # LICENSE once the repository has one).
+          cp "target/$TARGET/release/$exe" README.md stage/
+          files="$exe README.md"
+          if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
+          case "$TARGET" in
+            *windows*)
+              name="wtf-$VERSION-$TARGET.zip"
+              stable="wtf-$TARGET.zip"
+              (cd stage && 7z a -tzip -bd "../dist/$name" $files > /dev/null)
+              ;;
+            *)
+              name="wtf-$VERSION-$TARGET.tar.gz"
+              stable="wtf-$TARGET.tar.gz"
+              tar -C stage -czf "dist/$name" $files
+              ;;
+          esac
+          cp "dist/$name" "dist/$stable"
+          cd dist
+          for f in "$name" "$stable"; do
+            if command -v sha256sum > /dev/null; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
+          done
+          cat ./*.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wtf-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  vscode:
+    name: VS Code extension
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/ide/vscode/package-lock.json
+      - name: Install extension dependencies
+        run: npm --prefix client/ide/vscode ci
+      - name: Check extension sources
+        run: npm --prefix client/ide/vscode run check
+      - name: Package
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          npm --prefix client/ide/vscode run package
+          mkdir -p dist
+          mv "client/ide/vscode/wtf-$VERSION.vsix" dist/
+          cp "dist/wtf-$VERSION.vsix" dist/wtf.vsix
+          cd dist
+          for f in *.vsix; do sha256sum "$f" > "$f.sha256"; done
+          cat ./*.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wtf-vscode
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  zed:
+    name: Zed extension
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          targets: wasm32-wasip2
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/ide/zed
+      - name: Build the extension
+        working-directory: client/ide/zed
+        run: cargo build --release --target wasm32-wasip2
+      - name: Package
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd client/ide/zed
+          cp target/wasm32-wasip2/release/wtf_zed_extension.wasm extension.wasm
+          mkdir -p dist
+          tar -czf "dist/wtf-zed-$VERSION.tar.gz" extension.toml extension.wasm languages
+          cp "dist/wtf-zed-$VERSION.tar.gz" dist/wtf-zed.tar.gz
+          cd dist
+          for f in *.tar.gz; do sha256sum "$f" > "$f.sha256"; done
+          cat ./*.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wtf-zed
+          path: client/ide/zed/dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  release:
+    name: Publish the release
+    needs: [version, build, vscode, zed]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wtf-*
+          path: assets
+          merge-multiple: true
+      - name: Assemble the assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp install.sh install.ps1 assets/
+          cd assets
+          # One checksums file for install.sh, install.ps1 and the editors;
+          # the per-file sidecars stay for anyone checking a single download.
+          cat ./*.sha256 | sort -k2 > checksums.txt
+          ls -l
+          cat checksums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: wtf ${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: assets/*

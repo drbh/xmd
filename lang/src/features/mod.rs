@@ -20,6 +20,7 @@ pub mod presentation;
 pub mod prose;
 pub mod query;
 pub mod refactor;
+pub mod reference;
 pub mod rendering;
 pub mod session;
 pub mod signature;

@@ -1,20 +1,23 @@
 //! Note records: one per document, carrying its whole text.
 use super::{
     QueryValue, RecordKind,
-    record::{Base, Fields, Record, entries},
+    record::{Base, Fields, Record, projected},
 };
 use crate::{document::Document, workspace::Workspace};
 use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Debug)]
-struct NoteRecord {
+pub(super) struct NoteRecord {
     base: Base,
     text: String,
+}
+impl NoteRecord {
+    pub(super) const FIELDS: [&'static str; 1] = ["text"];
 }
 impl Fields for NoteRecord {
     fn fields(self) -> BTreeMap<String, QueryValue> {
         let mut fields = self.base.fields();
-        fields.extend(entries([("text", QueryValue::text(self.text))]));
+        fields.extend(projected(NoteRecord::FIELDS, [QueryValue::text(self.text)]));
         fields
     }
 }

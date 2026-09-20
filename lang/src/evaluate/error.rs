@@ -195,6 +195,19 @@ pub enum EvalError {
     ModuleUnavailable(String),
     ModuleDisabled(String),
     UnknownImport(String),
+    /// `import` reached a module that is not a library. Only libraries are
+    /// plain functions a note may name; link and feature modules are called by
+    /// the host, never from a note.
+    NotALibrary {
+        id: String,
+        kind: crate::modules::ModuleKind,
+    },
+    /// `import(id).name` reached for a member the library does not export:
+    /// a `_` name, a name left out of its `exports`, or no such name at all.
+    NotExported {
+        id: String,
+        name: String,
+    },
 
     /// Text from outside the evaluator: `error("…")`, a module hook's own
     /// message, or the error field of a cached lookup. Opaque, so whether it
@@ -385,6 +398,19 @@ impl std::fmt::Display for EvalError {
             Self::ModuleUnavailable(id) => write!(f, "Module '{id}' is unavailable or disabled"),
             Self::ModuleDisabled(id) => write!(f, "Module '{id}' is disabled"),
             Self::UnknownImport(id) => write!(f, "Unknown or undeclared import '{id}'"),
+            Self::NotALibrary { id, kind } if *kind == crate::modules::ModuleKind::Library => {
+                write!(
+                    f,
+                    "Module '{id}' exports nothing; the engine calls it by name"
+                )
+            }
+            Self::NotALibrary { id, kind } => write!(
+                f,
+                "Module '{id}' is a {kind} module and cannot be imported; only libraries can"
+            ),
+            Self::NotExported { id, name } => {
+                write!(f, "'{name}' is not exported by module '{id}'")
+            }
             Self::Custom(message) | Self::Parse(message) | Self::Message(message) => {
                 f.write_str(message)
             }

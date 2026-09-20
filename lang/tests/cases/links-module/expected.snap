@@ -42,7 +42,7 @@ https://builds.example/runs/invalid: expected ident at line 1 column 2
     "merged": null,
     "checks": null,
     "review": null,
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "provider": "builds:1",
     "data": {
       "state": "passed",

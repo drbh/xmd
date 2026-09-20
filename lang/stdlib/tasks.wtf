@@ -1,3 +1,4 @@
+// Tasks are decorated entirely from the catalog: dates, blockers, children, timers.
 module := {
   api: 1,
   id: "tasks",

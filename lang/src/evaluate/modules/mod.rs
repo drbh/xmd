@@ -120,6 +120,34 @@ impl Hook {
             Self::Format => "format",
         }
     }
+    /// One line about what the host calls this hook for, for the reference.
+    pub fn documentation(self) -> &'static str {
+        match self {
+            Self::Collect => "Return the records this feature contributes for one note.",
+            Self::Inlay => "The inline text shown after a matching link.",
+            Self::Hover => "The markdown shown when a matching link is hovered.",
+            Self::Property => "Read one property off a matching link's cached data.",
+            Self::Refresh => "Describe the request that refreshes a matching link.",
+            Self::Decode => "Turn a refresh response into the metadata that is cached.",
+            Self::Matches => "Decide whether a target belongs to this module at all.",
+            Self::PropertyNames => "The property names completion offers for a matching link.",
+            Self::TimeDependent => "Whether a value has to be recomputed as the clock moves.",
+            Self::Actions => "Code actions and lenses this module offers on a note.",
+            Self::Reduce => "Fold this module's records into a workspace-wide answer.",
+            Self::Hovers => "Extra hovers this module contributes to a note.",
+            Self::Diagnostics => "Extra diagnostics this module reports for a note.",
+            Self::Format => "Rewrite a note's text when it is formatted.",
+        }
+    }
+    /// The module kinds that may define this hook, as the reference names it.
+    pub fn kinds(self) -> &'static str {
+        match self.required_for() {
+            Some(kind) => kind.as_str(),
+            // Everything that is not a required hook is offered to both kinds
+            // of module; a library's exports are its own names instead.
+            None => "both",
+        }
+    }
     pub fn arity(self) -> usize {
         match self {
             Self::Property | Self::Reduce | Self::Decode => 2,
@@ -173,6 +201,9 @@ pub struct Module {
     pub inputs: Vec<Collection>,
     pub fields: BTreeMap<Collection, Vec<String>>,
     pub imports: Vec<String>,
+    /// The declared public API, or `None` for the older rule that every
+    /// non-`_` definition is public. See [`Module::public_names`].
+    pub exports: Option<Vec<String>>,
     pub(crate) expressions: Arc<BTreeMap<String, crate::engine::Expr>>,
     hosts: Vec<String>,
     prefix: String,
@@ -192,6 +223,39 @@ impl Module {
             module.revision().hash(&mut hash);
         }
         format!("{:016x}", hash.finish())
+    }
+    /// The members a note sees through `import(id)`, in the order the module
+    /// declares them: its `exports` list, or, when it declares none, every
+    /// definition that is not `module` and not `_`-prefixed. The reference
+    /// and completion describe exactly this list, so there is one answer to
+    /// "what is this library's API".
+    pub fn public_names(&self) -> Vec<String> {
+        match &self.exports {
+            Some(exports) => exports.clone(),
+            None => self.member_names(),
+        }
+    }
+    /// Every name another module's `imports:` may reach: all definitions but
+    /// `module` and the `_`-prefixed ones, exported or not. Module code is
+    /// trusted the way the Rust adapters are, so the engine contract of
+    /// `timer` or `plan` stays callable from `timers` or `plans` while
+    /// `exports` keeps it out of notes.
+    pub(crate) fn member_names(&self) -> Vec<String> {
+        self.workspace.documents[&self.path]
+            .definitions
+            .iter()
+            .map(|d| d.named.name.as_str())
+            .filter(|name| *name != "module" && !name.starts_with('_'))
+            .map(str::to_owned)
+            .collect()
+    }
+    /// The module's own text, for the comments the reference reads.
+    pub fn source(&self) -> &str {
+        &self.workspace.documents[&self.path].text
+    }
+    /// The sites a link module decorates; empty when its own `matches` decides.
+    pub fn hosts(&self) -> &[String] {
+        &self.hosts
     }
     pub fn has(&self, entry: impl Entry) -> bool {
         self.workspace
@@ -213,6 +277,7 @@ impl Module {
         }
         let mut engine = crate::engine::Engine::at(&self.workspace, now)
             .pure()
+            .module()
             .with_link_features(crate::link_features::LinkFeatures::new(&[]))
             .with_environment(self.workspace.clone())
             .with_expressions(self.expressions.clone());

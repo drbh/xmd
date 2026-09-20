@@ -50,19 +50,18 @@ impl WtfExtension {
             },
         )?;
         let (os, arch) = zed::current_platform();
-        let (target, kind) = match (os, arch) {
-            (zed::Os::Mac, zed::Architecture::Aarch64) => ("aarch64-apple-darwin", "tar.gz"),
-            (zed::Os::Mac, zed::Architecture::X8664) => ("x86_64-apple-darwin", "tar.gz"),
-            (zed::Os::Linux, zed::Architecture::Aarch64) => ("aarch64-unknown-linux-gnu", "tar.gz"),
-            (zed::Os::Linux, zed::Architecture::X8664) => ("x86_64-unknown-linux-gnu", "tar.gz"),
-            (zed::Os::Windows, zed::Architecture::X8664) => ("x86_64-pc-windows-msvc", "zip"),
+        let target = match (os, arch) {
+            (zed::Os::Mac, zed::Architecture::Aarch64) => "aarch64-apple-darwin",
+            (zed::Os::Mac, zed::Architecture::X8664) => "x86_64-apple-darwin",
+            (zed::Os::Linux, zed::Architecture::Aarch64) => "aarch64-unknown-linux-gnu",
+            (zed::Os::Linux, zed::Architecture::X8664) => "x86_64-unknown-linux-gnu",
             (os, arch) => {
                 return Err(format!(
                     "no prebuilt wtf for {os:?}/{arch:?}; install it with `cargo install --git https://github.com/{REPO} wtf` so it is on PATH"
                 ));
             }
         };
-        let name = format!("wtf-{target}.{kind}");
+        let name = format!("wtf-{target}.tar.gz");
         let asset = release
             .assets
             .iter()
@@ -70,23 +69,13 @@ impl WtfExtension {
             .ok_or_else(|| format!("release {} has no asset {name}", release.version))?;
 
         let dir = format!("wtf-{}", release.version);
-        let exe = if os == zed::Os::Windows {
-            "wtf.exe"
-        } else {
-            "wtf"
-        };
-        let path = format!("{dir}/{exe}");
+        let path = format!("{dir}/wtf");
         if fs::metadata(&path).is_ok_and(|m| m.is_file()) {
             return Ok(path);
         }
 
         zed::set_language_server_installation_status(id, &Status::Downloading);
-        let file_type = if kind == "zip" {
-            zed::DownloadedFileType::Zip
-        } else {
-            zed::DownloadedFileType::GzipTar
-        };
-        zed::download_file(&asset.download_url, &dir, file_type)
+        zed::download_file(&asset.download_url, &dir, zed::DownloadedFileType::GzipTar)
             .map_err(|error| format!("failed to download {}: {error}", asset.download_url))?;
         zed::make_file_executable(&path)?;
 

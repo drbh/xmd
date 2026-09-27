@@ -1,0 +1,11 @@
+weather := forecast("Oaxaca", 2026-11-20, F)
+forecast_json := debug(weather)
+[debug(weather)]
+null_json := debug(null)
+scalars_json := debug([true, false, 42, 3.5, "雪\n\"quoted\""])
+units_json := debug({money: $12.50, rain: 35%, duration: 90s, date: 2026-11-20, code: F})
+nested_json := debug({trip: {weather: weather, pack: weather.rain > 30%}, days: [null, {name: "Oaxaca"}]})
+function_json := debug(fn(x) => x + 1)
+namespace_json := debug(import("./other.wtf"))
+clock := countdown(5m)
+timer_json := debug(clock)

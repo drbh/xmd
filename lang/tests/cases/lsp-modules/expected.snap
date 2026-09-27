@@ -264,6 +264,8 @@ actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit
 -- write .wtf/modules.json
 ["./modules/edit.wtf"]
 -- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules.json"}]}
+-- await workspace/inlayHint/refresh
+null
 -- open main2.wtf
 -- await textDocument/publishDiagnostics main2.wtf
 {
@@ -348,7 +350,7 @@ Goodbye world
 {
   "diagnostics": [],
   "uri": "file://<root>/main2.wtf",
-  "version": 1
+  "version": 2
 }
 -- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.wtf}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"wtf.applyEdits"}
 error: {

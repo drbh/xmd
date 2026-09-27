@@ -88,7 +88,7 @@ pub enum PreparedAction {
     Edit { path: PathBuf, edits: Vec<TextEdit> },
     Open { url: Url },
     RefreshResource { resource: Resource },
-    Refresh,
+    Refresh { path: Option<PathBuf> },
     ShowToday,
 }
 
@@ -324,7 +324,9 @@ impl Action {
                     Err("This resource does not support refresh".into())
                 }
             }
-            Self::Refresh { .. } => Ok(PreparedAction::Refresh),
+            Self::Refresh { document } => Ok(PreparedAction::Refresh {
+                path: document.as_ref().map(document_path).transpose()?,
+            }),
             Self::ShowToday => Ok(PreparedAction::ShowToday),
         }
     }

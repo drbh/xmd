@@ -1102,6 +1102,30 @@
         "try": "price := $25\nlabel := \"Lunch costs \" + text(price)"
       },
       {
+        "documentation": "Inspect any value as compact JSON text in an inlay. Records, lists, and host objects expose their fields; money, dates, durations, and ratios keep their type and units.",
+        "group": "Values",
+        "name": "debug",
+        "params": [
+          "value: Value"
+        ],
+        "result": "Text",
+        "tier": "note",
+        "try": "weather := {high: 25, rain: 35%}\n[debug(weather)]"
+      },
+      {
+        "documentation": "Draw one Unicode bar per numeric value, in list order. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units.",
+        "group": "Values",
+        "name": "sparkline",
+        "params": [
+          "values: List",
+          "min?: Number, Money, Ratio, or Duration",
+          "max?: Number, Money, Ratio, or Duration"
+        ],
+        "result": "Text",
+        "tier": "note",
+        "try": "sales := [12, 18, 9, 24]\n[sparkline(sales)]\n[sparkline([20%, 40%, 30%], 0%, 100%)]"
+      },
+      {
         "documentation": "Test membership or a text substring.",
         "group": "Text",
         "name": "contains",
@@ -1309,7 +1333,7 @@
         "try": "hotel := 700 MXN\nusd := to(hotel, USD)"
       },
       {
-        "documentation": "The cached forecast for a place and day, with .high, .low, .summary and .rain. Itinerary days with a place get one automatically.",
+        "documentation": "The cached forecast for a place and day, with .high, .low, .summary and .rain. Beyond 16 days, returns a seasonal outlook for up to about 7 months, labeled as an estimate. Seasonal .rain is the fraction of available ensemble runs with more than 0.1 mm of daily precipitation (including snow); it is unavailable with fewer than two valid runs. Itinerary days with a place get one automatically.",
         "group": "Lookups",
         "name": "forecast",
         "params": [
@@ -1320,6 +1344,20 @@
         "result": "Forecast",
         "tier": "note",
         "try": "landing := forecast(\"Oaxaca\", 2026-11-20)"
+      },
+      {
+        "documentation": "Cached daily forecasts in chronological order, including both dates. Project .high, .low, or .rain and pass the list to sparkline. One refresh requests the entire interval. Dates beyond 16 days use seasonal estimates; missing days remain lookup warnings until available. Limited to 4096 days.",
+        "group": "Lookups",
+        "name": "forecast_range",
+        "params": [
+          "place: Text",
+          "start: Date",
+          "end: Date",
+          "unit?: F or C"
+        ],
+        "result": "List",
+        "tier": "note",
+        "try": "week := forecast_range(\"Oaxaca\", 2026-11-20, 2026-11-26, F)\nHighs °F: [sparkline(week.high)]\nRain: [sparkline(week.rain, 0%, 100%)]"
       },
       {
         "documentation": "The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need a provider in .wtf/providers.json.",
@@ -1693,7 +1731,7 @@
         "try": "units := import(\"units\")\nmiles := units.convert(100, \"km\", \"mi\")"
       },
       {
-        "documentation": "A cached day of weather, with .high, .low, .summary and .rain.",
+        "documentation": "A cached day of weather, with .high, .low, .summary and .rain. Seasonal outlooks include estimated temperatures and precipitation chance, labeled as estimates.",
         "fields": [],
         "name": "Forecast",
         "tier": "object",

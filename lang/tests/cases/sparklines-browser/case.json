@@ -1,0 +1,15 @@
+{
+  "requires": "browser",
+  "steps": [
+    {
+      "browser": [
+        {
+          "method": "analyze",
+          "params": {
+            "uri": "file:///workspace/charts.wtf"
+          }
+        }
+      ]
+    }
+  ]
+}

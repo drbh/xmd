@@ -1,0 +1,8 @@
+#!/bin/sh
+case "$1" in
+  2026-11-20) echo '{"high":20,"low":10,"precipitation":0.0,"summary":"seasonal outlook (estimate)"}' ;;
+  2026-11-21) echo '{"high":30,"low":20,"precipitation":0.5,"summary":"seasonal outlook (estimate)"}' ;;
+  2026-11-22) echo '{"high":25,"low":15,"precipitation":1.0,"summary":"seasonal outlook (estimate)"}' ;;
+  2026-11-24|2026-11-25) echo '{"high":22,"low":12,"precipitation":0.2,"summary":"seasonal outlook (estimate)"}' ;;
+  *) echo "Unexpected date: $1" >&2; exit 1 ;;
+esac

@@ -1,0 +1,17 @@
+#!/bin/sh
+url="$8"
+case "$url" in
+  *geocoding*) echo '{"results":[{"name":"Oaxaca","latitude":17.06,"longitude":-96.72}]}' ;;
+  *api.open-meteo.com/v1/forecast*start_date=2026-10-02*) echo '{"daily":{"time":["2026-10-02"],"temperature_2m_max":[24.2],"temperature_2m_min":[11.8],"weather_code":[61],"precipitation_probability_max":[40]}}' ;;
+  *api.open-meteo.com/v1/forecast*start_date=2026-10-03*) echo '{"daily":{"time":["2026-10-03"],"temperature_2m_max":[26.2],"temperature_2m_min":[12.8],"weather_code":[2],"precipitation_probability_max":[10]}}' ;;
+  *seasonal-api*start_date=2026-10-03*models=ecmwf_seasonal_seamless*precipitation_unit=mm*) echo '{"daily":{"time":["2026-10-03"],"temperature_2m_max":[22.2],"temperature_2m_max_member01":[28.2],"temperature_2m_min":[12.0],"temperature_2m_min_member01":[16.0],"precipitation_sum":[0.0],"precipitation_sum_member01":[0.1],"precipitation_sum_member02":[0.2],"precipitation_sum_member03":[10.0],"precipitation_sum_member04":[null],"precipitation_sum_member05":[-1],"precipitation_sum_member06":["missing"],"precipitation_sum_member07":[],"precipitation_sum_mean":[99],"precipitation_sum_member_bad":[99]}}' ;;
+  *seasonal-api*start_date=2027-01-20*models=ecmwf_seasonal_seamless*precipitation_unit=mm*) echo '{"daily":{"time":["2027-01-19","2027-01-20"],"temperature_2m_max":[99,22.4],"temperature_2m_min":[99,10.2],"precipitation_sum":[99,0.0],"precipitation_sum_member01":[99,0.1]}}' ;;
+  *start_date=2026-11-21*) echo 'service unavailable' >&2; exit 22 ;;
+  *start_date=2026-11-22*) echo 'invalid json' ;;
+  *start_date=2026-11-23*) echo '{"daily":{"time":["2026-11-23"],"temperature_2m_max":[null],"temperature_2m_min":[null]}}' ;;
+  *start_date=2026-11-24*) echo '{"daily":{"time":["2026-11-23"],"temperature_2m_max":[99],"temperature_2m_min":[99]}}' ;;
+  *start_date=2026-11-25*) echo '{"daily":{"time":["2026-11-25"],"temperature_2m_max":[25],"temperature_2m_min":[14],"precipitation_sum":[null],"precipitation_sum_member01":[-1]}}' ;;
+  *start_date=2026-11-26*) echo '{"daily":{"time":["2026-11-26"],"temperature_2m_max":[25],"temperature_2m_min":[14],"precipitation_sum":[5.0]}}' ;;
+  *start_date=2026-11-27*) echo '{"daily":{"time":["2026-11-27"],"temperature_2m_max":[25],"temperature_2m_min":[14],"precipitation_sum":[0.2],"precipitation_sum_member01":[5.0]}}' ;;
+  *) echo "unexpected request: $url" >&2; exit 22 ;;
+esac

@@ -16,7 +16,7 @@ pub struct Forecast {
     pub high: f64,
     pub low: f64,
     pub summary: String,
-    /// Chance of precipitation, 0 to 1, when the source reports it.
+    /// Chance of precipitation, 0 to 1, reported or estimated from an ensemble.
     pub precipitation: Option<f64>,
     pub fahrenheit: bool,
 }
@@ -264,12 +264,21 @@ pub fn weather_summary(code: i64) -> &'static str {
 pub fn wanted(
     ws: &crate::workspace::Workspace,
     now: DateTime<chrono::FixedOffset>,
+    only: Option<&std::path::Path>,
 ) -> std::collections::BTreeSet<LookupKey> {
     let mut engine = crate::engine::Engine::at(ws, now);
     let today = engine.today;
-    for (path, doc) in &ws.documents {
-        for symbol in ws.symbols().into_iter().filter(|s| s.path == *path) {
-            let _ = engine.symbol(&symbol);
+    let symbols = ws.symbols();
+    for (path, doc) in ws
+        .documents
+        .iter()
+        .filter(|(path, _)| only.is_none_or(|only| *path == only))
+    {
+        for symbol in symbols.iter().filter(|s| s.path == *path) {
+            let _ = engine.symbol(symbol);
+        }
+        for calculation in &doc.calculations {
+            let _ = engine.eval_at(path, &calculation.source, calculation.span);
         }
         for task in &doc.tasks {
             for attr in task.attributes.values() {
@@ -366,16 +375,17 @@ pub mod native {
     fn encode(s: &str) -> String {
         url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
     }
-    /// Fetch one key: (value, source). Provider errors become a value with an
-    /// `error` field, so the note shows the problem instead of a stale success.
+    /// Fetch one key: (value, source). Unavailable data becomes a value with an
+    /// `error` field; request failures are returned to the refresh caller.
     pub async fn fetch(
         root: &Path,
         key: &LookupKey,
+        today: NaiveDate,
     ) -> Result<(serde_json::Value, String), String> {
         let providers = providers(root);
         match key {
             LookupKey::Forecast { place, date } => {
-                fetch_forecast(&providers, place, &date.to_string()).await
+                fetch_forecast(&providers, place, *date, today).await
             }
             LookupKey::Rate { from, to } => {
                 let (from, to) = (&from.to_string(), &to.to_string());
@@ -437,91 +447,173 @@ pub mod native {
             }
         }
     }
+    /// Open-Meteo names the control run with the bare variable, and the other
+    /// runs with `_member01` through `_member50`. Ignore unrelated statistics.
+    fn ensemble_values<'a>(
+        daily: &'a serde_json::Value,
+        variable: &'a str,
+        index: usize,
+    ) -> impl Iterator<Item = f64> + 'a {
+        daily
+            .as_object()
+            .into_iter()
+            .flat_map(|fields| fields.iter())
+            .filter_map(move |(name, values)| {
+                let member = name == variable
+                    || name
+                        .strip_prefix(variable)
+                        .and_then(|suffix| suffix.strip_prefix("_member"))
+                        .is_some_and(|member| {
+                            member.len() == 2 && member.bytes().all(|c| c.is_ascii_digit())
+                        });
+                member
+                    .then(|| values[index].as_f64())
+                    .flatten()
+                    .filter(|value| value.is_finite())
+            })
+    }
+    fn ensemble_mean(daily: &serde_json::Value, variable: &str, index: usize) -> Option<f64> {
+        let (sum, count) = ensemble_values(daily, variable, index)
+            .fold((0.0, 0), |(sum, count), value| (sum + value, count + 1));
+        (count > 0).then(|| sum / f64::from(count))
+    }
+    fn seasonal_precipitation(daily: &serde_json::Value, index: usize) -> Option<f64> {
+        // Estimate a wet day's probability from valid ensemble members, not
+        // the ensemble's mean rainfall amount. Missing runs are not dry runs.
+        let (wet, count) = ensemble_values(daily, "precipitation_sum", index)
+            .filter(|amount| *amount >= 0.0)
+            .fold((0, 0), |(wet, count), amount| {
+                (wet + i32::from(amount > 0.1), count + 1)
+            });
+        // A lone run cannot supply an ensemble probability.
+        (count > 1).then(|| f64::from(wet) / f64::from(count))
+    }
     async fn fetch_forecast(
         providers: &BTreeMap<String, String>,
         place: &str,
-        date: &str,
+        date: NaiveDate,
+        today: NaiveDate,
     ) -> Result<(serde_json::Value, String), String> {
-        {
-            {
-                if let Some(command) = providers.get("forecast") {
-                    let value = run(command, &[("place", place), ("date", date)]).await?;
-                    return Ok((
-                        value,
-                        command
-                            .split_whitespace()
-                            .next()
-                            .unwrap_or("provider")
-                            .into(),
-                    ));
-                }
-                let geo = get(&format!(
-                    "https://geocoding-api.open-meteo.com/v1/search?name={}&count=1&language=en&format=json",
-                    encode(place)
-                ))
-                .await?;
-                let geo: serde_json::Value =
-                    serde_json::from_str(&geo).map_err(|e| e.to_string())?;
-                let hit = &geo["results"][0];
-                let (Some(lat), Some(lon)) = (hit["latitude"].as_f64(), hit["longitude"].as_f64())
-                else {
-                    return Ok((
-                        serde_json::json!({"error": format!("Unknown place '{place}'")}),
-                        "open-meteo.com".into(),
-                    ));
-                };
-                let body = get(&format!(
-                    "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&timezone=auto&start_date={date}&end_date={date}"
-                ))
-                .await;
-                let body = match body {
-                    Ok(body) => body,
-                    Err(_) => {
-                        return Ok((
-                            serde_json::json!({"error": "no forecast yet; forecasts cover about 16 days"}),
-                            "open-meteo.com".into(),
-                        ));
-                    }
-                };
-                let data: serde_json::Value =
-                    serde_json::from_str(&body).map_err(|e| e.to_string())?;
-                let daily = &data["daily"];
-                let (Some(high), Some(low)) = (
-                    daily["temperature_2m_max"][0].as_f64(),
-                    daily["temperature_2m_min"][0].as_f64(),
-                ) else {
-                    return Ok((
-                        serde_json::json!({"error": "no forecast yet; forecasts cover about 16 days"}),
-                        "open-meteo.com".into(),
-                    ));
-                };
-                let code = daily["weather_code"][0].as_i64().unwrap_or(-1);
-                let precipitation = daily["precipitation_probability_max"][0]
-                    .as_f64()
-                    .map(|p| p / 100.0);
-                Ok((
-                    serde_json::json!({
-                        "high": high, "low": low,
-                        "summary": weather_summary(code),
-                        "precipitation": precipitation,
-                        "place": hit["name"].as_str().unwrap_or(place),
-                    }),
-                    "open-meteo.com".into(),
-                ))
-            }
+        if let Some(command) = providers.get("forecast") {
+            let value = run(command, &[("place", place), ("date", &date.to_string())]).await?;
+            return Ok((
+                value,
+                command
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("provider")
+                    .into(),
+            ));
         }
+        // Forecast days include today. Seasonal temperatures are ensemble means,
+        // useful for planning but not a prediction of a specific day's weather.
+        // https://open-meteo.com/en/docs/seasonal-forecast-api
+        let days_ahead = (date - today).num_days();
+        let seasonal = days_ahead >= 16;
+        let source = if seasonal {
+            "open-meteo.com (seasonal ensemble)"
+        } else {
+            "open-meteo.com"
+        };
+        let unavailable = || {
+            (
+                serde_json::json!({"error": if seasonal {
+                    "no forecast yet; seasonal outlooks cover about 7 months"
+                } else {
+                    "no forecast yet for this date"
+                }}),
+                source.to_string(),
+            )
+        };
+        if days_ahead >= 215 {
+            return Ok(unavailable());
+        }
+        let geo = get(&format!(
+            "https://geocoding-api.open-meteo.com/v1/search?name={}&count=1&language=en&format=json",
+            encode(place)
+        ))
+        .await?;
+        let geo: serde_json::Value = serde_json::from_str(&geo).map_err(|e| e.to_string())?;
+        let hit = &geo["results"][0];
+        let (Some(lat), Some(lon)) = (hit["latitude"].as_f64(), hit["longitude"].as_f64()) else {
+            return Ok((
+                serde_json::json!({"error": format!("Unknown place '{place}'")}),
+                "open-meteo.com".into(),
+            ));
+        };
+        let (endpoint, variables, model) = if seasonal {
+            (
+                "https://seasonal-api.open-meteo.com/v1/seasonal",
+                "temperature_2m_max,temperature_2m_min,precipitation_sum",
+                "&models=ecmwf_seasonal_seamless&precipitation_unit=mm",
+            )
+        } else {
+            (
+                "https://api.open-meteo.com/v1/forecast",
+                "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max",
+                "",
+            )
+        };
+        let body = get(&format!(
+            "{endpoint}?latitude={lat}&longitude={lon}&daily={variables}&timezone=auto&start_date={date}&end_date={date}{model}"
+        ))
+        .await?;
+        let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+        let daily = &data["daily"];
+        let date = date.to_string();
+        let Some(index) = daily["time"]
+            .as_array()
+            .and_then(|times| times.iter().position(|time| time.as_str() == Some(&date)))
+        else {
+            return Ok(unavailable());
+        };
+        let temperature = |variable: &str| {
+            if seasonal {
+                ensemble_mean(daily, variable, index)
+            } else {
+                daily[variable][index].as_f64()
+            }
+        };
+        let (Some(high), Some(low)) = (
+            temperature("temperature_2m_max"),
+            temperature("temperature_2m_min"),
+        ) else {
+            return Ok(unavailable());
+        };
+        let summary = if seasonal {
+            "seasonal outlook (estimate)"
+        } else {
+            weather_summary(daily["weather_code"][index].as_i64().unwrap_or(-1))
+        };
+        let precipitation = if seasonal {
+            seasonal_precipitation(daily, index)
+        } else {
+            daily["precipitation_probability_max"][index]
+                .as_f64()
+                .map(|p| p / 100.0)
+        };
+        Ok((
+            serde_json::json!({
+                "high": high, "low": low,
+                "summary": summary,
+                "precipitation": precipitation,
+                "place": hit["name"].as_str().unwrap_or(place),
+            }),
+            source.into(),
+        ))
     }
     /// Refresh every lookup the notes want, at the host's clock; returns the
     /// errors.
     pub async fn refresh(
         ws: &mut crate::workspace::Workspace,
         now: DateTime<chrono::FixedOffset>,
+        only: Option<&Path>,
     ) -> Vec<String> {
         let root = ws.root().to_path_buf();
-        let keys = super::wanted(ws, now);
+        let keys = super::wanted(ws, now, only);
         let mut errors = Vec::new();
         for key in keys {
-            match fetch(&root, &key).await {
+            match fetch(&root, &key, now.date_naive()).await {
                 Ok((value, source)) => {
                     ws.lookups.insert(
                         key.to_string(),

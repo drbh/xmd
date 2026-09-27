@@ -70,6 +70,8 @@ builtins! {
     Get => "get",
     Length => "length",
     Text => "text",
+    Debug => "debug",
+    Sparkline => "sparkline",
     Contains => "contains",
     StartsWith => "starts_with",
     EndsWith => "ends_with",
@@ -89,6 +91,7 @@ builtins! {
     Rate => "rate",
     To => "to",
     Forecast => "forecast",
+    ForecastRange => "forecast_range",
     Quote => "quote",
     Date => "date",
     Effort => "effort",
@@ -118,6 +121,7 @@ impl Builtin {
                 | Builtin::Rate
                 | Builtin::To
                 | Builtin::Forecast
+                | Builtin::ForecastRange
                 | Builtin::Quote
                 | Builtin::Date
                 | Builtin::Total

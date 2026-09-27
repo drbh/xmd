@@ -135,18 +135,22 @@ pub enum RenderFormat {
     Text,
 }
 pub async fn refresh(workspace: &mut Workspace) -> Vec<String> {
-    let mut errors = refresh_in_memory(workspace).await;
+    let mut errors = refresh_in_memory(workspace, None).await;
     if let Err(e) = workspace.save_cache() {
         errors.push(e);
     }
     errors
 }
 /// The editor validates its registry snapshot before persisting resource results.
-pub(crate) async fn refresh_in_memory(workspace: &mut Workspace) -> Vec<String> {
+pub(crate) async fn refresh_in_memory(
+    workspace: &mut Workspace,
+    only: Option<&std::path::Path>,
+) -> Vec<String> {
     let targets: BTreeSet<_> = workspace
         .documents
-        .values()
-        .flat_map(|doc| {
+        .iter()
+        .filter(|(path, _)| only.is_none_or(|only| *path == only))
+        .flat_map(|(_, doc)| {
             doc.definitions
                 .iter()
                 .filter(|d| !d.expression)
@@ -165,7 +169,9 @@ pub(crate) async fn refresh_in_memory(workspace: &mut Workspace) -> Vec<String> 
             Err(e) => errors.push(format!("{target}: {e}")),
         }
     }
-    errors.extend(crate::lookups::native::refresh(workspace, Local::now().fixed_offset()).await);
+    errors.extend(
+        crate::lookups::native::refresh(workspace, crate::hosts::editor::now(), only).await,
+    );
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {

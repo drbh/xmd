@@ -1,0 +1,242 @@
+### 0 cli render charts.wtf --format text
+$ wtf render charts.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+trend := sparkline([12, 18, 9, 24]) = ▂▅▁█
+fixed := sparkline([-10, 0, 50, 100, 120], 0, 100) = ▁▁▅██
+rain := sparkline([20%, null, 40%, 100%], 0%, 100%) = ▂·▄█
+flat := sparkline([5, 5, 5]) = ▅▅▅
+one := sparkline([5]) = ▅
+empty := sparkline([]) = 
+gaps := sparkline([null, null]) = ··
+money := sparkline([$10, $30, $20]) = ▁█▅
+duration := sparkline([1h, 3h, 2h]) = ▁█▅
+[trend] ▂▅▁█ [sparkline([3, 2, 1])] █▅▁
+[debug({label: "bracket ] and \"quote\"", values: [1, 2]})] {"label":"bracket ] and \"quote\"","values":[1,2]} then [sparkline([2, 1])] █▁
+
+### 1 cli query errors.wtf diagnostics | select {line, message} --json
+$ wtf query errors.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 0,
+    "message": "sparkline expects finite numeric values or null gaps"
+  },
+  {
+    "line": 1,
+    "message": "sparkline values and bounds must use matching units"
+  },
+  {
+    "line": 2,
+    "message": "sparkline values and bounds must use matching units"
+  },
+  {
+    "line": 3,
+    "message": "sparkline values and bounds must use matching units"
+  },
+  {
+    "line": 4,
+    "message": "sparkline minimum must be less than its maximum"
+  },
+  {
+    "line": 5,
+    "message": "sparkline minimum must be less than its maximum"
+  },
+  {
+    "line": 6,
+    "message": "Invalid arguments for sparkline"
+  },
+  {
+    "line": 7,
+    "message": "Invalid arguments for sparkline"
+  }
+]
+
+### 2 lsp
+-- open charts.wtf
+-- request textDocument/inlayHint charts.wtf {"end":{"character":0,"line":12},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ▂▅▁█",
+    "paddingLeft": true,
+    "position": {
+      "character": 35,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.wtf#L1>) · <root>/charts.wtf:1"
+    }
+  },
+  {
+    "label": "= ▁▁▅██",
+    "paddingLeft": true,
+    "position": {
+      "character": 50,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**fixed · Text**\n\n▁▁▅██\n\n```text\nsparkline([-10, 0, 50, 100, 120], 0, 100)\n= ▁▁▅██\n```\n\nDefinition: [fixed](<file://<root>/charts.wtf#L2>) · <root>/charts.wtf:2"
+    }
+  },
+  {
+    "label": "= ▂·▄█",
+    "paddingLeft": true,
+    "position": {
+      "character": 51,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**rain · Text**\n\n▂·▄█\n\n```text\nsparkline([20%, null, 40%, 100%], 0%, 100%)\n= ▂·▄█\n```\n\nDefinition: [rain](<file://<root>/charts.wtf#L3>) · <root>/charts.wtf:3"
+    }
+  },
+  {
+    "label": "= ▅▅▅",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**flat · Text**\n\n▅▅▅\n\n```text\nsparkline([5, 5, 5])\n= ▅▅▅\n```\n\nDefinition: [flat](<file://<root>/charts.wtf#L4>) · <root>/charts.wtf:4"
+    }
+  },
+  {
+    "label": "= ▅",
+    "paddingLeft": true,
+    "position": {
+      "character": 21,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**one · Text**\n\n▅\n\n```text\nsparkline([5])\n= ▅\n```\n\nDefinition: [one](<file://<root>/charts.wtf#L5>) · <root>/charts.wtf:5"
+    }
+  },
+  {
+    "label": "= ",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**empty · Text**\n\n\n\n```text\nsparkline([])\n= \n```\n\nDefinition: [empty](<file://<root>/charts.wtf#L6>) · <root>/charts.wtf:6"
+    }
+  },
+  {
+    "label": "= ··",
+    "paddingLeft": true,
+    "position": {
+      "character": 31,
+      "line": 6
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**gaps · Text**\n\n··\n\n```text\nsparkline([null, null])\n= ··\n```\n\nDefinition: [gaps](<file://<root>/charts.wtf#L7>) · <root>/charts.wtf:7"
+    }
+  },
+  {
+    "label": "= ▁█▅",
+    "paddingLeft": true,
+    "position": {
+      "character": 35,
+      "line": 7
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**money · Text**\n\n▁█▅\n\n```text\nsparkline([$10, $30, $20])\n= ▁█▅\n```\n\nDefinition: [money](<file://<root>/charts.wtf#L8>) · <root>/charts.wtf:8"
+    }
+  },
+  {
+    "label": "= ▁█▅",
+    "paddingLeft": true,
+    "position": {
+      "character": 35,
+      "line": 8
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**duration · Text**\n\n▁█▅\n\n```text\nsparkline([1h, 3h, 2h])\n= ▁█▅\n```\n\nDefinition: [duration](<file://<root>/charts.wtf#L9>) · <root>/charts.wtf:9"
+    }
+  },
+  {
+    "label": "▂▅▁█",
+    "paddingLeft": true,
+    "position": {
+      "character": 7,
+      "line": 9
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.wtf#L1>) · <root>/charts.wtf:1"
+    }
+  },
+  {
+    "label": "█▅▁",
+    "paddingLeft": true,
+    "position": {
+      "character": 30,
+      "line": 9
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`sparkline([3, 2, 1])` = █▅▁"
+    }
+  },
+  {
+    "label": "{\"label\":\"bracket ] and \\\"quote\\\"\",\"values\":[1,2]}",
+    "paddingLeft": true,
+    "position": {
+      "character": 59,
+      "line": 10
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`debug({label: \"bracket ] and \\\"quote\\\"\", values: [1, 2]})` = {\"label\":\"bracket ] and \\\"quote\\\"\",\"values\":[1,2]}"
+    }
+  },
+  {
+    "label": "█▁",
+    "paddingLeft": true,
+    "position": {
+      "character": 84,
+      "line": 10
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`sparkline([2, 1])` = █▁"
+    }
+  }
+]
+-- request textDocument/signatureHelp charts.wtf 1:47
+{
+  "activeParameter": 2,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Draw one Unicode bar per numeric value, in list order. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units."
+      },
+      "label": "sparkline(values: List, min?: Number, Money, Ratio, or Duration, max?: Number, Money, Ratio, or Duration) → Text",
+      "parameters": [
+        {
+          "label": "values: List"
+        },
+        {
+          "label": "min?: Number, Money, Ratio, or Duration"
+        },
+        {
+          "label": "max?: Number, Money, Ratio, or Duration"
+        }
+      ]
+    }
+  ]
+}
+

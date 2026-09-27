@@ -1,0 +1,52 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "debug.wtf",
+        "values | select {name, display, errors}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "errors.wtf",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "debug.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "debug.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "debug.wtf",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "debug.wtf",
+          "line": 1,
+          "character": 28
+        }
+      ]
+    }
+  ]
+}

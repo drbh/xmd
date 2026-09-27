@@ -921,7 +921,7 @@ impl Document {
                 i += line[i..].chars().next().unwrap().len_utf8();
                 continue;
             }
-            let Some(close) = line[i + 1..].find(']').map(|n| i + 1 + n) else {
+            let Some(close) = close_bracket(line, i) else {
                 break;
             };
             let inner = line[i + 1..close].trim();
@@ -1102,6 +1102,35 @@ fn is_calculation(inner: &str) -> bool {
         matches!(&t.kind, crate::engine::Lexeme::Name(n)
             if !matches!(n.as_str(), "true" | "false") && !crate::engine::is_code(n))
     })
+}
+
+/// Inline calculations can contain lists and quoted closing brackets, e.g.
+/// `[sparkline([1, 2, 3])]` or `[debug({label: "]"})]`.
+fn close_bracket(line: &str, open: usize) -> Option<usize> {
+    let mut depth = 1;
+    let mut quoted = false;
+    let mut escaped = false;
+    for (offset, byte) in line.as_bytes()[open + 1..].iter().enumerate() {
+        if escaped {
+            escaped = false;
+        } else if *byte == b'\\' {
+            escaped = true;
+        } else if *byte == b'"' {
+            quoted = !quoted;
+        } else if !quoted {
+            match byte {
+                b'[' => depth += 1,
+                b']' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(open + 1 + offset);
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+    None
 }
 /// The expression for a line of math such as `[budget] - [spent] * 2` or
 /// `2 + 2`: brackets around names become spaces, so offsets line up with the

@@ -53,7 +53,7 @@ Resource cache updated (1 resources)
       "currency": "USD",
       "price": 12.5
     },
-    "fetched_at": "<clock>",
+    "fetched_at": "2026-09-16T18:00:00Z",
     "source": "fakequote"
   }
 }

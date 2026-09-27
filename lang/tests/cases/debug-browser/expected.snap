@@ -1,0 +1,227 @@
+### 0 browser
+-- setDocument debug.wtf
+-- analyze {"uri":"file:///workspace/debug.wtf"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "= {\"nested\": [true, null, \"雪\"], \"rain\": 35%}",
+        "paddingLeft": true,
+        "position": {
+          "character": 47,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "**value · Record**\n\n{\"nested\": [true, null, \"雪\"], \"rain\": 35%}\n\n```text\n{rain: 35%, nested: [true, null, \"雪\"]}\n= {\"nested\": [true, null, \"雪\"], \"rain\": 35%}\n```\n\nDefinition: [value](<file:///workspace/debug.wtf#L1>) · /workspace/debug.wtf:1"
+        }
+      },
+      {
+        "label": "{\"nested\":[true,null,\"雪\"],\"rain\":{\"type\":\"ratio\",\"value\":0.35}}",
+        "paddingLeft": true,
+        "position": {
+          "character": 14,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "`debug(value)` = {\"nested\":[true,null,\"雪\"],\"rain\":{\"type\":\"ratio\",\"value\":0.35}}"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-wtfPunctuation\" title=\"\">{</span><span class=\"t-variable\" title=\"\">rain</span><span class=\"t-wtfPunctuation\" title=\"\">:</span> <span class=\"t-wtfRatio\" title=\"\">35%</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-variable\" title=\"\">nested</span><span class=\"t-wtfPunctuation\" title=\"\">:</span> <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-wtfBoolean\" title=\"\">true</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-variable\" title=\"\">null</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-string\" title=\"\">&quot;雪&quot;</span><span class=\"t-wtfPunctuation\" title=\"\">]}</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Record**\n\n{&quot;nested&quot;: [true, null, &quot;雪&quot;], &quot;rain&quot;: 35%}\n\n```text\n{rain: 35%, nested: [true, null, &quot;雪&quot;]}\n= {&quot;nested&quot;: [true, null, &quot;雪&quot;], &quot;rain&quot;: 35%}\n```\n\nDefinition: [value](&lt;file:///workspace/debug.wtf#L1&gt;) · /workspace/debug.wtf:1\"> = {&quot;nested&quot;: [true, null, &quot;雪&quot;], &quot;rain&quot;: 35%}</span>\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">debug</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`debug(value)` = {&quot;nested&quot;:[true,null,&quot;雪&quot;],&quot;rain&quot;:{&quot;type&quot;:&quot;ratio&quot;,&quot;value&quot;:0.35}}\"> {&quot;nested&quot;:[true,null,&quot;雪&quot;],&quot;rain&quot;:{&quot;type&quot;:&quot;ratio&quot;,&quot;value&quot;:0.35}}</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [],
+    "lineClasses": [
+      "",
+      "",
+      ""
+    ],
+    "links": [],
+    "live": false,
+    "now": "2026-09-16T14:00:00-04:00",
+    "schemaVersion": 1,
+    "source": "value := {rain: 35%, nested: [true, null, \"雪\"]}\n[debug(value)]\n",
+    "symbols": [
+      {
+        "detail": "Record · {\"nested\": [true, null, \"雪\"], \"rain\": 35%}",
+        "kind": 13,
+        "name": "value",
+        "range": {
+          "end": {
+            "character": 47,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 5,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "wtfMoney",
+      "wtfDate",
+      "wtfDuration",
+      "wtfRatio",
+      "wtfBoolean",
+      "wtfPunctuation",
+      "wtfCode",
+      "wtfLink",
+      "wtfCheckbox",
+      "wtfTaskDone",
+      "wtfCheckboxChecked",
+      "wtfTime",
+      "wtfDay",
+      "wtfPlace",
+      "wtfDetailKey",
+      "wtfDepart",
+      "wtfArrive",
+      "wtfTransit",
+      "wtfStay",
+      "wtfMeal",
+      "wtfVisit",
+      "wtfExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      5,
+      3,
+      1,
+      0,
+      5,
+      3,
+      4,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      13,
+      0,
+      0,
+      3,
+      1,
+      15,
+      0,
+      0,
+      2,
+      6,
+      3,
+      0,
+      0,
+      6,
+      1,
+      15,
+      0,
+      0,
+      2,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      14,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      0,
+      2,
+      4,
+      3,
+      0,
+      0,
+      4,
+      1,
+      15,
+      0,
+      0,
+      2,
+      3,
+      5,
+      0,
+      0,
+      3,
+      2,
+      15,
+      0,
+      1,
+      0,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      7,
+      2,
+      0,
+      5,
+      1,
+      15,
+      0,
+      0,
+      1,
+      5,
+      3,
+      0,
+      0,
+      5,
+      2,
+      15,
+      0
+    ],
+    "uri": "file:///workspace/debug.wtf",
+    "version": 1,
+    "versions": {
+      "file:///workspace/debug.wtf": 1
+    }
+  }
+}
+

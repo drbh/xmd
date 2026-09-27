@@ -163,7 +163,9 @@ impl ValueType {
             Self::Number => "A plain number, with , as an optional thousands separator.",
             Self::Count => "A whole number of things, as length and the checklist calls return it.",
             Self::Money => "An amount in one currency; two currencies never add up silently.",
-            Self::Forecast => "A cached day of weather, with .high, .low, .summary and .rain.",
+            Self::Forecast => {
+                "A cached day of weather, with .high, .low, .summary and .rain. Seasonal outlooks include estimated temperatures and precipitation chance, labeled as estimates."
+            }
             Self::Ratio => "A percentage, written 8.875%; it scales anything it multiplies.",
             Self::Duration => "A span of whole seconds, written 30s, 20m, 2h, 14d or 2w.",
             Self::Date => "A calendar date, written 2026-11-20; dates subtract to a duration.",

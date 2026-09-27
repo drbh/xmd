@@ -1,0 +1,8 @@
+text_value := sparkline([1, "oops", 3])
+mixed_units := sparkline([10%, 20])
+mixed_currency := sparkline([$1, 2 EUR])
+wrong_bounds := sparkline([10%, 20%], 0, 100)
+backwards := sparkline([1, 2], 10, 0)
+equal_bounds := sparkline([1, 2], 1, 1)
+one_bound := sparkline([1, 2], 0)
+not_list := sparkline(42)

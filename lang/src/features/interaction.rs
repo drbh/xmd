@@ -120,7 +120,7 @@ pub(crate) fn row_commands(
         }
     }
     let line = doc.line(row);
-    let wants_lookup = ["rate(", "to(", "forecast(", "quote("]
+    let wants_lookup = ["rate(", "to(", "forecast(", "forecast_range(", "quote("]
         .iter()
         .any(|call| line.contains(call))
         || doc.days.iter().any(|d| d.line == row && d.places.is_some());

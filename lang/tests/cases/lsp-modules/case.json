@@ -334,6 +334,9 @@
           }
         },
         {
+          "await": "workspace/inlayHint/refresh"
+        },
+        {
           "open": "main2.wtf"
         },
         {

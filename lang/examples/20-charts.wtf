@@ -20,5 +20,8 @@ sales := table
 
 total_units := sum(sales, units)
 
+Sales trend: [sparkline([12, 18, 9, 24])]
+Rain on a 0–100% scale: [sparkline([20%, 40%, 30%, 70%], 0%, 100%)]
+
 <!-- The countdown and heading inlays carry a gauge; hover them for the bar with
 a percentage. Hover the units column or total_units for a sparkline. -->

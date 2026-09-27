@@ -1,0 +1,5 @@
+backwards := forecast_range("Oaxaca", 2026-11-22, 2026-11-20)
+too_long := forecast_range("Oaxaca", 2026-01-01, 2040-01-01)
+wrong_unit := forecast_range("Oaxaca", 2026-11-20, 2026-11-22, K)
+missing_date := forecast_range("Oaxaca", 2026-11-20)
+wrong_date := forecast_range("Oaxaca", 2026-11-20, "tomorrow")

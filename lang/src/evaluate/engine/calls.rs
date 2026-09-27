@@ -50,9 +50,11 @@ impl Engine<'_> {
             }
             Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, builtin, args),
             Builtin::Today if args.is_empty() => Ok(Value::Date(self.today)),
-            Builtin::Rate | Builtin::To | Builtin::Forecast | Builtin::Quote => {
-                self.lookup(path, builtin, args)
-            }
+            Builtin::Rate
+            | Builtin::To
+            | Builtin::Forecast
+            | Builtin::ForecastRange
+            | Builtin::Quote => self.lookup(path, builtin, args),
             // The one-argument tail: a date, a checklist question, and the
             // names that only a plan or a goal seek answers.
             builtin => self.call_checklist(path, builtin, args),
@@ -557,7 +559,13 @@ impl Engine<'_> {
                 crate::lookups::quote(&self.workspace.lookups, &symbol)
             }
             _ => {
-                if !(2..=3).contains(&args.len()) {
+                let range = name == Builtin::ForecastRange;
+                if range && !(3..=4).contains(&args.len()) {
+                    return Err(EvalError::Message(
+                        "forecast_range expects a place, start date, end date, and optional unit: forecast_range(\"Oaxaca\", 2026-11-20, 2026-11-26, F)".into(),
+                    ));
+                }
+                if !range && !(2..=3).contains(&args.len()) {
                     return Err(EvalError::Message(
                         "forecast expects a place and a date: forecast(\"Oaxaca\", 2026-11-20)"
                             .into(),
@@ -570,7 +578,22 @@ impl Engine<'_> {
                 };
                 let value = self.expr(path, &args[1])?;
                 let date = self.date(&value)?;
-                let fahrenheit = match args.get(2) {
+                let end = if range {
+                    let value = self.expr(path, &args[2])?;
+                    self.date(&value)?
+                } else {
+                    date
+                };
+                let days = (end - date).num_days();
+                if days < 0 {
+                    return Err(EvalError::Message(
+                        "forecast_range end date must be on or after the start date".into(),
+                    ));
+                }
+                if days >= 4096 {
+                    return Err(EvalError::LimitExceeded(crate::error::Limit::ListItems));
+                }
+                let fahrenheit = match args.get(if range { 3 } else { 2 }) {
                     Some(unit) => match code(self.expr(path, unit)?, "The unit")?.as_str() {
                         "F" | "FAHRENHEIT" => true,
                         "C" | "CELSIUS" => false,
@@ -582,10 +605,34 @@ impl Engine<'_> {
                     },
                     None => false,
                 };
-                self.wanted
-                    .push(crate::lookups::LookupKey::forecast(&place, date));
-                crate::lookups::forecast(&self.workspace.lookups, &place, date, fahrenheit)
-                    .map(Value::Forecast)
+                let dates: Vec<_> = (0..=days)
+                    .map(|offset| date + chrono::Duration::days(offset))
+                    .collect();
+                // Discover the entire interval before a missing cache entry
+                // can fail evaluation, so one refresh fetches every day.
+                self.wanted.extend(
+                    dates
+                        .iter()
+                        .map(|date| crate::lookups::LookupKey::forecast(&place, *date)),
+                );
+                if range {
+                    dates
+                        .into_iter()
+                        .map(|date| {
+                            crate::lookups::forecast(
+                                &self.workspace.lookups,
+                                &place,
+                                date,
+                                fahrenheit,
+                            )
+                            .map(Value::Forecast)
+                        })
+                        .collect::<EvalResult<Vec<_>>>()
+                        .map(Value::List)
+                } else {
+                    crate::lookups::forecast(&self.workspace.lookups, &place, date, fahrenheit)
+                        .map(Value::Forecast)
+                }
             }
         }
     }

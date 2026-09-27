@@ -163,20 +163,21 @@ impl Backend {
             )
         };
         let result = tokio::task::spawn_blocking(move || {
-            let mut workspace = Workspace::load_notes(roots)?;
+            let (mut workspace, mut errors) = Workspace::scan_notes(roots);
             workspace.modules = modules;
-            let error = workspace.reload_modules().err();
-            Ok::<_, String>((workspace, error))
+            if let Err(error) = workspace.reload_modules() {
+                errors.push(error);
+            }
+            (workspace, errors)
         })
         .await;
         match result {
-            Ok(Ok((workspace, error))) => {
-                if let Some(error) = error {
+            Ok((workspace, errors)) => {
+                for error in errors {
                     self.client.log_message(MessageType::ERROR, error).await;
                 }
                 self.state.write().await.session.rescan(workspace);
             }
-            Ok(Err(e)) => self.client.log_message(MessageType::ERROR, e).await,
             Err(e) => {
                 self.client
                     .log_message(MessageType::ERROR, e.to_string())
@@ -337,7 +338,7 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/modules.json"}]}))}]).await;
+            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/lookups.json"},{"globPattern":"**/.wtf/modules.json"}]}))}]).await;
         }
         let backend = self.clone();
         tokio::spawn(async move {
@@ -703,9 +704,10 @@ impl LanguageServer for Backend {
                     .map_err(Error::invalid_params)?;
                 self.notify_changes().await;
             }
-            PreparedAction::Refresh => {
+            PreparedAction::Refresh { path } => {
                 let mut workspace = self.state.read().await.session.workspace.clone();
-                let mut errors = crate::cli::refresh_in_memory(&mut workspace).await;
+                let mut errors =
+                    crate::cli::refresh_in_memory(&mut workspace, path.as_deref()).await;
                 let workspace = {
                     let mut state = self.state.write().await;
                     if !Arc::ptr_eq(&workspace.modules, &state.session.workspace.modules) {

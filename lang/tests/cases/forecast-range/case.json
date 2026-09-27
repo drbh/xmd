@@ -1,0 +1,74 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "weather.wtf",
+        "diagnostics | select {line, severity, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "errors.wtf",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "weather.wtf"
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "weather.wtf"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "wtf.refresh",
+            "arguments": [
+              {
+                "kind": "refresh",
+                "document": "${uri:weather.wtf}"
+              }
+            ]
+          }
+        },
+        {
+          "await": "window/showMessage"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "weather.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 6,
+              "character": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "read": [
+        ".wtf/lookups.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "weather.wtf",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

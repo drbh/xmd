@@ -1,0 +1,2 @@
+#!/bin/sh
+printf '{"high":30,"low":20,"summary":"custom outlook for %s","precipitation":0.3}\n' "$1"

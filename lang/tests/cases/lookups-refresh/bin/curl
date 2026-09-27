@@ -4,6 +4,8 @@ case "$url" in
   *frankfurter*) echo '{"rates":{"USD":1.09}}' ;;
   *finance.yahoo*) echo '{"chart":{"result":[{"meta":{"currency":"USD","regularMarketPrice":181.5}}]}}' ;;
   *geocoding*) echo '{"results":[{"name":"Oaxaca","latitude":17.06,"longitude":-96.72}]}' ;;
-  *2026-11-20*) echo '{"daily":{"temperature_2m_max":[24.2],"temperature_2m_min":[11.8],"weather_code":[61],"precipitation_probability_max":[40]}}' ;;
+  *api.open-meteo.com/v1/forecast*start_date=2026-09-20*) echo '{"daily":{"time":["2026-09-20"],"temperature_2m_max":[24.2],"temperature_2m_min":[11.8],"weather_code":[61],"precipitation_probability_max":[40]}}' ;;
+  *seasonal-api*start_date=2026-11-20*models=ecmwf_seasonal_seamless*precipitation_unit=mm*) echo '{"daily":{"time":["2026-11-20"],"temperature_2m_max":[25.2],"temperature_2m_min":[14.0],"precipitation_sum":[0.0],"precipitation_sum_member01":[1.2]}}' ;;
+  *seasonal-api*start_date=2026-12-05*) echo '{"daily":{"time":["2026-12-05"],"temperature_2m_max":[null],"temperature_2m_min":[null]}}' ;;
   *) echo 'out of range' >&2; exit 22 ;;
 esac

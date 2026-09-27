@@ -8,3 +8,4 @@
 [rain] := weather.rain
 [celsius] := forecast("Oaxaca", 2026-11-20)
 [later] := forecast("Oaxaca", 2026-11-21)
+[pack_rain_jacket] := later.rain > 30%

@@ -85,6 +85,7 @@ impl QueryValue {
                 Value::Number(n) => number(*n, 10),
                 Value::Count(n) => json!(n),
                 Value::Text(s) => json!(s),
+                Value::Code(code) => json!(code.as_str()),
                 Value::Bool(b) => json!(b),
                 Value::Money(amount, currency) => {
                     json!({"type":"money","amount":number(*amount, 2),"currency":currency.as_str()})

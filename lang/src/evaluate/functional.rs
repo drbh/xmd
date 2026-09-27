@@ -75,6 +75,15 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::Source, [value]) => Text(value.source().ok_or(EvalError::Message(
             "Value cannot be written as an expression".into(),
         ))?),
+        (B::Debug, [value]) => Text(
+            crate::catalog::QueryValue::from_value(value.clone())
+                .json()
+                .to_string(),
+        ),
+        (B::Sparkline, [List(values)]) => Text(crate::charts::inline_sparkline(values, None)?),
+        (B::Sparkline, [List(values), min, max]) => {
+            Text(crate::charts::inline_sparkline(values, Some((min, max)))?)
+        }
         (B::ParseDate, [Text(value), Text(format)]) => {
             chrono::NaiveDate::parse_from_str(value, format)
                 .ok()

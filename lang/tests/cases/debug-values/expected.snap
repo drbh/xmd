@@ -1,0 +1,131 @@
+### 0 cli query debug.wtf values | select {name, display, errors} --json
+$ wtf query debug.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "display": "77°F / 57°F · seasonal outlook (estimate) · 40% rain",
+    "errors": [],
+    "name": "weather"
+  },
+  {
+    "display": "{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}",
+    "errors": [],
+    "name": "forecast_json"
+  },
+  {
+    "display": "null",
+    "errors": [],
+    "name": "null_json"
+  },
+  {
+    "display": "[true,false,42,3.5,\"雪\\n\\\"quoted\\\"\"]",
+    "errors": [],
+    "name": "scalars_json"
+  },
+  {
+    "display": "{\"code\":\"F\",\"date\":{\"type\":\"date\",\"value\":\"2026-11-20\"},\"duration\":{\"seconds\":90,\"type\":\"duration\"},\"money\":{\"amount\":12.5,\"currency\":\"USD\",\"type\":\"money\"},\"rain\":{\"type\":\"ratio\",\"value\":0.35}}",
+    "errors": [],
+    "name": "units_json"
+  },
+  {
+    "display": "{\"days\":[null,{\"name\":\"Oaxaca\"}],\"trip\":{\"pack\":true,\"weather\":{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}}}",
+    "errors": [],
+    "name": "nested_json"
+  },
+  {
+    "display": "{\"type\":\"function\"}",
+    "errors": [],
+    "name": "function_json"
+  },
+  {
+    "display": "{\"path\":\"<root>/other.wtf\",\"type\":\"namespace\"}",
+    "errors": [],
+    "name": "namespace_json"
+  },
+  {
+    "display": "◷ 05:00 remaining · ○ idle",
+    "errors": [],
+    "name": "clock"
+  },
+  {
+    "display": "{\"elapsed\":{\"seconds\":0,\"type\":\"duration\"},\"limit\":{\"seconds\":300,\"type\":\"duration\"},\"started\":null,\"state\":\"idle\"}",
+    "errors": [],
+    "name": "timer_json"
+  }
+]
+
+### 1 cli query errors.wtf diagnostics | select {line, message} --json
+$ wtf query errors.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[
+  {
+    "line": 0,
+    "message": "Invalid arguments for debug"
+  },
+  {
+    "line": 1,
+    "message": "Invalid arguments for debug"
+  },
+  {
+    "line": 2,
+    "message": "Unknown name 'no_such_value'"
+  }
+]
+
+### 2 lsp
+-- open debug.wtf
+-- await textDocument/publishDiagnostics debug.wtf
+{
+  "diagnostics": [],
+  "uri": "file://<root>/debug.wtf",
+  "version": 1
+}
+-- request textDocument/inlayHint debug.wtf {"end":{"character":0,"line":3},"start":{"character":0,"line":1}}
+[
+  {
+    "label": "= {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}",
+    "paddingLeft": true,
+    "position": {
+      "character": 31,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**forecast_json · Text**\n\n{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n\n```text\ndebug(weather)\n= debug(77°F / 57°F · seasonal outlook (estimate) · 40% rain)\n= {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n```\n\nInputs: [weather](<file://<root>/debug.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [forecast_json](<file://<root>/debug.wtf#L2>) · <root>/debug.wtf:2"
+    }
+  },
+  {
+    "label": "{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}",
+    "paddingLeft": true,
+    "position": {
+      "character": 16,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`debug(weather)` = {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}"
+    }
+  }
+]
+-- request textDocument/signatureHelp debug.wtf 1:28
+{
+  "activeParameter": 0,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Inspect any value as compact JSON text in an inlay. Records, lists, and host objects expose their fields; money, dates, durations, and ratios keep their type and units."
+      },
+      "label": "debug(value: Value) → Text",
+      "parameters": [
+        {
+          "label": "value: Value"
+        }
+      ]
+    }
+  ]
+}
+

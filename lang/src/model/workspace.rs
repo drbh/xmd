@@ -52,7 +52,19 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub(crate) fn load_notes(roots: Vec<PathBuf>) -> Result<Self, String> {
+        let (workspace, errors) = Self::scan_notes(roots);
+        if errors.is_empty() {
+            Ok(workspace)
+        } else {
+            Err(errors.join("\n"))
+        }
+    }
+    /// Editors retain readable notes and cached data even when an unrelated
+    /// file cannot be read. CLI workspace commands still report scan failures.
+    #[cfg(feature = "native")]
+    pub(crate) fn scan_notes(roots: Vec<PathBuf>) -> (Self, Vec<String>) {
         let mut result = Self::empty_notes(roots);
+        let mut errors = Vec::new();
         for root in &result.roots {
             let walker = ignore::WalkBuilder::new(root)
                 .hidden(true)
@@ -67,13 +79,24 @@ impl Workspace {
                 })
                 .build();
             for entry in walker {
-                let entry = entry.map_err(|e| e.to_string())?;
+                let entry = match entry {
+                    Ok(entry) => entry,
+                    Err(error) => {
+                        errors.push(error.to_string());
+                        continue;
+                    }
+                };
                 if entry.file_type().is_some_and(|t| t.is_file())
                     && entry.path().extension().is_some_and(|s| s == "wtf")
                     && !crate::modules::is_module_path(entry.path())
                 {
-                    let text = std::fs::read_to_string(entry.path())
-                        .map_err(|e| format!("{}: {e}", entry.path().display()))?;
+                    let text = match std::fs::read_to_string(entry.path()) {
+                        Ok(text) => text,
+                        Err(error) => {
+                            errors.push(format!("{}: {error}", entry.path().display()));
+                            continue;
+                        }
+                    };
                     result
                         .documents
                         .insert(entry.path().to_path_buf(), Document::parse(text));
@@ -81,7 +104,7 @@ impl Workspace {
             }
         }
         result.load_imports();
-        Ok(result)
+        (result, errors)
     }
     #[cfg(feature = "native")]
     fn empty_notes(roots: Vec<PathBuf>) -> Self {
@@ -159,9 +182,11 @@ impl Workspace {
     }
     pub fn resolve(&self, path: &Path, name: &str) -> crate::error::EvalResult<Symbol> {
         let options: Vec<_> = self
-            .symbols()
+            .documents
+            .get(path)
             .into_iter()
-            .filter(|s| s.path == path && self.named(s).name == name)
+            .flat_map(|doc| Self::declared_in(path, doc).chain(self.variables_in(path, doc)))
+            .filter(|s| self.named(s).name == name)
             .collect();
         match options.len() {
             0 => Err(crate::error::EvalError::UnknownName { name: name.into() }),
@@ -170,20 +195,29 @@ impl Workspace {
         }
     }
     pub fn symbols(&self) -> Vec<Symbol> {
-        let mut symbols = self.declared();
+        let mut symbols: Vec<_> = self
+            .documents
+            .iter()
+            .flat_map(|(path, doc)| Self::declared_in(path, doc))
+            .collect();
         for (path, doc) in &self.documents {
-            for (p, plan) in doc.plans.iter().enumerate() {
-                symbols.extend(
-                    self.plan_variables(path, plan)
-                        .into_iter()
-                        .map(|(i, _)| Symbol {
-                            path: path.clone(),
-                            kind: SymbolKind::Variable(p, i),
-                        }),
-                );
-            }
+            symbols.extend(self.variables_in(path, doc));
         }
         symbols
+    }
+    fn variables_in<'a>(
+        &'a self,
+        path: &'a Path,
+        doc: &'a Document,
+    ) -> impl Iterator<Item = Symbol> + 'a {
+        doc.plans.iter().enumerate().flat_map(move |(p, plan)| {
+            self.plan_variables(path, plan)
+                .into_iter()
+                .map(move |(i, _)| Symbol {
+                    path: path.into(),
+                    kind: SymbolKind::Variable(p, i),
+                })
+        })
     }
     /// Names a plan reads that its own note does not declare: decision variables.
     pub fn plan_variables<'a>(
@@ -192,12 +226,11 @@ impl Workspace {
         plan: &'a crate::plans::Plan,
     ) -> Vec<(usize, &'a Named)> {
         let declared: std::collections::BTreeSet<&str> = self
-            .declared()
-            .iter()
-            .filter(|s| s.path == path)
-            .map(|s| self.named(s).name.as_str())
-            .collect::<Vec<_>>()
+            .documents
+            .get(path)
             .into_iter()
+            .flat_map(|doc| Self::declared_in(path, doc))
+            .map(|s| self.named(&s).name.as_str())
             .collect();
         plan.names
             .iter()
@@ -206,35 +239,29 @@ impl Workspace {
             .collect()
     }
     /// Symbols written down by hand: definitions, named tasks and sections.
-    fn declared(&self) -> Vec<Symbol> {
-        self.documents
+    fn declared_in<'a>(path: &'a Path, doc: &'a Document) -> impl Iterator<Item = Symbol> + 'a {
+        doc.definitions
             .iter()
-            .flat_map(|(path, doc)| {
-                doc.definitions
+            .enumerate()
+            .map(|(i, _)| SymbolKind::Definition(i))
+            .chain(
+                doc.tasks
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| SymbolKind::Definition(i))
-                    .chain(
-                        doc.tasks
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, t)| t.named.is_some())
-                            .map(|(i, _)| SymbolKind::Task(i)),
-                    )
-                    .chain(
-                        doc.sections
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, s)| s.named.is_some())
-                            .map(|(i, _)| SymbolKind::Section(i)),
-                    )
-                    .map(|kind| Symbol {
-                        path: path.clone(),
-                        kind,
-                    })
-                    .collect::<Vec<_>>()
+                    .filter(|(_, t)| t.named.is_some())
+                    .map(|(i, _)| SymbolKind::Task(i)),
+            )
+            .chain(
+                doc.sections
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, s)| s.named.is_some())
+                    .map(|(i, _)| SymbolKind::Section(i)),
+            )
+            .map(|kind| Symbol {
+                path: path.into(),
+                kind,
             })
-            .collect()
     }
     pub fn named<'a>(&'a self, symbol: &Symbol) -> &'a Named {
         let doc = &self.documents[&symbol.path];

@@ -1,0 +1,111 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "values | select {name, display}",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "weather.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "weather.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "weather.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 10,
+              "character": 0
+            }
+          }
+        },
+        {
+          "change": {
+            "file": "weather.wtf",
+            "text": "weather := forecast(\"Oaxaca\", 2026-11-20, F)\npack_rain_jacket := weather.rain > 80%\nWe should [pack_rain_jacket].\n"
+          }
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "weather.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "weather.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 10,
+              "character": 0
+            }
+          }
+        },
+        {
+          "write": {
+            ".wtf/lookups.json": "{\n  \"forecast:oaxaca:2026-11-20\": {\n    \"value\": {\n      \"high\": 25.2,\n      \"low\": 14.0,\n      \"summary\": \"seasonal outlook (estimate)\",\n      \"precipitation\": 0.9\n    },\n    \"fetched_at\": \"2026-09-17T12:00:00Z\",\n    \"source\": \"open-meteo.com (seasonal ensemble)\"\n  }\n}\n"
+          }
+        },
+        {
+          "watched": [
+            ".wtf/lookups.json"
+          ]
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "weather.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "weather.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 10,
+              "character": 0
+            }
+          }
+        },
+        {
+          "save": "weather.wtf"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "weather.wtf"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "weather.wtf",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 10,
+              "character": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

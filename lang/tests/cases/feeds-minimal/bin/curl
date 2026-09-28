@@ -1,0 +1,19 @@
+#!/bin/sh
+# A stand-in for `curl`: prints a feed with only its required fields present.
+for url in "$@"; do :; done
+case "$url" in
+  *example.com/minimal/feed.xml)
+    cat <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>Bare Feed</title>
+<item>
+<title>Bare Item</title>
+</item>
+</channel></rss>
+XML
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

@@ -1,0 +1,24 @@
+#!/bin/sh
+# A stand-in for `curl`: prints the RSS 2.0 document for the requested URL.
+for url in "$@"; do :; done
+case "$url" in
+  *example.com/news/feed.xml)
+    cat <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Acme &amp; Co Blog</title>
+  <link>https://example.com/news</link>
+  <lastBuildDate>Wed, 16 Sep 2026 10:00:00 +0000</lastBuildDate>
+  <item>
+    <title>It&#8217;s here</title>
+    <link>https://example.com/news/its-here</link>
+    <pubDate>Wed, 16 Sep 2026 10:00:00 +0000</pubDate>
+    <description>&lt;p&gt;Big news &#x2019;n stuff&lt;/p&gt;</description>
+  </item>
+</channel></rss>
+XML
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

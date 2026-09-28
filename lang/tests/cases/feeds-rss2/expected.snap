@@ -1,0 +1,36 @@
+### 0 cli refresh
+$ wtf refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (1 resources)
+
+### 1 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://example.com/news/feed.xml": {
+    "title": "Acme & Co Blog",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-16T18:00:00Z",
+    "provider": "rss:1",
+    "data": {
+      "count": 1,
+      "items": [
+        {
+          "link": "https://example.com/news/its-here",
+          "published": "2026-09-16T10:00:00Z",
+          "summary": "Big news ’n stuff",
+          "title": "It’s here"
+        }
+      ],
+      "latest": "It’s here",
+      "latest_link": "https://example.com/news/its-here",
+      "link": "https://example.com/news",
+      "title": "Acme & Co Blog",
+      "updated": "2026-09-16T10:00:00Z"
+    }
+  }
+}
+

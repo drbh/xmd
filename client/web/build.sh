@@ -2,4 +2,4 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # --out-dir is relative to the crate, so this lands in client/web/pkg.
-wasm-pack build lang --target web --out-dir ../client/web/pkg --out-name wtf --release --locked --no-default-features --features browser
+wasm-pack build lang/wasm --target web --out-dir ../../client/web/pkg --out-name wtf --release --locked

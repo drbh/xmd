@@ -1,0 +1,25 @@
+#!/bin/sh
+# A stand-in for `curl`: prints an RSS 1.0 (RDF) document for the requested URL.
+for url in "$@"; do :; done
+case "$url" in
+  *example.net/rdf/feed.xml)
+    cat <<'XML'
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+  <channel>
+    <title>RDF Feed</title>
+    <link>https://example.net/rdf</link>
+  </channel>
+  <item>
+    <title>RDF Item One</title>
+    <link>https://example.net/rdf/one</link>
+    <dc:date xmlns:dc="http://purl.org/dc/elements/1.1/">2026-09-10T08:00:00Z</dc:date>
+    <description>RDF description text</description>
+  </item>
+</rdf:RDF>
+XML
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

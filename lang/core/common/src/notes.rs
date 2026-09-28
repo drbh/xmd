@@ -35,7 +35,7 @@ pub const EXTENSION: &str = note_extension!();
 
 /// A note file name without its extension, or `None` when the name is not a
 /// note's (including a bare `.x.md` with no stem).
-pub fn note_stem(name: &str) -> Option<&str> {
+fn note_stem(name: &str) -> Option<&str> {
     name.strip_suffix(EXTENSION)?
         .strip_suffix('.')
         .filter(|stem| !stem.is_empty())

@@ -1,0 +1,30 @@
+[package]
+name = "xmd"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib"]
+
+[[bin]]
+name = "xmd"
+path = "src/main.rs"
+
+[features]
+# The browser host, for the end-to-end cases that drive it in-process.
+browser = ["dep:browser"]
+
+[dependencies]
+browser = { path = "../browser", optional = true }
+chrono = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+lang = { path = "../lang" }
+lsp = { path = "../lsp" }
+runtime = { path = "../runtime" }
+serde_json = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+
+[dev-dependencies]
+lsp-types = { workspace = true }
+tempfile = "3"
+url = { workspace = true }

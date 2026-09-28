@@ -14,17 +14,17 @@ mod tables_impl;
 
 // The parsed note and the pieces named directly by other layers.
 pub use document::{
-    Attribute, Document, HighlightKind, Named, Problem, Reference, byte_at, expression_regions,
-    identifier, utf16,
+    Attribute, Document, HighlightKind, Named, Reference, byte_at, expression_regions, identifier,
+    utf16,
 };
-pub use imports::{ExprImports, Member, is_note_path, note_path};
+pub use imports::{ExprImports, is_note_path, note_path};
 
 // Table, plan and itinerary parsing each define their own `parse`, so these
 // stay namespaced; `eval` (their only consumer) already names them this way.
 // Each file module below is private; the inline `pub mod` here is the
 // published namespace, listing exactly the items other layers name.
 pub mod itinerary {
-    pub use crate::itinerary_impl::{Day, Detail, KEYS, KINDS, Kind, Stop, clock, month_name};
+    pub use crate::itinerary_impl::{Day, KEYS, KINDS, Kind, Stop, clock, month_name};
 }
 pub mod plans {
     pub use crate::plans_impl::{Constraint, Goal, Plan, goal, regions, seek_body};

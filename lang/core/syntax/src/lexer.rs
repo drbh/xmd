@@ -317,7 +317,7 @@ pub struct Parser {
     parameters: Vec<String>,
 }
 
-pub fn simple_name(source: &str) -> Option<String> {
+fn simple_name(source: &str) -> Option<String> {
     Parser::parse(source).ok()?.as_name().map(str::to_string)
 }
 

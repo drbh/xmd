@@ -305,7 +305,7 @@ pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
             syntax::sum_scope_at(region.source(&doc.text), offset)
         })
 }
-/// Align parsed tables; document feature formatting runs through features::modules.
+/// Align parsed tables; document feature formatting runs through services::modules.
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {
     grids(doc)
         .iter()

@@ -1,0 +1,24 @@
+[package]
+name = "browser"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+chrono = { workspace = true }
+lang = { path = "../lang" }
+lsp-types = { workspace = true }
+runtime = { path = "../runtime" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+wasm-bindgen = "0.2"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lints]
+workspace = true

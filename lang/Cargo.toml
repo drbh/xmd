@@ -1,0 +1,16 @@
+[package]
+name = "lang"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# The language's one public interface. The crates under core/ are private to
+# it: everything outside lang/ depends on this facade, never on them.
+[dependencies]
+common = { path = "core/common" }
+eval = { path = "core/eval" }
+model = { path = "core/model" }
+syntax = { path = "core/syntax" }
+
+[lints]
+workspace = true

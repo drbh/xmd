@@ -546,7 +546,7 @@
           <tr><td>Last edit</td><td>{new Date(active.updated).toLocaleString()}</td></tr>
           <tr><td>Link</td><td><code>{location.href.replace(/\?test/, "")}</code></td></tr>
         </tbody></table>
-        <p class="muted">The file name is what other documents and <code>xmd sync</code> use; it follows the first heading until you rename the document yourself.</p>
+        <p class="muted">The file name is what other documents and the sync plugin use; it follows the first heading until you rename the document yourself.</p>
       </Dialog>
     {:else if dialog === "problems"}
       <Dialog title="Problems" onClose={() => (dialog = null)}>

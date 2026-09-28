@@ -1,0 +1,237 @@
+// Weather from Open-Meteo: keyless forecasts for the next 16 days, and a
+// seasonal ensemble outlook up to about 7 months ahead. Seasonal temperatures
+// are ensemble means, useful for planning but not a prediction of a specific
+// day's weather. https://open-meteo.com/en/docs/seasonal-forecast-api
+// A `forecast` command in .xmd/providers.json replaces this provider.
+module := {api: 1, id: "open_meteo", kind: "provider", provides: ["forecast"], inputs: []}
+
+// WMO weather interpretation codes, as Open-Meteo reports them.
+_codes := [
+  {codes: [0], text: "clear"},
+  {codes: [1], text: "mostly clear"},
+  {codes: [2], text: "partly cloudy"},
+  {codes: [3], text: "overcast"},
+  {codes: [45, 48], text: "fog"},
+  {codes: [51, 53, 55], text: "drizzle"},
+  {codes: [56, 57], text: "freezing drizzle"},
+  {codes: [61], text: "light rain"},
+  {codes: [63], text: "rain"},
+  {codes: [65], text: "heavy rain"},
+  {codes: [66, 67], text: "freezing rain"},
+  {codes: [71], text: "light snow"},
+  {codes: [73], text: "snow"},
+  {codes: [75], text: "heavy snow"},
+  {codes: [77], text: "snow grains"},
+  {codes: [80, 81], text: "showers"},
+  {codes: [82], text: "heavy showers"},
+  {codes: [85, 86], text: "snow showers"},
+  {codes: [95], text: "thunderstorm"},
+  {codes: [96, 99], text: "thunderstorm with hail"}
+]
+
+// The words for a weather code.
+_summary := fn(code) => (
+  coalesce(get(get(filter(_codes, fn(c) => contains(c.codes, code)), 0), "text"), "unknown")
+)
+
+// Whole days from today to the forecast date; today is day 0.
+_days_ahead := fn(key, today) => (
+  floor((key.date - today) / 1d)
+)
+
+// Past 16 days only the seasonal ensemble has an outlook.
+_seasonal := fn(key, today) => (
+  _days_ahead(key, today) >= 16
+)
+
+// Where the answer comes from.
+_source := fn(seasonal) => (
+  if(seasonal, "open-meteo.com (seasonal ensemble)", "open-meteo.com")
+)
+
+// A stored answer saying there is no forecast for the date yet.
+_unavailable := fn(seasonal) => (
+  {
+    value: {
+      error: if(seasonal, "no forecast yet; seasonal outlooks cover about 7 months", "no forecast yet for this date")
+    },
+    source: _source(seasonal),
+    done: true
+  }
+)
+
+// The forecast request for a place's coordinates.
+_forecast_url := fn(key, seasonal, lat, lon) => (
+  if(seasonal, "https://seasonal-api.open-meteo.com/v1/seasonal", "https://api.open-meteo.com/v1/forecast")
+  + "?latitude=" + source(lat)
+  + "&longitude=" + source(lon)
+  + "&daily=" + if(
+    seasonal,
+    "temperature_2m_max,temperature_2m_min,precipitation_sum",
+    "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max"
+  )
+  + "&timezone=auto&start_date=" + format_date(key.date, "%F")
+  + "&end_date=" + format_date(key.date, "%F")
+  + if(seasonal, "&models=ecmwf_seasonal_seamless&precipitation_unit=mm", "")
+)
+
+// Where the date falls in the reply's list of days, or null.
+_index := fn(times, date) => (
+  fold(
+    coalesce(times, []),
+    {at: 0, found: null},
+    fn(acc, time) => {at: acc.at + 1, found: if(acc.found == null && time == date, acc.at, acc.found)}
+  ).found
+)
+
+// Two decimal digits, as ensemble member suffixes are.
+_member := fn(suffix) => (
+  length(suffix) == 2 && contains("0123456789", slice(suffix, 0, 1)) && contains("0123456789", slice(suffix, 1, 2))
+)
+
+// Open-Meteo names the control run with the bare variable, and the other runs
+// with `_member01` through `_member50`. Unrelated statistics are ignored.
+_members := fn(daily, variable, index) => (
+  filter(
+    map(
+      filter(
+        entries(coalesce(daily, {})),
+        fn(e) => e.key == variable
+          || (starts_with(e.key, variable + "_member") && _member(slice(e.key, length(variable) + 7, length(e.key))))
+      ),
+      fn(e) => get(e.value, index)
+    ),
+    fn(v) => type(v) == "Number"
+  )
+)
+
+// The mean of the ensemble's values for a day, or null without any.
+_mean := fn(daily, variable, index) => (
+  if(
+    length(_members(daily, variable, index)) > 0,
+    fold(_members(daily, variable, index), 0, fn(sum, v) => sum + v) / number(length(_members(daily, variable, index))),
+    null
+  )
+)
+
+// A wet day's probability from valid ensemble runs, not the mean rainfall.
+// Missing runs are not dry runs, and a lone run cannot supply a probability.
+_wet_share := fn(daily, index) => (
+  if(
+    length(filter(_members(daily, "precipitation_sum", index), fn(v) => v >= 0)) > 1,
+    number(length(filter(_members(daily, "precipitation_sum", index), fn(v) => v > 0.1)))
+    / number(length(filter(_members(daily, "precipitation_sum", index), fn(v) => v >= 0))),
+    null
+  )
+)
+
+// A day's temperature: the ensemble mean for seasonal outlooks.
+_temperature := fn(daily, variable, index, seasonal) => (
+  if(
+    seasonal,
+    _mean(daily, variable, index),
+    if(type(get(get(daily, variable), index)) == "Number", get(get(daily, variable), index), null)
+  )
+)
+
+// Read one day out of the forecast reply.
+_day := fn(s, daily, index) => (
+  if(
+    index == null
+    || _temperature(daily, "temperature_2m_max", index, s.seasonal) == null
+    || _temperature(daily, "temperature_2m_min", index, s.seasonal) == null,
+    _unavailable(s.seasonal),
+    {
+      value: {
+        high: _temperature(daily, "temperature_2m_max", index, s.seasonal),
+        low: _temperature(daily, "temperature_2m_min", index, s.seasonal),
+        summary: if(
+          s.seasonal,
+          "seasonal outlook (estimate)",
+          _summary(coalesce(get(get(daily, "weather_code"), index), -1))
+        ),
+        precipitation: if(
+          s.seasonal,
+          _wet_share(daily, index),
+          if(
+            type(get(get(daily, "precipitation_probability_max"), index)) == "Number",
+            get(get(daily, "precipitation_probability_max"), index) / 100,
+            null
+          )
+        ),
+        place: s.place
+      },
+      source: _source(s.seasonal),
+      done: true
+    }
+  )
+)
+
+// Find the place, then ask for its forecast.
+_located := fn(ctx, r) => (
+  if(
+    !r.ok,
+    {error: r.error, done: true},
+    if(
+      type(get(get(get(get(r, "json"), "results"), 0), "latitude")) != "Number"
+      || type(get(get(get(get(r, "json"), "results"), 0), "longitude")) != "Number",
+      {value: {error: "Unknown place '" + ctx.key.place + "'"}, source: "open-meteo.com", done: true},
+      {
+        state: {
+          stage: "forecast",
+          seasonal: _seasonal(ctx.key, ctx.today),
+          place: if(
+            type(get(get(get(get(r, "json"), "results"), 0), "name")) == "Text",
+            get(get(get(get(r, "json"), "results"), 0), "name"),
+            ctx.key.place
+          )
+        },
+        requests: [
+          {
+            kind: "http",
+            url: _forecast_url(
+              ctx.key,
+              _seasonal(ctx.key, ctx.today),
+              get(get(get(get(r, "json"), "results"), 0), "latitude"),
+              get(get(get(get(r, "json"), "results"), 0), "longitude")
+            )
+          }
+        ],
+        done: false
+      }
+    )
+  )
+)
+
+step := fn(ctx) => (
+  if(
+    ctx.state == null,
+    if(
+      _days_ahead(ctx.key, ctx.today) >= 215,
+      _unavailable(_seasonal(ctx.key, ctx.today)),
+      {
+        state: {stage: "geocode"},
+        requests: [
+          {
+            kind: "http",
+            url: "https://geocoding-api.open-meteo.com/v1/search?name=" + url_encode(ctx.key.place) + "&count=1&language=en&format=json"
+          }
+        ],
+        done: false
+      }
+    ),
+    if(
+      ctx.state.stage == "geocode",
+      _located(ctx, get(ctx.results, 0)),
+      if(
+        !get(ctx.results, 0).ok,
+        {error: get(ctx.results, 0).error, done: true},
+        _day(
+          ctx.state,
+          get(get(get(ctx.results, 0), "json"), "daily"),
+          _index(get(get(get(get(ctx.results, 0), "json"), "daily"), "time"), format_date(ctx.key.date, "%F"))
+        )
+      )
+    )
+  )
+)

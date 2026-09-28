@@ -1,0 +1,19 @@
+[package]
+name = "host"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+chrono = { workspace = true }
+common = { path = "../../lang/core/common" }
+eval = { path = "../../lang/core/eval" }
+feed-rs = "3"
+ignore = "0.4"
+model = { path = "../../lang/core/model" }
+serde_json = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+url = { workspace = true }
+
+[lints]
+workspace = true

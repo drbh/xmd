@@ -1,0 +1,286 @@
+### 0 cli render daily.x.md --root parse --format text
+$ xmd render daily.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+# Heading
+Budget [$3,000]:budget. Spent [$1,410]:spent.
+[remaining] := budget-spent = $1,590
+- [ ] Review [remaining] $1,590 @estimate(20m)
+[Website](https://example.com) ![pic](./image.png)
+`[ignored] := 44`
+```xmd
+[also_ignored] := 9
+```
+<!-- [hidden] := 5 -->
+[日本語]:label
+
+### 1 cli query daily.x.md values | select {name, display} --root parse --json
+$ xmd query daily.x.md values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$3,000",
+    "name": "budget"
+  },
+  {
+    "display": "$1,410",
+    "name": "spent"
+  },
+  {
+    "display": "$1,590",
+    "name": "remaining"
+  },
+  {
+    "display": "日本語",
+    "name": "label"
+  }
+]
+
+### 2 cli query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json
+$ xmd query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  1,
+  2,
+  0
+]
+
+### 3 cli query expressions.x.md values | select {name, display, errors} --root parse --json
+$ xmd query expressions.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "14",
+    "errors": [],
+    "name": "n"
+  },
+  {
+    "display": "20",
+    "errors": [],
+    "name": "grouped"
+  },
+  {
+    "display": "5",
+    "errors": [],
+    "name": "division"
+  },
+  {
+    "display": "60%",
+    "errors": [],
+    "name": "ratio"
+  },
+  {
+    "display": "2026-09-25",
+    "errors": [],
+    "name": "departure"
+  },
+  {
+    "display": "2026-09-18",
+    "errors": [],
+    "name": "due"
+  },
+  {
+    "display": "2h",
+    "errors": [],
+    "name": "time"
+  },
+  {
+    "display": "true",
+    "errors": [],
+    "name": "ok"
+  },
+  {
+    "display": "false",
+    "errors": [],
+    "name": "short"
+  }
+]
+
+### 4 cli query places.x.md values | select {name, display, errors} --root parse --json
+$ xmd query places.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "./assets/receipt.png",
+    "errors": [],
+    "name": "alias"
+  },
+  {
+    "display": "geo:40.73,-73.98",
+    "errors": [],
+    "name": "spot"
+  },
+  {
+    "display": "geo:91,0",
+    "errors": [],
+    "name": "nowhere"
+  }
+]
+
+### 5 lsp
+-- open parse/places.x.md
+-- request textDocument/documentLink parse/places.x.md
+[
+  {
+    "range": {
+      "end": {
+        "character": 53,
+        "line": 0
+      },
+      "start": {
+        "character": 10,
+        "line": 0
+      }
+    },
+    "target": "file://<root>/parse/project/assets/receipt.png",
+    "tooltip": "Open file://<root>/parse/project/assets/receipt.png"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 1
+      },
+      "start": {
+        "character": 1,
+        "line": 1
+      }
+    },
+    "target": "https://www.openstreetmap.org/?mlat=40.73&mlon=-73.98#map=16/40.73/-73.98",
+    "tooltip": "Open https://www.openstreetmap.org/?mlat=40.73&mlon=-73.98#map=16/40.73/-73.98"
+  }
+]
+
+### 6 cli render lookalike.x.md --root parse --format text
+$ xmd render lookalike.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
+exit 1
+--- stdout
+[https://github.com.evil.example/acme/app/pull/42]:fake link
+[ok] := fake.merged
+--- stderr
+<root>/parse/lookalike.x.md:2:9: error: Unknown resource property 'merged'
+xmd: 1 error(s) while rendering
+
+### 7 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json
+$ xmd query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "title": "Call dentist #errands"
+  }
+]
+
+### 8 cli query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+$ xmd query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+exit 0
+--- stdout
+[
+  "Call dentist #errands"
+]
+
+### 9 cli query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json
+$ xmd query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 10 read cli/inbox.x.md cli/.xmd/cache.json
+-- cli/inbox.x.md
+- [ ] Call dentist #errands @due(2026-09-18)
+-- cli/.xmd/cache.json
+(missing: entity not found)
+
+### 11 cli query --workspace plans | where name == "bakery" | select solution --root plan
+$ xmd query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+columns=[]	constraints=[{"anchor":{"character":56,"line":4},"binding":true,"lhs":400,"name":"flour","op":"<=","range":{"end":{"character":54,"line":4},"start":{"character":10,"line":4}},"rhs":400,"slack":0},{"anchor":{"character":28,"line":5},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26,"line":5},"start":{"character":14,"line":5}},"rhs":12,"slack":13.75},{"anchor":{"character":34,"line":6},"binding":true,"lhs":14,"name":"doughnut_min","op":">=","range":{"end":{"character":32,"line":6},"start":{"character":17,"line":6}},"rhs":14,"slack":0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14}
+
+### 12 cli query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json
+$ xmd query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "binding": [
+      {
+        "anchor": {
+          "character": 56,
+          "line": 4
+        },
+        "binding": true,
+        "lhs": 400,
+        "name": "flour",
+        "op": "<=",
+        "range": {
+          "end": {
+            "character": 54,
+            "line": 4
+          },
+          "start": {
+            "character": 10,
+            "line": 4
+          }
+        },
+        "rhs": 400,
+        "slack": 0
+      },
+      {
+        "anchor": {
+          "character": 28,
+          "line": 5
+        },
+        "binding": false,
+        "lhs": 25.75,
+        "name": "bagel_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 5
+          },
+          "start": {
+            "character": 14,
+            "line": 5
+          }
+        },
+        "rhs": 12,
+        "slack": 13.75
+      },
+      {
+        "anchor": {
+          "character": 34,
+          "line": 6
+        },
+        "binding": true,
+        "lhs": 14,
+        "name": "doughnut_min",
+        "op": ">=",
+        "range": {
+          "end": {
+            "character": 32,
+            "line": 6
+          },
+          "start": {
+            "character": 17,
+            "line": 6
+          }
+        },
+        "rhs": 14,
+        "slack": 0
+      }
+    ],
+    "objective": {
+      "amount": 94.75,
+      "currency": "USD",
+      "type": "money"
+    }
+  }
+]
+

@@ -1,0 +1,30 @@
+[package]
+name = "xmd"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib"]
+
+[[bin]]
+name = "xmd"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = ["dep:native"]
+browser = ["dep:wasm"]
+
+[dependencies]
+common = { path = "../lang/core/common" }
+features = { path = "features" }
+model = { path = "../lang/core/model" }
+native = { path = "native", optional = true }
+wasm = { path = "wasm", optional = true }
+
+[dev-dependencies]
+lsp-types = { workspace = true }
+serde_json = { workspace = true }
+tempfile = "3"
+url = { workspace = true }

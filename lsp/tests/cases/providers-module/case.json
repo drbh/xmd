@@ -1,0 +1,7 @@
+{
+  "steps": [
+    { "cli": ["refresh"] },
+    { "read": [".xmd/lookups.json"] },
+    { "cli": ["render", "money.x.md", "--format", "text"] }
+  ]
+}

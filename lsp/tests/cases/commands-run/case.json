@@ -1,0 +1,53 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "run",
+        "./demo.x.md",
+        "work",
+        "--key",
+        "k1",
+        "--verbose"
+      ],
+      "env": {
+        "XMD_GREETING": "hello",
+        "XDG_CONFIG_HOME": "config"
+      }
+    },
+    {
+      "read": [
+        "work/out/summary.txt",
+        "work/archive/a.txt",
+        "config/xmd/credentials.json"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "escape",
+        "work"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "missing",
+        "work"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./helpers.x.md",
+        "work"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./merge.x.md",
+        "work"
+      ]
+    }
+  ]
+}

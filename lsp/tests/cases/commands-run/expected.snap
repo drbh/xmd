@@ -1,0 +1,53 @@
+### 0 cli run ./demo.x.md work --key k1 --verbose
+$ XDG_CONFIG_HOME=config XMD_GREETING=hello xmd run ./demo.x.md work --key k1 --verbose
+exit 0
+--- stdout
+asked for 0 positional arguments
+greeting=hello files=a.txt,b.txt a=alpha status=200 ids=1,2 fields=1 key=k1 uuid=36 missing=false
+
+### 1 read work/out/summary.txt work/archive/a.txt config/xmd/credentials.json
+-- work/out/summary.txt
+greeting=hello files=a.txt,b.txt a=alpha status=200 ids=1,2 fields=1 key=k1 uuid=36 missing=false
+-- work/archive/a.txt
+alpha
+-- config/xmd/credentials.json
+{
+  "demo example.com": "k1"
+}
+
+### 2 cli run escape work
+$ xmd run escape work
+exit 0
+--- stdout
+false: ../demo.x.md: paths stay inside the command's directory
+false: /tmp/x: paths stay inside the command's directory
+
+### 3 cli run missing work
+$ xmd run missing work
+exit 1
+--- stderr
+xmd: No command module 'missing' is activated under .
+
+### 4 cli run ./helpers.x.md work
+$ xmd run ./helpers.x.md work
+exit 1
+--- stderr
+xmd: helpers is a library module, not a command
+
+### 5 cli run ./merge.x.md work
+$ xmd run ./merge.x.md work
+exit 0
+--- stdout
+{"clean": true, "text": "A\nb\nC\n"}
+false
+<<<<<<< ours
+x
+||||||| original
+a
+=======
+y
+>>>>>>> theirs
+b
+c
+
+

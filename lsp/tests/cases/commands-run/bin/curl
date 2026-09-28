@@ -1,0 +1,6 @@
+#!/bin/sh
+# The runner calls: curl -sS -L --max-time 30 -X METHOD URL ...
+case "$7" in
+  https://api.example.com/items) printf '%s\n%s' '[{"id":1,"secret":"x"},{"id":2,"secret":"y"}]' 200 ;;
+  *) echo "unexpected $7" >&2; exit 22 ;;
+esac

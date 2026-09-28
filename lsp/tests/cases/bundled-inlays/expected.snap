@@ -1,0 +1,160 @@
+### 0 cli render checklists.x.md --format text
+$ xmd render checklists.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Work
+- [x] Done @estimate(20m)
+- [ ] Next @estimate(30m)
+## Nested ████░░░░ 1/2 complete · 1h estimated left
+- [ ] Parent ████░░░░ 1/2 subtasks
+  - [x] Child
+  - [ ] Child @estimate(1h)
+# Empty
+
+### 1 cli render formula.x.md --format text
+$ xmd render formula.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stdout
+# Formula
+[$30]:budget
+[$5]:spent
+🦀 Remaining [budget - spent] $25.
+2 + 3 = 5
+Clock [now()] 2026-09-18 12:00:00 +00:00.
+Broken [missing + 2].
+--- stderr
+<root>/formula.x.md:7:9: error: Unknown name 'missing'
+xmd: 1 error(s) while rendering
+
+### 2 cli render table.x.md --format text
+$ xmd render table.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stdout
+prices := table
+| Item | Cost |
+| --- | --- |
+| Tea | [$2 * 3] $6 |
+| Pie | [missing + 1] |
+--- stderr
+<root>/table.x.md:5:10: error: Unknown name 'missing'
+xmd: 1 error(s) while rendering
+
+### 3 cli render plain.x.md --format text
+$ xmd render plain.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Empty
+plain text
+
+### 4 lsp
+-- open checklists.x.md
+-- request textDocument/inlayHint checklists.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "████░░░░ 1/2 complete · 1h estimated left",
+    "paddingLeft": true,
+    "position": {
+      "character": 9,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`█████░░░░░ 50%` 1/2 complete · 1h estimated left"
+    }
+  },
+  {
+    "label": "████░░░░ 1/2 subtasks",
+    "paddingLeft": true,
+    "position": {
+      "character": 12,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`█████░░░░░ 50%` 1/2 subtasks\n\nUse code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  }
+]
+-- open formula.x.md
+-- request textDocument/inlayHint formula.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "$25",
+    "paddingLeft": true,
+    "position": {
+      "character": 29,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`budget - spent` = $25"
+    }
+  },
+  {
+    "label": "= 5",
+    "paddingLeft": true,
+    "position": {
+      "character": 5,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`2 + 3` = 5"
+    }
+  },
+  {
+    "label": "2026-09-18 12:00:00 +00:00",
+    "paddingLeft": true,
+    "position": {
+      "character": 13,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`now()` = 2026-09-18 12:00:00 +00:00"
+    }
+  }
+]
+-- await textDocument/publishDiagnostics formula.x.md
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'missing'",
+      "range": {
+        "end": {
+          "character": 15,
+          "line": 6
+        },
+        "start": {
+          "character": 8,
+          "line": 6
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/formula.x.md",
+  "version": 1
+}
+-- open table.x.md
+-- request textDocument/inlayHint table.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "$6",
+    "paddingLeft": true,
+    "position": {
+      "character": 16,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`$2 * 3` = $6"
+    }
+  }
+]
+-- open plain.x.md
+-- request textDocument/inlayHint plain.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+[]
+

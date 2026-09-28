@@ -25,7 +25,7 @@ pub(crate) enum Target {
 }
 
 pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<Target> {
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     let row = position.line as usize;
     let byte = byte_at(doc.line(row), position.character)?;
     if let Some(link) = doc
@@ -63,7 +63,7 @@ pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<
 }
 
 pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Option<(Symbol, Span)> {
-    let doc = workspace.documents.get(path)?;
+    let doc = workspace.documents().get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let inside =
         |span: Span| span.line == position.line as usize && byte >= span.start && byte <= span.end;

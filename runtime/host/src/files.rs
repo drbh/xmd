@@ -41,8 +41,8 @@ impl WorkspaceFiles for Workspace {
     fn scan_notes(roots: Vec<PathBuf>) -> (Self, Vec<String>) {
         let mut result = empty(roots);
         let mut errors = Vec::new();
-        for root in &result.roots {
-            let walker = ignore::WalkBuilder::new(root)
+        for root in result.roots().to_vec() {
+            let walker = ignore::WalkBuilder::new(&root)
                 .hidden(true)
                 .follow_links(false)
                 .require_git(false)
@@ -73,9 +73,7 @@ impl WorkspaceFiles for Workspace {
                             continue;
                         }
                     };
-                    result
-                        .documents
-                        .insert(entry.path().to_path_buf(), Document::parse(text));
+                    result.insert_document(entry.path().to_path_buf(), Document::parse(text));
                 }
             }
         }
@@ -90,18 +88,18 @@ impl WorkspaceFiles for Workspace {
     }
     fn load_source(roots: Vec<PathBuf>, path: &Path, text: String) -> Result<Self, String> {
         let mut result = empty(roots);
-        result.documents.insert(path.into(), Document::parse(text));
+        result.insert_document(path.into(), Document::parse(text));
         result.load_imports();
         result.reload_modules()?;
         Ok(result)
     }
     fn reload_modules(&mut self) -> Result<(), String> {
-        let modules = load_modules(&self.roots)?;
-        if !self.modules.same_sources(&modules) {
-            self.modules = std::sync::Arc::new(modules);
+        let modules = load_modules(self.roots())?;
+        if !self.modules().same_sources(&modules) {
+            self.replace_modules(std::sync::Arc::new(modules));
         }
-        for module in &self.modules.modules {
-            self.documents.remove(&module.path);
+        for module in &self.modules().clone().modules {
+            self.remove_document(&module.path);
         }
         Ok(())
     }
@@ -109,22 +107,22 @@ impl WorkspaceFiles for Workspace {
         if !lang::common::is_note(path) {
             return Err(format!("Expected a .{} note", lang::common::EXTENSION));
         }
-        if !self.documents.contains_key(path) {
+        if !self.documents().contains_key(path) {
             let text =
                 std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-            self.documents.insert(path.into(), Document::parse(text));
+            self.insert_document(path.into(), Document::parse(text));
         }
         self.load_imports();
         Ok(())
     }
     fn load_imports(&mut self) {
-        let mut pending: Vec<_> = self.documents.keys().cloned().collect();
+        let mut pending: Vec<_> = self.documents().keys().cloned().collect();
         let mut visited = std::collections::BTreeSet::new();
         while let Some(path) = pending.pop() {
             if !visited.insert(path.clone()) {
                 continue;
             }
-            let Some(doc) = self.documents.get(&path) else {
+            let Some(doc) = self.documents().get(&path) else {
                 continue;
             };
             let imports: Vec<_> = doc
@@ -133,10 +131,10 @@ impl WorkspaceFiles for Workspace {
                 .filter_map(|id| lang::model::note_path(&path, id).ok())
                 .collect();
             for target in imports {
-                if !self.documents.contains_key(&target)
+                if !self.documents().contains_key(&target)
                     && let Ok(text) = std::fs::read_to_string(&target)
                 {
-                    self.documents.insert(target.clone(), Document::parse(text));
+                    self.insert_document(target.clone(), Document::parse(text));
                 }
                 pending.push(target);
             }
@@ -145,7 +143,7 @@ impl WorkspaceFiles for Workspace {
     fn save_cache(&self) -> Result<(), String> {
         let dir = self.root().join(".xmd");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        let bytes = serde_json::to_vec_pretty(&self.cache).map_err(|e| e.to_string())?;
+        let bytes = serde_json::to_vec_pretty(&self.cache()).map_err(|e| e.to_string())?;
         // Atomic replacement avoids partially written cache data after a crash.
         let tmp = dir.join(format!("cache-{}.tmp", std::process::id()));
         std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
@@ -167,16 +165,9 @@ impl services::session::NoteFiles for DiskFiles {
 
 /// A workspace with no notes yet, holding each root's cache and lookups.
 fn empty(roots: Vec<PathBuf>) -> Workspace {
-    let mut result = Workspace {
-        roots,
-        documents: BTreeMap::new(),
-        cache: BTreeMap::new(),
-        lookups: BTreeMap::new(),
-        modules: Default::default(),
-    };
-    for root in &result.roots {
-        result.cache.extend(load_cache(root));
-        result.lookups.extend(crate::lookups_impl::load(root));
+    let mut result = Workspace::new(roots);
+    for root in result.roots().to_vec() {
+        result.extend_caches(load_cache(&root), crate::lookups_impl::load(&root));
     }
     result
 }

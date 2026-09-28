@@ -16,7 +16,7 @@ pub(crate) fn resources_at(
 ) -> Vec<Resource> {
     let ws = request.workspace();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let mut engine = request.engine();
@@ -52,7 +52,7 @@ pub(crate) fn resources_at(
 }
 /// The shared title for the task toggle lens and code action.
 pub(crate) fn task_toggle_title(engine: &mut Engine<'_>, path: &Path, index: usize) -> String {
-    let recurring = engine.workspace().documents[path].tasks[index]
+    let recurring = engine.workspace().documents()[path].tasks[index]
         .attributes
         .contains_key("every");
     let done = engine.task_done(path, index);
@@ -75,7 +75,7 @@ pub(crate) fn builtin_controls(
     capabilities: Capabilities,
 ) -> Vec<Command> {
     let ws = request.workspace();
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let uri = lang::common::file_url(path).unwrap();
@@ -140,7 +140,7 @@ pub(crate) fn lenses(
 ) -> Vec<CodeLens> {
     let ws = request.workspace();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let rows: BTreeSet<_> = doc
@@ -152,7 +152,7 @@ pub(crate) fn lenses(
         .chain(doc.links.iter().map(|l| l.span.line))
         .chain(
             if ws
-                .modules
+                .modules()
                 .active()
                 .any(|m| m.kind == ModuleKind::Feature && m.has(Hook::Actions))
             {

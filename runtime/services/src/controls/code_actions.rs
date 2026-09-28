@@ -55,7 +55,7 @@ pub(crate) fn code_actions(
     toggle: TaskToggle,
 ) -> Vec<CodeActionItem> {
     let ws = request.workspace();
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let row = range.start.line as usize;
@@ -117,7 +117,7 @@ pub(crate) fn toggle_task(
     let workspace = request.workspace();
     let today = request.today();
 
-    let doc = &workspace.documents[path];
+    let doc = &workspace.documents()[path];
     let task = doc.tasks.get(index).ok_or("No task at this line")?;
     let mut engine = request.engine();
     let done = engine.task_done(path, index);
@@ -239,7 +239,7 @@ pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path
     let today = request.today();
     let workspace = request.workspace();
 
-    let doc = &workspace.documents[path];
+    let doc = &workspace.documents()[path];
     let mut engine = request.engine();
     doc.tasks
         .iter()

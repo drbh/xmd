@@ -34,13 +34,7 @@ impl BrowserWorkspace {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            session: WorkspaceSession::browser(Workspace {
-                roots: vec!["/workspace".into()],
-                documents: BTreeMap::new(),
-                cache: BTreeMap::new(),
-                lookups: Default::default(),
-                modules: Default::default(),
-            }),
+            session: WorkspaceSession::browser(Workspace::new(vec!["/workspace".into()])),
         }
     }
 
@@ -123,7 +117,7 @@ impl BrowserWorkspace {
                 .link_features()
                 .decode_refresh(&target, &data, now.to_utc())
                 .map_err(|e| e.to_string())?;
-            self.session.workspace.cache.insert(target, metadata);
+            self.session.workspace.store_link_status(target, metadata);
             return Ok(Value::Null);
         }
         if method == "setModules" {
@@ -148,7 +142,9 @@ impl BrowserWorkspace {
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
             let modules = lang::eval::modules::ModuleRegistry::compile(sources)?;
-            self.session.workspace.modules = std::sync::Arc::new(modules);
+            self.session
+                .workspace
+                .replace_modules(std::sync::Arc::new(modules));
             return Ok(Value::Null);
         }
         if method == "setDocument" {
@@ -163,7 +159,7 @@ impl BrowserWorkspace {
         }
         if method == "removeDocument" {
             let path = virtual_path(&field::<String>(&params, "uri")?)?;
-            self.session.workspace.documents.remove(&path);
+            self.session.workspace.remove_document(&path);
             self.session.close(&path);
             return Ok(Value::Null);
         }
@@ -194,7 +190,7 @@ impl BrowserWorkspace {
         let doc = self
             .session
             .workspace
-            .documents
+            .documents()
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
         let ws = &self.session.workspace;
@@ -205,7 +201,7 @@ impl BrowserWorkspace {
             range: ws
                 .named(symbol)
                 .span
-                .range(&ws.documents[&symbol.path].text),
+                .range(&ws.documents()[&symbol.path].text),
         };
         match method {
             "documentLinks" => serialized(request.document_links(&path)),
@@ -275,7 +271,7 @@ impl BrowserWorkspace {
                     .into_iter()
                     .map(|(p, span)| Location {
                         uri: lang::common::uri_from_url(&uri(&p)),
-                        range: span.range(&ws.documents[&p].text),
+                        range: span.range(&ws.documents()[&p].text),
                     })
                     .collect();
                 if method == "references" {

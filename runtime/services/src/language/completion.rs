@@ -56,7 +56,7 @@ pub(crate) fn completions(
     let ws = request.workspace();
     let now = request.now();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     if inert(doc, position) {
@@ -157,7 +157,7 @@ pub(crate) fn completions(
             }
             let detail = crate::language::describe::detail(
                 &mut engine,
-                &ws.documents[&symbol.path],
+                &ws.documents()[&symbol.path],
                 &symbol,
             );
             result.push(CompletionItem {

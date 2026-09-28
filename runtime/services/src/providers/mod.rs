@@ -72,7 +72,7 @@ impl Provider for Builtin {
     fn edits(&self, request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextEdit>, String> {
         let doc = request
             .workspace()
-            .documents
+            .documents()
             .get(path)
             .ok_or("Unknown document")?;
         Ok(lang::eval::tables::formatting(doc))
@@ -83,7 +83,7 @@ impl Provider for Builtin {
 fn modules<'a>(request: &RequestContext<'a>) -> impl Iterator<Item = &'a Module> {
     request
         .workspace()
-        .modules
+        .modules()
         .active()
         .filter(|m| m.kind == ModuleKind::Feature)
 }
@@ -104,7 +104,7 @@ pub(crate) fn inlays(
 /// A feature module's hover takes precedence, so a module can refine what the
 /// editor would otherwise explain.
 pub(crate) fn hover(request: &RequestContext<'_>, path: &Path, at: Position) -> Option<Hover> {
-    request.workspace().documents.get(path)?;
+    request.workspace().documents().get(path)?;
     modules(request)
         .find_map(|m| m.hover(request, path, at))
         .or_else(|| Builtin.hover(request, path, at))
@@ -136,7 +136,7 @@ pub(crate) fn controls(
 pub(crate) fn edits(request: &RequestContext<'_>, path: &Path) -> Result<Vec<TextEdit>, String> {
     let doc = request
         .workspace()
-        .documents
+        .documents()
         .get(path)
         .ok_or("Unknown document")?;
     let mut edits = Vec::new();

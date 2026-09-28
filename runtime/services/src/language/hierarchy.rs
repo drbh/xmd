@@ -14,7 +14,7 @@ pub fn prepare(ws: &Workspace, path: &Path, position: Position) -> Option<Symbol
     if let Some((symbol, _)) = symbol_at(ws, path, position) {
         return Some(symbol);
     }
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     let row = position.line as usize;
     doc.tasks
         .iter()
@@ -30,7 +30,7 @@ pub fn prepare(ws: &Workspace, path: &Path, position: Position) -> Option<Symbol
 
 /// Display name for any node, including tasks without a `:name`.
 pub(crate) fn label(ws: &Workspace, symbol: &Symbol) -> String {
-    let doc = &ws.documents[&symbol.path];
+    let doc = &ws.documents()[&symbol.path];
     match symbol.kind {
         SymbolKind::Task(i) => doc.tasks[i]
             .named
@@ -87,7 +87,7 @@ fn extent(doc: &Document, symbol: &Symbol) -> Range {
 
 pub(crate) fn item(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> CallHierarchyItem {
     let ws = request.workspace();
-    let doc = &ws.documents[&symbol.path];
+    let doc = &ws.documents()[&symbol.path];
     let mut engine = request.engine();
     let kind = crate::language::describe::kind(doc, symbol);
     let detail = crate::language::describe::detail(&mut engine, doc, symbol);
@@ -116,7 +116,7 @@ pub(crate) fn encode(symbol: &Symbol) -> serde_json::Value {
 pub fn decode(ws: &Workspace, item: &CallHierarchyItem) -> Option<Symbol> {
     let data = item.data.as_ref()?;
     let path: PathBuf = serde_json::from_value(data.get("path")?.clone()).ok()?;
-    let doc = ws.documents.get(&path)?;
+    let doc = ws.documents().get(&path)?;
     let index = data.get("index")?.as_u64()? as usize;
     let column = data.get("column")?.as_u64()? as usize;
     let kind = match data.get("kind")?.as_str()? {
@@ -141,7 +141,7 @@ pub fn decode(ws: &Workspace, item: &CallHierarchyItem) -> Option<Symbol> {
 
 /// Everything `symbol` reads, with the spans in its own note where each read happens.
 pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)> {
-    let doc = &ws.documents[&symbol.path];
+    let doc = &ws.documents()[&symbol.path];
     let mut edges: Vec<(Symbol, Vec<Span>)> = Vec::new();
     let own_variable = |target: &Symbol| matches!((&symbol.kind, &target.kind), (SymbolKind::Definition(i), SymbolKind::Variable(p, _)) if target.path == symbol.path && doc.plans[*p].definition == *i);
     let mut add = |target: Symbol, span: Span| {
@@ -233,7 +233,7 @@ pub fn dependents(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)> {
 }
 /// Every node that can hold an edge, including unnamed tasks and sections.
 pub(crate) fn nodes(ws: &Workspace) -> Vec<Symbol> {
-    ws.documents
+    ws.documents()
         .iter()
         .flat_map(|(path, doc)| {
             let mut kinds: Vec<SymbolKind> = (0..doc.definitions.len())
@@ -259,6 +259,6 @@ pub(crate) fn nodes(ws: &Workspace) -> Vec<Symbol> {
         .collect()
 }
 pub fn ranges(ws: &Workspace, path: &Path, spans: &[Span]) -> Vec<Range> {
-    let text = &ws.documents[path].text;
+    let text = &ws.documents()[path].text;
     spans.iter().map(|s| s.range(text)).collect()
 }

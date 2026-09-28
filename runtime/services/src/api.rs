@@ -194,8 +194,7 @@ impl WorkspaceSession {
                 .insert(path.to_path_buf(), Document::parse(text));
         } else {
             self.workspace
-                .documents
-                .insert(path.to_path_buf(), Document::parse(text));
+                .insert_document(path.to_path_buf(), Document::parse(text));
             if let Some(files) = &self.files {
                 files.load_imports(&mut self.workspace);
             }
@@ -219,23 +218,22 @@ impl WorkspaceSession {
         let open: Vec<_> = self.open.keys().cloned().collect();
         for path in open {
             if module_path(&fresh, &path) {
-                if let Some(doc) = self.workspace.documents.get(&path).cloned() {
+                if let Some(doc) = self.workspace.documents().get(&path).cloned() {
                     self.module_buffers.insert(path, doc);
                 }
             } else if let Some(doc) = self
                 .module_buffers
                 .remove(&path)
-                .or_else(|| self.workspace.documents.get(&path).cloned())
+                .or_else(|| self.workspace.documents().get(&path).cloned())
             {
-                fresh.documents.insert(path, doc);
+                fresh.insert_document(path, doc);
             }
         }
         if let Some(files) = &self.files {
             files.load_imports(&mut fresh);
         }
-        fresh
-            .documents
-            .retain(|path, _| !fresh.modules.modules.iter().any(|m| m.path == *path));
+        let modules = fresh.modules().clone();
+        fresh.retain_documents(|path| !modules.modules.iter().any(|m| m.path == path));
         self.workspace = fresh;
     }
 
@@ -248,7 +246,7 @@ impl WorkspaceSession {
     pub fn document_for_highlighting(&self, path: &Path) -> Option<&Document> {
         self.module_buffers
             .get(path)
-            .or_else(|| self.workspace.documents.get(path))
+            .or_else(|| self.workspace.documents().get(path))
     }
 
     pub fn versions(&self) -> &BTreeMap<PathBuf, i32> {
@@ -278,7 +276,7 @@ impl WorkspaceSession {
 /// A module source either by location or because a manifest activated it.
 fn module_path(workspace: &Workspace, path: &Path) -> bool {
     lang::eval::modules::is_module_path(path)
-        || workspace.modules.modules.iter().any(|m| m.path == path)
+        || workspace.modules().modules.iter().any(|m| m.path == path)
 }
 
 /// What one refresh found: the diagnostics a client has not been told about,
@@ -374,7 +372,7 @@ fn refreshable(session: &WorkspaceSession, keep: impl Fn(&Path) -> bool) -> Vec<
     session
         .versions()
         .iter()
-        .filter(|(path, _)| session.workspace.documents.contains_key(*path) && keep(path))
+        .filter(|(path, _)| session.workspace.documents().contains_key(*path) && keep(path))
         .map(|(path, version)| (path.clone(), *version))
         .collect()
 }

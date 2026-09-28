@@ -87,13 +87,7 @@ impl Backend {
             client,
             state: Arc::new(RwLock::new(State {
                 session: WorkspaceSession::editor(
-                    Workspace {
-                        roots: Vec::new(),
-                        documents: BTreeMap::new(),
-                        cache: BTreeMap::new(),
-                        lookups: BTreeMap::new(),
-                        modules: Default::default(),
-                    },
+                    Workspace::new(Vec::new()),
                     Arc::new(runtime::host::DiskFiles),
                 ),
                 hint_refresh: false,
@@ -153,13 +147,13 @@ impl Backend {
         let (roots, modules) = {
             let state = self.state.read().await;
             (
-                state.session.workspace.roots.clone(),
-                state.session.workspace.modules.clone(),
+                state.session.workspace.roots().to_vec(),
+                state.session.workspace.modules().clone(),
             )
         };
         let result = tokio::task::spawn_blocking(move || {
             let (mut workspace, mut errors) = Workspace::scan_notes(roots);
-            workspace.modules = modules;
+            workspace.replace_modules(modules);
             if let Err(error) = workspace.reload_modules() {
                 errors.push(error);
             }
@@ -226,7 +220,9 @@ impl LanguageServer for Backend {
         }
         {
             let mut state = self.state.write().await;
-            state.session.workspace.roots = roots;
+            // Nothing is open before initialization, so the workspace starts
+            // over on the client's roots.
+            state.session.workspace = Workspace::new(roots);
             state.hierarchical_symbols = params
                 .capabilities
                 .text_document
@@ -418,7 +414,7 @@ impl LanguageServer for Backend {
         Ok(state
             .session
             .workspace
-            .documents
+            .documents()
             .contains_key(&path)
             .then(|| {
                 runtime::services::Request::new(&state.session.workspace, now())
@@ -462,7 +458,7 @@ impl LanguageServer for Backend {
                         .workspace
                         .named(&s)
                         .span
-                        .range(&state.session.workspace.documents[&s.path].text),
+                        .range(&state.session.workspace.documents()[&s.path].text),
                 })
             }),
         )
@@ -480,7 +476,7 @@ impl LanguageServer for Backend {
             .skip(usize::from(!params.context.include_declaration))
             .map(|(p, span)| Location {
                 uri: uri_from_url(&uri(&p)),
-                range: span.range(&ws.documents[&p].text),
+                range: span.range(&ws.documents()[&p].text),
             })
             .collect();
         Ok(Some(result))
@@ -503,7 +499,7 @@ impl LanguageServer for Backend {
         let mut changes: BTreeMap<PathBuf, Vec<TextEdit>> = BTreeMap::new();
         for (p, span) in runtime::services::intelligence::occurrences(ws, &symbol) {
             changes.entry(p.clone()).or_default().push(TextEdit::new(
-                span.range(&ws.documents[&p].text),
+                span.range(&ws.documents()[&p].text),
                 params.new_name.clone(),
             ));
         }
@@ -540,7 +536,7 @@ impl LanguageServer for Backend {
         Ok(state
             .session
             .workspace
-            .documents
+            .documents()
             .get(&path)
             .and_then(|doc| runtime::services::intelligence::signature(doc, &path, at.position)))
     }
@@ -561,7 +557,7 @@ impl LanguageServer for Backend {
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
-        let doc = &ws.documents[&path];
+        let doc = &ws.documents()[&path];
         let result = runtime::services::intelligence::occurrences(ws, &symbol)
             .into_iter()
             .enumerate()
@@ -586,7 +582,7 @@ impl LanguageServer for Backend {
         Ok(
             symbol_at(&state.session.workspace, &path, params.position).map(|(s, span)| {
                 PrepareRenameResponse::RangeWithPlaceholder {
-                    range: span.range(&state.session.workspace.documents[&path].text),
+                    range: span.range(&state.session.workspace.documents()[&path].text),
                     placeholder: state.session.workspace.named(&s).name.clone(),
                 }
             }),
@@ -595,7 +591,7 @@ impl LanguageServer for Backend {
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        if !state.session.workspace.documents.contains_key(&path) {
+        if !state.session.workspace.documents().contains_key(&path) {
             return Ok(None);
         }
         let request = runtime::services::Request::new(&state.session.workspace, now());
@@ -604,7 +600,7 @@ impl LanguageServer for Backend {
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        if !state.session.workspace.documents.contains_key(&path) {
+        if !state.session.workspace.documents().contains_key(&path) {
             return Ok(None);
         }
         let request = runtime::services::Request::new(&state.session.workspace, now());
@@ -698,7 +694,7 @@ impl LanguageServer for Backend {
                         .map_err(Error::invalid_params)?;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&snapshot.modules, &state.session.workspace.modules) {
+                    if !Arc::ptr_eq(snapshot.modules(), state.session.workspace.modules()) {
                         return Err(Error::invalid_params(
                             "Modules changed during refresh; refresh again",
                         ));
@@ -706,8 +702,7 @@ impl LanguageServer for Backend {
                     state
                         .session
                         .workspace
-                        .cache
-                        .insert(resource.target, metadata);
+                        .store_link_status(resource.target, metadata);
                     state.session.workspace.clone()
                 };
                 tokio::task::spawn_blocking(move || workspace.save_cache())
@@ -722,13 +717,12 @@ impl LanguageServer for Backend {
                     runtime::host::refresh_workspace(&mut workspace, now(), path.as_deref()).await;
                 let workspace = {
                     let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(&workspace.modules, &state.session.workspace.modules) {
+                    if !Arc::ptr_eq(workspace.modules(), state.session.workspace.modules()) {
                         return Err(Error::invalid_params(
                             "Modules changed during refresh; refresh again",
                         ));
                     }
-                    state.session.workspace.cache = workspace.cache;
-                    state.session.workspace.lookups = workspace.lookups;
+                    state.session.workspace.adopt_caches(&workspace);
                     state.session.workspace.clone()
                 };
                 match tokio::task::spawn_blocking(move || workspace.save_cache()).await {
@@ -810,7 +804,7 @@ impl LanguageServer for Backend {
                 deprecated: None,
                 location: Location {
                     uri: uri_from_url(&uri(&s.path)),
-                    range: ws.named(&s).span.range(&ws.documents[&s.path].text),
+                    range: ws.named(&s).span.range(&ws.documents()[&s.path].text),
                 },
                 container_name: Some(s.path.display().to_string()),
             })
@@ -824,7 +818,7 @@ impl LanguageServer for Backend {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
         let ws = &state.session.workspace;
-        if !ws.documents.contains_key(&path) {
+        if !ws.documents().contains_key(&path) {
             return Ok(None);
         }
         let symbols = runtime::services::Request::new(ws, now()).document_symbols(&path);
@@ -847,7 +841,7 @@ impl LanguageServer for Backend {
         Ok(state
             .session
             .workspace
-            .documents
+            .documents()
             .get(&path)
             .map(|doc| runtime::services::typing::on_type(doc, at.position, &params.ch)))
     }

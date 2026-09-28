@@ -26,7 +26,7 @@ fn wanted(
     let today = engine.today();
     let symbols = ws.symbols();
     for (path, doc) in ws
-        .documents
+        .documents()
         .iter()
         .filter(|(path, _)| only.is_none_or(|only| *path == only))
     {
@@ -41,7 +41,7 @@ fn wanted(
                 let _ = engine.eval(path, &attr.value);
             }
         }
-        let dates = lang::eval::itinerary::dates(&ws.modules, &doc.days, today);
+        let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, today);
         for (day, date) in doc.days.iter().zip(&dates) {
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)
@@ -265,12 +265,12 @@ pub async fn refresh(
 ) -> Vec<String> {
     let root = ws.root().to_path_buf();
     let keys = wanted(ws, now, only);
-    let modules = ws.modules.clone();
+    let modules = ws.modules().clone();
     let mut errors = Vec::new();
     for key in keys {
         match fetch(&modules, &root, &key, now.date_naive(), now).await {
             Ok((value, source)) => {
-                ws.lookups.insert(
+                ws.store_lookup(
                     key.to_string(),
                     Lookup {
                         value,
@@ -282,7 +282,7 @@ pub async fn refresh(
             Err(e) => errors.push(format!("{}: {e}", key.describe())),
         }
     }
-    if let Err(e) = save(&root, &ws.lookups) {
+    if let Err(e) = save(&root, ws.lookups()) {
         errors.push(e);
     }
     errors

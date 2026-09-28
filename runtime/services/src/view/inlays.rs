@@ -56,7 +56,7 @@ pub struct InlayOutput {
 /// This same path supplies native LSP hints, browser hints, and clock refresh checks.
 pub(crate) fn collect(request: &RequestContext<'_>, path: &Path, range: Range) -> InlayOutput {
     let mut engine = request.engine();
-    let Some(document) = request.workspace().documents.get(path) else {
+    let Some(document) = request.workspace().documents().get(path) else {
         return InlayOutput::default();
     };
     let mut context = InlayContext {

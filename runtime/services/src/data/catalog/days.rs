@@ -25,7 +25,7 @@ pub(super) fn days(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
-    let dates = lang::eval::itinerary::try_dates(&ws.modules, &doc.days, engine.today())
+    let dates = lang::eval::itinerary::try_dates(ws.modules(), &doc.days, engine.today())
         .map_err(|e| e.to_string())?;
     for (day, date) in doc.days.iter().zip(dates) {
         let mut value = lang::eval::itinerary::day_record(day, doc);
@@ -33,7 +33,7 @@ pub(super) fn days(
             && let Some((places, _)) = &day.places
             && let Some(place) = lang::eval::lookups::day_place(places)
             && let Some(lookup) =
-                lang::eval::lookups::LookupKey::forecast(&place, date).lookup(&ws.lookups)
+                lang::eval::lookups::LookupKey::forecast(&place, date).lookup(ws.lookups())
             && let Value::Record(fields) = &mut value
         {
             fields.insert(

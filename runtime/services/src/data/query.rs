@@ -178,7 +178,7 @@ impl Query {
         // Pipeline rows evaluate in their source note; aggregate rows use the query scope.
         let mut scopes = vec![context];
         if only.is_none() && !self.sources.is_empty() {
-            scopes.extend(workspace.documents.keys().cloned());
+            scopes.extend(workspace.documents().keys().cloned());
         }
         let mut expressions = Vec::new();
         for stage in &self.stages {
@@ -330,7 +330,7 @@ pub(crate) fn execute(
     let ctx = &request.clock();
     let mut engine = request.engine();
     if let Some(path) = only
-        && !ws.documents.contains_key(path)
+        && !ws.documents().contains_key(path)
     {
         return Err(format!("Document is not indexed: {}", path.display()));
     }

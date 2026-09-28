@@ -202,7 +202,7 @@ pub(crate) fn input(
     engine: &mut Engine<'_>,
     path: &Path,
 ) -> Result<HookInput, String> {
-    let doc = &engine.workspace().documents[path];
+    let doc = &engine.workspace().documents()[path];
     let mut document = DocumentInput {
         path: path.to_string_lossy().into(),
         uri: lang::common::file_url(path)?.into(),
@@ -483,7 +483,7 @@ fn call(
 }
 fn validate(request: &RequestContext<'_>, path: &Path, range: Range) -> Result<(), String> {
     crate::controls::code_actions::apply_edits(
-        &request.workspace().documents[path].text,
+        &request.workspace().documents()[path].text,
         &[TextEdit::new(range, String::new())],
     )
     .map(|_| ())

@@ -170,7 +170,7 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
             }
             println!(
                 "Resource cache updated ({} resources)",
-                workspace.cache.len()
+                workspace.cache().len()
             );
             Ok(())
         }

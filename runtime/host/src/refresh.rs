@@ -51,7 +51,7 @@ pub async fn refresh_workspace(
     only: Option<&Path>,
 ) -> Vec<String> {
     let targets: BTreeSet<_> = workspace
-        .documents
+        .documents()
         .iter()
         .filter(|(path, _)| only.is_none_or(|only| *path == only))
         .flat_map(|(_, doc)| {
@@ -68,7 +68,7 @@ pub async fn refresh_workspace(
     for target in targets {
         match fetch_link(workspace.link_features(), &target).await {
             Ok(metadata) => {
-                workspace.cache.insert(target, metadata);
+                workspace.store_link_status(target, metadata);
             }
             Err(e) => errors.push(format!("{target}: {e}")),
         }

@@ -23,7 +23,7 @@ pub(crate) fn hover_at(
     position: Position,
 ) -> Option<Hover> {
     let ws = request.workspace();
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     match crate::locate::target(ws, path, position)? {
         Target::Link(link) => link_hover(request, path, link),
         Target::Cell { table, row, column } => cell_hover(request, path, table, row, column),
@@ -61,7 +61,7 @@ fn task_hover(
     index: usize,
 ) -> Option<Hover> {
     let ws = request.workspace();
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     let task = &doc.tasks[index];
     let mut engine = request.engine();
     let (blocked, blocked_error) = match engine.blocked(path, index) {
@@ -135,7 +135,7 @@ fn link_hover(
     index: usize,
 ) -> Option<Hover> {
     let ws = request.workspace();
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     let link = &doc.links[index];
     let resource = resources::Resource {
         target: link.target.clone(),
@@ -163,7 +163,7 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
     let mut engine = request.engine();
     let named = ws.named(symbol);
     if let SymbolKind::Column(t, c) = symbol.kind {
-        let doc = &ws.documents[&symbol.path];
+        let doc = &ws.documents()[&symbol.path];
         let table = &doc.tables[t];
         let name = &doc.definitions[table.definition].named.name;
         let samples = table
@@ -219,7 +219,7 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
     };
     if let SymbolKind::Variable(p, _) = symbol.kind {
         let plan = symbol.sibling(SymbolKind::Definition(
-            ws.documents[&symbol.path].plans[p].definition,
+            ws.documents()[&symbol.path].plans[p].definition,
         ));
         out.push_str(&format!(
             "\n\nDecision variable of {}: no note defines this name, so the plan chooses its value.",
@@ -227,7 +227,7 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
         ));
     }
     if let SymbolKind::Definition(i) = symbol.kind {
-        let def = &ws.documents[&symbol.path].definitions[i];
+        let def = &ws.documents()[&symbol.path].definitions[i];
         if def.expression && def.source != "table" {
             let substituted = engine
                 .substituted(&symbol.path, &def.source)
@@ -262,7 +262,9 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
                 }
             }
             if let Ok(Value::Plan(plan)) = &value
-                && let Ok(text) = ws.modules.call("plan", "hover", vec![plan.record(ws)], now)
+                && let Ok(text) = ws
+                    .modules()
+                    .call("plan", "hover", vec![plan.record(ws)], now)
             {
                 out.push_str(&text.display());
             }
@@ -278,7 +280,7 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
                     out.push_str(&format!("\n- … {} more rows", contributions.len() - 30));
                 }
             }
-            let doc = &ws.documents[&symbol.path];
+            let doc = &ws.documents()[&symbol.path];
             let mut inputs = std::collections::BTreeSet::new();
             for member in doc
                 .members
@@ -315,7 +317,7 @@ pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Sy
         let now = now.to_utc();
         out.push_str("\n\nLookups:");
         for key in keys {
-            match key.lookup(&ws.lookups) {
+            match key.lookup(ws.lookups()) {
                 Some(lookup) => {
                     let age = engine.present(
                         "format",
@@ -356,7 +358,7 @@ fn calculation_hover(
     index: usize,
 ) -> Option<Hover> {
     let ws = request.workspace();
-    let doc = ws.documents.get(path)?;
+    let doc = ws.documents().get(path)?;
     let calculation = &doc.calculations[index];
     let mut engine = request.engine();
     let value = engine.eval_at(path, &calculation.source, calculation.span);
@@ -398,7 +400,7 @@ fn cell_hover(
     row: usize,
     column: usize,
 ) -> Option<Hover> {
-    let doc = request.workspace().documents.get(path)?;
+    let doc = request.workspace().documents().get(path)?;
     let t = &doc.tables[table];
     let cell = &t.rows[row][column];
     let value = match &cell.expression {

@@ -66,7 +66,7 @@ pub(super) fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &m
                 base,
                 target: target.into(),
                 metadata: ws
-                    .cache
+                    .cache()
                     .get(target)
                     .map(|m| q::from_json(json!(m)))
                     .unwrap_or(Value::Null),

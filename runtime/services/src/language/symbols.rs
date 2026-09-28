@@ -45,12 +45,12 @@ pub(crate) fn document_symbols(
     let ws = request.workspace();
     let now = request.now();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return Vec::new();
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let dates = lang::eval::itinerary::dates(&ws.modules, &doc.days, now.date_naive());
+    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, now.date_naive());
     let day_detail = |day: &lang::eval::itinerary::Day, date: &Option<chrono::NaiveDate>| {
         format!(
             "{} stops{}",
@@ -158,11 +158,11 @@ pub(crate) fn document_symbols(
                     Some(kind) => {
                         format!(
                             "{} · {}",
-                            lang::eval::itinerary::display_time(&ws.modules, stop),
+                            lang::eval::itinerary::display_time(ws.modules(), stop),
                             kind.name
                         )
                     }
-                    None => lang::eval::itinerary::display_time(&ws.modules, stop),
+                    None => lang::eval::itinerary::display_time(ws.modules(), stop),
                 },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(

@@ -212,7 +212,7 @@ pub(super) fn stops(
     ctx: QueryContext,
     records: &mut Vec<Record>,
 ) {
-    let dates = lang::eval::itinerary::dates(&ws.modules, &doc.days, ctx.today());
+    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, ctx.today());
     for (day, date) in doc.days.iter().zip(dates) {
         for stop in &day.stops {
             let at = date.and_then(|d| {
@@ -229,7 +229,7 @@ pub(super) fn stops(
                         path,
                         stop.line,
                         RecordKind::Stop,
-                        lang::eval::itinerary::label(&ws.modules, stop),
+                        lang::eval::itinerary::label(ws.modules(), stop),
                     ),
                     scheduling: Scheduling {
                         at_date: date_field(date),

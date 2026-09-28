@@ -33,7 +33,7 @@ impl SourceRef {
             path: path.to_string_lossy().into(),
             uri,
             line: span.line + 1,
-            range: q::from_json(json!(span.range(&ws.documents[path].text))),
+            range: q::from_json(json!(span.range(&ws.documents()[path].text))),
         }
     }
 }
@@ -64,7 +64,7 @@ impl Base {
         kind: RecordKind,
         title: impl Into<String>,
     ) -> Self {
-        let doc = &ws.documents[path];
+        let doc = &ws.documents()[path];
         Self {
             kind,
             title: title.into(),

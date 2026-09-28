@@ -127,7 +127,7 @@ impl Syntax<'_> {
 /// A flat, linked syntax tree. Raw line nodes retain prose, comments and whitespace
 /// that the semantic parser deliberately leaves alone. No expressions are evaluated.
 pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
-    let doc = &ws.documents[path];
+    let doc = &ws.documents()[path];
     let mut syntax = Syntax {
         ws,
         path,
@@ -416,7 +416,7 @@ pub(crate) fn graph(ws: &Workspace, only: Option<&Path>) -> Value {
         let encoded = hierarchy::encode(symbol);
         json!({"id":node_id(symbol),"name":hierarchy::label(ws, symbol),"kind":encoded["kind"],"symbol":encoded,
             "external":only.is_some_and(|p| p != symbol.path),
-            "source":value_json(&catalog::source(ws, &symbol.path, hierarchy::selection(&ws.documents[&symbol.path], symbol)))})
+            "source":value_json(&catalog::source(ws, &symbol.path, hierarchy::selection(&ws.documents()[&symbol.path], symbol)))})
     }).collect();
     q::from_json(json!({"schemaVersion":1,"nodes":nodes,"edges":edges}))
 }

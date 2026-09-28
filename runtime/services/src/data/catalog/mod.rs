@@ -74,7 +74,7 @@ pub(crate) fn collect_document(
         // Two collections span documents instead of visiting them in turn.
         Collection::Ast => {
             for path in ws
-                .documents
+                .documents()
                 .keys()
                 .filter(|p| only.is_none_or(|only| only == p.as_path()))
             {
@@ -88,7 +88,7 @@ pub(crate) fn collect_document(
         }
         _ => {}
     }
-    for (path, doc) in &ws.documents {
+    for (path, doc) in ws.documents() {
         if only.is_some_and(|wanted| wanted != path) {
             continue;
         }

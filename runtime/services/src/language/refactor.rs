@@ -55,7 +55,7 @@ pub(crate) fn refactors(
 ) -> Vec<Refactor> {
     let ws = request.workspace();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     if range.start.line != range.end.line || crate::locate::inert(doc, range.start) {
@@ -70,7 +70,7 @@ pub(crate) fn refactors(
         let symbol = Symbol::new(path, SymbolKind::Definition(plan.definition));
         if let Ok(Value::Plan(solved)) = request.engine().symbol(&symbol) {
             let edits: Vec<TextEdit> = ws
-                .modules
+                .modules()
                 .call(
                     "plan",
                     "write_edits",
@@ -87,7 +87,7 @@ pub(crate) fn refactors(
             if !edits.is_empty() {
                 result.push(Refactor {
                     title: ws
-                        .modules
+                        .modules()
                         .call("plan", "write_title", vec![], request.now())
                         .map(|v| v.display())
                         .unwrap_or_default(),
@@ -303,7 +303,7 @@ pub(crate) fn refactors(
             continue;
         }
         if let SymbolKind::Definition(index) = symbol.kind {
-            let original = &ws.documents[&symbol.path];
+            let original = &ws.documents()[&symbol.path];
             let def = &original.definitions[index];
             if !def.expression
                 || !Engine::valid_expression(&def.source)

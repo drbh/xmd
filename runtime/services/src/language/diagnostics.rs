@@ -69,7 +69,7 @@ fn diagnostic(
     related: &[Symbol],
 ) -> Diagnostic {
     Diagnostic {
-        range: span.range(&ws.documents[path].text),
+        range: span.range(&ws.documents()[path].text),
         severity: Some(DiagnosticSeverity::ERROR),
         source: Some("xmd".into()),
         message,
@@ -80,7 +80,7 @@ fn diagnostic(
                 .map(|s| DiagnosticRelatedInformation {
                     location: Location {
                         uri: lang::common::uri_from_url(&lang::common::file_url(&s.path).unwrap()),
-                        range: ws.named(s).span.range(&ws.documents[&s.path].text),
+                        range: ws.named(s).span.range(&ws.documents()[&s.path].text),
                     },
                     message: format!("{} defined here", ws.named(s).name),
                 })
@@ -131,7 +131,7 @@ pub(crate) fn collect_native(
     let ws = request.workspace();
     let today = request.today();
 
-    let Some(doc) = ws.documents.get(path) else {
+    let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let unfinished = |span: Span| {
@@ -198,7 +198,7 @@ pub(crate) fn collect_native(
         if let Err(message) = evaluated {
             if let Some(failure) = engine.failure().cloned() {
                 let incomplete_dependency = editing
-                    && ws.documents.get(&failure.path).is_some_and(|dependency| {
+                    && ws.documents().get(&failure.path).is_some_and(|dependency| {
                         dependency.definitions.iter().any(|d| {
                             d.expression
                                 && d.value_span.contains(&dependency.text, failure.span)

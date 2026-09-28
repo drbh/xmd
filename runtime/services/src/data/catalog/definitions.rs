@@ -75,7 +75,7 @@ pub(super) fn decisions(
     only: Option<&Path>,
     records: &mut Vec<Record>,
 ) {
-    for (plan_path, doc) in &ws.documents {
+    for (plan_path, doc) in ws.documents() {
         for plan in &doc.plans {
             let symbol = Symbol::new(plan_path.clone(), SymbolKind::Definition(plan.definition));
             let Ok(Value::Plan(value)) = engine.symbol(&symbol) else {
@@ -99,7 +99,7 @@ pub(super) fn decisions(
                     RecordKind::Decision,
                     name,
                 );
-                base.set_anchor(cell.span.range(&ws.documents[&row.table.path].text).end);
+                base.set_anchor(cell.span.range(&ws.documents()[&row.table.path].text).end);
                 records.push(Record::typed(
                     &row.table.path,
                     DecisionRecord {

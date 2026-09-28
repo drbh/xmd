@@ -13,7 +13,7 @@ pub(crate) fn document_links(
 ) -> Vec<DocumentLink> {
     let workspace = request.workspace();
 
-    let Some(doc) = workspace.documents.get(path) else {
+    let Some(doc) = workspace.documents().get(path) else {
         return vec![];
     };
     let mut links = Vec::new();
@@ -69,7 +69,7 @@ pub(crate) fn rendered_text(
     request: &lang::eval::RequestContext<'_>,
     path: &Path,
 ) -> Result<String, String> {
-    let doc = request.workspace().documents.get(path).ok_or_else(|| {
+    let doc = request.workspace().documents().get(path).ok_or_else(|| {
         format!(
             "File is not in this workspace's indexed .{} notes",
             lang::common::EXTENSION

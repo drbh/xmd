@@ -10,12 +10,12 @@ pub fn occurrences(ws: &Workspace, symbol: &Symbol) -> Vec<(std::path::PathBuf, 
     let mut found = vec![(symbol.path.clone(), ws.named(symbol).span)];
     let plan = match symbol.kind {
         SymbolKind::Variable(p, _) => Some(symbol.sibling(SymbolKind::Definition(
-            ws.documents[&symbol.path].plans[p].definition,
+            ws.documents()[&symbol.path].plans[p].definition,
         ))),
         _ => None,
     };
     let name = &ws.named(symbol).name;
-    for (path, doc) in &ws.documents {
+    for (path, doc) in ws.documents() {
         for member in &doc.members {
             if lang::eval::member_symbol(ws, path, &member.source).as_ref() == Some(symbol) {
                 found.push((path.clone(), member.span));

@@ -21,7 +21,7 @@ impl RowTarget {
         let path = document_path(&self.document)?;
         let doc = request
             .workspace()
-            .documents
+            .documents()
             .get(&path)
             .ok_or("Document is no longer in the workspace")?;
         if self.row >= doc.text.lines().count() || doc.line(self.row) != self.expected {
@@ -178,7 +178,7 @@ impl Action {
         let path = document_path(document)?;
         let doc = request
             .workspace()
-            .documents
+            .documents()
             .get(&path)
             .ok_or("Document is no longer in the workspace")?;
         if doc.text != *expected {
@@ -186,7 +186,7 @@ impl Action {
         }
         let module = request
             .workspace()
-            .modules
+            .modules()
             .active()
             .find(|m| m.id == *module)
             .ok_or("Module is no longer available")?;
@@ -210,7 +210,7 @@ impl Action {
         }
         if let Some(document) = self.document() {
             let path = document_path(document)?;
-            if !request.workspace().documents.contains_key(&path) {
+            if !request.workspace().documents().contains_key(&path) {
                 return Err("Document is no longer in the workspace".into());
             }
         }
@@ -224,7 +224,7 @@ impl Action {
                 self.validate_invocation(request)?;
                 let module = request
                     .workspace()
-                    .modules
+                    .modules()
                     .active()
                     .find(|m| m.id == *module)
                     .ok_or("Module is no longer available")?;
@@ -243,7 +243,7 @@ impl Action {
                 edits,
             } => {
                 let path = document_path(document)?;
-                let doc = &request.workspace().documents[&path];
+                let doc = &request.workspace().documents()[&path];
                 if doc.text != *expected {
                     return Err("Source changed; request fresh controls".into());
                 }
@@ -255,7 +255,7 @@ impl Action {
             }
             Self::ToggleTask(target) => {
                 let path = target.validate(request)?;
-                let index = request.workspace().documents[&path]
+                let index = request.workspace().documents()[&path]
                     .tasks
                     .iter()
                     .position(|t| t.line == target.row)
@@ -270,7 +270,7 @@ impl Action {
             } => {
                 let (origin, span, text) =
                     lang::eval::timers::edit_in(request, &document_path(document)?, name, *action)?;
-                let range = span.range(&request.workspace().documents[&origin.path].text);
+                let range = span.range(&request.workspace().documents()[&origin.path].text);
                 Ok(PreparedAction::Edit {
                     path: origin.path,
                     edits: vec![TextEdit::new(range, text)],

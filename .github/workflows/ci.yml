@@ -115,7 +115,7 @@ jobs:
         run: npm --prefix client/ide/vscode run check
 
   deploy:
-    # The hosted docs app at xmd-docs.drbh.workers.dev is rebuilt from every
+    # The hosted docs app at xmd.dholtz.com is rebuilt from every
     # green push to main, so what is deployed never lags what is merged. Needs
     # the CLOUDFLARE_API_TOKEN repository secret (Workers Scripts:Edit, D1:Edit).
     name: Deploy docs app

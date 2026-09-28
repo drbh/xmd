@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 // engine worker and the WASM all cross origins, which is how the embed
 // example on the site works for anyone.
 test("another origin can mount a live editor with a few lines", async ({ page }) => {
-  const html = (await readFile(new URL("../embed/index.html", import.meta.url), "utf8")).replaceAll("https://xmd-docs.drbh.workers.dev", "http://127.0.0.1:4173");
+  const html = (await readFile(new URL("../embed/index.html", import.meta.url), "utf8")).replaceAll("https://xmd.dholtz.com", "http://127.0.0.1:4173");
   const other = http.createServer((_, res) => { res.writeHead(200, { "content-type": "text/html" }); res.end(html); });
   await new Promise(resolve => other.listen(4175, "127.0.0.1", resolve));
   try {

@@ -146,16 +146,12 @@ impl HostObject for Vec<TaskKey> {
             .iter()
             .filter(|(path, index)| engine.task_done(path, *index))
             .count();
-        Some(
-            engine
-                .call_module(
-                    "task",
-                    "checklist",
-                    vec![Value::Count(done), Value::Count(self.len())],
-                )
-                .map(|v| v.display())
-                .unwrap_or_else(|e| format!("\n\n{e}")),
-        )
+        let summary = engine.present(
+            "task",
+            "checklist",
+            vec![Value::Count(done), Value::Count(self.len())],
+        );
+        Some(format!("\n\n{summary}"))
     }
 }
 /// An imported note. Its members are the note's definitions, which the engine

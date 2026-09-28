@@ -122,6 +122,13 @@ impl Engine<'_> {
         self.absorb_module(&engine);
         result
     }
+    /// A library's words for something, or why it has none: what a hover or
+    /// label shows in place of text the module could not produce.
+    pub fn present(&mut self, id: &str, name: &str, args: Vec<Value>) -> String {
+        self.call_module(id, name, args)
+            .map(|v| v.display())
+            .unwrap_or_else(|e| e.to_string())
+    }
     /// `import(id)` reaches libraries and nothing else: a link or feature
     /// module is the host's to call, so naming one from a note is an error
     /// rather than a record of hooks. A note sees the library's declared

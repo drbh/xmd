@@ -56,5 +56,5 @@ hover := fn(t) => (
 
 // Summarize a checklist's completed tasks under its value hover.
 checklist := fn(done, total) => (
-  "\n\n" + _tally(done, total) + " complete"
+  _tally(done, total) + " complete"
 )

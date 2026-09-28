@@ -17,8 +17,6 @@
 // `eval::x::` path. Kept wherever a name collides across files (`parse`) or
 // forms one coherent family (`engine`), or another crate already spells a
 // name that way.
-#[path = "charts.rs"]
-mod charts_impl;
 #[path = "clock.rs"]
 mod clock_impl;
 mod context;

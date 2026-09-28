@@ -6,4 +6,3 @@ pub(crate) mod presentation;
 pub(crate) mod prose;
 pub(crate) mod rendering;
 pub(crate) mod typing;
-pub(crate) mod wording;

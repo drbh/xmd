@@ -71,12 +71,7 @@ impl ResourcePresenting for Resource {
             &engine.workspace().cache,
             engine.now().to_utc(),
         );
-        let mut word = |name: &str| {
-            engine
-                .call_module("resource", name, vec![self.record(document)])
-                .map(|v| v.display())
-                .unwrap_or_else(|e| e.to_string())
-        };
+        let mut word = |name: &str| engine.present("resource", name, vec![self.record(document)]);
         let label = match &known {
             Some(p) => p.label.clone(),
             None => word("label"),

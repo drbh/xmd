@@ -1,7 +1,6 @@
 use crate::controls::code_actions;
 use crate::controls::commands::{Action, Capabilities, RowTarget};
-use crate::view::wording::{present, task_toggle, titled};
-use eval::engine::Value;
+use eval::engine::{Engine, Value};
 use eval::modules::{Hook, ModuleKind};
 use eval::resources::{Resource, ResourcePresenting};
 use lsp_types::*;
@@ -51,6 +50,23 @@ pub(crate) fn resources_at(
     }
     found.into_values().collect()
 }
+/// The shared title for the task toggle lens and code action.
+pub(crate) fn task_toggle_title(engine: &mut Engine<'_>, path: &Path, index: usize) -> String {
+    let recurring = engine.workspace().documents[path].tasks[index]
+        .attributes
+        .contains_key("every");
+    let done = engine.task_done(path, index);
+    engine.present(
+        "task",
+        "toggle",
+        vec![Value::Bool(recurring), Value::Bool(done)],
+    )
+}
+/// A control title: a `format.glyph` and the one word that disambiguates it.
+pub(crate) fn titled(engine: &mut Engine<'_>, glyph: &str, word: &str) -> String {
+    let glyph = engine.present("format", "glyph", vec![Value::Text(glyph.into())]);
+    format!("{glyph} {word}")
+}
 pub(crate) fn builtin_controls(
     request: &eval::RequestContext<'_>,
     path: &Path,
@@ -76,21 +92,15 @@ pub(crate) fn builtin_controls(
     };
     let mut engine = request.engine();
     if include_task
-        && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
+        && let Some(index) = doc.tasks.iter().position(|t| t.line == row)
         && code_actions::toggle_task(request, path, index).is_ok()
     {
-        let done = engine.task_done(path, index);
-        let title = task_toggle(&mut engine, task.attributes.contains_key("every"), done);
+        let title = task_toggle_title(&mut engine, path, index);
         push(Action::ToggleTask(target.clone()), title);
     }
     for resource in resources_at(request, path, row) {
         let url = resource.url(path).unwrap();
-        let title = present(
-            &mut engine,
-            "resource",
-            "control",
-            vec![resource.record(path)],
-        );
+        let title = engine.present("resource", "control", vec![resource.record(path)]);
         push(
             Action::OpenResource {
                 target: target.clone(),

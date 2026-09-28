@@ -1,8 +1,7 @@
 //! Hovers: what the editor explains about the thing under the cursor.
 use crate::locate::Target;
-use crate::view::wording::{present, series};
 use common::Span;
-use eval::engine::Value;
+use eval::engine::{Engine, Value};
 use eval::resources::{self, ResourcePresenting};
 use eval::{Symbol, SymbolKind, Workspace};
 use lsp_types::*;
@@ -111,14 +110,19 @@ fn task_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> 
         ("children_done".into(), Value::Count(children_done)),
     ]);
     Some(Hover {
-        contents: HoverContents::Markup(markup(present(
-            &mut engine,
-            "task",
-            "hover",
-            vec![record],
-        ))),
+        contents: HoverContents::Markup(markup(engine.present("task", "hover", vec![record]))),
         range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
     })
+}
+
+/// `format.series` over a column or a sum's rows: a sparkline and its range,
+/// or nothing when fewer than two values can be charted.
+fn series(engine: &mut Engine<'_>, values: Vec<Value>) -> Option<String> {
+    match engine.call_module("format", "series", vec![Value::List(values)]) {
+        Ok(Value::Null) => None,
+        Ok(chart) => Some(chart.display()),
+        Err(e) => Some(e.to_string()),
+    }
 }
 
 fn link_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
@@ -238,20 +242,15 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                     && let Ok(difference) = lhs.minus(&rhs)
                 {
                     let coefficient = difference.terms.get(&named.name).copied().unwrap_or(0.0);
-                    out.push_str(&format!(
-                        "\n\nGoal seek: {} `{body}`.",
-                        engine
-                            .call_module(
-                                "plan",
-                                "seek_summary",
-                                vec![
-                                    Value::Text(op.as_str().into()),
-                                    Value::Bool(coefficient > 0.0)
-                                ]
-                            )
-                            .map(|v| v.display())
-                            .unwrap_or_else(|e| e.to_string())
-                    ));
+                    let summary = engine.present(
+                        "plan",
+                        "seek_summary",
+                        vec![
+                            Value::Text(op.as_str().into()),
+                            Value::Bool(coefficient > 0.0),
+                        ],
+                    );
+                    out.push_str(&format!("\n\nGoal seek: {summary} `{body}`."));
                 }
             }
             if let Ok(Value::Plan(plan)) = &value
@@ -308,8 +307,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
         for key in keys {
             match key.lookup(&ws.lookups) {
                 Some(lookup) => {
-                    let age = present(
-                        &mut engine,
+                    let age = engine.present(
                         "format",
                         "age",
                         vec![Value::Duration((now - lookup.fetched_at).num_seconds())],

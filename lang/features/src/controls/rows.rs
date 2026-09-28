@@ -1,9 +1,8 @@
 use crate::controls::code_actions;
 use crate::controls::commands::{Action, Capabilities, RowTarget};
-use eval::engine::Value;
-use eval::glyphs;
+use eval::engine::{Engine, Value};
 use eval::modules::{Hook, ModuleKind};
-use eval::resources::Resource;
+use eval::resources::{Resource, ResourcePresenting};
 use lsp_types::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -51,15 +50,22 @@ pub(crate) fn resources_at(
     }
     found.into_values().collect()
 }
-/// The shared label for the task toggle lens and code action.
-pub(crate) fn task_toggle_title(recurring: bool, done: bool) -> String {
-    if recurring {
-        format!("{} next", glyphs::REPEAT)
-    } else if done {
-        format!("{} reopen", glyphs::OFF)
-    } else {
-        format!("{} done", glyphs::DONE)
-    }
+/// The shared title for the task toggle lens and code action.
+pub(crate) fn task_toggle_title(engine: &mut Engine<'_>, path: &Path, index: usize) -> String {
+    let recurring = engine.workspace().documents[path].tasks[index]
+        .attributes
+        .contains_key("every");
+    let done = engine.task_done(path, index);
+    engine.present(
+        "task",
+        "toggle",
+        vec![Value::Bool(recurring), Value::Bool(done)],
+    )
+}
+/// A control title: a `format.glyph` and the one word that disambiguates it.
+pub(crate) fn titled(engine: &mut Engine<'_>, glyph: &str, word: &str) -> String {
+    let glyph = engine.present("format", "glyph", vec![Value::Text(glyph.into())]);
+    format!("{glyph} {word}")
 }
 pub(crate) fn builtin_controls(
     request: &eval::RequestContext<'_>,
@@ -84,32 +90,23 @@ pub(crate) fn builtin_controls(
             result.push(action.command(title));
         }
     };
-    let engine = request.engine();
+    let mut engine = request.engine();
     if include_task
-        && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
+        && let Some(index) = doc.tasks.iter().position(|t| t.line == row)
         && code_actions::toggle_task(request, path, index).is_ok()
     {
-        let title = task_toggle_title(
-            task.attributes.contains_key("every"),
-            engine.task_done(path, index),
-        );
+        let title = task_toggle_title(&mut engine, path, index);
         push(Action::ToggleTask(target.clone()), title);
     }
     for resource in resources_at(request, path, row) {
         let url = resource.url(path).unwrap();
-        let kind = if resource.is_image() {
-            "image"
-        } else if resource.target.starts_with("geo:") {
-            "map"
-        } else {
-            "open"
-        };
+        let title = engine.present("resource", "control", vec![resource.record(path)]);
         push(
             Action::OpenResource {
                 target: target.clone(),
                 url: url.clone(),
             },
-            format!("{} {kind}", glyphs::OPEN),
+            title,
         );
         if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
             push(
@@ -131,7 +128,7 @@ pub(crate) fn builtin_controls(
             Action::Refresh {
                 document: Some(uri),
             },
-            format!("{} lookups", glyphs::REFRESH),
+            titled(&mut engine, "refresh", "lookups"),
         );
     }
     result

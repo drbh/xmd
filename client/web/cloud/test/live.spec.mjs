@@ -11,7 +11,7 @@ async function openAs(browser, email, hash = "") {
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 60_000 });
   return { page, context, errors };
 }
-const source = page => page.evaluate(() => window.wtfDocs.controller.getSource());
+const source = page => page.evaluate(() => window.wtfDocs.controller?.getSource());
 const share = (page, id, email, role) => page.evaluate(([id, email, role]) => fetch(`/api/documents/${id}/acl`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, role }) }), [id, email, role]);
 
 test("editors see each other's typing, keep their carets, undo their own edits, and the room persists", async ({ browser }) => {

@@ -60,7 +60,9 @@ test("the document app writes like a document editor: typing, formatting, find, 
   await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
   await page.locator(".template", { hasText: "Blank" }).click();
   await page.waitForFunction(() => window.wtfDocs.controller);
-  const source = () => page.evaluate(() => window.wtfDocs.controller.getSource());
+  // The editor remounts when a rename changes the document URI, so the controller
+  // can briefly be null; undefined keeps a poll retrying instead of throwing.
+  const source = () => page.evaluate(() => window.wtfDocs.controller?.getSource());
   const view = page.locator(".view");
   // A blank document accepts prose immediately, including Enter at the end of the text.
   await page.waitForTimeout(200);
@@ -166,7 +168,7 @@ test.describe("on a phone", () => {
     // Typing works and menus open as sheets.
     await page.evaluate(() => window.wtfDocs.controller.select(window.wtfDocs.controller.getSource().length));
     await page.keyboard.type("\nfrom a phone");
-    await expect.poll(() => page.evaluate(() => window.wtfDocs.controller.getSource())).toMatch(/from a phone$/);
+    await expect.poll(() => page.evaluate(() => window.wtfDocs.controller?.getSource())).toMatch(/from a phone$/);
     await page.locator(".menubar > .menu > button", { hasText: "Insert" }).tap();
     await expect(page.locator(".dropdown")).toBeVisible();
     expect(await page.locator(".dropdown").evaluate(el => getComputedStyle(el).position)).toBe("fixed");

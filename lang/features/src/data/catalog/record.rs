@@ -315,12 +315,7 @@ impl Record {
         let Some(resource) = &self.resource else {
             return Value::Null;
         };
-        let view = resource.presentation(
-            &self.path,
-            &engine.workspace().cache,
-            engine.now().to_utc(),
-            engine.link_features(),
-        );
+        let view = resource.presentation(engine, &self.path);
         engine.mark_time_dependent(view.time_dependent);
         Value::Record(
             Presentation {

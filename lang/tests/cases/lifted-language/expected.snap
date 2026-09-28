@@ -1,5 +1,5 @@
 ### 0 cli render solver.x.md --format text
-$ wtf render solver.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render solver.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 optimal := import("lifted").solve({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}) = {"status": "optimal", "values": {"x": 2}}
@@ -7,7 +7,7 @@ unbounded := import("lifted").solve({goal: "maximize", variables: {x: {kind: "co
 infeasible := import("lifted").solve({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: ">=", rhs: {constant: 5, terms: {}}}]}) = {"status": "infeasible"}
 
 ### 1 cli query solver.x.md values | select {name, display} --json
-$ wtf query solver.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query solver.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -26,7 +26,7 @@ exit 0
 ]
 
 ### 2 cli render badmodels.x.md --format text
-$ wtf render badmodels.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render badmodels.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 bad_0 := import("lifted").solve({goal: "maximize", variables: {x: {kind: "integer", lower: 5, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: []})
@@ -40,10 +40,10 @@ bad_4 := import("lifted").solve({goal: "maximize", variables: {x: {kind: "intege
 <root>/badmodels.x.md:3:10: error: Unknown variable kind 'imaginary'
 <root>/badmodels.x.md:4:10: error: Linear goal must be maximize or minimize
 <root>/badmodels.x.md:5:10: error: Variable order must name every variable exactly once
-wtf: 5 error(s) while rendering
+xmd: 5 error(s) while rendering
 
 ### 3 cli render validate.x.md --format text
-$ wtf render validate.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render validate.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 a := stopwatch(null)
@@ -55,10 +55,10 @@ d := countdown(1m, 0s, null)
 <root>/validate.x.md:2:6: error: Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00
 <root>/validate.x.md:3:6: error: Timer durations must be nonnegative whole seconds
 <root>/validate.x.md:4:6: error: Timer start must be a timestamp with a time, e.g. 2026-09-16T14:00:00-04:00
-wtf: 4 error(s) while rendering
+xmd: 4 error(s) while rendering
 
 ### 4 cli render calendar.x.md --format text
-$ wtf render calendar.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render calendar.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 impossible := import("lifted").date("2026-02-29", "%F") = null
@@ -66,14 +66,14 @@ bad_time := import("lifted").datetime("2026-09-18 25:00", "%F %H:%M", now()) = n
 parsed := source(import("lifted").datetime("2026-09-18 09:30", "%F %H:%M", now())) = 2026-09-18T09:30:00-04:00
 
 ### 5 cli render imports.x.md --format text
-$ wtf render imports.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render imports.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 x := import("consumer").run(3) = 12
 human := import("format").human(125m) = 2h 5m
 
 ### 6 cli query --workspace notes | select import("format").human(125m) | limit 1 --json
-$ wtf query --workspace notes | select import("format").human(125m) | limit 1 --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query --workspace notes | select import("format").human(125m) | limit 1 --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -81,16 +81,16 @@ exit 0
 ]
 
 ### 7 cli render runaway.x.md --format text
-$ wtf render runaway.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render runaway.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 spun := import("math").loop(0)
 --- stderr
 <root>/runaway.x.md:1:9: error: Function call depth exceeds 32
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 8 cli render plans.x.md --format text
-$ wtf render plans.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render plans.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 result := maximize(zebra + apple) = 3 · zebra 1 · apple 2
@@ -126,7 +126,7 @@ result := maximize(zebra + apple) = 3 · zebra 1 · apple 2
 }
 
 ### 10 cli render precision.x.md --format text
-$ wtf render precision.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render precision.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 under_an_hour := stopwatch(59s) = ◴ 00:59 elapsed · ‖ paused

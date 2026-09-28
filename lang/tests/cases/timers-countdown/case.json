@@ -14,19 +14,19 @@
         { "await": "textDocument/publishDiagnostics", "file": "multiline.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline.x.md}", "name": "focus", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline.x.md}", "name": "focus", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
         { "open": "multiline-crlf.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline-crlf.x.md}", "name": "focus", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline-crlf.x.md}", "name": "focus", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
         { "open": "grouped.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:grouped.x.md}", "name": "watch", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:grouped.x.md}", "name": "watch", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
         {

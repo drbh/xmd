@@ -19,7 +19,7 @@
           }
         },
         "severity": 1,
-        "source": "wtf"
+        "source": "xmd"
       }
     ],
     "editing": true,
@@ -50,7 +50,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-xmdPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-xmdPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
     "lenses": [
       {
         "command": {
@@ -65,7 +65,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -92,7 +92,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -175,28 +175,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -334,7 +334,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> null</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> ticket /tickets/42</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> null</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-xmdPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
     "lenses": [
       {
         "command": {
@@ -349,7 +349,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -376,7 +376,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -459,28 +459,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -628,7 +628,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> 3</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\n\nDetails for https://issues.example/tickets/42\"> Browser</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">points</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"ticket.points\"> 3</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-xmdPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
     "lenses": [
       {
         "command": {
@@ -643,7 +643,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -670,7 +670,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -753,28 +753,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -872,7 +872,7 @@
 }
 -- setModules {"sources":{"tickets.x.md":"module := {"}}
 {
-  "error": "/workspace/.wtf/modules/tickets.x.md: /workspace/.wtf/modules/tickets.x.md:1: Expected a record field name",
+  "error": "/workspace/.xmd/modules/tickets.x.md: /workspace/.xmd/modules/tickets.x.md:1: Expected a record field name",
   "ok": false
 }
 -- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
@@ -904,7 +904,7 @@
           }
         },
         "severity": 1,
-        "source": "wtf"
+        "source": "xmd"
       }
     ],
     "editing": true,
@@ -935,7 +935,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"\"> custom</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-xmdPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Hello <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-xmdPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"\"> custom</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
     "lenses": [
       {
         "command": {
@@ -950,7 +950,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -988,7 +988,7 @@
               "kind": "edit"
             }
           ],
-          "command": "wtf.applyEdits",
+          "command": "xmd.applyEdits",
           "title": "Replace"
         },
         "range": {
@@ -1015,7 +1015,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -1053,7 +1053,7 @@
               "kind": "edit"
             }
           ],
-          "command": "wtf.applyEdits",
+          "command": "xmd.applyEdits",
           "title": "Replace"
         },
         "range": {
@@ -1091,7 +1091,7 @@
               "kind": "edit"
             }
           ],
-          "command": "wtf.applyEdits",
+          "command": "xmd.applyEdits",
           "title": "Replace"
         },
         "range": {
@@ -1174,28 +1174,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -1271,7 +1271,7 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"xmd.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -1307,7 +1307,7 @@
   "ok": true,
   "result": null
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"xmd.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false
@@ -1336,7 +1336,7 @@
           }
         },
         "severity": 1,
-        "source": "wtf"
+        "source": "xmd"
       }
     ],
     "editing": true,
@@ -1367,7 +1367,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-wtfLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-wtfPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Goodbye <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-wtfPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"1\">Points <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">ticket</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property diagnostic error\" title=\"Unknown resource property &#39;points&#39;\">points</span><span class=\"t-xmdPunctuation\" title=\"\">]</span>.\n</span><span class=\"line \" data-line=\"2\">Goodbye <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-function defaultLibrary\" title=\"\">round</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-number\" title=\"\">2.6</span><span class=\"t-xmdPunctuation\" title=\"\">)]</span><span class=\"inlay\" contenteditable=\"false\" title=\"`round(2.6)` = 3\"> 3</span>\n</span><span class=\"line \" data-line=\"3\"></span>",
     "lenses": [
       {
         "command": {
@@ -1382,7 +1382,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -1409,7 +1409,7 @@
               "url": "https://issues.example/tickets/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -1492,28 +1492,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,

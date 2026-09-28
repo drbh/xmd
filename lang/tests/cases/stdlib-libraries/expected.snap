@@ -1,5 +1,5 @@
 ### 0 cli render watch.x.md --format text
-$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := stopwatch() = ◴ 00:41 elapsed · ‖ paused
@@ -24,7 +24,7 @@ Elapsed [watch.elapsed] 42s.
         "name": "watch"
       }
     ],
-    "command": "wtf.timer",
+    "command": "xmd.timer",
     "title": "▸ resume watch"
   },
   {
@@ -36,7 +36,7 @@ Elapsed [watch.elapsed] 42s.
         "name": "watch"
       }
     ],
-    "command": "wtf.timer",
+    "command": "xmd.timer",
     "title": "↺ reset watch"
   }
 ]
@@ -89,20 +89,20 @@ null
 }
 
 ### 2 write
--- write .wtf/modules.json (36 bytes)
+-- write .xmd/modules.json (36 bytes)
 
 ### 3 cli render watch.x.md --format text
-$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
 <root>/watch.x.md:1:10: error: Module 'timer' is unavailable or disabled
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 4 cli query watch.x.md diagnostics | select {message, code} --json
-$ wtf query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -113,20 +113,20 @@ exit 0
 ]
 
 ### 5 write
--- write .wtf/modules.json (35 bytes)
+-- write .xmd/modules.json (35 bytes)
 
 ### 6 cli render watch.x.md --format text
-$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
 <root>/watch.x.md:1:10: error: CUSTOM FAILURE
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 7 cli query watch.x.md diagnostics | select {message, code} --json
-$ wtf query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -137,28 +137,28 @@ exit 0
 ]
 
 ### 8 write
--- write .wtf/modules.json (3 bytes)
+-- write .xmd/modules.json (3 bytes)
 
 ### 9 cli render counting.x.md --format text
-$ wtf render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := countdown(1m, 30s) = ◷ ████░░░░ 00:30 remaining · ‖ paused
 
 ### 10 write
--- write .wtf/modules.json (35 bytes)
+-- write .xmd/modules.json (35 bytes)
 
 ### 11 cli render counting.x.md --format text
-$ wtf render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := countdown(1m, 30s) = ◷ ▓▓▓▓░░░░ 00:30 remaining · ‖ paused
 
 ### 12 write
--- write .wtf/modules.json (34 bytes)
+-- write .xmd/modules.json (34 bytes)
 
 ### 13 cli render bakery.x.md --format text
-$ wtf render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 best := maximize($2 * count)
@@ -167,10 +167,10 @@ best := maximize($2 * count)
 | limit | count <= 3 |
 --- stderr
 <root>/bakery.x.md:1:18: error: ACTIVE PLAN LIBRARY
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 14 cli query bakery.x.md diagnostics | select {message, code} --json
-$ wtf query bakery.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

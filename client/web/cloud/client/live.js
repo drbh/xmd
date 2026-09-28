@@ -36,7 +36,7 @@ export function createLive({ base, id, user, role }) {
   // Edits are kept in this browser too, so a document can be edited without a
   // network and the room merges everything when the connection returns.
   let local = null;
-  try { local = new IndexeddbPersistence(`wtf-doc-${id}`, doc); } catch { /* private mode or no IndexedDB */ }
+  try { local = new IndexeddbPersistence(`xmd-doc-${id}`, doc); } catch { /* private mode or no IndexedDB */ }
   const awareness = provider.awareness;
   awareness.setLocalStateField("user", { name: user.name || user.email, email: user.email, color: colorFor(user.email) });
   const statusListeners = new Set(), presenceListeners = new Set();

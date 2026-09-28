@@ -160,7 +160,7 @@
           }
         },
         {
-          "request": "wtf/query",
+          "request": "xmd/query",
           "params": {
             "query": "tasks",
             "uri": "${uri:missing.x.md}"

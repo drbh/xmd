@@ -1,7 +1,7 @@
 // One table drives the menu bar, the toolbar, and keyboard shortcuts, so every
 // action has the same label and shortcut wherever it appears.
 import { toggleMark, insertLink, setHeading, toggleList, indent } from "./editing.js";
-import { EXTENSION, noteFile } from "@wtf/web";
+import { EXTENSION, noteFile } from "@xmd/web";
 
 export const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 

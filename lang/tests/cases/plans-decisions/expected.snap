@@ -1,5 +1,5 @@
 ### 0 cli render gear.x.md --format text
-$ wtf render gear.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render gear.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [gear] := table = 4 rows · 4 columns
@@ -25,10 +25,10 @@ exit 1
 [wrong] := sum(gear, weight * take)
 --- stderr
 <root>/gear.x.md:21:31: error: 'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 1 cli query gear.x.md plans | select {name, display} --json
-$ wtf query gear.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query gear.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -43,7 +43,7 @@ exit 0
 ]
 
 ### 2 cli query gear.x.md decisions | select {title, plan, line, value} --json
-$ wtf query gear.x.md decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query gear.x.md decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -86,7 +86,7 @@ exit 0
 ]
 
 ### 3 cli query gear.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query gear.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query gear.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -117,7 +117,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/gear.x.md",
@@ -247,7 +247,7 @@ exit 0
 ]
 
 ### 5 cli render packed.x.md --format text
-$ wtf render packed.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render packed.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [gear] := table = 4 rows · 4 columns
@@ -263,7 +263,7 @@ exit 0
 | weight     | sum(gear, weight * take) <= 6 | ████████ 6 ≤ 6 · ● binding
 
 ### 6 cli query packed.x.md plans | select {name, display} --json
-$ wtf query packed.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query packed.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -274,7 +274,7 @@ exit 0
 ]
 
 ### 7 cli query packed.x.md rows | select {table, line, cells} --json
-$ wtf query packed.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query packed.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

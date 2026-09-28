@@ -1,5 +1,5 @@
 ### 0 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T18:05:00+00:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T18:05:00+00:00
 exit 1
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · 2h ago
@@ -11,10 +11,10 @@ See [the fix](https://github.com/NVlabs/cuda-oxide/pull/975) ○ open · ✗ che
 Not a PR: https://github.com/drbh/kawaii
 --- stderr
 <root>/work.x.md:4:13: error: Unknown resource property 'nope'
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 1 cli query work.x.md diagnostics | select {message, code} --json
-$ wtf query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
+$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [
@@ -25,7 +25,7 @@ exit 0
 ]
 
 ### 2 cli query work.x.md resources | select {target, metadata} --json
-$ wtf query work.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
+$ xmd query work.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [
@@ -102,7 +102,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/work.x.md",
@@ -143,7 +143,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "[Open resource](<https://github.com/NVlabs/cuda-oxide/pull/1286>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+      "value": "[Open resource](<https://github.com/NVlabs/cuda-oxide/pull/1286>)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
     }
   }
 ]
@@ -161,7 +161,7 @@ exit 0
         "url": "https://github.com/acme/app/pull/42"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ open"
   },
   {
@@ -176,7 +176,7 @@ exit 0
         "url": "https://github.com/acme/app/pull/42"
       }
     ],
-    "command": "wtf.refreshResource",
+    "command": "xmd.refreshResource",
     "title": "⟳ github"
   }
 ]

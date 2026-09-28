@@ -1,11 +1,11 @@
 ### 0 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub title
+xmd: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub title
 
-### 1 read .wtf/cache.json
--- .wtf/cache.json
+### 1 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://github.com/org/repo/commit/abcdef12345": {
     "title": "Commit subject",
@@ -70,7 +70,7 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
 }
 
 ### 2 cli render links.x.md --format text
-$ wtf render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 https://github.com/org/repo/pull/42 ○ open · ● checks · ✓ approved · just now
@@ -80,7 +80,7 @@ https://github.com/org/repo/commit/abcdef12345 commit · just now
 https://github.com/org/repo/pull/9 ◌ PR #9 · refresh for status
 
 ### 3 cli query links.x.md resources | select {target, metadata} --json
-$ wtf query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [

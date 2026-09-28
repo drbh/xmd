@@ -1,7 +1,7 @@
 {
-  "name": "wtf",
-  "displayName": "WTF",
-  "description": "Calculated notes, checklists, and timers powered by the WTF language server.",
+  "name": "xmd",
+  "displayName": "XMD",
+  "description": "Calculated notes, checklists, and timers powered by the XMD language server.",
   "version": "0.1.0",
   "publisher": "drbh",
   "license": "UNLICENSED",
@@ -9,7 +9,7 @@
   "engines": { "vscode": "^1.91.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:wtf"],
+  "activationEvents": ["onLanguage:xmd"],
   "extensionKind": ["workspace"],
   "capabilities": {
     "untrustedWorkspaces": { "supported": false },
@@ -27,31 +27,31 @@
   },
   "contributes": {
     "languages": [{
-      "id": "wtf",
-      "aliases": ["WTF", "wtf"],
+      "id": "xmd",
+      "aliases": ["XMD", "xmd"],
       "filenamePatterns": ["*.x.md"],
       "configuration": "./language-configuration.json"
     }],
-    "commands": [{ "command": "wtf.restartServer", "title": "WTF: Restart Language Server" }],
+    "commands": [{ "command": "xmd.restartServer", "title": "XMD: Restart Language Server" }],
     "configuration": {
-      "title": "WTF",
+      "title": "XMD",
       "properties": {
-        "wtf.serverPath": {
+        "xmd.serverPath": {
           "type": "string",
           "default": "",
           "scope": "machine-overridable",
-          "description": "Path to the WTF executable. Leave empty to use `wtf` from PATH, or the language server the extension downloads from the GitHub release. The extension runs it with the lsp argument."
+          "description": "Path to the XMD executable. Leave empty to use `xmd` from PATH, or the language server the extension downloads from the GitHub release. The extension runs it with the lsp argument."
         },
-        "wtf.autoDownload": {
+        "xmd.autoDownload": {
           "type": "boolean",
           "default": true,
           "scope": "machine",
-          "description": "When `wtf` is not on PATH, offer to download the language server matching this extension's version from the GitHub release (asked once)."
+          "description": "When `xmd` is not on PATH, offer to download the language server matching this extension's version from the GitHub release (asked once)."
         }
       }
     },
     "configurationDefaults": {
-      "[wtf]": {
+      "[xmd]": {
         "editor.semanticHighlighting.enabled": true,
         "editor.inlayHints.enabled": "on",
         "editor.codeLens": true,
@@ -61,35 +61,35 @@
     },
     "semanticTokenTypes": [
       { "id": "heading", "description": "Note heading" },
-      { "id": "wtfMoney", "superType": "number", "description": "Money" },
-      { "id": "wtfDate", "superType": "string", "description": "Date" },
-      { "id": "wtfTime", "superType": "string", "description": "Time" },
-      { "id": "wtfDuration", "superType": "number", "description": "Duration" },
-      { "id": "wtfRatio", "superType": "number", "description": "Percentage or ratio" },
-      { "id": "wtfBoolean", "superType": "keyword", "description": "Boolean" },
-      { "id": "wtfPunctuation", "description": "WTF punctuation" },
-      { "id": "wtfCode", "superType": "string", "description": "Literal code" },
-      { "id": "wtfLink", "superType": "string", "description": "Resource link" },
-      { "id": "wtfCheckbox", "description": "Open checkbox" },
-      { "id": "wtfCheckboxChecked", "description": "Completed checkbox" },
-      { "id": "wtfTaskDone", "superType": "comment", "description": "Completed task" }
+      { "id": "xmdMoney", "superType": "number", "description": "Money" },
+      { "id": "xmdDate", "superType": "string", "description": "Date" },
+      { "id": "xmdTime", "superType": "string", "description": "Time" },
+      { "id": "xmdDuration", "superType": "number", "description": "Duration" },
+      { "id": "xmdRatio", "superType": "number", "description": "Percentage or ratio" },
+      { "id": "xmdBoolean", "superType": "keyword", "description": "Boolean" },
+      { "id": "xmdPunctuation", "description": "XMD punctuation" },
+      { "id": "xmdCode", "superType": "string", "description": "Literal code" },
+      { "id": "xmdLink", "superType": "string", "description": "Resource link" },
+      { "id": "xmdCheckbox", "description": "Open checkbox" },
+      { "id": "xmdCheckboxChecked", "description": "Completed checkbox" },
+      { "id": "xmdTaskDone", "superType": "comment", "description": "Completed task" }
     ],
     "semanticTokenScopes": [{
-      "language": "wtf",
+      "language": "xmd",
       "scopes": {
         "heading": ["markup.heading"],
-        "wtfMoney": ["constant.numeric"],
-        "wtfDate": ["constant.other.date", "constant.numeric"],
-        "wtfTime": ["constant.other.time", "constant.numeric"],
-        "wtfDuration": ["constant.numeric"],
-        "wtfRatio": ["constant.numeric"],
-        "wtfBoolean": ["constant.language.boolean"],
-        "wtfPunctuation": ["punctuation.separator"],
-        "wtfCode": ["markup.inline.raw"],
-        "wtfLink": ["markup.underline.link"],
-        "wtfCheckbox": ["markup.list.unnumbered", "keyword"],
-        "wtfCheckboxChecked": ["constant.language.boolean"],
-        "wtfTaskDone": ["comment"]
+        "xmdMoney": ["constant.numeric"],
+        "xmdDate": ["constant.other.date", "constant.numeric"],
+        "xmdTime": ["constant.other.time", "constant.numeric"],
+        "xmdDuration": ["constant.numeric"],
+        "xmdRatio": ["constant.numeric"],
+        "xmdBoolean": ["constant.language.boolean"],
+        "xmdPunctuation": ["punctuation.separator"],
+        "xmdCode": ["markup.inline.raw"],
+        "xmdLink": ["markup.underline.link"],
+        "xmdCheckbox": ["markup.list.unnumbered", "keyword"],
+        "xmdCheckboxChecked": ["constant.language.boolean"],
+        "xmdTaskDone": ["comment"]
       }
     }]
   }

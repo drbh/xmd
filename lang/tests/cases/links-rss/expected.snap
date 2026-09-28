@@ -1,5 +1,5 @@
 ### 0 cli render feeds.x.md --format text
-$ wtf render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
+$ xmd render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 # Feeds
@@ -12,67 +12,67 @@ Notes: [notes.latest] updated [notes.updated].
 Titles: [map(blog.items, fn(i) => i.title)]
 Dates: [map(blog.items, fn(i) => i.published)]
 --- stderr
-<root>/feeds.x.md:5:20: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:5:35: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:5:52: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:6:25: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:6:45: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:7:15: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:7:38: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:8:14: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.x.md:9:13: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.x.md:5:20: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:5:35: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:5:52: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:6:25: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:6:45: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:7:15: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:7:38: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:8:14: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:9:13: warning: Module rss.property: No cached feed; run xmd refresh
 
 ### 1 cli query feeds.x.md diagnostics | select {message, code} --json
-$ wtf query feeds.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
+$ xmd query feeds.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "evaluation",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "evaluation",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   }
 ]
 
 ### 2 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://broken.example.net/rss: Not an RSS or Atom feed
+xmd: https://broken.example.net/rss: Not an RSS or Atom feed
 
-### 3 read .wtf/cache.json
--- .wtf/cache.json
+### 3 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://example.com/blog/feed.xml": {
     "title": "Typed & Notes",
@@ -145,7 +145,7 @@ wtf: https://broken.example.net/rss: Not an RSS or Atom feed
 }
 
 ### 4 cli render feeds.x.md --format text
-$ wtf render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
+$ xmd render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 # Feeds
@@ -159,7 +159,7 @@ Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations",
 Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
 
 ### 5 cli query feeds.x.md resources | select {target, metadata} --json
-$ wtf query feeds.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+$ xmd query feeds.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
@@ -322,7 +322,7 @@ exit 0
 ]
 
 ### 6 cli render feeds.x.md --format text --on 2026-10-01
-$ wtf render feeds.x.md --format text --on 2026-10-01 --root <root>
+$ xmd render feeds.x.md --format text --on 2026-10-01 --root <root>
 exit 0
 --- stdout
 # Feeds
@@ -392,7 +392,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -419,7 +419,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -446,7 +446,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -473,7 +473,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -500,7 +500,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://broken.example.net/rss"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -527,7 +527,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://broken.example.net/rss"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -554,7 +554,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -581,7 +581,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -608,7 +608,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -635,7 +635,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -662,7 +662,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -689,7 +689,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -716,7 +716,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -743,7 +743,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -770,7 +770,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -797,7 +797,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {

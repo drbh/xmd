@@ -1,5 +1,5 @@
 ### 0 cli render n.x.md --format text
-$ wtf render n.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd render n.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 # 🦀 Trip 12:00 ░░░░░░░░ 0/1 complete

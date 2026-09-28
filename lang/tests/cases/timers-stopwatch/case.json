@@ -9,11 +9,11 @@
         { "await": "textDocument/publishDiagnostics", "file": "idle.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "pause"}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -26,12 +26,12 @@
         { "open": "running.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "pause"}] }
         },
         { "await": "workspace/applyEdit" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "reset"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "reset"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -44,11 +44,11 @@
         { "open": "paused.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "start"}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "resume"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "resume"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -60,7 +60,7 @@
         { "await": "textDocument/publishDiagnostics", "file": "alias.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:alias.x.md}", "name": "alias", "action": "start"}] }
+          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:alias.x.md}", "name": "alias", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" }
       ]

@@ -1,6 +1,6 @@
 # Sports scores
 
-Open this folder as a workspace so .wtf/modules.json activates sports.x.md and
+Open this folder as a workspace so .xmd/modules.json activates sports.x.md and
 scores.x.md. The sports link module resolves ESPN game pages.
 
 https://www.espn.com/nba/game/_/gameId/401584896:game

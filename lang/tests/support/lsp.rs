@@ -1,4 +1,4 @@
-//! A stdio driver for the real `wtf lsp` binary.
+//! A stdio driver for the real `xmd lsp` binary.
 //!
 //! It owns the transport only: framing, the initialize handshake, request ids
 //! and answering server-initiated requests. Everything about *what* to send
@@ -50,7 +50,7 @@ pub struct Lsp {
 }
 
 impl Lsp {
-    /// Starts `wtf lsp` in `root` with the clock frozen at `now` (`WTF_NOW`),
+    /// Starts `xmd lsp` in `root` with the clock frozen at `now` (`XMD_NOW`),
     /// `PATH` set to `path`, and completes the initialize handshake.
     pub fn start(root: &Path, now: &str, path: &str) -> Self {
         Self::start_with(root, now, path, capabilities())
@@ -59,17 +59,17 @@ impl Lsp {
     /// Like `start`, but announcing the given client capabilities, so a case can
     /// take the path a poorer editor takes.
     pub fn start_with(root: &Path, now: &str, path: &str, capabilities: Value) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_wtf"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_xmd"))
             .arg("lsp")
             .current_dir(root)
-            .env("WTF_NOW", now)
+            .env("XMD_NOW", now)
             .env("TZ", "UTC")
             .env("PATH", path)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
-            .expect("failed to start `wtf lsp`");
+            .expect("failed to start `xmd lsp`");
         let input = child.stdin.take().unwrap();
         let stdout = child.stdout.take().unwrap();
         let (sender, output) = mpsc::channel();

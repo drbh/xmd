@@ -8,21 +8,21 @@ import { createRequire } from "node:module";
 import { createServer } from "node:net";
 
 test("a packed consumer renders in Node and bundles a worker widget under a URL prefix", async ({ page }) => {
-  const temporary = await mkdtemp(join(tmpdir(), "wtf-package-"));
+  const temporary = await mkdtemp(join(tmpdir(), "xmd-package-"));
   const root = fileURLToPath(new URL("../", import.meta.url));
   let server;
   try {
     execFileSync("npm", ["pack", "--ignore-scripts", "--pack-destination", temporary, "--silent"], { cwd: root });
-    const installed = join(temporary, "node_modules/@wtf/web");
+    const installed = join(temporary, "node_modules/@xmd/web");
     await mkdir(installed, { recursive: true });
-    execFileSync("tar", ["-xzf", join(temporary, "wtf-web-0.1.0.tgz"), "--strip-components=1", "-C", installed]);
+    execFileSync("tar", ["-xzf", join(temporary, "xmd-web-0.1.0.tgz"), "--strip-components=1", "-C", installed]);
     await writeFile(join(temporary, "package.json"), '{"type":"module"}');
-    const node = execFileSync(process.execPath, ["--input-type=module", "-e", 'import {render} from "@wtf/web"; console.log(await render("answer := 6 * 7\\n", {now:"2026-09-18T12:00:00Z"}));'], { cwd: temporary, encoding: "utf8" });
+    const node = execFileSync(process.execPath, ["--input-type=module", "-e", 'import {render} from "@xmd/web"; console.log(await render("answer := 6 * 7\\n", {now:"2026-09-18T12:00:00Z"}));'], { cwd: temporary, encoding: "utf8" });
     expect(node).toContain("= 42");
     await writeFile(join(temporary, "index.html"), '<!doctype html><div id="static"></div><div id="live"></div><script type="module" src="./main.js"></script>');
     await writeFile(join(temporary, "main.js"), `
-      import {render, mount} from "@wtf/web";
-      import "@wtf/web/style.css";
+      import {render, mount} from "@xmd/web";
+      import "@xmd/web/style.css";
       async function main() {
         const now = "2026-09-18T12:00:00Z";
         document.querySelector("#static").innerHTML = await render("answer := 6 * 7\\n", {now});

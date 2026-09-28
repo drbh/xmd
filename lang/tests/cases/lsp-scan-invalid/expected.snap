@@ -1,8 +1,8 @@
 ### 0 cli query --workspace values | select {name, display} --json
-$ wtf query --workspace values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query --workspace values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 1
 --- stderr
-wtf: <root>/unreadable.x.md: stream did not contain valid UTF-8
+xmd: <root>/unreadable.x.md: stream did not contain valid UTF-8
 
 ### 1 lsp
 -- open weather.x.md
@@ -100,8 +100,8 @@ We should [pack_rain_jacket].
     }
   }
 ]
--- write .wtf/lookups.json (271 bytes)
--- watched .wtf/lookups.json
+-- write .xmd/lookups.json (271 bytes)
+-- watched .xmd/lookups.json
 -- await textDocument/publishDiagnostics weather.x.md
 {
   "diagnostics": [],

@@ -21,28 +21,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ]
   }
 }
@@ -79,7 +79,7 @@
         }
       }
     ],
-    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-xmdCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-xmdCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-xmdCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
     "lenses": [],
     "lineClasses": [
       "h1",
@@ -164,28 +164,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -296,7 +296,7 @@
         }
       }
     ],
-    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-xmdCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-xmdCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-xmdCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
     "lenses": [],
     "lineClasses": [
       "h1",
@@ -381,28 +381,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -675,7 +675,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-wtfMoney\" title=\"\">$3.30</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> = $3.30</span>\n</span><span class=\"line \" data-line=\"1\">Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> $3.30</span>.\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-xmdMoney\" title=\"\">$3.30</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> = $3.30</span>\n</span><span class=\"line \" data-line=\"1\">Have <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> $3.30</span>.\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [],
     "lineClasses": [
       "",
@@ -729,28 +729,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -805,7 +805,7 @@
 }
 
 ### 1 cli render trip.x.md --format text
-$ wtf render trip.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Real 🦀␍
@@ -979,14 +979,14 @@ Value [a] 3.␍
   }
 ]
 -- request textDocument/semanticTokens/full money.x.md
-0:0+1 wtfPunctuation "["
+0:0+1 xmdPunctuation "["
 0:1+5 variable [declaration] "value"
-0:6+1 wtfPunctuation "]"
+0:6+1 xmdPunctuation "]"
 0:8+2 operator ":="
-0:11+5 wtfMoney "$3.30"
-1:5+1 wtfPunctuation "["
+0:11+5 xmdMoney "$3.30"
+1:5+1 xmdPunctuation "["
 1:6+5 variable "value"
-1:11+1 wtfPunctuation "]"
+1:11+1 xmdPunctuation "]"
 -- request textDocument/inlayHint trip.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {

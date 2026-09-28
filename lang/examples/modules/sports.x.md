@@ -1,5 +1,5 @@
 // A workspace link module: ESPN game pages resolve to their score and result.
-// Activated by listing ../sports.x.md in .wtf/modules.json.
+// Activated by listing ../sports.x.md in .xmd/modules.json.
 module := {
   api: 1,
   id: "sports",

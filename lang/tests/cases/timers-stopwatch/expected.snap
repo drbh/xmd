@@ -1,19 +1,19 @@
 ### 0 cli render idle.x.md --format text
-$ wtf render idle.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render idle.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 🦀 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle␍
 Keep this prose.␍
 
 ### 1 cli render idle.x.md --now 2026-09-17T14:00:00-04:00 --format text
-$ wtf render idle.x.md --now 2026-09-17T14:00:00-04:00 --format text --root <root>
+$ xmd render idle.x.md --now 2026-09-17T14:00:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 🦀 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle␍
 Keep this prose.␍
 
 ### 2 cli query idle.x.md timers --json
-$ wtf query idle.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query idle.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -68,12 +68,12 @@ exit 0
   "uri": "file://<root>/idle.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 error: {
   "code": -32602,
   "message": "Cannot pause a idle timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -105,21 +105,21 @@ null
 }
 
 ### 4 cli render running.x.md --format text
-$ wtf render running.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render running.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00) = ◴ 01:13 elapsed · ▸ running
 Keep this prose.
 
 ### 5 cli render running.x.md --now 2026-09-16T14:01:00-04:00 --format text
-$ wtf render running.x.md --now 2026-09-16T14:01:00-04:00 --format text --root <root>
+$ xmd render running.x.md --now 2026-09-16T14:01:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00) = ◴ 02:13 elapsed · ▸ running
 Keep this prose.
 
 ### 6 cli query running.x.md timers --json
-$ wtf query running.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query running.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -171,7 +171,7 @@ exit 0
 
 ### 7 lsp
 -- open running.x.md
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -201,7 +201,7 @@ null
     ]
   }
 }
--- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -233,21 +233,21 @@ null
 }
 
 ### 8 cli render paused.x.md --format text
-$ wtf render paused.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render paused.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
 Keep this prose.
 
 ### 9 cli render paused.x.md --now 2026-09-16T15:00:00-04:00 --format text
-$ wtf render paused.x.md --now 2026-09-16T15:00:00-04:00 --format text --root <root>
+$ xmd render paused.x.md --now 2026-09-16T15:00:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
 Keep this prose.
 
 ### 10 cli query paused.x.md timers --json
-$ wtf query paused.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query paused.x.md timers --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -296,12 +296,12 @@ exit 0
 
 ### 11 lsp
 -- open paused.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 error: {
   "code": -32602,
   "message": "Cannot start a paused timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"resume","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"resume","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -333,7 +333,7 @@ null
 }
 
 ### 12 cli render alias.x.md --format text
-$ wtf render alias.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render alias.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [alias] := import("./shared.x.md").focus = ◷ ░░░░░░░░ 25:00 remaining · ○ idle
@@ -348,7 +348,7 @@ Remaining [alias.remaining] 25m.
   "uri": "file://<root>/alias.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {

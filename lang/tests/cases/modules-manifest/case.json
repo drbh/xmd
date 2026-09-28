@@ -19,7 +19,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/headings.x.md\", \"../custom.x.md\"]\n"
+        ".xmd/modules.json": "[\"../stdlib/headings.x.md\", \"../custom.x.md\"]\n"
       }
     },
     {
@@ -40,8 +40,8 @@
     },
     {
       "write": {
-        ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"workspace\"}]\n",
-        ".wtf/modules.json": "[\"./modules/headings.x.md\"]\n"
+        ".xmd/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"workspace\"}]\n",
+        ".xmd/modules.json": "[\"./modules/headings.x.md\"]\n"
       }
     },
     {
@@ -54,7 +54,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\n"
+        ".xmd/modules.json": "[\n"
       }
     },
     {
@@ -67,7 +67,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "{\"files\": []}\n"
+        ".xmd/modules.json": "{\"files\": []}\n"
       }
     },
     {
@@ -80,7 +80,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"./modules/missing.x.md\"]\n"
+        ".xmd/modules.json": "[\"./modules/missing.x.md\"]\n"
       }
     },
     {
@@ -93,7 +93,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../custom.x.md\", \".././custom.x.md\"]\n"
+        ".xmd/modules.json": "[\"../custom.x.md\", \".././custom.x.md\"]\n"
       }
     },
     {
@@ -106,7 +106,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/*.x.md\"]\n"
+        ".xmd/modules.json": "[\"../stdlib/*.x.md\"]\n"
       }
     },
     {
@@ -119,7 +119,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/headings.x.md\", \"../stdlib/m0.x.md\", \"../stdlib/m1.x.md\", \"../stdlib/m2.x.md\", \"../stdlib/m3.x.md\", \"../stdlib/m4.x.md\", \"../stdlib/m5.x.md\", \"../stdlib/m6.x.md\", \"../stdlib/m7.x.md\", \"../stdlib/m8.x.md\", \"../stdlib/m9.x.md\", \"../stdlib/m10.x.md\", \"../stdlib/m11.x.md\", \"../stdlib/m12.x.md\", \"../stdlib/m13.x.md\", \"../stdlib/m14.x.md\", \"../stdlib/m15.x.md\", \"../stdlib/m16.x.md\", \"../stdlib/m17.x.md\", \"../stdlib/m18.x.md\", \"../stdlib/m19.x.md\", \"../stdlib/m20.x.md\", \"../stdlib/m21.x.md\", \"../stdlib/m22.x.md\", \"../stdlib/m23.x.md\", \"../stdlib/m24.x.md\", \"../stdlib/m25.x.md\", \"../stdlib/m26.x.md\", \"../stdlib/m27.x.md\", \"../stdlib/m28.x.md\", \"../stdlib/m29.x.md\", \"../stdlib/m30.x.md\", \"../stdlib/m31.x.md\", \"../stdlib/m32.x.md\", \"../stdlib/m33.x.md\", \"../stdlib/m34.x.md\", \"../stdlib/m35.x.md\", \"../stdlib/m36.x.md\", \"../stdlib/m37.x.md\", \"../stdlib/m38.x.md\", \"../stdlib/m39.x.md\", \"../stdlib/m40.x.md\", \"../stdlib/m41.x.md\", \"../stdlib/m42.x.md\", \"../stdlib/m43.x.md\", \"../stdlib/m44.x.md\", \"../stdlib/m45.x.md\", \"../stdlib/m46.x.md\", \"../stdlib/m47.x.md\", \"../stdlib/m48.x.md\", \"../stdlib/m49.x.md\", \"../stdlib/m50.x.md\", \"../stdlib/m51.x.md\", \"../stdlib/m52.x.md\", \"../stdlib/m53.x.md\", \"../stdlib/m54.x.md\", \"../stdlib/m55.x.md\", \"../stdlib/m56.x.md\", \"../stdlib/m57.x.md\", \"../stdlib/m58.x.md\", \"../stdlib/m59.x.md\", \"../stdlib/m60.x.md\", \"../stdlib/m61.x.md\", \"../stdlib/m62.x.md\", \"../stdlib/m63.x.md\"]\n"
+        ".xmd/modules.json": "[\"../stdlib/headings.x.md\", \"../stdlib/m0.x.md\", \"../stdlib/m1.x.md\", \"../stdlib/m2.x.md\", \"../stdlib/m3.x.md\", \"../stdlib/m4.x.md\", \"../stdlib/m5.x.md\", \"../stdlib/m6.x.md\", \"../stdlib/m7.x.md\", \"../stdlib/m8.x.md\", \"../stdlib/m9.x.md\", \"../stdlib/m10.x.md\", \"../stdlib/m11.x.md\", \"../stdlib/m12.x.md\", \"../stdlib/m13.x.md\", \"../stdlib/m14.x.md\", \"../stdlib/m15.x.md\", \"../stdlib/m16.x.md\", \"../stdlib/m17.x.md\", \"../stdlib/m18.x.md\", \"../stdlib/m19.x.md\", \"../stdlib/m20.x.md\", \"../stdlib/m21.x.md\", \"../stdlib/m22.x.md\", \"../stdlib/m23.x.md\", \"../stdlib/m24.x.md\", \"../stdlib/m25.x.md\", \"../stdlib/m26.x.md\", \"../stdlib/m27.x.md\", \"../stdlib/m28.x.md\", \"../stdlib/m29.x.md\", \"../stdlib/m30.x.md\", \"../stdlib/m31.x.md\", \"../stdlib/m32.x.md\", \"../stdlib/m33.x.md\", \"../stdlib/m34.x.md\", \"../stdlib/m35.x.md\", \"../stdlib/m36.x.md\", \"../stdlib/m37.x.md\", \"../stdlib/m38.x.md\", \"../stdlib/m39.x.md\", \"../stdlib/m40.x.md\", \"../stdlib/m41.x.md\", \"../stdlib/m42.x.md\", \"../stdlib/m43.x.md\", \"../stdlib/m44.x.md\", \"../stdlib/m45.x.md\", \"../stdlib/m46.x.md\", \"../stdlib/m47.x.md\", \"../stdlib/m48.x.md\", \"../stdlib/m49.x.md\", \"../stdlib/m50.x.md\", \"../stdlib/m51.x.md\", \"../stdlib/m52.x.md\", \"../stdlib/m53.x.md\", \"../stdlib/m54.x.md\", \"../stdlib/m55.x.md\", \"../stdlib/m56.x.md\", \"../stdlib/m57.x.md\", \"../stdlib/m58.x.md\", \"../stdlib/m59.x.md\", \"../stdlib/m60.x.md\", \"../stdlib/m61.x.md\", \"../stdlib/m62.x.md\", \"../stdlib/m63.x.md\"]\n"
       }
     },
     {
@@ -132,8 +132,8 @@
     },
     {
       "write": {
-        ".wtf/modules/twin.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"twin\"}]\n",
-        ".wtf/modules.json": "[\"./modules/headings.x.md\", \"./modules/twin.x.md\"]\n"
+        ".xmd/modules/twin.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"twin\"}]\n",
+        ".xmd/modules.json": "[\"./modules/headings.x.md\", \"./modules/twin.x.md\"]\n"
       }
     },
     {
@@ -146,8 +146,8 @@
     },
     {
       "write": {
-        ".wtf/modules/twin.x.md": "module := {",
-        ".wtf/modules.json": "[\"./modules/twin.x.md\"]\n"
+        ".xmd/modules/twin.x.md": "module := {",
+        ".xmd/modules.json": "[\"./modules/twin.x.md\"]\n"
       }
     },
     {
@@ -160,8 +160,8 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"./modules/headings.x.md\"]\n",
-        ".wtf/modules/twin.x.md": null
+        ".xmd/modules.json": "[\"./modules/headings.x.md\"]\n",
+        ".xmd/modules/twin.x.md": null
       }
     },
     {
@@ -192,12 +192,12 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"saved\"}]\n"
+            ".xmd/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"saved\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.x.md"
+            ".xmd/modules/headings.x.md"
           ]
         },
         {
@@ -220,12 +220,12 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.x.md": "module := {"
+            ".xmd/modules/headings.x.md": "module := {"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.x.md"
+            ".xmd/modules/headings.x.md"
           ]
         },
         {
@@ -251,12 +251,12 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"reloaded\"}]\n"
+            ".xmd/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"reloaded\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.x.md"
+            ".xmd/modules/headings.x.md"
           ]
         },
         {
@@ -279,12 +279,12 @@
         },
         {
           "write": {
-            ".wtf/modules.json": null
+            ".xmd/modules.json": null
           }
         },
         {
           "watched": [
-            ".wtf/modules.json"
+            ".xmd/modules.json"
           ]
         },
         {

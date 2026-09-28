@@ -210,7 +210,7 @@
 []
 
 ### 2 cli query crlf.x.md sum(t, n) --json
-$ wtf query crlf.x.md sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query crlf.x.md sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -218,7 +218,7 @@ exit 0
 ]
 
 ### 3 cli query crlf.x.md tables | select {name, display} --json
-$ wtf query crlf.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query crlf.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -229,16 +229,16 @@ exit 0
 ]
 
 ### 4 cli query inert.x.md tables | select {name, display} --json
-$ wtf query inert.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query inert.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 5 cli render inert.x.md --format text
-$ wtf render inert.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render inert.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-```wtf
+```xmd
 [t] := table
 |n|
 |---|

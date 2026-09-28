@@ -1,5 +1,5 @@
 ### 0 cli render tasks.x.md --format text
-$ wtf render tasks.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render tasks.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 # Tasks ███░░░░░ 3/8 complete
@@ -22,7 +22,7 @@ Photo [photo] image · open preview and spot [spot] place · open map.
 - [ ] stuck @after(later) @due(today) ⊘ blocked by later · → due today
 --- stderr
 <root>/tasks.x.md:9:21: error: Unknown name 'nope'
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 1 lsp
 -- open tasks.x.md
@@ -43,7 +43,7 @@ wtf: 1 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/tasks.x.md",
@@ -267,7 +267,7 @@ null
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume focus"
     },
     "range": {
@@ -291,7 +291,7 @@ null
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset focus"
     },
     "range": {
@@ -315,7 +315,7 @@ null
           "row": 3
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -339,7 +339,7 @@ null
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume focus"
     },
     "range": {
@@ -363,7 +363,7 @@ null
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset focus"
     },
     "range": {
@@ -387,7 +387,7 @@ null
           "row": 5
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -411,7 +411,7 @@ null
           "row": 6
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -435,7 +435,7 @@ null
           "row": 7
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -459,7 +459,7 @@ null
           "row": 8
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -483,7 +483,7 @@ null
           "row": 9
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "↻ next"
     },
     "range": {
@@ -507,7 +507,7 @@ null
           "row": 10
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -534,7 +534,7 @@ null
           "url": "file://<root>/photo.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -561,7 +561,7 @@ null
           "url": "https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ map"
     },
     "range": {
@@ -588,7 +588,7 @@ null
           "url": "file://<root>/notes.txt"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -615,7 +615,7 @@ null
           "url": "https://example.com/page"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -642,7 +642,7 @@ null
           "url": "file://<root>/photo.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -669,7 +669,7 @@ null
           "url": "https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ map"
     },
     "range": {
@@ -1317,7 +1317,7 @@ error: {
   "diagnostics": [
     {
       "code": "evaluation",
-      "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+      "message": "No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
       "range": {
         "end": {
           "character": 27,
@@ -1329,7 +1329,7 @@ error: {
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/money.x.md",
@@ -1373,7 +1373,7 @@ error: {
 {
   "contents": {
     "kind": "markdown",
-    "value": "**missing**\n\nNo cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.x.md#L4>) · <root>/money.x.md:4"
+    "value": "**missing**\n\nNo cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.x.md#L4>) · <root>/money.x.md:4"
   },
   "range": {
     "end": {
@@ -1466,7 +1466,7 @@ null
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1488,7 +1488,7 @@ null
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1510,7 +1510,7 @@ null
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1603,7 +1603,7 @@ null
     }
   },
   {
-    "detail": "Error · No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+    "detail": "Error · No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
     "kind": 13,
     "name": "missing",
     "range": {
@@ -1832,17 +1832,17 @@ null
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.today"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.today"}
 null
 -- await window/showDocument
 {
   "external": false,
   "takeFocus": true,
-  "uri": "file://<root>/.wtf/today.md"
+  "uri": "file://<root>/.xmd/today.md"
 }
 
-### 2 read .wtf/today.md
--- .wtf/today.md
+### 2 read .xmd/today.md
+-- .xmd/today.md
 # Today — 2026-09-16
 
 Generated view. Follow a link to edit the original note.
@@ -1856,7 +1856,7 @@ Generated view. Follow a link to edit the original note.
 - [tasks.x.md:18](<file://<root>/tasks.x.md#L18>) — stuck (blocked by later)
 
 ### 3 cli render money.x.md --format text
-$ wtf render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [€450]:hotel
@@ -1876,7 +1876,7 @@ exit 0
 | one | 5 |
 | two | 5 |
 --- stderr
-<root>/money.x.md:4:14: warning: No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens
+<root>/money.x.md:4:14: warning: No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens
 
 ### 4 lsp
 -- open edge.x.md
@@ -1897,7 +1897,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "attribute",
@@ -1913,7 +1913,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/edge.x.md",
@@ -2088,7 +2088,7 @@ null
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2112,7 +2112,7 @@ null
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2136,7 +2136,7 @@ null
           "row": 1
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -2160,7 +2160,7 @@ null
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2184,7 +2184,7 @@ null
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2208,7 +2208,7 @@ null
           "row": 2
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {

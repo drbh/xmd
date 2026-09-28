@@ -1,4 +1,4 @@
-// Inline calculations use the same evaluated records as `wtf query calculations`.
+// Inline calculations use the same evaluated records as `xmd query calculations`.
 module := {
   api: 1,
   id: "calculations",

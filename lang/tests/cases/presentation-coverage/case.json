@@ -239,7 +239,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.today",
+            "command": "xmd.today",
             "arguments": [
               {
                 "kind": "show_today"
@@ -254,7 +254,7 @@
     },
     {
       "read": [
-        ".wtf/today.md"
+        ".xmd/today.md"
       ]
     },
     {

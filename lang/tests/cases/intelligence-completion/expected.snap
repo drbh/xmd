@@ -438,7 +438,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "title",
     "textEdit": {
@@ -456,7 +456,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "state",
     "textEdit": {
@@ -474,7 +474,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "merged",
     "textEdit": {
@@ -492,7 +492,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "checks_passed",
     "textEdit": {

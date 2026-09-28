@@ -1,5 +1,5 @@
 [package]
-name = "wtf"
+name = "xmd"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,7 +7,7 @@ edition = "2024"
 crate-type = ["rlib"]
 
 [[bin]]
-name = "wtf"
+name = "xmd"
 path = "src/main.rs"
 required-features = ["native"]
 

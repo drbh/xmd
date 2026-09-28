@@ -178,8 +178,8 @@ hover := fn(ctx) => (
     ctx.cached == null,
     if(
       ctx.native,
-      "No cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
-      "GitHub status refresh is available in the native WTF app, not this browser workspace."
+      "No cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).",
+      "GitHub status refresh is available in the native XMD app, not this browser workspace."
     ),
     "**"
     + ctx.cached.title
@@ -205,7 +205,7 @@ property_names := fn(url) => (
 property := fn(ctx, name) => (
   if(
     ctx.cached == null,
-    error("No cached GitHub status; run wtf refresh"),
+    error("No cached GitHub status; run xmd refresh"),
     if(
       name == "checks_passed",
       if(ctx.cached.checks == null, error("No checks reported"), ctx.cached.checks == "passing"),

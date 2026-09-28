@@ -1,5 +1,5 @@
 ### 0 cli render money.x.md --format text
-$ wtf render money.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd render money.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [€450]:hotel
@@ -9,10 +9,10 @@ exit 0
 [cost] := rate(EUR, USD) * 2 = 2.18
 [missing] := rate(GBP, USD)
 --- stderr
-<root>/money.x.md:6:14: warning: No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens
+<root>/money.x.md:6:14: warning: No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens
 
 ### 1 cli query money.x.md values | select {name, display} --json
-$ wtf query money.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query money.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -43,20 +43,20 @@ exit 0
 ]
 
 ### 2 cli query money.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query money.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query money.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
   {
     "code": "evaluation",
     "line": 5,
-    "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+    "message": "No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
     "severity": "warning"
   }
 ]
 
 ### 3 cli query money.x.md [€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h] --json
-$ wtf query money.x.md [€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h] --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query money.x.md [€450, 700 MXN, -£12.50, ¥1000 * 2, $3 + $4, €450 * 3, €450 / €50, USD, NVDA, 30m + 2h] --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -103,16 +103,16 @@ exit 0
 ]
 
 ### 4 cli query money.x.md €450 + $5 --json
-$ wtf query money.x.md €450 + $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query money.x.md €450 + $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 1
 --- stderr
-wtf: Cannot combine EUR and USD; convert with to(value, USD) (Money + Money)
+xmd: Cannot combine EUR and USD; convert with to(value, USD) (Money + Money)
 
 ### 5 cli query money.x.md €450 > $5 --json
-$ wtf query money.x.md €450 > $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query money.x.md €450 > $5 --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 1
 --- stderr
-wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
+xmd: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
 
 ### 6 lsp
 -- open money.x.md
@@ -121,7 +121,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
   "diagnostics": [
     {
       "code": "evaluation",
-      "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+      "message": "No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
       "range": {
         "end": {
           "character": 27,
@@ -133,7 +133,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/money.x.md",
@@ -160,7 +160,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
 {
   "contents": {
     "kind": "markdown",
-    "value": "**missing**\n\nNo cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.x.md#L6>) · <root>/money.x.md:6"
+    "value": "**missing**\n\nNo cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.x.md#L6>) · <root>/money.x.md:6"
   },
   "range": {
     "end": {
@@ -183,7 +183,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -205,7 +205,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -227,7 +227,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -249,7 +249,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -271,7 +271,7 @@ wtf: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {

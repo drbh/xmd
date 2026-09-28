@@ -1,5 +1,5 @@
 ### 0 cli query --workspace values | select {name, value, type, display, errors} --root money --json
-$ wtf query --workspace values | select {name, value, type, display, errors} --root money --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace values | select {name, value, type, display, errors} --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -50,19 +50,19 @@ exit 0
 ]
 
 ### 1 cli query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json
-$ wtf query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Stage 2: Unknown function 'eval'
+xmd: Stage 2: Unknown function 'eval'
 
 ### 2 cli query --workspace values | where name == "price" | sum value --root money --json
-$ wtf query --workspace values | where name == "price" | sum value --root money --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace values | where name == "price" | sum value --root money --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Stage 2: Cannot combine EUR and USD; convert with to(value, USD)
+xmd: Stage 2: Cannot combine EUR and USD; convert with to(value, USD)
 
 ### 3 cli query usd.x.md values | where name == "total" | select {name, hover} --root money --json
-$ wtf query usd.x.md values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
+$ xmd query usd.x.md values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -73,7 +73,7 @@ exit 0
 ]
 
 ### 4 cli query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json
-$ wtf query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -92,7 +92,7 @@ exit 0
 ]
 
 ### 5 cli query tables.x.md tables | select {name} --json
-$ wtf query tables.x.md tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query tables.x.md tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -102,7 +102,7 @@ exit 0
 ]
 
 ### 6 cli query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json
-$ wtf query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -117,7 +117,7 @@ exit 0
 ]
 
 ### 7 cli query tables.x.md values | where name == "total" | select {name, value, display} --json
-$ wtf query tables.x.md values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query tables.x.md values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -133,7 +133,7 @@ exit 0
 ]
 
 ### 8 cli query plans.x.md plans | select {name} --json
-$ wtf query plans.x.md plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query plans.x.md plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -143,7 +143,7 @@ exit 0
 ]
 
 ### 9 cli query plans.x.md plans | where name == "bakery" | select solution --json
-$ wtf query plans.x.md plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query plans.x.md plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -257,7 +257,7 @@ exit 0
 ]
 
 ### 10 cli query links.x.md resources | select {target, metadata} --json
-$ wtf query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -282,7 +282,7 @@ exit 0
 ]
 
 ### 11 cli query links.x.md resources | where metadata != null | select metadata.title --json
-$ wtf query links.x.md resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query links.x.md resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -290,7 +290,7 @@ exit 0
 ]
 
 ### 12 cli query bad.x.md values | select {name, value, errors} --json
-$ wtf query bad.x.md values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query bad.x.md values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -304,7 +304,7 @@ exit 0
 ]
 
 ### 13 cli query bad.x.md tasks | select {title, due, errors} --json
-$ wtf query bad.x.md tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query bad.x.md tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -323,7 +323,7 @@ exit 0
 ]
 
 ### 14 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -391,7 +391,7 @@ good := 41 + 1
     "file://<root>/bad.x.md": 2
   }
 }
--- request wtf/query {"query":"tasks","uri":"${uri:missing.x.md}"}
+-- request xmd/query {"query":"tasks","uri":"${uri:missing.x.md}"}
 error: {
   "code": -32602,
   "message": "<root>/missing.x.md: No such file or directory (os error 2)"

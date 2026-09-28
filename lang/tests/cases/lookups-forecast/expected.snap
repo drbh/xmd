@@ -1,11 +1,11 @@
 ### 0 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (0 resources)
 
-### 1 read .wtf/lookups.json
--- .wtf/lookups.json
+### 1 read .xmd/lookups.json
+-- .xmd/lookups.json
 {
   "forecast:oaxaca:2026-10-02": {
     "value": {
@@ -50,7 +50,7 @@ Resource cache updated (0 resources)
 }
 
 ### 2 cli render trip.x.md --format text
-$ wtf render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 # Planning ahead
@@ -67,7 +67,7 @@ too_far := forecast("Oaxaca", 2027-05-20)
 <root>/trip.x.md:8:12: warning: Forecast for Oaxaca on 2027-05-20: no forecast yet; seasonal outlooks cover about 7 months
 
 ### 3 cli query trip.x.md next_year.high --json
-$ wtf query trip.x.md next_year.high --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md next_year.high --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -75,7 +75,7 @@ exit 0
 ]
 
 ### 4 cli query trip.x.md first_seasonal.rain --json
-$ wtf query trip.x.md first_seasonal.rain --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md first_seasonal.rain --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -86,13 +86,13 @@ exit 0
 ]
 
 ### 5 cli refresh
-$ WTF_NOW=2026-10-01T14:00:00+00:00 wtf refresh --root <root>
+$ XMD_NOW=2026-10-01T14:00:00+00:00 xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (0 resources)
 
 ### 6 cli query trip.x.md first_seasonal --json
-$ wtf query trip.x.md first_seasonal --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md first_seasonal --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -112,14 +112,14 @@ exit 0
 -- write trip.x.md (320 bytes)
 
 ### 8 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: forecast oaxaca 2026-11-21: Request failed: service unavailable
+xmd: forecast oaxaca 2026-11-21: Request failed: service unavailable
 forecast oaxaca 2026-11-22: expected value at line 1 column 1
 
 ### 9 cli render trip.x.md --format text
-$ wtf render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 1
 --- stdout
 network := forecast("Oaxaca", 2026-11-21)
@@ -130,26 +130,26 @@ missing_rain := forecast("Oaxaca", 2026-11-25).rain
 single_member := forecast("Oaxaca", 2026-11-26).rain
 wet := forecast("Oaxaca", 2026-11-27).rain = 100%
 --- stderr
-<root>/trip.x.md:1:12: warning: No cached forecast for Oaxaca on 2026-11-21; run wtf refresh or use the ⟳ lookups lens
-<root>/trip.x.md:2:14: warning: No cached forecast for Oaxaca on 2026-11-22; run wtf refresh or use the ⟳ lookups lens
+<root>/trip.x.md:1:12: warning: No cached forecast for Oaxaca on 2026-11-21; run xmd refresh or use the ⟳ lookups lens
+<root>/trip.x.md:2:14: warning: No cached forecast for Oaxaca on 2026-11-22; run xmd refresh or use the ⟳ lookups lens
 <root>/trip.x.md:3:12: warning: Forecast for Oaxaca on 2026-11-23: no forecast yet; seasonal outlooks cover about 7 months
 <root>/trip.x.md:4:14: warning: Forecast for Oaxaca on 2026-11-24: no forecast yet; seasonal outlooks cover about 7 months
 <root>/trip.x.md:5:17: error: This forecast has no precipitation chance
 <root>/trip.x.md:6:18: error: This forecast has no precipitation chance
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 10 write
--- write .wtf/providers.json (34 bytes)
+-- write .xmd/providers.json (34 bytes)
 -- write trip.x.md (41 bytes)
 
 ### 11 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (0 resources)
 
 ### 12 cli query trip.x.md custom --json
-$ wtf query trip.x.md custom --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md custom --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

@@ -1,5 +1,5 @@
-import { createWorkspace, render, mount, type Snapshot } from "@wtf/web";
-import { mountEditor } from "@wtf/web/contenteditable";
+import { createWorkspace, render, mount, type Snapshot } from "@xmd/web";
+import { mountEditor } from "@xmd/web/contenteditable";
 
 const workspace = createWorkspace({ now: () => new Date().toISOString(), onError: console.error });
 await workspace.setDocument("file:///workspace/a.x.md", "a := 1\n");

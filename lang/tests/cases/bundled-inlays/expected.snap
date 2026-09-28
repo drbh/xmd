@@ -1,5 +1,5 @@
 ### 0 cli render checklists.x.md --format text
-$ wtf render checklists.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render checklists.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Work ████░░░░ 2/4 complete · 90m estimated left
@@ -12,7 +12,7 @@ exit 0
 # Empty
 
 ### 1 cli render formula.x.md --format text
-$ wtf render formula.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render formula.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 # Formula
@@ -24,10 +24,10 @@ Clock [now()] 2026-09-18 12:00:00 +00:00.
 Broken [missing + 2].
 --- stderr
 <root>/formula.x.md:7:9: error: Unknown name 'missing'
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 2 cli render table.x.md --format text
-$ wtf render table.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render table.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 prices := table
@@ -37,10 +37,10 @@ prices := table
 | Pie | [missing + 1] |
 --- stderr
 <root>/table.x.md:5:10: error: Unknown name 'missing'
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 3 cli render plain.x.md --format text
-$ wtf render plain.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render plain.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Empty
@@ -144,7 +144,7 @@ plain text
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/formula.x.md",

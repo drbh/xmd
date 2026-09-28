@@ -1,5 +1,5 @@
 ### 0 cli render durations.x.md --format text
-$ wtf render durations.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render durations.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Chores :chores ░░░░░░░░ 0/3 complete · 31m 30s estimated left
@@ -12,7 +12,7 @@ exit 0
 [total] := effort(chores) = 31m 30s
 
 ### 1 cli query durations.x.md [30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed] --json --now 2026-09-16T14:00:45-04:00
-$ wtf query durations.x.md [30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed] --json --now 2026-09-16T14:00:45-04:00 --root <root>
+$ xmd query durations.x.md [30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed] --json --now 2026-09-16T14:00:45-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -60,13 +60,13 @@ exit 0
 ]
 
 ### 2 cli query durations.x.md 2026-09-16 + 1s --json
-$ wtf query durations.x.md 2026-09-16 + 1s --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query durations.x.md 2026-09-16 + 1s --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-wtf: A date requires whole-day durations; use a date/time for hours (Date + Duration)
+xmd: A date requires whole-day durations; use a date/time for hours (Date + Duration)
 
 ### 3 cli query durations.x.md tasks | where leaf | select {title, estimate, due} --json
-$ wtf query durations.x.md tasks | where leaf | select {title, estimate, due} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query durations.x.md tasks | where leaf | select {title, estimate, due} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -104,7 +104,7 @@ exit 0
   "uri": "file://<root>/durations.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:durations.x.md}","expected":"- [ ] Water plants @every(2w) @due(2026-09-16)","kind":"toggle_task","row":3}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:durations.x.md}","expected":"- [ ] Water plants @every(2w) @due(2026-09-16)","kind":"toggle_task","row":3}],"command":"xmd.task"}
 null
 -- await workspace/applyEdit
 {
@@ -139,7 +139,7 @@ null
             }
           },
           {
-            "newText": "<!-- wtf-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Water plants\"} -->\n",
+            "newText": "<!-- xmd-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Water plants\"} -->\n",
             "range": {
               "end": {
                 "character": 0,

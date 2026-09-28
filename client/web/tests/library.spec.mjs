@@ -14,7 +14,7 @@ test("multiple views share core task actions and preserve source separately from
     window.one = await lib.mount(document.querySelector("#one"), { workspace: ws, uri: "file:///workspace/🦀 tasks.x.md", source: "- [ ] Parent\n  - [ ] Child\n", onChange: c => changes.push(c) });
     window.two = await lib.mount(document.querySelector("#two"), { workspace: ws, uri: "file:///workspace/value.x.md", source: "a := 1 + 2\n" });
   });
-  await page.locator("#one .t-wtfCheckbox").first().click();
+  await page.locator("#one .t-xmdCheckbox").first().click();
   await expect(page.locator("#one pre")).toContainText("[x] Child @completed(2026-09-18)");
   await expect(page.locator("#two .inlay")).toContainText("= 3");
   expect(await page.evaluate(() => two.getSource())).toBe("a := 1 + 2\n");
@@ -89,12 +89,12 @@ test("optional editing preserves ranges, composition, task undo and redo", async
   await expect.poll(() => page.evaluate(() => one.getSource())).toBe("Composing 日本語");
   await page.evaluate(() => one.undo());
   await expect(page.locator("#one pre")).toContainText("Value [src.a]");
-  await page.locator("#one .t-wtfCheckbox").first().click();
+  await page.locator("#one .t-xmdCheckbox").first().click();
   await expect(page.locator("#one pre")).toContainText("[x] Child @completed(2026-09-18)");
   await page.evaluate(() => one.undo());
-  await expect(page.locator("#one .t-wtfCheckbox")).toHaveCount(2);
+  await expect(page.locator("#one .t-xmdCheckbox")).toHaveCount(2);
   await page.evaluate(() => one.redo());
-  await expect(page.locator("#one .t-wtfCheckboxChecked")).toHaveCount(2);
+  await expect(page.locator("#one .t-xmdCheckboxChecked")).toHaveCount(2);
   await page.evaluate(() => { one.destroy(); ws.destroy(); });
 });
 

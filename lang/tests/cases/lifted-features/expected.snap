@@ -1,5 +1,5 @@
 ### 0 cli render bakery.x.md --format text
-$ wtf render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock
@@ -12,7 +12,7 @@ exit 0
 Bake [bakery.bagels] 25.75 for [bakery] $94.75.
 
 ### 1 cli query bakery.x.md values | select {name, display, type} --json
-$ wtf query bakery.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -29,13 +29,13 @@ exit 0
 ]
 
 ### 2 cli query bakery.x.md diagnostics | select {message, code, severity} --json
-$ wtf query bakery.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 cli render choice.x.md --format text
-$ wtf render choice.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render choice.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 items := table = 2 rows · 3 columns
@@ -49,7 +49,7 @@ choice := maximize(sum(items, take * cost)) = $5 · take 1 of 2
 | budget | sum(items, take * cost) <= $5 | ████████ $5 ≤ $5 · ● binding
 
 ### 4 cli query choice.x.md values | select {name, display, type} --json
-$ wtf query choice.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query choice.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -66,13 +66,13 @@ exit 0
 ]
 
 ### 5 cli query choice.x.md diagnostics | select {message, code, severity} --json
-$ wtf query choice.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query choice.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 6 cli render timers.x.md --format text
-$ wtf render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := stopwatch() = ◴ 00:00 elapsed · ○ idle
@@ -83,7 +83,7 @@ done := countdown(1s, 1s) = ◷ ████████ 00:00 remaining · ✓ 
 Spent [watch.elapsed] 0s, use [focus] ◷ ████░░░░ 01:00 remaining · ▸ running and [paused] ◴ 01:05 elapsed · ‖ paused.
 
 ### 7 cli query timers.x.md values | select {name, display, type} --json
-$ wtf query timers.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query timers.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -110,13 +110,13 @@ exit 0
 ]
 
 ### 8 cli query timers.x.md diagnostics | select {message, code, severity} --json
-$ wtf query timers.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query timers.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 9 cli render oaxaca.x.md --format text
-$ wtf render oaxaca.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render oaxaca.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 ## Wednesday, September 16, 2026 · Oaxaca 4 stops · 07:04 AM – 06:00 PM · today
@@ -132,19 +132,19 @@ A note
 Cancel by: 2026-09-16 12:00
 
 ### 10 cli query oaxaca.x.md values | select {name, display, type} --json
-$ wtf query oaxaca.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query oaxaca.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 11 cli query oaxaca.x.md diagnostics | select {message, code, severity} --json
-$ wtf query oaxaca.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query oaxaca.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 12 cli render baddates.x.md --format text
-$ wtf render baddates.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render baddates.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 ## Monday, February 30, 2026
@@ -158,16 +158,16 @@ exit 1
 <root>/baddates.x.md:3:4: error: September 15, 2026 is a Tuesday, not a Monday
 <root>/baddates.x.md:5:1: error: 14:00 is earlier than the previous stop at 15:00
 <root>/baddates.x.md:6:4: error: 2026-01-01 comes before the previous day, 2026-09-15
-wtf: 4 error(s) while rendering
+xmd: 4 error(s) while rendering
 
 ### 13 cli query baddates.x.md values | select {name, display, type} --json
-$ wtf query baddates.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query baddates.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 14 cli query baddates.x.md diagnostics | select {message, code, severity} --json
-$ wtf query baddates.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query baddates.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -194,7 +194,7 @@ exit 0
 ]
 
 ### 15 cli render yearless.x.md --format text
-$ wtf render yearless.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render yearless.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 ## December 31 1 stops · 23:00 – 23:00 · in 106 days
@@ -203,19 +203,19 @@ exit 0
 01:00 < Arrive
 
 ### 16 cli query yearless.x.md values | select {name, display, type} --json
-$ wtf query yearless.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query yearless.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 17 cli query yearless.x.md diagnostics | select {message, code, severity} --json
-$ wtf query yearless.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query yearless.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 18 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 # Work ███░░░░░ 1/3 complete
@@ -231,10 +231,10 @@ exit 1
 https://github.com/openai/example/pull/42 ◌ PR #42 · refresh for status
 --- stderr
 <root>/work.x.md:7:63: error: Put recurrence on individual tasks, not parent checklists
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 19 cli query work.x.md values | select {name, display, type} --json
-$ wtf query work.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query work.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -251,7 +251,7 @@ exit 0
 ]
 
 ### 20 cli query work.x.md diagnostics | select {message, code, severity} --json
-$ wtf query work.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query work.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -528,7 +528,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "itinerary",
@@ -544,7 +544,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "itinerary",
@@ -560,7 +560,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "itinerary",
@@ -576,7 +576,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/baddates.x.md",
@@ -678,7 +678,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/work.x.md",

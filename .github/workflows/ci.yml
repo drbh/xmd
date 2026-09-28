@@ -39,7 +39,7 @@ jobs:
       - name: Test
         run: cargo test
       - name: Test (browser feature)
-        run: cargo test -p wtf --features browser
+        run: cargo test -p xmd --features browser
 
   wasm:
     name: WASM and web
@@ -77,7 +77,7 @@ jobs:
       - name: Type tests
         run: npm --prefix client/web run test:types
       - name: Build native binary
-        # client/web/tests/render.spec.mjs spawns target/debug/wtf for native parity.
+        # client/web/tests/render.spec.mjs spawns target/debug/xmd for native parity.
         run: cargo build
       - name: Install Playwright browser
         # playwright.config.mjs pins channel "chrome", so install Google Chrome.
@@ -109,13 +109,13 @@ jobs:
           cache-dependency-path: client/ide/vscode/package-lock.json
       - name: Install extension dependencies
         run: npm --prefix client/ide/vscode ci
-      # `npm run test` launches a real VS Code against target/debug/wtf and needs
+      # `npm run test` launches a real VS Code against target/debug/xmd and needs
       # a display; it is not run here. `check` syntax-checks the extension only.
       - name: Check extension sources
         run: npm --prefix client/ide/vscode run check
 
   deploy:
-    # The hosted docs app at wtf-docs.drbh.workers.dev is rebuilt from every
+    # The hosted docs app at xmd-docs.drbh.workers.dev is rebuilt from every
     # green push to main, so what is deployed never lags what is merged. Needs
     # the CLOUDFLARE_API_TOKEN repository secret (Workers Scripts:Edit, D1:Edit).
     name: Deploy docs app
@@ -148,7 +148,7 @@ jobs:
         run: npm --prefix client/web/cloud run build
       - name: Apply database migrations
         working-directory: client/web/cloud
-        run: npx wrangler d1 migrations apply wtf-docs --remote
+        run: npx wrangler d1 migrations apply xmd-docs --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Deploy

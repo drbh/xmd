@@ -4,7 +4,7 @@
     { "cli": ["render", "feeds.x.md", "--format", "text"] },
     { "cli": ["query", "feeds.x.md", "diagnostics | select {message, code}", "--json"] },
     { "cli": ["refresh"] },
-    { "read": [".wtf/cache.json"] },
+    { "read": [".xmd/cache.json"] },
     { "cli": ["render", "feeds.x.md", "--format", "text"] },
     { "cli": ["query", "feeds.x.md", "resources | select {target, metadata}", "--json"] },
     { "cli": ["render", "feeds.x.md", "--format", "text", "--on", "2026-10-01"] },

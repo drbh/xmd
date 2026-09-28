@@ -1,5 +1,5 @@
 ### 0 cli query release.x.md values | select {name, display} --json
-$ wtf query release.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query release.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -14,7 +14,7 @@ exit 0
 ]
 
 ### 1 cli query released.x.md values | select {name, display} --json
-$ wtf query released.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query released.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -29,7 +29,7 @@ exit 0
 ]
 
 ### 2 cli query relative.x.md [length(entries), length(diagnostics)] --json
-$ wtf query relative.x.md [length(entries), length(diagnostics)] --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query relative.x.md [length(entries), length(diagnostics)] --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -38,7 +38,7 @@ exit 0
 ]
 
 ### 3 cli query relative.x.md import("agenda").between(entries, today(), today()) | select title --json
-$ wtf query relative.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query relative.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -46,7 +46,7 @@ exit 0
 ]
 
 ### 4 cli query cycle.x.md diagnostics | select {line, severity, message} --json
-$ wtf query cycle.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query cycle.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -63,7 +63,7 @@ exit 0
 ]
 
 ### 5 cli query unicode.x.md values | select {name, display} --json
-$ wtf query unicode.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+$ xmd query unicode.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -130,7 +130,7 @@ exit 0
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:release.x.md}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:release.x.md}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"xmd.task"}
 null
 -- await workspace/applyEdit
 {
@@ -236,7 +236,7 @@ null
     "title": "✓ done"
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"xmd.task"}
 error: {
   "code": -32602,
   "message": "Blocked by review"
@@ -331,21 +331,21 @@ error: {
 ]
 -- open unicode.x.md
 -- request textDocument/semanticTokens/full unicode.x.md
-0:0+1 wtfPunctuation "#"
+0:0+1 xmdPunctuation "#"
 0:1+8 heading " café 🌴"
-1:0+1 wtfPunctuation "-"
-1:2+3 wtfCheckbox "[ ]"
-1:13+1 wtfPunctuation "["
-1:14+3 wtfMoney "$30"
-1:17+2 wtfPunctuation "]:"
+1:0+1 xmdPunctuation "-"
+1:2+3 xmdCheckbox "[ ]"
+1:13+1 xmdPunctuation "["
+1:14+3 xmdMoney "$30"
+1:17+2 xmdPunctuation "]:"
 1:19+4 variable [declaration] "cost"
 1:24+4 decorator "@due"
-1:28+1 wtfPunctuation "("
-1:29+8 wtfDate "tomorrow"
-1:37+1 wtfPunctuation ")"
-2:0+1 wtfPunctuation "["
+1:28+1 xmdPunctuation "("
+1:29+8 xmdDate "tomorrow"
+1:37+1 xmdPunctuation ")"
+2:0+1 xmdPunctuation "["
 2:1+9 variable [declaration] "cost_plus"
-2:10+1 wtfPunctuation "]"
+2:10+1 xmdPunctuation "]"
 2:12+2 operator ":="
 2:15+4 variable "cost"
 2:19+1 operator "+"
@@ -425,7 +425,7 @@ error: {
   }
 ]
 -- open walk.x.md
--- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.x.md}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.x.md}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"xmd.task"}
 null
 -- await workspace/applyEdit
 {
@@ -447,7 +447,7 @@ null
             }
           },
           {
-            "newText": "\r\n<!-- wtf-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-17\",\"task\":null,\"title\":\"Walk\"} -->\r\n",
+            "newText": "\r\n<!-- xmd-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-17\",\"task\":null,\"title\":\"Walk\"} -->\r\n",
             "range": {
               "end": {
                 "character": 22,

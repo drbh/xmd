@@ -29,19 +29,19 @@
     "documentSymbolProvider": true,
     "executeCommandProvider": {
       "commands": [
-        "wtf.invoke",
-        "wtf.applyEdits",
-        "wtf.task",
-        "wtf.timer",
-        "wtf.openResource",
-        "wtf.refreshResource",
-        "wtf.refresh",
-        "wtf.today"
+        "xmd.invoke",
+        "xmd.applyEdits",
+        "xmd.task",
+        "xmd.timer",
+        "xmd.openResource",
+        "xmd.refreshResource",
+        "xmd.refresh",
+        "xmd.today"
       ]
     },
     "experimental": {
-      "wtfQuery": {
-        "method": "wtf/query",
+      "xmdQuery": {
+        "method": "xmd/query",
         "schemaVersion": 1
       }
     },
@@ -70,28 +70,28 @@
           "function",
           "property",
           "decorator",
-          "wtfMoney",
-          "wtfDate",
-          "wtfDuration",
-          "wtfRatio",
-          "wtfBoolean",
-          "wtfPunctuation",
-          "wtfCode",
-          "wtfLink",
-          "wtfCheckbox",
-          "wtfTaskDone",
-          "wtfCheckboxChecked",
-          "wtfTime",
-          "wtfDay",
-          "wtfPlace",
-          "wtfDetailKey",
-          "wtfDepart",
-          "wtfArrive",
-          "wtfTransit",
-          "wtfStay",
-          "wtfMeal",
-          "wtfVisit",
-          "wtfExplore"
+          "xmdMoney",
+          "xmdDate",
+          "xmdDuration",
+          "xmdRatio",
+          "xmdBoolean",
+          "xmdPunctuation",
+          "xmdCode",
+          "xmdLink",
+          "xmdCheckbox",
+          "xmdTaskDone",
+          "xmdCheckboxChecked",
+          "xmdTime",
+          "xmdDay",
+          "xmdPlace",
+          "xmdDetailKey",
+          "xmdDepart",
+          "xmdArrive",
+          "xmdTransit",
+          "xmdStay",
+          "xmdMeal",
+          "xmdVisit",
+          "xmdExplore"
         ]
       }
     },
@@ -108,7 +108,7 @@
     "workspaceSymbolProvider": true
   },
   "serverInfo": {
-    "name": "WTF",
+    "name": "XMD",
     "version": "0.1.0"
   }
 }

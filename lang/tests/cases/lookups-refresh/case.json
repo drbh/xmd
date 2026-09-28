@@ -3,7 +3,7 @@
   "steps": [
     { "cli": ["query", "trip.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     { "cli": ["refresh"] },
-    { "read": [".wtf/lookups.json"] },
+    { "read": [".xmd/lookups.json"] },
     { "cli": ["render", "trip.x.md", "--format", "text"] },
     { "cli": ["query", "trip.x.md", "values | select {name, display}", "--json"] },
     {

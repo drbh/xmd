@@ -647,7 +647,7 @@ Bake [bakery.bagels] bagels.
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/bakery.x.md",

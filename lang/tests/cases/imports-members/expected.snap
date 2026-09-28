@@ -1,5 +1,5 @@
 ### 0 cli query main.x.md values | select {name, display, errors} --json
-$ wtf query main.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -21,7 +21,7 @@ exit 0
 ]
 
 ### 1 cli query grouped.x.md values | select {name, display} --json
-$ wtf query grouped.x.md values | select {name, display} --json --root <root> --now 2026-09-18T12:00:00Z
+$ xmd query grouped.x.md values | select {name, display} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -36,7 +36,7 @@ exit 0
 ]
 
 ### 2 cli graph main.x.md -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path})
-$ wtf graph main.x.md -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path}) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd graph main.x.md -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path}) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

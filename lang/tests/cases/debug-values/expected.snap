@@ -1,5 +1,5 @@
 ### 0 cli query debug.x.md values | select {name, display, errors} --json
-$ wtf query debug.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query debug.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -56,7 +56,7 @@ exit 0
 ]
 
 ### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ wtf query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

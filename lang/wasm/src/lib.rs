@@ -144,7 +144,7 @@ impl BrowserWorkspace {
                             common::EXTENSION
                         ));
                     }
-                    Ok((Path::new("/workspace/.wtf/modules").join(name), source))
+                    Ok((Path::new("/workspace/.xmd/modules").join(name), source))
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
             let modules = eval::modules::ModuleRegistry::compile(sources)?;

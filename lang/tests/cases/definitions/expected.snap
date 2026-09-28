@@ -1,5 +1,5 @@
 ### 0 cli query defs.x.md values | select {name, type, display} --json
-$ wtf query defs.x.md values | select {name, type, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query defs.x.md values | select {name, type, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -61,7 +61,7 @@ exit 0
 ]
 
 ### 1 cli render defs.x.md --format text
-$ wtf render defs.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render defs.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 Our budget is $3,000:budget and we've spent $2,444:spent.
@@ -69,7 +69,7 @@ Departure 2026-11-20:departure, "Oaxaca City":city, 47%:share, 2h:slot, true:fla
 PR https://github.com/zed-industries/zed/pull/1 ◌ PR #1 · refresh for status:zed_pr ◌ PR #1 · refresh for status and geo:17.06,-96.72:zocalo place · open map (€450:hotel).
 
 ### 2 cli query defs.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query defs.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query defs.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -83,38 +83,38 @@ exit 0
   "version": 1
 }
 -- request textDocument/semanticTokens/full defs.x.md
-0:14+6 wtfMoney "$3,000"
-0:20+1 wtfPunctuation ":"
+0:14+6 xmdMoney "$3,000"
+0:20+1 xmdPunctuation ":"
 0:21+6 variable [declaration] "budget"
-0:44+6 wtfMoney "$2,444"
-0:50+1 wtfPunctuation ":"
+0:44+6 xmdMoney "$2,444"
+0:50+1 xmdPunctuation ":"
 0:51+5 variable [declaration] "spent"
-1:10+10 wtfDate "2026-11-20"
-1:20+1 wtfPunctuation ":"
+1:10+10 xmdDate "2026-11-20"
+1:20+1 xmdPunctuation ":"
 1:21+9 variable [declaration] "departure"
 1:32+13 string "\"Oaxaca City\""
-1:45+1 wtfPunctuation ":"
+1:45+1 xmdPunctuation ":"
 1:46+4 variable [declaration] "city"
-1:52+3 wtfRatio "47%"
-1:55+1 wtfPunctuation ":"
+1:52+3 xmdRatio "47%"
+1:55+1 xmdPunctuation ":"
 1:56+5 variable [declaration] "share"
-1:63+2 wtfDuration "2h"
-1:65+1 wtfPunctuation ":"
+1:63+2 xmdDuration "2h"
+1:65+1 xmdPunctuation ":"
 1:66+4 variable [declaration] "slot"
-1:72+4 wtfBoolean "true"
-1:76+1 wtfPunctuation ":"
+1:72+4 xmdBoolean "true"
+1:76+1 xmdPunctuation ":"
 1:77+4 variable [declaration] "flag"
 1:83+2 number "12"
-1:85+1 wtfPunctuation ":"
+1:85+1 xmdPunctuation ":"
 1:86+5 variable [declaration] "count"
-2:3+44 wtfLink "https://github.com/zed-industries/zed/pull/1"
-2:47+1 wtfPunctuation ":"
+2:3+44 xmdLink "https://github.com/zed-industries/zed/pull/1"
+2:47+1 xmdPunctuation ":"
 2:48+6 variable [declaration] "zed_pr"
-2:59+16 wtfLink "geo:17.06,-96.72"
-2:75+1 wtfPunctuation ":"
+2:59+16 xmdLink "geo:17.06,-96.72"
+2:75+1 xmdPunctuation ":"
 2:76+6 variable [declaration] "zocalo"
-2:84+4 wtfMoney "€450"
-2:88+1 wtfPunctuation ":"
+2:84+4 xmdMoney "€450"
+2:88+1 xmdPunctuation ":"
 2:89+5 variable [declaration] "hotel"
 -- request textDocument/documentLink defs.x.md
 [
@@ -149,7 +149,7 @@ exit 0
 ]
 
 ### 4 cli render calc.x.md --format text
-$ wtf render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 $3,000:budget
@@ -159,7 +159,7 @@ share := remaining / budget = 18.5333%
 We have [remaining] $556 left ([share] 18.5333%).
 
 ### 5 cli query calc.x.md values | select {name, display} --json
-$ wtf query calc.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query calc.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -256,13 +256,13 @@ exit 0
 ]
 
 ### 7 cli query prose.x.md values | select {name} --json
-$ wtf query prose.x.md values | select {name} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md values | select {name} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 8 cli render both.x.md --format text
-$ wtf render both.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render both.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$3,000]:budget and $2,444:spent

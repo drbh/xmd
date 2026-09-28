@@ -94,7 +94,7 @@
     {
       "read": [
         "flat/main.x.md",
-        ".wtf/cache.json"
+        ".xmd/cache.json"
       ]
     }
   ]

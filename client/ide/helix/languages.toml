@@ -1,18 +1,18 @@
 # Merge into ~/.config/helix/languages.toml, or a project's .helix/languages.toml.
-# `wtf` comes from PATH; install it with
+# `xmd` comes from PATH; install it with
 #   curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
 # or use an absolute path below if it lives elsewhere.
-[language-server.wtf]
-command = "wtf"
+[language-server.xmd]
+command = "xmd"
 args = ["lsp"]
 
 [[language]]
-name = "wtf"
-scope = "text.wtf"
+name = "xmd"
+scope = "text.xmd"
 file-types = [{ glob = "*.x.md" }]
-roots = [".wtf", ".git"]
-language-servers = ["wtf"]
+roots = [".xmd", ".git"]
+language-servers = ["xmd"]
 indent = { tab-width = 2, unit = "  " }
 block-comment-tokens = { start = "<!--", end = "-->" }
-# Reuse Markdown for basic highlighting; WTF semantics still come from the LSP.
+# Reuse Markdown for basic highlighting; XMD semantics still come from the LSP.
 grammar = "markdown"

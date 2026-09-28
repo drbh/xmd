@@ -144,7 +144,7 @@ $12:price
     "file://<root>/n.x.md": 3
   }
 }
--- request wtf/query {"query":"tasks | where ("}
+-- request xmd/query {"query":"tasks | where ("}
 error: {
   "code": -32602,
   "message": "Unclosed delimiter in query"
@@ -210,12 +210,12 @@ answer := import("./two.x.md").rate * 2
     "file://<root>/one.x.md": 2
   }
 }
--- request wtf/query {"query":"ast","uri":"https://example.com/n.x.md"}
+-- request xmd/query {"query":"ast","uri":"https://example.com/n.x.md"}
 error: {
   "code": -32602,
   "message": "Query uri must be a local file URI"
 }
--- request wtf/query {"query":"ast","uri":"${uri:missing.x.md}"}
+-- request xmd/query {"query":"ast","uri":"${uri:missing.x.md}"}
 error: {
   "code": -32602,
   "message": "<root>/missing.x.md: No such file or directory (os error 2)"
@@ -240,7 +240,7 @@ error: {
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/main.x.md",

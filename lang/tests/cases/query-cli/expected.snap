@@ -1,5 +1,5 @@
 ### 0 cli query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
-$ wtf query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
+$ xmd query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
 exit 0
 --- stdout
 [
@@ -28,7 +28,7 @@ exit 0
 ]
 
 ### 1 cli q --workspace map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title) --root agenda --json
-$ wtf q --workspace map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title) --root agenda --json
+$ xmd q --workspace map(filter(tasks, fn(t) => t.leaf && !t.done), fn(t) => t.title) --root agenda --json
 exit 0
 --- stdout
 [
@@ -36,21 +36,21 @@ exit 0
 ]
 
 ### 2 cli query --workspace tasks | select {title} --root agenda --jsonl
-$ wtf query --workspace tasks | select {title} --root agenda --jsonl --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | select {title} --root agenda --jsonl --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 {"title":"Open #work"}
 {"title":"Closed"}
 
 ### 3 cli query --workspace tasks | select {title} --root agenda
-$ wtf query --workspace tasks | select {title} --root agenda --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | select {title} --root agenda --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 title=Open #work
 title=Closed
 
 ### 4 cli query --workspace - --root agenda --json
-$ wtf query --workspace - --root agenda --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace - --root agenda --json --now 2026-09-16T12:00:00-04:00
 --- stdin
 tasks | count
 exit 0
@@ -60,7 +60,7 @@ exit 0
 ]
 
 ### 5 cli query one note.x.md - --root scopes --json
-$ wtf query one note.x.md - --root scopes --json --now 2026-09-16T12:00:00-04:00
+$ xmd query one note.x.md - --root scopes --json --now 2026-09-16T12:00:00-04:00
 --- stdin
 // Count unfinished tasks.
 length(
@@ -73,7 +73,7 @@ exit 0
 ]
 
 ### 6 cli query --workspace - --root scopes --json
-$ wtf query --workspace - --root scopes --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace - --root scopes --json --now 2026-09-16T12:00:00-04:00
 --- stdin
 // Count unfinished tasks.
 length(
@@ -85,21 +85,21 @@ exit 0
   2
 ]
 
-### 7 read agenda/n.x.md agenda/.wtf/cache.json
+### 7 read agenda/n.x.md agenda/.xmd/cache.json
 -- agenda/n.x.md
 - [ ] Open #work @due(2026-09-16) @estimate(90s)
 - [x] Closed
--- agenda/.wtf/cache.json
+-- agenda/.xmd/cache.json
 (missing: entity not found)
 
 ### 8 cli query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json
-$ wtf query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 9 cli query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json
-$ wtf query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
 [
@@ -109,28 +109,28 @@ exit 1
   }
 ]
 --- stderr
-wtf: 1 matching result(s)
+xmd: 1 matching result(s)
 
 ### 10 cli query --workspace tasks | where ( --root broken
-$ wtf query --workspace tasks | where ( --root broken --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | where ( --root broken --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Unclosed delimiter in query
+xmd: Unclosed delimiter in query
 
 ### 11 cli query --workspace tasks --root broken --json --jsonl
-$ wtf query --workspace tasks --root broken --json --jsonl --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks --root broken --json --jsonl --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: the argument '--json' cannot be used with '--jsonl'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 12 cli query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
-$ wtf query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
+$ xmd query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
 exit 0
 --- stdout
 [
@@ -145,7 +145,7 @@ exit 0
 ]
 
 ### 13 cli query --workspace values | select value --root clock --on 2026-09-16 --json
-$ wtf query --workspace values | select value --root clock --on 2026-09-16 --json
+$ xmd query --workspace values | select value --root clock --on 2026-09-16 --json
 exit 0
 --- stdout
 [
@@ -160,19 +160,19 @@ exit 0
 ]
 
 ### 14 cli query --workspace tasks --root clock --on 2026-09-16 --now 2026-09-16T12:00:00Z
-$ wtf query --workspace tasks --root clock --on 2026-09-16 --now 2026-09-16T12:00:00Z
+$ xmd query --workspace tasks --root clock --on 2026-09-16 --now 2026-09-16T12:00:00Z
 exit 2
 --- stderr
 error: the argument '--on <ON>' cannot be used with '--now <NOW>'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 15 cli q one note.x.md length(tasks) --root scopes --json
-$ wtf q one note.x.md length(tasks) --root scopes --json
+$ xmd q one note.x.md length(tasks) --root scopes --json
 exit 0
 --- stdout
 [
@@ -180,7 +180,7 @@ exit 0
 ]
 
 ### 16 cli q --workspace length(tasks) --root scopes --json
-$ wtf q --workspace length(tasks) --root scopes --json
+$ xmd q --workspace length(tasks) --root scopes --json
 exit 0
 --- stdout
 [
@@ -188,7 +188,7 @@ exit 0
 ]
 
 ### 17 cli query length(tasks) --workspace --root scopes --json
-$ wtf query length(tasks) --workspace --root scopes --json --now 2026-09-16T12:00:00-04:00
+$ xmd query length(tasks) --workspace --root scopes --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -196,7 +196,7 @@ exit 0
 ]
 
 ### 18 cli query --workspace "one note.x.md" --root scopes --json
-$ wtf query --workspace "one note.x.md" --root scopes --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace "one note.x.md" --root scopes --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -204,7 +204,7 @@ exit 0
 ]
 
 ### 19 cli query ${root}/scopes/one note.x.md length(tasks) --root scopes --json
-$ wtf query <root>/scopes/one note.x.md length(tasks) --root scopes --json --now 2026-09-16T12:00:00-04:00
+$ xmd query <root>/scopes/one note.x.md length(tasks) --root scopes --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -212,170 +212,170 @@ exit 0
 ]
 
 ### 20 cli query
-$ wtf query --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Supply a query expression: wtf 'total' < note.x.md
+xmd: Supply a query expression: xmd 'total' < note.x.md
 
 ### 21 cli query tasks
-$ wtf query tasks --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query tasks --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 
 ### 22 cli query note.x.md
-$ wtf query note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Unknown name 'note'
+xmd: Unknown name 'note'
 
 ### 23 cli query --workspace
-$ wtf query --workspace --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Supply a query expression: wtf 'total' < note.x.md
+xmd: Supply a query expression: xmd 'total' < note.x.md
 
 ### 24 cli query -f expression.txt
-$ wtf query -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 25 cli query note.x.md tasks --workspace
-$ wtf query note.x.md tasks --workspace --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query note.x.md tasks --workspace --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: the argument '[QUERY]' cannot be used with '--workspace'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 26 cli query note.x.md tasks -f expression.txt
-$ wtf query note.x.md tasks -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query note.x.md tasks -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 27 cli query --workspace tasks --file expression.txt
-$ wtf query --workspace tasks --file expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks --file expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '--file' found
 
   tip: to pass '--file' as a value, use '-- --file'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 28 cli query --workspace tasks -f -
-$ wtf query --workspace tasks -f - --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks -f - --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '-f' found
 
   tip: to pass '-f' as a value, use '-- -f'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 29 cli query tasks --in note.x.md
-$ wtf query tasks --in note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query tasks --in note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '--in' found
 
   tip: a similar argument exists: '--fail-on-match'
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 30 cli query note.x.md tasks extra
-$ wtf query note.x.md tasks extra --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query note.x.md tasks extra --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument 'extra' found
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 For more information, try '--help'.
 
 ### 31 cli today
-$ wtf today
+$ xmd today
 exit 1
 --- stderr
-wtf: Unknown name 'today'
+xmd: Unknown name 'today'
 
 ### 32 cli agenda
-$ wtf agenda
+$ xmd agenda
 exit 1
 --- stderr
-wtf: Unknown name 'agenda'
+xmd: Unknown name 'agenda'
 
 ### 33 cli tasks
-$ wtf tasks
+$ xmd tasks
 exit 0
 
 ### 34 cli check
-$ wtf check
+$ xmd check
 exit 1
 --- stderr
-wtf: Unknown name 'check'
+xmd: Unknown name 'check'
 
 ### 35 cli plan
-$ wtf plan
+$ xmd plan
 exit 1
 --- stderr
-wtf: Unknown name 'plan'
+xmd: Unknown name 'plan'
 
 ### 36 cli capture n.x.md
-$ wtf capture n.x.md
+$ xmd capture n.x.md
 exit 1
 --- stderr
-wtf: <root>/capture: No such file or directory (os error 2)
+xmd: <root>/capture: No such file or directory (os error 2)
 
 ### 37 cli complete n.x.md
-$ wtf complete n.x.md
+$ xmd complete n.x.md
 exit 1
 --- stderr
-wtf: <root>/complete: No such file or directory (os error 2)
+xmd: <root>/complete: No such file or directory (os error 2)
 
 ### 38 cli query --help
-$ wtf query --help --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query --help --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 Query tasks, values, tables, plans, resources and diagnostics
 
-Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
-       wtf query [OPTIONS] <FILE> <QUERY>
-       wtf query [OPTIONS] --workspace <QUERY>
+Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
+       xmd query [OPTIONS] <FILE> <QUERY>
+       xmd query [OPTIONS] --workspace <QUERY>
 
 Arguments:
   [FILE_OR_QUERY]  A note relative to --root, or the query itself when the note is piped in or --workspace is set
@@ -395,8 +395,8 @@ Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows
 Functions: map, filter, fold, get, sort_by, group_by, sum, length
 Stages: where, select, sort, limit, count, sum, group
 Use - as QUERY to read an expression from stdin; the note then has to be a file.
-Examples: wtf query note.x.md 'map(tasks, fn(t) => t.title)' --json
-          cat note.x.md | wtf query 'length(tasks)'
-          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json
-          printf 'length(tasks)' | wtf query note.x.md -
+Examples: xmd query note.x.md 'map(tasks, fn(t) => t.title)' --json
+          cat note.x.md | xmd query 'length(tasks)'
+          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json
+          printf 'length(tasks)' | xmd query note.x.md -
 

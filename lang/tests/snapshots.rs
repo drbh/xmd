@@ -9,12 +9,12 @@
 //! `$OUT_DIR/cases.rs` and included below, so cargo runs them in parallel and
 //! `cargo test --test snapshots <name>` picks one out.
 //!
-//! A case directory holds its notes (at any depth), an optional `.wtf/`
+//! A case directory holds its notes (at any depth), an optional `.xmd/`
 //! (modules manifest, `cache.json`, `lookups.json`), optional `bin/` fakes that
 //! are made executable and put on the child's `PATH`, `case.json` and
 //! `expected.snap`. `case.json` is `{"now": <rfc3339>, "requires": "browser"?,
 //! "steps": [...]}`; the clock defaults to 2026-09-16T14:00:00-04:00 and is
-//! passed to the CLI as `--now` and to the language server as `WTF_NOW`.
+//! passed to the CLI as `--now` and to the language server as `XMD_NOW`.
 //!
 //! Steps: `{"cli": [...]}` (optionally an object with `stdin`/`env`; `--root`
 //! and `--now` are appended where the subcommand takes them), `{"read": [..]}`,
@@ -309,11 +309,11 @@ impl World {
             full.push("--now".into());
             full.push(self.now.clone());
         }
-        let mut command = Command::new(env!("CARGO_BIN_EXE_wtf"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_xmd"));
         command
             .current_dir(&self.root)
             .env("TZ", "UTC")
-            .env("WTF_NOW", &self.now)
+            .env("XMD_NOW", &self.now)
             .env("PATH", self.path())
             .args(&full);
         if let Some(Value::Object(vars)) = env {
@@ -328,13 +328,13 @@ impl World {
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped());
-                let mut child = command.spawn().expect("failed to run the wtf binary");
+                let mut child = command.spawn().expect("failed to run the xmd binary");
                 std::io::Write::write_all(child.stdin.as_mut().unwrap(), text.as_bytes()).unwrap();
                 drop(child.stdin.take());
                 child.wait_with_output()
             }
         }
-        .expect("failed to run the wtf binary");
+        .expect("failed to run the xmd binary");
         let shown: Vec<String> = full.iter().map(|a| self.scrub(a)).collect();
         let mut prefix = String::new();
         if let Some(Value::Object(vars)) = env {
@@ -342,7 +342,7 @@ impl World {
                 let _ = write!(prefix, "{key}={} ", as_text(value));
             }
         }
-        let _ = writeln!(out, "$ {prefix}wtf {}", shown.join(" "));
+        let _ = writeln!(out, "$ {prefix}xmd {}", shown.join(" "));
         if let Some(text) = &stdin {
             let text = self.body(text);
             let _ = writeln!(out, "--- stdin");
@@ -395,7 +395,7 @@ impl World {
                 texts.insert(name.clone(), text.clone());
                 lsp.notify(
                     "textDocument/didOpen",
-                    json!({"textDocument":{"uri":self.uri(&name),"languageId":"wtf","version":1,"text":text}}),
+                    json!({"textDocument":{"uri":self.uri(&name),"languageId":"xmd","version":1,"text":text}}),
                 );
                 let _ = writeln!(out, "-- open {name}");
             } else if let Some(change) = item.get("change") {
@@ -482,7 +482,7 @@ impl World {
                     params["uri"] = json!(self.uri(&uri));
                 }
                 params["now"] = json!(self.now);
-                let result = lsp.request("wtf/query", params);
+                let result = lsp.request("xmd/query", params);
                 let _ = writeln!(out, "-- query {}", as_text(&query["query"]));
                 last = result;
                 shown = self.scrub_json(&last);
@@ -527,7 +527,7 @@ impl World {
                     let text = texts.get(&name).cloned().expect("apply needs an open file");
                     let edits: Vec<lsp_types::TextEdit> =
                         serde_json::from_value(response["result"].clone()).unwrap_or_default();
-                    let updated = wtf::actions::apply_edits(&text, &edits).expect("edits apply");
+                    let updated = xmd::actions::apply_edits(&text, &edits).expect("edits apply");
                     let version = versions.entry(name.clone()).or_insert(1);
                     *version += 1;
                     texts.insert(name.clone(), updated.clone());
@@ -650,7 +650,7 @@ impl World {
 
     #[cfg(feature = "browser")]
     fn browser(&self, items: &[Value], out: &mut String) {
-        let mut host = wtf::browser::BrowserWorkspace::new();
+        let mut host = xmd::browser::BrowserWorkspace::new();
         // Every note in the case starts out loaded, mirroring a live editor.
         let mut notes: Vec<PathBuf> = Vec::new();
         collect_notes(&self.root, &mut notes);
@@ -710,10 +710,10 @@ fn collect_notes(dir: &Path, out: &mut Vec<PathBuf>) {
         let entry = entry.unwrap();
         let path = entry.path();
         if path.is_dir() {
-            if entry.file_name() != ".wtf" && entry.file_name() != "bin" {
+            if entry.file_name() != ".xmd" && entry.file_name() != "bin" {
                 collect_notes(&path, out);
             }
-        } else if wtf::is_note(&path) {
+        } else if xmd::is_note(&path) {
             out.push(path);
         }
     }
@@ -871,8 +871,8 @@ fn decode_tokens(lsp: &Lsp, result: &Value, text: Option<&String>) -> String {
         let slice = lines
             .get(line as usize)
             .and_then(|text| {
-                let from = wtf::byte_at(text, start)?;
-                let to = wtf::byte_at(text, start + length)?;
+                let from = xmd::byte_at(text, start)?;
+                let to = xmd::byte_at(text, start + length)?;
                 Some(text[from..to].to_owned())
             })
             .unwrap_or_else(|| "<out of range>".into());

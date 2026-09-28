@@ -1,5 +1,5 @@
 ### 0 cli render games.x.md --format text
-$ wtf render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 # Scores
@@ -18,10 +18,10 @@ drawn := scores.resolve(2, 2) = draw
 <root>/games.x.md:3:72: error: Module sports.property: No cached score for this game; refresh the link first
 <root>/games.x.md:4:7: error: Module sports.property: No cached score for this game; refresh the link first
 <root>/games.x.md:4:45: error: Module sports.property: No cached score for this game; refresh the link first
-wtf: 5 error(s) while rendering
+xmd: 5 error(s) while rendering
 
 ### 1 cli render unsupported.x.md --format text
-$ wtf render unsupported.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render unsupported.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 https://www.espn.com/nba/standings
@@ -31,13 +31,13 @@ https://www.espn.com/soccer/game/_/gameId/704321
 https://www.espn.com.evil/nba/game/_/gameId/401584896
 
 ### 2 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (3 resources)
 
-### 3 read .wtf/cache.json
--- .wtf/cache.json
+### 3 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://espn.com/nfl/game/_/gameId/401671793": {
     "title": "BUF @ KC",
@@ -102,10 +102,10 @@ Resource cache updated (3 resources)
 }
 
 ### 4 write
--- write .wtf/cache.json (1446 bytes)
+-- write .xmd/cache.json (1446 bytes)
 
 ### 5 cli render games.x.md --format text
-$ wtf render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Scores
@@ -120,7 +120,7 @@ spread := scores.margin(112, 108) = 4
 drawn := scores.resolve(2, 2) = draw
 
 ### 6 cli query games.x.md diagnostics | select {message, code} --json
-$ wtf query games.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
+$ xmd query games.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []
@@ -329,7 +329,7 @@ exit 0
         "url": "https://www.espn.com/nba/game/_/gameId/401584896"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ open"
   },
   {
@@ -344,7 +344,7 @@ exit 0
         "url": "https://www.espn.com/nba/game/_/gameId/401584896"
       }
     ],
-    "command": "wtf.refreshResource",
+    "command": "xmd.refreshResource",
     "title": "⟳ score"
   }
 ]

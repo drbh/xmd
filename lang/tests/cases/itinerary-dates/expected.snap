@@ -1,5 +1,5 @@
 ### 0 cli render markers.x.md --format text
-$ wtf render markers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render markers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 Friday, November 20, 2026 3 stops · 09:00 AM – 11:00 AM · in 65 days
@@ -12,7 +12,7 @@ Friday, November 20, 2026 3 stops · 09:00 AM – 11:00 AM · in 65 days
 <root>/markers.x.md:5:11: warning: Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)
 
 ### 1 cli query markers.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json
-$ wtf query markers.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query markers.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -37,7 +37,7 @@ exit 0
 ]
 
 ### 2 cli query markers.x.md stops | select {title, line, at_date} --json
-$ wtf query markers.x.md stops | select {title, line, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query markers.x.md stops | select {title, line, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -68,7 +68,7 @@ exit 0
 ]
 
 ### 3 cli query markers.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query markers.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query markers.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -105,7 +105,7 @@ exit 0
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "itinerary-kind",
@@ -121,7 +121,7 @@ exit 0
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/markers.x.md",
@@ -137,7 +137,7 @@ Friday, November 20, 2026
 11:00 AM  *Lunch
 
 ### 5 cli query carry.x.md stops | select {title, at_date} --json
-$ wtf query carry.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query carry.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -158,7 +158,7 @@ exit 0
 ]
 
 ### 6 cli query past.x.md stops | select {title, at_date} --json
-$ wtf query past.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query past.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -172,13 +172,13 @@ exit 0
 ]
 
 ### 7 cli query prose.x.md days | select {title, line} --json
-$ wtf query prose.x.md days | select {title, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md days | select {title, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 8 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

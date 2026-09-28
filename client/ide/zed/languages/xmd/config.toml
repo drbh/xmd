@@ -1,4 +1,4 @@
-name = "WTF"
+name = "XMD"
 grammar = "markdown"
 path_suffixes = ["x.md"]
 block_comment = ["<!-- ", " -->"]

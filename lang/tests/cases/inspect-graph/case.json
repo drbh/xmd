@@ -100,7 +100,7 @@
     {
       "read": [
         "notes/one.x.md",
-        "notes/.wtf/cache.json"
+        "notes/.xmd/cache.json"
       ]
     }
   ]

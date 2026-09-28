@@ -3,8 +3,8 @@
   "steps": [
     {
       "read": [
-        ".wtf/cache.json",
-        ".wtf/lookups.json"
+        ".xmd/cache.json",
+        ".xmd/lookups.json"
       ]
     },
     {
@@ -30,8 +30,8 @@
     },
     {
       "read": [
-        ".wtf/cache.json",
-        ".wtf/lookups.json"
+        ".xmd/cache.json",
+        ".xmd/lookups.json"
       ]
     },
     {
@@ -63,12 +63,12 @@
         "refresh"
       ],
       "env": {
-        "WTF_TEST_FAIL": "1"
+        "XMD_TEST_FAIL": "1"
       }
     },
     {
       "read": [
-        ".wtf/cache.json"
+        ".xmd/cache.json"
       ]
     },
     {

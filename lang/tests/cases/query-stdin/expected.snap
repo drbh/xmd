@@ -1,5 +1,5 @@
 ### 0 cli total
-$ wtf total
+$ xmd total
 --- stdin
 flights := $420.00
 hotel := $180.50
@@ -9,7 +9,7 @@ exit 0
 $600.50
 
 ### 1 cli tasks | where !done | select {title} --json
-$ wtf tasks | where !done | select {title} --json
+$ xmd tasks | where !done | select {title} --json
 --- stdin
 - [x] book flights
 - [ ] pack
@@ -26,41 +26,41 @@ exit 0
 ]
 
 ### 2 cli trip.x.md total
-$ wtf trip.x.md total
+$ xmd trip.x.md total
 exit 0
 --- stdout
 $600.50
 
 ### 3 cli trip.x.md tasks | where !done | count
-$ wtf trip.x.md tasks | where !done | count
+$ xmd trip.x.md tasks | where !done | count
 exit 0
 --- stdout
 2
 
 ### 4 cli --workspace tasks | where !done | count
-$ wtf --workspace tasks | where !done | count
+$ xmd --workspace tasks | where !done | count
 exit 0
 --- stdout
 2
 
 ### 5 cli total
-$ wtf total
+$ xmd total
 --- stdin
 
 exit 1
 --- stderr
-wtf: Unknown name 'total'
+xmd: Unknown name 'total'
 
 ### 6 cli 
-$ wtf 
+$ xmd 
 exit 0
 --- stdout
 Reactive notes with a typed workspace query API. The default command is a query: name a note or pipe one in.
 
-Usage: wtf [OPTIONS] <QUERY>                (note on stdin)
-       wtf [OPTIONS] <FILE> <QUERY>
-       wtf [OPTIONS] --workspace <QUERY>
-       wtf <COMMAND> ...
+Usage: xmd [OPTIONS] <QUERY>                (note on stdin)
+       xmd [OPTIONS] <FILE> <QUERY>
+       xmd [OPTIONS] --workspace <QUERY>
+       xmd <COMMAND> ...
 
 Commands:
   lsp      Start the language server over stdin/stdout (for editor integrations)
@@ -87,15 +87,15 @@ Options:
   -h, --help           Print help
   -V, --version        Print version
 
-Examples: cat note.x.md | wtf 'total'
-          wtf note.x.md 'tasks | where !done' --json
-          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json
-          wtf lsp   # the language server, for editors
-Run `wtf query --help` for the query bindings, functions and stages.
+Examples: cat note.x.md | xmd 'total'
+          xmd note.x.md 'tasks | where !done' --json
+          xmd --workspace 'filter(tasks, fn(t) => !t.done)' --json
+          xmd lsp   # the language server, for editors
+Run `xmd query --help` for the query bindings, functions and stages.
 
 
 ### 7 cli left
-$ wtf left
+$ xmd left
 --- stdin
 left := import("./other.x.md").budget - $200.00
 exit 0
@@ -103,7 +103,7 @@ exit 0
 $800
 
 ### 8 cli query total
-$ wtf query total --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query total --root <root> --now 2026-09-16T12:00:00-04:00
 --- stdin
 total := $600.50
 exit 0
@@ -111,7 +111,7 @@ exit 0
 $600.50
 
 ### 9 cli q tasks | count --json
-$ wtf q tasks | count --json
+$ xmd q tasks | count --json
 --- stdin
 - [ ] pack
 exit 0
@@ -121,7 +121,7 @@ exit 0
 ]
 
 ### 10 cli trip.x.md -
-$ wtf trip.x.md -
+$ xmd trip.x.md -
 --- stdin
 tasks | count
 exit 0

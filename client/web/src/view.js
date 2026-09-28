@@ -9,7 +9,7 @@ export async function mount(element, options = {}) {
   let dead = false, paused = false, latest, hoverTimer, hoverKey = 0;
   const abort = new AbortController();
   const view = element.tagName === "PRE" ? element : element.appendChild(element.ownerDocument.createElement("pre"));
-  view.classList.add("wtf");
+  view.classList.add("xmd");
   view.dataset.layout = options.layout || "source";
   if (options.interactive !== false) view.dataset.interactive = "";
   // Lenses (complete a task, start a timer) are chips drawn at the end of
@@ -17,7 +17,7 @@ export async function mount(element, options = {}) {
   // in a layer after the view; the host element becomes the positioning box.
   const controls = options.controls === false ? null : element.ownerDocument.createElement("div");
   if (controls) {
-    controls.className = "wtf-controls";
+    controls.className = "xmd-controls";
     view.after(controls);
     const host = view.parentElement;
     if (host && getComputedStyle(host).position === "static") host.style.position = "relative";
@@ -44,10 +44,10 @@ export async function mount(element, options = {}) {
         const byLine = new Map();
         for (const lens of snapshot.lenses) {
           const line = lens.range.start.line;
-          if (!byLine.has(line)) { const group = element.ownerDocument.createElement("div"); group.className = "wtf-lenses"; group.dataset.line = line; byLine.set(line, group); controls.append(group); }
+          if (!byLine.has(line)) { const group = element.ownerDocument.createElement("div"); group.className = "xmd-lenses"; group.dataset.line = line; byLine.set(line, group); controls.append(group); }
           const button = element.ownerDocument.createElement("button");
           button.type = "button";
-          button.className = "wtf-lens";
+          button.className = "xmd-lens";
           button.textContent = lens.command.title;
           button.onmousedown = e => e.preventDefault(); // keep the caret where it is
           button.onclick = () => execute(lens.command, snapshot.versions).catch(error);
@@ -93,7 +93,7 @@ export async function mount(element, options = {}) {
   });
   listen("mousedown", event => {
     if (options.interactive === false) return;
-    const box = event.target.closest?.(".t-wtfCheckbox, .t-wtfCheckboxChecked");
+    const box = event.target.closest?.(".t-xmdCheckbox, .t-xmdCheckboxChecked");
     if (!box || !view.contains(box)) return;
     event.preventDefault();
     const source = workspace.getDocument(uri)?.source;
@@ -102,7 +102,7 @@ export async function mount(element, options = {}) {
     workspace.query(uri, "actions", { range: { start: point, end: point } }).then(async result => {
       if (dead || !result) return;
       // Task controls are chosen by the engine; never rewrite checkbox syntax here.
-      const action = result.actions.find(a => a.command?.command === "wtf.task");
+      const action = result.actions.find(a => a.command?.command === "xmd.task");
       if (action) await execute(action.command, result.versions);
     }).catch(error);
   });

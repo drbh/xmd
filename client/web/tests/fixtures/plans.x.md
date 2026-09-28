@@ -43,8 +43,8 @@ Cheapest coverage takes [coverage] with [coverage.visits] visits.
 <!-- Units are checked: mixing money and durations in one expression is an
 error, and so is multiplying two variables together. Try either. -->
 
-<!-- On the command line: wtf plan bakery, wtf plan bakery --export > bakery.json,
-and wtf plan --import bakery.json to get the WTF source back. -->
+<!-- On the command line: xmd plan bakery, xmd plan bakery --export > bakery.json,
+and xmd plan --import bakery.json to get the XMD source back. -->
 
 ## Goal seek
 

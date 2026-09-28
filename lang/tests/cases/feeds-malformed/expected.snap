@@ -1,10 +1,10 @@
 ### 0 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://example.com/broken/feed.xml: Not an RSS or Atom feed
+xmd: https://example.com/broken/feed.xml: Not an RSS or Atom feed
 
-### 1 read .wtf/cache.json
--- .wtf/cache.json
+### 1 read .xmd/cache.json
+-- .xmd/cache.json
 {}
 

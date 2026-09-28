@@ -1,11 +1,11 @@
 ### 0 cli render calc.x.md --format text
-$ wtf render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 🦀 [round(2.6)] custom 3
 
 ### 1 cli query calc.x.md calculations | select anchor --json
-$ wtf query calc.x.md calculations | select anchor --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query calc.x.md calculations | select anchor --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -16,16 +16,16 @@ exit 0
 ]
 
 ### 2 write
--- write .wtf/modules/custom.x.md (72 bytes)
+-- write .xmd/modules/custom.x.md (72 bytes)
 
 ### 3 cli render calc.x.md --format text
-$ wtf render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 🦀 [round(2.6)]
 
 ### 4 write
--- write .wtf/modules/custom.x.md (462 bytes)
+-- write .xmd/modules/custom.x.md (462 bytes)
 
 ### 5 lsp
 -- open hello.x.md
@@ -46,7 +46,7 @@ exit 0
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/hello.x.md",
@@ -89,7 +89,7 @@ exit 0
 HELLO
 
 ### 6 write
--- write .wtf/modules/custom.x.md (317 bytes)
+-- write .xmd/modules/custom.x.md (317 bytes)
 
 ### 7 lsp
 -- open hello.x.md
@@ -124,7 +124,7 @@ HELLO
         "kind": "edit"
       }
     ],
-    "command": "wtf.applyEdits",
+    "command": "xmd.applyEdits",
     "title": "Insert greeting"
   }
 ]
@@ -166,14 +166,14 @@ changed
   "uri": "file://<root>/hello.x.md",
   "version": 2
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.x.md}","edits":[{"newText":"Hello ","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello\n","kind":"edit"}],"command":"wtf.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.x.md}","edits":[{"newText":"Hello ","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello\n","kind":"edit"}],"command":"xmd.applyEdits"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"
 }
 
 ### 8 write
--- write .wtf/modules/custom.x.md (456 bytes)
+-- write .xmd/modules/custom.x.md (456 bytes)
 
 ### 9 lsp
 -- open hello.x.md
@@ -196,7 +196,7 @@ error: {
         "revision": "24ac349b2d658cf7"
       }
     ],
-    "command": "wtf.invoke",
+    "command": "xmd.invoke",
     "title": "Stamp"
   }
 ]
@@ -230,8 +230,8 @@ null
     ]
   }
 }
--- write .wtf/modules/custom.x.md (460 bytes)
--- watched .wtf/modules/custom.x.md
+-- write .xmd/modules/custom.x.md (460 bytes)
+-- watched .xmd/modules/custom.x.md
 -- await textDocument/publishDiagnostics hello.x.md
 {
   "diagnostics": [],
@@ -251,11 +251,11 @@ null
         "revision": "e7b49df83ee85799"
       }
     ],
-    "command": "wtf.invoke",
+    "command": "xmd.invoke",
     "title": "New stamp"
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.x.md}","event":{},"expected":"Hello\n","kind":"invoke","module":"stamp","revision":"0"}],"command":"wtf.invoke"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:hello.x.md}","event":{},"expected":"Hello\n","kind":"invoke","module":"stamp","revision":"0"}],"command":"xmd.invoke"}
 error: {
   "code": -32602,
   "message": "Module changed; request fresh controls"

@@ -13,10 +13,10 @@
 //! `client/web/src/extension.js` (the docs app and the cloud worker import it),
 //! and in declarative editor settings that cannot import anything: the VS Code
 //! extension's `package.json` (`languages[].filenamePatterns`), Zed's
-//! `languages/wtf/config.toml` (`path_suffixes`), Helix's `languages.toml`
+//! `languages/xmd/config.toml` (`path_suffixes`), Helix's `languages.toml`
 //! (`file-types`) and Neovim's file-type detection.
 //!
-//! The `.wtf/` workspace directory, the `wtf` binary and the editor language
+//! The `.xmd/` workspace directory, the `xmd` binary and the editor language
 //! id are separate names and do not follow the extension.
 use std::path::Path;
 

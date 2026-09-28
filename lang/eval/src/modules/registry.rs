@@ -83,7 +83,7 @@ impl ModuleRegistry {
     pub fn load(roots: &[PathBuf]) -> Result<Self, String> {
         let mut sources = BTreeMap::new();
         for root in roots {
-            let manifest = root.join(".wtf/modules.json");
+            let manifest = root.join(".xmd/modules.json");
             let text = match std::fs::read_to_string(&manifest) {
                 Ok(v) => v,
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
@@ -170,7 +170,7 @@ pub(crate) fn bundled() -> &'static [Module] {
         .into_iter()
         .map(|(id, source)| {
             Module::compile(
-                common::note_file(&format!("/__wtf_stdlib__/stdlib/{id}")).into(),
+                common::note_file(&format!("/__xmd_stdlib__/stdlib/{id}")).into(),
                 source.into(),
             )
             .expect("valid bundled module")

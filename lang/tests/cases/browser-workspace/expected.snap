@@ -59,7 +59,7 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">cash</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">budget</span> <span class=\"t-operator\" title=\"\">-</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-wtfPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">spent</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.x.md#L1&gt;), [spent](&lt;file:///workspace/values.x.md#L2&gt;), [src](&lt;file:///workspace/trip.x.md#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.x.md#L1&gt;) · /workspace/trip.x.md:1\"> = $556</span>\n</span><span class=\"line \" data-line=\"1\">🦀 Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">cash</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.x.md#L1&gt;), [spent](&lt;file:///workspace/values.x.md#L2&gt;), [src](&lt;file:///workspace/trip.x.md#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.x.md#L1&gt;) · /workspace/trip.x.md:1\"> $556</span>.\n</span><span class=\"line \" data-line=\"2\"><span class=\"t-variable declaration\" title=\"\">src</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-function defaultLibrary\" title=\"\">import</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-string\" title=\"\">&quot;./values.x.md&quot;</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**src · Namespace**\n\nimport(&quot;/workspace/values.x.md&quot;)\n\n```text\nimport(&quot;./values.x.md&quot;)\n= import(&quot;/workspace/values.x.md&quot;)\n```\n\nDefinition: [src](&lt;file:///workspace/trip.x.md#L3&gt;) · /workspace/trip.x.md:3\"> = import(&quot;/workspace/values.x.md&quot;)</span>\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfMoney\" title=\"\">$5</span><span class=\"t-wtfPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">price</span>\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-variable declaration\" title=\"\">total</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-variable\" title=\"\">price</span> <span class=\"t-operator\" title=\"\">*</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](&lt;file:///workspace/trip.x.md#L4&gt;)\n\nDefinition: [total](&lt;file:///workspace/trip.x.md#L5&gt;) · /workspace/trip.x.md:5\"> = $10</span>\n</span><span class=\"line task\" data-line=\"5\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Open <span class=\"t-decorator\" title=\"\">@estimate</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">90s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span>\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">cash</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">budget</span> <span class=\"t-operator\" title=\"\">-</span> <span class=\"t-variable\" title=\"\">src</span><span class=\"t-xmdPunctuation\" title=\"\">.</span><span class=\"t-property\" title=\"\">spent</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.x.md#L1&gt;), [spent](&lt;file:///workspace/values.x.md#L2&gt;), [src](&lt;file:///workspace/trip.x.md#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.x.md#L1&gt;) · /workspace/trip.x.md:1\"> = $556</span>\n</span><span class=\"line \" data-line=\"1\">🦀 Have <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">cash</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cash · Money**\n\n$556\n\n```text\nsrc.budget - src.spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [budget](&lt;file:///workspace/values.x.md#L1&gt;), [spent](&lt;file:///workspace/values.x.md#L2&gt;), [src](&lt;file:///workspace/trip.x.md#L3&gt;)\n\nDefinition: [cash](&lt;file:///workspace/trip.x.md#L1&gt;) · /workspace/trip.x.md:1\"> $556</span>.\n</span><span class=\"line \" data-line=\"2\"><span class=\"t-variable declaration\" title=\"\">src</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-function defaultLibrary\" title=\"\">import</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-string\" title=\"\">&quot;./values.x.md&quot;</span><span class=\"t-xmdPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**src · Namespace**\n\nimport(&quot;/workspace/values.x.md&quot;)\n\n```text\nimport(&quot;./values.x.md&quot;)\n= import(&quot;/workspace/values.x.md&quot;)\n```\n\nDefinition: [src](&lt;file:///workspace/trip.x.md#L3&gt;) · /workspace/trip.x.md:3\"> = import(&quot;/workspace/values.x.md&quot;)</span>\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-xmdMoney\" title=\"\">$5</span><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">price</span>\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-variable declaration\" title=\"\">total</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-variable\" title=\"\">price</span> <span class=\"t-operator\" title=\"\">*</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](&lt;file:///workspace/trip.x.md#L4&gt;)\n\nDefinition: [total](&lt;file:///workspace/trip.x.md#L5&gt;) · /workspace/trip.x.md:5\"> = $10</span>\n</span><span class=\"line task\" data-line=\"5\"><span class=\"t-xmdPunctuation\" title=\"\">-</span> <span class=\"t-xmdCheckbox\" title=\"\">[ ]</span> Open <span class=\"t-decorator\" title=\"\">@estimate</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-xmdDuration\" title=\"\">90s</span><span class=\"t-xmdPunctuation\" title=\"\">)</span>\n</span><span class=\"line \" data-line=\"6\"></span>",
     "lenses": [
       {
         "command": {
@@ -71,7 +71,7 @@
               "row": 5
             }
           ],
-          "command": "wtf.task",
+          "command": "xmd.task",
           "title": "✓ done"
         },
         "range": {
@@ -242,28 +242,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -805,7 +805,7 @@
 }
 
 ### 1 cli query --workspace values | where name == "total" | select {name, value, source} --json
-$ wtf query --workspace values | where name == "total" | select {name, value, source} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query --workspace values | where name == "total" | select {name, value, source} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -835,7 +835,7 @@ exit 0
 ]
 
 ### 2 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json
-$ wtf query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -843,7 +843,7 @@ exit 0
 ]
 
 ### 3 cli query trip.x.md map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.text) --json
-$ wtf query trip.x.md map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.text) --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query trip.x.md map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.text) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

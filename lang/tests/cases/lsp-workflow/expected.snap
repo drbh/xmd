@@ -1,5 +1,5 @@
 ### 0 cli render daily.x.md --format text
-$ wtf render daily.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render daily.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Release :release ███░░░░░ 1/3 complete · 30m estimated left

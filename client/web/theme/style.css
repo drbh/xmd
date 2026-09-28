@@ -1,117 +1,117 @@
-.wtf { color-scheme: dark; color: var(--wtf-foreground, #e3e3e3); background: var(--wtf-background, #202124); margin: 0; font: var(--wtf-font-size, 14px)/1.8 var(--wtf-font, "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace); tab-size: 2; white-space: pre; }
-.wtf code { font: inherit; }
-.wtf .inlay { color: var(--wtf-inlay-foreground, #c3cad6); background: var(--wtf-inlay-background, #2d3138); border-radius: 3px; font-style: normal; font-weight: 400; white-space: pre; }
-.wtf a { color: inherit; text-decoration: underline; text-decoration-color: #90bed8; text-underline-offset: 3px; }
-.wtf .diagnostic { text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 4px; }
-.wtf .point { position: relative; }
-.wtf .point::after { content: " "; position: absolute; left: 0; min-width: 1ch; text-decoration: inherit; }
-.wtf .error { text-decoration-color: #ef8b80; }
-.wtf .warning { text-decoration-color: #eac080; }
-.wtf .info, .wtf .hint { text-decoration-color: #90bed8; }
-.wtf[data-interactive] .t-wtfCheckbox, .wtf[data-interactive] .t-wtfCheckboxChecked { cursor: pointer; }
-.wtf[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
-.wtf[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
-.wtf[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
-.wtf[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
-.wtf[data-layout="document"] .h4, .wtf[data-layout="document"] .h5, .wtf[data-layout="document"] .h6 { font-weight: 700; }
-.wtf[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
-.wtf-controls { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.wtf-lenses { position: absolute; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-.wtf-lens { pointer-events: auto; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--wtf-lens-border, #3a4a3e); background: var(--wtf-lens-background, #1f2622); color: var(--wtf-lens-foreground, #9fb3a4); font: 500 11px system-ui, sans-serif; cursor: pointer; opacity: .9; }
-.wtf-lens:hover { opacity: 1; border-color: var(--wtf-lens-hover, #90bed8); color: var(--wtf-lens-hover, #90bed8); }
-.wtf-light .wtf-lens { --wtf-lens-border: #dadce0; --wtf-lens-background: #fff; --wtf-lens-foreground: #5f6368; --wtf-lens-hover: #185abc; }
-.wtf-light .wtf { color-scheme: light; color: var(--wtf-foreground, #1f1f1f); background: var(--wtf-background, #ffffff); }
-.wtf-light .wtf .inlay { color: var(--wtf-inlay-foreground, #3c4653); background: var(--wtf-inlay-background, #eef0f3); }
-.wtf-light .wtf a { text-decoration-color: #2f6f9f; }
-.wtf-light .wtf .error { text-decoration-color: #c9463a; }
-.wtf-light .wtf .warning { text-decoration-color: #b47a12; }
-.wtf-light .wtf .info, .wtf-light .wtf .hint { text-decoration-color: #2f6f9f; }
+.xmd { color-scheme: dark; color: var(--xmd-foreground, #e3e3e3); background: var(--xmd-background, #202124); margin: 0; font: var(--xmd-font-size, 14px)/1.8 var(--xmd-font, "Ioskeley Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace); tab-size: 2; white-space: pre; }
+.xmd code { font: inherit; }
+.xmd .inlay { color: var(--xmd-inlay-foreground, #c3cad6); background: var(--xmd-inlay-background, #2d3138); border-radius: 3px; font-style: normal; font-weight: 400; white-space: pre; }
+.xmd a { color: inherit; text-decoration: underline; text-decoration-color: #90bed8; text-underline-offset: 3px; }
+.xmd .diagnostic { text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 4px; }
+.xmd .point { position: relative; }
+.xmd .point::after { content: " "; position: absolute; left: 0; min-width: 1ch; text-decoration: inherit; }
+.xmd .error { text-decoration-color: #ef8b80; }
+.xmd .warning { text-decoration-color: #eac080; }
+.xmd .info, .xmd .hint { text-decoration-color: #90bed8; }
+.xmd[data-interactive] .t-xmdCheckbox, .xmd[data-interactive] .t-xmdCheckboxChecked { cursor: pointer; }
+.xmd[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
+.xmd[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
+.xmd[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
+.xmd[data-layout="document"] .h3 { font-size: 1.2em; font-weight: 700; }
+.xmd[data-layout="document"] .h4, .xmd[data-layout="document"] .h5, .xmd[data-layout="document"] .h6 { font-weight: 700; }
+.xmd[data-layout="document"] :is(.h1, .h2, .h3) .inlay { font-size: .6em; font-weight: 400; vertical-align: middle; }
+.xmd-controls { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.xmd-lenses { position: absolute; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.xmd-lens { pointer-events: auto; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--xmd-lens-border, #3a4a3e); background: var(--xmd-lens-background, #1f2622); color: var(--xmd-lens-foreground, #9fb3a4); font: 500 11px system-ui, sans-serif; cursor: pointer; opacity: .9; }
+.xmd-lens:hover { opacity: 1; border-color: var(--xmd-lens-hover, #90bed8); color: var(--xmd-lens-hover, #90bed8); }
+.xmd-light .xmd-lens { --xmd-lens-border: #dadce0; --xmd-lens-background: #fff; --xmd-lens-foreground: #5f6368; --xmd-lens-hover: #185abc; }
+.xmd-light .xmd { color-scheme: light; color: var(--xmd-foreground, #1f1f1f); background: var(--xmd-background, #ffffff); }
+.xmd-light .xmd .inlay { color: var(--xmd-inlay-foreground, #3c4653); background: var(--xmd-inlay-background, #eef0f3); }
+.xmd-light .xmd a { text-decoration-color: #2f6f9f; }
+.xmd-light .xmd .error { text-decoration-color: #c9463a; }
+.xmd-light .xmd .warning { text-decoration-color: #b47a12; }
+.xmd-light .xmd .info, .xmd-light .xmd .hint { text-decoration-color: #2f6f9f; }
 
-.wtf .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
-.wtf .t-property.declaration { color: #83D6CF; font-weight: bold; }
-.wtf .t-wtfDepart.declaration { color: #FFB070; font-weight: bold; }
-.wtf .t-wtfArrive.declaration { color: #9CE8A0; font-weight: bold; }
-.wtf .t-wtfTransit.declaration { color: #8FCBFF; font-weight: bold; }
-.wtf .t-wtfStay.declaration { color: #C9A4FF; font-weight: bold; }
-.wtf .t-wtfMeal.declaration { color: #FF8FA3; font-weight: bold; }
-.wtf .t-wtfVisit.declaration { color: #F6E38A; font-weight: bold; }
-.wtf .t-wtfExplore.declaration { color: #7FE3D0; font-weight: bold; }
-.wtf .t-comment { color: #889781; font-style: italic; }
-.wtf .t-keyword { color: #F0A77D; }
-.wtf .t-number { color: #DABD90; }
-.wtf .t-variable { color: #A8C7FA; }
-.wtf .t-function { color: #C6A0F6; }
-.wtf .t-property { color: #83D6CF; }
-.wtf .t-decorator { color: #DEA2B8; }
-.wtf .t-operator { color: #EDB486; }
-.wtf .t-string { color: #CAD19B; }
-.wtf .t-heading { color: #D6E8C2; font-weight: bold; }
-.wtf .t-wtfMoney { color: #B4D98A; font-weight: bold; }
-.wtf .t-wtfDate { color: #F2B3DA; font-weight: bold; }
-.wtf .t-wtfTime { color: #91DCE8; font-weight: bold; }
-.wtf .t-wtfDuration { color: #F4BA7A; }
-.wtf .t-wtfRatio { color: #EAC080; }
-.wtf .t-wtfBoolean { color: #C6A0F6; }
-.wtf .t-wtfPunctuation { color: #85938B; }
-.wtf .t-wtfCode { color: #A1AE9B; }
-.wtf .t-wtfLink { color: #90BED8; text-decoration-line: underline; }
-.wtf .t-wtfCheckbox { color: #FFD580; }
-.wtf .t-wtfCheckboxChecked { color: #91E6AC; }
-.wtf .t-wtfTaskDone { color: #87A788; text-decoration-line: line-through; }
-.wtf .t-wtfDay { color: #FF9ECF; font-weight: bold; }
-.wtf .t-wtfPlace { color: #E2C4FF; }
-.wtf .t-wtfDetailKey { color: #9DB3A6; font-style: italic; }
-.wtf .t-wtfDepart { color: #FFB070; }
-.wtf .t-wtfArrive { color: #9CE8A0; }
-.wtf .t-wtfTransit { color: #8FCBFF; }
-.wtf .t-wtfStay { color: #C9A4FF; }
-.wtf .t-wtfMeal { color: #FF8FA3; }
-.wtf .t-wtfVisit { color: #F6E38A; }
-.wtf .t-wtfExplore { color: #7FE3D0; }
-.wtf-light .wtf .t-variable.declaration { color: #1a4c9e; }
-.wtf-light .wtf .t-property.declaration { color: #35837c; }
-.wtf-light .wtf .t-wtfDepart.declaration { color: #9e551a; }
-.wtf-light .wtf .t-wtfArrive.declaration { color: #2b8c30; }
-.wtf-light .wtf .t-wtfTransit.declaration { color: #1a619e; }
-.wtf-light .wtf .t-wtfStay.declaration { color: #4f1a9e; }
-.wtf-light .wtf .t-wtfMeal.declaration { color: #9e1a31; }
-.wtf-light .wtf .t-wtfVisit.declaration { color: #9e871a; }
-.wtf-light .wtf .t-wtfExplore.declaration { color: #2a8e7b; }
-.wtf-light .wtf .t-comment { color: #596354; }
-.wtf-light .wtf .t-keyword { color: #9a4b1e; }
-.wtf-light .wtf .t-number { color: #836435; }
-.wtf-light .wtf .t-variable { color: #1a4c9e; }
-.wtf-light .wtf .t-function { color: #541b9c; }
-.wtf-light .wtf .t-property { color: #35837c; }
-.wtf-light .wtf .t-decorator { color: #813752; }
-.wtf-light .wtf .t-operator { color: #965622; }
-.wtf-light .wtf .t-string { color: #71793f; }
-.wtf-light .wtf .t-heading { color: #242424; }
-.wtf-light .wtf .t-wtfMoney { color: #5e8434; }
-.wtf-light .wtf .t-wtfDate { color: #932569; }
-.wtf-light .wtf .t-wtfTime { color: #29818f; }
-.wtf-light .wtf .t-wtfDuration { color: #9e5f1a; }
-.wtf-light .wtf .t-wtfRatio { color: #946724; }
-.wtf-light .wtf .t-wtfBoolean { color: #541b9c; }
-.wtf-light .wtf .t-wtfPunctuation { color: #66716a; }
-.wtf-light .wtf .t-wtfCode { color: #687562; }
-.wtf-light .wtf .t-wtfLink { color: #366681; }
-.wtf-light .wtf .t-wtfCheckbox { color: #9e721a; }
-.wtf-light .wtf .t-wtfCheckboxChecked { color: #2b8d4a; }
-.wtf-light .wtf .t-wtfTaskDone { color: #506851; }
-.wtf-light .wtf .t-wtfDay { color: #9e1a5c; }
-.wtf-light .wtf .t-wtfPlace { color: #5d1a9e; }
-.wtf-light .wtf .t-wtfDetailKey { color: #52665a; }
-.wtf-light .wtf .t-wtfDepart { color: #9e551a; }
-.wtf-light .wtf .t-wtfArrive { color: #2b8c30; }
-.wtf-light .wtf .t-wtfTransit { color: #1a619e; }
-.wtf-light .wtf .t-wtfStay { color: #4f1a9e; }
-.wtf-light .wtf .t-wtfMeal { color: #9e1a31; }
-.wtf-light .wtf .t-wtfVisit { color: #9e871a; }
-.wtf-light .wtf .t-wtfExplore { color: #2a8e7b; }
+.xmd .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
+.xmd .t-property.declaration { color: #83D6CF; font-weight: bold; }
+.xmd .t-xmdDepart.declaration { color: #FFB070; font-weight: bold; }
+.xmd .t-xmdArrive.declaration { color: #9CE8A0; font-weight: bold; }
+.xmd .t-xmdTransit.declaration { color: #8FCBFF; font-weight: bold; }
+.xmd .t-xmdStay.declaration { color: #C9A4FF; font-weight: bold; }
+.xmd .t-xmdMeal.declaration { color: #FF8FA3; font-weight: bold; }
+.xmd .t-xmdVisit.declaration { color: #F6E38A; font-weight: bold; }
+.xmd .t-xmdExplore.declaration { color: #7FE3D0; font-weight: bold; }
+.xmd .t-comment { color: #889781; font-style: italic; }
+.xmd .t-keyword { color: #F0A77D; }
+.xmd .t-number { color: #DABD90; }
+.xmd .t-variable { color: #A8C7FA; }
+.xmd .t-function { color: #C6A0F6; }
+.xmd .t-property { color: #83D6CF; }
+.xmd .t-decorator { color: #DEA2B8; }
+.xmd .t-operator { color: #EDB486; }
+.xmd .t-string { color: #CAD19B; }
+.xmd .t-heading { color: #D6E8C2; font-weight: bold; }
+.xmd .t-xmdMoney { color: #B4D98A; font-weight: bold; }
+.xmd .t-xmdDate { color: #F2B3DA; font-weight: bold; }
+.xmd .t-xmdTime { color: #91DCE8; font-weight: bold; }
+.xmd .t-xmdDuration { color: #F4BA7A; }
+.xmd .t-xmdRatio { color: #EAC080; }
+.xmd .t-xmdBoolean { color: #C6A0F6; }
+.xmd .t-xmdPunctuation { color: #85938B; }
+.xmd .t-xmdCode { color: #A1AE9B; }
+.xmd .t-xmdLink { color: #90BED8; text-decoration-line: underline; }
+.xmd .t-xmdCheckbox { color: #FFD580; }
+.xmd .t-xmdCheckboxChecked { color: #91E6AC; }
+.xmd .t-xmdTaskDone { color: #87A788; text-decoration-line: line-through; }
+.xmd .t-xmdDay { color: #FF9ECF; font-weight: bold; }
+.xmd .t-xmdPlace { color: #E2C4FF; }
+.xmd .t-xmdDetailKey { color: #9DB3A6; font-style: italic; }
+.xmd .t-xmdDepart { color: #FFB070; }
+.xmd .t-xmdArrive { color: #9CE8A0; }
+.xmd .t-xmdTransit { color: #8FCBFF; }
+.xmd .t-xmdStay { color: #C9A4FF; }
+.xmd .t-xmdMeal { color: #FF8FA3; }
+.xmd .t-xmdVisit { color: #F6E38A; }
+.xmd .t-xmdExplore { color: #7FE3D0; }
+.xmd-light .xmd .t-variable.declaration { color: #1a4c9e; }
+.xmd-light .xmd .t-property.declaration { color: #35837c; }
+.xmd-light .xmd .t-xmdDepart.declaration { color: #9e551a; }
+.xmd-light .xmd .t-xmdArrive.declaration { color: #2b8c30; }
+.xmd-light .xmd .t-xmdTransit.declaration { color: #1a619e; }
+.xmd-light .xmd .t-xmdStay.declaration { color: #4f1a9e; }
+.xmd-light .xmd .t-xmdMeal.declaration { color: #9e1a31; }
+.xmd-light .xmd .t-xmdVisit.declaration { color: #9e871a; }
+.xmd-light .xmd .t-xmdExplore.declaration { color: #2a8e7b; }
+.xmd-light .xmd .t-comment { color: #596354; }
+.xmd-light .xmd .t-keyword { color: #9a4b1e; }
+.xmd-light .xmd .t-number { color: #836435; }
+.xmd-light .xmd .t-variable { color: #1a4c9e; }
+.xmd-light .xmd .t-function { color: #541b9c; }
+.xmd-light .xmd .t-property { color: #35837c; }
+.xmd-light .xmd .t-decorator { color: #813752; }
+.xmd-light .xmd .t-operator { color: #965622; }
+.xmd-light .xmd .t-string { color: #71793f; }
+.xmd-light .xmd .t-heading { color: #242424; }
+.xmd-light .xmd .t-xmdMoney { color: #5e8434; }
+.xmd-light .xmd .t-xmdDate { color: #932569; }
+.xmd-light .xmd .t-xmdTime { color: #29818f; }
+.xmd-light .xmd .t-xmdDuration { color: #9e5f1a; }
+.xmd-light .xmd .t-xmdRatio { color: #946724; }
+.xmd-light .xmd .t-xmdBoolean { color: #541b9c; }
+.xmd-light .xmd .t-xmdPunctuation { color: #66716a; }
+.xmd-light .xmd .t-xmdCode { color: #687562; }
+.xmd-light .xmd .t-xmdLink { color: #366681; }
+.xmd-light .xmd .t-xmdCheckbox { color: #9e721a; }
+.xmd-light .xmd .t-xmdCheckboxChecked { color: #2b8d4a; }
+.xmd-light .xmd .t-xmdTaskDone { color: #506851; }
+.xmd-light .xmd .t-xmdDay { color: #9e1a5c; }
+.xmd-light .xmd .t-xmdPlace { color: #5d1a9e; }
+.xmd-light .xmd .t-xmdDetailKey { color: #52665a; }
+.xmd-light .xmd .t-xmdDepart { color: #9e551a; }
+.xmd-light .xmd .t-xmdArrive { color: #2b8c30; }
+.xmd-light .xmd .t-xmdTransit { color: #1a619e; }
+.xmd-light .xmd .t-xmdStay { color: #4f1a9e; }
+.xmd-light .xmd .t-xmdMeal { color: #9e1a31; }
+.xmd-light .xmd .t-xmdVisit { color: #9e871a; }
+.xmd-light .xmd .t-xmdExplore { color: #2a8e7b; }
 @media print {
-  .wtf { color-scheme: light; background: white; color: #202820; font-size: 10px; }
-  .wtf [class] { color: inherit !important; }
-  .wtf .inlay { background: #e9eee5; }
-  .wtf-controls { display: none; }
+  .xmd { color-scheme: light; background: white; color: #202820; font-size: 10px; }
+  .xmd [class] { color: inherit !important; }
+  .xmd .inlay { background: #e9eee5; }
+  .xmd-controls { display: none; }
 }

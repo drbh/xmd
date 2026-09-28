@@ -1,5 +1,5 @@
 ### 0 cli render daily.x.md --root parse --format text
-$ wtf render daily.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
+$ xmd render daily.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 # Heading ░░░░░░░░ 0/1 complete · 20m estimated left
@@ -8,14 +8,14 @@ Budget [$3,000]:budget. Spent [$1,410]:spent.
 - [ ] Review [remaining] $1,590 @estimate(20m)
 [Website](https://example.com) ![pic](./image.png)
 `[ignored] := 44`
-```wtf
+```xmd
 [also_ignored] := 9
 ```
 <!-- [hidden] := 5 -->
 [日本語]:label
 
 ### 1 cli query daily.x.md values | select {name, display} --root parse --json
-$ wtf query daily.x.md values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
+$ xmd query daily.x.md values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -38,7 +38,7 @@ exit 0
 ]
 
 ### 2 cli query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json
-$ wtf query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
+$ xmd query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -48,7 +48,7 @@ exit 0
 ]
 
 ### 3 cli query expressions.x.md values | select {name, display, errors} --root parse --json
-$ wtf query expressions.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+$ xmd query expressions.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -100,7 +100,7 @@ exit 0
 ]
 
 ### 4 cli query places.x.md values | select {name, display, errors} --root parse --json
-$ wtf query places.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+$ xmd query places.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -156,17 +156,17 @@ exit 0
 ]
 
 ### 6 cli render lookalike.x.md --root parse --format text
-$ wtf render lookalike.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
+$ xmd render lookalike.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
 [https://github.com.evil.example/acme/app/pull/42]:fake link
 [ok] := fake.merged
 --- stderr
 <root>/parse/lookalike.x.md:2:9: error: Unknown resource property 'merged'
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 7 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json
-$ wtf query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -177,7 +177,7 @@ exit 0
 ]
 
 ### 8 cli query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
-$ wtf query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+$ xmd query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
 exit 0
 --- stdout
 [
@@ -185,25 +185,25 @@ exit 0
 ]
 
 ### 9 cli query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json
-$ wtf query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 10 read cli/inbox.x.md cli/.wtf/cache.json
+### 10 read cli/inbox.x.md cli/.xmd/cache.json
 -- cli/inbox.x.md
 - [ ] Call dentist #errands @due(2026-09-18)
--- cli/.wtf/cache.json
+-- cli/.xmd/cache.json
 (missing: entity not found)
 
 ### 11 cli query --workspace plans | where name == "bakery" | select solution --root plan
-$ wtf query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 columns=[]	constraints=[{"anchor":{"character":56,"line":4},"binding":true,"lhs":400,"name":"flour","op":"<=","range":{"end":{"character":54,"line":4},"start":{"character":10,"line":4}},"rhs":400,"slack":0},{"anchor":{"character":28,"line":5},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26,"line":5},"start":{"character":14,"line":5}},"rhs":12,"slack":13.75},{"anchor":{"character":34,"line":6},"binding":true,"lhs":14,"name":"doughnut_min","op":">=","range":{"end":{"character":32,"line":6},"start":{"character":17,"line":6}},"rhs":14,"slack":0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14}
 
 ### 12 cli query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json
-$ wtf query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [

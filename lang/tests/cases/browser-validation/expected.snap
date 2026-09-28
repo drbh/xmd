@@ -37,7 +37,7 @@
     "diagnostics": [
       {
         "code": "evaluation",
-        "message": "No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "message": "No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens",
         "range": {
           "end": {
             "character": 22,
@@ -49,7 +49,7 @@
           }
         },
         "severity": 2,
-        "source": "wtf"
+        "source": "xmd"
       }
     ],
     "editing": true,
@@ -64,11 +64,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-wtfLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-wtfLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-xmdPunctuation diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-xmdPunctuation diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-xmdLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-xmdPunctuation\" title=\"\">-</span> <span class=\"t-xmdCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-xmdLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
     "lenses": [
       {
         "command": {
@@ -83,7 +83,7 @@
               "url": "https://github.com/acme/app/pull/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -107,7 +107,7 @@
               "row": 2
             }
           ],
-          "command": "wtf.task",
+          "command": "xmd.task",
           "title": "✓ done"
         },
         "range": {
@@ -134,7 +134,7 @@
               "url": "https://example.com/page"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -192,7 +192,7 @@
     "source": "[price] := quote(ACME)\nhttps://github.com/acme/app/pull/42\n- [ ] Task\nhttps://example.com/page\n",
     "symbols": [
       {
-        "detail": "Error · No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "detail": "Error · No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens",
         "kind": 13,
         "name": "price",
         "range": {
@@ -257,28 +257,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -367,7 +367,7 @@
               "url": "https://github.com/acme/app/pull/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "title": "↗ open"
@@ -378,22 +378,22 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","kind":"refresh"}],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","kind":"refresh"}],"command":"xmd.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.x.md":1}}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"xmd.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"xmd.task","title":"bad"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
-  "error": "wtf.task expects a single action argument",
+  "error": "xmd.task expects a single action argument",
   "ok": false
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"xmd.task","title":"toggle"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -437,7 +437,7 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.x.md":1}}
+-- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"xmd.openResource","title":"open"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -471,7 +471,7 @@
     "diagnostics": [
       {
         "code": "evaluation",
-        "message": "No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "message": "No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens",
         "range": {
           "end": {
             "character": 22,
@@ -483,7 +483,7 @@
           }
         },
         "severity": 2,
-        "source": "wtf"
+        "source": "xmd"
       }
     ],
     "editing": true,
@@ -498,11 +498,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
+          "value": "[Open resource](<https://github.com/acme/app/pull/42>)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`)."
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-wtfPunctuation diagnostic warning\" title=\"No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-wtfLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-wtfLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">price</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">quote</span><span class=\"t-xmdPunctuation diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">(</span><span class=\"t-variable diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">ACME</span><span class=\"t-xmdPunctuation diagnostic warning\" title=\"No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens\">)</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-xmdLink\" title=\"Open https://github.com/acme/app/pull/42\" href=\"https://github.com/acme/app/pull/42\">https://github.com/acme/app/pull/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://github.com/acme/app/pull/42&gt;)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\"> ◌ PR #42 · refresh for status</span>\n</span><span class=\"line task\" data-line=\"2\"><span class=\"t-xmdPunctuation\" title=\"\">-</span> <span class=\"t-xmdCheckbox\" title=\"\">[ ]</span> Task\n</span><span class=\"line \" data-line=\"3\"><a class=\"t-xmdLink\" title=\"Open https://example.com/page\" href=\"https://example.com/page\">https://example.com/page</a>\n</span><span class=\"line \" data-line=\"4\"></span>",
     "lenses": [
       {
         "command": {
@@ -517,7 +517,7 @@
               "url": "https://github.com/acme/app/pull/42"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -541,7 +541,7 @@
               "row": 2
             }
           ],
-          "command": "wtf.task",
+          "command": "xmd.task",
           "title": "✓ done"
         },
         "range": {
@@ -568,7 +568,7 @@
               "url": "https://example.com/page"
             }
           ],
-          "command": "wtf.openResource",
+          "command": "xmd.openResource",
           "title": "↗ open"
         },
         "range": {
@@ -626,7 +626,7 @@
     "source": "[price] := quote(ACME)\nhttps://github.com/acme/app/pull/42\n- [ ] Task\nhttps://example.com/page\n",
     "symbols": [
       {
-        "detail": "Error · No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens",
+        "detail": "Error · No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens",
         "kind": 13,
         "name": "price",
         "range": {
@@ -691,28 +691,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,

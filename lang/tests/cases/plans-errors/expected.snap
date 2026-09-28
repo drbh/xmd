@@ -1,5 +1,5 @@
 ### 0 cli render units.x.md --format text
-$ wtf render units.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render units.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [budget] := minimize(30m * calls + 1h * visits) = 200m · calls 0 · visits 3.3333
@@ -8,7 +8,7 @@ exit 0
 | coverage   | calls + 3 * visits >= 10 | 10 ≥ 10 · ● binding
 
 ### 1 cli query units.x.md plans | select {name, display, solution} --json
-$ wtf query units.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query units.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -59,13 +59,13 @@ exit 0
 ]
 
 ### 2 cli query units.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query units.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query units.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 cli query mixed.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query mixed.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query mixed.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -78,7 +78,7 @@ exit 0
 ]
 
 ### 4 cli query quadratic.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query quadratic.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query quadratic.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -91,7 +91,7 @@ exit 0
 ]
 
 ### 5 cli query strict.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query strict.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query strict.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -104,7 +104,7 @@ exit 0
 ]
 
 ### 6 cli query shape.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query shape.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query shape.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -123,7 +123,7 @@ exit 0
 ]
 
 ### 7 cli render unbounded.x.md --format text
-$ wtf render unbounded.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render unbounded.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [p] := maximize(x)
@@ -132,10 +132,10 @@ exit 1
 | floor      | x >= 1     |
 --- stderr
 <root>/unbounded.x.md:1:17: error: The objective can be raised without limit; add a constraint that bounds it
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 8 cli query unbounded.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query unbounded.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query unbounded.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -148,7 +148,7 @@ exit 0
 ]
 
 ### 9 cli render infeasible.x.md --format text
-$ wtf render infeasible.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render infeasible.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [p] := minimize(x)
@@ -158,10 +158,10 @@ exit 1
 | high       | x >= 2     |
 --- stderr
 <root>/infeasible.x.md:1:17: error: No values satisfy every constraint; relax one of them
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 10 cli query infeasible.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query infeasible.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query infeasible.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -192,7 +192,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/unbounded.x.md",
@@ -216,7 +216,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/infeasible.x.md",
@@ -240,7 +240,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/mixed.x.md",

@@ -1,5 +1,5 @@
 ### 0 cli render charts.x.md --format text
-$ wtf render charts.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render charts.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 trend := sparkline([12, 18, 9, 24]) = ▂▅▁█
@@ -15,7 +15,7 @@ duration := sparkline([1h, 3h, 2h]) = ▁█▅
 [debug({label: "bracket ] and \"quote\"", values: [1, 2]})] {"label":"bracket ] and \"quote\"","values":[1,2]} then [sparkline([2, 1])] █▁
 
 ### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ wtf query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

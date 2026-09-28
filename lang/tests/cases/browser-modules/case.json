@@ -112,7 +112,7 @@
           "params": {
             "command": {
               "title": "Replace",
-              "command": "wtf.applyEdits",
+              "command": "xmd.applyEdits",
               "arguments": [
                 {
                   "kind": "edit",

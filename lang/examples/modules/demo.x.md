@@ -1,6 +1,6 @@
 # Functional modules
 
-Open this folder as a workspace to activate the files listed in .wtf/modules.json.
+Open this folder as a workspace to activate the files listed in .xmd/modules.json.
 
 https://docs.example/getting-started
 

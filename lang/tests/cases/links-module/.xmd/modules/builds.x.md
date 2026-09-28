@@ -44,7 +44,7 @@ refresh := fn(url) => {
   title: "⟳ build",
   program: "fake-build",
   args: [url.path],
-  env: {WTF_FIXTURE_READY: "yes"}
+  env: {XMD_FIXTURE_READY: "yes"}
 }
 
 decode := fn(url, data) => {title: data.title, state: data.state}

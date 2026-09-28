@@ -1,5 +1,5 @@
 ### 0 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [https://builds.example/runs/42]:build build · refresh for status
@@ -8,10 +8,10 @@ Unsupported https://builds.example/status and https://builds.example.evil/runs/4
 --- stderr
 <root>/work.x.md:2:15: error: Module builds.property: Refresh build first
 <root>/work.x.md:2:33: error: Module builds.property: Refresh build first
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 1 cli query work.x.md diagnostics | select {message, code} --json
-$ wtf query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -26,15 +26,15 @@ exit 0
 ]
 
 ### 2 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://builds.example/runs/empty: Module builds.decode: Unknown field 'title'
+xmd: https://builds.example/runs/empty: Module builds.decode: Unknown field 'title'
 https://builds.example/runs/fail: fake-build failed: rejected
 https://builds.example/runs/invalid: expected ident at line 1 column 2
 
-### 3 read .wtf/cache.json
--- .wtf/cache.json
+### 3 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://builds.example/runs/42": {
     "title": "Release build",
@@ -52,7 +52,7 @@ https://builds.example/runs/invalid: expected ident at line 1 column 2
 }
 
 ### 4 cli render shapes.x.md --format text
-$ wtf render shapes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render shapes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 🦀 https://builds.example/runs/42 build · passed
@@ -74,7 +74,7 @@ Ordinary https://example.com/plain
 shared := import("./other.x.md").shared
 
 ### 6 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://builds.example/runs/42]:build build · passed
@@ -82,7 +82,7 @@ Status [build.state] passed for [build.title] Release build.
 Unsupported https://builds.example/status and https://builds.example.evil/runs/42.
 
 ### 7 cli render broken.x.md --format text
-$ wtf render broken.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render broken.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 https://builds.example/runs/fail build · refresh for status
@@ -90,7 +90,7 @@ https://builds.example/runs/invalid build · refresh for status
 https://builds.example/runs/empty build · refresh for status
 
 ### 8 cli query work.x.md diagnostics | select {message, code} --json
-$ wtf query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -193,7 +193,7 @@ null
         "url": "https://builds.example/runs/42"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ open"
   },
   {
@@ -208,16 +208,16 @@ null
         "url": "https://builds.example/runs/42"
       }
     ],
-    "command": "wtf.refreshResource",
+    "command": "xmd.refreshResource",
     "title": "⟳ build"
   }
 ]
 
 ### 10 write
--- write .wtf/modules/builds.x.md (563 bytes)
+-- write .xmd/modules/builds.x.md (563 bytes)
 
 ### 11 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [https://builds.example/runs/42]:build build · refresh for status
@@ -226,13 +226,13 @@ Unsupported https://builds.example/status and https://builds.example.evil/runs/4
 --- stderr
 <root>/work.x.md:2:15: error: Module builds.property: Refresh build first
 <root>/work.x.md:2:33: error: Unknown resource property 'title'
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 12 write
--- write .wtf/modules/builds.x.md (63 bytes)
+-- write .xmd/modules/builds.x.md (63 bytes)
 
 ### 13 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [https://builds.example/runs/42]:build link
@@ -241,15 +241,15 @@ Unsupported https://builds.example/status and https://builds.example.evil/runs/4
 --- stderr
 <root>/work.x.md:2:15: error: Unknown resource property 'state'
 <root>/work.x.md:2:33: error: Unknown resource property 'title'
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 14 write
--- write .wtf/modules.json (54 bytes)
--- write .wtf/modules/aaa_first.x.md (106 bytes)
--- write .wtf/modules/builds.x.md (1081 bytes)
+-- write .xmd/modules.json (54 bytes)
+-- write .xmd/modules/aaa_first.x.md (106 bytes)
+-- write .xmd/modules/builds.x.md (1081 bytes)
 
 ### 15 cli render work.x.md --format text
-$ wtf render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render work.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [https://builds.example/runs/42]:build first wins
@@ -258,5 +258,5 @@ Unsupported https://builds.example/status first wins and https://builds.example.
 --- stderr
 <root>/work.x.md:2:15: error: Unknown resource property 'state'
 <root>/work.x.md:2:33: error: Unknown resource property 'title'
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 

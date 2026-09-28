@@ -1,32 +1,32 @@
 ### 0 cli query weather.x.md diagnostics | select {line, severity, message} --json
-$ wtf query weather.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query weather.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
   {
     "line": 0,
-    "message": "No cached forecast for Oaxaca on 2026-11-20; run wtf refresh or use the ⟳ lookups lens",
+    "message": "No cached forecast for Oaxaca on 2026-11-20; run xmd refresh or use the ⟳ lookups lens",
     "severity": "warning"
   },
   {
     "line": 3,
-    "message": "No cached forecast for Oaxaca on 2026-11-20; run wtf refresh or use the ⟳ lookups lens",
+    "message": "No cached forecast for Oaxaca on 2026-11-20; run xmd refresh or use the ⟳ lookups lens",
     "severity": "warning"
   },
   {
     "line": 4,
-    "message": "No cached forecast for Oaxaca on 2026-11-20; run wtf refresh or use the ⟳ lookups lens",
+    "message": "No cached forecast for Oaxaca on 2026-11-20; run xmd refresh or use the ⟳ lookups lens",
     "severity": "warning"
   },
   {
     "line": 5,
-    "message": "No cached forecast for Oaxaca on 2026-11-24; run wtf refresh or use the ⟳ lookups lens",
+    "message": "No cached forecast for Oaxaca on 2026-11-24; run xmd refresh or use the ⟳ lookups lens",
     "severity": "warning"
   }
 ]
 
 ### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ wtf query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -64,7 +64,7 @@ exit 0
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -86,7 +86,7 @@ exit 0
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -108,7 +108,7 @@ exit 0
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -130,7 +130,7 @@ exit 0
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -145,7 +145,7 @@ exit 0
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:weather.x.md}","kind":"refresh"}],"command":"wtf.refresh"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:weather.x.md}","kind":"refresh"}],"command":"xmd.refresh"}
 null
 -- await window/showMessage
 {
@@ -228,8 +228,8 @@ null
   }
 ]
 
-### 3 read .wtf/lookups.json
--- .wtf/lookups.json
+### 3 read .xmd/lookups.json
+-- .xmd/lookups.json
 {
   "forecast:oaxaca:2026-11-20": {
     "value": {
@@ -284,7 +284,7 @@ null
 }
 
 ### 4 cli render weather.x.md --format text
-$ wtf render weather.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd render weather.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 week := forecast_range("Oaxaca", 2026-11-20, 2026-11-22, F) = <collection>

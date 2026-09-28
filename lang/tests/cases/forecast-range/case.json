@@ -29,7 +29,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.refresh",
+            "command": "xmd.refresh",
             "arguments": [
               {
                 "kind": "refresh",
@@ -59,7 +59,7 @@
     },
     {
       "read": [
-        ".wtf/lookups.json"
+        ".xmd/lookups.json"
       ]
     },
     {

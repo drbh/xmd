@@ -42,7 +42,7 @@ pub mod intelligence {
 pub mod presentation {
     pub use crate::view::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 }
-// The `wtf query` language and how it renders.
+// The `xmd query` language and how it renders.
 pub mod query {
     pub use crate::data::catalog::value::display;
     pub use crate::data::query::{Query, QueryResult};

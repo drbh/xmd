@@ -9,7 +9,7 @@ use std::{collections::BTreeMap, path::Path};
 // a note's literal parser needs it too; fetching, caching and presenting one
 // is what this module adds.
 pub use common::Resource;
-/// One cached link status, as `.wtf/cache.json` stores it.
+/// One cached link status, as `.xmd/cache.json` stores it.
 ///
 /// `data` is what the link module's `decode` returned, and is the whole truth
 /// about a link: modules see it as `ctx.cached`, and each names its own fields.
@@ -108,7 +108,7 @@ impl ResourcePresenting for Resource {
 }
 #[cfg(feature = "native")]
 pub(crate) fn load_cache(root: &Path) -> Cache {
-    std::fs::read(root.join(".wtf/cache.json"))
+    std::fs::read(root.join(".xmd/cache.json"))
         .ok()
         .and_then(|b| serde_json::from_slice(&b).ok())
         .unwrap_or_default()

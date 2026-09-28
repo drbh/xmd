@@ -1,5 +1,5 @@
 ### 0 cli render calc.x.md --format text
-$ wtf render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$3,000]:budget
@@ -9,7 +9,7 @@ We have [remaining] $556 left, which is [remaining / budget] 18.5333% of the bud
 Lunch is $25 and [$25] stays prose; [today()] 2026-09-16 is a call.
 
 ### 1 cli query calc.x.md calculations | select {line, expression, bracketed, display} --json
-$ wtf query calc.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query calc.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -34,13 +34,13 @@ exit 0
 ]
 
 ### 2 cli query calc.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query calc.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query calc.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 cli query calc.x.md length(filter(references, fn(r) => r.name == "budget")) --json
-$ wtf query calc.x.md length(filter(references, fn(r) => r.name == "budget")) --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query calc.x.md length(filter(references, fn(r) => r.name == "budget")) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -48,7 +48,7 @@ exit 0
 ]
 
 ### 4 cli render math.x.md --format text
-$ wtf render math.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render math.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$3,000]:budget
@@ -62,7 +62,7 @@ exit 0
 $25
 
 ### 5 cli query math.x.md calculations | select {line, expression, bracketed, display} --json
-$ wtf query math.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query math.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -87,13 +87,13 @@ exit 0
 ]
 
 ### 6 cli query math.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query math.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query math.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 7 cli render errors.x.md --format text
-$ wtf render errors.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render errors.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [$3,000]:budget
@@ -102,10 +102,10 @@ Oops [budget + slot] and [budgett * 2].
 --- stderr
 <root>/errors.x.md:3:16: error: Unsupported arithmetic types (Money + Duration)
 <root>/errors.x.md:3:27: error: Unknown name 'budgett'
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 8 cli query errors.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query errors.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query errors.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -124,7 +124,7 @@ exit 0
 ]
 
 ### 9 cli query unknown.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query unknown.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query unknown.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -197,37 +197,37 @@ exit 0
   }
 }
 -- request textDocument/semanticTokens/full calc.x.md
-0:0+1 wtfPunctuation "["
-0:1+6 wtfMoney "$3,000"
-0:7+2 wtfPunctuation "]:"
+0:0+1 xmdPunctuation "["
+0:1+6 xmdMoney "$3,000"
+0:7+2 xmdPunctuation "]:"
 0:9+6 variable [declaration] "budget"
-1:0+1 wtfPunctuation "["
-1:1+6 wtfMoney "$2,444"
-1:7+2 wtfPunctuation "]:"
+1:0+1 xmdPunctuation "["
+1:1+6 xmdMoney "$2,444"
+1:7+2 xmdPunctuation "]:"
 1:9+5 variable [declaration] "spent"
-2:0+1 wtfPunctuation "["
+2:0+1 xmdPunctuation "["
 2:1+9 variable [declaration] "remaining"
-2:10+1 wtfPunctuation "]"
+2:10+1 xmdPunctuation "]"
 2:12+2 operator ":="
 2:15+6 variable "budget"
 2:22+1 operator "-"
 2:24+5 variable "spent"
-3:8+1 wtfPunctuation "["
+3:8+1 xmdPunctuation "["
 3:9+9 variable "remaining"
-3:18+1 wtfPunctuation "]"
-3:35+1 wtfPunctuation "["
+3:18+1 xmdPunctuation "]"
+3:35+1 xmdPunctuation "["
 3:36+9 variable "remaining"
 3:46+1 operator "/"
 3:48+6 variable "budget"
-3:54+1 wtfPunctuation "]"
-3:74+1 wtfPunctuation "["
+3:54+1 xmdPunctuation "]"
+3:74+1 xmdPunctuation "["
 3:75+6 variable "budget"
 3:82+1 operator "*"
 3:84+1 number "2"
-3:85+1 wtfPunctuation "]"
-4:9+3 wtfMoney "$25"
-4:18+3 wtfMoney "$25"
-4:36+1 wtfPunctuation "["
+3:85+1 xmdPunctuation "]"
+4:9+3 xmdMoney "$25"
+4:18+3 xmdMoney "$25"
+4:36+1 xmdPunctuation "["
 4:37+5 function [defaultLibrary] "today"
-4:42+3 wtfPunctuation "()]"
+4:42+3 xmdPunctuation "()]"
 

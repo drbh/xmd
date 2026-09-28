@@ -55,20 +55,20 @@
   }
 }
 -- request textDocument/semanticTokens/full links.x.md
-0:3+14 wtfLink "./packing.x.md"
-0:22+24 wtfLink "https://example.com/docs"
-1:0+1 wtfPunctuation "["
+0:3+14 xmdLink "./packing.x.md"
+0:22+24 xmdLink "https://example.com/docs"
+1:0+1 xmdPunctuation "["
 1:1+5 variable [declaration] "focus"
-1:6+1 wtfPunctuation "]"
+1:6+1 xmdPunctuation "]"
 1:8+2 operator ":="
 1:11+9 function [defaultLibrary] "countdown"
-1:20+1 wtfPunctuation "("
-1:21+3 wtfDuration "25m"
-1:24+1 wtfPunctuation ")"
-2:0+1 wtfPunctuation "-"
-2:2+3 wtfCheckbox "[ ]"
-2:16+10 wtfDate "09/17/2026"
-2:30+3 wtfTime "7AM"
+1:20+1 xmdPunctuation "("
+1:21+3 xmdDuration "25m"
+1:24+1 xmdPunctuation ")"
+2:0+1 xmdPunctuation "-"
+2:2+3 xmdCheckbox "[ ]"
+2:16+10 xmdDate "09/17/2026"
+2:30+3 xmdTime "7AM"
 -- change links.x.md (version 2)
 🦀 ./other.x.md
 [focus] := $3.30
@@ -97,15 +97,15 @@
   }
 ]
 -- request textDocument/semanticTokens/full links.x.md
-0:3+12 wtfLink "./other.x.md"
-1:0+1 wtfPunctuation "["
+0:3+12 xmdLink "./other.x.md"
+1:0+1 xmdPunctuation "["
 1:1+5 variable [declaration] "focus"
-1:6+1 wtfPunctuation "]"
+1:6+1 xmdPunctuation "]"
 1:8+2 operator ":="
-1:11+5 wtfMoney "$3.30"
-2:0+1 wtfPunctuation "-"
-2:2+3 wtfCheckboxChecked "[x]"
-2:5+28 wtfTaskDone " Interview 09/17/2026 at 7AM"
+1:11+5 xmdMoney "$3.30"
+2:0+1 xmdPunctuation "-"
+2:2+3 xmdCheckboxChecked "[x]"
+2:5+28 xmdTaskDone " Interview 09/17/2026 at 7AM"
 -- open symbols.x.md
 -- await textDocument/publishDiagnostics symbols.x.md
 {
@@ -675,7 +675,7 @@ We have [trip_left] remaining.
 ]
 
 ### 3 cli query --workspace notes | select {title} | sort title --json
-$ wtf query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -765,39 +765,39 @@ exit 0
   }
 ]
 -- request textDocument/semanticTokens/full ignored/TODOS.x.md
-0:0+1 wtfPunctuation "#"
+0:0+1 xmdPunctuation "#"
 0:1+6 heading " Notes"
-2:0+2 wtfPunctuation "##"
+2:0+2 xmdPunctuation "##"
 2:2+11 heading " Checklist "
-2:13+1 wtfPunctuation ":"
+2:13+1 xmdPunctuation ":"
 2:14+6 variable [declaration] "launch"
-4:0+1 wtfPunctuation "-"
-4:2+3 wtfCheckbox "[ ]"
+4:0+1 xmdPunctuation "-"
+4:2+3 xmdCheckbox "[ ]"
 4:12+9 decorator "@estimate"
-4:21+1 wtfPunctuation "("
-4:22+3 wtfDuration "20m"
-4:25+1 wtfPunctuation ")"
-5:0+1 wtfPunctuation "-"
-5:2+3 wtfCheckboxChecked "[X]"
-5:5+9 wtfTaskDone " Finished"
+4:21+1 xmdPunctuation "("
+4:22+3 xmdDuration "20m"
+4:25+1 xmdPunctuation ")"
+5:0+1 xmdPunctuation "-"
+5:2+3 xmdCheckboxChecked "[X]"
+5:5+9 xmdTaskDone " Finished"
 7:0+4 variable [declaration] "done"
 7:4+3 operator " :="
 7:8+9 function [defaultLibrary] "completed"
-7:17+1 wtfPunctuation "("
+7:17+1 xmdPunctuation "("
 7:18+6 variable "launch"
-7:24+1 wtfPunctuation ")"
+7:24+1 xmdPunctuation ")"
 8:0+4 variable [declaration] "left"
 8:4+3 operator " :="
 8:8+9 function [defaultLibrary] "remaining"
-8:17+1 wtfPunctuation "("
+8:17+1 xmdPunctuation "("
 8:18+6 variable "launch"
-8:24+1 wtfPunctuation ")"
+8:24+1 xmdPunctuation ")"
 9:0+4 variable [declaration] "work"
 9:4+3 operator " :="
 9:8+6 function [defaultLibrary] "effort"
-9:14+1 wtfPunctuation "("
+9:14+1 xmdPunctuation "("
 9:15+6 variable "launch"
-9:21+1 wtfPunctuation ")"
+9:21+1 xmdPunctuation ")"
 -- change ignored/TODOS.x.md (version 2)
 # Notes
 

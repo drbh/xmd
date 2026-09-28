@@ -1,6 +1,6 @@
 // Typeahead for the query console. Static names come from the engine's query
 // language; record fields are learned from the workspace and from results.
-import { noteFile } from "@wtf/web";
+import { noteFile } from "@xmd/web";
 export const COLLECTIONS = ["ast", "days", "timers", "links", "tasks", "events", "stops", "entries", "values", "plans", "decisions", "tables", "rows", "resources", "diagnostics", "notes", "sections", "calculations", "references", "cells", "graph"];
 export const STAGES = ["where", "select", "sort", "limit", "count", "sum", "group"];
 export const FUNCTIONS = {

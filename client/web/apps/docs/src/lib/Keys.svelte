@@ -1,9 +1,9 @@
 <script>
-  // API keys for `wtf sync`. A new key is shown once; only its hash is kept.
+  // API keys for `xmd sync`. A new key is shown once; only its hash is kept.
   import Dialog from "./Dialog.svelte";
   import Icon from "./Icon.svelte";
   import { relativeTime } from "./store.js";
-  import { EXTENSION } from "@wtf/web";
+  import { EXTENSION } from "@xmd/web";
   let { keys, site, onClose } = $props();
   let list = $state(null), name = $state(""), fresh = $state(null), error = $state(""), busy = $state(false), copied = $state(false);
   async function load() { try { list = await keys.list(); } catch (e) { error = e.message; } }
@@ -20,12 +20,12 @@
 </script>
 
 <Dialog title="API keys" {onClose} wide>
-  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>wtf sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
+  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>xmd sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
   {#if fresh}
     <div class="fresh-key">
       <p><strong>Your new key.</strong> Copy it now; it is not shown again.</p>
       <code class="key">{fresh.key}</code>
-      <div class="share-foot"><button type="button" class="button primary" onclick={() => copy(fresh.key)}><Icon name="link" /> {copied ? "Copied" : "Copy key"}</button><span class="muted">Then: <code>export WTF_API_KEY={fresh.key.slice(0, 8)}…</code></span></div>
+      <div class="share-foot"><button type="button" class="button primary" onclick={() => copy(fresh.key)}><Icon name="link" /> {copied ? "Copied" : "Copy key"}</button><span class="muted">Then: <code>export XMD_API_KEY={fresh.key.slice(0, 8)}…</code></span></div>
     </div>
   {/if}
   <form class="share-add" onsubmit={e => { e.preventDefault(); create(); }}>

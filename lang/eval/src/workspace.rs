@@ -84,7 +84,7 @@ impl Workspace {
                     !e.file_type().is_some_and(|t| t.is_dir())
                         || !matches!(
                             e.file_name().to_str(),
-                            Some("target" | "node_modules" | ".git" | ".wtf")
+                            Some("target" | "node_modules" | ".git" | ".xmd")
                         )
                 })
                 .build();
@@ -287,7 +287,7 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub fn save_cache(&self) -> Result<(), String> {
-        let dir = self.root().join(".wtf");
+        let dir = self.root().join(".xmd");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let bytes = serde_json::to_vec_pretty(&self.cache).map_err(|e| e.to_string())?;
         // Atomic replacement avoids partially written cache data after a crash.

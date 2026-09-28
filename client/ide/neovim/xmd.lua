@@ -1,41 +1,41 @@
--- Neovim 0.11+. With `wtf` on PATH, just
--- dofile('/path/to/jot/client/ide/neovim/wtf.lua') from init.lua.
--- vim.g.wtf_server_path overrides the executable.
-assert(vim.fn.has('nvim-0.11') == 1, 'WTF configuration requires Neovim 0.11+')
-local binary = vim.g.wtf_server_path or 'wtf'
+-- Neovim 0.11+. With `xmd` on PATH, just
+-- dofile('/path/to/jot/client/ide/neovim/xmd.lua') from init.lua.
+-- vim.g.xmd_server_path overrides the executable.
+assert(vim.fn.has('nvim-0.11') == 1, 'XMD configuration requires Neovim 0.11+')
+local binary = vim.g.xmd_server_path or 'xmd'
 assert(vim.fn.executable(binary) == 1,
-  'wtf is not on PATH: install it with'
+  'xmd is not on PATH: install it with'
   .. ' `curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh`,'
-  .. ' or set vim.g.wtf_server_path')
+  .. ' or set vim.g.xmd_server_path')
 
 -- `.x.md` is a two-part suffix, so match it as a pattern rather than an extension.
-vim.filetype.add({ pattern = { ['.*%.x%.md'] = 'wtf' } })
+vim.filetype.add({ pattern = { ['.*%.x%.md'] = 'xmd' } })
 
 local function highlights()
   -- Link semantic tokens to the user's theme; all tokenization stays in Rust.
   local groups = {
-    heading = 'Title', wtfMoney = 'Number', wtfDate = 'Constant',
-    wtfTime = 'Constant', wtfDuration = 'Number', wtfRatio = 'Number',
-    wtfBoolean = 'Boolean', wtfPunctuation = 'Delimiter', wtfCode = 'String',
-    wtfLink = 'Underlined', wtfCheckbox = 'Todo', wtfCheckboxChecked = 'String',
-    wtfTaskDone = 'Comment',
+    heading = 'Title', xmdMoney = 'Number', xmdDate = 'Constant',
+    xmdTime = 'Constant', xmdDuration = 'Number', xmdRatio = 'Number',
+    xmdBoolean = 'Boolean', xmdPunctuation = 'Delimiter', xmdCode = 'String',
+    xmdLink = 'Underlined', xmdCheckbox = 'Todo', xmdCheckboxChecked = 'String',
+    xmdTaskDone = 'Comment',
   }
   for token, group in pairs(groups) do
-    vim.api.nvim_set_hl(0, '@lsp.type.' .. token .. '.wtf', { link = group, default = true })
+    vim.api.nvim_set_hl(0, '@lsp.type.' .. token .. '.xmd', { link = group, default = true })
   end
-  vim.api.nvim_set_hl(0, '@lsp.mod.declaration.wtf', { bold = true, default = true })
+  vim.api.nvim_set_hl(0, '@lsp.mod.declaration.xmd', { bold = true, default = true })
 end
 highlights()
 vim.api.nvim_create_autocmd('ColorScheme', {
-  group = vim.api.nvim_create_augroup('WtfHighlights', { clear = true }),
+  group = vim.api.nvim_create_augroup('XmdHighlights', { clear = true }),
   callback = highlights,
 })
 
-vim.lsp.config('wtf', {
+vim.lsp.config('xmd', {
   cmd = { binary, 'lsp' },
-  filetypes = { 'wtf' },
+  filetypes = { 'xmd' },
   root_dir = function(bufnr, on_dir)
-    on_dir(vim.fs.root(bufnr, { '.wtf', '.git' })
+    on_dir(vim.fs.root(bufnr, { '.xmd', '.git' })
       or vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr)))
   end,
   on_attach = function(client, bufnr)
@@ -51,9 +51,9 @@ vim.lsp.config('wtf', {
     local function map(key, action, description)
       vim.keymap.set('n', key, action, { buffer = bufnr, desc = description })
     end
-    map('<leader>ja', vim.lsp.buf.code_action, 'WTF actions')
-    map('<leader>jl', vim.lsp.codelens.run, 'WTF task/timer controls')
-    map('<leader>jf', function() vim.lsp.buf.format({ bufnr = bufnr }) end, 'Format WTF table')
+    map('<leader>ja', vim.lsp.buf.code_action, 'XMD actions')
+    map('<leader>jl', vim.lsp.codelens.run, 'XMD task/timer controls')
+    map('<leader>jf', function() vim.lsp.buf.format({ bufnr = bufnr }) end, 'Format XMD table')
     if vim.lsp.codelens.enable then
       vim.lsp.codelens.enable(true, { bufnr = bufnr })
     else
@@ -61,11 +61,11 @@ vim.lsp.config('wtf', {
       local function refresh() vim.lsp.codelens.refresh({ bufnr = bufnr }) end
       vim.api.nvim_create_autocmd({ 'BufEnter', 'CursorHold', 'InsertLeave' }, {
         buffer = bufnr,
-        group = vim.api.nvim_create_augroup('WtfCodeLens' .. bufnr, { clear = true }),
+        group = vim.api.nvim_create_augroup('XmdCodeLens' .. bufnr, { clear = true }),
         callback = refresh,
       })
       refresh()
     end
   end,
 })
-vim.lsp.enable('wtf')
+vim.lsp.enable('xmd')

@@ -1,7 +1,7 @@
 //! Enforces the architecture: a crate may only depend on the internal crates
 //! listed for it in `[workspace.metadata.layers]` at the repo root; every
 //! other crate publishes a curated interface from its root (no public file
-//! modules, no glob re-exports, workspace lints on); and the facade `wtf`
+//! modules, no glob re-exports, workspace lints on); and the facade `xmd`
 //! (this crate's own `src/lib.rs`) only re-exports.
 use serde_json::Value;
 use std::process::Command;
@@ -65,7 +65,7 @@ fn facade_only_re_exports() {
 
     assert!(
         without_use.trim().is_empty(),
-        "lang/src/lib.rs (the wtf facade) must contain only doc comments, attributes and `pub use` \
+        "lang/src/lib.rs (the xmd facade) must contain only doc comments, attributes and `pub use` \
          items; found leftover content: {:?}",
         without_use.trim()
     );

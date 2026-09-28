@@ -1,5 +1,5 @@
 ### 0 cli query prose.x.md links | select {url, line} --json
-$ wtf query prose.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -50,19 +50,19 @@ exit 0
 ]
 
 ### 1 cli query prose.x.md references --json
-$ wtf query prose.x.md references --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md references --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 2 cli query prose.x.md diagnostics --json
-$ wtf query prose.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 cli query prose.x.md tasks | select attributes --json
-$ wtf query prose.x.md tasks | select attributes --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query prose.x.md tasks | select attributes --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -72,7 +72,7 @@ exit 0
 ]
 
 ### 4 cli query code.x.md links | select {url, line} --json
-$ wtf query code.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query code.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -83,7 +83,7 @@ exit 0
 ]
 
 ### 5 cli query code.x.md values | select name --json
-$ wtf query code.x.md values | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query code.x.md values | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -92,7 +92,7 @@ exit 0
 ]
 
 ### 6 cli query malicious.x.md links --json
-$ wtf query malicious.x.md links --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query malicious.x.md links --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -225,7 +225,7 @@ null
         "url": "file://<root>/packing.x.md"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ open"
   },
   {
@@ -240,7 +240,7 @@ null
         "url": "file://<root>/trips/images/map.png"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ image"
   }
 ]

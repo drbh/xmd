@@ -69,7 +69,7 @@
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ start watch"
     },
     "range": {
@@ -93,7 +93,7 @@
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ start focus"
     },
     "range": {
@@ -117,7 +117,7 @@
           "row": 2
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -141,7 +141,7 @@
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ start watch"
     },
     "range": {
@@ -165,7 +165,7 @@
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ start watch"
     },
     "range": {
@@ -307,7 +307,7 @@
     }
   ]
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -399,12 +399,12 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 error: {
   "code": -32602,
   "message": "Cannot start a running timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -496,7 +496,7 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -584,7 +584,7 @@ null
           "name": "tea"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset tea"
     },
     "range": {
@@ -608,7 +608,7 @@ null
           "row": 1
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -632,7 +632,7 @@ null
           "name": "tea"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset tea"
     },
     "range": {
@@ -659,7 +659,7 @@ null
           "url": "file://<root>/receipt.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {

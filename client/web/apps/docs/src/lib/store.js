@@ -1,9 +1,9 @@
 // Documents live in this browser. Names are local to each document; explicit
 // imports connect virtual files using their URIs, just as with notes on disk.
-import { noteFile, noteStem } from "@wtf/web";
+import { noteFile, noteStem } from "@xmd/web";
 
-const KEY = "wtf.docs.v1";
-const PREFS = "wtf.docs.prefs.v1";
+const KEY = "xmd.docs.v1";
+const PREFS = "xmd.docs.prefs.v1";
 let writable = true;
 
 export const TEMPLATES = [
@@ -142,7 +142,7 @@ export function titleOf(text, fallback) {
 }
 // Documents live in a virtual directory shaped like a synced folder on disk:
 // docs/<Folder name>/<File name>.x.md, so imports use the same relative paths
-// in the app, on disk, and through `wtf sync`.
+// in the app, on disk, and through `xmd sync`.
 const segment = s => encodeURIComponent(s);
 export function uriOf(doc, folders = []) {
   const folder = doc.folder ? folders.find(f => f.id === doc.folder) : null;

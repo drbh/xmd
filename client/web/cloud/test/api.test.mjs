@@ -14,7 +14,7 @@ const call = (path, { user = "alice@example.com", method = "GET", body } = {}) =
 before(async () => {
   // Every run starts from an empty local database.
   rmSync(new URL("../.wrangler/test-state", import.meta.url), { recursive: true, force: true });
-  execFileSync("npx", ["wrangler", "d1", "migrations", "apply", "wtf-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
+  execFileSync("npx", ["wrangler", "d1", "migrations", "apply", "xmd-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
   server = spawn("npx", ["wrangler", "dev", "--var", "DEV_AUTH:1", "--port", String(PORT), "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: ["ignore", "pipe", "pipe"] });
   const started = Date.now();
   while (Date.now() - started < 60_000) {
@@ -133,11 +133,11 @@ test("folders: filing is owner-only, folder members reach its documents, deletin
 test("API keys drive the sync API outside the browser sign-in, without sharing or key management", async () => {
   const created = await call("/api/keys", { method: "POST", body: { name: "laptop" } });
   assert.equal(created.status, 201);
-  assert.match(created.data.key, /^wtf_/);
+  assert.match(created.data.key, /^xmd_/);
   assert.ok((await call("/api/keys")).data.some(k => k.id === created.data.id && k.name === "laptop"));
   const sync = (path, options = {}) => fetch(`${BASE}/sync/v1${path}`, { ...options, headers: { authorization: `Bearer ${created.data.key}`, "content-type": "application/json", accept: "application/json" }, body: options.body && JSON.stringify(options.body) }).then(async r => ({ status: r.status, data: r.headers.get("content-type")?.includes("json") ? await r.json() : null }));
   assert.equal((await fetch(`${BASE}/sync/v1/me`)).status, 401);
-  assert.equal((await fetch(`${BASE}/sync/v1/me`, { headers: { authorization: "Bearer wtf_not_a_real_key_at_all_00000" } })).status, 401);
+  assert.equal((await fetch(`${BASE}/sync/v1/me`, { headers: { authorization: "Bearer xmd_not_a_real_key_at_all_00000" } })).status, 401);
   const me = await sync("/me");
   assert.equal(me.data.email, "alice@example.com"); assert.equal(me.data.viaKey, true);
   const doc = id();
@@ -208,5 +208,5 @@ test("the site and the backend module are served beside the API", async () => {
   assert.match(module.headers.get("content-type"), /javascript/);
   assert.match(await module.text(), /createBackend/);
   assert.equal((await fetch(`${BASE}/docs/`)).status, 200);
-  assert.equal((await fetch(`${BASE}/lib/pkg/wtf_bg.wasm`)).headers.get("content-type"), "application/wasm");
+  assert.equal((await fetch(`${BASE}/lib/pkg/xmd_bg.wasm`)).headers.get("content-type"), "application/wasm");
 });

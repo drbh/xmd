@@ -1,6 +1,6 @@
 <script>
   import { onMount, untrack } from "svelte";
-  import { createWorkspace, EXTENSION, noteFile, noteStem } from "@wtf/web";
+  import { createWorkspace, EXTENSION, noteFile, noteStem } from "@xmd/web";
   import { titleOf, uriOf as documentUri, createDocument, createFolder, fileNameFor, uniqueFile, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
@@ -70,9 +70,9 @@
   const systemDark = matchMedia("(prefers-color-scheme: dark)");
   let dark = $state(systemDark.matches);
   const theme = $derived(prefs.theme === "system" ? (dark ? "dark" : "light") : prefs.theme);
-  $effect(() => { document.documentElement.dataset.theme = theme; document.documentElement.classList.toggle("wtf-light", theme === "light"); });
+  $effect(() => { document.documentElement.dataset.theme = theme; document.documentElement.classList.toggle("xmd-light", theme === "light"); });
   $effect(() => { savePrefs($state.snapshot(prefs)); });
-  $effect(() => { document.title = active ? `${active.name || "Untitled document"} – WTF Docs` : "WTF Docs"; });
+  $effect(() => { document.title = active ? `${active.name || "Untitled document"} – XMD Docs` : "XMD Docs"; });
 
   const workspace = createWorkspace({ onError: e => { engine = `Engine failed: ${e.message}`; } });
   const rpc = workspace.request;
@@ -403,11 +403,11 @@
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
-    window.wtfDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, newFolder, moveDocument, get folders() { return folders; }, open, home, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
+    window.xmdDocs = { get documents() { return documents; }, get backend() { return backend; }, get account() { return account; }, get controller() { return controller; }, get active() { return active; }, rpc, workspace, newDocument, newFolder, moveDocument, get folders() { return folders; }, open, home, get live() { return live; }, get people() { return people; }, get ready() { return ready; } };
   }
 </script>
 
-<svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onwtf:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
+<svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onxmd:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
 <input bind:this={importInput} type="file" accept=".{EXTENSION.split(".").pop()},text/markdown,text/plain" multiple hidden onchange={importFiles}>
 
 {#if keysOpen && backend?.keys}
@@ -546,7 +546,7 @@
           <tr><td>Last edit</td><td>{new Date(active.updated).toLocaleString()}</td></tr>
           <tr><td>Link</td><td><code>{location.href.replace(/\?test/, "")}</code></td></tr>
         </tbody></table>
-        <p class="muted">The file name is what other documents and <code>wtf sync</code> use; it follows the first heading until you rename the document yourself.</p>
+        <p class="muted">The file name is what other documents and <code>xmd sync</code> use; it follows the first heading until you rename the document yourself.</p>
       </Dialog>
     {:else if dialog === "problems"}
       <Dialog title="Problems" onClose={() => (dialog = null)}>

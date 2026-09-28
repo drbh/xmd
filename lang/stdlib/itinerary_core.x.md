@@ -340,7 +340,7 @@ format_days := fn(days) => (
 
 // Build a diagnostic with a stable code and source range.
 _issue := fn(range, message, code, severity) => (
-  {range: range, message: message, code: code, severity: severity, source: "wtf"}
+  {range: range, message: message, code: code, severity: severity, source: "xmd"}
 )
 
 // Warn about unknown kinds and report times that go backwards.

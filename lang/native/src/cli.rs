@@ -19,13 +19,13 @@ macro_rules! note {
 
 #[derive(Parser)]
 #[command(
-    name = "wtf",
+    name = "xmd",
     version,
     about = "Reactive notes with a typed workspace query API. The default command is a query: name a note or pipe one in.",
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
-    override_usage = "wtf [OPTIONS] <QUERY>                (note on stdin)\n       wtf [OPTIONS] <FILE> <QUERY>\n       wtf [OPTIONS] --workspace <QUERY>\n       wtf <COMMAND> ...",
-    after_help = concat!("Examples: cat ", note!("note"), " | wtf 'total'\n          wtf ", note!("note"), " 'tasks | where !done' --json\n          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          wtf lsp   # the language server, for editors\nRun `wtf query --help` for the query bindings, functions and stages.")
+    override_usage = "xmd [OPTIONS] <QUERY>                (note on stdin)\n       xmd [OPTIONS] <FILE> <QUERY>\n       xmd [OPTIONS] --workspace <QUERY>\n       xmd <COMMAND> ...",
+    after_help = concat!("Examples: cat ", note!("note"), " | xmd 'total'\n          xmd ", note!("note"), " 'tasks | where !done' --json\n          xmd --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          xmd lsp   # the language server, for editors\nRun `xmd query --help` for the query bindings, functions and stages.")
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -40,8 +40,8 @@ pub(crate) enum Command {
     /// Query tasks, values, tables, plans, resources and diagnostics.
     #[command(
         alias = "q",
-        override_usage = "wtf query [OPTIONS] <QUERY>                (note on stdin)\n       wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] --workspace <QUERY>",
-        after_help = concat!("Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: wtf query ", note!("note"), " 'map(tasks, fn(t) => t.title)' --json\n          cat ", note!("note"), " | wtf query 'length(tasks)'\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query ", note!("note"), " -")
+        override_usage = "xmd query [OPTIONS] <QUERY>                (note on stdin)\n       xmd query [OPTIONS] <FILE> <QUERY>\n       xmd query [OPTIONS] --workspace <QUERY>",
+        after_help = concat!("Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: xmd query ", note!("note"), " 'map(tasks, fn(t) => t.title)' --json\n          cat ", note!("note"), " | xmd query 'length(tasks)'\n          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | xmd query ", note!("note"), " -")
     )]
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
@@ -104,7 +104,7 @@ pub(crate) struct QueryOutput {
 }
 #[derive(Args)]
 #[command(
-    after_help = concat!("Example: wtf render ", note!("trip"), " --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them.")
+    after_help = concat!("Example: xmd render ", note!("trip"), " --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them.")
 )]
 pub(crate) struct RenderOptions {
     /// A note, relative to --root or an absolute path.
@@ -208,12 +208,12 @@ pub(crate) enum Note {
 /// Notes read from stdin are capped at the 1 MB the browser host allows.
 const MAX_PIPED_NOTE: usize = 1_000_000;
 /// The synthetic path a piped note is filed under, inside `--root` so its
-/// relative imports and `.wtf/modules.json` resolve like a saved note's.
+/// relative imports and `.xmd/modules.json` resolve like a saved note's.
 pub(crate) const PIPED_NOTE_NAME: &str = note!("<stdin>");
 
 pub(crate) fn query_command(options: QueryOptions) -> Result<(), String> {
     let input = options.input.ok_or(concat!(
-        "Supply a query expression: wtf 'total' < ",
+        "Supply a query expression: xmd 'total' < ",
         note!("note")
     ))?;
     let (note, mut source) = if options.workspace {
@@ -224,7 +224,7 @@ pub(crate) fn query_command(options: QueryOptions) -> Result<(), String> {
         return Err(concat!(
             "Supply a note file, or pipe one in: cat ",
             note!("note"),
-            " | wtf 'total'"
+            " | xmd 'total'"
         )
         .into());
     } else {
@@ -324,7 +324,7 @@ fn request_time(
                     .into(),
             )
     } else {
-        // `WTF_NOW` freezes the clock; see the `editor` module.
+        // `XMD_NOW` freezes the clock; see the `editor` module.
         Ok(crate::editor::now())
     }
 }

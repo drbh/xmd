@@ -1,5 +1,5 @@
 ### 0 cli render trip.x.md --format text
-$ wtf render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 ## Friday, November 20, 2026 · New York | Oaxaca 1 stops · 07:04 AM – 07:04 AM · in 64 days · 24°C / 12°C · light rain · 40% rain
@@ -15,7 +15,7 @@ exit 0
 [pack_rain_jacket] := later.rain > 30% = true
 
 ### 1 cli query trip.x.md map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json
-$ wtf query trip.x.md map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -48,7 +48,7 @@ exit 0
 ]
 
 ### 2 cli query trip.x.md values | select {name, display} --json
-$ wtf query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -75,7 +75,7 @@ exit 0
 ]
 
 ### 3 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 []

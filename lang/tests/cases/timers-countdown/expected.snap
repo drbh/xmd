@@ -1,5 +1,5 @@
 ### 0 cli render focus.x.md --format text
-$ wtf render focus.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render focus.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -8,7 +8,7 @@ Time left: [focus.remaining] 3m.
 - [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
 
 ### 1 cli render focus.x.md --now 2026-09-17T14:00:00-04:00 --format text
-$ wtf render focus.x.md --now 2026-09-17T14:00:00-04:00 --format text --root <root>
+$ xmd render focus.x.md --now 2026-09-17T14:00:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -17,7 +17,7 @@ Time left: [focus.remaining] 3m.
 - [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
 
 ### 2 cli query focus.x.md timers | select {name, line, value} --json
-$ wtf query focus.x.md timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query focus.x.md timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -72,7 +72,7 @@ exit 0
 ]
 
 ### 3 cli render running.x.md --format text
-$ wtf render running.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render running.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -80,7 +80,7 @@ exit 0
 Time left: [focus.remaining] 2m.
 
 ### 4 cli render running.x.md --now 2026-09-16T14:01:59-04:00 --format text
-$ wtf render running.x.md --now 2026-09-16T14:01:59-04:00 --format text --root <root>
+$ xmd render running.x.md --now 2026-09-16T14:01:59-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -88,7 +88,7 @@ exit 0
 Time left: [focus.remaining] 1s.
 
 ### 5 cli render running.x.md --now 2026-09-16T14:02:00-04:00 --format text
-$ wtf render running.x.md --now 2026-09-16T14:02:00-04:00 --format text --root <root>
+$ xmd render running.x.md --now 2026-09-16T14:02:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -96,7 +96,7 @@ exit 0
 Time left: [focus.remaining] 0s.
 
 ### 6 cli render running.x.md --now 2026-09-16T16:30:00-04:00 --format text
-$ wtf render running.x.md --now 2026-09-16T16:30:00-04:00 --format text --root <root>
+$ xmd render running.x.md --now 2026-09-16T16:30:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -104,7 +104,7 @@ exit 0
 Time left: [focus.remaining] 0s.
 
 ### 7 cli query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00
-$ wtf query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
+$ xmd query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -154,7 +154,7 @@ exit 0
   "uri": "file://<root>/multiline.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.x.md}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.x.md}","kind":"timer","name":"focus"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -185,7 +185,7 @@ null
   }
 }
 -- open multiline-crlf.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.x.md}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.x.md}","kind":"timer","name":"focus"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -216,7 +216,7 @@ null
   }
 }
 -- open grouped.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -287,17 +287,17 @@ null
 ]
 
 ### 9 cli render cycle.x.md --format text
-$ wtf render cycle.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render cycle.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [a] := countdown(b.remaining)
 [b] := countdown(a.remaining)
 --- stderr
 <root>/cycle.x.md:1:2: error: Dependency cycle: a → b → a
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 10 cli query cycle.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query cycle.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query cycle.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

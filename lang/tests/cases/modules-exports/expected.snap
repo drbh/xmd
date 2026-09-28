@@ -1,5 +1,5 @@
 ### 0 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 lib := import("lib") = <collection>
@@ -13,10 +13,10 @@ missing := import("lib").d
 <root>/main.x.md:5:11: error: 'b' is not exported by module 'lib'
 <root>/main.x.md:6:15: error: '_c' is not exported by module 'lib'
 <root>/main.x.md:7:12: error: 'd' is not exported by module 'lib'
-wtf: 3 error(s) while rendering
+xmd: 3 error(s) while rendering
 
 ### 1 cli query main.x.md diagnostics | select {line, message} --json
-$ wtf query main.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -53,7 +53,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "evaluation",
@@ -69,7 +69,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "evaluation",
@@ -85,7 +85,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/main.x.md",
@@ -139,64 +139,64 @@ y := lib.
 ]
 
 ### 3 write
--- write .wtf/modules/lib.x.md (94 bytes)
+-- write .xmd/modules/lib.x.md (94 bytes)
 
 ### 4 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: exports names 'missing', which this module does not define
+xmd: <root>/.xmd/modules/lib.x.md: exports names 'missing', which this module does not define
 
 ### 5 write
--- write .wtf/modules/lib.x.md (106 bytes)
+-- write .xmd/modules/lib.x.md (106 bytes)
 
 ### 6 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: '_c' cannot be exported; 'module' and '_' names are private
+xmd: <root>/.xmd/modules/lib.x.md: '_c' cannot be exported; 'module' and '_' names are private
 
 ### 7 write
--- write .wtf/modules/lib.x.md (88 bytes)
+-- write .xmd/modules/lib.x.md (88 bytes)
 
 ### 8 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: 'module' cannot be exported; 'module' and '_' names are private
+xmd: <root>/.xmd/modules/lib.x.md: 'module' cannot be exported; 'module' and '_' names are private
 
 ### 9 write
--- write .wtf/modules/lib.x.md (88 bytes)
+-- write .xmd/modules/lib.x.md (88 bytes)
 
 ### 10 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: Duplicate export 'a'
+xmd: <root>/.xmd/modules/lib.x.md: Duplicate export 'a'
 
 ### 11 write
--- write .wtf/modules/lib.x.md (81 bytes)
+-- write .xmd/modules/lib.x.md (81 bytes)
 
 ### 12 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: module.exports must be a list of text
+xmd: <root>/.xmd/modules/lib.x.md: module.exports must be a list of text
 
 ### 13 write
--- write .wtf/modules/lib.x.md (106 bytes)
+-- write .xmd/modules/lib.x.md (106 bytes)
 
 ### 14 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.x.md: A feature module has no exports; its hooks are called by the host
+xmd: <root>/.xmd/modules/lib.x.md: A feature module has no exports; its hooks are called by the host
 
 ### 15 write
--- write .wtf/modules/lib.x.md (97 bytes)
+-- write .xmd/modules/lib.x.md (97 bytes)
 
 ### 16 cli render main.x.md --format text
-$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 lib := import("lib")
@@ -213,5 +213,5 @@ missing := import("lib").d
 <root>/main.x.md:5:11: error: Module 'lib' is a feature module and cannot be imported; only libraries can
 <root>/main.x.md:6:15: error: Module 'lib' is a feature module and cannot be imported; only libraries can
 <root>/main.x.md:7:12: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-wtf: 6 error(s) while rendering
+xmd: 6 error(s) while rendering
 

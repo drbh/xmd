@@ -174,7 +174,7 @@ impl Backend {
 fn file(uri: &Uri) -> Result<PathBuf> {
     url_from_uri(uri)
         .to_file_path()
-        .map_err(|_| Error::invalid_params("WTF needs a local file URI"))
+        .map_err(|_| Error::invalid_params("XMD needs a local file URI"))
 }
 use features::intelligence::symbol_at;
 fn edit_for(state: &State, path: &Path, edits: Vec<TextEdit>) -> WorkspaceEdit {
@@ -243,12 +243,12 @@ impl LanguageServer for Backend {
         self.rescan().await;
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
-                name: "WTF".into(),
+                name: "XMD".into(),
                 version: Some(env!("CARGO_PKG_VERSION").into()),
             }),
             capabilities: ServerCapabilities {
                 experimental: Some(
-                    serde_json::json!({"wtfQuery":{"method":"wtf/query","schemaVersion":1}}),
+                    serde_json::json!({"xmdQuery":{"method":"xmd/query","schemaVersion":1}}),
                 ),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
@@ -322,7 +322,7 @@ impl LanguageServer for Backend {
         self.client
             .log_message(
                 MessageType::INFO,
-                "WTF: tasks, timers, resources, dates, and workspace navigation ready",
+                "XMD: tasks, timers, resources, dates, and workspace navigation ready",
             )
             .await;
         if self.state.read().await.watch {
@@ -330,14 +330,14 @@ impl LanguageServer for Backend {
             let watchers = std::iter::once(format!("**/*.{}", common::EXTENSION))
                 .chain(
                     ["cache.json", "lookups.json", "modules.json"]
-                        .map(|file| format!("**/.wtf/{file}")),
+                        .map(|file| format!("**/.xmd/{file}")),
                 )
                 .map(|glob| serde_json::json!({ "globPattern": glob }))
                 .collect::<Vec<_>>();
             let _ = self
                 .client
                 .register_capability(vec![Registration {
-                    id: "wtf-notes".into(),
+                    id: "xmd-notes".into(),
                     method: "workspace/didChangeWatchedFiles".into(),
                     register_options: Some(serde_json::json!({ "watchers": watchers })),
                 }])
@@ -749,7 +749,7 @@ impl LanguageServer for Backend {
                 let content =
                     features::agenda::today_markdown(&features::Request::new(&workspace, now()))
                         .map_err(Error::invalid_params)?;
-                let dir = workspace.root().join(".wtf");
+                let dir = workspace.root().join(".xmd");
                 tokio::task::spawn_blocking({
                     let dir = dir.clone();
                     move || {
@@ -913,7 +913,7 @@ impl LanguageServer for Backend {
 }
 pub(crate) async fn serve() {
     let (service, socket) = LspService::build(Backend::new)
-        .custom_method("wtf/query", Backend::query)
+        .custom_method("xmd/query", Backend::query)
         .finish();
     Server::new(tokio::io::stdin(), tokio::io::stdout(), socket)
         .serve(service)

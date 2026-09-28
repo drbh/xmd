@@ -134,7 +134,7 @@ native_note := fn(ctx) => (
   if(
     ctx.native,
     "",
-    "\n\nRefreshing a feed needs the native WTF app; a browser workspace supplies the same"
+    "\n\nRefreshing a feed needs the native XMD app; a browser workspace supplies the same"
       + " JSON through `setResourceData`."
   )
 )
@@ -143,7 +143,7 @@ native_note := fn(ctx) => (
 hover := fn(ctx) => (
   if(
     ctx.cached == null,
-    "No cached feed. Run `wtf refresh`, or use the ⟳ feed code action on this link."
+    "No cached feed. Run `xmd refresh`, or use the ⟳ feed code action on this link."
       + " Requires `curl`."
       + native_note(ctx),
     "**"
@@ -165,7 +165,7 @@ time_dependent := fn(ctx) => (
 property := fn(ctx, name) => (
   if(
     ctx.cached == null,
-    error("No cached feed; run wtf refresh"),
+    error("No cached feed; run xmd refresh"),
     if(
       name == "updated",
       moment(ctx.cached.updated),

@@ -1,4 +1,4 @@
-//! WTF, the written text format: a facade in front of its layered crates.
+//! XMD, Markdown with computed values: a facade in front of its layered crates.
 //! This crate has no code of its own — it only re-exports the published
 //! interface of each layer's host-facing pieces:
 //!

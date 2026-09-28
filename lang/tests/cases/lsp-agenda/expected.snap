@@ -1,15 +1,15 @@
 ### 0 lsp
--- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.today"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.today"}
 null
 -- await window/showDocument
 {
   "external": false,
   "takeFocus": true,
-  "uri": "file://<root>/.wtf/today.md"
+  "uri": "file://<root>/.xmd/today.md"
 }
 
-### 1 read .wtf/today.md
--- .wtf/today.md
+### 1 read .xmd/today.md
+-- .xmd/today.md
 # Today — 2026-09-16
 
 Generated view. Follow a link to edit the original note.
@@ -17,18 +17,18 @@ Generated view. Follow a link to edit the original note.
 - [tasks.x.md:1](<file://<root>/tasks.x.md#L1>) — Active
 
 ### 2 lsp
--- write .wtf/modules/agenda.x.md
+-- write .xmd/modules/agenda.x.md
 module := {api: 1, id: "agenda", kind: "library", inputs: []}
 between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
--- write .wtf/modules.json
+-- write .xmd/modules.json
 ["./modules/agenda.x.md"]
--- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.today"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.today"}
 null
 -- await window/showDocument
 {
   "external": false,
   "takeFocus": true,
-  "uri": "file://<root>/.wtf/today.md"
+  "uri": "file://<root>/.xmd/today.md"
 }
 -- query map(import("agenda").between(entries, today(), today()), fn(e) => e.title)
 {
@@ -40,8 +40,8 @@ null
   "versions": {}
 }
 
-### 3 read .wtf/today.md
--- .wtf/today.md
+### 3 read .xmd/today.md
+-- .xmd/today.md
 # Today — 2026-09-16
 
 Generated view. Follow a link to edit the original note.

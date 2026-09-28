@@ -3,7 +3,7 @@
 [finish] := departure + 2d   
 Use [finish].
 `[3]:hidden` <!-- [4]:hidden2 -->
-```wtf
+```xmd
 # Hidden
 [9]:hidden3
 ```

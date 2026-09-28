@@ -1,34 +1,34 @@
-### 0 read .wtf/cache.json .wtf/lookups.json
--- .wtf/cache.json
+### 0 read .xmd/cache.json .xmd/lookups.json
+-- .xmd/cache.json
 (missing: entity not found)
--- .wtf/lookups.json
+-- .xmd/lookups.json
 (missing: entity not found)
 
 ### 1 cli render links.x.md --format text
-$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ◌ PR #42 · refresh for status
 [ready] := pr.merged && pr.checks_passed
 --- stderr
-<root>/links.x.md:2:12: warning: Module github.property: No cached GitHub status; run wtf refresh
+<root>/links.x.md:2:12: warning: Module github.property: No cached GitHub status; run xmd refresh
 
 ### 2 cli render money.x.md --format text
-$ wtf render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [price] := quote(ACME)
 --- stderr
-<root>/money.x.md:1:12: warning: No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens
+<root>/money.x.md:1:12: warning: No cached quote for ACME; run xmd refresh or use the ⟳ lookups lens
 
 ### 3 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (1 resources)
 
-### 4 read .wtf/cache.json .wtf/lookups.json
--- .wtf/cache.json
+### 4 read .xmd/cache.json .xmd/lookups.json
+-- .xmd/cache.json
 {
   "https://github.com/acme/app/pull/42": {
     "title": "Fixture PR",
@@ -46,7 +46,7 @@ Resource cache updated (1 resources)
     }
   }
 }
--- .wtf/lookups.json
+-- .xmd/lookups.json
 {
   "quote:ACME": {
     "value": {
@@ -59,20 +59,20 @@ Resource cache updated (1 resources)
 }
 
 ### 5 cli render links.x.md --format text
-$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now
 [ready] := pr.merged && pr.checks_passed = true
 
 ### 6 cli render money.x.md --format text
-$ wtf render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [price] := quote(ACME) = $12.50
 
 ### 7 cli query links.x.md values | select {name, display} --json
-$ wtf query links.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query links.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -87,13 +87,13 @@ exit 0
 ]
 
 ### 8 cli refresh
-$ WTF_TEST_FAIL=1 wtf refresh --root <root>
+$ XMD_TEST_FAIL=1 xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://github.com/acme/app/pull/42: gh failed: fixture failure
+xmd: https://github.com/acme/app/pull/42: gh failed: fixture failure
 
-### 9 read .wtf/cache.json
--- .wtf/cache.json
+### 9 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://github.com/acme/app/pull/42": {
     "title": "Fixture PR",
@@ -113,7 +113,7 @@ wtf: https://github.com/acme/app/pull/42: gh failed: fixture failure
 }
 
 ### 10 cli render links.x.md --format text
-$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now

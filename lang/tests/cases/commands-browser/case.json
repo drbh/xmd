@@ -90,7 +90,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.task",
+              "command": "xmd.task",
               "arguments": [
                 {
                   "kind": "toggle_task",
@@ -110,7 +110,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.timer",
+              "command": "xmd.timer",
               "arguments": [
                 {
                   "kind": "timer",
@@ -130,7 +130,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.refresh",
+              "command": "xmd.refresh",
               "arguments": [
                 {
                   "kind": "refresh",
@@ -148,7 +148,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.today",
+              "command": "xmd.today",
               "arguments": [
                 {
                   "kind": "show_today"
@@ -165,7 +165,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.refreshResource",
+              "command": "xmd.refreshResource",
               "arguments": [
                 {
                   "kind": "refresh_resource",
@@ -188,7 +188,7 @@
             },
             "command": {
               "title": "",
-              "command": "wtf.task",
+              "command": "xmd.task",
               "arguments": [
                 {
                   "kind": "toggle_task",

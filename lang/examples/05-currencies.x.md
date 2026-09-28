@@ -13,5 +13,5 @@ trip := flights + hotel_usd + fee_usd
 The hotel is [hotel], about [hotel_usd]; the trip totals [trip].
 One euro is [rate(EUR, USD)] dollars.
 
-<!-- Rates come from the lookup cache: run wtf refresh or use the ⟳ lookups lens.
+<!-- Rates come from the lookup cache: run xmd refresh or use the ⟳ lookups lens.
 Try: write flights + hotel to see why mixing currencies is an error. -->

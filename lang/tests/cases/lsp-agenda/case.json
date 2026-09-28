@@ -5,7 +5,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.today",
+            "command": "xmd.today",
             "arguments": [
               {
                 "kind": "show_today"
@@ -20,27 +20,27 @@
     },
     {
       "read": [
-        ".wtf/today.md"
+        ".xmd/today.md"
       ]
     },
     {
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/agenda.x.md",
+            "file": ".xmd/modules/agenda.x.md",
             "text": "module := {api: 1, id: \"agenda\", kind: \"library\", inputs: []}\nbetween := fn(entries, first, last) => filter(entries, fn(e) => e.done)\n"
           }
         },
         {
           "write": {
-            "file": ".wtf/modules.json",
+            "file": ".xmd/modules.json",
             "text": "[\"./modules/agenda.x.md\"]\n"
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.today",
+            "command": "xmd.today",
             "arguments": [
               {
                 "kind": "show_today"
@@ -60,7 +60,7 @@
     },
     {
       "read": [
-        ".wtf/today.md"
+        ".xmd/today.md"
       ]
     }
   ]

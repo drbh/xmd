@@ -1,5 +1,5 @@
 ### 0 cli query n.x.md import("agenda").between(entries, today(), today()) | select title --json
-$ wtf query n.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query n.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -15,7 +15,7 @@ exit 0
 ]
 
 ### 1 cli query n.x.md import("agenda").between(entries, today(), today()) | count --json
-$ wtf query n.x.md import("agenda").between(entries, today(), today()) | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query n.x.md import("agenda").between(entries, today(), today()) | count --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -23,7 +23,7 @@ exit 0
 ]
 
 ### 2 cli query n.x.md import("agenda").between(entries, today(), today() + 6d) | select title --json
-$ wtf query n.x.md import("agenda").between(entries, today(), today() + 6d) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query n.x.md import("agenda").between(entries, today(), today() + 6d) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -41,7 +41,7 @@ exit 0
 ]
 
 ### 3 cli query n.x.md entries | select {kind, title} --json
-$ wtf query n.x.md entries | select {kind, title} --json --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query n.x.md entries | select {kind, title} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -104,7 +104,7 @@ exit 0
 ]
 
 ### 4 cli query n.x.md import("agenda").between(entries, today(), today())
-$ wtf query n.x.md import("agenda").between(entries, today(), today()) --root <root> --now 2026-09-16T12:00:00-04:00
+$ xmd query n.x.md import("agenda").between(entries, today(), today()) --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 anchor={"character":30,"line":3}	at=null	at_date=null	attributes={"due":"2026-09-15"}	blocked_by=[]	blocked_error=null	checked=false	children=[]	done=false	due=2026-09-15	errors=[]	estimate=null	kind=task	leaf=true	line=3	name=null	parent=null	schedule=[{"error":null,"key":"due","value":{"type":"date","value":"2026-09-15"}}]	scheduled=null	source=<root>/n.x.md:4	tags=[]	timer=null	title=Overdue

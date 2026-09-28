@@ -3,7 +3,7 @@
 Meet @at(2026-09-16T15:00:00-04:00)
 [docs](https://example.com) and [https://example.com]:site
 Inline `[bogus] := countdown(3m)` stays inert.
-```wtf
+```xmd
 [bogus] := countdown(3m)
 ```
 <!-- @due(tomorrow) [bogus] -->

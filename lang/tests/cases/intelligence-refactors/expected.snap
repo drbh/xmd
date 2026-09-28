@@ -152,7 +152,7 @@
               }
             },
             {
-              "newText": "<!-- wtf-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Repeat\"} -->\n",
+              "newText": "<!-- xmd-history {\"completed\":\"2026-09-16\",\"due\":\"2026-09-16\",\"next\":\"2026-09-30\",\"task\":null,\"title\":\"Repeat\"} -->\n",
               "range": {
                 "end": {
                   "character": 0,
@@ -356,7 +356,7 @@
         "name": "watch"
       }
     ],
-    "command": "wtf.timer",
+    "command": "xmd.timer",
     "title": "▸ resume watch"
   },
   {
@@ -368,7 +368,7 @@
         "name": "watch"
       }
     ],
-    "command": "wtf.timer",
+    "command": "xmd.timer",
     "title": "↺ reset watch"
   },
   {
@@ -527,7 +527,7 @@
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/fixes.x.md",

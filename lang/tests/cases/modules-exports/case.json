@@ -14,43 +14,43 @@
     },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"missing\"]}\na := fn(x) => x + 1\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"missing\"]}\na := fn(x) => x + 1\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"_c\"]}\na := fn(x) => x + 1\n_c := fn(x) => x\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"_c\"]}\na := fn(x) => x + 1\n_c := fn(x) => x\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"module\"]}\na := fn(x) => x + 1\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"module\"]}\na := fn(x) => x + 1\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"a\"]}\na := fn(x) => x + 1\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: [\"a\", \"a\"]}\na := fn(x) => x + 1\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: \"a\"}\na := fn(x) => x + 1\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"library\", exports: \"a\"}\na := fn(x) => x + 1\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: [\"collect\"]}\ncollect := fn(ctx) => []\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: [\"collect\"]}\ncollect := fn(ctx) => []\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "write": {
-        ".wtf/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: []}\ncollect := fn(ctx) => []\n"
+        ".xmd/modules/lib.x.md": "module := {api: 1, id: \"lib\", kind: \"feature\", inputs: [], exports: []}\ncollect := fn(ctx) => []\n"
       }
     },
     { "cli": ["render", "main.x.md", "--format", "text"] }

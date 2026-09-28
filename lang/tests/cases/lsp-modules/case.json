@@ -28,7 +28,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules.json",
+            "file": ".xmd/modules.json",
             "text": "[\"./modules/docs.x.md\"]\n"
           }
         },
@@ -37,7 +37,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules.json}",
+                "uri": "${uri:.xmd/modules.json}",
                 "type": 1
               }
             ]
@@ -62,7 +62,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.x.md",
+            "file": ".xmd/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"second\"\n"
           }
         },
@@ -71,7 +71,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules/docs.x.md}",
+                "uri": "${uri:.xmd/modules/docs.x.md}",
                 "type": 2
               }
             ]
@@ -96,7 +96,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.x.md",
+            "file": ".xmd/modules/docs.x.md",
             "text": "module := {\n"
           }
         },
@@ -105,7 +105,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules/docs.x.md}",
+                "uri": "${uri:.xmd/modules/docs.x.md}",
                 "type": 2
               }
             ]
@@ -130,7 +130,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules.json",
+            "file": ".xmd/modules.json",
             "text": "[]\n"
           }
         },
@@ -139,7 +139,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules.json}",
+                "uri": "${uri:.xmd/modules.json}",
                 "type": 2
               }
             ]
@@ -168,13 +168,13 @@
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/docs.x.md",
+            "file": ".xmd/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n"
           }
         },
         {
           "write": {
-            "file": ".wtf/modules.json",
+            "file": ".xmd/modules.json",
             "text": "[\"./modules/docs.x.md\"]\n"
           }
         },
@@ -183,7 +183,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules.json}",
+                "uri": "${uri:.xmd/modules.json}",
                 "type": 1
               }
             ]
@@ -214,21 +214,21 @@
           }
         },
         {
-          "open": ".wtf/modules/docs.x.md"
+          "open": ".xmd/modules/docs.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": ".wtf/modules/docs.x.md"
+          "file": ".xmd/modules/docs.x.md"
         },
         {
           "change": {
-            "file": ".wtf/modules/docs.x.md",
+            "file": ".xmd/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"unsaved\"\nextra := fn(value) => value + 1\n"
           }
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": ".wtf/modules/docs.x.md"
+          "file": ".xmd/modules/docs.x.md"
         },
         {
           "request": "textDocument/inlayHint",
@@ -250,7 +250,7 @@
           }
         },
         {
-          "close": ".wtf/modules/docs.x.md"
+          "close": ".xmd/modules/docs.x.md"
         }
       ]
     },
@@ -282,12 +282,12 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.x.md",
+            "file": ".xmd/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"reloaded\"\n"
           }
         },
         {
-          "save": ".wtf/modules/docs.x.md"
+          "save": ".xmd/modules/docs.x.md"
         },
         {
           "await": "workspace/inlayHint/refresh"
@@ -312,13 +312,13 @@
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/edit.x.md",
+            "file": ".xmd/modules/edit.x.md",
             "text": "module := {api: 1, id: \"edit\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"Goodbye\"}]}}], [])\n"
           }
         },
         {
           "write": {
-            "file": ".wtf/modules.json",
+            "file": ".xmd/modules.json",
             "text": "[\"./modules/edit.x.md\"]\n"
           }
         },
@@ -327,7 +327,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules.json}",
+                "uri": "${uri:.xmd/modules.json}",
                 "type": 2
               }
             ]
@@ -350,7 +350,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.applyEdits",
+            "command": "xmd.applyEdits",
             "arguments": [
               {
                 "kind": "edit",
@@ -391,7 +391,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.applyEdits",
+            "command": "xmd.applyEdits",
             "arguments": [
               {
                 "kind": "edit",

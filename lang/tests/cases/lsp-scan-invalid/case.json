@@ -58,12 +58,12 @@
         },
         {
           "write": {
-            ".wtf/lookups.json": "{\n  \"forecast:oaxaca:2026-11-20\": {\n    \"value\": {\n      \"high\": 25.2,\n      \"low\": 14.0,\n      \"summary\": \"seasonal outlook (estimate)\",\n      \"precipitation\": 0.9\n    },\n    \"fetched_at\": \"2026-09-17T12:00:00Z\",\n    \"source\": \"open-meteo.com (seasonal ensemble)\"\n  }\n}\n"
+            ".xmd/lookups.json": "{\n  \"forecast:oaxaca:2026-11-20\": {\n    \"value\": {\n      \"high\": 25.2,\n      \"low\": 14.0,\n      \"summary\": \"seasonal outlook (estimate)\",\n      \"precipitation\": 0.9\n    },\n    \"fetched_at\": \"2026-09-17T12:00:00Z\",\n    \"source\": \"open-meteo.com (seasonal ensemble)\"\n  }\n}\n"
           }
         },
         {
           "watched": [
-            ".wtf/lookups.json"
+            ".xmd/lookups.json"
           ]
         },
         {

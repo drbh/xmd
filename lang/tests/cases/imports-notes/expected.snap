@@ -1,5 +1,5 @@
 ### 0 cli query main.x.md values | select {name, display, errors} --root local --json
-$ wtf query main.x.md values | select {name, display, errors} --root local --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md values | select {name, display, errors} --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -23,7 +23,7 @@ exit 0
 ]
 
 ### 1 cli query main.x.md diagnostics | select {line, severity, message} --root local --json
-$ wtf query main.x.md diagnostics | select {line, severity, message} --root local --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md diagnostics | select {line, severity, message} --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -35,7 +35,7 @@ exit 0
 ]
 
 ### 2 cli query main.x.md plans | where name == "plan" | select solution.variables --root local --json
-$ wtf query main.x.md plans | where name == "plan" | select solution.variables --root local --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md plans | where name == "plan" | select solution.variables --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -45,7 +45,7 @@ exit 0
 ]
 
 ### 3 cli query main.x.md values | select {name, display, errors} --root lazy --json
-$ wtf query main.x.md values | select {name, display, errors} --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md values | select {name, display, errors} --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -72,7 +72,7 @@ exit 0
 ]
 
 ### 4 cli query main.x.md get(src, "amount") --root lazy --json
-$ wtf query main.x.md get(src, "amount") --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md get(src, "amount") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -80,7 +80,7 @@ exit 0
 ]
 
 ### 5 cli query main.x.md get(src, "absent") --root lazy --json
-$ wtf query main.x.md get(src, "absent") --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md get(src, "absent") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -88,13 +88,13 @@ exit 0
 ]
 
 ### 6 cli query main.x.md get(src, "broken") --root lazy --json
-$ wtf query main.x.md get(src, "broken") --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md get(src, "broken") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Unknown name 'missing'
+xmd: Unknown name 'missing'
 
 ### 7 cli query main.x.md [src, src].amount --root lazy --json
-$ wtf query main.x.md [src, src].amount --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md [src, src].amount --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -103,13 +103,13 @@ exit 0
 ]
 
 ### 8 cli query main.x.md resources | select {target, path: source.path} --root lazy --json
-$ wtf query main.x.md resources | select {target, path: source.path} --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md resources | select {target, path: source.path} --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []
 
 ### 9 cli render main.x.md --root lazy --format text
-$ wtf render main.x.md --root lazy --format text --now 2026-09-18T12:00:00Z
+$ xmd render main.x.md --root lazy --format text --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 src := import("./sub/values.x.md") = import("<root>/lazy/sub/values.x.md")
@@ -118,19 +118,19 @@ result := src.double(src.amount) = 42
 link := src.receipt image · open preview
 
 ### 10 cli query main.x.md import("./" + "sub/values.x.md") --root lazy --json
-$ wtf query main.x.md import("./" + "sub/values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md import("./" + "sub/values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Note imports require a literal path, e.g. import("./values.x.md")
+xmd: Note imports require a literal path, e.g. import("./values.x.md")
 
 ### 11 cli query main.x.md import("values.x.md") --root lazy --json
-$ wtf query main.x.md import("values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
+$ xmd query main.x.md import("values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Use an explicit .x.md path, e.g. import("./values.x.md")
+xmd: Use an explicit .x.md path, e.g. import("./values.x.md")
 
 ### 12 cli query notes/main.x.md values | select {name, display} --root hidden --json
-$ wtf query notes/main.x.md values | select {name, display} --root hidden --json --now 2026-09-18T12:00:00Z
+$ xmd query notes/main.x.md values | select {name, display} --root hidden --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -145,7 +145,7 @@ exit 0
 ]
 
 ### 13 cli query notes/main.x.md notes | select {title, path: source.path} --root hidden --json
-$ wtf query notes/main.x.md notes | select {title, path: source.path} --root hidden --json --now 2026-09-18T12:00:00Z
+$ xmd query notes/main.x.md notes | select {title, path: source.path} --root hidden --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

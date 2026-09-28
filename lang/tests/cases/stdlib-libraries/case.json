@@ -57,7 +57,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/timer_disabled.x.md\"]\n"
+        ".xmd/modules.json": "[\"../variants/timer_disabled.x.md\"]\n"
       }
     },
     {
@@ -78,7 +78,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/timer_failing.x.md\"]\n"
+        ".xmd/modules.json": "[\"../variants/timer_failing.x.md\"]\n"
       }
     },
     {
@@ -99,7 +99,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[]\n"
+        ".xmd/modules.json": "[]\n"
       }
     },
     {
@@ -112,7 +112,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/format_blocks.x.md\"]\n"
+        ".xmd/modules.json": "[\"../variants/format_blocks.x.md\"]\n"
       }
     },
     {
@@ -125,7 +125,7 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/plan_failing.x.md\"]\n"
+        ".xmd/modules.json": "[\"../variants/plan_failing.x.md\"]\n"
       }
     },
     {

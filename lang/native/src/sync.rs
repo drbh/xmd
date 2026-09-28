@@ -1,7 +1,7 @@
-//! `wtf sync`: mirror a directory of notes with a folder in the web app.
+//! `xmd sync`: mirror a directory of notes with a folder in the web app.
 //!
 //! The directory keeps a manifest and the last synced copy of every file under
-//! `.wtf-sync/`, so each run is a three-way comparison per file: unchanged on
+//! `.xmd-sync/`, so each run is a three-way comparison per file: unchanged on
 //! one side means the other side wins; changed on both sides is merged line by
 //! line, and a real conflict is written beside the file as `NAME.conflict.x.md`
 //! (the note extension comes from `common`)
@@ -17,22 +17,22 @@ use std::{
     time::Duration,
 };
 
-const STATE_DIR: &str = ".wtf-sync";
+const STATE_DIR: &str = ".xmd-sync";
 
 #[derive(clap::Args)]
 #[command(
-    after_help = "The key comes from --key, WTF_API_KEY, or the credentials saved by an earlier --key.\nCreate one in the web app under your account menu, API keys.\nExamples: wtf sync ./notes --url https://wtf-docs.example.com --folder Notes\n          wtf sync ./notes --watch"
+    after_help = "The key comes from --key, XMD_API_KEY, or the credentials saved by an earlier --key.\nCreate one in the web app under your account menu, API keys.\nExamples: xmd sync ./notes --url https://xmd-docs.example.com --folder Notes\n          xmd sync ./notes --watch"
 )]
 pub(crate) struct SyncOptions {
     /// The directory of notes to keep in step with a folder in the web app.
     pub dir: PathBuf,
-    /// The web app's address (remembered in DIR/.wtf-sync/config.json).
+    /// The web app's address (remembered in DIR/.xmd-sync/config.json).
     #[arg(long)]
     pub url: Option<String>,
     /// The folder in the web app; created if missing (remembered too).
     #[arg(long)]
     pub folder: Option<String>,
-    /// An API key (or WTF_API_KEY); saved for this address in the user's config directory.
+    /// An API key (or XMD_API_KEY); saved for this address in the user's config directory.
     #[arg(long)]
     pub key: Option<String>,
     /// Keep running, syncing whenever either side changes.
@@ -99,7 +99,7 @@ pub(crate) fn run(options: SyncOptions) -> Result<(), String> {
         config.folder = folder.clone();
     }
     if config.url.is_empty() {
-        return Err("Pass --url the first time, e.g. --url https://wtf-docs.example.com".into());
+        return Err("Pass --url the first time, e.g. --url https://xmd-docs.example.com".into());
     }
     if config.folder.is_empty() {
         config.folder = dir
@@ -111,7 +111,7 @@ pub(crate) fn run(options: SyncOptions) -> Result<(), String> {
     let given = options
         .key
         .clone()
-        .or_else(|| std::env::var("WTF_API_KEY").ok().filter(|k| !k.is_empty()));
+        .or_else(|| std::env::var("XMD_API_KEY").ok().filter(|k| !k.is_empty()));
     let key = resolve_key(&config.url, given.as_deref())?;
     let client = Client {
         url: config.url.clone(),
@@ -559,7 +559,7 @@ fn credentials_path() -> Option<PathBuf> {
     let home = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(home.join("wtf").join("credentials.json"))
+    Some(home.join("xmd").join("credentials.json"))
 }
 fn resolve_key(url: &str, given: Option<&str>) -> Result<String, String> {
     let path = credentials_path();
@@ -583,7 +583,7 @@ fn resolve_key(url: &str, given: Option<&str>) -> Result<String, String> {
     saved
         .get(url)
         .cloned()
-        .ok_or_else(|| "No API key: pass --key once, or set WTF_API_KEY".to_string())
+        .ok_or_else(|| "No API key: pass --key once, or set XMD_API_KEY".to_string())
 }
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Option<T> {
     serde_json::from_str(&fs::read_to_string(path).ok()?).ok()

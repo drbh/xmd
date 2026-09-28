@@ -1,5 +1,5 @@
 ### 0 cli render values.x.md --format text
-$ wtf render values.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render values.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$3,000]:budget
@@ -95,7 +95,7 @@ Use [remaining_cash] $1,590 today.
 {
   "contents": {
     "kind": "markdown",
-    "value": "**pr · Resource**\n\nhttps://github.com/zed-industries/zed/pull/1\n\n[Open resource](<https://github.com/zed-industries/zed/pull/1>)\n\nNo cached status. Run `wtf refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\n\nDefinition: [pr](<file://<root>/values.x.md#L8>) · <root>/values.x.md:8"
+    "value": "**pr · Resource**\n\nhttps://github.com/zed-industries/zed/pull/1\n\n[Open resource](<https://github.com/zed-industries/zed/pull/1>)\n\nNo cached status. Run `xmd refresh`, or use the ⟳ github code action on this resource. Requires the GitHub CLI (`gh`).\n\nDefinition: [pr](<file://<root>/values.x.md#L8>) · <root>/values.x.md:8"
   },
   "range": {
     "end": {
@@ -185,7 +185,7 @@ Use [remaining_cash] $1,590 today.
 }
 
 ### 2 cli render bakery.x.md --format text
-$ wtf render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [bakery] := maximize($3 * bagels + $1.25 * doughnuts) = $94.75 · bagels 25.75 · doughnuts 14

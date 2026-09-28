@@ -13,18 +13,18 @@ for (const name of ["src", "adapters", "theme", "pkg"]) {
 // Static hosts that honour _headers (Cloudflare) let other sites load lib/.
 await writeFile(new URL("_headers", dist), "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400\n");
 // The site root opens the document app.
-await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>WTF Docs</title><a href="docs/">Open WTF Docs</a>\n');
+await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>XMD Docs</title><a href="docs/">Open XMD Docs</a>\n');
 // The embedding example: a plain page that loads the library like any other site would.
 await mkdir(new URL("embed/", dist), { recursive: true });
 await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
-execFileSync("npm", ["run", "build", "--workspace", "wtf-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
+execFileSync("npm", ["run", "build", "--workspace", "xmd-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
 const docsIndex = new URL("docs/index.html", dist);
 await writeFile(docsIndex, (await readFile(docsIndex, "utf8")).replace("<head>", '<head><link rel="stylesheet" href="../lib/theme/style.css"><link rel="stylesheet" href="../lib/theme/fonts.css">'));
 // Record the actual artifact, so independently cached apps can identify a release.
 const { createHash } = await import("node:crypto");
-const wasm = await readFile(new URL("pkg/wtf_bg.wasm", root));
+const wasm = await readFile(new URL("pkg/xmd_bg.wasm", root));
 const wasmHash = createHash("sha256").update(wasm).digest("hex");
-await writeFile(new URL("manifest.json", dist), JSON.stringify({ schemaVersion: 1, wasm: "lib/pkg/wtf_bg.wasm", sha256: wasmHash }, null, 2) + "\n");
+await writeFile(new URL("manifest.json", dist), JSON.stringify({ schemaVersion: 1, wasm: "lib/pkg/xmd_bg.wasm", sha256: wasmHash }, null, 2) + "\n");
 // The service worker precaches everything the app needs to open offline; its
 // version changes whenever any of those files does.
 const { readdir } = await import("node:fs/promises");
@@ -35,10 +35,10 @@ const precache = [
   ...(await walk("lib/src/")).filter(p => p.endsWith(".js") && !/\/(node|server)\.js$/.test(p)),
   "lib/adapters/contenteditable.js", "lib/theme/style.css", "lib/theme/fonts.css",
   ...(await walk("lib/theme/fonts/")),
-  "lib/pkg/wtf.js", "lib/pkg/wtf_bg.wasm",
+  "lib/pkg/xmd.js", "lib/pkg/xmd_bg.wasm",
 ].map(p => p.replace(/^\//, ""));
 const swVersion = createHash("sha256").update(precache.join("\n")).update(wasmHash).digest("hex").slice(0, 12);
 const template = new URL("docs/sw.js", dist);
-await writeFile(new URL("sw.js", dist), `self.__WTF_VERSION__ = ${JSON.stringify(swVersion)};\nself.__WTF_PRECACHE__ = ${JSON.stringify(precache)};\n${await readFile(template, "utf8")}`);
+await writeFile(new URL("sw.js", dist), `self.__XMD_VERSION__ = ${JSON.stringify(swVersion)};\nself.__XMD_PRECACHE__ = ${JSON.stringify(precache)};\n${await readFile(template, "utf8")}`);
 await rm(template);
-console.log("Static site built in client/web/dist; all clients share lib/pkg/wtf_bg.wasm");
+console.log("Static site built in client/web/dist; all clients share lib/pkg/xmd_bg.wasm");

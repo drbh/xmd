@@ -13,6 +13,6 @@ export async function render(source, options = {}) {
     await workspace.setDocument(uri, source);
     const snapshot = await workspace.analyze(uri, { force: true, editing: options.editing ?? false });
     if (!snapshot) throw new Error("Document changed while rendering");
-    return `<pre class="wtf" data-layout="${options.layout === "document" ? "document" : "source"}"><code>${snapshot.html}</code></pre>`;
+    return `<pre class="xmd" data-layout="${options.layout === "document" ? "document" : "source"}"><code>${snapshot.html}</code></pre>`;
   } finally { if (owned) workspace.destroy(); }
 }

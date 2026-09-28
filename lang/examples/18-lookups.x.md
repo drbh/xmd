@@ -1,6 +1,6 @@
 # Weather and quotes
 
-External data lives in a cache that only wtf refresh or the ⟳ lookups
+External data lives in a cache that only xmd refresh or the ⟳ lookups
 lens fills; nothing is fetched while you type.
 
 oaxaca := forecast("Oaxaca", 2026-11-20)

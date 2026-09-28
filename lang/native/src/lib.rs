@@ -1,5 +1,5 @@
 //! The native hosts: the command line and the language server over stdio,
-//! plus the sync helper they share. `wtf`'s `native` feature pulls this in
+//! plus the sync helper they share. `xmd`'s `native` feature pulls this in
 //! and its `main.rs` is a one-liner calling [`main`]. Exposes its interface
 //! from the root.
 
@@ -26,7 +26,7 @@ pub async fn main() {
         None => Command::Query(parsed.query),
     };
     if let Err(error) = cli::run(command).await {
-        eprintln!("wtf: {error}");
+        eprintln!("xmd: {error}");
         std::process::exit(1);
     }
 }

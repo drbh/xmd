@@ -1,5 +1,5 @@
 ### 0 cli render savings.x.md --format text
-$ wtf render savings.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render savings.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$1,200]:saved
@@ -9,7 +9,7 @@ exit 0
 Save [monthly] $422.22 a month.
 
 ### 1 cli query savings.x.md values | select {name, display} --json
-$ wtf query savings.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query savings.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -32,7 +32,7 @@ exit 0
 ]
 
 ### 2 cli query savings.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query savings.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query savings.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -64,7 +64,7 @@ exit 0
 }
 
 ### 4 cli render units.x.md --format text
-$ wtf render units.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render units.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [30m]:per_call
@@ -72,7 +72,7 @@ exit 0
 [price] := solve(price * 40 == $1,000) = $25
 
 ### 5 cli query units.x.md values | select {name, display} --json
-$ wtf query units.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query units.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -91,7 +91,7 @@ exit 0
 ]
 
 ### 6 cli query unknowns.x.md values | select {name, display} --json
-$ wtf query unknowns.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query unknowns.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -106,7 +106,7 @@ exit 0
 ]
 
 ### 7 cli render broken.x.md --format text
-$ wtf render broken.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render broken.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [unrelated] := solve(3 >= 2)
@@ -119,10 +119,10 @@ exit 1
 <root>/broken.x.md:2:26: error: Unknown name 'missing'
 <root>/broken.x.md:3:2: error: Dependency cycle: a → b → a
 <root>/broken.x.md:4:8: error: Dependency cycle through a
-wtf: 4 error(s) while rendering
+xmd: 4 error(s) while rendering
 
 ### 8 cli query broken.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query broken.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query broken.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

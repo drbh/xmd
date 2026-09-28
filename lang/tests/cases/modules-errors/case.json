@@ -11,7 +11,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 2, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 2, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
       }
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn() => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn() => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
       }
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"other\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"other\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
       }
     },
     {
@@ -50,7 +50,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx, ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx, ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
       }
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\nnot_decode := fn(url, data) => {title: data.summary, points: data.points}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\nnot_decode := fn(url, data) => {title: data.summary, points: data.points}\n"
       }
     },
     {
@@ -76,7 +76,7 @@
     },
     {
       "write": {
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n"
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n"
       }
     },
     {
@@ -89,9 +89,9 @@
     },
     {
       "write": {
-        ".wtf/modules/a.x.md": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n",
-        ".wtf/modules/b.x.md": "module := {api: 1, id: \"b\", kind: \"library\", imports: [\"a\"]}\n",
-        ".wtf/modules.json": "[\"./modules/a.x.md\", \"./modules/b.x.md\"]\n"
+        ".xmd/modules/a.x.md": "module := {api: 1, id: \"a\", kind: \"library\", imports: [\"b\"]}\n",
+        ".xmd/modules/b.x.md": "module := {api: 1, id: \"b\", kind: \"library\", imports: [\"a\"]}\n",
+        ".xmd/modules.json": "[\"./modules/a.x.md\", \"./modules/b.x.md\"]\n"
       }
     },
     {
@@ -104,10 +104,10 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"./modules/tickets.x.md\"]\n",
-        ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n",
-        ".wtf/modules/a.x.md": null,
-        ".wtf/modules/b.x.md": null
+        ".xmd/modules.json": "[\"./modules/tickets.x.md\"]\n",
+        ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n",
+        ".xmd/modules/a.x.md": null,
+        ".xmd/modules/b.x.md": null
       }
     },
     {
@@ -138,12 +138,12 @@
         },
         {
           "write": {
-            ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => inlay(ctx)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+            ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => inlay(ctx)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/tickets.x.md"
+            ".xmd/modules/tickets.x.md"
           ]
         },
         {
@@ -166,12 +166,12 @@
         },
         {
           "write": {
-            ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => text(ctx.file.exists)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+            ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => text(ctx.file.exists)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/tickets.x.md"
+            ".xmd/modules/tickets.x.md"
           ]
         },
         {
@@ -194,12 +194,12 @@
         },
         {
           "write": {
-            ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 999, label: \"nowhere\"}]\n"
+            ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 999, label: \"nowhere\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/tickets.x.md"
+            ".xmd/modules/tickets.x.md"
           ]
         },
         {
@@ -222,12 +222,12 @@
         },
         {
           "write": {
-            ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"partial\"}, {at: {line: 0, character: 9}, label: \"splits emoji\"}]\n"
+            ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"bad\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"partial\"}, {at: {line: 0, character: 9}, label: \"splits emoji\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/tickets.x.md"
+            ".xmd/modules/tickets.x.md"
           ]
         },
         {
@@ -250,12 +250,12 @@
         },
         {
           "write": {
-            ".wtf/modules/tickets.x.md": "module := {api: 1, id: \"loops\", kind: \"library\"}\nspin := fn(x) => spin(x)\n"
+            ".xmd/modules/tickets.x.md": "module := {api: 1, id: \"loops\", kind: \"library\"}\nspin := fn(x) => spin(x)\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/tickets.x.md"
+            ".xmd/modules/tickets.x.md"
           ]
         },
         {

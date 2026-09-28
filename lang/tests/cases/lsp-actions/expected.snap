@@ -18,7 +18,7 @@
           "row": 0
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -45,7 +45,7 @@
           "url": "file://<root>/receipt.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -72,7 +72,7 @@
           "url": "file://<root>/receipt.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -87,7 +87,7 @@
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:controls.x.md}","expected":"[./receipt.png]:receipt","row":1},"url":"${uri:receipt.png}"}],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:controls.x.md}","expected":"[./receipt.png]:receipt","row":1},"url":"${uri:receipt.png}"}],"command":"xmd.openResource"}
 null
 -- await window/showDocument
 {
@@ -95,7 +95,7 @@ null
   "takeFocus": true,
   "uri": "file://<root>/receipt.png"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [ ] First :first","kind":"toggle_task","row":0}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [ ] First :first","kind":"toggle_task","row":0}],"command":"xmd.task"}
 null
 -- await workspace/applyEdit
 {
@@ -160,7 +160,7 @@ Use [receipt].
           "row": 0
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -187,7 +187,7 @@ Use [receipt].
           "url": "file://<root>/receipt.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -214,7 +214,7 @@ Use [receipt].
           "url": "file://<root>/receipt.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -240,14 +240,14 @@ Use [receipt].
   "uri": "file://<root>/controls.x.md",
   "version": 3
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [x] First :first @completed(2026-09-16)","kind":"toggle_task","row":0}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [x] First :first @completed(2026-09-16)","kind":"toggle_task","row":0}],"command":"xmd.task"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"
 }
 
-### 1 read .wtf/cache.json controls.x.md
--- .wtf/cache.json
+### 1 read .xmd/cache.json controls.x.md
+-- .xmd/cache.json
 (missing: entity not found)
 -- controls.x.md
 - [ ] First :first
@@ -350,7 +350,7 @@ Plain prose.
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/edits.x.md",

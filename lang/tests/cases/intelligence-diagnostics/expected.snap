@@ -1,5 +1,5 @@
 ### 0 cli query types.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query types.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query types.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -12,7 +12,7 @@ exit 0
 ]
 
 ### 1 cli query syntax.x.md diagnostics | select {line, code, message} --json
-$ wtf query syntax.x.md diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query syntax.x.md diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -29,7 +29,7 @@ exit 0
 ]
 
 ### 2 cli query clock.x.md diagnostics | select {line, message} --json
-$ wtf query clock.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query clock.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -40,7 +40,7 @@ exit 0
 ]
 
 ### 3 cli query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00
-$ wtf query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
+$ xmd query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
 exit 0
 --- stdout
 []
@@ -64,7 +64,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/types.x.md",
@@ -161,7 +161,7 @@ exit 0
         }
       ],
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/cycles.x.md",
@@ -185,7 +185,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/ambiguous.x.md",
@@ -259,7 +259,7 @@ exit 0
         }
       ],
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "dependency",
@@ -325,7 +325,7 @@ exit 0
         }
       ],
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "resource",
@@ -341,7 +341,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/tasks.x.md",

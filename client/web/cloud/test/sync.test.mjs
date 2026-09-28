@@ -1,4 +1,4 @@
-// `wtf sync` against wrangler dev: push, pull, merge, conflict, delete.
+// `xmd sync` against wrangler dev: push, pull, merge, conflict, delete.
 // Needs the CLI built (cargo build); skipped otherwise.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -9,16 +9,16 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PORT = 8792, BASE = `http://127.0.0.1:${PORT}`;
-const WTF = fileURLToPath(new URL("../../../../target/debug/wtf", import.meta.url));
+const XMD = fileURLToPath(new URL("../../../../target/debug/xmd", import.meta.url));
 const user = "sync@example.com";
 let server;
 const api = (path, options = {}) => fetch(`${BASE}${path}`, { ...options, headers: { "x-dev-user": user, "content-type": "application/json", accept: "application/json" }, body: options.body && JSON.stringify(options.body) }).then(r => r.json());
 
 before(async t => {
-  if (!existsSync(WTF)) { t.skip("build the CLI first: cargo build"); return; }
+  if (!existsSync(XMD)) { t.skip("build the CLI first: cargo build"); return; }
   // Every run starts from an empty local database.
   rmSync(new URL("../.wrangler/test-state", import.meta.url), { recursive: true, force: true });
-  execFileSync("npx", ["wrangler", "d1", "migrations", "apply", "wtf-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
+  execFileSync("npx", ["wrangler", "d1", "migrations", "apply", "xmd-docs", "--local", "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: "ignore" });
   server = spawn("npx", ["wrangler", "dev", "--var", "DEV_AUTH:1", "--port", String(PORT), "--persist-to", ".wrangler/test-state"], { cwd: new URL("../", import.meta.url), stdio: ["ignore", "pipe", "pipe"] });
   const started = Date.now();
   while (Date.now() - started < 60_000) {
@@ -29,9 +29,9 @@ before(async t => {
 });
 after(() => { server?.kill("SIGTERM"); });
 
-test("wtf sync mirrors a directory with a folder, merging and flagging conflicts", { skip: !existsSync(WTF) }, async () => {
-  const dir = mkdtempSync(join(tmpdir(), "wtf-sync-")), config = mkdtempSync(join(tmpdir(), "wtf-config-"));
-  const sync = (...args) => execFileSync(WTF, ["sync", dir, ...args], { env: { ...process.env, XDG_CONFIG_HOME: config }, encoding: "utf8" });
+test("xmd sync mirrors a directory with a folder, merging and flagging conflicts", { skip: !existsSync(XMD) }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), "xmd-sync-")), config = mkdtempSync(join(tmpdir(), "xmd-config-"));
+  const sync = (...args) => execFileSync(XMD, ["sync", dir, ...args], { env: { ...process.env, XDG_CONFIG_HOME: config }, encoding: "utf8" });
   const { key } = await api("/api/keys", { method: "POST", body: { name: "test" } });
   const folderName = `Synced ${Date.now()}`;
   writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $900\n\nfood := $200\n");
@@ -40,7 +40,7 @@ test("wtf sync mirrors a directory with a folder, merging and flagging conflicts
   let out = sync("--url", BASE, "--folder", folderName, "--key", key);
   assert.match(out, /created folder/); assert.match(out, /created Budget/); assert.match(out, /created Trip/);
   assert.match(sync(), /Up to date/);
-  const manifest = JSON.parse(readFileSync(join(dir, ".wtf-sync/manifest.json"), "utf8"));
+  const manifest = JSON.parse(readFileSync(join(dir, ".xmd-sync/manifest.json"), "utf8"));
   const folder = manifest.folder_id, budget = manifest.files["Budget.x.md"].id;
   const remote = async () => (await api(`/api/documents/${budget}`)).text;
   const putRemote = text => api(`/api/documents/${budget}`, { method: "PUT", body: { name: "Budget", file: "Budget", folder, text } });
@@ -73,7 +73,7 @@ test("wtf sync mirrors a directory with a folder, merging and flagging conflicts
   await api(`/api/documents/${budget}`, { method: "DELETE" });
   assert.match(sync(), /moved Budget to/);
   assert.ok(!existsSync(join(dir, "Budget.x.md")));
-  assert.ok(readdirSync(join(dir, ".wtf-sync/trash")).includes("Budget.x.md"));
+  assert.ok(readdirSync(join(dir, ".xmd-sync/trash")).includes("Budget.x.md"));
   // Dry runs report without touching anything.
   writeFileSync(join(dir, "New.x.md"), "# New\n");
   assert.match(sync("--dry-run"), /would create New/);

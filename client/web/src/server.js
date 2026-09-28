@@ -1,9 +1,9 @@
 // Loaded only by render() in Node. Importing the public API never needs a DOM.
-import init, { BrowserWorkspace } from "../pkg/wtf.js";
+import init, { BrowserWorkspace } from "../pkg/xmd.js";
 import { readFile } from "node:fs/promises";
 let ready;
 export async function createServerTransport() {
-  ready ??= readFile(new URL("../pkg/wtf_bg.wasm", import.meta.url)).then(bytes => init({ module_or_path: bytes }));
+  ready ??= readFile(new URL("../pkg/xmd_bg.wasm", import.meta.url)).then(bytes => init({ module_or_path: bytes }));
   await ready;
   const engine = new BrowserWorkspace();
   const transport = async (method, params, now = new Date().toISOString()) => {

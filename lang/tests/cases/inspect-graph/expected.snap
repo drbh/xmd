@@ -1,5 +1,5 @@
 ### 0 cli graph one.x.md --root notes
-$ wtf graph one.x.md --root notes --now 2026-09-18T12:00:00Z
+$ xmd graph one.x.md --root notes --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -403,7 +403,7 @@ exit 0
 ]
 
 ### 1 cli graph one.x.md --root notes -q graph.nodes | where external | select name
-$ wtf graph one.x.md --root notes -q graph.nodes | where external | select name --now 2026-09-18T12:00:00Z
+$ xmd graph one.x.md --root notes -q graph.nodes | where external | select name --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -411,7 +411,7 @@ exit 0
 ]
 
 ### 2 cli graph one.x.md --root notes -q map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)})
-$ wtf graph one.x.md --root notes -q map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)}) --now 2026-09-18T12:00:00Z
+$ xmd graph one.x.md --root notes -q map(graph.edges, fn(e) => {from: e.from, to: e.to, reads: map(e.reads, fn(r) => r.line)}) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -467,7 +467,7 @@ exit 0
 ]
 
 ### 3 cli query one.x.md length(graph.nodes) --root notes --json
-$ wtf query one.x.md length(graph.nodes) --root notes --json --now 2026-09-18T12:00:00Z
+$ xmd query one.x.md length(graph.nodes) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -475,7 +475,7 @@ exit 0
 ]
 
 ### 4 cli graph one.x.md --root notes -q length(graph.nodes)
-$ wtf graph one.x.md --root notes -q length(graph.nodes) --now 2026-09-18T12:00:00Z
+$ xmd graph one.x.md --root notes -q length(graph.nodes) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -483,7 +483,7 @@ exit 0
 ]
 
 ### 5 cli query --workspace length(filter(graph.nodes, fn(n) => n.external)) --root notes --json
-$ wtf query --workspace length(filter(graph.nodes, fn(n) => n.external)) --root notes --json --now 2026-09-18T12:00:00Z
+$ xmd query --workspace length(filter(graph.nodes, fn(n) => n.external)) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -491,7 +491,7 @@ exit 0
 ]
 
 ### 6 cli ast one.x.md --root notes -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)
-$ wtf ast one.x.md --root notes -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name) --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md --root notes -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -502,7 +502,7 @@ exit 0
 ]
 
 ### 7 cli graph ignored.x.md --root notes -q graph.nodes | select name
-$ wtf graph ignored.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+$ xmd graph ignored.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -510,7 +510,7 @@ exit 0
 ]
 
 ### 8 cli graph ../outside.x.md --root notes -q graph.nodes | select name
-$ wtf graph ../outside.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+$ xmd graph ../outside.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -518,12 +518,12 @@ exit 0
 ]
 
 ### 9 cli graph missing.x.md --root notes
-$ wtf graph missing.x.md --root notes --now 2026-09-18T12:00:00Z
+$ xmd graph missing.x.md --root notes --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/notes/missing.x.md: No such file or directory (os error 2)
+xmd: <root>/notes/missing.x.md: No such file or directory (os error 2)
 
-### 10 read notes/one.x.md notes/.wtf/cache.json
+### 10 read notes/one.x.md notes/.xmd/cache.json
 -- notes/one.x.md
 double := fn(x) => x * import("./two.x.md").rate
 answer := double(2)
@@ -535,6 +535,6 @@ t := table
 # Work :work
 - [ ] Parent
   - [ ] Child
--- notes/.wtf/cache.json
+-- notes/.xmd/cache.json
 (missing: entity not found)
 

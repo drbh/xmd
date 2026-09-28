@@ -1,5 +1,5 @@
 ### 0 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -90,7 +90,7 @@ exit 0
 ]
 
 ### 1 cli query attributes.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query attributes.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query attributes.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -109,7 +109,7 @@ exit 0
 ]
 
 ### 2 cli render attributes.x.md --format text
-$ wtf render attributes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render attributes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle
@@ -118,7 +118,7 @@ exit 1
 --- stderr
 <root>/attributes.x.md:2:18: error: @timer requires a named stopwatch or countdown, e.g. @timer(focus)
 <root>/attributes.x.md:3:8: error: Module timer.property: Unknown timer property 'bogus'
-wtf: 2 error(s) while rendering
+xmd: 2 error(s) while rendering
 
 ### 3 lsp
 -- open attributes.x.md
@@ -139,7 +139,7 @@ wtf: 2 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "property",
@@ -155,7 +155,7 @@ wtf: 2 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
   "uri": "file://<root>/attributes.x.md",

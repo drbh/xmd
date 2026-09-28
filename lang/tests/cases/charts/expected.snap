@@ -1,5 +1,5 @@
 ### 0 cli render table.x.md --format text
-$ wtf render table.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render table.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [t] := table = 3 rows · 3 columns
@@ -11,7 +11,7 @@ exit 0
 [total] := sum(t, qty * price) = $20
 
 ### 1 cli render timers.x.md --format text
-$ wtf render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [focus] := countdown(10m, 4m) = ◷ ███░░░░░ 06:00 remaining · ‖ paused
@@ -156,7 +156,7 @@ exit 0
 ]
 
 ### 3 cli render edges.x.md --format text
-$ wtf render edges.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render edges.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 # Done :done ████████ 2/2 complete
@@ -171,7 +171,7 @@ exit 1
 | b | two |
 --- stderr
 <root>/edges.x.md:10:7: error: Column 'value' expects Number, found Text
-wtf: 1 error(s) while rendering
+xmd: 1 error(s) while rendering
 
 ### 4 lsp
 -- open edges.x.md

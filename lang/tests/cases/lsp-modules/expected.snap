@@ -10,9 +10,9 @@
 []
 -- await workspace/inlayHint/refresh
 null
--- write .wtf/modules.json
+-- write .xmd/modules.json
 ["./modules/docs.x.md"]
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.wtf/modules.json"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.xmd/modules.json"}]}
 -- await workspace/inlayHint/refresh
 null
 -- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
@@ -30,10 +30,10 @@ null
     }
   }
 ]
--- write .wtf/modules/docs.x.md
+-- write .xmd/modules/docs.x.md
 module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
 inlay := fn(ctx) => "second"
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules/docs.x.md"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.xmd/modules/docs.x.md"}]}
 -- await workspace/inlayHint/refresh
 null
 -- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
@@ -51,9 +51,9 @@ null
     }
   }
 ]
--- write .wtf/modules/docs.x.md
+-- write .xmd/modules/docs.x.md
 module := {
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules/docs.x.md"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.xmd/modules/docs.x.md"}]}
 -- await workspace/inlayHint/refresh
 null
 -- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
@@ -71,21 +71,21 @@ null
     }
   }
 ]
--- write .wtf/modules.json
+-- write .xmd/modules.json
 []
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules.json"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.xmd/modules.json"}]}
 -- await workspace/inlayHint/refresh
 null
 -- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
 []
 
 ### 1 lsp
--- write .wtf/modules/docs.x.md
+-- write .xmd/modules/docs.x.md
 module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
 inlay := fn(ctx) => "saved"
--- write .wtf/modules.json
+-- write .xmd/modules.json
 ["./modules/docs.x.md"]
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.wtf/modules.json"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":1,"uri":"file://<root>/.xmd/modules.json"}]}
 -- await workspace/inlayHint/refresh
 null
 -- open main.x.md
@@ -110,75 +110,75 @@ null
     }
   }
 ]
--- open .wtf/modules/docs.x.md
--- request textDocument/semanticTokens/full .wtf/modules/docs.x.md
+-- open .xmd/modules/docs.x.md
+-- request textDocument/semanticTokens/full .xmd/modules/docs.x.md
 0:0+6 variable [declaration] "module"
 0:6+3 operator " :="
-0:10+1 wtfPunctuation "{"
+0:10+1 xmdPunctuation "{"
 0:11+3 variable "api"
-0:14+1 wtfPunctuation ":"
+0:14+1 xmdPunctuation ":"
 0:16+1 number "1"
-0:17+1 wtfPunctuation ","
+0:17+1 xmdPunctuation ","
 0:19+2 variable "id"
-0:21+1 wtfPunctuation ":"
+0:21+1 xmdPunctuation ":"
 0:23+6 string "\"docs\""
-0:29+1 wtfPunctuation ","
+0:29+1 xmdPunctuation ","
 0:31+4 variable "kind"
-0:35+1 wtfPunctuation ":"
+0:35+1 xmdPunctuation ":"
 0:37+6 string "\"link\""
-0:43+1 wtfPunctuation ","
+0:43+1 xmdPunctuation ","
 0:45+5 variable "hosts"
-0:50+1 wtfPunctuation ":"
-0:52+1 wtfPunctuation "["
+0:50+1 xmdPunctuation ":"
+0:52+1 xmdPunctuation "["
 0:53+14 string "\"docs.example\""
-0:67+2 wtfPunctuation "]}"
+0:67+2 xmdPunctuation "]}"
 1:0+5 variable [declaration] "inlay"
 1:5+3 operator " :="
 1:9+2 function "fn"
-1:11+1 wtfPunctuation "("
+1:11+1 xmdPunctuation "("
 1:12+3 variable "ctx"
-1:15+1 wtfPunctuation ")"
+1:15+1 xmdPunctuation ")"
 1:17+2 operator "=>"
 1:20+7 string "\"saved\""
--- change .wtf/modules/docs.x.md (version 2)
+-- change .xmd/modules/docs.x.md (version 2)
 module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
 inlay := fn(ctx) => "unsaved"
 extra := fn(value) => value + 1
--- request textDocument/semanticTokens/full .wtf/modules/docs.x.md
+-- request textDocument/semanticTokens/full .xmd/modules/docs.x.md
 0:0+6 variable [declaration] "module"
 0:6+3 operator " :="
-0:10+1 wtfPunctuation "{"
+0:10+1 xmdPunctuation "{"
 0:11+3 variable "api"
-0:14+1 wtfPunctuation ":"
+0:14+1 xmdPunctuation ":"
 0:16+1 number "1"
-0:17+1 wtfPunctuation ","
+0:17+1 xmdPunctuation ","
 0:19+2 variable "id"
-0:21+1 wtfPunctuation ":"
+0:21+1 xmdPunctuation ":"
 0:23+6 string "\"docs\""
-0:29+1 wtfPunctuation ","
+0:29+1 xmdPunctuation ","
 0:31+4 variable "kind"
-0:35+1 wtfPunctuation ":"
+0:35+1 xmdPunctuation ":"
 0:37+6 string "\"link\""
-0:43+1 wtfPunctuation ","
+0:43+1 xmdPunctuation ","
 0:45+5 variable "hosts"
-0:50+1 wtfPunctuation ":"
-0:52+1 wtfPunctuation "["
+0:50+1 xmdPunctuation ":"
+0:52+1 xmdPunctuation "["
 0:53+14 string "\"docs.example\""
-0:67+2 wtfPunctuation "]}"
+0:67+2 xmdPunctuation "]}"
 1:0+5 variable [declaration] "inlay"
 1:5+3 operator " :="
 1:9+2 function "fn"
-1:11+1 wtfPunctuation "("
+1:11+1 xmdPunctuation "("
 1:12+3 variable "ctx"
-1:15+1 wtfPunctuation ")"
+1:15+1 xmdPunctuation ")"
 1:17+2 operator "=>"
 1:20+9 string "\"unsaved\""
 2:0+5 variable [declaration] "extra"
 2:5+3 operator " :="
 2:9+2 function "fn"
-2:11+1 wtfPunctuation "("
+2:11+1 xmdPunctuation "("
 2:12+5 variable "value"
-2:17+1 wtfPunctuation ")"
+2:17+1 xmdPunctuation ")"
 2:19+2 operator "=>"
 2:22+5 variable "value"
 2:28+1 operator "+"
@@ -204,11 +204,11 @@ extra := fn(value) => value + 1
   "rows": [],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/.wtf/modules/docs.x.md": 2,
+    "file://<root>/.xmd/modules/docs.x.md": 2,
     "file://<root>/main.x.md": 1
   }
 }
--- close .wtf/modules/docs.x.md
+-- close .xmd/modules/docs.x.md
 
 ### 2 lsp
 -- open main.x.md
@@ -235,10 +235,10 @@ extra := fn(value) => value + 1
 ]
 -- await workspace/inlayHint/refresh
 null
--- write .wtf/modules/docs.x.md
+-- write .xmd/modules/docs.x.md
 module := {api: 1, id: "docs", kind: "link", hosts: ["docs.example"]}
 inlay := fn(ctx) => "reloaded"
--- save .wtf/modules/docs.x.md
+-- save .xmd/modules/docs.x.md
 -- await workspace/inlayHint/refresh
 null
 -- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":0}}
@@ -258,12 +258,12 @@ null
 ]
 
 ### 3 lsp
--- write .wtf/modules/edit.x.md
+-- write .xmd/modules/edit.x.md
 module := {api: 1, id: "edit", kind: "feature", inputs: []}
 actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
--- write .wtf/modules.json
+-- write .xmd/modules.json
 ["./modules/edit.x.md"]
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.wtf/modules.json"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.xmd/modules.json"}]}
 -- await workspace/inlayHint/refresh
 null
 -- open main2.x.md
@@ -299,7 +299,7 @@ null
           "kind": "edit"
         }
       ],
-      "command": "wtf.applyEdits",
+      "command": "xmd.applyEdits",
       "title": "Greeting"
     },
     "range": {
@@ -314,7 +314,7 @@ null
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.x.md}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"wtf.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.x.md}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"xmd.applyEdits"}
 null
 -- await workspace/applyEdit
 {
@@ -352,7 +352,7 @@ Goodbye world
   "uri": "file://<root>/main2.x.md",
   "version": 2
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.x.md}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"wtf.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:main2.x.md}","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":0},"start":{"character":0,"line":0}}}],"expected":"Hello world\n","kind":"edit"}],"command":"xmd.applyEdits"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"

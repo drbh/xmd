@@ -154,7 +154,7 @@ export async function handle(request, env, user) {
     }
     requireOwner(access);
     if (method === "POST") {
-      const token = newKey().replace(/^wtf_/, "");
+      const token = newKey().replace(/^xmd_/, "");
       await db.prepare("INSERT OR REPLACE INTO share_links (document_id, token, created_by, created_at) VALUES (?1, ?2, ?3, ?4)").bind(id, token, user.id, Date.now()).run();
       return json({ enabled: true, token }, 201);
     }

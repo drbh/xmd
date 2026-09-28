@@ -45,7 +45,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
@@ -86,7 +86,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
@@ -100,7 +100,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
@@ -141,7 +141,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",

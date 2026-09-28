@@ -1,5 +1,5 @@
 ### 0 cli ast one.x.md -q ast | where kind == "document" | select {kind, name, parent, text}
-$ wtf ast one.x.md -q ast | where kind == "document" | select {kind, name, parent, text} --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q ast | where kind == "document" | select {kind, name, parent, text} --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -12,7 +12,7 @@ exit 0
 ]
 
 ### 1 cli ast one.x.md -q join(map(filter(ast, fn(n) => n.kind == "line"), fn(n) => n.text), "")
-$ wtf ast one.x.md -q join(map(filter(ast, fn(n) => n.kind == "line"), fn(n) => n.text), "") --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q join(map(filter(ast, fn(n) => n.kind == "line"), fn(n) => n.text), "") --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -20,7 +20,7 @@ exit 0
 ]
 
 ### 2 cli ast one.x.md -q map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range})
-$ wtf ast one.x.md -q map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range}) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range}) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -459,7 +459,7 @@ exit 0
 ]
 
 ### 3 cli ast one.x.md -q map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children})
-$ wtf ast one.x.md -q map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children}) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children}) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -662,7 +662,7 @@ exit 0
 ]
 
 ### 4 cli ast one.x.md -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => {name:n.name, text:n.text})
-$ wtf ast one.x.md -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => {name:n.name, text:n.text}) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => {name:n.name, text:n.text}) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -673,7 +673,7 @@ exit 0
 ]
 
 ### 5 cli ast one.x.md -q ast | where kind == "lambda" | select parameters
-$ wtf ast one.x.md -q ast | where kind == "lambda" | select parameters --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q ast | where kind == "lambda" | select parameters --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -683,7 +683,7 @@ exit 0
 ]
 
 ### 6 cli ast one.x.md -q ast | where kind == "name" && name == "missing" | select text
-$ wtf ast one.x.md -q ast | where kind == "name" && name == "missing" | select text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q ast | where kind == "name" && name == "missing" | select text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -691,7 +691,7 @@ exit 0
 ]
 
 ### 7 cli ast one.x.md -q ast | where kind == "checkbox" | select text
-$ wtf ast one.x.md -q ast | where kind == "checkbox" | select text --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q ast | where kind == "checkbox" | select text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -700,7 +700,7 @@ exit 0
 ]
 
 ### 8 cli ast one.x.md -q ast | count
-$ wtf ast one.x.md -q ast | count --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast one.x.md -q ast | count --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -708,7 +708,7 @@ exit 0
 ]
 
 ### 9 cli query one.x.md ast | count --json
-$ wtf query one.x.md ast | count --json --root <root> --now 2026-09-18T12:00:00Z
+$ xmd query one.x.md ast | count --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -716,7 +716,7 @@ exit 0
 ]
 
 ### 10 cli ast tables.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
-$ wtf ast tables.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast tables.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -735,7 +735,7 @@ exit 0
 ]
 
 ### 11 cli ast plans.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
-$ wtf ast plans.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast plans.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -754,7 +754,7 @@ exit 0
 ]
 
 ### 12 cli ast other.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)
-$ wtf ast other.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast other.x.md -q map(group_by(ast, fn(n) => n.kind), fn(g) => g.key) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -769,7 +769,7 @@ exit 0
 ]
 
 ### 13 cli ast other.x.md -q filter(ast, fn(n) => n.kind == "parse_error") | select {text, path: source.path}
-$ wtf ast other.x.md -q filter(ast, fn(n) => n.kind == "parse_error") | select {text, path: source.path} --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast other.x.md -q filter(ast, fn(n) => n.kind == "parse_error") | select {text, path: source.path} --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -780,7 +780,7 @@ exit 0
 ]
 
 ### 14 cli ast empty.x.md -q ast | select {kind, text}
-$ wtf ast empty.x.md -q ast | select {kind, text} --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast empty.x.md -q ast | select {kind, text} --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -791,14 +791,14 @@ exit 0
 ]
 
 ### 15 cli ast empty.x.md --jsonl
-$ wtf ast empty.x.md --jsonl --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast empty.x.md --jsonl --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 {"children":[],"id":"file://<root>/empty.x.md#ast:0","kind":"document","name":null,"parent":null,"schemaVersion":1,"source":{"line":1,"path":"<root>/empty.x.md","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"uri":"file://<root>/empty.x.md#L1"},"text":""}
 
 ### 16 cli ast missing.x.md
-$ wtf ast missing.x.md --root <root> --now 2026-09-18T12:00:00Z
+$ xmd ast missing.x.md --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/missing.x.md: No such file or directory (os error 2)
+xmd: <root>/missing.x.md: No such file or directory (os error 2)
 

@@ -41,7 +41,7 @@
           }
         },
         {
-          "request": "wtf/query",
+          "request": "xmd/query",
           "params": {
             "query": "tasks | where ("
           }
@@ -92,14 +92,14 @@
           }
         },
         {
-          "request": "wtf/query",
+          "request": "xmd/query",
           "params": {
             "uri": "https://example.com/n.x.md",
             "query": "ast"
           }
         },
         {
-          "request": "wtf/query",
+          "request": "xmd/query",
           "params": {
             "uri": "${uri:missing.x.md}",
             "query": "ast"

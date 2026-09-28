@@ -1,5 +1,5 @@
 ### 0 cli render bakery.x.md --format text
-$ wtf render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock
@@ -13,7 +13,7 @@ exit 0
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
 
 ### 1 cli query bakery.x.md plans | select {name, expression, display, solution} --json
-$ wtf query bakery.x.md plans | select {name, expression, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md plans | select {name, expression, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -132,7 +132,7 @@ exit 0
 ]
 
 ### 2 cli query bakery.x.md values | select {name, display} --json
-$ wtf query bakery.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -147,7 +147,7 @@ exit 0
 ]
 
 ### 3 cli query bakery.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query bakery.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -770,7 +770,7 @@ Bake [bakery.bagels] bagels for [bakery].
 }
 
 ### 5 cli query bakery.x.md [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json
-$ wtf query bakery.x.md [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query bakery.x.md [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -785,7 +785,7 @@ exit 0
 ]
 
 ### 6 cli render multiline.x.md --format text
-$ wtf render multiline.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render multiline.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock
@@ -1034,7 +1034,7 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
 }
 
 ### 8 cli query multiline.x.md plans | select {name, display, solution} --json
-$ wtf query multiline.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query multiline.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1152,13 +1152,13 @@ exit 0
 ]
 
 ### 9 cli query multiline.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query multiline.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query multiline.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 10 cli render crlf.x.md --format text
-$ wtf render crlf.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd render crlf.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock␍
@@ -1176,7 +1176,7 @@ exit 0
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.␍
 
 ### 11 cli query crlf.x.md plans | select {name, display} --json
-$ wtf query crlf.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query crlf.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1187,7 +1187,7 @@ exit 0
 ]
 
 ### 12 cli query crlf.x.md diagnostics | select {line, severity, code, message} --json
-$ wtf query crlf.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query crlf.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []

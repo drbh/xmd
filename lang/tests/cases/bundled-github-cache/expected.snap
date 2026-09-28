@@ -1,5 +1,5 @@
 ### 0 cli render links.x.md --format text
-$ wtf render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 Links of every shape:
@@ -16,7 +16,7 @@ https://github.com/o/r/tree/main
 https://github.com/o/r/pull/
 
 ### 1 cli query links.x.md resources | select {target, metadata} --json
-$ wtf query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [

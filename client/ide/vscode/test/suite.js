@@ -45,8 +45,8 @@ exports.run = async function() {
   const root = vscode.workspace.workspaceFolders[0].uri;
   const document = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, "main.x.md"));
   const editor = await vscode.window.showTextDocument(document);
-  assert.equal(document.languageId, "wtf");
-  await vscode.extensions.getExtension("drbh.wtf").activate();
+  assert.equal(document.languageId, "xmd");
+  await vscode.extensions.getExtension("drbh.xmd").activate();
 
   await until("calculation hints", async () => (await hints(document)).some(h => label(h).includes("$75")));
   const tokens = await command("vscode.provideDocumentSemanticTokens", document.uri);
@@ -94,7 +94,7 @@ exports.run = async function() {
   const formatting = await command("vscode.executeFormatDocumentProvider", document.uri, { tabSize: 2, insertSpaces: true });
   assert(formatting.length > 0, "Table formatting");
 
-  await command("wtf.restartServer");
+  await command("xmd.restartServer");
   await until("restart retains unsaved files", async () => (await hints(document)).some(h => label(h).includes("$100")));
-  console.log("WTF VS Code smoke test passed: highlighting, hints, hover, navigation, edits/undo, timers, rename, diagnostics, formatting, restart.");
+  console.log("XMD VS Code smoke test passed: highlighting, hints, hover, navigation, edits/undo, timers, rename, diagnostics, formatting, restart.");
 };

@@ -221,7 +221,7 @@ pub enum EvalError {
 /// did not write is still classified this way.
 fn describes_pending_data(message: &str) -> bool {
     message.starts_with("No cached")
-        || message.contains("; run wtf refresh")
+        || message.contains("; run xmd refresh")
         || message.contains("no forecast yet")
 }
 
@@ -364,15 +364,15 @@ impl std::fmt::Display for EvalError {
             Self::NotCached(key) => match key {
                 LookupKey::Rate { from, to } => write!(
                     f,
-                    "No cached rate {from}→{to}; run wtf refresh or use the ⟳ lookups lens"
+                    "No cached rate {from}→{to}; run xmd refresh or use the ⟳ lookups lens"
                 ),
                 LookupKey::Quote(symbol) => write!(
                     f,
-                    "No cached quote for {symbol}; run wtf refresh or use the ⟳ lookups lens"
+                    "No cached quote for {symbol}; run xmd refresh or use the ⟳ lookups lens"
                 ),
                 LookupKey::Forecast { place, date } => write!(
                     f,
-                    "No cached forecast for {place} on {date}; run wtf refresh or use the ⟳ lookups lens"
+                    "No cached forecast for {place} on {date}; run xmd refresh or use the ⟳ lookups lens"
                 ),
             },
             Self::Unreadable(key) => match key {

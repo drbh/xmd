@@ -39,6 +39,6 @@ weather := forecast("Oaxaca", 2026-11-20, F)
 
 [debug(weather)]
 
-<!-- Run wtf refresh or use the ⟳ lookups lens to fill the forecast cache.
+<!-- Run xmd refresh or use the ⟳ lookups lens to fill the forecast cache.
 debug(weather) exposes high, low, rain, summary, and unit. The earlier sections
 work without fetching anything. -->

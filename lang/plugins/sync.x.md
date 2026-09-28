@@ -1,6 +1,6 @@
 // Keep a directory of notes in step with a folder in the hosted docs app.
-// Run it with `xmd run sync.x.md DIR --url https://… [--folder NAME]
-// [--key KEY] [--dry-run] [--watch] [--interval SECONDS]`.
+// A bundled plugin: run it with `xmd run sync DIR --url https://…
+// [--folder NAME] [--key KEY] [--dry-run] [--watch] [--interval SECONDS]`.
 //
 // Each file is compared three ways against the copy last synced, kept in
 // DIR/.xmd-sync/base: unchanged on one side means the other side wins;

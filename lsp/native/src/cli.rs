@@ -58,7 +58,7 @@ pub(crate) enum Command {
     },
     /// Run a command module: its id among --root's activated modules, or a path to its file.
     #[command(
-        after_help = concat!("The command works inside DIRECTORY (default .) and can only read and write there.\nExamples: xmd run ./sync.", common::note_extension!(), " ./notes --url https://xmd.example.com\n          xmd run sync ./notes --root .")
+        after_help = concat!("The command works inside DIRECTORY (default .) and can only read and write there.\nExamples: xmd run sync ./notes --url https://xmd.example.com\n          xmd run sync ./notes --root .")
     )]
     Run {
         /// The command module's id, or a path to its file.

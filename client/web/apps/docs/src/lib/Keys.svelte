@@ -20,7 +20,7 @@
 </script>
 
 <Dialog title="API keys" {onClose} wide>
-  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account. Download <a href="{site}/sync.{EXTENSION}" download>the sync plugin</a>, then run <code>xmd run sync.{EXTENSION} ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
+  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>xmd run sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
   {#if fresh}
     <div class="fresh-key">
       <p><strong>Your new key.</strong> Copy it now; it is not shown again.</p>

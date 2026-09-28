@@ -8,7 +8,6 @@ use crate::{
 };
 use chrono::{NaiveDate, Timelike};
 use common::Span;
-use lsp_types::{Position, Range};
 use model::Document;
 
 // An itinerary's shape is parsed in `model`; this module resolves it, and
@@ -63,10 +62,9 @@ fn line_record(doc: Option<&Document>, row: usize) -> LineRecord {
         raw: doc.map(|d| d.line(row)).unwrap_or("").into(),
         line_range: doc
             .map(|d| {
-                from_json(&serde_json::json!(Range::new(
-                    Position::new(row as u32, 0),
-                    d.line_end(row)
-                )))
+                from_json(&serde_json::json!(
+                    Span::new(row, 0, d.line(row).len()).range(&d.text)
+                ))
             })
             .unwrap_or(Value::Null),
         anchor: doc

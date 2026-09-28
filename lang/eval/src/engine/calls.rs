@@ -2,7 +2,7 @@
 //! lookups and row sums that decide for themselves what to evaluate.
 use super::{
     BinaryOp, Builtin, Currency, Engine, Expr, RowScope, Tier, Value, binary, date_value,
-    relative_date, tier,
+    relative_date,
 };
 use crate::{
     error::{Depth, EvalError, EvalResult, Limit, Overflow},
@@ -24,7 +24,7 @@ impl Engine<'_> {
     ) -> EvalResult<Value> {
         // A module-tier built-in is not a name a note has: outside module code
         // it fails exactly as a misspelling would.
-        if tier(builtin) == Tier::Module && !self.module_code(path) {
+        if builtin.tier() == Tier::Module && !self.module_code(path) {
             return Err(EvalError::UnknownFunction(builtin.as_str().into()));
         }
         match builtin {
@@ -48,10 +48,10 @@ impl Engine<'_> {
             Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
             Builtin::Now if args.is_empty() => {
                 self.time_dependent = true;
-                Ok(Value::DateTime(self.now))
+                Ok(Value::DateTime(self.request.clock.now))
             }
             Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, builtin, args),
-            Builtin::Today if args.is_empty() => Ok(Value::Date(self.today)),
+            Builtin::Today if args.is_empty() => Ok(Value::Date(self.request.today)),
             Builtin::Rate
             | Builtin::To
             | Builtin::Forecast
@@ -79,15 +79,15 @@ impl Engine<'_> {
         self.call(function, values)
     }
     fn module_engine<'b>(&self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
-        let mut engine = Engine::at(workspace, self.now)
+        let mut engine = Engine::at(workspace, self.request.clock.now)
             .pure()
             .module()
             .with_link_features(crate::link_features_impl::LinkFeatures::new(&[]))
             .with_environment(workspace.clone());
         engine.budget.steps = self.budget.steps;
         engine.budget.calls = self.budget.calls;
-        engine.today = self.today;
-        engine.memo = self.memo.clone();
+        engine.request.today = self.request.today;
+        engine.request.memo = self.request.memo.clone();
         engine
     }
     fn absorb_module(&mut self, other: &Engine<'_>) {
@@ -99,12 +99,13 @@ impl Engine<'_> {
             self.failure = other
                 .failure
                 .clone()
-                .filter(|failure| self.workspace.documents.contains_key(&failure.path));
+                .filter(|failure| self.request.workspace.documents.contains_key(&failure.path));
         }
     }
     /// Typed adapters use the same module snapshot, clock and execution budget as imports.
     pub fn call_module(&mut self, id: &str, name: &str, args: Vec<Value>) -> EvalResult<Value> {
         let module = self
+            .request
             .workspace
             .modules
             .active()
@@ -128,6 +129,7 @@ impl Engine<'_> {
     /// own adapters, sees every non-`_` member of a library it imports.
     fn import(&mut self, path: &Path, id: &str) -> EvalResult<Value> {
         let module = self
+            .request
             .workspace
             .modules
             .active()
@@ -173,7 +175,7 @@ impl Engine<'_> {
             return Err(EvalError::Expected("a function"));
         };
         if let Some(workspace) = &function.environment
-            && !std::ptr::eq(self.workspace, workspace.as_ref())
+            && !std::ptr::eq(self.request.workspace, workspace.as_ref())
         {
             let mut engine = self.module_engine(workspace);
             engine.expressions = function.expressions.clone();
@@ -223,7 +225,7 @@ impl Engine<'_> {
                 ));
             }
             let target = model::note_path(path, &id)?;
-            if !self.workspace.documents.contains_key(&target) {
+            if !self.request.workspace.documents.contains_key(&target) {
                 return Err(EvalError::Message(format!(
                     "Note import '{}' is not loaded (from {})",
                     target.display(),
@@ -297,7 +299,7 @@ impl Engine<'_> {
         if builtin == Builtin::Date {
             return match value {
                 Value::Text(s) => date_value(&s)
-                    .or_else(|| relative_date(&s, self.today).map(Value::Date))
+                    .or_else(|| relative_date(&s, self.request.today).map(Value::Date))
                     .ok_or(EvalError::Message("Unrecognized date".into())),
                 other => self.date(&other).map(Value::Date),
             };
@@ -316,7 +318,7 @@ impl Engine<'_> {
                 let mut seconds = 0i64;
                 for (p, i) in tasks {
                     if !self.task_done(&p, i) {
-                        let task = &self.workspace.documents[&p].tasks[i];
+                        let task = &self.request.workspace.documents[&p].tasks[i];
                         if let Some(attr) = task.attributes.get("estimate") {
                             let Value::Duration(m) = self.eval(&p, &attr.value)? else {
                                 return Err(EvalError::Message(
@@ -343,11 +345,11 @@ impl Engine<'_> {
         use Value::*;
         let value = match (name, args.as_slice()) {
             (Builtin::Get, [Namespace(path), Text(key)]) => {
-                match self.workspace.resolve(path.path(), key) {
+                match self.request.workspace.resolve(path.path(), key) {
                     Ok(symbol) => self.symbol(&symbol)?,
                     Err(_)
-                        if !self.workspace.symbols().iter().any(|s| {
-                            s.path == path.path() && self.workspace.named(s).name == *key
+                        if !self.request.workspace.symbols().iter().any(|s| {
+                            s.path == path.path() && self.request.workspace.named(s).name == *key
                         }) =>
                     {
                         Null
@@ -526,7 +528,8 @@ impl Engine<'_> {
                     self.wanted
                         .push(crate::lookups_impl::LookupKey::rate(from, to));
                 }
-                crate::lookups_impl::rate(&self.workspace.lookups, from, to).map(Value::Number)
+                crate::lookups_impl::rate(&self.request.workspace.lookups, from, to)
+                    .map(Value::Number)
             }
             Builtin::To => {
                 if args.len() != 2 {
@@ -544,7 +547,7 @@ impl Engine<'_> {
                     self.wanted
                         .push(crate::lookups_impl::LookupKey::rate(from, to));
                 }
-                let rate = crate::lookups_impl::rate(&self.workspace.lookups, from, to)?;
+                let rate = crate::lookups_impl::rate(&self.request.workspace.lookups, from, to)?;
                 Ok(Value::Money(amount * rate, to))
             }
             Builtin::Quote => {
@@ -556,7 +559,7 @@ impl Engine<'_> {
                 let symbol = code(self.expr(path, &args[0])?, "The ticker")?;
                 self.wanted
                     .push(crate::lookups_impl::LookupKey::quote(&symbol));
-                crate::lookups_impl::quote(&self.workspace.lookups, &symbol)
+                crate::lookups_impl::quote(&self.request.workspace.lookups, &symbol)
             }
             _ => {
                 let range = name == Builtin::ForecastRange;
@@ -620,7 +623,7 @@ impl Engine<'_> {
                         .into_iter()
                         .map(|date| {
                             crate::lookups_impl::forecast(
-                                &self.workspace.lookups,
+                                &self.request.workspace.lookups,
                                 &place,
                                 date,
                                 fahrenheit,
@@ -630,8 +633,13 @@ impl Engine<'_> {
                         .collect::<EvalResult<Vec<_>>>()
                         .map(Value::List)
                 } else {
-                    crate::lookups_impl::forecast(&self.workspace.lookups, &place, date, fahrenheit)
-                        .map(Value::Forecast)
+                    crate::lookups_impl::forecast(
+                        &self.request.workspace.lookups,
+                        &place,
+                        date,
+                        fahrenheit,
+                    )
+                    .map(Value::Forecast)
                 }
             }
         }

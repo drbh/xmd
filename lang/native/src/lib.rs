@@ -10,10 +10,6 @@ mod sync;
 use clap::{CommandFactory, Parser};
 use cli::{Cli, Command};
 
-/// The command line's own command list, embedded by the browser test harness
-/// since the browser has no command line of its own to ask.
-pub use cli::command_reference;
-
 /// Parses the command line and runs it on a multi-threaded runtime.
 #[tokio::main]
 pub async fn main() {

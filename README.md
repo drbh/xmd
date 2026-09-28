@@ -110,9 +110,8 @@ mostly prose with no numbers in them, markdown is already enough
 
 ## go further
 
-`wtf reference` prints the whole language, every function, attribute, type,
-collection and library export with a snippet you can paste, and
-`wtf reference --json` is the same for tools. `lang/examples` has one short
+in an editor, signature help and completion describe every function and
+attribute as you type. `lang/examples` has one short
 note per feature, numbered in the order you tend to meet them. `lang/stdlib`
 is the standard library, tasks, timers, plans, feeds and units are all
 written in `.wtf` and you can replace any of them. `wtf --help` and

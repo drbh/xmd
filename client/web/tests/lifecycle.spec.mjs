@@ -66,7 +66,7 @@ test("the assembled apps work below a URL prefix and load the same WASM asset", 
     const wasm = [];
     page.on("request", r => { if (r.url().endsWith(".wasm")) wasm.push(r.url()); });
     const base = "http://127.0.0.1:4274/nested/site";
-    for (const [path, ready] of [["/docs/?test", () => window.wtfDocs?.ready], ["/docs/?test#/reference", () => window.wtfDocs?.ready]]) {
+    for (const [path, ready] of [["/docs/?test", () => window.wtfDocs?.ready]]) {
       await page.goto(base + path);
       await page.waitForFunction(ready);
     }

@@ -204,7 +204,7 @@ exit 0
 -- request textDocument/documentSymbol prose.wtf
 [
   {
-    "detail": "Incomplete · :deposit",
+    "detail": "task · incomplete",
     "kind": 17,
     "name": "Pay",
     "range": {
@@ -229,7 +229,7 @@ exit 0
     }
   },
   {
-    "detail": ":launch",
+    "detail": "checklist · 0/0 complete",
     "kind": 3,
     "name": "Launch",
     "range": {

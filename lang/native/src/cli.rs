@@ -1,8 +1,8 @@
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use eval::Workspace;
-use features::query::{self, QueryValue};
-use features::session::Session;
+use eval::engine::{Value, value_json};
+use features::query::{self, display};
 use std::{
     collections::BTreeSet,
     ffi::OsString,
@@ -50,20 +50,6 @@ pub(crate) enum Command {
     },
     /// Keep a directory of notes in step with a folder in the web app.
     Sync(crate::sync::SyncOptions),
-    /// Print the whole language reference: Markdown, or --json for tools.
-    #[command(
-        after_help = "The reference is generated from the code, so it cannot drift.\nExamples: wtf reference\n          wtf reference --json | jq '.functions[] | .name'\n          wtf reference --notes ./snippets   # every try snippet as a note"
-    )]
-    Reference(ReferenceOptions),
-}
-#[derive(Args)]
-pub(crate) struct ReferenceOptions {
-    /// Emit the reference model as JSON instead of Markdown.
-    #[arg(long)]
-    pub json: bool,
-    /// Write every runnable snippet into this directory, one note each.
-    #[arg(long, value_name = "DIR")]
-    pub notes: Option<PathBuf>,
 }
 #[derive(Args)]
 pub(crate) struct QueryOptions {
@@ -184,7 +170,6 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
         Command::Sync(options) => crate::sync::run(options),
-        Command::Reference(options) => reference_command(options),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -197,59 +182,6 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
             );
             Ok(())
         }
-    }
-}
-/// The command line, straight from clap, so a new subcommand documents itself
-/// in `wtf reference` without the reference model needing to know clap exists.
-pub fn command_reference() -> Vec<features::reference::CommandInfo> {
-    use clap::CommandFactory;
-    let mut cli = Cli::command();
-    cli.build();
-    cli.get_subcommands()
-        // `help` is clap's own, not one of the language's commands.
-        .filter(|command| command.get_name() != "help")
-        .map(|command| {
-            let usage = command.clone().render_usage().to_string();
-            features::reference::CommandInfo {
-                name: command.get_name().into(),
-                usage: usage.trim_start_matches("Usage: ").into(),
-                documentation: command
-                    .get_about()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-            }
-        })
-        .collect()
-}
-/// The reference describes the language itself, so it needs no workspace: the
-/// bundled modules are the library it reports.
-fn reference_command(options: ReferenceOptions) -> Result<(), String> {
-    if let Some(directory) = options.notes {
-        let mut written = 0;
-        std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-        for (name, source) in features::reference::snippets() {
-            let path = directory.join(format!("{name}.wtf"));
-            std::fs::write(&path, format!("{source}\n"))
-                .map_err(|e| format!("{}: {e}", path.display()))?;
-            written += 1;
-        }
-        println!("{written} snippets written to {}", directory.display());
-        return Ok(());
-    }
-    let modules = eval::modules::ModuleRegistry::default();
-    let commands = command_reference();
-    let text = if options.json {
-        serde_json::to_string_pretty(&features::reference::model(&modules, &commands))
-            .map_err(|e| e.to_string())?
-    } else {
-        features::reference::markdown(&modules, &commands)
-    };
-    let stdout = io::stdout();
-    let mut output = io::BufWriter::new(stdout.lock());
-    match writeln!(output, "{}", text.trim_end()).and_then(|_| output.flush()) {
-        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
-        Err(e) => Err(e.to_string()),
-        Ok(()) => Ok(()),
     }
 }
 
@@ -333,17 +265,17 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         None => (None, Workspace::load(vec![root])?),
     };
     compiled.load_imports(&mut workspace, only.as_deref());
-    let result = eval::RequestContext::new(&workspace, now).query(&compiled, only.as_deref())?;
+    let result = features::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
         if options.json {
-            serde_json::to_writer_pretty(&mut output, &result.rows)?;
+            serde_json::to_writer_pretty(&mut output, &result.json())?;
             writeln!(output)?;
         } else {
             for row in &result.rows {
                 if options.jsonl {
-                    serde_json::to_writer(&mut output, row)?;
+                    serde_json::to_writer(&mut output, &value_json(row))?;
                     writeln!(output)?;
                 } else {
                     writeln!(output, "{}", render(row))?;
@@ -389,7 +321,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     let path = root.join(options.file);
     let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let workspace = Workspace::load_file(vec![root], &path)?;
-    let request = eval::RequestContext::new(&workspace, now);
+    let request = features::Request::new(&workspace, now);
     let text = match options.format {
         RenderFormat::Html => request.render_html(&path)?,
         RenderFormat::Text => request.render_text(&path)?,
@@ -425,22 +357,21 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     }
     Ok(())
 }
-fn render(value: &QueryValue) -> String {
-    let QueryValue::Object(fields) = value else {
-        return value.display();
+fn render(value: &Value) -> String {
+    let Value::Record(fields) = value else {
+        return display(value);
     };
     fields
         .iter()
         .map(|(name, value)| {
             let text = if name == "source"
-                && let QueryValue::Object(source) = value
-                && let Some(QueryValue::Scalar(eval::engine::Value::Text(path))) =
-                    source.get("path")
+                && let Value::Record(source) = value
+                && let Some(Value::Text(path)) = source.get("path")
                 && let Some(line) = source.get("line")
             {
-                format!("{path}:{}", line.display())
+                format!("{path}:{}", display(line))
             } else {
-                value.display()
+                display(value)
             };
             format!("{name}={text}")
         })

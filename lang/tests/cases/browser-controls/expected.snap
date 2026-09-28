@@ -145,7 +145,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Review",
         "range": {
@@ -463,7 +463,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Review",
         "range": {
@@ -808,7 +808,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Review",
         "range": {
@@ -1115,7 +1115,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Review",
         "range": {

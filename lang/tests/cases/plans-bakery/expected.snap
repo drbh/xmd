@@ -241,7 +241,7 @@ exit 0
   {
     "children": [
       {
-        "detail": "variable · 25.75",
+        "detail": "decision variable of bakery · 25.75",
         "kind": 13,
         "name": "bagels",
         "range": {
@@ -266,7 +266,7 @@ exit 0
         }
       },
       {
-        "detail": "variable · 14",
+        "detail": "decision variable of bakery · 14",
         "kind": 13,
         "name": "doughnuts",
         "range": {
@@ -391,7 +391,7 @@ exit 0
         }
       }
     ],
-    "detail": "Plan · $94.75",
+    "detail": "plan · maximize $94.75 · 2 variables",
     "kind": 23,
     "name": "bakery",
     "range": {
@@ -840,7 +840,7 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
   {
     "children": [
       {
-        "detail": "variable · 25.75",
+        "detail": "decision variable of bakery · 25.75",
         "kind": 13,
         "name": "bagels",
         "range": {
@@ -865,7 +865,7 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
         }
       },
       {
-        "detail": "variable · 14",
+        "detail": "decision variable of bakery · 14",
         "kind": 13,
         "name": "doughnuts",
         "range": {
@@ -990,7 +990,7 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
         }
       }
     ],
-    "detail": "Plan · $94.75",
+    "detail": "plan · maximize $94.75 · 2 variables",
     "kind": 23,
     "name": "bakery",
     "range": {

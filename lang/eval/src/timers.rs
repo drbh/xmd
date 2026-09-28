@@ -6,7 +6,7 @@ use crate::{
     workspace::{Symbol, SymbolKind},
 };
 use chrono::{DateTime, FixedOffset};
-use lsp_types::TextEdit;
+use common::Span;
 use std::path::Path;
 
 #[derive(
@@ -93,7 +93,7 @@ impl Timer {
         args: &[Value],
     ) -> EvalResult<Self> {
         let implementation = engine
-            .workspace
+            .workspace()
             .modules
             .active()
             .find(|m| m.id == "timer")
@@ -117,7 +117,7 @@ impl Timer {
             idle,
             origin: None,
             implementation: std::sync::Arc::new(implementation),
-            now: engine.now,
+            now: engine.now(),
         })
     }
     fn call(&self, name: &str) -> EvalResult<Value> {
@@ -186,7 +186,7 @@ pub fn edit_in(
     path: &Path,
     name: &str,
     action: TimerAction,
-) -> Result<(Symbol, TextEdit), String> {
+) -> Result<(Symbol, Span, String), String> {
     let workspace = request.workspace();
     let now = request.now();
 
@@ -225,8 +225,5 @@ pub fn edit_in(
     let leading = &raw[..raw.len() - raw.trim_start().len()];
     let trailing = &raw[raw.trim_end().len()..];
     let text = format!("{leading}{expression}{trailing}");
-    Ok((
-        origin.clone(),
-        TextEdit::new(def.value_span.range(&doc.text), text),
-    ))
+    Ok((origin.clone(), def.value_span, text))
 }

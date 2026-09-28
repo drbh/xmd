@@ -165,7 +165,7 @@ impl PlanValue {
 /// boundary value that makes the constraint hold. Linear equations have a
 /// closed form, so no solver runs.
 pub(crate) fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> EvalResult<Value> {
-    let doc = &engine.workspace.documents[&symbol.path];
+    let doc = &engine.workspace().documents[&symbol.path];
     let SymbolKind::Definition(index) = symbol.kind else {
         return Err(EvalError::Expected("a definition"));
     };
@@ -239,7 +239,7 @@ fn form_value(form: &Linear) -> Value {
     form_record(form).to_value()
 }
 pub(crate) fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResult<Value> {
-    let ws = engine.workspace;
+    let ws = engine.workspace();
     let path = symbol.path.clone();
     let names: Vec<String> = ws
         .plan_variables(&path, plan)

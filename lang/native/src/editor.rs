@@ -3,11 +3,11 @@
 //! Every request evaluates the workspace at "now", read from
 //! [`eval::clock::now`].
 use common::{uri, uri_from_url, url_from_uri};
-use eval::session::WorkspaceSession;
 use eval::{SymbolKind, Workspace};
 use features::actions::TaskToggle;
 use features::commands::{Action, Capabilities, PreparedAction};
-use features::session::{RefreshReport, Session, SessionRefresh};
+use features::session::RefreshReport;
+use features::session::WorkspaceSession;
 use model::identifier;
 use std::{
     collections::BTreeMap,
@@ -67,12 +67,12 @@ impl Backend {
                 .map_err(Error::invalid_params)?;
         }
         compiled.load_imports(&mut state.session.workspace, only.as_deref());
-        let result = eval::RequestContext::new(&state.session.workspace, now)
+        let result = features::Request::new(&state.session.workspace, now)
             .query(&compiled, only.as_deref())
             .map_err(Error::invalid_params)?;
         let versions = state.session.versions_json();
         Ok(
-            serde_json::json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":versions}),
+            serde_json::json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.json(),"versions":versions}),
         )
     }
     fn new(client: Client) -> Self {
@@ -280,7 +280,7 @@ impl LanguageServer for Backend {
                 }),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: Action::COMMANDS.iter().map(|s| (*s).into()).collect(),
+                    commands: Action::commands().map(Into::into).collect(),
                     ..Default::default()
                 }),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
@@ -396,7 +396,7 @@ impl LanguageServer for Backend {
             .documents
             .contains_key(&path)
             .then(|| {
-                eval::RequestContext::new(&state.session.workspace, now())
+                features::Request::new(&state.session.workspace, now())
                     .hints(&path, params.range)
                     .hints
             }))
@@ -418,7 +418,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         Ok(request.hover(&path, at.position))
     }
     async fn goto_definition(
@@ -501,7 +501,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         Ok(Some(CompletionResponse::Array(request.completions(
             &path,
             at.position,
@@ -522,7 +522,7 @@ impl LanguageServer for Backend {
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
     async fn document_highlight(
@@ -573,7 +573,7 @@ impl LanguageServer for Backend {
         if !state.session.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         Ok(Some(request.document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
@@ -582,7 +582,7 @@ impl LanguageServer for Backend {
         if !state.session.workspace.documents.contains_key(&path) {
             return Ok(None);
         }
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         let mut result: Vec<_> = request
             .code_actions(
                 &path,
@@ -628,7 +628,7 @@ impl LanguageServer for Backend {
         self.rescan().await;
         let (prepared, version) = {
             let state = self.state.read().await;
-            let request = eval::RequestContext::new(&state.session.workspace, now());
+            let request = features::Request::new(&state.session.workspace, now());
             let prepared = action
                 .prepare(&request, Capabilities::NATIVE)
                 .map_err(Error::invalid_params)?;
@@ -732,7 +732,7 @@ impl LanguageServer for Backend {
                 self.rescan().await;
                 let workspace = self.state.read().await.session.workspace.clone();
                 let content =
-                    features::agenda::today_markdown(&eval::RequestContext::new(&workspace, now()))
+                    features::agenda::today_markdown(&features::Request::new(&workspace, now()))
                         .map_err(Error::invalid_params)?;
                 let dir = workspace.root().join(".wtf");
                 tokio::task::spawn_blocking({
@@ -802,7 +802,7 @@ impl LanguageServer for Backend {
         if !ws.documents.contains_key(&path) {
             return Ok(None);
         }
-        let symbols = eval::RequestContext::new(ws, now()).document_symbols(&path);
+        let symbols = features::Request::new(ws, now()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
         } else {
@@ -834,7 +834,7 @@ impl LanguageServer for Backend {
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
         let ws = &state.session.workspace;
-        let request = eval::RequestContext::new(ws, now());
+        let request = features::Request::new(ws, now());
         Ok(features::hierarchy::prepare(ws, &path, at.position)
             .map(|symbol| vec![request.hierarchy_item(&symbol)]))
     }
@@ -847,7 +847,7 @@ impl LanguageServer for Backend {
         let Some(symbol) = features::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = eval::RequestContext::new(ws, now());
+        let request = features::Request::new(ws, now());
         Ok(Some(
             features::hierarchy::dependents(ws, &symbol)
                 .into_iter()
@@ -867,7 +867,7 @@ impl LanguageServer for Backend {
         let Some(symbol) = features::hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
-        let request = eval::RequestContext::new(ws, now());
+        let request = features::Request::new(ws, now());
         Ok(Some(
             features::hierarchy::dependencies(ws, &symbol)
                 .into_iter()
@@ -889,7 +889,7 @@ impl LanguageServer for Backend {
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
-        let request = eval::RequestContext::new(&state.session.workspace, now());
+        let request = features::Request::new(&state.session.workspace, now());
         request
             .formatting(&path)
             .map(Some)

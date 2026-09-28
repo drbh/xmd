@@ -541,7 +541,7 @@
             {
               "children": [
                 {
-                  "detail": "Complete",
+                  "detail": "task · complete",
                   "kind": 17,
                   "name": "Passport",
                   "range": {
@@ -566,7 +566,7 @@
                   }
                 }
               ],
-              "detail": "Complete",
+              "detail": "task · complete",
               "kind": 17,
               "name": "Pack",
               "range": {
@@ -878,7 +878,7 @@ Value [a] 3.␍
           {
             "children": [
               {
-                "detail": "Complete",
+                "detail": "task · complete",
                 "kind": 17,
                 "name": "Passport",
                 "range": {
@@ -903,7 +903,7 @@ Value [a] 3.␍
                 }
               }
             ],
-            "detail": "Complete",
+            "detail": "task · complete",
             "kind": 17,
             "name": "Pack",
             "range": {

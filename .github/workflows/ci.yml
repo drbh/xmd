@@ -54,7 +54,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: latest
+          # Pinned: the action's "latest" lookup sometimes resolves to an old
+          # release (v0.9.1) that lacks the --locked flag build.sh passes.
+          version: v0.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22

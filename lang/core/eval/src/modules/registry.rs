@@ -123,14 +123,12 @@ pub(crate) fn bundled() -> &'static [Module] {
             resource,
             today,
             units,
-            github,
-            rss,
             table_cells,
             checklists,
             calculations,
         ]
         .into_iter()
-        .chain(bundle!["plugins": frankfurter, yahoo_finance, open_meteo])
+        .chain(bundle!["plugins": github, rss, frankfurter, yahoo_finance, open_meteo])
         .map(|(dir, id, source)| {
             Module::compile(
                 common::note_file(&format!("/__xmd_stdlib__/{dir}/{id}")).into(),

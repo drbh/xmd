@@ -1,7 +1,7 @@
 //! `Collection`: the named sets of workspace records a query or a feature
 //! module's `inputs` may bind. The record builders themselves, and the field
 //! names they carry, are feature-layer concerns that read this enum back
-//! (see `features::catalog::CollectionFields`); this module only names them.
+//! (see `services::catalog::CollectionFields`); this module only names them.
 
 /// A named set of workspace records. Queries bind these names, and feature
 /// modules declare the ones they read in `module.inputs`.

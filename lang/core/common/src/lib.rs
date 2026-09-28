@@ -1,5 +1,5 @@
 //! The shared kernel: types every layer agrees on, so `syntax`, `model`,
-//! `eval` and `features` name the same `Span`, `Resource` and value
+//! `eval` and `services` name the same `Span`, `Resource` and value
 //! vocabulary instead of each defining their own. No lexer, no parser, no
 //! `Literal` (that's the lexer's output, and stays in `syntax`); `common`
 //! depends on no other crate in this workspace. Exposes its interface from
@@ -10,7 +10,7 @@ mod resource;
 mod span;
 mod values;
 
-pub use notes::{EXTENSION, is_note, note_file, note_stem};
+pub use notes::{EXTENSION, is_note, note_file};
 pub use paths::{file_path, file_url, uri, uri_from_url, url_from_uri};
 pub use resource::Resource;
 pub use span::Span;

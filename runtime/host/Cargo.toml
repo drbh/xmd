@@ -1,0 +1,18 @@
+[package]
+name = "host"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+chrono = { workspace = true }
+feed-rs = "3"
+ignore = "0.4"
+lang = { path = "../../lang" }
+serde_json = { workspace = true }
+services = { path = "../services" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+url = { workspace = true }
+
+[lints]
+workspace = true

@@ -131,6 +131,7 @@ pub struct Problem {
     pub message: String,
 }
 #[derive(Clone, Debug, Default)]
+#[non_exhaustive]
 pub struct Document {
     pub text: String,
     pub definitions: Vec<Definition>,

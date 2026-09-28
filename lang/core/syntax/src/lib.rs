@@ -10,8 +10,8 @@ mod values;
 
 pub use builtins::{Builtin, Tier};
 pub use lexer::{
-    Expr, Lexeme, Parser, Token, expression_names, identifier, is_builtin_function, lex,
-    lex_with_comments, simple_name, sum_scope_at, timer_arguments, valid_expression,
+    Expr, Lexeme, Parser, expression_names, identifier, is_builtin_function, lex,
+    lex_with_comments, sum_scope_at, timer_arguments, valid_expression,
 };
 pub use operators::{BinaryOp, Comparison, Operator, UnaryOp};
 pub use values::{Literal, date_value, duration, is_relative_date, literal, relative_date};

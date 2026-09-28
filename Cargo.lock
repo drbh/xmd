@@ -89,6 +89,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 
 [[package]]
+name = "browser"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "lang",
+ "lsp-types",
+ "runtime",
+ "serde",
+ "serde_json",
+ "url",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "bstr"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,24 +328,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
-name = "features"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "common",
- "eval",
- "host",
- "lsp-types",
- "model",
- "renderer",
- "serde",
- "serde_json",
- "strum",
- "syntax",
- "url",
-]
-
-[[package]]
 name = "feed-rs"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -505,12 +501,11 @@ name = "host"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "common",
- "eval",
  "feed-rs",
  "ignore",
- "model",
+ "lang",
  "serde_json",
+ "services",
  "tokio",
  "url",
 ]
@@ -689,6 +684,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lang"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "eval",
+ "model",
+ "syntax",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -720,6 +725,21 @@ name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "lsp"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "lang",
+ "lsp-types",
+ "runtime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-lsp-server",
+ "url",
+]
 
 [[package]]
 name = "lsp-types"
@@ -799,25 +819,6 @@ name = "multiversion_no_op"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
-
-[[package]]
-name = "native"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "common",
- "eval",
- "features",
- "host",
- "lsp-types",
- "model",
- "serde",
- "serde_json",
- "tokio",
- "tower-lsp-server",
- "url",
-]
 
 [[package]]
 name = "ndarray"
@@ -1018,6 +1019,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "runtime"
+version = "0.1.0"
+dependencies = [
+ "host",
+ "services",
+]
+
+[[package]]
 name = "rustix"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1103,6 +1112,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "services"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "lang",
+ "lsp-types",
+ "renderer",
+ "serde",
+ "serde_json",
+ "strum",
+ "url",
 ]
 
 [[package]]
@@ -1445,23 +1468,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
-name = "wasm"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "common",
- "eval",
- "features",
- "lsp-types",
- "model",
- "serde",
- "serde_json",
- "syntax",
- "url",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "wasm-bindgen"
 version = "0.2.128"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1603,15 +1609,17 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 name = "xmd"
 version = "0.1.0"
 dependencies = [
- "common",
- "features",
+ "browser",
+ "chrono",
+ "clap",
+ "lang",
+ "lsp",
  "lsp-types",
- "model",
- "native",
+ "runtime",
  "serde_json",
  "tempfile",
+ "tokio",
  "url",
- "wasm",
 ]
 
 [[package]]

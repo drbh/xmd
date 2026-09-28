@@ -17,8 +17,6 @@
 // `eval::x::` path. Kept wherever a name collides across files (`parse`) or
 // forms one coherent family (`engine`), or another crate already spells a
 // name that way.
-#[path = "clock.rs"]
-mod clock_impl;
 mod context;
 #[path = "engine/mod.rs"]
 mod engine_impl;
@@ -65,10 +63,6 @@ pub mod engine {
         relative_date, sum_scope_at, value_json,
     };
 }
-// The one clock a note's dates and durations are read against.
-pub mod clock {
-    pub use crate::clock_impl::now;
-}
 // Pure functions the evaluator's builtins are implemented in terms of.
 pub mod functional {
     pub use crate::functional_impl::{compare, sum};
@@ -92,7 +86,7 @@ pub mod tables {
 }
 // The contract a link module implements, and the built-in ones.
 pub mod link_features {
-    pub use crate::link_features_impl::{BUILTINS, LinkFeatures, RefreshFormat, RefreshRequest};
+    pub use crate::link_features_impl::{BUILTINS, LinkFeatures, RefreshFormat};
 }
 // Fetched lookup values; a host fetches and stores them.
 pub mod lookups {

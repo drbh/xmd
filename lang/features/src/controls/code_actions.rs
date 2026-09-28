@@ -72,9 +72,12 @@ pub(crate) fn code_actions(
     if toggle == TaskToggle::Action
         && let Some((i, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
     {
-        let title = crate::controls::rows::task_toggle_title(
+        let mut engine = request.engine();
+        let done = engine.task_done(path, i);
+        let title = crate::view::wording::task_toggle(
+            &mut engine,
             task.attributes.contains_key("every"),
-            request.engine().task_done(path, i),
+            done,
         );
         let mut item = CodeActionItem::edit(title, CodeActionKind::REFACTOR_REWRITE, vec![]);
         match toggle_task(request, path, i) {
@@ -105,9 +108,9 @@ pub(crate) fn code_actions(
         && doc.line(0).trim_start().starts_with('#')
         && capabilities.supports(&Action::ShowToday)
     {
-        result.push(CodeActionItem::command(
-            Action::ShowToday.command(format!("{} today", eval::glyphs::FLAG)),
-        ));
+        result.push(CodeActionItem::command(Action::ShowToday.command(
+            crate::view::wording::titled(&mut request.engine(), "flag", "today"),
+        )));
     }
     result
 }

@@ -1,4 +1,7 @@
-use crate::link_features_impl::{self, LinkFeatures};
+use crate::{
+    engine_impl::{Engine, Value},
+    modules_impl::record,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path};
@@ -54,31 +57,31 @@ pub struct ResourcePresentation {
 /// these methods are an extension trait rather than an inherent impl.
 pub trait ResourcePresenting {
     /// Resolve provider semantics once for both the inline label and tooltip.
-    fn presentation(
-        &self,
-        document: &Path,
-        cache: &Cache,
-        now: DateTime<Utc>,
-        features: LinkFeatures<'_>,
-    ) -> ResourcePresentation;
-    fn label(&self, cache: &Cache, now: DateTime<Utc>) -> String;
-    fn hover(&self, document: &Path, cache: &Cache) -> String;
-    fn hover_at(&self, document: &Path, cache: &Cache, now: DateTime<Utc>) -> String;
+    /// A link module that recognizes the target words its label and details;
+    /// the stdlib's `resource` module words everything else.
+    fn presentation(&self, engine: &mut Engine<'_>, document: &Path) -> ResourcePresentation;
+    /// What the `resource` module reads: the target, the URL it opens (or why
+    /// it has none) and whether it previews as an image.
+    fn record(&self, document: &Path) -> Value;
 }
 impl ResourcePresenting for Resource {
-    fn presentation(
-        &self,
-        document: &Path,
-        cache: &Cache,
-        now: DateTime<Utc>,
-        features: LinkFeatures<'_>,
-    ) -> ResourcePresentation {
-        let known = features.presentation(&self.target, cache, now);
-        let label = known
-            .as_ref()
-            .map(|p| p.label.clone())
-            .unwrap_or_else(|| fallback_label(self));
-        let mut hover = open_hover(self, document);
+    fn presentation(&self, engine: &mut Engine<'_>, document: &Path) -> ResourcePresentation {
+        let known = engine.link_features().presentation(
+            &self.target,
+            &engine.workspace().cache,
+            engine.now().to_utc(),
+        );
+        let mut word = |name: &str| {
+            engine
+                .call_module("resource", name, vec![self.record(document)])
+                .map(|v| v.display())
+                .unwrap_or_else(|e| e.to_string())
+        };
+        let label = match &known {
+            Some(p) => p.label.clone(),
+            None => word("label"),
+        };
+        let mut hover = word("hover");
         if let Some(details) = known.as_ref().and_then(|p| p.hover.as_ref()) {
             hover.push_str("\n\n");
             hover.push_str(details);
@@ -90,61 +93,22 @@ impl ResourcePresenting for Resource {
             time_dependent: known.is_some_and(|p| p.time_dependent),
         }
     }
-    fn label(&self, cache: &Cache, now: DateTime<Utc>) -> String {
-        link_features_impl::BUILTINS
-            .presentation(&self.target, cache, now)
-            .map(|p| p.label)
-            .unwrap_or_else(|| fallback_label(self))
-    }
-    fn hover(&self, document: &Path, cache: &Cache) -> String {
-        self.hover_at(document, cache, Utc::now())
-    }
-    fn hover_at(&self, document: &Path, cache: &Cache, now: DateTime<Utc>) -> String {
-        self.presentation(document, cache, now, link_features_impl::BUILTINS)
-            .hover
-    }
-}
-fn fallback_label(resource: &Resource) -> String {
-    if resource.target.starts_with("geo:") {
-        "place · open map".into()
-    } else if resource.is_image() {
-        "image · open preview".into()
-    } else if resource.target.starts_with("http") {
-        "link".into()
-    } else {
-        "file".into()
-    }
-}
-fn open_hover(resource: &Resource, document: &Path) -> String {
-    let mut out = match resource.url(document) {
-        Ok(url) => format!(
-            "[Open {}](<{}>)",
-            if resource.target.starts_with("geo:") {
-                "map"
-            } else {
-                "resource"
-            },
-            url
-        ),
-        Err(err) => err.to_string(),
-    };
-    if resource.is_image()
-        && let Ok(url) = resource.url(document)
-    {
-        out.push_str(&format!("\n\n![Preview](<{url}>)"));
-    }
-    out
-}
-
-/// `just now`, `5m ago`, `2h ago`, `3d ago`, `2w ago`.
-pub fn ago(from: DateTime<Utc>, now: DateTime<Utc>) -> String {
-    let seconds = (now - from).num_seconds().max(0);
-    match seconds {
-        s if s < 60 => "just now".into(),
-        s if s < 3600 => format!("{}m ago", s / 60),
-        s if s < 86_400 => format!("{}h ago", s / 3600),
-        s if s < 14 * 86_400 => format!("{}d ago", s / 86_400),
-        s => format!("{}w ago", s / (7 * 86_400)),
+    fn record(&self, document: &Path) -> Value {
+        let url = self.url(document);
+        record([
+            ("target".into(), Value::Text(self.target.clone())),
+            (
+                "url".into(),
+                url.as_ref()
+                    .map_or(Value::Null, |url| Value::Text(url.to_string())),
+            ),
+            (
+                "error".into(),
+                url.err()
+                    .map_or(Value::Null, |e| Value::Text(e.to_string())),
+            ),
+            ("image".into(), Value::Bool(self.is_image())),
+        ])
     }
 }
 #[cfg(feature = "native")]

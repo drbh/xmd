@@ -4,9 +4,10 @@ module := {
   id: "timers",
   kind: "feature",
   inputs: {timers: ["line", "anchor", "value", "origin", "definition", "inlay", "hover"]},
-  imports: ["timer"]
+  imports: ["timer", "format"]
 }
 timer := import("timer")
+fmt := import("format")
 
 // Stop live refreshes when no visible timer is running.
 time_dependent := fn(ctx) => (
@@ -44,11 +45,7 @@ unique := fn(timers) => (
 
 // Lead each control with its shared glyph so lenses scan as a row of symbols.
 glyph := fn(action) => (
-  if(
-    action == "pause",
-    "‖",
-    if(action == "reset", "↺", "▸")
-  )
+  fmt.glyph(if(action == "pause" || action == "reset", action, "start"))
 )
 
 // Offer each timer's valid controls once on the requested line.

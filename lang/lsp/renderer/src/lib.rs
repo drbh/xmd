@@ -314,9 +314,9 @@ fn escape(text: &str) -> String {
 /// so a standalone HTML export looks identical without a build step.
 pub fn styles() -> String {
     let rules: Vec<serde_json::Value> =
-        serde_json::from_str(include_str!("../../../client/web/theme/palette.json"))
+        serde_json::from_str(include_str!("../../../../client/web/theme/palette.json"))
             .expect("valid bundled token palette");
-    let mut css = include_str!("../../../client/web/theme/base.css").to_string();
+    let mut css = include_str!("../../../../client/web/theme/base.css").to_string();
     for rule in rules {
         write!(css, ".xmd .t-{}", rule["token_type"].as_str().unwrap()).unwrap();
         if let Some(modifiers) = rule["token_modifiers"].as_array() {
@@ -343,6 +343,6 @@ pub fn styles() -> String {
         }
         css.push_str(" }\n");
     }
-    css.push_str(include_str!("../../../client/web/theme/print.css"));
+    css.push_str(include_str!("../../../../client/web/theme/print.css"));
     css
 }

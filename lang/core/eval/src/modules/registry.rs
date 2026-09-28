@@ -131,7 +131,7 @@ macro_rules! stdlib {
         [$((
             stringify!($id),
             include_str!(concat!(
-                "../../../stdlib/",
+                "../../../../stdlib/",
                 stringify!($id),
                 ".",
                 common::note_extension!()

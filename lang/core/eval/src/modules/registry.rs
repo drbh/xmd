@@ -81,13 +81,17 @@ impl ModuleRegistry {
     }
 }
 
-/// Each bundled module's id and source, read from `stdlib/<id>.<extension>`.
-macro_rules! stdlib {
-    ($($id:ident),* $(,)?) => {
+/// Each bundled module's directory, id and source, read from
+/// `lang/<directory>/<id>.<extension>`.
+macro_rules! bundle {
+    ($dir:literal: $($id:ident),* $(,)?) => {
         [$((
+            $dir,
             stringify!($id),
             include_str!(concat!(
-                "../../../../stdlib/",
+                "../../../../",
+                $dir,
+                "/",
                 stringify!($id),
                 ".",
                 common::note_extension!()
@@ -100,7 +104,9 @@ macro_rules! stdlib {
 pub(crate) fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
-        let modules = stdlib![
+        // The standard library, then bundled plugins: the integrations with
+        // outside services, kept apart from the language's own library.
+        let modules = bundle!["stdlib":
             agenda,
             definitions,
             tasks,
@@ -124,9 +130,10 @@ pub(crate) fn bundled() -> &'static [Module] {
             calculations,
         ]
         .into_iter()
-        .map(|(id, source)| {
+        .chain(bundle!["plugins": frankfurter, yahoo_finance, open_meteo])
+        .map(|(dir, id, source)| {
             Module::compile(
-                common::note_file(&format!("/__xmd_stdlib__/stdlib/{id}")).into(),
+                common::note_file(&format!("/__xmd_stdlib__/{dir}/{id}")).into(),
                 source.into(),
             )
             .expect("valid bundled module")

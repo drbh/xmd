@@ -1,43 +1,18 @@
 //! Cached lookups on disk, and fetching them: exchange rates, weather forecasts
-//! and stock quotes, from built-in keyless providers or commands named in
-//! `.xmd/providers.json`. Values live in `.xmd/lookups.json` with the time they
+//! and stock quotes, from provider modules (the bundled ones live in
+//! `lang/plugins`) or commands named in `.xmd/providers.json`. Values live in `.xmd/lookups.json` with the time they
 //! were fetched, so notes keep working offline. Fetching happens only on
 //! `xmd refresh` or the Refresh lens.
-use chrono::{DateTime, NaiveDate};
+use chrono::{DateTime, FixedOffset, NaiveDate};
 use eval::Workspace;
+use eval::engine::Value;
 use eval::lookups::{Lookup, LookupKey, day_place};
+use eval::modules::{Hook, Module, ModuleKind, ModuleRegistry, from_json, json, record};
 use std::collections::BTreeMap;
 use std::path::Path;
 
 /// Every cached lookup, keyed by [`LookupKey`]'s text.
 type Store = BTreeMap<String, Lookup>;
-
-/// WMO weather interpretation codes, as Open-Meteo reports them.
-fn weather_summary(code: i64) -> &'static str {
-    match code {
-        0 => "clear",
-        1 => "mostly clear",
-        2 => "partly cloudy",
-        3 => "overcast",
-        45 | 48 => "fog",
-        51 | 53 | 55 => "drizzle",
-        56 | 57 => "freezing drizzle",
-        61 => "light rain",
-        63 => "rain",
-        65 => "heavy rain",
-        66 | 67 => "freezing rain",
-        71 => "light snow",
-        73 => "snow",
-        75 => "heavy snow",
-        77 => "snow grains",
-        80 | 81 => "showers",
-        82 => "heavy showers",
-        85 | 86 => "snow showers",
-        95 => "thunderstorm",
-        96 | 99 => "thunderstorm with hail",
-        _ => "unknown",
-    }
-}
 
 /// Every lookup the notes ask for, found by evaluating them. Itinerary days
 /// with a place want a forecast even without a `forecast(...)` call.
@@ -149,234 +124,138 @@ async fn get(url: &str) -> Result<String, String> {
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
-fn encode(s: &str) -> String {
-    url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
-}
-/// Fetch one key: (value, source). Unavailable data becomes a value with an
-/// `error` field; request failures are returned to the refresh caller.
+/// Fetch one key: (value, source). A command in `.xmd/providers.json` answers
+/// first; otherwise the first active provider module for this kind of lookup
+/// does, so a workspace's own provider replaces a bundled one. Unavailable
+/// data becomes a value with an `error` field; request failures are returned
+/// to the refresh caller.
 async fn fetch(
+    modules: &ModuleRegistry,
     root: &Path,
     key: &LookupKey,
     today: NaiveDate,
+    now: DateTime<FixedOffset>,
 ) -> Result<(serde_json::Value, String), String> {
-    let providers = providers(root);
-    match key {
-        LookupKey::Forecast { place, date } => {
-            fetch_forecast(&providers, place, *date, today).await
-        }
-        LookupKey::Rate { from, to } => {
-            let (from, to) = (&from.to_string(), &to.to_string());
-            if let Some(command) = providers.get("rate") {
-                let value = run(command, &[("from", from), ("to", to)]).await?;
-                return Ok((
-                    serde_json::json!({"rate": value["rate"]}),
-                    command
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("provider")
-                        .into(),
-                ));
+    let (kind, fields) = match key {
+        LookupKey::Rate { from, to } => (
+            "rate",
+            vec![("from", from.to_string()), ("to", to.to_string())],
+        ),
+        LookupKey::Quote(symbol) => ("quote", vec![("symbol", symbol.clone())]),
+        LookupKey::Forecast { place, date } => (
+            "forecast",
+            vec![("place", place.clone()), ("date", date.to_string())],
+        ),
+    };
+    if let Some(command) = providers(root).get(kind) {
+        let fills: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let value = run(command, &fills).await?;
+        let value = match key {
+            LookupKey::Rate { .. } => serde_json::json!({"rate": value["rate"]}),
+            LookupKey::Quote(_) => {
+                serde_json::json!({"price": value["price"], "currency": value["currency"].as_str().unwrap_or("USD")})
             }
-            let body = get(&format!(
-                "https://api.frankfurter.dev/v1/latest?base={from}&symbols={to}"
-            ))
-            .await?;
-            let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-            let rate = data["rates"][to.as_str()]
-                .as_f64()
-                .ok_or_else(|| format!("No rate {from}→{to} from frankfurter.dev"))?;
-            Ok((serde_json::json!({"rate": rate}), "frankfurter.dev".into()))
-        }
-        LookupKey::Quote(symbol) => {
-            if let Some(command) = providers.get("quote") {
-                let value = run(command, &[("symbol", symbol)]).await?;
-                return Ok((
-                    serde_json::json!({"price": value["price"], "currency": value["currency"].as_str().unwrap_or("USD")}),
-                    command
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("provider")
-                        .into(),
-                ));
-            }
-            // Yahoo's chart endpoint is unofficial but keyless; a provider
-            // command in .xmd/providers.json replaces it.
-            let body = get(&format!(
-                "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d",
-                encode(symbol)
-            ))
-            .await?;
-            let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-            let meta = &data["chart"]["result"][0]["meta"];
-            let price = meta["regularMarketPrice"].as_f64().ok_or_else(|| {
-                format!("No quote for {symbol} from finance.yahoo.com; set a quote provider in .xmd/providers.json")
-            })?;
-            Ok((
-                serde_json::json!({
-                    "price": price,
-                    "currency": meta["currency"].as_str().unwrap_or("USD"),
-                    "change_percent": meta["regularMarketChangePercent"],
-                }),
-                "finance.yahoo.com".into(),
-            ))
-        }
+            LookupKey::Forecast { .. } => value,
+        };
+        let source = command.split_whitespace().next().unwrap_or("provider");
+        return Ok((value, source.into()));
     }
-}
-/// Open-Meteo names the control run with the bare variable, and the other
-/// runs with `_member01` through `_member50`. Ignore unrelated statistics.
-fn ensemble_values<'a>(
-    daily: &'a serde_json::Value,
-    variable: &'a str,
-    index: usize,
-) -> impl Iterator<Item = f64> + 'a {
-    daily
-        .as_object()
-        .into_iter()
-        .flat_map(|fields| fields.iter())
-        .filter_map(move |(name, values)| {
-            let member = name == variable
-                || name
-                    .strip_prefix(variable)
-                    .and_then(|suffix| suffix.strip_prefix("_member"))
-                    .is_some_and(|member| {
-                        member.len() == 2 && member.bytes().all(|c| c.is_ascii_digit())
-                    });
-            member
-                .then(|| values[index].as_f64())
-                .flatten()
-                .filter(|value| value.is_finite())
-        })
-}
-fn ensemble_mean(daily: &serde_json::Value, variable: &str, index: usize) -> Option<f64> {
-    let (sum, count) = ensemble_values(daily, variable, index)
-        .fold((0.0, 0), |(sum, count), value| (sum + value, count + 1));
-    (count > 0).then(|| sum / f64::from(count))
-}
-fn seasonal_precipitation(daily: &serde_json::Value, index: usize) -> Option<f64> {
-    // Estimate a wet day's probability from valid ensemble members, not
-    // the ensemble's mean rainfall amount. Missing runs are not dry runs.
-    let (wet, count) = ensemble_values(daily, "precipitation_sum", index)
-        .filter(|amount| *amount >= 0.0)
-        .fold((0, 0), |(wet, count), amount| {
-            (wet + i32::from(amount > 0.1), count + 1)
+    let module = modules
+        .active()
+        .find(|m| m.kind == ModuleKind::Provider && m.provides.iter().any(|p| p == kind))
+        .ok_or_else(|| format!("No provider module answers {kind} lookups"))?;
+    let mut key_record: Vec<(String, Value)> = vec![("kind".into(), Value::Text(kind.into()))];
+    for (name, value) in fields {
+        key_record.push(match (key, name) {
+            (LookupKey::Forecast { date, .. }, "date") => (name.into(), Value::Date(*date)),
+            _ => (name.into(), Value::Text(value)),
         });
-    // A lone run cannot supply an ensemble probability.
-    (count > 1).then(|| f64::from(wet) / f64::from(count))
+    }
+    run_provider(module, record(key_record), today, now).await
 }
-async fn fetch_forecast(
-    providers: &BTreeMap<String, String>,
-    place: &str,
-    date: NaiveDate,
-    today: NaiveDate,
-) -> Result<(serde_json::Value, String), String> {
-    if let Some(command) = providers.get("forecast") {
-        let value = run(command, &[("place", place), ("date", &date.to_string())]).await?;
-        return Ok((
-            value,
-            command
-                .split_whitespace()
-                .next()
-                .unwrap_or("provider")
-                .into(),
-        ));
-    }
-    // Forecast days include today. Seasonal temperatures are ensemble means,
-    // useful for planning but not a prediction of a specific day's weather.
-    // https://open-meteo.com/en/docs/seasonal-forecast-api
-    let days_ahead = (date - today).num_days();
-    let seasonal = days_ahead >= 16;
-    let source = if seasonal {
-        "open-meteo.com (seasonal ensemble)"
-    } else {
-        "open-meteo.com"
-    };
-    let unavailable = || {
-        (
-            serde_json::json!({"error": if seasonal {
-                "no forecast yet; seasonal outlooks cover about 7 months"
-            } else {
-                "no forecast yet for this date"
-            }}),
-            source.to_string(),
-        )
-    };
-    if days_ahead >= 215 {
-        return Ok(unavailable());
-    }
-    let geo = get(&format!(
-        "https://geocoding-api.open-meteo.com/v1/search?name={}&count=1&language=en&format=json",
-        encode(place)
-    ))
-    .await?;
-    let geo: serde_json::Value = serde_json::from_str(&geo).map_err(|e| e.to_string())?;
-    let hit = &geo["results"][0];
-    let (Some(lat), Some(lon)) = (hit["latitude"].as_f64(), hit["longitude"].as_f64()) else {
-        return Ok((
-            serde_json::json!({"error": format!("Unknown place '{place}'")}),
-            "open-meteo.com".into(),
-        ));
-    };
-    let (endpoint, variables, model) = if seasonal {
-        (
-            "https://seasonal-api.open-meteo.com/v1/seasonal",
-            "temperature_2m_max,temperature_2m_min,precipitation_sum",
-            "&models=ecmwf_seasonal_seamless&precipitation_unit=mm",
-        )
-    } else {
-        (
-            "https://api.open-meteo.com/v1/forecast",
-            "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max",
-            "",
-        )
-    };
-    let body = get(&format!(
-        "{endpoint}?latitude={lat}&longitude={lon}&daily={variables}&timezone=auto&start_date={date}&end_date={date}{model}"
-    ))
-    .await?;
-    let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-    let daily = &data["daily"];
-    let date = date.to_string();
-    let Some(index) = daily["time"]
-        .as_array()
-        .and_then(|times| times.iter().position(|time| time.as_str() == Some(&date)))
-    else {
-        return Ok(unavailable());
-    };
-    let temperature = |variable: &str| {
-        if seasonal {
-            ensemble_mean(daily, variable, index)
-        } else {
-            daily[variable][index].as_f64()
+
+/// Store every number as a decimal, as measured and fetched values always
+/// have been, so a whole reading such as 14 degrees reads back as 14.0.
+fn decimals(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Number(n) => {
+            if let Some(decimal) = n.as_f64().and_then(serde_json::Number::from_f64) {
+                *n = decimal;
+            }
         }
-    };
-    let (Some(high), Some(low)) = (
-        temperature("temperature_2m_max"),
-        temperature("temperature_2m_min"),
-    ) else {
-        return Ok(unavailable());
-    };
-    let summary = if seasonal {
-        "seasonal outlook (estimate)"
-    } else {
-        weather_summary(daily["weather_code"][index].as_i64().unwrap_or(-1))
-    };
-    let precipitation = if seasonal {
-        seasonal_precipitation(daily, index)
-    } else {
-        daily["precipitation_probability_max"][index]
-            .as_f64()
-            .map(|p| p / 100.0)
-    };
-    Ok((
-        serde_json::json!({
-            "high": high, "low": low,
-            "summary": summary,
-            "precipitation": precipitation,
-            "place": hit["name"].as_str().unwrap_or(place),
-        }),
-        source.into(),
-    ))
+        serde_json::Value::Array(items) => items.iter_mut().for_each(decimals),
+        serde_json::Value::Object(fields) => fields.values_mut().for_each(decimals),
+        _ => {}
+    }
 }
+
+/// Run a provider module's `step` loop, performing only its HTTP requests.
+async fn run_provider(
+    module: &Module,
+    key: Value,
+    today: NaiveDate,
+    now: DateTime<FixedOffset>,
+) -> Result<(serde_json::Value, String), String> {
+    let mut state = Value::Null;
+    let mut results = Vec::new();
+    for _ in 0..16 {
+        let input = record([
+            ("key".into(), key.clone()),
+            ("today".into(), Value::Date(today)),
+            ("state".into(), state),
+            ("results".into(), Value::List(results)),
+        ]);
+        let Value::Record(mut output) = module
+            .call(Hook::Step, vec![input], now)
+            .map_err(|e| e.to_string())?
+        else {
+            return Err(format!("{}: step must return a record", module.id));
+        };
+        match output.remove("error") {
+            None | Some(Value::Null) => {}
+            Some(error) => return Err(error.display()),
+        }
+        if matches!(output.get("done"), Some(Value::Bool(true))) {
+            let mut value =
+                json(&output.remove("value").unwrap_or(Value::Null)).map_err(|e| e.to_string())?;
+            decimals(&mut value);
+            let source = output
+                .remove("source")
+                .map(|source| source.display())
+                .unwrap_or_else(|| module.id.clone());
+            return Ok((value, source));
+        }
+        state = output.remove("state").unwrap_or(Value::Null);
+        let requests = match output.remove("requests") {
+            Some(Value::List(requests)) => requests,
+            _ => vec![],
+        };
+        results = Vec::new();
+        for request in &requests {
+            let request = json(request).map_err(|e| e.to_string())?;
+            if request["kind"].as_str() != Some("http") {
+                return Err(format!(
+                    "{}: a provider can only make http requests",
+                    module.id
+                ));
+            }
+            let url = request["url"]
+                .as_str()
+                .ok_or("An http request needs a url")?;
+            // Every provider reads JSON, so a reply that is not JSON is a failed request.
+            let reply = get(url).await.and_then(|body| {
+                serde_json::from_str::<serde_json::Value>(&body).map_err(|e| e.to_string())
+            });
+            let answer = match reply {
+                Ok(json) => serde_json::json!({"ok": true, "json": json}),
+                Err(error) => serde_json::json!({"ok": false, "error": error}),
+            };
+            results.push(from_json(&answer));
+        }
+    }
+    Err(format!("{} did not finish", module.id))
+}
+
 /// Refresh every lookup the notes want, at the host's clock; returns the
 /// errors.
 pub async fn refresh(
@@ -386,9 +265,10 @@ pub async fn refresh(
 ) -> Vec<String> {
     let root = ws.root().to_path_buf();
     let keys = wanted(ws, now, only);
+    let modules = ws.modules.clone();
     let mut errors = Vec::new();
     for key in keys {
-        match fetch(&root, &key, now.date_naive()).await {
+        match fetch(&modules, &root, &key, now.date_naive(), now).await {
             Ok((value, source)) => {
                 ws.lookups.insert(
                     key.to_string(),

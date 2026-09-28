@@ -90,7 +90,7 @@ impl Module {
         }
         let kind: ModuleKind = text(config.get("kind").ok_or("module.kind is required")?)?
             .parse()
-            .map_err(|_| "module.kind must be link, feature, command, or library")?;
+            .map_err(|_| "module.kind must be link, feature, command, provider, or library")?;
         let enabled = match config.get("enabled") {
             None => true,
             Some(Value::Bool(v)) => *v,
@@ -187,6 +187,24 @@ impl Module {
         if !properties.is_empty() && !names.contains(Hook::Property.name()) {
             return Err("Declared properties need a property function".into());
         }
+        let provides = config
+            .get("provides")
+            .map(strings)
+            .transpose()?
+            .unwrap_or_default();
+        if kind == ModuleKind::Provider
+            && (provides.is_empty()
+                || provides
+                    .iter()
+                    .any(|p| !matches!(p.as_str(), "rate" | "quote" | "forecast")))
+        {
+            return Err(
+                "A provider module provides one or more of rate, quote and forecast".into(),
+            );
+        }
+        if kind != ModuleKind::Provider && !provides.is_empty() {
+            return Err("Only provider modules declare provides".into());
+        }
         let exports = config
             .get("exports")
             .map(strings)
@@ -238,6 +256,7 @@ impl Module {
                 .map(strings)
                 .transpose()?
                 .unwrap_or_default(),
+            provides,
             fields,
             hosts,
             prefix,

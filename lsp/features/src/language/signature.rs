@@ -132,6 +132,12 @@ const fn describe(builtin: Builtin) -> Signature {
             documentation: "Merge two edits of a common base line by line: {clean, text}, with conflict markers when both changed the same lines.",
             example: "base, ours, theirs",
         },
+        Builtin::UrlEncode => Doc {
+            params: &["text: Text"],
+            result: Kind(ValueType::Text),
+            documentation: "Percent-encode text for a URL query or path segment, spaces as +.",
+            example: "\"New York\"",
+        },
         Builtin::DurationParts => Doc {
             params: &["duration: Duration"],
             result: Kind(ValueType::Record),

@@ -48,6 +48,10 @@ pub enum ModuleKind {
     /// host for effects (HTTP, files in the run's directory) and reads their
     /// results on the next step. Nothing runs while editing or rendering.
     Command,
+    /// Fetches external data a note's lookups read, such as exchange rates or
+    /// forecasts: the same `step` loop as a command, limited to HTTP, run only
+    /// on an explicit refresh. `provides` names the lookups it answers.
+    Provider,
 }
 impl ModuleKind {
     pub fn as_str(self) -> &'static str {
@@ -59,7 +63,7 @@ impl ModuleKind {
             Self::Link => Some(Hook::Inlay),
             Self::Feature => Some(Hook::Collect),
             Self::Library => None,
-            Self::Command => Some(Hook::Step),
+            Self::Command | Self::Provider => Some(Hook::Step),
         }
     }
 }
@@ -151,6 +155,8 @@ pub struct Module {
     pub inputs: Vec<Collection>,
     pub fields: BTreeMap<Collection, Vec<String>>,
     pub imports: Vec<String>,
+    /// The lookup kinds a provider module answers (`rate`, `quote`, `forecast`).
+    pub provides: Vec<String>,
     /// The declared public API, or `None` for the older rule that every
     /// non-`_` definition is public. See [`Module::public_names`].
     pub exports: Option<Vec<String>>,

@@ -134,6 +134,9 @@ pub(crate) fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             };
             Record([("clean".into(), Bool(clean)), ("text".into(), Text(text))].into())
         }
+        (B::UrlEncode, [Text(value)]) => {
+            Text(url::form_urlencoded::byte_serialize(value.as_bytes()).collect())
+        }
         (B::DurationParts, [Duration(seconds)]) => Record(
             [
                 ("hours".into(), Number((seconds / 3600) as f64)),

@@ -270,14 +270,7 @@ pub async fn refresh(
     for key in keys {
         match fetch(&modules, &root, &key, now.date_naive(), now).await {
             Ok((value, source)) => {
-                ws.store_lookup(
-                    key.to_string(),
-                    Lookup {
-                        value,
-                        fetched_at: now.to_utc(),
-                        source,
-                    },
-                );
+                ws.store_lookup(key.to_string(), Lookup::new(value, now.to_utc(), source));
             }
             Err(e) => errors.push(format!("{}: {e}", key.describe())),
         }

@@ -57,10 +57,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Lookup {
     pub value: serde_json::Value,
     pub fetched_at: DateTime<Utc>,
     pub source: String,
+}
+impl Lookup {
+    pub fn new(value: serde_json::Value, fetched_at: DateTime<Utc>, source: String) -> Self {
+        Self {
+            value,
+            fetched_at,
+            source,
+        }
+    }
 }
 /// Keyed by the spelling `LookupKey` displays, because that is the on-disk
 /// format of `.xmd/lookups.json`.

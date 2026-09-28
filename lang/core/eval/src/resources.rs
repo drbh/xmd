@@ -21,6 +21,7 @@ pub use common::Resource;
 /// Nothing in Rust reads them by name; they are the file format, not an API.
 /// Removing them would silently blank the labels of every pre-module cache.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Metadata {
     #[serde(default)]
     pub title: String,

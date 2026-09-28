@@ -8,7 +8,7 @@
 # `client/ide/zed` is a crate too, but it targets wasm32-wasip2 and keeps its
 # own lockfile, so it stays out of this workspace.
 [workspace]
-members = ["cli", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "runtime/services", "runtime/host", "runtime/renderer", "lsp", "browser"]
+members = ["cli", "lang", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "runtime", "runtime/services", "runtime/host", "runtime/renderer", "lsp", "browser"]
 default-members = ["cli"]
 exclude = ["client/ide/zed"]
 resolver = "3"
@@ -28,17 +28,25 @@ tower-lsp-server = "0.22.1"
 url = { version = "2", features = ["serde"] }
 
 # Each crate may depend only on the internal crates listed for it. Pipeline
-# order: syntax -> model -> eval -> services -> hosts; common is the shared
-# kernel every crate may use, and renderer is a leaf services builds on.
+# order: syntax -> model -> eval -> lang -> services -> runtime -> hosts;
+# common is the language's shared kernel, and renderer is a leaf services
+# builds on. Outside lang/ and runtime/, only their facades are visible.
 # Enforced by cli/tests/architecture.rs.
 [workspace.metadata.layers]
+# lang/: the language. Its crates are private to the lang facade.
 common = []
 syntax = ["common"]
 model = ["common", "syntax"]
 eval = ["common", "syntax", "model"]
-host = ["common", "model", "eval", "services"]
+lang = ["common", "syntax", "model", "eval"]
+# runtime/: what every host shares, reaching the language only through lang.
+# Its crates are private to the runtime facade.
 renderer = []
-services = ["common", "syntax", "model", "eval", "renderer"]
-lsp = ["common", "syntax", "model", "eval", "host", "services"]
-browser = ["common", "syntax", "model", "eval", "services"]
-xmd = ["common", "syntax", "model", "eval", "host", "services", "lsp", "browser"]
+services = ["lang", "renderer"]
+host = ["lang", "services"]
+runtime = ["services", "host"]
+# The hosts see only the two facades; xmd (cli/) is the one that assembles
+# them into the binary.
+lsp = ["lang", "runtime"]
+browser = ["lang", "runtime"]
+xmd = ["lang", "runtime", "lsp", "browser"]

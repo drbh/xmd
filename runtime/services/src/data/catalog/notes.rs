@@ -3,9 +3,9 @@ use super::{
     RecordKind,
     record::{Base, Record},
 };
-use eval::Workspace;
-use eval::record;
-use model::Document;
+use lang::eval::Workspace;
+use lang::eval::record;
+use lang::model::Document;
 use std::path::Path;
 
 record! {

@@ -1,9 +1,9 @@
 //! Hovers: what the editor explains about the thing under the cursor.
 use crate::locate::Target;
-use common::Span;
-use eval::engine::{Engine, Value};
-use eval::resources::{self, ResourcePresenting};
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::resources::{self, ResourcePresenting};
+use lang::eval::{Symbol, SymbolKind, Workspace};
 use lsp_types::*;
 use std::path::Path;
 
@@ -18,7 +18,7 @@ pub(crate) fn markup(value: String) -> MarkupContent {
 /// a link, a table cell, a symbol (with a property preview when a reference
 /// reads one), a bracketed calculation, or the task on this row.
 pub(crate) fn hover_at(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     position: Position,
 ) -> Option<Hover> {
@@ -55,7 +55,11 @@ pub(crate) fn hover_at(
 
 /// A task's state, blockers, estimate, timer and subtask progress, worded by
 /// the stdlib's `task` module.
-fn task_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
+fn task_hover(
+    request: &lang::eval::RequestContext<'_>,
+    path: &Path,
+    index: usize,
+) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents.get(path)?;
     let task = &doc.tasks[index];
@@ -92,7 +96,7 @@ fn task_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> 
         .filter(|j| engine.task_done(path, **j))
         .count();
     let text = |value: Option<&Value>| value.map_or(Value::Null, |v| Value::Text(v.display()));
-    let record = eval::modules::record([
+    let record = lang::eval::modules::record([
         ("title".into(), Value::Text(task.title.clone())),
         ("done".into(), Value::Bool(done)),
         ("blocked".into(), Value::List(blocked)),
@@ -125,7 +129,11 @@ fn series(engine: &mut Engine<'_>, values: Vec<Value>) -> Option<String> {
     }
 }
 
-fn link_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
+fn link_hover(
+    request: &lang::eval::RequestContext<'_>,
+    path: &Path,
+    index: usize,
+) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents.get(path)?;
     let link = &doc.links[index];
@@ -143,13 +151,13 @@ fn link_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> 
 
 pub(crate) fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
     let named = ws.named(symbol);
-    let mut uri = common::file_url(&symbol.path).unwrap();
+    let mut uri = lang::common::file_url(&symbol.path).unwrap();
     uri.set_fragment(Some(&format!("L{}", named.span.line + 1)));
     format!("[{}](<{uri}>)", named.name)
 }
 
 /// Everything known about one definition, column or decision variable.
-pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) -> String {
+pub(crate) fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> String {
     let ws = request.workspace();
     let now = request.now();
     let mut engine = request.engine();
@@ -183,12 +191,12 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                 named.name,
                 domain.value_type(),
                 match domain {
-                    eval::tables::Domain::Choice => "name?",
-                    eval::tables::Domain::Count => "name#",
+                    lang::eval::tables::Domain::Choice => "name?",
+                    lang::eval::tables::Domain::Count => "name#",
                 },
                 match domain {
-                    eval::tables::Domain::Choice => "yes or no",
-                    eval::tables::Domain::Count => "a whole number",
+                    lang::eval::tables::Domain::Choice => "yes or no",
+                    lang::eval::tables::Domain::Count => "a whole number",
                 },
                 source_link(ws, symbol)
             );
@@ -235,7 +243,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                 out.push_str(&format!("= {}\n", v.display()));
             }
             out.push_str("```");
-            if let Some(body) = eval::plans::seek_body(&def.source) {
+            if let Some(body) = lang::eval::plans::seek_body(&def.source) {
                 let vars = [named.name.clone()].into_iter().collect();
                 if let Ok((lhs, op, rhs)) =
                     engine.constraint(&symbol.path, body, def.value_span, &vars)
@@ -277,7 +285,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                 .iter()
                 .filter(|m| def.value_span.contains(&doc.text, m.span))
             {
-                if let Some(input) = eval::member_symbol(ws, &symbol.path, &member.source) {
+                if let Some(input) = lang::eval::member_symbol(ws, &symbol.path, &member.source) {
                     inputs.insert(source_link(ws, &input));
                 }
             }
@@ -286,7 +294,9 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                 .iter()
                 .filter(|r| def.value_span.contains(&doc.text, r.span))
             {
-                if let Ok(input) = eval::tables::resolve_reference(ws, &symbol.path, reference) {
+                if let Ok(input) =
+                    lang::eval::tables::resolve_reference(ws, &symbol.path, reference)
+                {
                     inputs.insert(source_link(ws, &input));
                 }
             }
@@ -341,7 +351,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
 
 /// A bracketed calculation in prose: its expression, substitution and value.
 fn calculation_hover(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     index: usize,
 ) -> Option<Hover> {
@@ -382,7 +392,7 @@ fn calculation_hover(
     })
 }
 fn cell_hover(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     table: usize,
     row: usize,
@@ -400,7 +410,7 @@ fn cell_hover(
             .value
             .clone()
             .map(|v| (Value::from(v), None))
-            .map_err(eval::EvalError::Message),
+            .map_err(lang::eval::EvalError::Message),
     };
     let text = match value {
         Ok((value, expression)) => format!(

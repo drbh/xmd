@@ -3,9 +3,9 @@
 //! every lookup the notes want. The command line and the language server both
 //! refresh through here.
 use chrono::{DateTime, FixedOffset};
-use eval::Workspace;
-use eval::link_features::{LinkFeatures, RefreshFormat};
-use eval::resources::Metadata;
+use lang::eval::Workspace;
+use lang::eval::link_features::{LinkFeatures, RefreshFormat};
+use lang::eval::resources::Metadata;
 use std::{collections::BTreeSet, path::Path};
 
 /// Run the refresh program for a link and decode its output through the module.

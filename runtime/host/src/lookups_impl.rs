@@ -4,10 +4,10 @@
 //! were fetched, so notes keep working offline. Fetching happens only on
 //! `xmd refresh` or the Refresh lens.
 use chrono::{DateTime, FixedOffset, NaiveDate};
-use eval::Workspace;
-use eval::engine::Value;
-use eval::lookups::{Lookup, LookupKey, day_place};
-use eval::modules::{Hook, Module, ModuleKind, ModuleRegistry, from_json, json, record};
+use lang::eval::Workspace;
+use lang::eval::engine::Value;
+use lang::eval::lookups::{Lookup, LookupKey, day_place};
+use lang::eval::modules::{Hook, Module, ModuleKind, ModuleRegistry, from_json, json, record};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -21,7 +21,7 @@ fn wanted(
     now: DateTime<chrono::FixedOffset>,
     only: Option<&std::path::Path>,
 ) -> std::collections::BTreeSet<LookupKey> {
-    let mut engine = eval::engine::Engine::at(ws, now);
+    let mut engine = lang::eval::engine::Engine::at(ws, now);
     let mut keys = std::collections::BTreeSet::new();
     let today = engine.today();
     let symbols = ws.symbols();
@@ -41,7 +41,7 @@ fn wanted(
                 let _ = engine.eval(path, &attr.value);
             }
         }
-        let dates = eval::itinerary::dates(&ws.modules, &doc.days, today);
+        let dates = lang::eval::itinerary::dates(&ws.modules, &doc.days, today);
         for (day, date) in doc.days.iter().zip(&dates) {
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)

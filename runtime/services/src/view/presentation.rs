@@ -1,25 +1,28 @@
 //! Host-independent editor presentation, shared by native LSP and WebAssembly.
-use common::Span;
-use eval::engine::Value;
-use eval::{Symbol, SymbolKind};
+use lang::common::Span;
+use lang::eval::engine::Value;
+use lang::eval::{Symbol, SymbolKind};
 use lsp_types::*;
 use std::path::Path;
 
 pub use crate::view::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 
-pub(crate) fn document_links(request: &eval::RequestContext<'_>, path: &Path) -> Vec<DocumentLink> {
+pub(crate) fn document_links(
+    request: &lang::eval::RequestContext<'_>,
+    path: &Path,
+) -> Vec<DocumentLink> {
     let workspace = request.workspace();
 
     let Some(doc) = workspace.documents.get(path) else {
         return vec![];
     };
     let mut links = Vec::new();
-    let mut add = |span: Span, resource: eval::resources::Resource| {
+    let mut add = |span: Span, resource: lang::eval::resources::Resource| {
         if let Ok(url) = resource.url(path) {
             links.push(DocumentLink {
                 range: span.range(&doc.text),
                 tooltip: Some(format!("Open {url}")),
-                target: Some(common::uri_from_url(&url)),
+                target: Some(lang::common::uri_from_url(&url)),
                 data: None,
             });
         }
@@ -27,7 +30,7 @@ pub(crate) fn document_links(request: &eval::RequestContext<'_>, path: &Path) ->
     for link in &doc.links {
         add(
             link.span,
-            eval::resources::Resource {
+            lang::eval::resources::Resource {
                 target: link.target.clone(),
                 origin: None,
             },
@@ -54,7 +57,7 @@ pub(crate) fn document_links(request: &eval::RequestContext<'_>, path: &Path) ->
     links
 }
 pub(crate) fn hints(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     range: Range,
 ) -> crate::view::inlays::InlayOutput {
@@ -63,13 +66,13 @@ pub(crate) fn hints(
 
 /// Materialize the same source and inline labels shown by the editor, at one clock snapshot.
 pub(crate) fn rendered_text(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
 ) -> Result<String, String> {
     let doc = request.workspace().documents.get(path).ok_or_else(|| {
         format!(
             "File is not in this workspace's indexed .{} notes",
-            common::EXTENSION
+            lang::common::EXTENSION
         )
     })?;
     let hints = hints(
@@ -112,7 +115,7 @@ pub(crate) fn inlay_label(hint: &InlayHint) -> String {
     label.replace(['\r', '\n', '\t'], " ")
 }
 
-pub(crate) fn live_hints(request: &eval::RequestContext<'_>, path: &Path) -> bool {
+pub(crate) fn live_hints(request: &lang::eval::RequestContext<'_>, path: &Path) -> bool {
     hints(
         request,
         path,

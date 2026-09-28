@@ -4,10 +4,10 @@ use super::{
     Collection, RecordKind,
     record::{Base, EXPRESSION, LazyField, NAME, Record},
 };
-use eval::engine::{Engine, Value};
-use eval::{RecordFields, record};
-use eval::{Symbol, SymbolKind, Workspace};
-use model::Document;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::{RecordFields, record};
+use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::model::Document;
 use std::{collections::BTreeMap, path::Path};
 
 /// Values, plans and tables are one definition each. Their value, type, display
@@ -85,7 +85,7 @@ pub(super) fn decisions(
                 if only.is_some_and(|path| path != row.table.path) {
                     continue;
                 }
-                let Some(cell) = eval::tables::table(ws, &row.table)
+                let Some(cell) = lang::eval::tables::table(ws, &row.table)
                     .and_then(|t| t.rows.get(row.row))
                     .and_then(|r| r.get(row.column))
                 else {

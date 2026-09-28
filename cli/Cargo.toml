@@ -18,13 +18,10 @@ browser = ["dep:browser"]
 browser = { path = "../browser", optional = true }
 chrono = { workspace = true }
 clap = { version = "4", features = ["derive"] }
-common = { path = "../lang/core/common" }
-eval = { path = "../lang/core/eval" }
-host = { path = "../runtime/host" }
+lang = { path = "../lang" }
 lsp = { path = "../lsp" }
-model = { path = "../lang/core/model" }
+runtime = { path = "../runtime" }
 serde_json = { workspace = true }
-services = { path = "../runtime/services" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
 
 [dev-dependencies]

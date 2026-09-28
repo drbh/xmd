@@ -4,10 +4,10 @@ use crate::{
     language::signature::{BUILTINS, call_context},
     locate::inert,
 };
-use common::Span;
-use eval::engine::Value;
+use lang::common::Span;
+use lang::eval::engine::Value;
+use lang::model::{Document, byte_at};
 use lsp_types::*;
-use model::{Document, byte_at};
 use std::path::Path;
 
 fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
@@ -32,7 +32,7 @@ fn accepts(context: Option<&(String, u32)>, value: &Value) -> bool {
 }
 fn property_names_with_links(
     value: &Value,
-    links: eval::link_features::LinkFeatures<'_>,
+    links: lang::eval::link_features::LinkFeatures<'_>,
 ) -> Vec<String> {
     if let Some(object) = value.host() {
         return object.fields(links);
@@ -48,7 +48,7 @@ fn property_names_with_links(
     }
 }
 pub(crate) fn completions(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     position: Position,
     snippets: bool,
@@ -79,9 +79,9 @@ pub(crate) fn completions(
     let mut engine = request.engine();
     let mut result = vec![];
     if let Some(table_name) =
-        eval::tables::scope_at(doc, Span::new(position.line as usize, byte, byte))
-        && let Ok(origin) = eval::tables::origin(ws, path, &table_name)
-        && let Some(table) = eval::tables::table(ws, &origin)
+        lang::eval::tables::scope_at(doc, Span::new(position.line as usize, byte, byte))
+        && let Ok(origin) = lang::eval::tables::origin(ws, path, &table_name)
+        && let Some(table) = lang::eval::tables::table(ws, &origin)
     {
         for (i, column) in table.columns.iter().enumerate() {
             result.push(CompletionItem {
@@ -189,7 +189,7 @@ pub(crate) fn completions(
         .is_some_and(|i| !line[i..byte].contains(']'));
     // The module-tier built-ins are not names a note has, so they are not
     // offered in one either; a module buffer still sees its own primitives.
-    let module = eval::modules::is_module_path(path);
+    let module = lang::eval::modules::is_module_path(path);
     for function in BUILTINS {
         if (!module && function.tier == crate::language::signature::Tier::Module)
             || attribute != function.name.starts_with('@')
@@ -291,7 +291,7 @@ fn itinerary_completions(
             text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, insert))),
             ..Default::default()
         };
-    if let Some((_, _, _, title_start)) = eval::itinerary::clock(line, row)
+    if let Some((_, _, _, title_start)) = lang::eval::itinerary::clock(line, row)
         && byte >= title_start
         && line[title_start..byte]
             .trim()
@@ -300,7 +300,7 @@ fn itinerary_completions(
     {
         let typed = line[title_start..byte].trim();
         return Some(
-            eval::itinerary::KINDS
+            lang::eval::itinerary::KINDS
                 .iter()
                 .filter(|kind| {
                     typed.is_empty() || kind.name.to_lowercase().starts_with(&typed.to_lowercase())
@@ -326,7 +326,7 @@ fn itinerary_completions(
     {
         let typed = line[..byte].trim().to_lowercase();
         return Some(
-            eval::itinerary::KEYS
+            lang::eval::itinerary::KEYS
                 .iter()
                 .filter(|k| typed.is_empty() || k.to_lowercase().starts_with(&typed))
                 .map(|k| {

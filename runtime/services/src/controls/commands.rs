@@ -1,10 +1,10 @@
 //! Typed editor actions. The wire codec and validation are shared by every host;
 //! preparation returns effects for the host to deliver without applying them.
 use crate::controls::code_actions;
-use common::file_path;
-use eval::RequestContext;
-use eval::resources::Resource;
-use eval::timers::TimerAction;
+use lang::common::file_path;
+use lang::eval::RequestContext;
+use lang::eval::resources::Resource;
+use lang::eval::timers::TimerAction;
 use lsp_types::{Command, TextEdit};
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -193,7 +193,7 @@ impl Action {
         if module.revision() != *revision {
             return Err("Module changed; request fresh controls".into());
         }
-        if !module.has(eval::modules::Hook::Reduce) {
+        if !module.has(lang::eval::modules::Hook::Reduce) {
             return Err("Module has no reducer".into());
         }
         Ok(())
@@ -269,7 +269,7 @@ impl Action {
                 action,
             } => {
                 let (origin, span, text) =
-                    eval::timers::edit_in(request, &document_path(document)?, name, *action)?;
+                    lang::eval::timers::edit_in(request, &document_path(document)?, name, *action)?;
                 let range = span.range(&request.workspace().documents[&origin.path].text);
                 Ok(PreparedAction::Edit {
                     path: origin.path,

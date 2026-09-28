@@ -1,7 +1,7 @@
 //! Every place a symbol occurs across the workspace, for references, rename
 //! and highlights.
-use common::Span;
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::{Symbol, SymbolKind, Workspace};
 
 /// Every place a symbol appears: its declaration, references that resolve to
 /// it, and for decision variables the `plan.variable` property accesses.
@@ -17,13 +17,16 @@ pub fn occurrences(ws: &Workspace, symbol: &Symbol) -> Vec<(std::path::PathBuf, 
     let name = &ws.named(symbol).name;
     for (path, doc) in &ws.documents {
         for member in &doc.members {
-            if eval::member_symbol(ws, path, &member.source).as_ref() == Some(symbol) {
+            if lang::eval::member_symbol(ws, path, &member.source).as_ref() == Some(symbol) {
                 found.push((path.clone(), member.span));
             }
         }
         for r in &doc.references {
             if r.name == *name
-                && eval::tables::resolve_reference(ws, path, r).ok().as_ref() == Some(symbol)
+                && lang::eval::tables::resolve_reference(ws, path, r)
+                    .ok()
+                    .as_ref()
+                    == Some(symbol)
             {
                 found.push((path.clone(), r.span));
             }

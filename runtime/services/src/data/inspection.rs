@@ -3,10 +3,10 @@ use crate::{
     data::catalog::{self, Record, value as q},
     language::hierarchy,
 };
-use common::Span;
-use eval::engine::{Expr, Parser, Value, value_json};
-use eval::{Symbol, Workspace};
-use model::Document;
+use lang::common::Span;
+use lang::eval::engine::{Expr, Parser, Value, value_json};
+use lang::eval::{Symbol, Workspace};
+use lang::model::Document;
 use serde_json::{Value as Json, json};
 use std::path::Path;
 
@@ -19,7 +19,7 @@ struct Syntax<'a> {
 impl Syntax<'_> {
     fn add(&mut self, kind: &str, span: Span, parent: Option<usize>, extra: Json) -> usize {
         let index = self.nodes.len();
-        let id = format!("{}#ast:{index}", common::file_url(self.path).unwrap());
+        let id = format!("{}#ast:{index}", lang::common::file_url(self.path).unwrap());
         let mut node = json!({
             "id":id, "kind":kind, "name":null,
             "parent":parent.map(|p| self.nodes[p]["id"].clone()), "children":[],

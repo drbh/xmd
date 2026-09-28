@@ -1,10 +1,10 @@
 //! Inlays: what providers read and write while contributing inline labels.
-use eval::RequestContext;
-use eval::engine::Engine;
+use lang::eval::RequestContext;
+use lang::eval::engine::Engine;
+use lang::model::Document;
 use lsp_types::{
     InlayHint, InlayHintLabel, InlayHintTooltip, MarkupContent, MarkupKind, Position, Range,
 };
-use model::Document;
 use std::path::Path;
 
 /// All producers in one request share evaluation memoization and a clock snapshot.

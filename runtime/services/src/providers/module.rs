@@ -8,15 +8,15 @@ use crate::{
     view::inlays::{InlayContext, InlaySink},
 };
 use chrono::NaiveDate;
-use eval::RequestContext;
-use eval::engine::{Engine, Value};
-use eval::modules::{Hook, Module, ModuleKind, from_json, json};
-use eval::{ToValue, record};
+use lang::eval::RequestContext;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
+use lang::eval::{ToValue, record};
+use lang::model::Document;
 use lsp_types::{
     Command, Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
     NumberOrString, Position, Range, TextEdit,
 };
-use model::Document;
 use std::{collections::BTreeMap, path::Path};
 
 record! {
@@ -205,7 +205,7 @@ pub(crate) fn input(
     let doc = &engine.workspace().documents[path];
     let mut document = DocumentInput {
         path: path.to_string_lossy().into(),
-        uri: common::file_url(path)?.into(),
+        uri: lang::common::file_url(path)?.into(),
         text: doc.text.clone(),
         lines: doc.text.lines().map(str::to_owned).collect(),
         collections: BTreeMap::new(),

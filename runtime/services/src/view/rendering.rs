@@ -1,8 +1,8 @@
 //! Standalone HTML from the editor's semantic tokens, inlays, diagnostics and links.
 use crate::view::presentation;
-use eval::RequestContext;
+use lang::eval::RequestContext;
+use lang::model::Document;
 use lsp_types::{Diagnostic, DocumentLink, InlayHint, Position, Range};
-use model::Document;
 use renderer::document;
 use std::path::Path;
 
@@ -10,7 +10,7 @@ pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<Stri
     let doc = request.workspace().documents.get(path).ok_or_else(|| {
         format!(
             "File is not in this workspace's indexed .{} notes",
-            common::EXTENSION
+            lang::common::EXTENSION
         )
     })?;
     let hints = presentation::hints(

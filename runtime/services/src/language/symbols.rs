@@ -1,8 +1,8 @@
 //! Standard LSP document symbols, shared by the native server and browser adapter.
-use common::Span;
-use eval::{Symbol, SymbolKind};
+use lang::common::Span;
+use lang::eval::{Symbol, SymbolKind};
+use lang::model::Document;
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation};
-use model::Document;
 use std::path::Path;
 use url::Url;
 
@@ -39,7 +39,7 @@ fn line_range(doc: &Document, row: usize) -> Range {
 }
 
 pub(crate) fn document_symbols(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
 ) -> Vec<DocumentSymbol> {
     let ws = request.workspace();
@@ -50,8 +50,8 @@ pub(crate) fn document_symbols(
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let dates = eval::itinerary::dates(&ws.modules, &doc.days, now.date_naive());
-    let day_detail = |day: &eval::itinerary::Day, date: &Option<chrono::NaiveDate>| {
+    let dates = lang::eval::itinerary::dates(&ws.modules, &doc.days, now.date_naive());
+    let day_detail = |day: &lang::eval::itinerary::Day, date: &Option<chrono::NaiveDate>| {
         format!(
             "{} stops{}",
             day.stops.len(),
@@ -137,7 +137,7 @@ pub(crate) fn document_symbols(
             entries.push(symbol(
                 format!(
                     "{} {}{}",
-                    eval::itinerary::month_name(day.month),
+                    lang::eval::itinerary::month_name(day.month),
                     day.day,
                     day.places
                         .as_ref()
@@ -158,11 +158,11 @@ pub(crate) fn document_symbols(
                     Some(kind) => {
                         format!(
                             "{} · {}",
-                            eval::itinerary::display_time(&ws.modules, stop),
+                            lang::eval::itinerary::display_time(&ws.modules, stop),
                             kind.name
                         )
                     }
-                    None => eval::itinerary::display_time(&ws.modules, stop),
+                    None => lang::eval::itinerary::display_time(&ws.modules, stop),
                 },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(
@@ -372,7 +372,7 @@ pub fn flat_symbols(symbols: Vec<DocumentSymbol>, uri: &Url) -> Vec<SymbolInform
             tags: symbol.tags,
             deprecated: None,
             location: Location {
-                uri: common::uri_from_url(uri),
+                uri: lang::common::uri_from_url(uri),
                 range: symbol.selection_range,
             },
             container_name,

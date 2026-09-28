@@ -1,9 +1,9 @@
 //! On-type formatting: realign a table when a pipe is typed and continue a
 //! checklist when Enter is pressed. Shared by the native server and browser.
-use common::Span;
-use eval::tables;
+use lang::common::Span;
+use lang::eval::tables;
+use lang::model::{Document, byte_at, utf16};
 use lsp_types::{Position, Range, TextEdit};
-use model::{Document, byte_at, utf16};
 
 /// Characters that trigger `textDocument/onTypeFormatting`.
 pub const TRIGGERS: [&str; 2] = ["\n", "|"];

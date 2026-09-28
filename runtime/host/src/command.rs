@@ -28,8 +28,8 @@
 //! A failed effect answers `{ok: false, error}` rather than stopping the run,
 //! so the command decides what a failure means.
 use chrono::{DateTime, FixedOffset};
-use eval::engine::Value;
-use eval::modules::{Hook, Module, ModuleKind, from_json, json};
+use lang::eval::engine::Value;
+use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
 use std::{
     collections::BTreeMap,
     io::Write as _,
@@ -71,7 +71,7 @@ pub fn run_command(
         let mut results = Vec::new();
         let mut finished = None;
         for _ in 0..MAX_STEPS {
-            let input = eval::modules::record([
+            let input = lang::eval::modules::record([
                 ("args".into(), args.clone()),
                 (
                     "dir".into(),
@@ -163,7 +163,7 @@ fn parse_args(args: &[String]) -> Value {
             _ => positional.push(Value::Text(word.clone())),
         }
     }
-    eval::modules::record([
+    lang::eval::modules::record([
         ("flags".into(), Value::Record(flags)),
         ("positional".into(), Value::List(positional)),
     ])

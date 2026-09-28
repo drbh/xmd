@@ -1,8 +1,8 @@
 //! Every problem a note can report, and the one vocabulary hosts describe them with.
-use common::Span;
-use eval::EvalError;
-use eval::engine::{Engine, Value};
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::EvalError;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::{Symbol, SymbolKind, Workspace};
 use lsp_types::*;
 use std::path::Path;
 
@@ -79,7 +79,7 @@ fn diagnostic(
                 .iter()
                 .map(|s| DiagnosticRelatedInformation {
                     location: Location {
-                        uri: common::uri_from_url(&common::file_url(&s.path).unwrap()),
+                        uri: lang::common::uri_from_url(&lang::common::file_url(&s.path).unwrap()),
                         range: ws.named(s).span.range(&ws.documents[&s.path].text),
                     },
                     message: format!("{} defined here", ws.named(s).name),
@@ -119,12 +119,12 @@ pub(crate) fn incomplete(source: &str) -> bool {
         || source.ends_with(['+', '-', '*', '/', '(', ',', '.', '!', '=', '&', '|'])
         || source.chars().filter(|c| *c == '(').count()
             > source.chars().filter(|c| *c == ')').count()
-        || eval::engine::lex(source).is_err_and(|e| e == "Unclosed string")
+        || lang::eval::engine::lex(source).is_err_and(|e| e == "Unclosed string")
 }
 /// The native analysis only: name resolution, evaluation, resources and
 /// attributes. Feature modules add their own on top in `collect`.
 pub(crate) fn collect_native(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     editing: bool,
 ) -> Vec<Diagnostic> {
@@ -190,7 +190,7 @@ pub(crate) fn collect_native(
                 ws,
                 path,
                 span,
-                &eval::EvalError::Message(message),
+                &lang::eval::EvalError::Message(message),
                 DiagnosticCode::Resource,
                 &[],
             ));
@@ -275,7 +275,7 @@ pub(crate) fn collect_native(
         if unfinished(reference.span) {
             continue;
         }
-        if let Err(message) = eval::tables::resolve_reference(ws, path, reference) {
+        if let Err(message) = lang::eval::tables::resolve_reference(ws, path, reference) {
             let candidates = ws
                 .symbols()
                 .into_iter()
@@ -338,9 +338,9 @@ pub(crate) fn collect_native(
         for (key, attr) in &task.attributes {
             let error: Option<EvalError> = match key.as_str() {
                 "due" | "scheduled" | "at" | "repeat_from" => engine.when(path, &attr.value).err(),
-                "estimate" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(eval::engine::Value::Duration(s)) if s >= 0)).then(|| "@estimate requires a nonnegative duration, e.g. 20m or 2h".into()),
-                "timer" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(eval::engine::Value::Timer(t)) if t.origin.is_some() && model::identifier(&attr.value))).then(|| "@timer requires a named stopwatch or countdown, e.g. @timer(focus)".into()),
-                "every" => eval::engine::next_occurrence(&attr.value, today, today).err().or_else(|| doc.tasks.iter().any(|t| t.parent == Some(index)).then(|| "Put recurrence on individual tasks, not parent checklists".into())),
+                "estimate" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(lang::eval::engine::Value::Duration(s)) if s >= 0)).then(|| "@estimate requires a nonnegative duration, e.g. 20m or 2h".into()),
+                "timer" => (!matches!(engine.eval_at(path, &attr.value, attr.value_span), Ok(lang::eval::engine::Value::Timer(t)) if t.origin.is_some() && lang::model::identifier(&attr.value))).then(|| "@timer requires a named stopwatch or countdown, e.g. @timer(focus)".into()),
+                "every" => lang::eval::engine::next_occurrence(&attr.value, today, today).err().or_else(|| doc.tasks.iter().any(|t| t.parent == Some(index)).then(|| "Put recurrence on individual tasks, not parent checklists".into())),
                 _ => None,
             };
             if let Some(message) = error {

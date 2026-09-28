@@ -1,8 +1,8 @@
 use crate::controls::code_actions;
 use crate::controls::commands::{Action, Capabilities, RowTarget};
-use eval::engine::{Engine, Value};
-use eval::modules::{Hook, ModuleKind};
-use eval::resources::{Resource, ResourcePresenting};
+use lang::eval::engine::{Engine, Value};
+use lang::eval::modules::{Hook, ModuleKind};
+use lang::eval::resources::{Resource, ResourcePresenting};
 use lsp_types::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -10,7 +10,7 @@ use std::{
 };
 
 pub(crate) fn resources_at(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     row: usize,
 ) -> Vec<Resource> {
@@ -68,7 +68,7 @@ pub(crate) fn titled(engine: &mut Engine<'_>, glyph: &str, word: &str) -> String
     format!("{glyph} {word}")
 }
 pub(crate) fn builtin_controls(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     row: usize,
     include_task: bool,
@@ -78,7 +78,7 @@ pub(crate) fn builtin_controls(
     let Some(doc) = ws.documents.get(path) else {
         return vec![];
     };
-    let uri = common::file_url(path).unwrap();
+    let uri = lang::common::file_url(path).unwrap();
     let target = RowTarget {
         document: uri.clone(),
         row,
@@ -134,7 +134,7 @@ pub(crate) fn builtin_controls(
     result
 }
 pub(crate) fn lenses(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     capabilities: Capabilities,
 ) -> Vec<CodeLens> {

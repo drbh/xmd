@@ -1,9 +1,9 @@
 use crate::controls::code_actions;
-use common::Span;
-use eval::engine::{Engine, Value, literal};
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::engine::{Engine, Value, literal};
+use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::model::{byte_at, expression_regions, identifier};
 use lsp_types::*;
-use model::{byte_at, expression_regions, identifier};
 use std::path::Path;
 
 pub(crate) struct Refactor {
@@ -49,7 +49,7 @@ fn distance(a: &str, b: &str) -> usize {
     d[a.len()][b.len()]
 }
 pub(crate) fn refactors(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     range: Range,
 ) -> Vec<Refactor> {
@@ -76,11 +76,11 @@ pub(crate) fn refactors(
                     "write_edits",
                     vec![
                         solved.record(ws),
-                        Value::Text(common::file_url(path).unwrap().to_string()),
+                        Value::Text(lang::common::file_url(path).unwrap().to_string()),
                     ],
                     request.now(),
                 )
-                .and_then(|v| eval::modules::json(&v))
+                .and_then(|v| lang::eval::modules::json(&v))
                 .map_err(|e| e.to_string())
                 .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
                 .unwrap_or_default();
@@ -110,7 +110,7 @@ pub(crate) fn refactors(
         || doc
             .references
             .iter()
-            .any(|r| r.span.line == row && eval::tables::scope_at(doc, r.span).is_some())
+            .any(|r| r.span.line == row && lang::eval::tables::scope_at(doc, r.span).is_some())
     {
         return result;
     }
@@ -229,7 +229,7 @@ pub(crate) fn refactors(
             continue;
         }
         if let Err(error) = ws.resolve(path, &reference.name) {
-            if !matches!(error, eval::EvalError::UnknownName { .. }) {
+            if !matches!(error, lang::eval::EvalError::UnknownName { .. }) {
                 continue;
             }
             let mut choices: Vec<_> = ws

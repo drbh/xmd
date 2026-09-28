@@ -1,9 +1,9 @@
 use crate::controls::commands::{Action, Capabilities};
 use chrono::NaiveDate;
-use common::Span;
-use eval::engine::next_occurrence;
+use lang::common::Span;
+use lang::eval::engine::next_occurrence;
+use lang::model::byte_at;
 use lsp_types::{CodeActionKind, Command, Position, Range, TextEdit};
-use model::byte_at;
 use std::path::Path;
 
 /// One proposal, before a host decides how to carry it: an edit, a command, or
@@ -48,7 +48,7 @@ pub enum TaskToggle {
 
 /// Every action offered for one range, in the order a host should show them.
 pub(crate) fn code_actions(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     range: Range,
     capabilities: Capabilities,
@@ -110,7 +110,7 @@ pub(crate) fn code_actions(
 }
 
 pub(crate) fn toggle_task(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     path: &Path,
     index: usize,
 ) -> Result<Vec<TextEdit>, String> {
@@ -235,7 +235,7 @@ pub(crate) fn toggle_task(
     }
     Ok(edits)
 }
-pub(crate) fn freeze_dates(request: &eval::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
+pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
     let today = request.today();
     let workspace = request.workspace();
 
@@ -247,7 +247,7 @@ pub(crate) fn freeze_dates(request: &eval::RequestContext<'_>, path: &Path) -> V
         .chain(doc.events.iter().flat_map(|e| e.attributes.iter()))
         .filter(|(key, _)| matches!(key.as_str(), "due" | "scheduled" | "at"))
         .filter_map(|(_, a)| {
-            eval::engine::relative_date(&a.value, today)
+            lang::eval::engine::relative_date(&a.value, today)
                 .and_then(|_| engine.when(path, &a.value).ok())
                 .map(|v| TextEdit::new(a.value_span.range(&doc.text), v.display()))
         })

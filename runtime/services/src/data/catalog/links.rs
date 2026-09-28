@@ -4,10 +4,10 @@ use super::{
     RecordKind,
     record::{Base, Record, SourceRef},
 };
-use eval::Workspace;
-use eval::engine::Value;
-use eval::record;
-use model::Document;
+use lang::eval::Workspace;
+use lang::eval::engine::Value;
+use lang::eval::record;
+use lang::model::Document;
 use serde_json::json;
 use std::path::Path;
 
@@ -40,7 +40,7 @@ pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut V
                 url: link.target.clone(),
             },
         );
-        r.resource = Some(eval::resources::Resource {
+        r.resource = Some(lang::eval::resources::Resource {
             target: link.target.clone(),
             origin: Some(path.into()),
         });
@@ -52,7 +52,9 @@ pub(super) fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &m
     let targets = doc.links.iter().map(|l| (l.span, l.target.as_str())).chain(
         doc.definitions
             .iter()
-            .filter(|d| !d.expression && eval::resources::Resource::parse(&d.source).is_some())
+            .filter(|d| {
+                !d.expression && lang::eval::resources::Resource::parse(&d.source).is_some()
+            })
             .map(|d| (d.value_span, d.source.as_str())),
     );
     for (span, target) in targets {

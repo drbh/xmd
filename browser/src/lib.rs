@@ -1,16 +1,16 @@
 //! A browser-local workspace. JSON crosses the worker boundary; all language logic stays in Rust.
 
 use chrono::{DateTime, FixedOffset};
-use common::{file_path, uri};
-use eval::Workspace;
+use lang::common::{file_path, uri};
+use lang::eval::Workspace;
+use lang::model::identifier;
 use lsp_types::*;
-use model::identifier;
+use runtime::services::Request;
+use runtime::services::commands::{Action, Capabilities, PreparedAction};
+use runtime::services::session::WorkspaceSession;
+use runtime::services::{actions::TaskToggle, intelligence, presentation};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
-use services::Request;
-use services::commands::{Action, Capabilities, PreparedAction};
-use services::session::WorkspaceSession;
-use services::{actions::TaskToggle, intelligence, presentation};
 use std::{
     collections::BTreeMap,
     path::{Component, Path, PathBuf},
@@ -77,7 +77,7 @@ fn virtual_path(uri: &str) -> Result<PathBuf, String> {
     }
     let path = file_path(&url)?;
     if !path.starts_with("/workspace")
-        || !common::is_note(&path)
+        || !lang::common::is_note(&path)
         || path
             .components()
             .any(|c| !matches!(c, Component::RootDir | Component::Normal(_)))
@@ -85,7 +85,7 @@ fn virtual_path(uri: &str) -> Result<PathBuf, String> {
     {
         return Err(format!(
             "Expected a .{} file within the browser's /workspace",
-            common::EXTENSION
+            lang::common::EXTENSION
         ));
     }
     Ok(path)
@@ -136,18 +136,18 @@ impl BrowserWorkspace {
                             Path::new(&name).components().next(),
                             Some(Component::Normal(_))
                         )
-                        || !common::is_note(&name)
+                        || !lang::common::is_note(&name)
                         || name.contains(['\\', '\0'])
                     {
                         return Err(format!(
                             "Module names must be .{} filenames",
-                            common::EXTENSION
+                            lang::common::EXTENSION
                         ));
                     }
                     Ok((Path::new("/workspace/.xmd/modules").join(name), source))
                 })
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
-            let modules = eval::modules::ModuleRegistry::compile(sources)?;
+            let modules = lang::eval::modules::ModuleRegistry::compile(sources)?;
             self.session.workspace.modules = std::sync::Arc::new(modules);
             return Ok(Value::Null);
         }
@@ -177,7 +177,8 @@ impl BrowserWorkspace {
             return self.execute(command, now);
         }
         if method == "query" {
-            let compiled = services::query::Query::parse(&field::<String>(&params, "query")?)?;
+            let compiled =
+                runtime::services::query::Query::parse(&field::<String>(&params, "query")?)?;
             let only = params
                 .get("uri")
                 .filter(|v| !v.is_null())
@@ -199,8 +200,8 @@ impl BrowserWorkspace {
         let ws = &self.session.workspace;
         let request = Request::new(ws, now);
         let position = || field::<Position>(&params, "position");
-        let location = |symbol: &eval::Symbol| Location {
-            uri: common::uri_from_url(&uri(&symbol.path)),
+        let location = |symbol: &lang::eval::Symbol| Location {
+            uri: lang::common::uri_from_url(&uri(&symbol.path)),
             range: ws
                 .named(symbol)
                 .span
@@ -210,8 +211,8 @@ impl BrowserWorkspace {
             "documentLinks" => serialized(request.document_links(&path)),
             "documentSymbols" => serialized(request.document_symbols(&path)),
             "formatting" => serialized(request.formatting(&path)?),
-            "folding" => serialized(services::symbols::folding_ranges(doc)),
-            "onTypeFormatting" => serialized(services::typing::on_type(
+            "folding" => serialized(runtime::services::symbols::folding_ranges(doc)),
+            "onTypeFormatting" => serialized(runtime::services::typing::on_type(
                 doc,
                 position()?,
                 &field::<String>(&params, "ch")?,
@@ -240,9 +241,14 @@ impl BrowserWorkspace {
                     .and_then(Value::as_bool)
                     .unwrap_or(method == "analyze");
                 let diagnostics = request.diagnostics(&path, editing);
-                let html = services::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
+                let html = runtime::services::rendering::fragment(
+                    doc,
+                    &inlays.hints,
+                    &diagnostics,
+                    &links,
+                )?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":services::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":runtime::services::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )
@@ -268,7 +274,7 @@ impl BrowserWorkspace {
                 let locations: Vec<Location> = intelligence::occurrences(ws, &symbol)
                     .into_iter()
                     .map(|(p, span)| Location {
-                        uri: common::uri_from_url(&uri(&p)),
+                        uri: lang::common::uri_from_url(&uri(&p)),
                         range: span.range(&ws.documents[&p].text),
                     })
                     .collect();
@@ -276,7 +282,7 @@ impl BrowserWorkspace {
                     return serialized(locations);
                 }
                 if method == "highlights" {
-                    let current = common::uri_from_url(&uri(&path));
+                    let current = lang::common::uri_from_url(&uri(&path));
                     return Ok(json!(
                         locations
                             .into_iter()
@@ -290,11 +296,11 @@ impl BrowserWorkspace {
                 if !identifier(&name) {
                     return Err("Use a name with letters, digits, and underscores".into());
                 }
-                eval::tables::validate_rename(ws, &symbol, &name)?;
+                lang::eval::tables::validate_rename(ws, &symbol, &name)?;
                 let mut changes = BTreeMap::<PathBuf, Vec<TextEdit>>::new();
                 for location in locations {
                     changes
-                        .entry(file_path(&common::url_from_uri(&location.uri))?)
+                        .entry(file_path(&lang::common::url_from_uri(&location.uri))?)
                         .or_default()
                         .push(TextEdit::new(location.range, name.clone()));
                 }

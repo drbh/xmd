@@ -16,12 +16,12 @@ mod tasks;
 mod timers;
 pub(crate) mod value;
 
-use eval::Workspace;
-use eval::engine::Engine;
+use lang::eval::Workspace;
+use lang::eval::engine::Engine;
 use std::path::Path;
 
-pub(crate) use eval::Clock as QueryContext;
-pub(crate) use eval::modules::Collection;
+pub(crate) use lang::eval::Clock as QueryContext;
+pub(crate) use lang::eval::modules::Collection;
 pub(crate) use record::{Record, source};
 
 /// The `kind` field every catalog record carries. Queries and .x.md modules

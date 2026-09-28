@@ -20,9 +20,9 @@ use crate::{
     view::inlays::InlayOutput,
 };
 use chrono::{DateTime, FixedOffset};
-use eval::{RequestContext, Symbol, Workspace};
+use lang::eval::{RequestContext, Symbol, Workspace};
+use lang::model::Document;
 use lsp_types::*;
-use model::Document;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -262,7 +262,7 @@ impl WorkspaceSession {
         Value::Object(
             self.open
                 .iter()
-                .map(|(path, version)| (common::uri(path).to_string(), json!(version)))
+                .map(|(path, version)| (lang::common::uri(path).to_string(), json!(version)))
                 .collect(),
         )
     }
@@ -277,7 +277,8 @@ impl WorkspaceSession {
 
 /// A module source either by location or because a manifest activated it.
 fn module_path(workspace: &Workspace, path: &Path) -> bool {
-    eval::modules::is_module_path(path) || workspace.modules.modules.iter().any(|m| m.path == path)
+    lang::eval::modules::is_module_path(path)
+        || workspace.modules.modules.iter().any(|m| m.path == path)
 }
 
 /// What one refresh found: the diagnostics a client has not been told about,
@@ -327,7 +328,7 @@ impl WorkspaceSession {
         self.lenses.clear();
         let mut diagnostics = Vec::new();
         for (path, version, ds, lenses) in updates {
-            diagnostics.push((common::uri(&path), version, ds.clone()));
+            diagnostics.push((lang::common::uri(&path), version, ds.clone()));
             self.diagnostics.insert(path.clone(), ds);
             self.lenses.insert(path, lenses);
         }
@@ -351,7 +352,7 @@ impl WorkspaceSession {
         let mut lenses_changed = false;
         for (path, version, ds, lenses) in updates {
             if self.diagnostics.get(&path) != Some(&ds) {
-                diagnostics.push((common::uri(&path), version, ds.clone()));
+                diagnostics.push((lang::common::uri(&path), version, ds.clone()));
                 self.diagnostics.insert(path.clone(), ds);
             }
             if self.lenses.get(&path) != Some(&lenses) {

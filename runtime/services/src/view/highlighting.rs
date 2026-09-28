@@ -1,11 +1,11 @@
 //! Semantic colors describe XMD's syntax and types, independent of the editor.
 //! Keep parser highlights intact: other LSP features use them to identify inert text.
 use crate::view::prose;
-use common::Span;
-use eval::engine;
+use lang::common::Span;
+use lang::eval::engine;
+use lang::model::{Attribute, Document, Named};
+use lang::syntax::{Lexeme, Literal};
 use lsp_types::SemanticToken;
-use model::{Attribute, Document, Named};
-use syntax::{Lexeme, Literal};
 
 pub const TOKEN_TYPES: &[&str] = &[
     "comment",
@@ -43,7 +43,7 @@ pub const TOKEN_TYPES: &[&str] = &[
     "xmdExplore",
 ];
 /// The semantic token type for a stop kind.
-pub(crate) fn kind_token(kind: &eval::itinerary::Kind) -> &'static str {
+pub(crate) fn kind_token(kind: &lang::eval::itinerary::Kind) -> &'static str {
     match kind.marker {
         '>' => "xmdDepart",
         '<' => "xmdArrive",
@@ -262,7 +262,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     for h in &doc.highlights {
         p.mark(
             h.span,
-            if h.kind == model::HighlightKind::String {
+            if h.kind == lang::model::HighlightKind::String {
                 "xmdCode"
             } else {
                 h.kind.as_str()
@@ -314,7 +314,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
             p.brackets(def.named.span);
             if def.source == "table" {
                 p.mark(def.value_span, "keyword");
-            } else if let Some((_, start, end)) = eval::plans::goal(&def.source) {
+            } else if let Some((_, start, end)) = lang::eval::plans::goal(&def.source) {
                 let raw = p.source(def.value_span);
                 let offset = def.value_span.start + raw.len() - raw.trim_start().len();
                 p.mark(
@@ -333,7 +333,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
             p.brackets(def.value_span);
             p.mark(
                 def.value_span,
-                syntax::literal(&def.source)
+                lang::syntax::literal(&def.source)
                     .as_ref()
                     .map(value_kind)
                     .unwrap_or("string"),
@@ -486,7 +486,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     for h in doc
         .highlights
         .iter()
-        .filter(|h| h.kind == model::HighlightKind::Comment)
+        .filter(|h| h.kind == lang::model::HighlightKind::Comment)
     {
         p.mark(h.span, "comment");
     }

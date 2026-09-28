@@ -4,10 +4,10 @@ use super::{
     RecordKind,
     record::{Base, Record},
 };
-use eval::Workspace;
-use eval::engine::{Engine, Value};
-use eval::record;
-use model::Document;
+use lang::eval::Workspace;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::record;
+use lang::model::Document;
 use std::path::Path;
 
 record! {
@@ -25,25 +25,25 @@ pub(super) fn days(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
-    let dates = eval::itinerary::try_dates(&ws.modules, &doc.days, engine.today())
+    let dates = lang::eval::itinerary::try_dates(&ws.modules, &doc.days, engine.today())
         .map_err(|e| e.to_string())?;
     for (day, date) in doc.days.iter().zip(dates) {
-        let mut value = eval::itinerary::day_record(day, doc);
+        let mut value = lang::eval::itinerary::day_record(day, doc);
         if let Some(date) = date
             && let Some((places, _)) = &day.places
-            && let Some(place) = eval::lookups::day_place(places)
+            && let Some(place) = lang::eval::lookups::day_place(places)
             && let Some(lookup) =
-                eval::lookups::LookupKey::forecast(&place, date).lookup(&ws.lookups)
+                lang::eval::lookups::LookupKey::forecast(&place, date).lookup(&ws.lookups)
             && let Value::Record(fields) = &mut value
         {
             fields.insert(
                 "forecast".into(),
-                eval::modules::record([
+                lang::eval::modules::record([
                     ("place".into(), Value::Text(place)),
                     (
                         "display".into(),
                         Value::Text(
-                            eval::lookups::forecast_from(&lookup.value, false)
+                            lang::eval::lookups::forecast_from(&lookup.value, false)
                                 .map(|f| f.display())
                                 .unwrap_or_else(|e| e.to_string()),
                         ),

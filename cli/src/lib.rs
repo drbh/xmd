@@ -17,6 +17,6 @@
 //! from the kernel, and the browser host as `browser`.
 #[cfg(feature = "browser")]
 pub use browser;
-pub use common::is_note;
-pub use model::byte_at;
-pub use services::actions;
+pub use lang::common::is_note;
+pub use lang::model::byte_at;
+pub use runtime::services::actions;

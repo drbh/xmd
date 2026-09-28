@@ -1,9 +1,9 @@
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use eval::Workspace;
-use eval::engine::{Value, value_json};
-use host::WorkspaceFiles;
-use services::query::{self, display};
+use lang::eval::Workspace;
+use lang::eval::engine::{Value, value_json};
+use runtime::host::WorkspaceFiles;
+use runtime::services::query::{self, display};
 use std::{
     ffi::OsString,
     io::{self, IsTerminal, Read, Write},
@@ -13,7 +13,7 @@ use std::{
 /// A note file name as a literal for help text: `note!("trip")` is `trip.x.md`.
 macro_rules! note {
     ($stem:literal) => {
-        concat!($stem, ".", common::note_extension!())
+        concat!($stem, ".", lang::common::note_extension!())
     };
 }
 
@@ -143,7 +143,7 @@ pub(crate) enum RenderFormat {
     Text,
 }
 pub(crate) async fn refresh(workspace: &mut Workspace) -> Vec<String> {
-    let mut errors = host::refresh_workspace(workspace, host::now(), None).await;
+    let mut errors = runtime::host::refresh_workspace(workspace, runtime::host::now(), None).await;
     if let Err(e) = workspace.save_cache() {
         errors.push(e);
     }
@@ -262,8 +262,9 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         }
         None => (None, Workspace::load(vec![root])?),
     };
-    compiled.load_imports(&mut workspace, only.as_deref(), &host::DiskFiles);
-    let result = services::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
+    compiled.load_imports(&mut workspace, only.as_deref(), &runtime::host::DiskFiles);
+    let result =
+        runtime::services::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
@@ -310,7 +311,7 @@ fn request_time(
             )
     } else {
         // `XMD_NOW` freezes the clock; see the `editor` module.
-        Ok(host::now())
+        Ok(runtime::host::now())
     }
 }
 fn render_command(options: RenderOptions) -> Result<(), String> {
@@ -319,7 +320,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     let path = root.join(options.file);
     let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let workspace = Workspace::load_file(vec![root], &path)?;
-    let request = services::Request::new(&workspace, now);
+    let request = runtime::services::Request::new(&workspace, now);
     let text = match options.format {
         RenderFormat::Html => request.render_html(&path)?,
         RenderFormat::Text => request.render_text(&path)?,
@@ -338,7 +339,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     }
     let mut errors = 0;
     for diagnostic in diagnostics {
-        let severity = services::diagnostics::severity_name(diagnostic.severity);
+        let severity = runtime::services::diagnostics::severity_name(diagnostic.severity);
         if severity == "error" {
             errors += 1;
         }
@@ -380,20 +381,20 @@ fn render(value: &Value) -> String {
 /// `xmd run`: find the command module, then let the host perform its effects.
 fn run_module(name: &str, args: &[String], root: &std::path::Path) -> Result<(), String> {
     let path = std::path::Path::new(name);
-    let registry = if common::is_note(path) {
+    let registry = if lang::common::is_note(path) {
         let path = path
             .canonicalize()
             .map_err(|e| format!("Cannot open {name}: {e}"))?;
         let source = std::fs::read_to_string(&path).map_err(|e| format!("{name}: {e}"))?;
-        eval::modules::ModuleRegistry::compile([(path, source)].into())?
+        lang::eval::modules::ModuleRegistry::compile([(path, source)].into())?
     } else {
-        host::load_modules(&[root.to_path_buf()])?
+        runtime::host::load_modules(&[root.to_path_buf()])?
     };
     let module = registry
         .modules
         .iter()
         .find(|m| {
-            if common::is_note(path) {
+            if lang::common::is_note(path) {
                 m.path == path.canonicalize().unwrap_or_default()
             } else {
                 m.id == name
@@ -415,5 +416,7 @@ fn run_module(name: &str, args: &[String], root: &std::path::Path) -> Result<(),
     } else {
         args
     };
-    host::run_command(module, &dir, rest, host::now, |line| println!("{line}"))
+    runtime::host::run_command(module, &dir, rest, runtime::host::now, |line| {
+        println!("{line}")
+    })
 }

@@ -1,9 +1,9 @@
 //! Functional queries over lazy workspace bindings. Legacy pipelines share the evaluator.
 use crate::data::catalog::QueryContext;
 use crate::data::catalog::{self, Collection, Record, value as q};
-use eval::engine::{self, Bindings, Engine, Expr, Lexeme, Parser, Value};
-use eval::functional;
-use model::ExprImports;
+use lang::eval::engine::{self, Bindings, Engine, Expr, Lexeme, Parser, Value};
+use lang::eval::functional;
+use lang::model::ExprImports;
 use std::{
     cmp::Ordering,
     collections::BTreeMap,
@@ -83,7 +83,9 @@ fn split(source: &str, separator: char) -> Result<Vec<&str>, String> {
                 }
             }
             Lexeme::Op(op)
-                if separator == '|' && op == eval::engine::Operator::Pipe && stack.is_empty() =>
+                if separator == '|'
+                    && op == lang::eval::engine::Operator::Pipe
+                    && stack.is_empty() =>
             {
                 parts.push(source[start..token.start].trim());
                 start = token.end;
@@ -158,13 +160,13 @@ impl Query {
     /// Read the notes this query imports, through a host's `files`.
     pub fn load_imports(
         &self,
-        workspace: &mut eval::Workspace,
+        workspace: &mut lang::eval::Workspace,
         only: Option<&Path>,
         files: &dyn crate::api::NoteFiles,
     ) {
         let context = only
             .map(Path::to_path_buf)
-            .unwrap_or_else(|| workspace.root().join(common::note_file("__query__")));
+            .unwrap_or_else(|| workspace.root().join(lang::common::note_file("__query__")));
         let mut requests = std::collections::BTreeSet::new();
         if let Some(expr) = &self.expression {
             requests.extend(
@@ -192,7 +194,7 @@ impl Query {
             requests.extend(scopes.iter().map(|path| (path.clone(), id.clone())));
         }
         for (path, id) in requests {
-            if let Ok(target) = model::note_path(&path, &id) {
+            if let Ok(target) = lang::model::note_path(&path, &id) {
                 // Like note imports, report missing dependencies only if evaluation reads them.
                 let _ = files.include_file(workspace, &target);
             }
@@ -259,7 +261,7 @@ fn sum(values: impl IntoIterator<Item = Value>) -> Result<Value, String> {
 
 struct RowBindings(Mutex<Item>);
 impl Bindings for RowBindings {
-    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<eval::EvalResult<Value>> {
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<lang::eval::EvalResult<Value>> {
         let mut item = self.0.lock().expect("query row poisoned");
         let exists = match &*item {
             Item::Record(record) => record.has(name),
@@ -281,7 +283,7 @@ struct WorkspaceBindings {
     cache: Mutex<BTreeMap<String, Value>>,
 }
 impl Bindings for WorkspaceBindings {
-    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<eval::EvalResult<Value>> {
+    fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<lang::eval::EvalResult<Value>> {
         let collection = name.parse::<Collection>();
         if name != "graph" && collection.is_err() {
             return None;
@@ -320,7 +322,7 @@ impl Bindings for WorkspaceBindings {
 /// `only` restricts input records to one indexed document while retaining
 /// workspace-wide name resolution.
 pub(crate) fn execute(
-    request: &eval::RequestContext<'_>,
+    request: &lang::eval::RequestContext<'_>,
     query: &Query,
     only: Option<&Path>,
 ) -> Result<QueryResult, String> {
@@ -334,7 +336,7 @@ pub(crate) fn execute(
     }
     let context = only
         .map(Path::to_path_buf)
-        .unwrap_or_else(|| ws.root().join(common::note_file("__query__")));
+        .unwrap_or_else(|| ws.root().join(lang::common::note_file("__query__")));
     let mut items = Vec::new();
     if let Some(expr) = &query.expression {
         let bindings = Arc::new(WorkspaceBindings {

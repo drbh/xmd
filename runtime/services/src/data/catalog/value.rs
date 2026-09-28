@@ -2,7 +2,7 @@
 //! conventions the query API relies on: host objects enter as the records they
 //! describe, JSON integers (positions, ranges) arrive as counts, and lists and
 //! records display as JSON.
-use eval::engine::{HostObject, Value, value_json};
+use lang::eval::engine::{HostObject, Value, value_json};
 
 pub(crate) fn text(value: impl Into<String>) -> Value {
     Value::Text(value.into())

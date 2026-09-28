@@ -1,9 +1,9 @@
 //! Reading a workspace from disk: its notes, their imports, the activated
 //! modules, the link cache and cached lookups.
-use eval::Workspace;
-use eval::modules::{ModuleRegistry, is_module_path};
-use eval::resources::Cache;
-use model::Document;
+use lang::eval::Workspace;
+use lang::eval::modules::{ModuleRegistry, is_module_path};
+use lang::eval::resources::Cache;
+use lang::model::Document;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -63,7 +63,7 @@ impl WorkspaceFiles for Workspace {
                     }
                 };
                 if entry.file_type().is_some_and(|t| t.is_file())
-                    && common::is_note(entry.path())
+                    && lang::common::is_note(entry.path())
                     && !is_module_path(entry.path())
                 {
                     let text = match std::fs::read_to_string(entry.path()) {
@@ -106,8 +106,8 @@ impl WorkspaceFiles for Workspace {
         Ok(())
     }
     fn include_file(&mut self, path: &Path) -> Result<(), String> {
-        if !common::is_note(path) {
-            return Err(format!("Expected a .{} note", common::EXTENSION));
+        if !lang::common::is_note(path) {
+            return Err(format!("Expected a .{} note", lang::common::EXTENSION));
         }
         if !self.documents.contains_key(path) {
             let text =
@@ -130,7 +130,7 @@ impl WorkspaceFiles for Workspace {
             let imports: Vec<_> = doc
                 .imports
                 .iter()
-                .filter_map(|id| model::note_path(&path, id).ok())
+                .filter_map(|id| lang::model::note_path(&path, id).ok())
                 .collect();
             for target in imports {
                 if !self.documents.contains_key(&target)
@@ -212,7 +212,7 @@ pub fn load_modules(roots: &[PathBuf]) -> Result<ModuleRegistry, String> {
             return Err("At most 64 workspace modules may be activated".into());
         }
         for entry in paths {
-            let path = model::note_path(&manifest, &entry)
+            let path = lang::model::note_path(&manifest, &entry)
                 .map_err(|e| format!("{}: {e}", manifest.display()))?;
             if sources.contains_key(&path) {
                 return Err(format!(

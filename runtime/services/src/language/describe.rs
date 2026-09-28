@@ -1,9 +1,9 @@
 //! How every feature names a symbol: the kind and the one-line detail the
 //! outline, the call hierarchy and completion all show, so the three agree.
-use eval::engine::{Engine, Value};
-use eval::{EvalResult, Symbol, SymbolKind};
+use lang::eval::engine::{Engine, Value};
+use lang::eval::{EvalResult, Symbol, SymbolKind};
+use lang::model::Document;
 use lsp_types::SymbolKind as Kind;
-use model::Document;
 
 pub(crate) fn kind(doc: &Document, symbol: &Symbol) -> Kind {
     match symbol.kind {

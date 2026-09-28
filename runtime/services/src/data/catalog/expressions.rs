@@ -4,11 +4,11 @@ use super::{
     RecordKind,
     record::{Base, Expression, Record, SourceRef},
 };
-use common::Span;
-use eval::Workspace;
-use eval::engine::{Engine, Value};
-use eval::record;
-use model::Document;
+use lang::common::Span;
+use lang::eval::Workspace;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::record;
+use lang::model::Document;
 use std::path::Path;
 
 record! {
@@ -138,7 +138,7 @@ pub(super) fn cells(
                         .value
                         .clone()
                         .map(Value::from)
-                        .map_err(eval::EvalError::Message),
+                        .map_err(lang::eval::EvalError::Message),
                 };
                 let source = cell
                     .expression
@@ -177,8 +177,8 @@ fn expression_base(
     kind: RecordKind,
     source: &str,
     span: Span,
-    value: eval::EvalResult<Value>,
-) -> (Base, Expression, Option<eval::resources::Resource>) {
+    value: lang::eval::EvalResult<Value>,
+) -> (Base, Expression, Option<lang::eval::resources::Resource>) {
     let mut base = Base::new(ws, path, span.line, kind, source);
     base.source = SourceRef::new(ws, path, span);
     let resource = match &value {

@@ -4,11 +4,11 @@ use super::{
     RecordKind,
     record::{Base, Record, TimerOrigin},
 };
-use common::Span;
-use eval::Workspace;
-use eval::engine::{Engine, Value};
-use eval::record;
-use model::Document;
+use lang::common::Span;
+use lang::eval::Workspace;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::record;
+use lang::model::Document;
 use std::path::Path;
 
 record! {
@@ -71,7 +71,7 @@ pub(super) fn timers(
                 inlay,
                 value: q::query_value(timer.record()),
                 origin: timer.origin.as_ref().map(|origin| TimerOrigin {
-                    document: common::file_url(&origin.path).unwrap().into(),
+                    document: lang::common::file_url(&origin.path).unwrap().into(),
                     name: ws.named(origin).name.clone(),
                 }),
             },

@@ -10,8 +10,8 @@ pub(crate) use module::reduce;
 
 use crate::controls::commands::Capabilities;
 use crate::view::inlays::{InlayContext, InlaySink};
-use eval::RequestContext;
-use eval::modules::{Module, ModuleKind};
+use lang::eval::RequestContext;
+use lang::eval::modules::{Module, ModuleKind};
 use lsp_types::{Command, Diagnostic, Hover, Position, TextEdit};
 use std::path::Path;
 
@@ -75,7 +75,7 @@ impl Provider for Builtin {
             .documents
             .get(path)
             .ok_or("Unknown document")?;
-        Ok(eval::tables::formatting(doc))
+        Ok(lang::eval::tables::formatting(doc))
     }
 }
 

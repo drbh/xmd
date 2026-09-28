@@ -2,9 +2,9 @@
 //! that also feeds completion.
 use crate::{language::hover::markup, locate::inert};
 use Outcome::{Kind, Words};
-use eval::engine::{Builtin, ValueType};
+use lang::eval::engine::{Builtin, ValueType};
+use lang::model::{Document, byte_at};
 use lsp_types::*;
-use model::{Document, byte_at};
 
 /// What a call answers with: one value kind wherever the answer has one, so
 /// the table cannot invent a type name, and prose for the unions and for the
@@ -25,7 +25,7 @@ impl Outcome {
 
 // A built-in's tier is declared with it in `syntax`, since the engine itself
 // needs to know which built-ins module code alone may call.
-pub(crate) use eval::engine::Tier;
+pub(crate) use lang::eval::engine::Tier;
 
 /// One built-in call or task attribute, as signature help and completion show
 /// it: `documentation` explains it and `example` is what signature help fills
@@ -40,7 +40,7 @@ pub(crate) struct Signature {
     pub(crate) tier: Tier,
 }
 pub(crate) fn is_builtin_function(name: &str) -> bool {
-    eval::engine::is_builtin_function(name)
+    lang::eval::engine::is_builtin_function(name)
 }
 
 /// What a built-in's row in `describe` says; its name and tier come from the
@@ -73,7 +73,7 @@ const fn describe(builtin: Builtin) -> Signature {
             result: Kind(ValueType::Record),
             documentation: concat!(
                 "Load a module by ID, or a note by path such as import(\"./values.",
-                common::note_extension!(),
+                lang::common::note_extension!(),
                 "\"); members keep their own source."
             ),
             example: "\"format\"",
@@ -581,7 +581,7 @@ pub fn signature(
     let (name, argument) = call_context(&line[..byte])?;
     let function = BUILTINS.iter().find(|f| f.name == name)?;
     // A note has no module-tier built-ins, so it is told nothing about them.
-    if function.tier == Tier::Module && !eval::modules::is_module_path(path) {
+    if function.tier == Tier::Module && !lang::eval::modules::is_module_path(path) {
         return None;
     }
     Some(SignatureHelp {

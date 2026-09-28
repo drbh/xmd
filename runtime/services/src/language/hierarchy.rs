@@ -2,10 +2,10 @@
 //! tasks and checklists that depend on an item; "outgoing calls" are what the
 //! item itself depends on. Shared by the native server and deterministic tests.
 use crate::locate::symbol_at;
-use common::Span;
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::model::Document;
 use lsp_types::{CallHierarchyItem, Position, Range};
-use model::Document;
 use std::path::{Path, PathBuf};
 
 /// The graph node under the cursor: a named value, column, task line, or a
@@ -85,7 +85,7 @@ fn extent(doc: &Document, symbol: &Symbol) -> Range {
     }
 }
 
-pub(crate) fn item(request: &eval::RequestContext<'_>, symbol: &Symbol) -> CallHierarchyItem {
+pub(crate) fn item(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> CallHierarchyItem {
     let ws = request.workspace();
     let doc = &ws.documents[&symbol.path];
     let mut engine = request.engine();
@@ -96,7 +96,7 @@ pub(crate) fn item(request: &eval::RequestContext<'_>, symbol: &Symbol) -> CallH
         kind,
         tags: None,
         detail: Some(detail),
-        uri: common::uri_from_url(&common::file_url(&symbol.path).unwrap()),
+        uri: lang::common::uri_from_url(&lang::common::file_url(&symbol.path).unwrap()),
         range: extent(doc, symbol),
         selection_range: selection(doc, symbol).range(&doc.text),
         data: Some(encode(symbol)),
@@ -153,33 +153,34 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
             None => edges.push((target, vec![span])),
         }
     };
-    let mut references =
-        |within: Span| {
-            for member in doc
-                .members
-                .iter()
-                .filter(|m| within.contains(&doc.text, m.span))
-            {
-                if let Some(target) = eval::member_symbol(ws, &symbol.path, &member.source) {
-                    add(target, member.span);
-                }
+    let mut references = |within: Span| {
+        for member in doc
+            .members
+            .iter()
+            .filter(|m| within.contains(&doc.text, m.span))
+        {
+            if let Some(target) = lang::eval::member_symbol(ws, &symbol.path, &member.source) {
+                add(target, member.span);
             }
-            for reference in doc.references.iter().filter(|r| {
-                within.contains(&doc.text, Span::new(r.span.line, r.span.start, r.end()))
-            }) {
-                if let Ok(target) = eval::tables::resolve_reference(ws, &symbol.path, reference) {
-                    add(
-                        target,
-                        Span::new(reference.span.line, reference.span.start, reference.end()),
-                    );
-                }
+        }
+        for reference in doc
+            .references
+            .iter()
+            .filter(|r| within.contains(&doc.text, Span::new(r.span.line, r.span.start, r.end())))
+        {
+            if let Ok(target) = lang::eval::tables::resolve_reference(ws, &symbol.path, reference) {
+                add(
+                    target,
+                    Span::new(reference.span.line, reference.span.start, reference.end()),
+                );
             }
-        };
+        }
+    };
     match symbol.kind {
         SymbolKind::Definition(i) => {
             let def = &doc.definitions[i];
             if let Some(plan) = doc.plan_of(i) {
-                for region in eval::plans::regions(plan) {
+                for region in lang::eval::plans::regions(plan) {
                     references(region);
                 }
             } else if let Some(table) = doc.table_of(i) {

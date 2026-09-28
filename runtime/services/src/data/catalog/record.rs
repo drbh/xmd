@@ -2,10 +2,10 @@
 use super::RecordKind;
 use super::value as q;
 use chrono::NaiveDate;
-use common::Span;
-use eval::engine::{Engine, Value};
-use eval::resources::ResourcePresenting;
-use eval::{RecordFields, Symbol, ToValue, Workspace, record};
+use lang::common::Span;
+use lang::eval::engine::{Engine, Value};
+use lang::eval::resources::ResourcePresenting;
+use lang::eval::{RecordFields, Symbol, ToValue, Workspace, record};
 use lsp_types::{Position, Range};
 use serde_json::json;
 use std::{
@@ -25,7 +25,7 @@ record! {
 }
 impl SourceRef {
     pub(super) fn new(ws: &Workspace, path: &Path, span: Span) -> Self {
-        let mut uri = common::file_url(path)
+        let mut uri = lang::common::file_url(path)
             .map(|u| u.to_string())
             .unwrap_or_default();
         uri.push_str(&format!("#L{}", span.line + 1));
@@ -269,7 +269,7 @@ pub(crate) struct Record {
     pub fields: BTreeMap<String, Value>,
     pub path: PathBuf,
     pub(super) deferred: Option<Symbol>,
-    pub(super) resource: Option<eval::resources::Resource>,
+    pub(super) resource: Option<lang::eval::resources::Resource>,
 }
 impl Record {
     pub(crate) fn projected(path: PathBuf, fields: BTreeMap<String, Value>) -> Self {

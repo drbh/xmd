@@ -1,10 +1,10 @@
 //! What sits at a position in a note, resolved once so every feature agrees on
 //! it: hovers, definition and rename ask here rather than each walking the
 //! note for links, cells, calculations and names in an order of its own.
-use common::Span;
-use eval::{Symbol, SymbolKind, Workspace};
+use lang::common::Span;
+use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::model::{Document, byte_at};
 use lsp_types::Position;
-use model::{Document, byte_at};
 use std::path::Path;
 
 /// The thing under a position, most specific first.
@@ -68,7 +68,7 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
     let inside =
         |span: Span| span.line == position.line as usize && byte >= span.start && byte <= span.end;
     if let Some(member) = doc.members.iter().find(|m| inside(m.span))
-        && let Some(symbol) = eval::member_symbol(workspace, path, &member.source)
+        && let Some(symbol) = lang::eval::member_symbol(workspace, path, &member.source)
     {
         return Some((symbol, member.span));
     }
@@ -89,7 +89,7 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
         .iter()
         .find(|r| inside(Span::new(r.span.line, r.span.start, r.end())))
         .and_then(|r| {
-            eval::tables::resolve_reference(workspace, path, r)
+            lang::eval::tables::resolve_reference(workspace, path, r)
                 .ok()
                 .map(|s| (s, r.span))
         })
@@ -106,8 +106,8 @@ pub(crate) fn inert(doc: &Document, position: Position) -> bool {
         h.span.line == row
             && byte >= h.span.start
             && byte < h.span.end
-            && (h.kind == model::HighlightKind::Comment
-                || h.kind == model::HighlightKind::String
+            && (h.kind == lang::model::HighlightKind::Comment
+                || h.kind == lang::model::HighlightKind::String
                     && !doc
                         .tasks
                         .iter()

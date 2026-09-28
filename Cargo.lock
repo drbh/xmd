@@ -93,14 +93,11 @@ name = "browser"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "common",
- "eval",
+ "lang",
  "lsp-types",
- "model",
+ "runtime",
  "serde",
  "serde_json",
- "services",
- "syntax",
  "url",
  "wasm-bindgen",
 ]
@@ -504,11 +501,9 @@ name = "host"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "common",
- "eval",
  "feed-rs",
  "ignore",
- "model",
+ "lang",
  "serde_json",
  "services",
  "tokio",
@@ -689,6 +684,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lang"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "eval",
+ "model",
+ "syntax",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -726,14 +731,11 @@ name = "lsp"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "common",
- "eval",
- "host",
+ "lang",
  "lsp-types",
- "model",
+ "runtime",
  "serde",
  "serde_json",
- "services",
  "tokio",
  "tower-lsp-server",
  "url",
@@ -1017,6 +1019,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "runtime"
+version = "0.1.0"
+dependencies = [
+ "host",
+ "services",
+]
+
+[[package]]
 name = "rustix"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1109,15 +1119,12 @@ name = "services"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "common",
- "eval",
+ "lang",
  "lsp-types",
- "model",
  "renderer",
  "serde",
  "serde_json",
  "strum",
- "syntax",
  "url",
 ]
 
@@ -1605,14 +1612,11 @@ dependencies = [
  "browser",
  "chrono",
  "clap",
- "common",
- "eval",
- "host",
+ "lang",
  "lsp",
  "lsp-types",
- "model",
+ "runtime",
  "serde_json",
- "services",
  "tempfile",
  "tokio",
  "url",

@@ -297,15 +297,12 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "common",
- "feed-rs",
  "good_lp",
- "ignore",
  "model",
  "serde",
  "serde_json",
  "strum",
  "syntax",
- "tokio",
  "url",
 ]
 
@@ -322,6 +319,7 @@ dependencies = [
  "chrono",
  "common",
  "eval",
+ "host",
  "lsp-types",
  "model",
  "renderer",
@@ -500,6 +498,21 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "host"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "eval",
+ "feed-rs",
+ "ignore",
+ "model",
+ "serde_json",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "httparse"
@@ -796,6 +809,7 @@ dependencies = [
  "diffy",
  "eval",
  "features",
+ "host",
  "lsp-types",
  "model",
  "serde",

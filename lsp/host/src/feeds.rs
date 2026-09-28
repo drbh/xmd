@@ -4,7 +4,7 @@
 //! Feeds are the one remote shape a link module cannot decode for itself: the
 //! module language splits text but does not parse XML. So the host converts
 //! before the module decodes. A `refresh` request that asks for
-//! [`RefreshFormat::Feed`](crate::link_features_impl::RefreshFormat) has its program's
+//! [`RefreshFormat::Feed`](eval::link_features::RefreshFormat) has its program's
 //! stdout run through [`parse`], and the module's `decode` sees the ordinary
 //! JSON record [`json`] produces.
 //!

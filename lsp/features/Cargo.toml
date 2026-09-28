@@ -5,12 +5,13 @@ edition = "2024"
 publish = false
 
 [features]
-native = ["eval/native"]
+native = ["dep:host"]
 
 [dependencies]
 chrono = { workspace = true }
 common = { path = "../../lang/core/common" }
 eval = { path = "../../lang/core/eval" }
+host = { path = "../host", optional = true }
 lsp-types = { workspace = true }
 model = { path = "../../lang/core/model" }
 renderer = { path = "../renderer" }

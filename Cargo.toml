@@ -6,7 +6,7 @@
 # `client/ide/zed` is a crate too, but it targets wasm32-wasip2 and keeps its
 # own lockfile, so it stays out of this workspace.
 [workspace]
-members = ["lsp", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "lsp/features", "lsp/native", "lsp/wasm", "lsp/renderer"]
+members = ["lsp", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "lsp/host", "lsp/features", "lsp/native", "lsp/wasm", "lsp/renderer"]
 default-members = ["lsp"]
 exclude = ["client/ide/zed"]
 resolver = "3"
@@ -34,8 +34,9 @@ common = []
 syntax = ["common"]
 model = ["common", "syntax"]
 eval = ["common", "syntax", "model"]
+host = ["common", "model", "eval"]
 renderer = []
-features = ["common", "syntax", "model", "eval", "renderer"]
-native = ["common", "syntax", "model", "eval", "features"]
+features = ["common", "syntax", "model", "eval", "host", "renderer"]
+native = ["common", "syntax", "model", "eval", "host", "features"]
 wasm = ["common", "syntax", "model", "eval", "features"]
-xmd = ["common", "syntax", "model", "eval", "features", "native", "wasm"]
+xmd = ["common", "syntax", "model", "eval", "host", "features", "native", "wasm"]

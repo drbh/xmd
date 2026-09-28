@@ -8,6 +8,7 @@ use features::actions::TaskToggle;
 use features::commands::{Action, Capabilities, PreparedAction};
 use features::session::RefreshReport;
 use features::session::WorkspaceSession;
+use host::WorkspaceFiles;
 use model::identifier;
 use std::{
     collections::BTreeMap,
@@ -682,9 +683,7 @@ impl LanguageServer for Backend {
             }
             PreparedAction::RefreshResource { resource } => {
                 let snapshot = self.state.read().await.session.workspace.clone();
-                let metadata = snapshot
-                    .link_features()
-                    .fetch(&resource.target)
+                let metadata = host::fetch_link(snapshot.link_features(), &resource.target)
                     .await
                     .map_err(Error::invalid_params)?;
                 let workspace = {

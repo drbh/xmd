@@ -3,6 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use eval::Workspace;
 use eval::engine::{Value, value_json};
 use features::query::{self, display};
+use host::WorkspaceFiles;
 use std::{
     collections::BTreeSet,
     ffi::OsString,
@@ -154,14 +155,14 @@ pub(crate) async fn refresh_in_memory(
         .collect();
     let mut errors = Vec::new();
     for target in targets {
-        match workspace.link_features().fetch(&target).await {
+        match host::fetch_link(workspace.link_features(), &target).await {
             Ok(metadata) => {
                 workspace.cache.insert(target, metadata);
             }
             Err(e) => errors.push(format!("{target}: {e}")),
         }
     }
-    errors.extend(eval::lookups::native::refresh(workspace, crate::editor::now(), only).await);
+    errors.extend(host::lookups::refresh(workspace, crate::editor::now(), only).await);
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {

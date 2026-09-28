@@ -1,23 +1,18 @@
 [package]
-name = "native"
+name = "host"
 version = "0.1.0"
 edition = "2024"
 publish = false
 
 [dependencies]
 chrono = { workspace = true }
-clap = { version = "4", features = ["derive"] }
 common = { path = "../../lang/core/common" }
-diffy = "0.4"
 eval = { path = "../../lang/core/eval" }
-features = { path = "../features", features = ["native"] }
-host = { path = "../host" }
-lsp-types = { workspace = true }
+feed-rs = "3"
+ignore = "0.4"
 model = { path = "../../lang/core/model" }
-serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
-tower-lsp-server = { workspace = true }
 url = { workspace = true }
 
 [lints]

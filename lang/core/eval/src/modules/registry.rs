@@ -79,50 +79,6 @@ impl ModuleRegistry {
             modules: link(modules)?,
         })
     }
-    #[cfg(feature = "native")]
-    pub fn load(roots: &[PathBuf]) -> Result<Self, String> {
-        let mut sources = BTreeMap::new();
-        for root in roots {
-            let manifest = root.join(".xmd/modules.json");
-            let text = match std::fs::read_to_string(&manifest) {
-                Ok(v) => v,
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
-                Err(e) => return Err(format!("{}: {e}", manifest.display())),
-            };
-            if text.len() > 65_536 {
-                return Err(format!("{} exceeds 64 KiB", manifest.display()));
-            }
-            let paths: Vec<String> = serde_json::from_str(&text).map_err(|e| {
-                format!(
-                    "{}: expected an array of module file paths: {e}",
-                    manifest.display()
-                )
-            })?;
-            if paths.len() + sources.len() > 64 {
-                return Err("At most 64 workspace modules may be activated".into());
-            }
-            for entry in paths {
-                let path = model::note_path(&manifest, &entry)
-                    .map_err(|e| format!("{}: {e}", manifest.display()))?;
-                if sources.contains_key(&path) {
-                    return Err(format!(
-                        "{} is listed more than once in module manifests",
-                        path.display()
-                    ));
-                }
-                let metadata = std::fs::metadata(&path).map_err(|e| {
-                    format!("{} (listed in {}): {e}", path.display(), manifest.display())
-                })?;
-                if metadata.len() > 65_536 {
-                    return Err(format!("{} exceeds 64 KiB", path.display()));
-                }
-                let source = std::fs::read_to_string(&path)
-                    .map_err(|e| format!("{}: {e}", path.display()))?;
-                sources.insert(path, source);
-            }
-        }
-        Self::compile(sources)
-    }
 }
 
 /// Each bundled module's id and source, read from `stdlib/<id>.<extension>`.

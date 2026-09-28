@@ -181,7 +181,7 @@ impl WorkspaceSession {
                 .insert(path.to_path_buf(), Document::parse(text));
             #[cfg(feature = "native")]
             if self.kind == Kind::Editor {
-                self.workspace.load_imports();
+                host::WorkspaceFiles::load_imports(&mut self.workspace);
             }
         }
         self.open.insert(path.to_path_buf(), version);
@@ -215,7 +215,7 @@ impl WorkspaceSession {
                 fresh.documents.insert(path, doc);
             }
         }
-        fresh.load_imports();
+        host::WorkspaceFiles::load_imports(&mut fresh);
         fresh
             .documents
             .retain(|path, _| !fresh.modules.modules.iter().any(|m| m.path == *path));

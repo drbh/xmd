@@ -23,8 +23,6 @@ mod context;
 #[path = "engine/mod.rs"]
 mod engine_impl;
 mod error;
-#[cfg(feature = "native")]
-mod feeds;
 #[path = "functional.rs"]
 mod functional_impl;
 mod imports;
@@ -94,13 +92,11 @@ pub mod tables {
 }
 // The contract a link module implements, and the built-in ones.
 pub mod link_features {
-    pub use crate::link_features_impl::{BUILTINS, LinkFeatures};
+    pub use crate::link_features_impl::{BUILTINS, LinkFeatures, RefreshFormat, RefreshRequest};
 }
-// Fetched lookup values, and (native only) how to refresh them.
+// Fetched lookup values; a host fetches and stores them.
 pub mod lookups {
-    #[cfg(feature = "native")]
-    pub use crate::lookups_impl::native;
-    pub use crate::lookups_impl::{LookupKey, day_place, forecast_from};
+    pub use crate::lookups_impl::{Lookup, LookupKey, day_place, forecast_from};
 }
 // The .x.md feature, link and library modules the engine calls into.
 pub mod modules {
@@ -111,7 +107,7 @@ pub mod modules {
 }
 // A resource value and how a hover presents it.
 pub mod resources {
-    pub use crate::resources_impl::{Resource, ResourcePresenting};
+    pub use crate::resources_impl::{Cache, Metadata, Resource, ResourcePresenting};
 }
 // Timer edits a command line or editor action can apply.
 pub mod timers {

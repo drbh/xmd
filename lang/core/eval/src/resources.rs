@@ -41,7 +41,7 @@ pub struct Metadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
 }
-pub(crate) type Cache = BTreeMap<String, Metadata>;
+pub type Cache = BTreeMap<String, Metadata>;
 
 /// Common presentation for a URL or local resource in any syntactic position.
 pub struct ResourcePresentation {
@@ -105,11 +105,4 @@ impl ResourcePresenting for Resource {
             ("image".into(), Value::Bool(self.is_image())),
         ])
     }
-}
-#[cfg(feature = "native")]
-pub(crate) fn load_cache(root: &Path) -> Cache {
-    std::fs::read(root.join(".xmd/cache.json"))
-        .ok()
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_default()
 }

@@ -210,42 +210,4 @@ impl<'a> LinkFeatures<'a> {
             .ok_or(EvalError::Message("No feature recognizes this link".into()))?;
         feature.decode_refresh(&url, data, now)
     }
-    #[cfg(feature = "native")]
-    pub async fn fetch(&self, target: &str) -> Result<Metadata, String> {
-        let (feature, url) = self
-            .matching(target)
-            .ok_or("No feature recognizes this link")?;
-        let request = feature
-            .refresh_request(&url)
-            .ok_or("This link feature does not support refresh")?;
-        let mut command = tokio::process::Command::new(&request.program);
-        command
-            .args(&request.args)
-            .envs(request.env)
-            .kill_on_drop(true);
-        let output = tokio::time::timeout(std::time::Duration::from_secs(20), command.output())
-            .await
-            .map_err(|_| format!("{} timed out", request.title))?
-            .map_err(|e| format!("Cannot run {}: {e}", request.program))?;
-        if !output.status.success() {
-            return Err(format!(
-                "{} failed: {}",
-                request.program,
-                String::from_utf8_lossy(&output.stderr).trim()
-            ));
-        }
-        // A feed is markup, so the host parses it into the records a module reads.
-        let data = match request.format {
-            RefreshFormat::Json => {
-                serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?
-            }
-            RefreshFormat::Feed => crate::feeds::json(&crate::feeds::parse(
-                &String::from_utf8_lossy(&output.stdout),
-            )?),
-        };
-        // The request clock, so a frozen `XMD_NOW` also freezes `fetched_at`.
-        feature
-            .decode_refresh(&url, &data, super::clock_impl::now().to_utc())
-            .map_err(|e| e.to_string())
-    }
 }

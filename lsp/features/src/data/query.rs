@@ -190,7 +190,7 @@ impl Query {
         for (path, id) in requests {
             if let Ok(target) = model::note_path(&path, &id) {
                 // Like note imports, report missing dependencies only if evaluation reads them.
-                let _ = workspace.include_file(&target);
+                let _ = host::WorkspaceFiles::include_file(workspace, &target);
             }
         }
     }

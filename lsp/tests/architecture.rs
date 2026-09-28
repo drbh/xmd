@@ -1,8 +1,8 @@
 //! Enforces the architecture: a crate may only depend on the internal crates
 //! listed for it in `[workspace.metadata.layers]` at the repo root; every
 //! other crate publishes a curated interface from its root (no public file
-//! modules, no glob re-exports, workspace lints on); and the facade `xmd`
-//! (this crate's own `src/lib.rs`) only re-exports.
+//! modules, no glob re-exports, workspace lints on); the facade `xmd` (this
+//! crate's own `src/lib.rs`) only re-exports; and `lang/core` does no I/O.
 use serde_json::Value;
 use std::process::Command;
 
@@ -115,6 +115,62 @@ fn components_publish_a_curated_interface() {
             );
         }
     }
+}
+
+/// `lang/core` is the language itself: it parses, evaluates and presents the
+/// notes it is handed, identically on every host. Reading files, running
+/// programs and talking to the network belong to a host such as `lsp/host`.
+#[test]
+fn core_does_no_io() {
+    const FORBIDDEN_CRATES: [&str; 5] = ["tokio", "ignore", "feed-rs", "reqwest", "notify"];
+    const FORBIDDEN_CODE: [&str; 5] = [
+        "std::fs",
+        "std::process",
+        "std::net",
+        "tokio::",
+        "Command::new",
+    ];
+    let metadata = metadata();
+    let core = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("lang/core");
+    let mut checked = 0;
+    for package in metadata["packages"].as_array().unwrap() {
+        let name = package["name"].as_str().unwrap();
+        let manifest = std::path::Path::new(package["manifest_path"].as_str().unwrap());
+        let dir = manifest.parent().unwrap();
+        if !dir.starts_with(&core) {
+            continue;
+        }
+        checked += 1;
+        for dep in package["dependencies"].as_array().unwrap() {
+            let dep = dep["name"].as_str().unwrap();
+            assert!(
+                !FORBIDDEN_CRATES.contains(&dep),
+                "crate `{name}` in lang/core depends on `{dep}`; I/O belongs to a host crate"
+            );
+        }
+        let mut pending = vec![dir.join("src")];
+        while let Some(path) = pending.pop() {
+            for entry in std::fs::read_dir(&path).expect("read source directory") {
+                let path = entry.expect("directory entry").path();
+                if path.is_dir() {
+                    pending.push(path);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    let source = std::fs::read_to_string(&path).expect("read source");
+                    for pattern in FORBIDDEN_CODE {
+                        assert!(
+                            !source.contains(pattern),
+                            "{path:?} uses `{pattern}`; lang/core stays free of I/O, \
+                             which belongs to a host crate such as lsp/host"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert!(checked >= 4, "expected the lang/core crates, found {checked}");
 }
 
 /// Removes every `start ... end` span from `s`, including the delimiters.

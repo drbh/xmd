@@ -314,24 +314,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
-name = "features"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "common",
- "eval",
- "host",
- "lsp-types",
- "model",
- "renderer",
- "serde",
- "serde_json",
- "strum",
- "syntax",
- "url",
-]
-
-[[package]]
 name = "feed-rs"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,12 +790,12 @@ dependencies = [
  "clap",
  "common",
  "eval",
- "features",
  "host",
  "lsp-types",
  "model",
  "serde",
  "serde_json",
+ "services",
  "tokio",
  "tower-lsp-server",
  "url",
@@ -1103,6 +1085,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "services"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "eval",
+ "host",
+ "lsp-types",
+ "model",
+ "renderer",
+ "serde",
+ "serde_json",
+ "strum",
+ "syntax",
+ "url",
 ]
 
 [[package]]
@@ -1451,11 +1451,11 @@ dependencies = [
  "chrono",
  "common",
  "eval",
- "features",
  "lsp-types",
  "model",
  "serde",
  "serde_json",
+ "services",
  "syntax",
  "url",
  "wasm-bindgen",
@@ -1604,11 +1604,11 @@ name = "xmd"
 version = "0.1.0"
 dependencies = [
  "common",
- "features",
  "lsp-types",
  "model",
  "native",
  "serde_json",
+ "services",
  "tempfile",
  "url",
  "wasm",

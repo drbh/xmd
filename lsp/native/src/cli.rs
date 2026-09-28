@@ -2,8 +2,8 @@ use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use eval::Workspace;
 use eval::engine::{Value, value_json};
-use features::query::{self, display};
 use host::WorkspaceFiles;
+use services::query::{self, display};
 use std::{
     ffi::OsString,
     io::{self, IsTerminal, Read, Write},
@@ -263,7 +263,7 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         None => (None, Workspace::load(vec![root])?),
     };
     compiled.load_imports(&mut workspace, only.as_deref());
-    let result = features::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
+    let result = services::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
@@ -319,7 +319,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     let path = root.join(options.file);
     let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let workspace = Workspace::load_file(vec![root], &path)?;
-    let request = features::Request::new(&workspace, now);
+    let request = services::Request::new(&workspace, now);
     let text = match options.format {
         RenderFormat::Html => request.render_html(&path)?,
         RenderFormat::Text => request.render_text(&path)?,
@@ -338,7 +338,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     }
     let mut errors = 0;
     for diagnostic in diagnostics {
-        let severity = features::diagnostics::severity_name(diagnostic.severity);
+        let severity = services::diagnostics::severity_name(diagnostic.severity);
         if severity == "error" {
             errors += 1;
         }

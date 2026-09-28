@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 chrono = { workspace = true }
 common = { path = "../../lang/core/common" }
 eval = { path = "../../lang/core/eval" }
-features = { path = "../features" }
+services = { path = "../../runtime/services" }
 lsp-types = { workspace = true }
 model = { path = "../../lang/core/model" }
 serde = { workspace = true }

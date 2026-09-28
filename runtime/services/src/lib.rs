@@ -1,5 +1,7 @@
-//! What an editor shows and does, host-independent. [`Request`] lists every
-//! feature as a method, which is the only way a host reaches them. The crate is
+//! The language services every host shares, host-independent: what an editor
+//! shows and does, and the queries and rendering the command line uses.
+//! [`Request`] lists every service as a method, which is the only way a host
+//! reaches them. The crate is
 //! grouped by what a feature is about: `data` (records and queries), `language`
 //! (names and values), `view` (how a note looks) and `controls` (what a person
 //! can do). Two modules tie them together: `locate` decides what sits at a

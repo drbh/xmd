@@ -1,5 +1,5 @@
 //! The shared kernel: types every layer agrees on, so `syntax`, `model`,
-//! `eval` and `features` name the same `Span`, `Resource` and value
+//! `eval` and `services` name the same `Span`, `Resource` and value
 //! vocabulary instead of each defining their own. No lexer, no parser, no
 //! `Literal` (that's the lexer's output, and stays in `syntax`); `common`
 //! depends on no other crate in this workspace. Exposes its interface from

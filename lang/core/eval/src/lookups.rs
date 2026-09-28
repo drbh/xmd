@@ -1,7 +1,7 @@
 //! External data behind explicit refreshes: exchange rates, weather forecasts
 //! and stock quotes. Notes read cached values with the time they were fetched,
 //! so they keep working offline and every badge can show its age. A host
-//! (`lsp/host`) stores them and fetches them on an explicit refresh.
+//! (`runtime/host`) stores them and fetches them on an explicit refresh.
 use crate::{
     engine_impl::{Currency, Value, decimal},
     error::{EvalError, EvalResult, PropertyOwner},

@@ -18,7 +18,7 @@ browser = ["dep:wasm"]
 
 [dependencies]
 common = { path = "../lang/core/common" }
-features = { path = "features" }
+services = { path = "../runtime/services" }
 model = { path = "../lang/core/model" }
 native = { path = "native", optional = true }
 wasm = { path = "wasm", optional = true }

@@ -119,7 +119,7 @@ fn components_publish_a_curated_interface() {
 
 /// `lang/core` is the language itself: it parses, evaluates and presents the
 /// notes it is handed, identically on every host. Reading files, running
-/// programs and talking to the network belong to a host such as `lsp/host`.
+/// programs and talking to the network belong to a host such as `runtime/host`.
 #[test]
 fn core_does_no_io() {
     const FORBIDDEN_CRATES: [&str; 5] = ["tokio", "ignore", "feed-rs", "reqwest", "notify"];
@@ -163,7 +163,7 @@ fn core_does_no_io() {
                         assert!(
                             !source.contains(pattern),
                             "{path:?} uses `{pattern}`; lang/core stays free of I/O, \
-                             which belongs to a host crate such as lsp/host"
+                             which belongs to a host crate such as runtime/host"
                         );
                     }
                 }

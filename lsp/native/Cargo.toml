@@ -9,8 +9,8 @@ chrono = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 common = { path = "../../lang/core/common" }
 eval = { path = "../../lang/core/eval" }
-features = { path = "../features", features = ["native"] }
-host = { path = "../host" }
+services = { path = "../../runtime/services", features = ["native"] }
+host = { path = "../../runtime/host" }
 lsp-types = { workspace = true }
 model = { path = "../../lang/core/model" }
 serde = { workspace = true }

@@ -3,14 +3,14 @@
 use chrono::{DateTime, FixedOffset};
 use common::{file_path, uri};
 use eval::Workspace;
-use features::Request;
-use features::commands::{Action, Capabilities, PreparedAction};
-use features::session::WorkspaceSession;
-use features::{actions::TaskToggle, intelligence, presentation};
 use lsp_types::*;
 use model::identifier;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
+use services::Request;
+use services::commands::{Action, Capabilities, PreparedAction};
+use services::session::WorkspaceSession;
+use services::{actions::TaskToggle, intelligence, presentation};
 use std::{
     collections::BTreeMap,
     path::{Component, Path, PathBuf},
@@ -177,7 +177,7 @@ impl BrowserWorkspace {
             return self.execute(command, now);
         }
         if method == "query" {
-            let compiled = features::query::Query::parse(&field::<String>(&params, "query")?)?;
+            let compiled = services::query::Query::parse(&field::<String>(&params, "query")?)?;
             let only = params
                 .get("uri")
                 .filter(|v| !v.is_null())
@@ -210,8 +210,8 @@ impl BrowserWorkspace {
             "documentLinks" => serialized(request.document_links(&path)),
             "documentSymbols" => serialized(request.document_symbols(&path)),
             "formatting" => serialized(request.formatting(&path)?),
-            "folding" => serialized(features::symbols::folding_ranges(doc)),
-            "onTypeFormatting" => serialized(features::typing::on_type(
+            "folding" => serialized(services::symbols::folding_ranges(doc)),
+            "onTypeFormatting" => serialized(services::typing::on_type(
                 doc,
                 position()?,
                 &field::<String>(&params, "ch")?,
@@ -240,9 +240,9 @@ impl BrowserWorkspace {
                     .and_then(Value::as_bool)
                     .unwrap_or(method == "analyze");
                 let diagnostics = request.diagnostics(&path, editing);
-                let html = features::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
+                let html = services::rendering::fragment(doc, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":features::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":services::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )

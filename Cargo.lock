@@ -89,6 +89,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 
 [[package]]
+name = "browser"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "eval",
+ "lsp-types",
+ "model",
+ "serde",
+ "serde_json",
+ "services",
+ "syntax",
+ "url",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "bstr"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -704,6 +721,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
+name = "lsp"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "eval",
+ "host",
+ "lsp-types",
+ "model",
+ "serde",
+ "serde_json",
+ "services",
+ "tokio",
+ "tower-lsp-server",
+ "url",
+]
+
+[[package]]
 name = "lsp-types"
 version = "0.97.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -781,25 +816,6 @@ name = "multiversion_no_op"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
-
-[[package]]
-name = "native"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "common",
- "eval",
- "host",
- "lsp-types",
- "model",
- "serde",
- "serde_json",
- "services",
- "tokio",
- "tower-lsp-server",
- "url",
-]
 
 [[package]]
 name = "ndarray"
@@ -1445,23 +1461,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
-name = "wasm"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "common",
- "eval",
- "lsp-types",
- "model",
- "serde",
- "serde_json",
- "services",
- "syntax",
- "url",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "wasm-bindgen"
 version = "0.2.128"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1603,15 +1602,20 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 name = "xmd"
 version = "0.1.0"
 dependencies = [
+ "browser",
+ "chrono",
+ "clap",
  "common",
+ "eval",
+ "host",
+ "lsp",
  "lsp-types",
  "model",
- "native",
  "serde_json",
  "services",
  "tempfile",
+ "tokio",
  "url",
- "wasm",
 ]
 
 [[package]]

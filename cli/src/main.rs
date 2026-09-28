@@ -1,21 +1,19 @@
-//! The native hosts: the command line and the language server over stdio.
-//! `xmd`'s `native` feature pulls this in
-//! and its `main.rs` is a one-liner calling [`main`]. Exposes its interface
-//! from the root.
-
+//! The `xmd` command line: queries, rendering, inspection, refresh and
+//! command modules, plus `xmd lsp`, which hands the process to the language
+//! server. Shared runtime behavior comes from `runtime/host` and
+//! `runtime/services`; this binary only parses arguments and reports.
 mod cli;
-mod editor;
 
 use clap::{CommandFactory, Parser};
 use cli::{Cli, Command};
 
 /// Parses the command line and runs it on a multi-threaded runtime.
 #[tokio::main]
-pub async fn main() {
+async fn main() {
     let parsed = Cli::parse();
     // No subcommand means a query; the language server is asked for by name.
     let command = match parsed.command {
-        Some(Command::Lsp) => return editor::serve().await,
+        Some(Command::Lsp) => return lsp::serve().await,
         Some(command) => command,
         None if parsed.query.input.is_none() && !parsed.query.workspace => {
             let _ = Cli::command().print_help();

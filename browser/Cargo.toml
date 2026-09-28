@@ -1,5 +1,5 @@
 [package]
-name = "wasm"
+name = "browser"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -9,14 +9,14 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 chrono = { workspace = true }
-common = { path = "../../lang/core/common" }
-eval = { path = "../../lang/core/eval" }
-services = { path = "../../runtime/services" }
+common = { path = "../lang/core/common" }
+eval = { path = "../lang/core/eval" }
+services = { path = "../runtime/services" }
 lsp-types = { workspace = true }
-model = { path = "../../lang/core/model" }
+model = { path = "../lang/core/model" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-syntax = { path = "../../lang/core/syntax" }
+syntax = { path = "../lang/core/syntax" }
 url = { workspace = true }
 wasm-bindgen = "0.2"
 

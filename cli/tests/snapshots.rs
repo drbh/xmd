@@ -29,8 +29,6 @@
 //! `␍`, sub-second wall-clock stamps to `<clock>` and `<style>` bodies to `…`.
 //! Rewrite snapshots with `UPDATE_SNAPSHOTS=1`; cases needing the browser
 //! feature are `ignored` without it.
-#![cfg(feature = "native")]
-
 mod support;
 
 use serde_json::{Map, Value, json};

@@ -1,30 +1,22 @@
 [package]
-name = "xmd"
+name = "lsp"
 version = "0.1.0"
 edition = "2024"
-
-[lib]
-crate-type = ["rlib"]
-
-[[bin]]
-name = "xmd"
-path = "src/main.rs"
-required-features = ["native"]
-
-[features]
-default = ["native"]
-native = ["dep:native"]
-browser = ["dep:wasm"]
+publish = false
 
 [dependencies]
+chrono = { workspace = true }
 common = { path = "../lang/core/common" }
-services = { path = "../runtime/services" }
-model = { path = "../lang/core/model" }
-native = { path = "native", optional = true }
-wasm = { path = "wasm", optional = true }
-
-[dev-dependencies]
+eval = { path = "../lang/core/eval" }
+services = { path = "../runtime/services", features = ["native"] }
+host = { path = "../runtime/host" }
 lsp-types = { workspace = true }
+model = { path = "../lang/core/model" }
+serde = { workspace = true }
 serde_json = { workspace = true }
-tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+tower-lsp-server = { workspace = true }
 url = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,36 @@
+### 0 cli refresh
+$ wtf refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (1 resources)
+
+### 1 read .wtf/cache.json
+-- .wtf/cache.json
+{
+  "https://example.net/rdf/feed.xml": {
+    "title": "RDF Feed",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-16T18:00:00Z",
+    "provider": "rss:1",
+    "data": {
+      "count": 1,
+      "items": [
+        {
+          "link": "https://example.net/rdf/one",
+          "published": "2026-09-10T08:00:00Z",
+          "summary": "RDF description text",
+          "title": "RDF Item One"
+        }
+      ],
+      "latest": "RDF Item One",
+      "latest_link": "https://example.net/rdf/one",
+      "link": "https://example.net/rdf",
+      "title": "RDF Feed",
+      "updated": "2026-09-10T08:00:00Z"
+    }
+  }
+}
+

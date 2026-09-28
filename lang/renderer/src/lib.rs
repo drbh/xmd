@@ -1,4 +1,5 @@
 //! Canonical HTML serializer shared by the CLI and browser host.
+
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, DocumentLink, InlayHint, InlayHintLabel, InlayHintTooltip,
     Position, Range, SemanticToken,
@@ -161,10 +162,9 @@ pub fn fragment(snapshot: &Snapshot<'_>) -> Result<String, String> {
     }
     for link in links {
         if let Some(target) = &link.target
-            && matches!(
-                target.scheme(),
-                "https" | "http" | "mailto" | "geo" | "file"
-            )
+            && target
+                .scheme()
+                .is_some_and(|s| matches!(s.as_str(), "https" | "http" | "mailto" | "geo" | "file"))
         {
             decorate(
                 link.range,

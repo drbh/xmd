@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "wtf"
@@ -13,28 +13,17 @@ required-features = ["native"]
 
 [features]
 default = ["native"]
-native = ["dep:tokio", "dep:tower-lsp", "dep:clap", "dep:ignore", "dep:diffy"]
-browser = ["dep:wasm-bindgen"]
+native = ["dep:native"]
+browser = ["dep:wasm"]
 
 [dependencies]
-wtf-renderer = { path = "renderer" }
-tokio = { version = "1", optional = true, features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
-tower-lsp = { version = "0.20", optional = true }
-lsp-types = "0.94.1"
-url = "2"
-good_lp = { version = "1.15", default-features = false, features = ["microlp"] }
-percent-encoding = "2"
-unicode-width = "0.2.2"
-wasm-bindgen = { version = "0.2", optional = true }
-chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4", features = ["derive"], optional = true }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-ignore = { version = "0.4", optional = true }
-diffy = { version = "0.4", optional = true }
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+features = { path = "features" }
+model = { path = "model" }
+native = { path = "native", optional = true }
+wasm = { path = "wasm", optional = true }
 
 [dev-dependencies]
+lsp-types = { workspace = true }
+serde_json = { workspace = true }
 tempfile = "3"
+url = { workspace = true }

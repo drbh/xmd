@@ -2,6 +2,7 @@
 // document first; authorization never depends on anything the client sends.
 import { getServerByName } from "partyserver";
 import { sha256, newKey } from "./auth.js";
+import { noteStem } from "../../src/extension.js";
 const MAX_TEXT = 1_000_000, MAX_NAME = 200, ROLES = new Set(["editor", "viewer"]);
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -48,7 +49,8 @@ const requireOwner = ({ doc, role }) => { if (!doc || !role) throw new HttpError
 const present = (doc, role) => ({ id: doc.id, name: doc.name, file: doc.file ?? fileNameFor(doc.name), named: !!doc.named, text: doc.text, version: doc.version, updated: doc.updated_at, created: doc.created_at, role, owner: doc.owner_email ?? undefined, folder: doc.folder_id ?? null, deleted: doc.deleted_at ?? undefined });
 /** A file name for a document: the name without path separators or control characters, never empty. */
 export function fileNameFor(name) {
-  const clean = String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim().replace(/\.wtf$/i, "").slice(0, 120);
+  const trimmed = String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim();
+  const clean = noteStem(trimmed).slice(0, 120);
   return clean || "Untitled document";
 }
 

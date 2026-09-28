@@ -3,6 +3,7 @@
   import Dialog from "./Dialog.svelte";
   import Icon from "./Icon.svelte";
   import { relativeTime } from "./store.js";
+  import { EXTENSION } from "@wtf/web";
   let { keys, site, onClose } = $props();
   let list = $state(null), name = $state(""), fresh = $state(null), error = $state(""), busy = $state(false), copied = $state(false);
   async function load() { try { list = await keys.list(); } catch (e) { error = e.message; } }
@@ -19,7 +20,7 @@
 </script>
 
 <Dialog title="API keys" {onClose} wide>
-  <p>A key lets the command line sync a folder of <code>.wtf</code> files with this account: <code>wtf sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
+  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>wtf sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
   {#if fresh}
     <div class="fresh-key">
       <p><strong>Your new key.</strong> Copy it now; it is not shown again.</p>

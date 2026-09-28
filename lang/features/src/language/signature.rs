@@ -71,7 +71,11 @@ const fn describe(builtin: Builtin) -> Signature {
         Builtin::Import => Doc {
             params: &["id: Text"],
             result: Kind(ValueType::Record),
-            documentation: "Load a module by ID, or a note by path such as import(\"./values.wtf\"); members keep their own source.",
+            documentation: concat!(
+                "Load a module by ID, or a note by path such as import(\"./values.",
+                common::note_extension!(),
+                "\"); members keep their own source."
+            ),
             example: "\"format\"",
         },
         Builtin::SolveLinear => Doc {

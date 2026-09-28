@@ -12,8 +12,9 @@
 //!   pipeline; a host never depends on another host.
 //!
 //! What this crate exposes is only what a host binary or the test harness
-//! needs by name: [`byte_at`] and [`actions`] from the pipeline, and the
-//! browser host as `browser`.
+//! needs by name: [`byte_at`] and [`actions`] from the pipeline, [`is_note`]
+//! from the kernel, and the browser host as `browser`.
+pub use common::is_note;
 pub use features::actions;
 pub use model::byte_at;
 #[cfg(feature = "browser")]

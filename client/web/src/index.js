@@ -1,4 +1,5 @@
 export { createWorkspace, defaultUri } from "./workspace.js";
+export { EXTENSION, noteFile, noteStem } from "./extension.js";
 export { mount } from "./view.js";
 export { renderHover } from "./dom.js";
 import { createWorkspace, defaultUri } from "./workspace.js";

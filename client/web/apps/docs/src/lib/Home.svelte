@@ -3,6 +3,7 @@
   // shared with you. A folder opens in place, with a breadcrumb back.
   import Icon from "./Icon.svelte";
   import { TEMPLATES, relativeTime, colorFor } from "./store.js";
+  import { EXTENSION, noteFile } from "@wtf/web";
   let { documents, folders = [], thumbs = {}, engine, notice, onDismiss, trash = null, onRestore, theme, account = null, cloud = null, localCount = 0, canShare = false,
     onMoveLocal, onToggleTheme, onKeys, onOpen, onNew, onImport, onRename, onDuplicate, onDownload, onDelete,
     onNewFolder, onRenameFolder, onDeleteFolder, onShareFolder, onMove, current = $bindable(null) } = $props();
@@ -33,7 +34,7 @@
   <div class="doc-row" role="listitem">
     <button type="button" class="open" onclick={() => onOpen(d.id)}>
       <span class="doc-icon"><Icon name="doc" /></span>
-      <span class="doc-name">{d.name || "Untitled document"}{#if d.file && d.file !== d.name}<span class="doc-file">{d.file}.wtf</span>{/if}{#if d.role === "viewer"}<span class="doc-tag">View only</span>{/if}{#if !folder && d.folder && folders.some(f => f.id === d.folder)}<span class="doc-tag">{folders.find(f => f.id === d.folder).name}</span>{/if}</span>
+      <span class="doc-name">{d.name || "Untitled document"}{#if d.file && d.file !== d.name}<span class="doc-file">{noteFile(d.file)}</span>{/if}{#if d.role === "viewer"}<span class="doc-tag">View only</span>{/if}{#if !folder && d.folder && folders.some(f => f.id === d.folder)}<span class="doc-tag">{folders.find(f => f.id === d.folder).name}</span>{/if}</span>
       <span class="doc-by">{#if d.owner && isShared(d)}<span class="avatar tiny" style={`background:${colorFor(d.owner)}`}>{d.owner[0].toUpperCase()}</span>{d.owner}{/if}</span>
       <span class="doc-when">Edited {relativeTime(d.updated)}</span>
     </button>
@@ -86,7 +87,7 @@
   <header class="home-bar">
     <div class="brand"><span class="logo"><Icon name="doc" size={22} /></span> WTF Docs</div>
     <label class="search"><Icon name="search" /><input type="search" placeholder="Search documents" aria-label="Search documents" bind:value={query}></label>
-    <label class="button primary" title="Import"><Icon name="upload" /><span class="text">Import</span><input type="file" accept=".wtf,text/plain" multiple hidden onchange={onImport}></label>
+    <label class="button primary" title="Import"><Icon name="upload" /><span class="text">Import</span><input type="file" accept=".{EXTENSION},text/plain" multiple hidden onchange={onImport}></label>
     <button type="button" class="tool theme-toggle" title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme" onclick={onToggleTheme}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     {#if account}
       <div class="account-menu">
@@ -162,7 +163,7 @@
           <div class="doc-list" role="list">
             {#each trashed as d (d.id)}
               <div class="doc-row" role="listitem">
-                <div class="open static"><span class="doc-icon"><Icon name="doc" /></span><span class="doc-name">{d.name}{#if d.file && d.file !== d.name}<span class="doc-file">{d.file}.wtf</span>{/if}</span><span class="doc-by"></span><span class="doc-when">Removed {relativeTime(d.deleted)}</span></div>
+                <div class="open static"><span class="doc-icon"><Icon name="doc" /></span><span class="doc-name">{d.name}{#if d.file && d.file !== d.name}<span class="doc-file">{noteFile(d.file)}</span>{/if}</span><span class="doc-by"></span><span class="doc-when">Removed {relativeTime(d.deleted)}</span></div>
                 <button type="button" class="link" onclick={() => onRestore(d)}>Restore</button>
                 <button type="button" class="link danger" onclick={() => purge(d)}>Delete forever</button>
               </div>

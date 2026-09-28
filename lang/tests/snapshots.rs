@@ -713,7 +713,7 @@ fn collect_notes(dir: &Path, out: &mut Vec<PathBuf>) {
             if entry.file_name() != ".wtf" && entry.file_name() != "bin" {
                 collect_notes(&path, out);
             }
-        } else if path.extension().is_some_and(|e| e == "wtf") {
+        } else if wtf::is_note(&path) {
             out.push(path);
         }
     }

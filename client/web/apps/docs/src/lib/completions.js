@@ -1,5 +1,6 @@
 // Typeahead for the query console. Static names come from the engine's query
 // language; record fields are learned from the workspace and from results.
+import { noteFile } from "@wtf/web";
 export const COLLECTIONS = ["ast", "days", "timers", "links", "tasks", "events", "stops", "entries", "values", "plans", "decisions", "tables", "rows", "resources", "diagnostics", "notes", "sections", "calculations", "references", "cells", "graph"];
 export const STAGES = ["where", "select", "sort", "limit", "count", "sum", "group"];
 export const FUNCTIONS = {
@@ -9,7 +10,7 @@ export const FUNCTIONS = {
   starts_with: "starts_with(text, prefix)", ends_with: "ends_with(text, suffix)", split: "split(text, separator)", join: "join(list, separator)",
   lower: "lower(text)", upper: "upper(text)", trim: "trim(text)", replace: "replace(text, from, to)", repeat: "repeat(text, n)", pad_start: "pad_start(text, n, fill)", pad_end: "pad_end(text, n, fill)",
   text: "text(value)", number: "number(value)", type: "type(value)", floor: "floor(number)", round: "round(number, digits)",
-  if: "if(condition, then, else)", coalesce: "coalesce(a, b, …)", eval: 'eval("expression")', import: 'import("./note.wtf")', error: "error(message)",
+  if: "if(condition, then, else)", coalesce: "coalesce(a, b, …)", eval: 'eval("expression")', import: `import("./${noteFile("note")}")`, error: "error(message)",
   date: "date(timestamp)", now: "now()", today: "today()", parse_date: "parse_date(text)", parse_datetime: "parse_datetime(text)", parse_time: "parse_time(text)", parse_duration: "parse_duration(text)",
   make_date: "make_date(year, month, day)", at_time: "at_time(date, time)", date_parts: "date_parts(date)", duration_parts: "duration_parts(duration)", format_date: "format_date(date, pattern)", source: "source(value)", solve_linear: "solve_linear(…)",
 };

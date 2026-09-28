@@ -66,11 +66,12 @@ pub(crate) fn rendered_text(
     request: &eval::RequestContext<'_>,
     path: &Path,
 ) -> Result<String, String> {
-    let doc = request
-        .workspace()
-        .documents
-        .get(path)
-        .ok_or("File is not in this workspace's indexed .wtf notes")?;
+    let doc = request.workspace().documents.get(path).ok_or_else(|| {
+        format!(
+            "File is not in this workspace's indexed .{} notes",
+            common::EXTENSION
+        )
+    })?;
     let hints = hints(
         request,
         path,

@@ -125,49 +125,52 @@ impl ModuleRegistry {
     }
 }
 
+/// Each bundled module's id and source, read from `stdlib/<id>.<extension>`.
+macro_rules! stdlib {
+    ($($id:ident),* $(,)?) => {
+        [$((
+            stringify!($id),
+            include_str!(concat!(
+                "../../../stdlib/",
+                stringify!($id),
+                ".",
+                common::note_extension!()
+            )),
+        )),*]
+    };
+}
+
 /// Bundled modules use exactly the same compiler and adapters as workspace modules.
 pub(crate) fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
-        let modules = [
-            ("agenda", include_str!("../../../stdlib/agenda.wtf")),
-            (
-                "definitions",
-                include_str!("../../../stdlib/definitions.wtf"),
-            ),
-            ("tasks", include_str!("../../../stdlib/tasks.wtf")),
-            ("references", include_str!("../../../stdlib/references.wtf")),
-            ("links", include_str!("../../../stdlib/links.wtf")),
-            (
-                "itinerary_core",
-                include_str!("../../../stdlib/itinerary_core.wtf"),
-            ),
-            ("itinerary", include_str!("../../../stdlib/itinerary.wtf")),
-            ("timers", include_str!("../../../stdlib/timers.wtf")),
-            ("plans", include_str!("../../../stdlib/plans.wtf")),
-            ("plan", include_str!("../../../stdlib/plan.wtf")),
-            ("timer", include_str!("../../../stdlib/timer.wtf")),
-            ("format", include_str!("../../../stdlib/format.wtf")),
-            ("task", include_str!("../../../stdlib/task.wtf")),
-            ("resource", include_str!("../../../stdlib/resource.wtf")),
-            ("today", include_str!("../../../stdlib/today.wtf")),
-            ("units", include_str!("../../../stdlib/units.wtf")),
-            ("github", include_str!("../../../stdlib/github.wtf")),
-            ("rss", include_str!("../../../stdlib/rss.wtf")),
-            (
-                "table_cells",
-                include_str!("../../../stdlib/table_cells.wtf"),
-            ),
-            ("checklists", include_str!("../../../stdlib/checklists.wtf")),
-            (
-                "calculations",
-                include_str!("../../../stdlib/calculations.wtf"),
-            ),
+        let modules = stdlib![
+            agenda,
+            definitions,
+            tasks,
+            references,
+            links,
+            itinerary_core,
+            itinerary,
+            timers,
+            plans,
+            plan,
+            timer,
+            format,
+            task,
+            resource,
+            today,
+            units,
+            github,
+            rss,
+            table_cells,
+            checklists,
+            calculations,
         ]
         .into_iter()
         .map(|(id, source)| {
             Module::compile(
-                format!("/__wtf_stdlib__/stdlib/{id}.wtf").into(),
+                common::note_file(&format!("/__wtf_stdlib__/stdlib/{id}")).into(),
                 source.into(),
             )
             .expect("valid bundled module")

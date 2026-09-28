@@ -1,5 +1,7 @@
 // Documents live in this browser. Names are local to each document; explicit
 // imports connect virtual files using their URIs, just as with notes on disk.
+import { noteFile, noteStem } from "@wtf/web";
+
 const KEY = "wtf.docs.v1";
 const PREFS = "wtf.docs.prefs.v1";
 let writable = true;
@@ -110,7 +112,7 @@ export function createDocument(template = TEMPLATES[0], name) {
 }
 /** A file name for a document: the name without path separators or control characters, never empty. */
 export function fileNameFor(name) {
-  const clean = String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim().replace(/\.wtf$/i, "").slice(0, 120);
+  const clean = noteStem(String(name ?? "").replace(/[\\/\x00-\x1f]/g, " ").replace(/\s+/g, " ").trim()).slice(0, 120);
   return clean || "Untitled document";
 }
 /** `file`, or the first "file 2", "file 3"… not used by another document in the same folder. */
@@ -145,7 +147,7 @@ const segment = s => encodeURIComponent(s);
 export function uriOf(doc, folders = []) {
   const folder = doc.folder ? folders.find(f => f.id === doc.folder) : null;
   const dir = folder ? `${segment(fileNameFor(folder.name))}/` : "";
-  return `file:///workspace/docs/${dir}${segment(doc.file ?? fileNameFor(doc.name))}.wtf`;
+  return `file:///workspace/docs/${dir}${segment(noteFile(doc.file ?? fileNameFor(doc.name)))}`;
 }
 
 // Appearance preferences are per browser and never block editing when unavailable.

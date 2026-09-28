@@ -10,6 +10,13 @@ use std::{
     path::PathBuf,
 };
 
+/// A note file name as a literal for help text: `note!("trip")` is `trip.wtf`.
+macro_rules! note {
+    ($stem:literal) => {
+        concat!($stem, ".", common::note_extension!())
+    };
+}
+
 #[derive(Parser)]
 #[command(
     name = "wtf",
@@ -18,7 +25,7 @@ use std::{
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
     override_usage = "wtf [OPTIONS] <QUERY>                (note on stdin)\n       wtf [OPTIONS] <FILE> <QUERY>\n       wtf [OPTIONS] --workspace <QUERY>\n       wtf <COMMAND> ...",
-    after_help = "Examples: cat note.wtf | wtf 'total'\n          wtf note.wtf 'tasks | where !done' --json\n          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          wtf lsp   # the language server, for editors\nRun `wtf query --help` for the query bindings, functions and stages."
+    after_help = concat!("Examples: cat ", note!("note"), " | wtf 'total'\n          wtf ", note!("note"), " 'tasks | where !done' --json\n          wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          wtf lsp   # the language server, for editors\nRun `wtf query --help` for the query bindings, functions and stages.")
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -34,7 +41,7 @@ pub(crate) enum Command {
     #[command(
         alias = "q",
         override_usage = "wtf query [OPTIONS] <QUERY>                (note on stdin)\n       wtf query [OPTIONS] <FILE> <QUERY>\n       wtf query [OPTIONS] --workspace <QUERY>",
-        after_help = "Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json\n          cat note.wtf | wtf query 'length(tasks)'\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query note.wtf -"
+        after_help = concat!("Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: wtf query ", note!("note"), " 'map(tasks, fn(t) => t.title)' --json\n          cat ", note!("note"), " | wtf query 'length(tasks)'\n          wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | wtf query ", note!("note"), " -")
     )]
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
@@ -67,7 +74,7 @@ pub(crate) struct QueryOptions {
 }
 #[derive(Args)]
 pub(crate) struct InspectOptions {
-    /// A saved .wtf note, relative to --root or an absolute path.
+    /// A saved note, relative to --root or an absolute path.
     pub file: PathBuf,
     /// A query over ast, graph or any other collection in this note.
     #[arg(short = 'q', long, value_name = "QUERY")]
@@ -97,10 +104,10 @@ pub(crate) struct QueryOutput {
 }
 #[derive(Args)]
 #[command(
-    after_help = "Example: wtf render trip.wtf --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them."
+    after_help = concat!("Example: wtf render ", note!("trip"), " --root notes --now 2026-09-18T12:00:00Z > trip.html\nReads saved notes, modules and cached data; never refreshes or edits them.")
 )]
 pub(crate) struct RenderOptions {
-    /// A .wtf note, relative to --root or an absolute path.
+    /// A note, relative to --root or an absolute path.
     pub file: PathBuf,
     #[arg(long, default_value = ".")]
     pub root: PathBuf,
@@ -202,18 +209,24 @@ pub(crate) enum Note {
 const MAX_PIPED_NOTE: usize = 1_000_000;
 /// The synthetic path a piped note is filed under, inside `--root` so its
 /// relative imports and `.wtf/modules.json` resolve like a saved note's.
-pub(crate) const PIPED_NOTE_NAME: &str = "<stdin>.wtf";
+pub(crate) const PIPED_NOTE_NAME: &str = note!("<stdin>");
 
 pub(crate) fn query_command(options: QueryOptions) -> Result<(), String> {
-    let input = options
-        .input
-        .ok_or("Supply a query expression: wtf 'total' < note.wtf")?;
+    let input = options.input.ok_or(concat!(
+        "Supply a query expression: wtf 'total' < ",
+        note!("note")
+    ))?;
     let (note, mut source) = if options.workspace {
         (None, into_query(input)?)
     } else if let Some(source) = options.source {
         (Some(Note::File(PathBuf::from(input))), source)
     } else if io::stdin().is_terminal() {
-        return Err("Supply a note file, or pipe one in: cat note.wtf | wtf 'total'".into());
+        return Err(concat!(
+            "Supply a note file, or pipe one in: cat ",
+            note!("note"),
+            " | wtf 'total'"
+        )
+        .into());
     } else {
         (Some(Note::Piped(read_piped_note()?)), into_query(input)?)
     };

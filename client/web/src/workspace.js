@@ -1,6 +1,7 @@
 import { createRpc } from "./rpc.js";
+import { noteFile } from "./extension.js";
 
-export const defaultUri = "file:///workspace/main.wtf";
+export const defaultUri = `file:///workspace/${noteFile("main")}`;
 export const canonicalUri = uri => new URL(uri).href;
 
 /** UTF-16 coordinates match LSP and JavaScript string offsets. */

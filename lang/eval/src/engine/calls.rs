@@ -227,9 +227,10 @@ impl Engine<'_> {
         };
         if model::is_note_path(&id) {
             if !matches!(arg.bare(), Expr::Value(Literal::Text(_))) {
-                return Err(EvalError::Message(
-                    "Note imports require a literal path, e.g. import(\"./values.wtf\")".into(),
-                ));
+                return Err(EvalError::Message(format!(
+                    "Note imports require a literal path, e.g. import(\"./{}\")",
+                    common::note_file("values")
+                )));
             }
             let target = model::note_path(path, &id)?;
             if !self.request.workspace.documents.contains_key(&target) {

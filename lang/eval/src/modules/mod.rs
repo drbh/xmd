@@ -224,7 +224,7 @@ impl Module {
 }
 
 pub fn is_module_path(path: &Path) -> bool {
-    path.extension().is_some_and(|s| s == "wtf")
+    common::is_note(path)
         && path.parent().is_some_and(|p| {
             p.file_name().is_some_and(|s| s == "stdlib")
                 || (p.file_name().is_some_and(|s| s == "modules")

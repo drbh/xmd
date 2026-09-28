@@ -1,6 +1,6 @@
 <script>
   import { onMount, untrack } from "svelte";
-  import { createWorkspace } from "@wtf/web";
+  import { createWorkspace, EXTENSION, noteFile, noteStem } from "@wtf/web";
   import { titleOf, uriOf as documentUri, createDocument, createFolder, fileNameFor, uniqueFile, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
@@ -104,7 +104,7 @@
       // before any editor mounts, so nothing else is repainting meanwhile.
       const rendered = {};
       for (const t of TEMPLATES) {
-        const uri = `file:///workspace/templates/${t.id}.wtf`;
+        const uri = `file:///workspace/templates/${noteFile(t.id)}`;
         await workspace.setDocument(uri, t.text);
         rendered[t.id] = (await workspace.analyze(uri, { force: true, editing: false }))?.html ?? "";
       }
@@ -243,7 +243,7 @@
     const blob = new Blob([d.text], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${d.name.replace(/[^\w.-]+/g, "-") || "document"}.wtf`;
+    a.download = noteFile(d.name.replace(/[^\w.-]+/g, "-") || "document");
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -251,7 +251,7 @@
     let last;
     for (const file of event.target.files) {
       const text = await file.text();
-      const d = createDocument({ text }, titleOf(text, file.name.replace(/\.wtf$/, "")));
+      const d = createDocument({ text }, titleOf(text, noteStem(file.name)));
       documents = [d, ...documents];
       d.file = uniqueFile(fileNameFor(d.name), null, documents);
       await workspace.setDocument(uriOf(d), text);
@@ -399,7 +399,7 @@
     ["focus := countdown(25m)", "A timer with controls in the Actions panel"],
     ["items := table", "Followed by a pipe table; use sum(items, quantity * price) over it"],
     ["**bold** _italic_ `code`", "Inline emphasis"],
-    ['other := import("./other.wtf")', "Reference another document's values as [other.total]"],
+    [`other := import("./${noteFile("other")}")`, "Reference another document's values as [other.total]"],
     ["<!-- note -->", "A comment that never renders a value"],
   ];
   if (new URLSearchParams(location.search).has("test")) {
@@ -408,7 +408,7 @@
 </script>
 
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onwtf:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
-<input bind:this={importInput} type="file" accept=".wtf,text/plain" multiple hidden onchange={importFiles}>
+<input bind:this={importInput} type="file" accept=".{EXTENSION},text/plain" multiple hidden onchange={importFiles}>
 
 {#if keysOpen && backend?.keys}
   <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (keysOpen = false)} />
@@ -539,9 +539,9 @@
     {:else if dialog === "details"}
       <Dialog title="Document details" onClose={() => (dialog = null)}>
         <table class="stats"><tbody>
-          <tr><td>File</td><td><code>{active.file}.wtf</code></td></tr>
+          <tr><td>File</td><td><code>{noteFile(active.file)}</code></td></tr>
           <tr><td>Folder</td><td>{folders.find(f => f.id === active.folder)?.name ?? "—"}</td></tr>
-          <tr><td>Import as</td><td><code>import("./{active.file}.wtf")</code></td></tr>
+          <tr><td>Import as</td><td><code>import("./{noteFile(active.file)}")</code></td></tr>
           <tr><td>Your access</td><td>{active.role ?? "owner"}{#if active.owner && active.role !== "owner"} · shared by {active.owner}{/if}</td></tr>
           <tr><td>Last edit</td><td>{new Date(active.updated).toLocaleString()}</td></tr>
           <tr><td>Link</td><td><code>{location.href.replace(/\?test/, "")}</code></td></tr>

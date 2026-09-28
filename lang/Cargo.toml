@@ -17,6 +17,7 @@ native = ["dep:native"]
 browser = ["dep:wasm"]
 
 [dependencies]
+common = { path = "common" }
 features = { path = "features" }
 model = { path = "model" }
 native = { path = "native", optional = true }

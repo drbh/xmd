@@ -97,7 +97,7 @@ impl Workspace {
                     }
                 };
                 if entry.file_type().is_some_and(|t| t.is_file())
-                    && entry.path().extension().is_some_and(|s| s == "wtf")
+                    && common::is_note(entry.path())
                     && !crate::modules_impl::is_module_path(entry.path())
                 {
                     let text = match std::fs::read_to_string(entry.path()) {
@@ -153,8 +153,8 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub fn include_file(&mut self, path: &Path) -> Result<(), String> {
-        if path.extension().is_none_or(|s| s != "wtf") {
-            return Err("Expected a .wtf note".into());
+        if !common::is_note(path) {
+            return Err(format!("Expected a .{} note", common::EXTENSION));
         }
         if !self.documents.contains_key(path) {
             let text =

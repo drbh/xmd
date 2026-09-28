@@ -77,13 +77,16 @@ fn virtual_path(uri: &str) -> Result<PathBuf, String> {
     }
     let path = file_path(&url)?;
     if !path.starts_with("/workspace")
-        || path.extension().is_none_or(|s| s != "wtf")
+        || !common::is_note(&path)
         || path
             .components()
             .any(|c| !matches!(c, Component::RootDir | Component::Normal(_)))
         || path.to_string_lossy().contains(['\0', '\\'])
     {
-        return Err("Expected a .wtf file within the browser's /workspace".into());
+        return Err(format!(
+            "Expected a .{} file within the browser's /workspace",
+            common::EXTENSION
+        ));
     }
     Ok(path)
 }
@@ -133,10 +136,13 @@ impl BrowserWorkspace {
                             Path::new(&name).components().next(),
                             Some(Component::Normal(_))
                         )
-                        || !name.ends_with(".wtf")
+                        || !common::is_note(&name)
                         || name.contains(['\\', '\0'])
                     {
-                        return Err("Module names must be .wtf filenames".to_string());
+                        return Err(format!(
+                            "Module names must be .{} filenames",
+                            common::EXTENSION
+                        ));
                     }
                     Ok((Path::new("/workspace/.wtf/modules").join(name), source))
                 })

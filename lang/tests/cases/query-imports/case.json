@@ -4,8 +4,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "import(\"./.hidden/values.wtf\").price",
+        "main.x.md",
+        "import(\"./.hidden/values.x.md\").price",
         "--root",
         "flat",
         "--json"
@@ -14,8 +14,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "tasks | select import(\"./.hidden/values.wtf\").price",
+        "main.x.md",
+        "tasks | select import(\"./.hidden/values.x.md\").price",
         "--root",
         "flat",
         "--json"
@@ -24,7 +24,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "price",
         "--root",
         "flat",
@@ -35,7 +35,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | select import(\"./.hidden/value.wtf\").amount",
+        "tasks | select import(\"./.hidden/value.x.md\").amount",
         "--root",
         "rows",
         "--json"
@@ -44,8 +44,8 @@
     {
       "cli": [
         "query",
-        "one/main.wtf",
-        "if(false, import(\"./absent.wtf\").amount, 42)",
+        "one/main.x.md",
+        "if(false, import(\"./absent.x.md\").amount, 42)",
         "--root",
         "rows",
         "--json"
@@ -54,8 +54,8 @@
     {
       "cli": [
         "query",
-        "one/main.wtf",
-        "import(\"./absent.wtf\").amount",
+        "one/main.x.md",
+        "import(\"./absent.x.md\").amount",
         "--root",
         "rows",
         "--json"
@@ -64,8 +64,8 @@
     {
       "cli": [
         "query",
-        "one/main.wtf",
-        "tasks | count | select import(\"./.hidden/value.wtf\").amount",
+        "one/main.x.md",
+        "tasks | count | select import(\"./.hidden/value.x.md\").amount",
         "--root",
         "rows",
         "--json"
@@ -74,8 +74,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "import(\"./\" + \".hidden/values.wtf\")",
+        "main.x.md",
+        "import(\"./\" + \".hidden/values.x.md\")",
         "--root",
         "flat",
         "--json"
@@ -84,8 +84,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "import(\"values.wtf\").price",
+        "main.x.md",
+        "import(\"values.x.md\").price",
         "--root",
         "flat",
         "--json"
@@ -93,7 +93,7 @@
     },
     {
       "read": [
-        "flat/main.wtf",
+        "flat/main.x.md",
         ".wtf/cache.json"
       ]
     }

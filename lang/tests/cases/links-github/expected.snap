@@ -1,5 +1,5 @@
-### 0 cli render work.wtf --format text
-$ wtf render work.wtf --format text --root <root> --now 2026-09-16T18:05:00+00:00
+### 0 cli render work.x.md --format text
+$ wtf render work.x.md --format text --root <root> --now 2026-09-16T18:05:00+00:00
 exit 1
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · 2h ago
@@ -10,11 +10,11 @@ Unknown [pr.nope].
 See [the fix](https://github.com/NVlabs/cuda-oxide/pull/975) ○ open · ✗ checks FAILING · changes requested · ! stale · 9d ago and https://github.com/NVlabs/cuda-oxide/pull/1286 ◌ PR #1286 · refresh for status.
 Not a PR: https://github.com/drbh/kawaii
 --- stderr
-<root>/work.wtf:4:13: error: Unknown resource property 'nope'
+<root>/work.x.md:4:13: error: Unknown resource property 'nope'
 wtf: 1 error(s) while rendering
 
-### 1 cli query work.wtf diagnostics | select {message, code} --json
-$ wtf query work.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
+### 1 cli query work.x.md diagnostics | select {message, code} --json
+$ wtf query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [
@@ -24,8 +24,8 @@ exit 0
   }
 ]
 
-### 2 cli query work.wtf resources | select {target, metadata} --json
-$ wtf query work.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
+### 2 cli query work.x.md resources | select {target, metadata} --json
+$ wtf query work.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [
@@ -84,8 +84,8 @@ exit 0
 ]
 
 ### 3 lsp
--- open work.wtf
--- await textDocument/publishDiagnostics work.wtf
+-- open work.x.md
+-- await textDocument/publishDiagnostics work.x.md
 {
   "diagnostics": [
     {
@@ -105,10 +105,10 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/work.wtf",
+  "uri": "file://<root>/work.x.md",
   "version": 1
 }
--- request textDocument/inlayHint work.wtf {"end":{"character":0,"line":6},"start":{"character":0,"line":4}}
+-- request textDocument/inlayHint work.x.md {"end":{"character":0,"line":6},"start":{"character":0,"line":4}}
 [
   {
     "label": "✓ merged · ● checks · approved · 2h ago",
@@ -147,14 +147,14 @@ exit 0
     }
   }
 ]
--- request textDocument/codeAction work.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+-- request textDocument/codeAction work.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
 [
   {
     "arguments": [
       {
         "kind": "open_resource",
         "target": {
-          "document": "file://<root>/work.wtf",
+          "document": "file://<root>/work.x.md",
           "expected": "See [pr] and https://github.com/acme/app/pull/42.",
           "row": 1
         },
@@ -169,7 +169,7 @@ exit 0
       {
         "kind": "refresh_resource",
         "target": {
-          "document": "file://<root>/work.wtf",
+          "document": "file://<root>/work.x.md",
           "expected": "See [pr] and https://github.com/acme/app/pull/42.",
           "row": 1
         },
@@ -180,7 +180,7 @@ exit 0
     "title": "⟳ github"
   }
 ]
--- request textDocument/hover work.wtf 1:20
+-- request textDocument/hover work.x.md 1:20
 {
   "contents": {
     "kind": "markdown",

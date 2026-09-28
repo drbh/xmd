@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "tasks.wtf",
+        "tasks.x.md",
         "--format",
         "text"
       ]
@@ -11,97 +11,97 @@
     {
       "lsp": [
         {
-          "open": "tasks.wtf"
+          "open": "tasks.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "tasks.wtf"
+          "file": "tasks.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 3,
           "character": 4
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 4,
           "character": 6
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 5,
           "character": 6
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 7,
           "character": 8
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 8,
           "character": 6
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 9,
           "character": 6
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 2,
           "character": 10
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 11,
           "character": 11
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 1,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 12,
           "character": 16
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 13,
           "character": 22
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 14,
           "character": 18
         },
         {
           "request": "textDocument/hover",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "line": 15,
           "character": 10
         },
         {
           "request": "textDocument/codeLens",
-          "file": "tasks.wtf"
+          "file": "tasks.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -115,7 +115,7 @@
         },
         {
           "request": "textDocument/codeAction",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "range": {
             "start": {
               "line": 3,
@@ -129,7 +129,7 @@
         },
         {
           "request": "textDocument/codeAction",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "range": {
             "start": {
               "line": 4,
@@ -143,7 +143,7 @@
         },
         {
           "request": "textDocument/codeAction",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "range": {
             "start": {
               "line": 9,
@@ -157,11 +157,11 @@
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "tasks.wtf"
+          "file": "tasks.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "tasks.wtf",
+          "file": "tasks.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -174,67 +174,67 @@
           }
         },
         {
-          "open": "money.wtf"
+          "open": "money.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "money.wtf"
+          "file": "money.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 1,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 2,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 3,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 5,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 5,
           "character": 9
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 10,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 12,
           "character": 9
         },
         {
           "request": "textDocument/hover",
-          "file": "money.wtf",
+          "file": "money.x.md",
           "line": 4,
           "character": 3
         },
         {
           "request": "textDocument/codeLens",
-          "file": "money.wtf"
+          "file": "money.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "money.wtf"
+          "file": "money.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -260,7 +260,7 @@
     {
       "cli": [
         "render",
-        "money.wtf",
+        "money.x.md",
         "--format",
         "text"
       ]
@@ -268,81 +268,81 @@
     {
       "lsp": [
         {
-          "open": "edge.wtf"
+          "open": "edge.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "edge.wtf"
+          "file": "edge.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 1,
           "character": 8
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 2,
           "character": 8
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 9
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 16
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 23
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 28
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 34
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 4,
           "character": 40
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 9,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 10,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "edge.wtf",
+          "file": "edge.x.md",
           "line": 13,
           "character": 6
         },
         {
           "request": "textDocument/codeLens",
-          "file": "edge.wtf"
+          "file": "edge.x.md"
         }
       ]
     }

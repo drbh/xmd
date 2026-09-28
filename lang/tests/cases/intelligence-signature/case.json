@@ -3,45 +3,45 @@
     {
       "lsp": [
         {
-          "open": "sig.wtf"
+          "open": "sig.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "sig.wtf"
+          "file": "sig.x.md"
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 0,
           "character": 26
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 0,
           "character": 17
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 0,
           "character": 30
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 1,
           "character": 11
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 2,
           "character": 25
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "sig.wtf",
+          "file": "sig.x.md",
           "line": 7,
           "character": 26
         }

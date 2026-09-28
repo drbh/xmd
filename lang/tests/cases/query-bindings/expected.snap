@@ -61,13 +61,13 @@ exit 1
 --- stderr
 wtf: Stage 2: Cannot combine EUR and USD; convert with to(value, USD)
 
-### 3 cli query usd.wtf values | where name == "total" | select {name, hover} --root money --json
-$ wtf query usd.wtf values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query usd.x.md values | where name == "total" | select {name, hover} --root money --json
+$ wtf query usd.x.md values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   {
-    "hover": "**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](<file://<root>/money/usd.wtf#L1>)\n\nDefinition: [total](<file://<root>/money/usd.wtf#L2>) · <root>/money/usd.wtf:2",
+    "hover": "**total · Money**\n\n$10\n\n```text\nprice * 2\n= $5 * 2\n= $10\n```\n\nInputs: [price](<file://<root>/money/usd.x.md#L1>)\n\nDefinition: [total](<file://<root>/money/usd.x.md#L2>) · <root>/money/usd.x.md:2",
     "name": "total"
   }
 ]
@@ -79,20 +79,20 @@ exit 0
 [
   {
     "kind": "note",
-    "path": "<root>/money/eur.wtf",
+    "path": "<root>/money/eur.x.md",
     "size": 28,
-    "title": "eur.wtf"
+    "title": "eur.x.md"
   },
   {
     "kind": "note",
-    "path": "<root>/money/usd.wtf",
+    "path": "<root>/money/usd.x.md",
     "size": 28,
-    "title": "usd.wtf"
+    "title": "usd.x.md"
   }
 ]
 
-### 5 cli query tables.wtf tables | select {name} --json
-$ wtf query tables.wtf tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 5 cli query tables.x.md tables | select {name} --json
+$ wtf query tables.x.md tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -101,8 +101,8 @@ exit 0
   }
 ]
 
-### 6 cli query tables.wtf rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json
-$ wtf query tables.wtf rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 6 cli query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json
+$ wtf query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -116,8 +116,8 @@ exit 0
   }
 ]
 
-### 7 cli query tables.wtf values | where name == "total" | select {name, value, display} --json
-$ wtf query tables.wtf values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 7 cli query tables.x.md values | where name == "total" | select {name, value, display} --json
+$ wtf query tables.x.md values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -132,8 +132,8 @@ exit 0
   }
 ]
 
-### 8 cli query plans.wtf plans | select {name} --json
-$ wtf query plans.wtf plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 8 cli query plans.x.md plans | select {name} --json
+$ wtf query plans.x.md plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -142,8 +142,8 @@ exit 0
   }
 ]
 
-### 9 cli query plans.wtf plans | where name == "bakery" | select solution --json
-$ wtf query plans.wtf plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 9 cli query plans.x.md plans | where name == "bakery" | select solution --json
+$ wtf query plans.x.md plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -256,8 +256,8 @@ exit 0
   }
 ]
 
-### 10 cli query links.wtf resources | select {target, metadata} --json
-$ wtf query links.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 10 cli query links.x.md resources | select {target, metadata} --json
+$ wtf query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -281,16 +281,16 @@ exit 0
   }
 ]
 
-### 11 cli query links.wtf resources | where metadata != null | select metadata.title --json
-$ wtf query links.wtf resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 11 cli query links.x.md resources | where metadata != null | select metadata.title --json
+$ wtf query links.x.md resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   "Cached"
 ]
 
-### 12 cli query bad.wtf values | select {name, value, errors} --json
-$ wtf query bad.wtf values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 12 cli query bad.x.md values | select {name, value, errors} --json
+$ wtf query bad.x.md values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -303,8 +303,8 @@ exit 0
   }
 ]
 
-### 13 cli query bad.wtf tasks | select {title, due, errors} --json
-$ wtf query bad.wtf tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 13 cli query bad.x.md tasks | select {title, due, errors} --json
+$ wtf query bad.x.md tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -322,8 +322,8 @@ exit 0
   }
 ]
 
-### 14 cli query bad.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 14 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -342,7 +342,7 @@ exit 0
 ]
 
 ### 15 lsp
--- open bad.wtf
+-- open bad.x.md
 -- query tasks | select {title, errors}
 {
   "now": "2026-09-16T12:00:00-04:00",
@@ -360,10 +360,10 @@ exit 0
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/bad.wtf": 1
+    "file://<root>/bad.x.md": 1
   }
 }
--- change bad.wtf (version 2)
+-- change bad.x.md (version 2)
 good := 41 + 1
 - [ ] Fixed @due(2026-09-17)
 -- query values | select {name, display}
@@ -377,7 +377,7 @@ good := 41 + 1
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/bad.wtf": 2
+    "file://<root>/bad.x.md": 2
   }
 }
 -- query length(tasks)
@@ -388,12 +388,12 @@ good := 41 + 1
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/bad.wtf": 2
+    "file://<root>/bad.x.md": 2
   }
 }
--- request wtf/query {"query":"tasks","uri":"${uri:missing.wtf}"}
+-- request wtf/query {"query":"tasks","uri":"${uri:missing.x.md}"}
 error: {
   "code": -32602,
-  "message": "<root>/missing.wtf: No such file or directory (os error 2)"
+  "message": "<root>/missing.x.md: No such file or directory (os error 2)"
 }
 

@@ -1,5 +1,5 @@
-### 0 cli query main.wtf import("./.hidden/values.wtf").price --root flat --json
-$ wtf query main.wtf import("./.hidden/values.wtf").price --root flat --json --now 2026-09-16T12:00:00-04:00
+### 0 cli query main.x.md import("./.hidden/values.x.md").price --root flat --json
+$ wtf query main.x.md import("./.hidden/values.x.md").price --root flat --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -10,8 +10,8 @@ exit 0
   }
 ]
 
-### 1 cli query main.wtf tasks | select import("./.hidden/values.wtf").price --root flat --json
-$ wtf query main.wtf tasks | select import("./.hidden/values.wtf").price --root flat --json --now 2026-09-16T12:00:00-04:00
+### 1 cli query main.x.md tasks | select import("./.hidden/values.x.md").price --root flat --json
+$ wtf query main.x.md tasks | select import("./.hidden/values.x.md").price --root flat --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -22,14 +22,14 @@ exit 0
   }
 ]
 
-### 2 cli query main.wtf price --root flat --json
-$ wtf query main.wtf price --root flat --json --now 2026-09-16T12:00:00-04:00
+### 2 cli query main.x.md price --root flat --json
+$ wtf query main.x.md price --root flat --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
 wtf: Unknown name 'price'
 
-### 3 cli query --workspace tasks | select import("./.hidden/value.wtf").amount --root rows --json
-$ wtf query --workspace tasks | select import("./.hidden/value.wtf").amount --root rows --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query --workspace tasks | select import("./.hidden/value.x.md").amount --root rows --json
+$ wtf query --workspace tasks | select import("./.hidden/value.x.md").amount --root rows --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -37,42 +37,42 @@ exit 0
   2
 ]
 
-### 4 cli query one/main.wtf if(false, import("./absent.wtf").amount, 42) --root rows --json
-$ wtf query one/main.wtf if(false, import("./absent.wtf").amount, 42) --root rows --json --now 2026-09-16T12:00:00-04:00
+### 4 cli query one/main.x.md if(false, import("./absent.x.md").amount, 42) --root rows --json
+$ wtf query one/main.x.md if(false, import("./absent.x.md").amount, 42) --root rows --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   42
 ]
 
-### 5 cli query one/main.wtf import("./absent.wtf").amount --root rows --json
-$ wtf query one/main.wtf import("./absent.wtf").amount --root rows --json --now 2026-09-16T12:00:00-04:00
+### 5 cli query one/main.x.md import("./absent.x.md").amount --root rows --json
+$ wtf query one/main.x.md import("./absent.x.md").amount --root rows --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Note import '<root>/rows/one/absent.wtf' is not loaded (from <root>/rows/one/main.wtf)
+wtf: Note import '<root>/rows/one/absent.x.md' is not loaded (from <root>/rows/one/main.x.md)
 
-### 6 cli query one/main.wtf tasks | count | select import("./.hidden/value.wtf").amount --root rows --json
-$ wtf query one/main.wtf tasks | count | select import("./.hidden/value.wtf").amount --root rows --json --now 2026-09-16T12:00:00-04:00
+### 6 cli query one/main.x.md tasks | count | select import("./.hidden/value.x.md").amount --root rows --json
+$ wtf query one/main.x.md tasks | count | select import("./.hidden/value.x.md").amount --root rows --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   1
 ]
 
-### 7 cli query main.wtf import("./" + ".hidden/values.wtf") --root flat --json
-$ wtf query main.wtf import("./" + ".hidden/values.wtf") --root flat --json --now 2026-09-16T12:00:00-04:00
+### 7 cli query main.x.md import("./" + ".hidden/values.x.md") --root flat --json
+$ wtf query main.x.md import("./" + ".hidden/values.x.md") --root flat --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Note imports require a literal path, e.g. import("./values.wtf")
+wtf: Note imports require a literal path, e.g. import("./values.x.md")
 
-### 8 cli query main.wtf import("values.wtf").price --root flat --json
-$ wtf query main.wtf import("values.wtf").price --root flat --json --now 2026-09-16T12:00:00-04:00
+### 8 cli query main.x.md import("values.x.md").price --root flat --json
+$ wtf query main.x.md import("values.x.md").price --root flat --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Use an explicit .wtf path, e.g. import("./values.wtf")
+wtf: Use an explicit .x.md path, e.g. import("./values.x.md")
 
-### 9 read flat/main.wtf .wtf/cache.json
--- flat/main.wtf
+### 9 read flat/main.x.md .wtf/cache.json
+-- flat/main.x.md
 - [ ] Local
 -- .wtf/cache.json
 (missing: entity not found)

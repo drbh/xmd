@@ -1,19 +1,19 @@
-### 0 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 answer := 21 * 2 = 42
 Total [answer] 42.
 
 ### 1 lsp
--- open main.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- open main.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/semanticTokens/full main.wtf
+-- request textDocument/semanticTokens/full main.x.md
 0:0+6 variable [declaration] "answer"
 0:6+3 operator " :="
 0:10+2 number "21"

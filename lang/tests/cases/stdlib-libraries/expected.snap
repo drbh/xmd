@@ -1,25 +1,25 @@
-### 0 cli render watch.wtf --format text
-$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render watch.x.md --format text
+$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := stopwatch() = ◴ 00:41 elapsed · ‖ paused
 Elapsed [watch.elapsed] 42s.
 
 ### 1 lsp
--- open watch.wtf
--- await textDocument/publishDiagnostics watch.wtf
+-- open watch.x.md
+-- await textDocument/publishDiagnostics watch.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/watch.wtf",
+  "uri": "file://<root>/watch.x.md",
   "version": 1
 }
--- request textDocument/codeAction watch.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+-- request textDocument/codeAction watch.x.md {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
 [
   {
     "arguments": [
       {
         "action": "resume",
-        "document": "file://<root>/watch.wtf",
+        "document": "file://<root>/watch.x.md",
         "kind": "timer",
         "name": "watch"
       }
@@ -31,7 +31,7 @@ Elapsed [watch.elapsed] 42s.
     "arguments": [
       {
         "action": "reset",
-        "document": "file://<root>/watch.wtf",
+        "document": "file://<root>/watch.x.md",
         "kind": "timer",
         "name": "watch"
       }
@@ -63,18 +63,18 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/watch.wtf",
+          "uri": "file://<root>/watch.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- request textDocument/hover watch.wtf 1:9
+-- request textDocument/hover watch.x.md 1:9
 {
   "contents": {
     "kind": "markdown",
-    "value": "watch.elapsed = 42s\n\n**watch · Stopwatch**\n\nCUSTOM TIMER\n\n```text\nstopwatch()\n= CUSTOM TIMER\n```\n\nElapsed: 41s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/watch.wtf#L1>) · <root>/watch.wtf:1"
+    "value": "watch.elapsed = 42s\n\n**watch · Stopwatch**\n\nCUSTOM TIMER\n\n```text\nstopwatch()\n= CUSTOM TIMER\n```\n\nElapsed: 41s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/watch.x.md#L1>) · <root>/watch.x.md:1"
   },
   "range": {
     "end": {
@@ -89,20 +89,20 @@ null
 }
 
 ### 2 write
--- write .wtf/modules.json (35 bytes)
+-- write .wtf/modules.json (36 bytes)
 
-### 3 cli render watch.wtf --format text
-$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli render watch.x.md --format text
+$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
-<root>/watch.wtf:1:10: error: Module 'timer' is unavailable or disabled
+<root>/watch.x.md:1:10: error: Module 'timer' is unavailable or disabled
 wtf: 1 error(s) while rendering
 
-### 4 cli query watch.wtf diagnostics | select {message, code} --json
-$ wtf query watch.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query watch.x.md diagnostics | select {message, code} --json
+$ wtf query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -113,20 +113,20 @@ exit 0
 ]
 
 ### 5 write
--- write .wtf/modules.json (34 bytes)
+-- write .wtf/modules.json (35 bytes)
 
-### 6 cli render watch.wtf --format text
-$ wtf render watch.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli render watch.x.md --format text
+$ wtf render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
-<root>/watch.wtf:1:10: error: CUSTOM FAILURE
+<root>/watch.x.md:1:10: error: CUSTOM FAILURE
 wtf: 1 error(s) while rendering
 
-### 7 cli query watch.wtf diagnostics | select {message, code} --json
-$ wtf query watch.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query watch.x.md diagnostics | select {message, code} --json
+$ wtf query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -139,26 +139,26 @@ exit 0
 ### 8 write
 -- write .wtf/modules.json (3 bytes)
 
-### 9 cli render counting.wtf --format text
-$ wtf render counting.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli render counting.x.md --format text
+$ wtf render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := countdown(1m, 30s) = ◷ ████░░░░ 00:30 remaining · ‖ paused
 
 ### 10 write
--- write .wtf/modules.json (34 bytes)
+-- write .wtf/modules.json (35 bytes)
 
-### 11 cli render counting.wtf --format text
-$ wtf render counting.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli render counting.x.md --format text
+$ wtf render counting.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 watch := countdown(1m, 30s) = ◷ ▓▓▓▓░░░░ 00:30 remaining · ‖ paused
 
 ### 12 write
--- write .wtf/modules.json (33 bytes)
+-- write .wtf/modules.json (34 bytes)
 
-### 13 cli render bakery.wtf --format text
-$ wtf render bakery.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 13 cli render bakery.x.md --format text
+$ wtf render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 best := maximize($2 * count)
@@ -166,11 +166,11 @@ best := maximize($2 * count)
 | --- | --- |
 | limit | count <= 3 |
 --- stderr
-<root>/bakery.wtf:1:18: error: ACTIVE PLAN LIBRARY
+<root>/bakery.x.md:1:18: error: ACTIVE PLAN LIBRARY
 wtf: 1 error(s) while rendering
 
-### 14 cli query bakery.wtf diagnostics | select {message, code} --json
-$ wtf query bakery.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 14 cli query bakery.x.md diagnostics | select {message, code} --json
+$ wtf query bakery.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -14,7 +14,7 @@
     {
       "cli": [
         "render",
-        "links.wtf",
+        "links.x.md",
         "--format",
         "text"
       ]
@@ -22,7 +22,7 @@
     {
       "cli": [
         "query",
-        "links.wtf",
+        "links.x.md",
         "resources | select {target, metadata}",
         "--json"
       ]

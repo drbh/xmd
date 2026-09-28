@@ -1,23 +1,23 @@
 {
   "now": "2026-09-16T14:00:00-04:00",
   "steps": [
-    { "cli": ["query", "prose.wtf", "links | select {url, line}", "--json"] },
-    { "cli": ["query", "prose.wtf", "references", "--json"] },
-    { "cli": ["query", "prose.wtf", "diagnostics", "--json"] },
-    { "cli": ["query", "prose.wtf", "tasks | select attributes", "--json"] },
-    { "cli": ["query", "code.wtf", "links | select {url, line}", "--json"] },
-    { "cli": ["query", "code.wtf", "values | select name", "--json"] },
-    { "cli": ["query", "malicious.wtf", "links", "--json"] },
+    { "cli": ["query", "prose.x.md", "links | select {url, line}", "--json"] },
+    { "cli": ["query", "prose.x.md", "references", "--json"] },
+    { "cli": ["query", "prose.x.md", "diagnostics", "--json"] },
+    { "cli": ["query", "prose.x.md", "tasks | select attributes", "--json"] },
+    { "cli": ["query", "code.x.md", "links | select {url, line}", "--json"] },
+    { "cli": ["query", "code.x.md", "values | select name", "--json"] },
+    { "cli": ["query", "malicious.x.md", "links", "--json"] },
     {
       "lsp": [
-        { "open": "trips/today.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "trips/today.wtf" },
-        { "request": "textDocument/documentLink", "file": "trips/today.wtf" },
-        { "request": "textDocument/hover", "file": "trips/today.wtf", "line": 0, "character": 4 },
-        { "request": "textDocument/hover", "file": "trips/today.wtf", "line": 0, "character": 1 },
+        { "open": "trips/today.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "trips/today.x.md" },
+        { "request": "textDocument/documentLink", "file": "trips/today.x.md" },
+        { "request": "textDocument/hover", "file": "trips/today.x.md", "line": 0, "character": 4 },
+        { "request": "textDocument/hover", "file": "trips/today.x.md", "line": 0, "character": 1 },
         {
           "request": "textDocument/codeAction",
-          "file": "trips/today.wtf",
+          "file": "trips/today.x.md",
           "range": {
             "start": { "line": 0, "character": 0 },
             "end": { "line": 0, "character": 0 }

@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "debug.wtf",
+        "debug.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "errors.wtf",
+        "errors.x.md",
         "diagnostics | select {line, message}",
         "--json"
       ]
@@ -20,15 +20,15 @@
     {
       "lsp": [
         {
-          "open": "debug.wtf"
+          "open": "debug.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "debug.wtf"
+          "file": "debug.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "debug.wtf",
+          "file": "debug.x.md",
           "range": {
             "start": {
               "line": 1,
@@ -42,7 +42,7 @@
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "debug.wtf",
+          "file": "debug.x.md",
           "line": 1,
           "character": 28
         }

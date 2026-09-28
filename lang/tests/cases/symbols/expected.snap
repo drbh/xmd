@@ -1,6 +1,6 @@
 ### 0 lsp
--- open nested.wtf
--- request textDocument/documentSymbol nested.wtf
+-- open nested.x.md
+-- request textDocument/documentSymbol nested.x.md
 [
   {
     "detail": "Number · 1",
@@ -363,8 +363,8 @@
     }
   }
 ]
--- open crlf.wtf
--- request textDocument/documentSymbol crlf.wtf
+-- open crlf.x.md
+-- request textDocument/documentSymbol crlf.x.md
 [
   {
     "children": [
@@ -469,8 +469,8 @@
     }
   }
 ]
--- open flat.wtf
--- request textDocument/documentSymbol flat.wtf
+-- open flat.x.md
+-- request textDocument/documentSymbol flat.x.md
 [
   {
     "detail": "Money · $100",
@@ -478,7 +478,7 @@
     "name": "cost",
     "range": {
       "end": {
-        "character": 44,
+        "character": 45,
         "line": 0
       },
       "start": {
@@ -573,8 +573,8 @@
     }
   }
 ]
--- open trailing.wtf
--- request textDocument/documentSymbol trailing.wtf
+-- open trailing.x.md
+-- request textDocument/documentSymbol trailing.x.md
 [
   {
     "children": [
@@ -629,10 +629,10 @@
     }
   }
 ]
--- open empty.wtf
--- request textDocument/documentSymbol empty.wtf
+-- open empty.x.md
+-- request textDocument/documentSymbol empty.x.md
 []
--- open prose.wtf
--- request textDocument/documentSymbol prose.wtf
+-- open prose.x.md
+-- request textDocument/documentSymbol prose.x.md
 []
 

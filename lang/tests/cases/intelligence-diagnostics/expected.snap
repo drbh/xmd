@@ -1,5 +1,5 @@
-### 0 cli query types.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query types.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query types.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query types.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -11,8 +11,8 @@ exit 0
   }
 ]
 
-### 1 cli query syntax.wtf diagnostics | select {line, code, message} --json
-$ wtf query syntax.wtf diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query syntax.x.md diagnostics | select {line, code, message} --json
+$ wtf query syntax.x.md diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -28,8 +28,8 @@ exit 0
   }
 ]
 
-### 2 cli query clock.wtf diagnostics | select {line, message} --json
-$ wtf query clock.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query clock.x.md diagnostics | select {line, message} --json
+$ wtf query clock.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -39,15 +39,15 @@ exit 0
   }
 ]
 
-### 3 cli query clock.wtf diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00
-$ wtf query clock.wtf diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
+### 3 cli query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00
+$ wtf query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
 exit 0
 --- stdout
 []
 
 ### 4 lsp
--- open types.wtf
--- await textDocument/publishDiagnostics types.wtf
+-- open types.x.md
+-- await textDocument/publishDiagnostics types.x.md
 {
   "diagnostics": [
     {
@@ -67,18 +67,18 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/types.wtf",
+  "uri": "file://<root>/types.x.md",
   "version": 1
 }
--- open syntax.wtf
--- await textDocument/publishDiagnostics syntax.wtf
+-- open syntax.x.md
+-- await textDocument/publishDiagnostics syntax.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/syntax.wtf",
+  "uri": "file://<root>/syntax.x.md",
   "version": 1
 }
--- open cycles.wtf
--- await textDocument/publishDiagnostics cycles.wtf
+-- open cycles.x.md
+-- await textDocument/publishDiagnostics cycles.x.md
 {
   "diagnostics": [
     {
@@ -107,7 +107,7 @@ exit 0
                 "line": 0
               }
             },
-            "uri": "file://<root>/cycles.wtf"
+            "uri": "file://<root>/cycles.x.md"
           },
           "message": "a defined here"
         },
@@ -123,7 +123,7 @@ exit 0
                 "line": 1
               }
             },
-            "uri": "file://<root>/cycles.wtf"
+            "uri": "file://<root>/cycles.x.md"
           },
           "message": "b defined here"
         },
@@ -139,7 +139,7 @@ exit 0
                 "line": 2
               }
             },
-            "uri": "file://<root>/cycles.wtf"
+            "uri": "file://<root>/cycles.x.md"
           },
           "message": "c defined here"
         },
@@ -155,7 +155,7 @@ exit 0
                 "line": 0
               }
             },
-            "uri": "file://<root>/cycles.wtf"
+            "uri": "file://<root>/cycles.x.md"
           },
           "message": "a defined here"
         }
@@ -164,11 +164,11 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/cycles.wtf",
+  "uri": "file://<root>/cycles.x.md",
   "version": 1
 }
--- open ambiguous.wtf
--- await textDocument/publishDiagnostics ambiguous.wtf
+-- open ambiguous.x.md
+-- await textDocument/publishDiagnostics ambiguous.x.md
 {
   "diagnostics": [
     {
@@ -188,11 +188,11 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/ambiguous.wtf",
+  "uri": "file://<root>/ambiguous.x.md",
   "version": 1
 }
--- open tasks.wtf
--- await textDocument/publishDiagnostics tasks.wtf
+-- open tasks.x.md
+-- await textDocument/publishDiagnostics tasks.x.md
 {
   "diagnostics": [
     {
@@ -221,7 +221,7 @@ exit 0
                 "line": 0
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "first defined here"
         },
@@ -237,7 +237,7 @@ exit 0
                 "line": 1
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "second defined here"
         },
@@ -253,7 +253,7 @@ exit 0
                 "line": 0
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "first defined here"
         }
@@ -287,7 +287,7 @@ exit 0
                 "line": 1
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "second defined here"
         },
@@ -303,7 +303,7 @@ exit 0
                 "line": 0
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "first defined here"
         },
@@ -319,7 +319,7 @@ exit 0
                 "line": 1
               }
             },
-            "uri": "file://<root>/tasks.wtf"
+            "uri": "file://<root>/tasks.x.md"
           },
           "message": "second defined here"
         }
@@ -344,7 +344,7 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/tasks.wtf",
+  "uri": "file://<root>/tasks.x.md",
   "version": 1
 }
 

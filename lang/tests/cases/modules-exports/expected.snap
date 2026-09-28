@@ -1,5 +1,5 @@
-### 0 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 lib := import("lib") = <collection>
@@ -10,13 +10,13 @@ hidden := import("lib").b(1)
 underscore := import("lib")._c(1)
 missing := import("lib").d
 --- stderr
-<root>/main.wtf:5:11: error: 'b' is not exported by module 'lib'
-<root>/main.wtf:6:15: error: '_c' is not exported by module 'lib'
-<root>/main.wtf:7:12: error: 'd' is not exported by module 'lib'
+<root>/main.x.md:5:11: error: 'b' is not exported by module 'lib'
+<root>/main.x.md:6:15: error: '_c' is not exported by module 'lib'
+<root>/main.x.md:7:12: error: 'd' is not exported by module 'lib'
 wtf: 3 error(s) while rendering
 
-### 1 cli query main.wtf diagnostics | select {line, message} --json
-$ wtf query main.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli query main.x.md diagnostics | select {line, message} --json
+$ wtf query main.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -35,8 +35,8 @@ exit 0
 ]
 
 ### 2 lsp
--- open main.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- open main.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [
     {
@@ -88,14 +88,14 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- change main.wtf (version 2)
+-- change main.x.md (version 2)
 lib := import("lib")
 x := import("lib").
 y := lib.
--- request textDocument/completion main.wtf 1:19
+-- request textDocument/completion main.x.md 1:19
 [
   {
     "detail": "Function · <function>",
@@ -116,7 +116,7 @@ y := lib.
     }
   }
 ]
--- request textDocument/completion main.wtf 2:9
+-- request textDocument/completion main.x.md 2:9
 [
   {
     "detail": "Function · <function>",
@@ -139,64 +139,64 @@ y := lib.
 ]
 
 ### 3 write
--- write .wtf/modules/lib.wtf (94 bytes)
+-- write .wtf/modules/lib.x.md (94 bytes)
 
-### 4 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 4 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: exports names 'missing', which this module does not define
+wtf: <root>/.wtf/modules/lib.x.md: exports names 'missing', which this module does not define
 
 ### 5 write
--- write .wtf/modules/lib.wtf (106 bytes)
+-- write .wtf/modules/lib.x.md (106 bytes)
 
-### 6 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: '_c' cannot be exported; 'module' and '_' names are private
+wtf: <root>/.wtf/modules/lib.x.md: '_c' cannot be exported; 'module' and '_' names are private
 
 ### 7 write
--- write .wtf/modules/lib.wtf (88 bytes)
+-- write .wtf/modules/lib.x.md (88 bytes)
 
-### 8 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: 'module' cannot be exported; 'module' and '_' names are private
+wtf: <root>/.wtf/modules/lib.x.md: 'module' cannot be exported; 'module' and '_' names are private
 
 ### 9 write
--- write .wtf/modules/lib.wtf (88 bytes)
+-- write .wtf/modules/lib.x.md (88 bytes)
 
-### 10 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 10 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: Duplicate export 'a'
+wtf: <root>/.wtf/modules/lib.x.md: Duplicate export 'a'
 
 ### 11 write
--- write .wtf/modules/lib.wtf (81 bytes)
+-- write .wtf/modules/lib.x.md (81 bytes)
 
-### 12 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 12 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: module.exports must be a list of text
+wtf: <root>/.wtf/modules/lib.x.md: module.exports must be a list of text
 
 ### 13 write
--- write .wtf/modules/lib.wtf (106 bytes)
+-- write .wtf/modules/lib.x.md (106 bytes)
 
-### 14 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 14 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/lib.wtf: A feature module has no exports; its hooks are called by the host
+wtf: <root>/.wtf/modules/lib.x.md: A feature module has no exports; its hooks are called by the host
 
 ### 15 write
--- write .wtf/modules/lib.wtf (97 bytes)
+-- write .wtf/modules/lib.x.md (97 bytes)
 
-### 16 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 16 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 lib := import("lib")
@@ -207,11 +207,11 @@ hidden := import("lib").b(1)
 underscore := import("lib")._c(1)
 missing := import("lib").d
 --- stderr
-<root>/main.wtf:1:8: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-<root>/main.wtf:2:7: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-<root>/main.wtf:4:15: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-<root>/main.wtf:5:11: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-<root>/main.wtf:6:15: error: Module 'lib' is a feature module and cannot be imported; only libraries can
-<root>/main.wtf:7:12: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:1:8: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:2:7: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:4:15: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:5:11: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:6:15: error: Module 'lib' is a feature module and cannot be imported; only libraries can
+<root>/main.x.md:7:12: error: Module 'lib' is a feature module and cannot be imported; only libraries can
 wtf: 6 error(s) while rendering
 

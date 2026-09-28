@@ -1,12 +1,12 @@
 ### 0 lsp
--- open extract.wtf
--- await textDocument/publishDiagnostics extract.wtf
+-- open extract.x.md
+-- await textDocument/publishDiagnostics extract.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/extract.wtf",
+  "uri": "file://<root>/extract.x.md",
   "version": 1
 }
--- request textDocument/codeAction extract.wtf {"end":{"character":16,"line":1},"start":{"character":10,"line":1}}
+-- request textDocument/codeAction extract.x.md {"end":{"character":16,"line":1},"start":{"character":10,"line":1}}
 [
   {
     "edit": {
@@ -28,7 +28,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/extract.wtf",
+            "uri": "file://<root>/extract.x.md",
             "version": 1
           }
         }
@@ -38,7 +38,7 @@
     "title": "Extract named value 'amount'"
   }
 ]
--- request textDocument/codeAction extract.wtf {"end":{"character":21,"line":2},"start":{"character":16,"line":2}}
+-- request textDocument/codeAction extract.x.md {"end":{"character":21,"line":2},"start":{"character":16,"line":2}}
 [
   {
     "edit": {
@@ -73,7 +73,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/extract.wtf",
+            "uri": "file://<root>/extract.x.md",
             "version": 1
           }
         }
@@ -83,10 +83,10 @@
     "title": "Extract named calculation 'calculation_1'"
   }
 ]
--- request textDocument/codeAction extract.wtf {"end":{"character":17,"line":2},"start":{"character":12,"line":2}}
+-- request textDocument/codeAction extract.x.md {"end":{"character":17,"line":2},"start":{"character":12,"line":2}}
 []
--- open grouping.wtf
--- request textDocument/codeAction grouping.wtf {"end":{"character":13,"line":0},"start":{"character":8,"line":0}}
+-- open grouping.x.md
+-- request textDocument/codeAction grouping.x.md {"end":{"character":13,"line":0},"start":{"character":8,"line":0}}
 [
   {
     "edit": {
@@ -121,7 +121,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/grouping.wtf",
+            "uri": "file://<root>/grouping.x.md",
             "version": 1
           }
         }
@@ -131,7 +131,7 @@
     "title": "Extract named calculation 'calculation'"
   }
 ]
--- request textDocument/codeAction grouping.wtf {"end":{"character":22,"line":1},"start":{"character":20,"line":1}}
+-- request textDocument/codeAction grouping.x.md {"end":{"character":22,"line":1},"start":{"character":20,"line":1}}
 [
   {
     "edit": {
@@ -166,7 +166,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/grouping.wtf",
+            "uri": "file://<root>/grouping.x.md",
             "version": 1
           }
         }
@@ -176,14 +176,14 @@
     "title": "↻ next"
   }
 ]
--- open inline.wtf
--- await textDocument/publishDiagnostics inline.wtf
+-- open inline.x.md
+-- await textDocument/publishDiagnostics inline.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/inline.wtf",
+  "uri": "file://<root>/inline.x.md",
   "version": 1
 }
--- request textDocument/codeAction inline.wtf {"end":{"character":27,"line":1},"start":{"character":19,"line":1}}
+-- request textDocument/codeAction inline.x.md {"end":{"character":27,"line":1},"start":{"character":19,"line":1}}
 [
   {
     "edit": {
@@ -205,7 +205,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/inline.wtf",
+            "uri": "file://<root>/inline.x.md",
             "version": 1
           }
         }
@@ -220,7 +220,7 @@
         {
           "edits": [
             {
-              "newText": "(import(\"./other.wtf\"))",
+              "newText": "(import(\"./other.x.md\"))",
               "range": {
                 "end": {
                   "character": 18,
@@ -234,7 +234,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/inline.wtf",
+            "uri": "file://<root>/inline.x.md",
             "version": 1
           }
         }
@@ -244,7 +244,7 @@
     "title": "Inline expression"
   }
 ]
--- request textDocument/codeAction inline.wtf {"end":{"character":21,"line":2},"start":{"character":4,"line":2}}
+-- request textDocument/codeAction inline.x.md {"end":{"character":21,"line":2},"start":{"character":4,"line":2}}
 [
   {
     "edit": {
@@ -266,7 +266,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/inline.wtf",
+            "uri": "file://<root>/inline.x.md",
             "version": 1
           }
         }
@@ -276,8 +276,8 @@
     "title": "Freeze current value"
   }
 ]
--- open simple.wtf
--- request textDocument/codeAction simple.wtf {"end":{"character":18,"line":1},"start":{"character":13,"line":1}}
+-- open simple.x.md
+-- request textDocument/codeAction simple.x.md {"end":{"character":18,"line":1},"start":{"character":13,"line":1}}
 [
   {
     "edit": {
@@ -299,7 +299,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/simple.wtf",
+            "uri": "file://<root>/simple.x.md",
             "version": 1
           }
         }
@@ -328,7 +328,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/simple.wtf",
+            "uri": "file://<root>/simple.x.md",
             "version": 1
           }
         }
@@ -338,20 +338,20 @@
     "title": "Inline expression"
   }
 ]
--- open freeze.wtf
--- await textDocument/publishDiagnostics freeze.wtf
+-- open freeze.x.md
+-- await textDocument/publishDiagnostics freeze.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/freeze.wtf",
+  "uri": "file://<root>/freeze.x.md",
   "version": 1
 }
--- request textDocument/codeAction freeze.wtf {"end":{"character":26,"line":1},"start":{"character":13,"line":1}}
+-- request textDocument/codeAction freeze.x.md {"end":{"character":26,"line":1},"start":{"character":13,"line":1}}
 [
   {
     "arguments": [
       {
         "action": "resume",
-        "document": "file://<root>/freeze.wtf",
+        "document": "file://<root>/freeze.x.md",
         "kind": "timer",
         "name": "watch"
       }
@@ -363,7 +363,7 @@
     "arguments": [
       {
         "action": "reset",
-        "document": "file://<root>/freeze.wtf",
+        "document": "file://<root>/freeze.x.md",
         "kind": "timer",
         "name": "watch"
       }
@@ -404,7 +404,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/freeze.wtf",
+            "uri": "file://<root>/freeze.x.md",
             "version": 1
           }
         }
@@ -433,7 +433,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/freeze.wtf",
+            "uri": "file://<root>/freeze.x.md",
             "version": 1
           }
         }
@@ -443,7 +443,7 @@
     "title": "Freeze current value"
   }
 ]
--- request textDocument/codeAction freeze.wtf {"end":{"character":16,"line":5},"start":{"character":11,"line":5}}
+-- request textDocument/codeAction freeze.x.md {"end":{"character":16,"line":5},"start":{"character":11,"line":5}}
 [
   {
     "edit": {
@@ -465,7 +465,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/freeze.wtf",
+            "uri": "file://<root>/freeze.x.md",
             "version": 1
           }
         }
@@ -475,7 +475,7 @@
     "title": "Inline expression"
   }
 ]
--- request textDocument/codeAction freeze.wtf {"end":{"character":13,"line":6},"start":{"character":6,"line":6}}
+-- request textDocument/codeAction freeze.x.md {"end":{"character":13,"line":6},"start":{"character":6,"line":6}}
 [
   {
     "edit": {
@@ -497,7 +497,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/freeze.wtf",
+            "uri": "file://<root>/freeze.x.md",
             "version": 1
           }
         }
@@ -507,10 +507,10 @@
     "title": "Freeze current value"
   }
 ]
--- request textDocument/codeAction freeze.wtf {"end":{"character":11,"line":8},"start":{"character":5,"line":8}}
+-- request textDocument/codeAction freeze.x.md {"end":{"character":11,"line":8},"start":{"character":5,"line":8}}
 []
--- open fixes.wtf
--- await textDocument/publishDiagnostics fixes.wtf
+-- open fixes.x.md
+-- await textDocument/publishDiagnostics fixes.x.md
 {
   "diagnostics": [
     {
@@ -530,10 +530,10 @@
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/fixes.wtf",
+  "uri": "file://<root>/fixes.x.md",
   "version": 1
 }
--- request textDocument/codeAction fixes.wtf {"end":{"character":14,"line":1},"start":{"character":8,"line":1}}
+-- request textDocument/codeAction fixes.x.md {"end":{"character":14,"line":1},"start":{"character":8,"line":1}}
 [
   {
     "edit": {
@@ -555,7 +555,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/fixes.wtf",
+            "uri": "file://<root>/fixes.x.md",
             "version": 1
           }
         }
@@ -584,7 +584,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/fixes.wtf",
+            "uri": "file://<root>/fixes.x.md",
             "version": 1
           }
         }
@@ -595,12 +595,12 @@
   }
 ]
 
-### 1 read extract.wtf freeze.wtf fixes.wtf
--- extract.wtf
+### 1 read extract.x.md freeze.x.md fixes.x.md
+-- extract.x.md
 [calculation] := 100
 🦀 Budget $3,000 today.
 [result] := 2 + 3 * 4
--- freeze.wtf
+-- freeze.x.md
 [watch] := stopwatch(73s)
 [seconds] := watch.elapsed / 1s
 # Work :work
@@ -610,7 +610,7 @@
 Done: [count].
 [text] := "[watch]"
 Show [text].
--- fixes.wtf
+-- fixes.x.md
 [$30]:budget
 🦀 Use [budegt].
 

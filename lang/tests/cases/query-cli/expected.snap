@@ -10,7 +10,7 @@ exit 0
     },
     "source": {
       "line": 1,
-      "path": "<root>/agenda/n.wtf",
+      "path": "<root>/agenda/n.x.md",
       "range": {
         "end": {
           "character": 48,
@@ -21,7 +21,7 @@ exit 0
           "line": 0
         }
       },
-      "uri": "file://<root>/agenda/n.wtf#L1"
+      "uri": "file://<root>/agenda/n.x.md#L1"
     },
     "title": "Open #work"
   }
@@ -59,8 +59,8 @@ exit 0
   2
 ]
 
-### 5 cli query one note.wtf - --root scopes --json
-$ wtf query one note.wtf - --root scopes --json --now 2026-09-16T12:00:00-04:00
+### 5 cli query one note.x.md - --root scopes --json
+$ wtf query one note.x.md - --root scopes --json --now 2026-09-16T12:00:00-04:00
 --- stdin
 // Count unfinished tasks.
 length(
@@ -85,8 +85,8 @@ exit 0
   2
 ]
 
-### 7 read agenda/n.wtf agenda/.wtf/cache.json
--- agenda/n.wtf
+### 7 read agenda/n.x.md agenda/.wtf/cache.json
+-- agenda/n.x.md
 - [ ] Open #work @due(2026-09-16) @estimate(90s)
 - [x] Closed
 -- agenda/.wtf/cache.json
@@ -171,8 +171,8 @@ Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 15 cli q one note.wtf length(tasks) --root scopes --json
-$ wtf q one note.wtf length(tasks) --root scopes --json
+### 15 cli q one note.x.md length(tasks) --root scopes --json
+$ wtf q one note.x.md length(tasks) --root scopes --json
 exit 0
 --- stdout
 [
@@ -195,16 +195,16 @@ exit 0
   2
 ]
 
-### 18 cli query --workspace "one note.wtf" --root scopes --json
-$ wtf query --workspace "one note.wtf" --root scopes --json --now 2026-09-16T12:00:00-04:00
+### 18 cli query --workspace "one note.x.md" --root scopes --json
+$ wtf query --workspace "one note.x.md" --root scopes --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
-  "one note.wtf"
+  "one note.x.md"
 ]
 
-### 19 cli query ${root}/scopes/one note.wtf length(tasks) --root scopes --json
-$ wtf query <root>/scopes/one note.wtf length(tasks) --root scopes --json --now 2026-09-16T12:00:00-04:00
+### 19 cli query ${root}/scopes/one note.x.md length(tasks) --root scopes --json
+$ wtf query <root>/scopes/one note.x.md length(tasks) --root scopes --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -215,14 +215,14 @@ exit 0
 $ wtf query --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Supply a query expression: wtf 'total' < note.wtf
+wtf: Supply a query expression: wtf 'total' < note.x.md
 
 ### 21 cli query tasks
 $ wtf query tasks --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 
-### 22 cli query note.wtf
-$ wtf query note.wtf --root <root> --now 2026-09-16T12:00:00-04:00
+### 22 cli query note.x.md
+$ wtf query note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
 wtf: Unknown name 'note'
@@ -231,7 +231,7 @@ wtf: Unknown name 'note'
 $ wtf query --workspace --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-wtf: Supply a query expression: wtf 'total' < note.wtf
+wtf: Supply a query expression: wtf 'total' < note.x.md
 
 ### 24 cli query -f expression.txt
 $ wtf query -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
@@ -247,8 +247,8 @@ Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 25 cli query note.wtf tasks --workspace
-$ wtf query note.wtf tasks --workspace --root <root> --now 2026-09-16T12:00:00-04:00
+### 25 cli query note.x.md tasks --workspace
+$ wtf query note.x.md tasks --workspace --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: the argument '[QUERY]' cannot be used with '--workspace'
@@ -259,8 +259,8 @@ Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 26 cli query note.wtf tasks -f expression.txt
-$ wtf query note.wtf tasks -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
+### 26 cli query note.x.md tasks -f expression.txt
+$ wtf query note.x.md tasks -f expression.txt --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '-f' found
@@ -301,8 +301,8 @@ Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 29 cli query tasks --in note.wtf
-$ wtf query tasks --in note.wtf --root <root> --now 2026-09-16T12:00:00-04:00
+### 29 cli query tasks --in note.x.md
+$ wtf query tasks --in note.x.md --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument '--in' found
@@ -315,8 +315,8 @@ Usage: wtf query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 30 cli query note.wtf tasks extra
-$ wtf query note.wtf tasks extra --root <root> --now 2026-09-16T12:00:00-04:00
+### 30 cli query note.x.md tasks extra
+$ wtf query note.x.md tasks extra --root <root> --now 2026-09-16T12:00:00-04:00
 exit 2
 --- stderr
 error: unexpected argument 'extra' found
@@ -355,14 +355,14 @@ exit 1
 --- stderr
 wtf: Unknown name 'plan'
 
-### 36 cli capture n.wtf
-$ wtf capture n.wtf
+### 36 cli capture n.x.md
+$ wtf capture n.x.md
 exit 1
 --- stderr
 wtf: <root>/capture: No such file or directory (os error 2)
 
-### 37 cli complete n.wtf
-$ wtf complete n.wtf
+### 37 cli complete n.x.md
+$ wtf complete n.x.md
 exit 1
 --- stderr
 wtf: <root>/complete: No such file or directory (os error 2)
@@ -395,8 +395,8 @@ Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows
 Functions: map, filter, fold, get, sort_by, group_by, sum, length
 Stages: where, select, sort, limit, count, sum, group
 Use - as QUERY to read an expression from stdin; the note then has to be a file.
-Examples: wtf query note.wtf 'map(tasks, fn(t) => t.title)' --json
-          cat note.wtf | wtf query 'length(tasks)'
+Examples: wtf query note.x.md 'map(tasks, fn(t) => t.title)' --json
+          cat note.x.md | wtf query 'length(tasks)'
           wtf query --workspace 'filter(tasks, fn(t) => !t.done)' --json
-          printf 'length(tasks)' | wtf query note.wtf -
+          printf 'length(tasks)' | wtf query note.x.md -
 

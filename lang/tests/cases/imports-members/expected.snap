@@ -1,10 +1,10 @@
-### 0 cli query main.wtf values | select {name, display, errors} --json
-$ wtf query main.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli query main.x.md values | select {name, display, errors} --json
+$ wtf query main.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
-    "display": "import(\"<root>/values.wtf\")",
+    "display": "import(\"<root>/values.x.md\")",
     "errors": [],
     "name": "src"
   },
@@ -20,13 +20,13 @@ exit 0
   }
 ]
 
-### 1 cli query grouped.wtf values | select {name, display} --json
-$ wtf query grouped.wtf values | select {name, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli query grouped.x.md values | select {name, display} --json
+$ wtf query grouped.x.md values | select {name, display} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
-    "display": "import(\"<root>/bridge.wtf\")",
+    "display": "import(\"<root>/bridge.x.md\")",
     "name": "src"
   },
   {
@@ -35,38 +35,38 @@ exit 0
   }
 ]
 
-### 2 cli graph main.wtf -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path})
-$ wtf graph main.wtf -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path}) --root <root> --now 2026-09-18T12:00:00Z
+### 2 cli graph main.x.md -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path})
+$ wtf graph main.x.md -q map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path}) --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
     "external": false,
     "name": "src",
-    "path": "<root>/main.wtf"
+    "path": "<root>/main.x.md"
   },
   {
     "external": false,
     "name": "result",
-    "path": "<root>/main.wtf"
+    "path": "<root>/main.x.md"
   },
   {
     "external": false,
     "name": "local",
-    "path": "<root>/main.wtf"
+    "path": "<root>/main.x.md"
   },
   {
     "external": true,
     "name": "amount",
-    "path": "<root>/values.wtf"
+    "path": "<root>/values.x.md"
   }
 ]
 
 ### 3 lsp
--- open main.wtf
--- open values.wtf
--- open grouped.wtf
--- request textDocument/definition main.wtf 1:16
+-- open main.x.md
+-- open values.x.md
+-- open grouped.x.md
+-- request textDocument/definition main.x.md 1:16
 {
   "range": {
     "end": {
@@ -78,9 +78,9 @@ exit 0
       "line": 0
     }
   },
-  "uri": "file://<root>/values.wtf"
+  "uri": "file://<root>/values.x.md"
 }
--- request textDocument/definition main.wtf 2:10
+-- request textDocument/definition main.x.md 2:10
 {
   "range": {
     "end": {
@@ -92,9 +92,9 @@ exit 0
       "line": 0
     }
   },
-  "uri": "file://<root>/values.wtf"
+  "uri": "file://<root>/values.x.md"
 }
--- request textDocument/references main.wtf 1:16
+-- request textDocument/references main.x.md 1:16
 [
   {
     "range": {
@@ -107,7 +107,7 @@ exit 0
         "line": 0
       }
     },
-    "uri": "file://<root>/values.wtf"
+    "uri": "file://<root>/values.x.md"
   },
   {
     "range": {
@@ -120,7 +120,7 @@ exit 0
         "line": 5
       }
     },
-    "uri": "file://<root>/grouped.wtf"
+    "uri": "file://<root>/grouped.x.md"
   },
   {
     "range": {
@@ -133,7 +133,7 @@ exit 0
         "line": 1
       }
     },
-    "uri": "file://<root>/main.wtf"
+    "uri": "file://<root>/main.x.md"
   },
   {
     "range": {
@@ -146,10 +146,10 @@ exit 0
         "line": 2
       }
     },
-    "uri": "file://<root>/main.wtf"
+    "uri": "file://<root>/main.x.md"
   }
 ]
--- request textDocument/rename main.wtf 1:16
+-- request textDocument/rename main.x.md 1:16
 {
   "documentChanges": [
     {
@@ -169,7 +169,7 @@ exit 0
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/grouped.wtf",
+        "uri": "file://<root>/grouped.x.md",
         "version": 1
       }
     },
@@ -203,7 +203,7 @@ exit 0
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/main.wtf",
+        "uri": "file://<root>/main.x.md",
         "version": 1
       }
     },
@@ -224,13 +224,13 @@ exit 0
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/values.wtf",
+        "uri": "file://<root>/values.x.md",
         "version": 1
       }
     }
   ]
 }
--- request textDocument/completion main.wtf 1:14
+-- request textDocument/completion main.x.md 1:14
 [
   {
     "detail": "Number · 20",
@@ -251,7 +251,7 @@ exit 0
     }
   }
 ]
--- request textDocument/definition grouped.wtf 5:7
+-- request textDocument/definition grouped.x.md 5:7
 {
   "range": {
     "end": {
@@ -263,13 +263,13 @@ exit 0
       "line": 0
     }
   },
-  "uri": "file://<root>/values.wtf"
+  "uri": "file://<root>/values.x.md"
 }
--- request textDocument/hover grouped.wtf 5:7
+-- request textDocument/hover grouped.x.md 5:7
 {
   "contents": {
     "kind": "markdown",
-    "value": "**amount · Number**\n\n20\n\n```text\n20\n= 20\n```\n\nDefinition: [amount](<file://<root>/values.wtf#L1>) · <root>/values.wtf:1"
+    "value": "**amount · Number**\n\n20\n\n```text\n20\n= 20\n```\n\nDefinition: [amount](<file://<root>/values.x.md#L1>) · <root>/values.x.md:1"
   },
   "range": {
     "end": {

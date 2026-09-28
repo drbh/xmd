@@ -326,7 +326,22 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            let _=self.client.register_capability(vec![Registration{id:"wtf-notes".into(),method:"workspace/didChangeWatchedFiles".into(),register_options:Some(serde_json::json!({"watchers":[{"globPattern":"**/*.wtf"},{"globPattern":"**/.wtf/cache.json"},{"globPattern":"**/.wtf/lookups.json"},{"globPattern":"**/.wtf/modules.json"}]}))}]).await;
+            // Notes, and the workspace's own settings.
+            let watchers = std::iter::once(format!("**/*.{}", common::EXTENSION))
+                .chain(
+                    ["cache.json", "lookups.json", "modules.json"]
+                        .map(|file| format!("**/.wtf/{file}")),
+                )
+                .map(|glob| serde_json::json!({ "globPattern": glob }))
+                .collect::<Vec<_>>();
+            let _ = self
+                .client
+                .register_capability(vec![Registration {
+                    id: "wtf-notes".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(serde_json::json!({ "watchers": watchers })),
+                }])
+                .await;
         }
         let backend = self.clone();
         tokio::spawn(async move {

@@ -1,5 +1,5 @@
-### 0 cli query weather.wtf diagnostics | select {line, severity, message} --json
-$ wtf query weather.wtf diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query weather.x.md diagnostics | select {line, severity, message} --json
+$ wtf query weather.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -25,8 +25,8 @@ exit 0
   }
 ]
 
-### 1 cli query errors.wtf diagnostics | select {line, message} --json
-$ wtf query errors.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query errors.x.md diagnostics | select {line, message} --json
+$ wtf query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -53,14 +53,14 @@ exit 0
 ]
 
 ### 2 lsp
--- open weather.wtf
--- request textDocument/codeLens weather.wtf
+-- open weather.x.md
+-- request textDocument/codeLens weather.x.md
 [
   {
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/weather.wtf",
+          "document": "file://<root>/weather.x.md",
           "kind": "refresh"
         }
       ],
@@ -82,7 +82,7 @@ exit 0
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/weather.wtf",
+          "document": "file://<root>/weather.x.md",
           "kind": "refresh"
         }
       ],
@@ -104,7 +104,7 @@ exit 0
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/weather.wtf",
+          "document": "file://<root>/weather.x.md",
           "kind": "refresh"
         }
       ],
@@ -126,7 +126,7 @@ exit 0
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/weather.wtf",
+          "document": "file://<root>/weather.x.md",
           "kind": "refresh"
         }
       ],
@@ -145,14 +145,14 @@ exit 0
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:weather.wtf}","kind":"refresh"}],"command":"wtf.refresh"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:weather.x.md}","kind":"refresh"}],"command":"wtf.refresh"}
 null
 -- await window/showMessage
 {
   "message": "Resource status and lookups refreshed",
   "type": 3
 }
--- request textDocument/inlayHint weather.wtf {"end":{"character":0,"line":6},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint weather.x.md {"end":{"character":0,"line":6},"start":{"character":0,"line":0}}
 [
   {
     "label": "= <collection>",
@@ -163,7 +163,7 @@ null
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**week · List**\n\n<collection>\n\n```text\nforecast_range(\"Oaxaca\", 2026-11-20, 2026-11-22, F)\n= <collection>\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · just now · my-forecast\n- forecast oaxaca 2026-11-21 · just now · my-forecast\n- forecast oaxaca 2026-11-22 · just now · my-forecast\n\nDefinition: [week](<file://<root>/weather.wtf#L1>) · <root>/weather.wtf:1"
+      "value": "**week · List**\n\n<collection>\n\n```text\nforecast_range(\"Oaxaca\", 2026-11-20, 2026-11-22, F)\n= <collection>\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · just now · my-forecast\n- forecast oaxaca 2026-11-21 · just now · my-forecast\n- forecast oaxaca 2026-11-22 · just now · my-forecast\n\nDefinition: [week](<file://<root>/weather.x.md#L1>) · <root>/weather.x.md:1"
     }
   },
   {
@@ -283,8 +283,8 @@ null
   }
 }
 
-### 4 cli render weather.wtf --format text
-$ wtf render weather.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+### 4 cli render weather.x.md --format text
+$ wtf render weather.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 week := forecast_range("Oaxaca", 2026-11-20, 2026-11-22, F) = <collection>

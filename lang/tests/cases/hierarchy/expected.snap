@@ -1,19 +1,19 @@
 ### 0 lsp
--- open plan.wtf
--- await textDocument/publishDiagnostics plan.wtf
+-- open plan.x.md
+-- await textDocument/publishDiagnostics plan.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/plan.wtf",
+  "uri": "file://<root>/plan.x.md",
   "version": 1
 }
--- request textDocument/prepareCallHierarchy plan.wtf 2:3
+-- request textDocument/prepareCallHierarchy plan.x.md 2:3
 [
   {
     "data": {
       "column": 0,
       "index": 2,
       "kind": "definition",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Money · $1,590",
     "kind": 13,
@@ -38,7 +38,7 @@
         "line": 2
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -61,7 +61,7 @@
         "column": 0,
         "index": 0,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $3,000",
       "kind": 14,
@@ -86,7 +86,7 @@
           "line": 0
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -107,7 +107,7 @@
         "column": 0,
         "index": 1,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $1,410",
       "kind": 14,
@@ -132,18 +132,18 @@
           "line": 1
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 2:3
+-- request textDocument/prepareCallHierarchy plan.x.md 2:3
 [
   {
     "data": {
       "column": 0,
       "index": 2,
       "kind": "definition",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Money · $1,590",
     "kind": 13,
@@ -168,7 +168,7 @@
         "line": 2
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
@@ -179,7 +179,7 @@
         "column": 0,
         "index": 3,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $795",
       "kind": 13,
@@ -204,7 +204,7 @@
           "line": 3
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     },
     "fromRanges": [
       {
@@ -225,7 +225,7 @@
         "column": 0,
         "index": 3,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · blocked by buy",
       "kind": 17,
@@ -250,7 +250,7 @@
           "line": 13
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     },
     "fromRanges": [
       {
@@ -266,14 +266,14 @@
     ]
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 3:14
+-- request textDocument/prepareCallHierarchy plan.x.md 3:14
 [
   {
     "data": {
       "column": 0,
       "index": 2,
       "kind": "definition",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Money · $1,590",
     "kind": 13,
@@ -298,17 +298,17 @@
         "line": 2
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 8:4
+-- request textDocument/prepareCallHierarchy plan.x.md 8:4
 [
   {
     "data": {
       "column": 0,
       "index": 5,
       "kind": "definition",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Money · $6",
     "kind": 13,
@@ -333,7 +333,7 @@
         "line": 8
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -356,7 +356,7 @@
         "column": 0,
         "index": 4,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "table · 1 rows · 3 columns",
       "kind": 23,
@@ -381,7 +381,7 @@
           "line": 4
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -402,7 +402,7 @@
         "column": 1,
         "index": 0,
         "kind": "column",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Number · column of t",
       "kind": 8,
@@ -427,7 +427,7 @@
           "line": 5
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -448,7 +448,7 @@
         "column": 2,
         "index": 0,
         "kind": "column",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · column of t",
       "kind": 8,
@@ -473,18 +473,18 @@
           "line": 5
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 8:4
+-- request textDocument/prepareCallHierarchy plan.x.md 8:4
 [
   {
     "data": {
       "column": 0,
       "index": 5,
       "kind": "definition",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Money · $6",
     "kind": 13,
@@ -509,19 +509,19 @@
         "line": 8
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
 []
--- request textDocument/prepareCallHierarchy plan.wtf 5:10
+-- request textDocument/prepareCallHierarchy plan.x.md 5:10
 [
   {
     "data": {
       "column": 1,
       "index": 0,
       "kind": "column",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Number · column of t",
     "kind": 8,
@@ -546,7 +546,7 @@
         "line": 5
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -569,7 +569,7 @@
         "column": 0,
         "index": 4,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "table · 1 rows · 3 columns",
       "kind": 23,
@@ -594,18 +594,18 @@
           "line": 4
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 5:10
+-- request textDocument/prepareCallHierarchy plan.x.md 5:10
 [
   {
     "data": {
       "column": 1,
       "index": 0,
       "kind": "column",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "Number · column of t",
     "kind": 8,
@@ -630,7 +630,7 @@
         "line": 5
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
@@ -641,7 +641,7 @@
         "column": 0,
         "index": 5,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $6",
       "kind": 13,
@@ -666,7 +666,7 @@
           "line": 8
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     },
     "fromRanges": [
       {
@@ -682,14 +682,14 @@
     ]
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 13:3
+-- request textDocument/prepareCallHierarchy plan.x.md 13:3
 [
   {
     "data": {
       "column": 0,
       "index": 3,
       "kind": "task",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "task · blocked by buy",
     "kind": 17,
@@ -714,7 +714,7 @@
         "line": 13
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -737,7 +737,7 @@
         "column": 0,
         "index": 0,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · incomplete",
       "kind": 17,
@@ -762,7 +762,7 @@
           "line": 10
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -783,7 +783,7 @@
         "column": 0,
         "index": 2,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $1,590",
       "kind": 13,
@@ -808,7 +808,7 @@
           "line": 2
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -829,7 +829,7 @@
         "column": 0,
         "index": 1,
         "kind": "definition",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "Money · $1,410",
       "kind": 14,
@@ -854,18 +854,18 @@
           "line": 1
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 13:3
+-- request textDocument/prepareCallHierarchy plan.x.md 13:3
 [
   {
     "data": {
       "column": 0,
       "index": 3,
       "kind": "task",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "task · blocked by buy",
     "kind": 17,
@@ -890,7 +890,7 @@
         "line": 13
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
@@ -901,7 +901,7 @@
         "column": 0,
         "index": 0,
         "kind": "section",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "checklist · 1/3 complete",
       "kind": 3,
@@ -926,7 +926,7 @@
           "line": 9
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     },
     "fromRanges": [
       {
@@ -942,14 +942,14 @@
     ]
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 10:13
+-- request textDocument/prepareCallHierarchy plan.x.md 10:13
 [
   {
     "data": {
       "column": 0,
       "index": 0,
       "kind": "task",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "task · incomplete",
     "kind": 17,
@@ -974,7 +974,7 @@
         "line": 10
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -997,7 +997,7 @@
         "column": 0,
         "index": 1,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · complete",
       "kind": 17,
@@ -1022,7 +1022,7 @@
           "line": 11
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -1043,7 +1043,7 @@
         "column": 0,
         "index": 2,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · incomplete",
       "kind": 17,
@@ -1068,18 +1068,18 @@
           "line": 12
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 10:13
+-- request textDocument/prepareCallHierarchy plan.x.md 10:13
 [
   {
     "data": {
       "column": 0,
       "index": 0,
       "kind": "task",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "task · incomplete",
     "kind": 17,
@@ -1104,7 +1104,7 @@
         "line": 10
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
@@ -1115,7 +1115,7 @@
         "column": 0,
         "index": 3,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · blocked by buy",
       "kind": 17,
@@ -1140,7 +1140,7 @@
           "line": 13
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     },
     "fromRanges": [
       {
@@ -1156,14 +1156,14 @@
     ]
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 9:10
+-- request textDocument/prepareCallHierarchy plan.x.md 9:10
 [
   {
     "data": {
       "column": 0,
       "index": 0,
       "kind": "section",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "checklist · 1/3 complete",
     "kind": 3,
@@ -1188,7 +1188,7 @@
         "line": 9
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -1211,7 +1211,7 @@
         "column": 0,
         "index": 1,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · complete",
       "kind": 17,
@@ -1236,7 +1236,7 @@
           "line": 11
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -1257,7 +1257,7 @@
         "column": 0,
         "index": 2,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · incomplete",
       "kind": 17,
@@ -1282,7 +1282,7 @@
           "line": 12
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   },
   {
@@ -1303,7 +1303,7 @@
         "column": 0,
         "index": 3,
         "kind": "task",
-        "path": "<root>/plan.wtf"
+        "path": "<root>/plan.x.md"
       },
       "detail": "task · blocked by buy",
       "kind": 17,
@@ -1328,18 +1328,18 @@
           "line": 13
         }
       },
-      "uri": "file://<root>/plan.wtf"
+      "uri": "file://<root>/plan.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy plan.wtf 9:10
+-- request textDocument/prepareCallHierarchy plan.x.md 9:10
 [
   {
     "data": {
       "column": 0,
       "index": 0,
       "kind": "section",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "checklist · 1/3 complete",
     "kind": 3,
@@ -1364,21 +1364,21 @@
         "line": 9
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
 -- request callHierarchy/incomingCalls {"item":"${last.0}"}
 []
--- request textDocument/prepareCallHierarchy plan.wtf 14:0
+-- request textDocument/prepareCallHierarchy plan.x.md 14:0
 null
--- request textDocument/prepareCallHierarchy plan.wtf 13:3
+-- request textDocument/prepareCallHierarchy plan.x.md 13:3
 [
   {
     "data": {
       "column": 0,
       "index": 3,
       "kind": "task",
-      "path": "<root>/plan.wtf"
+      "path": "<root>/plan.x.md"
     },
     "detail": "task · blocked by buy",
     "kind": 17,
@@ -1403,11 +1403,11 @@ null
         "line": 13
       }
     },
-    "uri": "file://<root>/plan.wtf"
+    "uri": "file://<root>/plan.x.md"
   }
 ]
--- request callHierarchy/incomingCalls {"item":{"data":{"column":0,"index":0,"kind":"task","path":"${root}/other.wtf"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"selectionRange":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"uri":"${uri:other.wtf}"}}
+-- request callHierarchy/incomingCalls {"item":{"data":{"column":0,"index":0,"kind":"task","path":"${root}/other.x.md"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"selectionRange":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"uri":"${uri:other.x.md}"}}
 null
--- request callHierarchy/outgoingCalls {"item":{"data":{"column":0,"index":99,"kind":"task","path":"${root}/plan.wtf"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"selectionRange":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"uri":"${uri:plan.wtf}"}}
+-- request callHierarchy/outgoingCalls {"item":{"data":{"column":0,"index":99,"kind":"task","path":"${root}/plan.x.md"},"kind":13,"name":"Ship","range":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"selectionRange":{"end":{"character":1,"line":13},"start":{"character":0,"line":13}},"uri":"${uri:plan.x.md}"}}
 null
 

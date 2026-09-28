@@ -3,17 +3,17 @@
     {
       "lsp": [
         {
-          "open": "n.wtf"
+          "open": "n.x.md"
         },
         {
           "change": {
-            "file": "n.wtf",
+            "file": "n.x.md",
             "text": "$9:price\n- [ ] Unsaved\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "n.wtf"
+          "file": "n.x.md"
         },
         {
           "query": {
@@ -27,13 +27,13 @@
         },
         {
           "change": {
-            "file": "n.wtf",
+            "file": "n.x.md",
             "text": "$12:price\n- [x] Finished\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "n.wtf"
+          "file": "n.x.md"
         },
         {
           "query": {
@@ -50,34 +50,34 @@
     },
     {
       "read": [
-        "n.wtf"
+        "n.x.md"
       ]
     },
     {
       "lsp": [
         {
-          "open": "one.wtf"
+          "open": "one.x.md"
         },
         {
           "change": {
-            "file": "one.wtf",
-            "text": "answer := import(\"./two.wtf\").rate * 2\n- [ ] Local\n"
+            "file": "one.x.md",
+            "text": "answer := import(\"./two.x.md\").rate * 2\n- [ ] Local\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "one.wtf"
+          "file": "one.x.md"
         },
         {
           "query": {
             "query": "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => n.name)",
-            "uri": "one.wtf"
+            "uri": "one.x.md"
           }
         },
         {
           "query": {
             "query": "tasks | select title",
-            "uri": "one.wtf"
+            "uri": "one.x.md"
           }
         },
         {
@@ -88,20 +88,20 @@
         {
           "query": {
             "query": "graph.nodes | where external | select name",
-            "uri": "one.wtf"
+            "uri": "one.x.md"
           }
         },
         {
           "request": "wtf/query",
           "params": {
-            "uri": "https://example.com/n.wtf",
+            "uri": "https://example.com/n.x.md",
             "query": "ast"
           }
         },
         {
           "request": "wtf/query",
           "params": {
-            "uri": "${uri:missing.wtf}",
+            "uri": "${uri:missing.x.md}",
             "query": "ast"
           }
         }
@@ -110,62 +110,62 @@
     {
       "lsp": [
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "change": {
-            "file": "main.wtf",
-            "text": "src := import(\"./.hidden/values.wtf\")\nanswer := src.amount\n"
+            "file": "main.x.md",
+            "text": "src := import(\"./.hidden/values.x.md\")\nanswer := src.amount\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "query": {
             "query": "answer",
-            "uri": "main.wtf"
+            "uri": "main.x.md"
           }
         },
         {
-          "open": ".hidden/values.wtf"
+          "open": ".hidden/values.x.md"
         },
         {
           "change": {
-            "file": ".hidden/values.wtf",
+            "file": ".hidden/values.x.md",
             "text": "amount := 77\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": ".hidden/values.wtf"
+          "file": ".hidden/values.x.md"
         },
         {
           "query": {
             "query": "answer",
-            "uri": "main.wtf"
+            "uri": "main.x.md"
           }
         },
         {
-          "close": ".hidden/values.wtf"
+          "close": ".hidden/values.x.md"
         },
         {
           "query": {
             "query": "answer",
-            "uri": "main.wtf"
+            "uri": "main.x.md"
           }
         }
       ]
     },
     {
       "read": [
-        "main.wtf",
-        ".hidden/values.wtf"
+        "main.x.md",
+        ".hidden/values.x.md"
       ]
     }
   ]

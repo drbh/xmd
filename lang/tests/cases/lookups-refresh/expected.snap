@@ -1,5 +1,5 @@
-### 0 cli query trip.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query trip.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -72,8 +72,8 @@ Resource cache updated (0 resources)
   }
 }
 
-### 3 cli render trip.wtf --format text
-$ wtf render trip.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+### 3 cli render trip.x.md --format text
+$ wtf render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [€450]:hotel
@@ -86,8 +86,8 @@ exit 0
 
 ## Saturday, December 5, 2026 · Oaxaca 0 stops · in 79 days · no forecast yet; seasonal outlooks cover about 7 months
 
-### 4 cli query trip.wtf values | select {name, display} --json
-$ wtf query trip.wtf values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 4 cli query trip.x.md values | select {name, display} --json
+$ wtf query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

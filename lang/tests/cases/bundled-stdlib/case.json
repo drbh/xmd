@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "baddates.wtf",
+        "baddates.x.md",
         "--format",
         "text"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "render",
-        "bakery.wtf",
+        "bakery.x.md",
         "--format",
         "text"
       ]
@@ -19,7 +19,7 @@
     {
       "cli": [
         "render",
-        "choice.wtf",
+        "choice.x.md",
         "--format",
         "text"
       ]
@@ -27,7 +27,7 @@
     {
       "cli": [
         "render",
-        "itinerary.wtf",
+        "itinerary.x.md",
         "--format",
         "text"
       ]
@@ -35,7 +35,7 @@
     {
       "cli": [
         "render",
-        "tasks.wtf",
+        "tasks.x.md",
         "--format",
         "text"
       ]
@@ -43,7 +43,7 @@
     {
       "cli": [
         "render",
-        "timers.wtf",
+        "timers.x.md",
         "--format",
         "text"
       ]
@@ -51,7 +51,7 @@
     {
       "cli": [
         "render",
-        "yearless.wtf",
+        "yearless.x.md",
         "--format",
         "text"
       ]
@@ -59,7 +59,7 @@
     {
       "cli": [
         "render",
-        "tasks.wtf",
+        "tasks.x.md",
         "--format",
         "html"
       ]
@@ -67,7 +67,7 @@
     {
       "cli": [
         "render",
-        "timers.wtf",
+        "timers.x.md",
         "--format",
         "html"
       ]

@@ -408,7 +408,7 @@
 </script>
 
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onwtf:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
-<input bind:this={importInput} type="file" accept=".{EXTENSION},text/plain" multiple hidden onchange={importFiles}>
+<input bind:this={importInput} type="file" accept=".{EXTENSION.split(".").pop()},text/markdown,text/plain" multiple hidden onchange={importFiles}>
 
 {#if keysOpen && backend?.keys}
   <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (keysOpen = false)} />

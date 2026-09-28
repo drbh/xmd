@@ -3,11 +3,11 @@
     {
       "lsp": [
         {
-          "open": "note.wtf"
+          "open": "note.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "note.wtf"
+          "file": "note.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -16,7 +16,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": 0,
                 "expected": "- [ ] Different"
               }
@@ -30,7 +30,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": 9999,
                 "expected": ""
               }
@@ -44,7 +44,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:gone.wtf}",
+                "document": "${uri:gone.x.md}",
                 "row": 0,
                 "expected": "- [ ] Task"
               }
@@ -58,7 +58,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:blocked.wtf}",
+                "document": "${uri:blocked.x.md}",
                 "row": 0,
                 "expected": "- [ ] Waiting @after(prerequisite)"
               }
@@ -72,7 +72,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:plain.wtf}",
+                "document": "${uri:plain.x.md}",
                 "row": 0,
                 "expected": "plain text"
               }
@@ -86,7 +86,7 @@
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:alias.wtf}",
+                "document": "${uri:alias.x.md}",
                 "name": "alias",
                 "action": "start"
               }
@@ -98,7 +98,7 @@
         },
         {
           "write": {
-            "file": "timer.wtf",
+            "file": "timer.x.md",
             "text": "[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)\n"
           }
         },
@@ -107,7 +107,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:timer.wtf}",
+                "uri": "${uri:timer.x.md}",
                 "type": 2
               }
             ]
@@ -120,7 +120,7 @@
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:alias.wtf}",
+                "document": "${uri:alias.x.md}",
                 "name": "alias",
                 "action": "start"
               }
@@ -134,7 +134,7 @@
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:alias.wtf}",
+                "document": "${uri:alias.x.md}",
                 "name": "alias",
                 "action": "pause"
               }
@@ -152,7 +152,7 @@
               {
                 "kind": "open_resource",
                 "target": {
-                  "document": "${uri:use.wtf}",
+                  "document": "${uri:use.x.md}",
                   "row": 0,
                   "expected": "See [site]."
                 },
@@ -172,7 +172,7 @@
               {
                 "kind": "refresh_resource",
                 "target": {
-                  "document": "${uri:use.wtf}",
+                  "document": "${uri:use.x.md}",
                   "row": 0,
                   "expected": "See [site]."
                 },
@@ -183,7 +183,7 @@
         },
         {
           "write": {
-            "file": "links.wtf",
+            "file": "links.x.md",
             "text": "[https://github.com/acme/app/pull/42]:site\n"
           }
         },
@@ -192,7 +192,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:links.wtf}",
+                "uri": "${uri:links.x.md}",
                 "type": 2
               }
             ]
@@ -206,7 +206,7 @@
               {
                 "kind": "open_resource",
                 "target": {
-                  "document": "${uri:use.wtf}",
+                  "document": "${uri:use.x.md}",
                   "row": 0,
                   "expected": "See [site]."
                 },
@@ -219,9 +219,9 @@
     },
     {
       "read": [
-        "note.wtf",
-        "blocked.wtf",
-        "timer.wtf"
+        "note.x.md",
+        "blocked.x.md",
+        "timer.x.md"
       ]
     }
   ]

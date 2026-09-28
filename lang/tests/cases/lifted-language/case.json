@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "solver.wtf",
+        "solver.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "solver.wtf",
+        "solver.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "render",
-        "badmodels.wtf",
+        "badmodels.x.md",
         "--format",
         "text"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "render",
-        "validate.wtf",
+        "validate.x.md",
         "--format",
         "text"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "render",
-        "calendar.wtf",
+        "calendar.x.md",
         "--format",
         "text"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "render",
-        "imports.wtf",
+        "imports.x.md",
         "--format",
         "text"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "render",
-        "runaway.wtf",
+        "runaway.x.md",
         "--format",
         "text"
       ]
@@ -68,7 +68,7 @@
     {
       "cli": [
         "render",
-        "plans.wtf",
+        "plans.x.md",
         "--format",
         "text"
       ]
@@ -76,15 +76,15 @@
     {
       "lsp": [
         {
-          "open": "plans.wtf"
+          "open": "plans.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "plans.wtf"
+          "file": "plans.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "plans.wtf",
+          "file": "plans.x.md",
           "line": 0,
           "character": 2
         }
@@ -93,7 +93,7 @@
     {
       "cli": [
         "render",
-        "precision.wtf",
+        "precision.x.md",
         "--format",
         "text"
       ]

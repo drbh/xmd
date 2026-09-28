@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "links.wtf",
+        "links.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "links.wtf",
+        "links.x.md",
         "resources | select {target, metadata}",
         "--json"
       ]
@@ -20,33 +20,33 @@
     {
       "lsp": [
         {
-          "open": "links.wtf"
+          "open": "links.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "links.wtf",
+          "file": "links.x.md",
           "line": 1,
           "character": 5
         },
         {
           "request": "textDocument/hover",
-          "file": "links.wtf",
+          "file": "links.x.md",
           "line": 5,
           "character": 5
         },
         {
           "request": "textDocument/hover",
-          "file": "links.wtf",
+          "file": "links.x.md",
           "line": 8,
           "character": 5
         },
         {
           "request": "textDocument/documentLink",
-          "file": "links.wtf"
+          "file": "links.x.md"
         }
       ]
     }

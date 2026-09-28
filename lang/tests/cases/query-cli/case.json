@@ -56,7 +56,7 @@
     {
       "cli": [
         "query",
-        "one note.wtf",
+        "one note.x.md",
         "-",
         "--root",
         "scopes",
@@ -77,7 +77,7 @@
     },
     {
       "read": [
-        "agenda/n.wtf",
+        "agenda/n.x.md",
         "agenda/.wtf/cache.json"
       ]
     },
@@ -163,7 +163,7 @@
     {
       "cli": [
         "q",
-        "one note.wtf",
+        "one note.x.md",
         "length(tasks)",
         "--root",
         "scopes",
@@ -194,7 +194,7 @@
       "cli": [
         "query",
         "--workspace",
-        "\"one note.wtf\"",
+        "\"one note.x.md\"",
         "--root",
         "scopes",
         "--json"
@@ -203,7 +203,7 @@
     {
       "cli": [
         "query",
-        "${root}/scopes/one note.wtf",
+        "${root}/scopes/one note.x.md",
         "length(tasks)",
         "--root",
         "scopes",
@@ -224,7 +224,7 @@
     {
       "cli": [
         "query",
-        "note.wtf"
+        "note.x.md"
       ]
     },
     {
@@ -243,7 +243,7 @@
     {
       "cli": [
         "query",
-        "note.wtf",
+        "note.x.md",
         "tasks",
         "--workspace"
       ]
@@ -251,7 +251,7 @@
     {
       "cli": [
         "query",
-        "note.wtf",
+        "note.x.md",
         "tasks",
         "-f",
         "expression.txt"
@@ -280,13 +280,13 @@
         "query",
         "tasks",
         "--in",
-        "note.wtf"
+        "note.x.md"
       ]
     },
     {
       "cli": [
         "query",
-        "note.wtf",
+        "note.x.md",
         "tasks",
         "extra"
       ]
@@ -319,13 +319,13 @@
     {
       "cli": [
         "capture",
-        "n.wtf"
+        "n.x.md"
       ]
     },
     {
       "cli": [
         "complete",
-        "n.wtf"
+        "n.x.md"
       ]
     },
     {

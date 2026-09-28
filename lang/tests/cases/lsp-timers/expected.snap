@@ -1,12 +1,12 @@
 ### 0 lsp
--- open timers.wtf
--- await textDocument/publishDiagnostics timers.wtf
+-- open timers.x.md
+-- await textDocument/publishDiagnostics timers.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/timers.wtf",
+  "uri": "file://<root>/timers.x.md",
   "version": 1
 }
--- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint timers.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ◴ 00:00 elapsed · ○ idle",
@@ -17,7 +17,7 @@
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ○ idle\n\n```text\nstopwatch()\n= ◴ 00:00 elapsed · ○ idle\n```\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ○ idle\n\n```text\nstopwatch()\n= ◴ 00:00 elapsed · ○ idle\n```\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.x.md#L1>) · <root>/timers.x.md:1"
     }
   },
   {
@@ -29,7 +29,7 @@
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.x.md#L2>) · <root>/timers.x.md:2"
     }
   },
   {
@@ -57,14 +57,14 @@
     }
   }
 ]
--- request textDocument/codeLens timers.wtf
+-- request textDocument/codeLens timers.x.md
 [
   {
     "command": {
       "arguments": [
         {
           "action": "start",
-          "document": "file://<root>/timers.wtf",
+          "document": "file://<root>/timers.x.md",
           "kind": "timer",
           "name": "watch"
         }
@@ -88,7 +88,7 @@
       "arguments": [
         {
           "action": "start",
-          "document": "file://<root>/timers.wtf",
+          "document": "file://<root>/timers.x.md",
           "kind": "timer",
           "name": "focus"
         }
@@ -111,7 +111,7 @@
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/timers.wtf",
+          "document": "file://<root>/timers.x.md",
           "expected": "- [ ] Work @timer(watch)",
           "kind": "toggle_task",
           "row": 2
@@ -136,7 +136,7 @@
       "arguments": [
         {
           "action": "start",
-          "document": "file://<root>/timers.wtf",
+          "document": "file://<root>/timers.x.md",
           "kind": "timer",
           "name": "watch"
         }
@@ -160,7 +160,7 @@
       "arguments": [
         {
           "action": "start",
-          "document": "file://<root>/timers.wtf",
+          "document": "file://<root>/timers.x.md",
           "kind": "timer",
           "name": "watch"
         }
@@ -180,7 +180,7 @@
     }
   }
 ]
--- request textDocument/completion timers.wtf 3:13
+-- request textDocument/completion timers.x.md 3:13
 [
   {
     "detail": "Duration · 0s",
@@ -255,7 +255,7 @@
     }
   }
 ]
--- request textDocument/rename timers.wtf 3:7
+-- request textDocument/rename timers.x.md 3:7
 {
   "documentChanges": [
     {
@@ -301,13 +301,13 @@
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/timers.wtf",
+        "uri": "file://<root>/timers.x.md",
         "version": 1
       }
     }
   ]
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -330,25 +330,25 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/timers.wtf",
+          "uri": "file://<root>/timers.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- change timers.wtf (version 2)
+-- change timers.x.md (version 2)
 [watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)
 [focus] := countdown(2s)
 - [ ] Work @timer(watch)
 Spent [watch.elapsed].
--- await textDocument/publishDiagnostics timers.wtf
+-- await textDocument/publishDiagnostics timers.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/timers.wtf",
+  "uri": "file://<root>/timers.x.md",
   "version": 2
 }
--- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint timers.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ◴ 00:00 elapsed · ▸ running",
@@ -359,7 +359,7 @@ Spent [watch.elapsed].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ▸ running\n\n```text\nstopwatch(0s, 2026-09-16T14:00:00-04:00)\n= ◴ 00:00 elapsed · ▸ running\n```\n\nElapsed: 0s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ▸ running\n\n```text\nstopwatch(0s, 2026-09-16T14:00:00-04:00)\n= ◴ 00:00 elapsed · ▸ running\n```\n\nElapsed: 0s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.x.md#L1>) · <root>/timers.x.md:1"
     }
   },
   {
@@ -371,7 +371,7 @@ Spent [watch.elapsed].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.x.md#L2>) · <root>/timers.x.md:2"
     }
   },
   {
@@ -399,12 +399,12 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "Cannot start a running timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -427,25 +427,25 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/timers.wtf",
+          "uri": "file://<root>/timers.x.md",
           "version": 2
         }
       }
     ]
   }
 }
--- change timers.wtf (version 3)
+-- change timers.x.md (version 3)
 [watch] := stopwatch(0s)
 [focus] := countdown(2s)
 - [ ] Work @timer(watch)
 Spent [watch.elapsed].
--- await textDocument/publishDiagnostics timers.wtf
+-- await textDocument/publishDiagnostics timers.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/timers.wtf",
+  "uri": "file://<root>/timers.x.md",
   "version": 3
 }
--- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint timers.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ◴ 00:00 elapsed · ‖ paused",
@@ -456,7 +456,7 @@ Spent [watch.elapsed].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ‖ paused\n\n```text\nstopwatch(0s)\n= ◴ 00:00 elapsed · ‖ paused\n```\n\nElapsed: 0s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+      "value": "**watch · Stopwatch**\n\n◴ 00:00 elapsed · ‖ paused\n\n```text\nstopwatch(0s)\n= ◴ 00:00 elapsed · ‖ paused\n```\n\nElapsed: 0s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/timers.x.md#L1>) · <root>/timers.x.md:1"
     }
   },
   {
@@ -468,7 +468,7 @@ Spent [watch.elapsed].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+      "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.x.md#L2>) · <root>/timers.x.md:2"
     }
   },
   {
@@ -496,7 +496,7 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -519,21 +519,21 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/timers.wtf",
+          "uri": "file://<root>/timers.x.md",
           "version": 3
         }
       }
     ]
   }
 }
--- open expired.wtf
--- await textDocument/publishDiagnostics expired.wtf
+-- open expired.x.md
+-- await textDocument/publishDiagnostics expired.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/expired.wtf",
+  "uri": "file://<root>/expired.x.md",
   "version": 1
 }
--- request textDocument/inlayHint expired.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint expired.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ◷ ████████ 00:00 remaining · ✓ done",
@@ -544,7 +544,7 @@ null
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**tea · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(1s, 0s, 2026-09-16T13:59:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 1s. State: done. Current segment started: 2026-09-16T13:59:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [tea](<file://<root>/expired.wtf#L1>) · <root>/expired.wtf:1"
+      "value": "**tea · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(1s, 0s, 2026-09-16T13:59:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 1s. State: done. Current segment started: 2026-09-16T13:59:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [tea](<file://<root>/expired.x.md#L1>) · <root>/expired.x.md:1"
     }
   },
   {
@@ -572,14 +572,14 @@ null
     }
   }
 ]
--- request textDocument/codeLens expired.wtf
+-- request textDocument/codeLens expired.x.md
 [
   {
     "command": {
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/expired.wtf",
+          "document": "file://<root>/expired.x.md",
           "kind": "timer",
           "name": "tea"
         }
@@ -602,7 +602,7 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/expired.wtf",
+          "document": "file://<root>/expired.x.md",
           "expected": "- [ ] Work @timer(tea)",
           "kind": "toggle_task",
           "row": 1
@@ -627,7 +627,7 @@ null
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/expired.wtf",
+          "document": "file://<root>/expired.x.md",
           "kind": "timer",
           "name": "tea"
         }
@@ -652,7 +652,7 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/expired.wtf",
+            "document": "file://<root>/expired.x.md",
             "expected": "[./receipt.png]:receipt",
             "row": 3
           },
@@ -675,8 +675,8 @@ null
   }
 ]
 
-### 1 read timers.wtf
--- timers.wtf
+### 1 read timers.x.md
+-- timers.x.md
 [watch] := stopwatch()
 [focus] := countdown(2s)
 - [ ] Work @timer(watch)

@@ -69,8 +69,8 @@ wtf: https://github.com/org/repo/pull/9: Module github.decode: Missing GitHub ti
   }
 }
 
-### 2 cli render links.wtf --format text
-$ wtf render links.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+### 2 cli render links.x.md --format text
+$ wtf render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 https://github.com/org/repo/pull/42 ○ open · ● checks · ✓ approved · just now
@@ -79,8 +79,8 @@ https://github.com/org/repo/issues/3 ✗ closed · just now
 https://github.com/org/repo/commit/abcdef12345 commit · just now
 https://github.com/org/repo/pull/9 ◌ PR #9 · refresh for status
 
-### 3 cli query links.wtf resources | select {target, metadata} --json
-$ wtf query links.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+### 3 cli query links.x.md resources | select {target, metadata} --json
+$ wtf query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [

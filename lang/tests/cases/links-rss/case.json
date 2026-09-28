@@ -1,20 +1,20 @@
 {
   "now": "2026-09-16T18:00:00Z",
   "steps": [
-    { "cli": ["render", "feeds.wtf", "--format", "text"] },
-    { "cli": ["query", "feeds.wtf", "diagnostics | select {message, code}", "--json"] },
+    { "cli": ["render", "feeds.x.md", "--format", "text"] },
+    { "cli": ["query", "feeds.x.md", "diagnostics | select {message, code}", "--json"] },
     { "cli": ["refresh"] },
     { "read": [".wtf/cache.json"] },
-    { "cli": ["render", "feeds.wtf", "--format", "text"] },
-    { "cli": ["query", "feeds.wtf", "resources | select {target, metadata}", "--json"] },
-    { "cli": ["render", "feeds.wtf", "--format", "text", "--on", "2026-10-01"] },
+    { "cli": ["render", "feeds.x.md", "--format", "text"] },
+    { "cli": ["query", "feeds.x.md", "resources | select {target, metadata}", "--json"] },
+    { "cli": ["render", "feeds.x.md", "--format", "text", "--on", "2026-10-01"] },
     {
       "lsp": [
-        { "open": "feeds.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "feeds.wtf" },
-        { "request": "textDocument/hover", "file": "feeds.wtf", "line": 1, "character": 12 },
-        { "request": "textDocument/hover", "file": "feeds.wtf", "line": 2, "character": 12 },
-        { "request": "textDocument/codeLens", "file": "feeds.wtf" }
+        { "open": "feeds.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "feeds.x.md" },
+        { "request": "textDocument/hover", "file": "feeds.x.md", "line": 1, "character": 12 },
+        { "request": "textDocument/hover", "file": "feeds.x.md", "line": 2, "character": 12 },
+        { "request": "textDocument/codeLens", "file": "feeds.x.md" }
       ]
     }
   ]

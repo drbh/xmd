@@ -1,12 +1,12 @@
 ### 0 lsp
--- open ragged.wtf
--- await textDocument/publishDiagnostics ragged.wtf
+-- open ragged.x.md
+-- await textDocument/publishDiagnostics ragged.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/ragged.wtf",
+  "uri": "file://<root>/ragged.x.md",
   "version": 1
 }
--- request textDocument/formatting ragged.wtf
+-- request textDocument/formatting ragged.x.md
 [
   {
     "newText": "| constraint | expression |",
@@ -61,16 +61,16 @@
     }
   }
 ]
--- applied to ragged.wtf (version 2)
+-- applied to ragged.x.md (version 2)
 [p] := maximize(x + y)
 | constraint | expression |
 | ---------- | ---------- |
 | a          | x <= 4     |
 | b          | y <= x     |
--- request textDocument/formatting ragged.wtf
+-- request textDocument/formatting ragged.x.md
 []
--- open ragged-ontype.wtf
--- request textDocument/onTypeFormatting ragged-ontype.wtf 4:10
+-- open ragged-ontype.x.md
+-- request textDocument/onTypeFormatting ragged-ontype.x.md 4:10
 [
   {
     "newText": "| constraint | expression |",
@@ -125,7 +125,7 @@
     }
   }
 ]
--- applied to ragged-ontype.wtf (version 2)
+-- applied to ragged-ontype.x.md (version 2)
 [p] := maximize(x + y)
 | constraint | expression |
 | ---------- | ---------- |
@@ -133,14 +133,14 @@
 | b          | y <= x     |
 
 ### 1 lsp
--- open crlf.wtf
--- await textDocument/publishDiagnostics crlf.wtf
+-- open crlf.x.md
+-- await textDocument/publishDiagnostics crlf.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/crlf.wtf",
+  "uri": "file://<root>/crlf.x.md",
   "version": 1
 }
--- request textDocument/formatting crlf.wtf
+-- request textDocument/formatting crlf.x.md
 [
   {
     "newText": "| item        | n    |",
@@ -195,7 +195,7 @@
     }
   }
 ]
--- applied to crlf.wtf (version 2)
+-- applied to crlf.x.md (version 2)
 # Shopping␍
 [t] := table␍
 | item        | n    |␍
@@ -206,19 +206,19 @@
 | ordinary | table |␍
 |---|---|␍
 |leave|alone|
--- request textDocument/formatting crlf.wtf
+-- request textDocument/formatting crlf.x.md
 []
 
-### 2 cli query crlf.wtf sum(t, n) --json
-$ wtf query crlf.wtf sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query crlf.x.md sum(t, n) --json
+$ wtf query crlf.x.md sum(t, n) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
   6
 ]
 
-### 3 cli query crlf.wtf tables | select {name, display} --json
-$ wtf query crlf.wtf tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query crlf.x.md tables | select {name, display} --json
+$ wtf query crlf.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -228,14 +228,14 @@ exit 0
   }
 ]
 
-### 4 cli query inert.wtf tables | select {name, display} --json
-$ wtf query inert.wtf tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query inert.x.md tables | select {name, display} --json
+$ wtf query inert.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 5 cli render inert.wtf --format text
-$ wtf render inert.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli render inert.x.md --format text
+$ wtf render inert.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 ```wtf

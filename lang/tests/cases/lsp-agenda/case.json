@@ -27,14 +27,14 @@
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/agenda.wtf",
+            "file": ".wtf/modules/agenda.x.md",
             "text": "module := {api: 1, id: \"agenda\", kind: \"library\", inputs: []}\nbetween := fn(entries, first, last) => filter(entries, fn(e) => e.done)\n"
           }
         },
         {
           "write": {
             "file": ".wtf/modules.json",
-            "text": "[\"./modules/agenda.wtf\"]\n"
+            "text": "[\"./modules/agenda.x.md\"]\n"
           }
         },
         {

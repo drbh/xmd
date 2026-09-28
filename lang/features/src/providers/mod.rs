@@ -1,6 +1,6 @@
 //! One extension point for everything a note shows beyond its text: inlays,
 //! hovers, diagnostics, the controls on a row and formatting edits. The
-//! editor's own features and every .wtf feature module are providers of the
+//! editor's own features and every .x.md feature module are providers of the
 //! same kinds, so a feature can move between Rust and a module without any
 //! caller noticing. Each function below is the one place its kind's order is
 //! decided.

@@ -4,15 +4,15 @@
     {
       "lsp": [
         {
-          "open": "checklist.wtf"
+          "open": "checklist.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "checklist.wtf"
+          "file": "checklist.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "checklist.wtf",
+          "file": "checklist.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -29,7 +29,7 @@
     {
       "cli": [
         "render",
-        "busy.wtf",
+        "busy.x.md",
         "--format",
         "text"
       ]
@@ -37,7 +37,7 @@
     {
       "cli": [
         "query",
-        "busy.wtf",
+        "busy.x.md",
         "diagnostics",
         "--json"
       ]
@@ -45,15 +45,15 @@
     {
       "lsp": [
         {
-          "open": "oversized.wtf"
+          "open": "oversized.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "oversized.wtf"
+          "file": "oversized.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "oversized.wtf",
+          "file": "oversized.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -63,7 +63,7 @@
         },
         {
           "request": "textDocument/hover",
-          "file": "oversized.wtf",
+          "file": "oversized.x.md",
           "line": 1,
           "character": 0
         }

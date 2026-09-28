@@ -1,42 +1,42 @@
 {
   "steps": [
-    { "cli": ["render", "focus.wtf", "--format", "text"] },
-    { "cli": ["render", "focus.wtf", "--now", "2026-09-17T14:00:00-04:00", "--format", "text"] },
-    { "cli": ["query", "focus.wtf", "timers | select {name, line, value}", "--json"] },
-    { "cli": ["render", "running.wtf", "--format", "text"] },
-    { "cli": ["render", "running.wtf", "--now", "2026-09-16T14:01:59-04:00", "--format", "text"] },
-    { "cli": ["render", "running.wtf", "--now", "2026-09-16T14:02:00-04:00", "--format", "text"] },
-    { "cli": ["render", "running.wtf", "--now", "2026-09-16T16:30:00-04:00", "--format", "text"] },
-    { "cli": ["query", "running.wtf", "timers | select {name, value}", "--json", "--now", "2026-09-16T16:30:00-04:00"] },
+    { "cli": ["render", "focus.x.md", "--format", "text"] },
+    { "cli": ["render", "focus.x.md", "--now", "2026-09-17T14:00:00-04:00", "--format", "text"] },
+    { "cli": ["query", "focus.x.md", "timers | select {name, line, value}", "--json"] },
+    { "cli": ["render", "running.x.md", "--format", "text"] },
+    { "cli": ["render", "running.x.md", "--now", "2026-09-16T14:01:59-04:00", "--format", "text"] },
+    { "cli": ["render", "running.x.md", "--now", "2026-09-16T14:02:00-04:00", "--format", "text"] },
+    { "cli": ["render", "running.x.md", "--now", "2026-09-16T16:30:00-04:00", "--format", "text"] },
+    { "cli": ["query", "running.x.md", "timers | select {name, value}", "--json", "--now", "2026-09-16T16:30:00-04:00"] },
     {
       "lsp": [
-        { "open": "multiline.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "multiline.wtf" },
+        { "open": "multiline.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "multiline.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline.wtf}", "name": "focus", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline.x.md}", "name": "focus", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
-        { "open": "multiline-crlf.wtf" },
+        { "open": "multiline-crlf.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline-crlf.wtf}", "name": "focus", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:multiline-crlf.x.md}", "name": "focus", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
-        { "open": "grouped.wtf" },
+        { "open": "grouped.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:grouped.wtf}", "name": "watch", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:grouped.x.md}", "name": "watch", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" },
         {
           "request": "textDocument/inlayHint",
-          "file": "grouped.wtf",
+          "file": "grouped.x.md",
           "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 99, "character": 0 } }
         }
       ]
     },
-    { "cli": ["render", "cycle.wtf", "--format", "text"] },
-    { "cli": ["query", "cycle.wtf", "diagnostics | select {line, severity, code, message}", "--json"] }
+    { "cli": ["render", "cycle.x.md", "--format", "text"] },
+    { "cli": ["query", "cycle.x.md", "diagnostics | select {line, severity, code, message}", "--json"] }
   ]
 }

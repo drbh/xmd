@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "bill.wtf",
+        "bill.x.md",
         "tasks | select {title, due, done}",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "bill.wtf",
+        "bill.x.md",
         "diagnostics | select {line, severity, message}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "lsp": [
         {
-          "open": "bill.wtf"
+          "open": "bill.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -29,7 +29,7 @@
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:bill.wtf}",
+                "document": "${uri:bill.x.md}",
                 "row": 0,
                 "expected": "- [ ] Pay bill :bill @every(month) @due(2026-02-28) @repeat_from(2026-01-31)"
               }

@@ -39,7 +39,7 @@ pub struct PlanValue {
     pub rows: Vec<(crate::engine_impl::RowVariable, Value)>,
 }
 impl PlanValue {
-    /// Typed result plus source geometry; presentation policy lives in plan.wtf.
+    /// Typed result plus source geometry; presentation policy lives in plan.x.md.
     pub fn record(&self, ws: &Workspace) -> Value {
         use crate::modules_impl::from_json;
         let columns = self

@@ -1,70 +1,70 @@
 {
   "steps": [
-    { "cli": ["render", "idle.wtf", "--format", "text"] },
-    { "cli": ["render", "idle.wtf", "--now", "2026-09-17T14:00:00-04:00", "--format", "text"] },
-    { "cli": ["query", "idle.wtf", "timers", "--json"] },
+    { "cli": ["render", "idle.x.md", "--format", "text"] },
+    { "cli": ["render", "idle.x.md", "--now", "2026-09-17T14:00:00-04:00", "--format", "text"] },
+    { "cli": ["query", "idle.x.md", "timers", "--json"] },
     {
       "lsp": [
-        { "open": "idle.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "idle.wtf" },
+        { "open": "idle.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "idle.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.wtf}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "pause"}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.wtf}", "name": "watch", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
     },
-    { "cli": ["render", "running.wtf", "--format", "text"] },
-    { "cli": ["render", "running.wtf", "--now", "2026-09-16T14:01:00-04:00", "--format", "text"] },
-    { "cli": ["query", "running.wtf", "timers", "--json"] },
+    { "cli": ["render", "running.x.md", "--format", "text"] },
+    { "cli": ["render", "running.x.md", "--now", "2026-09-16T14:01:00-04:00", "--format", "text"] },
+    { "cli": ["query", "running.x.md", "timers", "--json"] },
     {
       "lsp": [
-        { "open": "running.wtf" },
+        { "open": "running.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.wtf}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "pause"}] }
         },
         { "await": "workspace/applyEdit" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.wtf}", "name": "watch", "action": "reset"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "reset"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
     },
-    { "cli": ["render", "paused.wtf", "--format", "text"] },
-    { "cli": ["render", "paused.wtf", "--now", "2026-09-16T15:00:00-04:00", "--format", "text"] },
-    { "cli": ["query", "paused.wtf", "timers", "--json"] },
+    { "cli": ["render", "paused.x.md", "--format", "text"] },
+    { "cli": ["render", "paused.x.md", "--now", "2026-09-16T15:00:00-04:00", "--format", "text"] },
+    { "cli": ["query", "paused.x.md", "timers", "--json"] },
     {
       "lsp": [
-        { "open": "paused.wtf" },
+        { "open": "paused.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.wtf}", "name": "watch", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "start"}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.wtf}", "name": "watch", "action": "resume"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "resume"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
     },
-    { "cli": ["render", "alias.wtf", "--format", "text"] },
+    { "cli": ["render", "alias.x.md", "--format", "text"] },
     {
       "lsp": [
-        { "open": "alias.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "alias.wtf" },
+        { "open": "alias.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "alias.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:alias.wtf}", "name": "alias", "action": "start"}] }
+          "params": { "command": "wtf.timer", "arguments": [{"kind": "timer", "document": "${uri:alias.x.md}", "name": "alias", "action": "start"}] }
         },
         { "await": "workspace/applyEdit" }
       ]
     },
-    { "read": ["idle.wtf", "running.wtf", "paused.wtf", "shared.wtf"] }
+    { "read": ["idle.x.md", "running.x.md", "paused.x.md", "shared.x.md"] }
   ]
 }

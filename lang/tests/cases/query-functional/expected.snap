@@ -1,21 +1,21 @@
-### 0 cli query a.wtf map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json
-$ wtf query a.wtf map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json --now 2026-09-18T12:00:00Z
+### 0 cli query a.x.md map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json
+$ wtf query a.x.md map(filter(tasks, fn(t) => !t.done), fn(t) => t.title) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "First"
 ]
 
-### 1 cli query a.wtf tasks | where !done | select title --root notes --json
-$ wtf query a.wtf tasks | where !done | select title --root notes --json --now 2026-09-18T12:00:00Z
+### 1 cli query a.x.md tasks | where !done | select title --root notes --json
+$ wtf query a.x.md tasks | where !done | select title --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "First"
 ]
 
-### 2 cli query a.wtf {count: length(tasks), value: double(n)} --root notes --json
-$ wtf query a.wtf {count: length(tasks), value: double(n)} --root notes --json --now 2026-09-18T12:00:00Z
+### 2 cli query a.x.md {count: length(tasks), value: double(n)} --root notes --json
+$ wtf query a.x.md {count: length(tasks), value: double(n)} --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -25,8 +25,8 @@ exit 0
   }
 ]
 
-### 3 cli query a.wtf sum(tasks.estimate) --root notes --json
-$ wtf query a.wtf sum(tasks.estimate) --root notes --json --now 2026-09-18T12:00:00Z
+### 3 cli query a.x.md sum(tasks.estimate) --root notes --json
+$ wtf query a.x.md sum(tasks.estimate) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -44,8 +44,8 @@ exit 0
   3
 ]
 
-### 5 cli query a.wtf map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json
-$ wtf query a.wtf map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json --now 2026-09-18T12:00:00Z
+### 5 cli query a.x.md map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json
+$ wtf query a.x.md map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title)) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -53,8 +53,8 @@ exit 0
   "FIRST"
 ]
 
-### 6 cli query a.wtf map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json
-$ wtf query a.wtf map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json --now 2026-09-18T12:00:00Z
+### 6 cli query a.x.md map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json
+$ wtf query a.x.md map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)}) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -68,8 +68,8 @@ exit 0
   }
 ]
 
-### 7 cli query scope.wtf tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json
-$ wtf query scope.wtf tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json --root <root> --now 2026-09-18T12:00:00Z
+### 7 cli query scope.x.md tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json
+$ wtf query scope.x.md tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -81,8 +81,8 @@ exit 0
   }
 ]
 
-### 8 cli query scope.wtf tasks | select map([1], fn(title) => title + 1) --json
-$ wtf query scope.wtf tasks | select map([1], fn(title) => title + 1) --json --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli query scope.x.md tasks | select map([1], fn(title) => title + 1) --json
+$ wtf query scope.x.md tasks | select map([1], fn(title) => title + 1) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -91,25 +91,25 @@ exit 0
   ]
 ]
 
-### 9 cli query scope.wtf tasks | select if(false, nonexistent, title) --json
-$ wtf query scope.wtf tasks | select if(false, nonexistent, title) --json --root <root> --now 2026-09-18T12:00:00Z
+### 9 cli query scope.x.md tasks | select if(false, nonexistent, title) --json
+$ wtf query scope.x.md tasks | select if(false, nonexistent, title) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "A"
 ]
 
-### 10 cli query scope.wtf if(true, 1, values) --json
-$ wtf query scope.wtf if(true, 1, values) --json --root <root> --now 2026-09-18T12:00:00Z
+### 10 cli query scope.x.md if(true, 1, values) --json
+$ wtf query scope.x.md if(true, 1, values) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   1
 ]
 
-### 11 cli query scope.wtf tasks | select { // | , } inside a comment
+### 11 cli query scope.x.md tasks | select { // | , } inside a comment
  title, nested: {title}} --json
-$ wtf query scope.wtf tasks | select { // | , } inside a comment
+$ wtf query scope.x.md tasks | select { // | , } inside a comment
  title, nested: {title}} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
@@ -122,8 +122,8 @@ exit 0
   }
 ]
 
-### 12 cli query scope.wtf [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json
-$ wtf query scope.wtf [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json --root <root> --now 2026-09-18T12:00:00Z
+### 12 cli query scope.x.md [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json
+$ wtf query scope.x.md [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -132,16 +132,16 @@ exit 0
   ]
 ]
 
-### 13 cli query lib.wtf add(2)(3) --json
-$ wtf query lib.wtf add(2)(3) --json --root <root> --now 2026-09-18T12:00:00Z
+### 13 cli query lib.x.md add(2)(3) --json
+$ wtf query lib.x.md add(2)(3) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   5
 ]
 
-### 14 cli query lib.wtf values | select {name, type, display} --json
-$ wtf query lib.wtf values | select {name, type, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 14 cli query lib.x.md values | select {name, type, display} --json
+$ wtf query lib.x.md values | select {name, type, display} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -172,8 +172,8 @@ exit 0
   }
 ]
 
-### 15 cli query lib.wtf caller(90%) --json
-$ wtf query lib.wtf caller(90%) --json --root <root> --now 2026-09-18T12:00:00Z
+### 15 cli query lib.x.md caller(90%) --json
+$ wtf query lib.x.md caller(90%) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -184,8 +184,8 @@ exit 0
   }
 ]
 
-### 16 cli query lib.wtf map([$2, $3], add_tax) --json
-$ wtf query lib.wtf map([$2, $3], add_tax) --json --root <root> --now 2026-09-18T12:00:00Z
+### 16 cli query lib.x.md map([$2, $3], add_tax) --json
+$ wtf query lib.x.md map([$2, $3], add_tax) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -201,8 +201,8 @@ exit 0
   }
 ]
 
-### 17 cli query lib.wtf values | where name == "result" | select {value, display} --json
-$ wtf query lib.wtf values | where name == "result" | select {value, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 17 cli query lib.x.md values | where name == "result" | select {value, display} --json
+$ wtf query lib.x.md values | where name == "result" | select {value, display} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -212,8 +212,8 @@ exit 0
   }
 ]
 
-### 18 cli query lib.wtf values | where name == "result" | select map([1, 2], fn(x) => x + value) --json
-$ wtf query lib.wtf values | where name == "result" | select map([1, 2], fn(x) => x + value) --json --root <root> --now 2026-09-18T12:00:00Z
+### 18 cli query lib.x.md values | where name == "result" | select map([1, 2], fn(x) => x + value) --json
+$ wtf query lib.x.md values | where name == "result" | select map([1, 2], fn(x) => x + value) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -223,24 +223,24 @@ exit 0
   ]
 ]
 
-### 19 cli query lib.wtf if(true, {title: upper("hello")}, 1 / 0).title --json
-$ wtf query lib.wtf if(true, {title: upper("hello")}, 1 / 0).title --json --root <root> --now 2026-09-18T12:00:00Z
+### 19 cli query lib.x.md if(true, {title: upper("hello")}, 1 / 0).title --json
+$ wtf query lib.x.md if(true, {title: upper("hello")}, 1 / 0).title --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "HELLO"
 ]
 
-### 20 cli query lib.wtf coalesce(get({}, "missing"), get([3, 4], 1)) --json
-$ wtf query lib.wtf coalesce(get({}, "missing"), get([3, 4], 1)) --json --root <root> --now 2026-09-18T12:00:00Z
+### 20 cli query lib.x.md coalesce(get({}, "missing"), get([3, 4], 1)) --json
+$ wtf query lib.x.md coalesce(get({}, "missing"), get([3, 4], 1)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   4
 ]
 
-### 21 cli query lib.wtf [get([], 0), get({a: 1}, "a"), length([])] --json
-$ wtf query lib.wtf [get([], 0), get({a: 1}, "a"), length([])] --json --root <root> --now 2026-09-18T12:00:00Z
+### 21 cli query lib.x.md [get([], 0), get({a: 1}, "a"), length([])] --json
+$ wtf query lib.x.md [get([], 0), get({a: 1}, "a"), length([])] --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -249,16 +249,16 @@ exit 0
   0
 ]
 
-### 22 cli query data.wtf {name, cost:money.amount}.name --json
-$ wtf query data.wtf {name, cost:money.amount}.name --json --root <root> --now 2026-09-18T12:00:00Z
+### 22 cli query data.x.md {name, cost:money.amount}.name --json
+$ wtf query data.x.md {name, cost:money.amount}.name --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "Example"
 ]
 
-### 23 cli query data.wtf sum([{x:30m}, {x:null}, {x:90s}].x) --json
-$ wtf query data.wtf sum([{x:30m}, {x:null}, {x:90s}].x) --json --root <root> --now 2026-09-18T12:00:00Z
+### 23 cli query data.x.md sum([{x:30m}, {x:null}, {x:90s}].x) --json
+$ wtf query data.x.md sum([{x:30m}, {x:null}, {x:90s}].x) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -268,8 +268,8 @@ exit 0
   }
 ]
 
-### 24 cli query data.wtf map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json
-$ wtf query data.wtf map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json --root <root> --now 2026-09-18T12:00:00Z
+### 24 cli query data.x.md map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json
+$ wtf query data.x.md map(sort_by([3, null, 1], fn(x) => x), fn(x) => x) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -278,16 +278,16 @@ exit 0
   null
 ]
 
-### 25 cli query data.wtf length(group_by([1, 2, 1], fn(x) => x)) --json
-$ wtf query data.wtf length(group_by([1, 2, 1], fn(x) => x)) --json --root <root> --now 2026-09-18T12:00:00Z
+### 25 cli query data.x.md length(group_by([1, 2, 1], fn(x) => x)) --json
+$ wtf query data.x.md length(group_by([1, 2, 1], fn(x) => x)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   2
 ]
 
-### 26 cli query data.wtf [null < today(), "a" < "b", date(now()) == today()] --json
-$ wtf query data.wtf [null < today(), "a" < "b", date(now()) == today()] --json --root <root> --now 2026-09-18T12:00:00Z
+### 26 cli query data.x.md [null < today(), "a" < "b", date(now()) == today()] --json
+$ wtf query data.x.md [null < today(), "a" < "b", date(now()) == today()] --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -296,8 +296,8 @@ exit 0
   true
 ]
 
-### 27 cli query shadow.wtf read_clock() --json
-$ wtf query shadow.wtf read_clock() --json --root <root> --now 2026-09-18T12:00:00Z
+### 27 cli query shadow.x.md read_clock() --json
+$ wtf query shadow.x.md read_clock() --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -307,16 +307,16 @@ exit 0
   }
 ]
 
-### 28 cli query shadow.wtf values | where name == "now" | select value --json
-$ wtf query shadow.wtf values | where name == "now" | select value --json --root <root> --now 2026-09-18T12:00:00Z
+### 28 cli query shadow.x.md values | where name == "now" | select value --json
+$ wtf query shadow.x.md values | where name == "now" | select value --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   1
 ]
 
-### 29 cli query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json
-$ wtf query data.wtf {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json --root <root> --now 2026-09-18T12:00:00Z
+### 29 cli query data.x.md {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json
+$ wtf query data.x.md {slice: slice("a🦀z", 1, 2), joined: join(concat(["a"], ["b"]), "/"), bar: repeat("█", round(2.6)), trimmed: trim("  hi  ")} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -328,16 +328,16 @@ exit 0
   }
 ]
 
-### 30 cli query data.wtf length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json
-$ wtf query data.wtf length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json --root <root> --now 2026-09-18T12:00:00Z
+### 30 cli query data.x.md length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json
+$ wtf query data.x.md length(join(["a", "b", "c"], replace("xxxxxxxxxx", "x", replace("xxxxxxxxxx", "x", "small")))) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   1003
 ]
 
-### 31 cli query lib.wtf eval("rate") --json
-$ wtf query lib.wtf eval("rate") --json --root <root> --now 2026-09-18T12:00:00Z
+### 31 cli query lib.x.md eval("rate") --json
+$ wtf query lib.x.md eval("rate") --json --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
 wtf: Unknown function 'eval'

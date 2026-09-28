@@ -1,5 +1,5 @@
-### 0 cli query main.wtf values | select {name, display, errors} --root local --json
-$ wtf query main.wtf values | select {name, display, errors} --root local --json --now 2026-09-18T12:00:00Z
+### 0 cli query main.x.md values | select {name, display, errors} --root local --json
+$ wtf query main.x.md values | select {name, display, errors} --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -22,8 +22,8 @@ exit 0
   }
 ]
 
-### 1 cli query main.wtf diagnostics | select {line, severity, message} --root local --json
-$ wtf query main.wtf diagnostics | select {line, severity, message} --root local --json --now 2026-09-18T12:00:00Z
+### 1 cli query main.x.md diagnostics | select {line, severity, message} --root local --json
+$ wtf query main.x.md diagnostics | select {line, severity, message} --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -34,8 +34,8 @@ exit 0
   }
 ]
 
-### 2 cli query main.wtf plans | where name == "plan" | select solution.variables --root local --json
-$ wtf query main.wtf plans | where name == "plan" | select solution.variables --root local --json --now 2026-09-18T12:00:00Z
+### 2 cli query main.x.md plans | where name == "plan" | select solution.variables --root local --json
+$ wtf query main.x.md plans | where name == "plan" | select solution.variables --root local --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -44,13 +44,13 @@ exit 0
   }
 ]
 
-### 3 cli query main.wtf values | select {name, display, errors} --root lazy --json
-$ wtf query main.wtf values | select {name, display, errors} --root lazy --json --now 2026-09-18T12:00:00Z
+### 3 cli query main.x.md values | select {name, display, errors} --root lazy --json
+$ wtf query main.x.md values | select {name, display, errors} --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
-    "display": "import(\"<root>/lazy/sub/values.wtf\")",
+    "display": "import(\"<root>/lazy/sub/values.x.md\")",
     "errors": [],
     "name": "src"
   },
@@ -71,30 +71,30 @@ exit 0
   }
 ]
 
-### 4 cli query main.wtf get(src, "amount") --root lazy --json
-$ wtf query main.wtf get(src, "amount") --root lazy --json --now 2026-09-18T12:00:00Z
+### 4 cli query main.x.md get(src, "amount") --root lazy --json
+$ wtf query main.x.md get(src, "amount") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   21
 ]
 
-### 5 cli query main.wtf get(src, "absent") --root lazy --json
-$ wtf query main.wtf get(src, "absent") --root lazy --json --now 2026-09-18T12:00:00Z
+### 5 cli query main.x.md get(src, "absent") --root lazy --json
+$ wtf query main.x.md get(src, "absent") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   null
 ]
 
-### 6 cli query main.wtf get(src, "broken") --root lazy --json
-$ wtf query main.wtf get(src, "broken") --root lazy --json --now 2026-09-18T12:00:00Z
+### 6 cli query main.x.md get(src, "broken") --root lazy --json
+$ wtf query main.x.md get(src, "broken") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
 wtf: Unknown name 'missing'
 
-### 7 cli query main.wtf [src, src].amount --root lazy --json
-$ wtf query main.wtf [src, src].amount --root lazy --json --now 2026-09-18T12:00:00Z
+### 7 cli query main.x.md [src, src].amount --root lazy --json
+$ wtf query main.x.md [src, src].amount --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -102,40 +102,40 @@ exit 0
   21
 ]
 
-### 8 cli query main.wtf resources | select {target, path: source.path} --root lazy --json
-$ wtf query main.wtf resources | select {target, path: source.path} --root lazy --json --now 2026-09-18T12:00:00Z
+### 8 cli query main.x.md resources | select {target, path: source.path} --root lazy --json
+$ wtf query main.x.md resources | select {target, path: source.path} --root lazy --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []
 
-### 9 cli render main.wtf --root lazy --format text
-$ wtf render main.wtf --root lazy --format text --now 2026-09-18T12:00:00Z
+### 9 cli render main.x.md --root lazy --format text
+$ wtf render main.x.md --root lazy --format text --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
-src := import("./sub/values.wtf") = import("<root>/lazy/sub/values.wtf")
+src := import("./sub/values.x.md") = import("<root>/lazy/sub/values.x.md")
 amount := 999 = 999
 result := src.double(src.amount) = 42
 link := src.receipt image · open preview
 
-### 10 cli query main.wtf import("./" + "sub/values.wtf") --root lazy --json
-$ wtf query main.wtf import("./" + "sub/values.wtf") --root lazy --json --now 2026-09-18T12:00:00Z
+### 10 cli query main.x.md import("./" + "sub/values.x.md") --root lazy --json
+$ wtf query main.x.md import("./" + "sub/values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Note imports require a literal path, e.g. import("./values.wtf")
+wtf: Note imports require a literal path, e.g. import("./values.x.md")
 
-### 11 cli query main.wtf import("values.wtf") --root lazy --json
-$ wtf query main.wtf import("values.wtf") --root lazy --json --now 2026-09-18T12:00:00Z
+### 11 cli query main.x.md import("values.x.md") --root lazy --json
+$ wtf query main.x.md import("values.x.md") --root lazy --json --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Use an explicit .wtf path, e.g. import("./values.wtf")
+wtf: Use an explicit .x.md path, e.g. import("./values.x.md")
 
-### 12 cli query notes/main.wtf values | select {name, display} --root hidden --json
-$ wtf query notes/main.wtf values | select {name, display} --root hidden --json --now 2026-09-18T12:00:00Z
+### 12 cli query notes/main.x.md values | select {name, display} --root hidden --json
+$ wtf query notes/main.x.md values | select {name, display} --root hidden --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
-    "display": "import(\"<root>/hidden/notes/.hidden/values.wtf\")",
+    "display": "import(\"<root>/hidden/notes/.hidden/values.x.md\")",
     "name": "src"
   },
   {
@@ -144,14 +144,14 @@ exit 0
   }
 ]
 
-### 13 cli query notes/main.wtf notes | select {title, path: source.path} --root hidden --json
-$ wtf query notes/main.wtf notes | select {title, path: source.path} --root hidden --json --now 2026-09-18T12:00:00Z
+### 13 cli query notes/main.x.md notes | select {title, path: source.path} --root hidden --json
+$ wtf query notes/main.x.md notes | select {title, path: source.path} --root hidden --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   {
-    "path": "<root>/hidden/notes/main.wtf",
-    "title": "main.wtf"
+    "path": "<root>/hidden/notes/main.x.md",
+    "title": "main.x.md"
   }
 ]
 

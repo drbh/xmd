@@ -3,7 +3,7 @@
 # wtf
 
 a plain text note format with a language server. the numbers, dates and
-tasks in a `.wtf` file have names, so when one changes the rest follow,
+tasks in a `.x.md` file have names, so when one changes the rest follow,
 in your editor and from the shell
 
 <picture>
@@ -34,8 +34,8 @@ the rest is functions you call and modules you add
 the default command is a query. pipe a note in or name it
 
 ```bash
-cat trip.wtf | wtf 'total'
-wtf trip.wtf 'tasks | where !done | select {title, due}' --json
+cat trip.x.md | wtf 'total'
+wtf trip.x.md 'tasks | where !done | select {title, due}' --json
 wtf --workspace 'diagnostics' --fail-on-match
 ```
 
@@ -114,5 +114,5 @@ in an editor, signature help and completion describe every function and
 attribute as you type. `lang/examples` has one short
 note per feature, numbered in the order you tend to meet them. `lang/stdlib`
 is the standard library, tasks, timers, plans, feeds and units are all
-written in `.wtf` and you can replace any of them. `wtf --help` and
+written in `.x.md` and you can replace any of them. `wtf --help` and
 `wtf query --help` list every command, binding, function and stage

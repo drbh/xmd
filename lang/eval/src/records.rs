@@ -1,4 +1,4 @@
-//! The typed boundary between Rust and the .wtf modules.
+//! The typed boundary between Rust and the .x.md modules.
 //!
 //! Timers, plans, itinerary days, link contexts and solver models all cross into
 //! module functions as records. Rather than assembling a `BTreeMap` field by
@@ -273,7 +273,7 @@ impl<'a> Fields<'a> {
 }
 
 record! {
-    /// Where a timer stands, as `timer.wtf` reads and writes it.
+    /// Where a timer stands, as `timer.x.md` reads and writes it.
     #[derive(Clone, Copy, Debug)]
     pub(crate) struct TimerRecord {
         pub limit: Option<i64>,
@@ -295,7 +295,7 @@ impl FromValue for TimerRecord {
 }
 
 record! {
-    /// One side of a linear constraint, as `plan.wtf` receives it: a constant,
+    /// One side of a linear constraint, as `plan.x.md` receives it: a constant,
     /// the coefficients by variable name, and one value carrying the form's unit.
     pub(crate) struct FormRecord {
         pub constant: f64,
@@ -414,7 +414,7 @@ record! {
     }
 }
 
-/// A solved constraint on its way to `plan.wtf`, with the source geometry when
+/// A solved constraint on its way to `plan.x.md`, with the source geometry when
 /// the plan it came from is still in the workspace.
 pub(crate) struct ConstraintRecord {
     pub name: String,
@@ -448,7 +448,7 @@ impl ToValue for ConstraintRecord {
     }
 }
 
-/// A whole solved plan, as `plan.wtf` renders it. Presentation policy is the
+/// A whole solved plan, as `plan.x.md` renders it. Presentation policy is the
 /// module's; this is the typed result plus where it came from.
 pub(crate) struct PlanRecord {
     pub goal: String,

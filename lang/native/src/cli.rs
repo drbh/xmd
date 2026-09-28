@@ -10,7 +10,7 @@ use std::{
     path::PathBuf,
 };
 
-/// A note file name as a literal for help text: `note!("trip")` is `trip.wtf`.
+/// A note file name as a literal for help text: `note!("trip")` is `trip.x.md`.
 macro_rules! note {
     ($stem:literal) => {
         concat!($stem, ".", common::note_extension!())

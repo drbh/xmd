@@ -1,5 +1,5 @@
-### 0 cli render focus.wtf --format text
-$ wtf render focus.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render focus.x.md --format text
+$ wtf render focus.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -7,8 +7,8 @@ exit 0
 Time left: [focus.remaining] 3m.
 - [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
 
-### 1 cli render focus.wtf --now 2026-09-17T14:00:00-04:00 --format text
-$ wtf render focus.wtf --now 2026-09-17T14:00:00-04:00 --format text --root <root>
+### 1 cli render focus.x.md --now 2026-09-17T14:00:00-04:00 --format text
+$ wtf render focus.x.md --now 2026-09-17T14:00:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
@@ -16,8 +16,8 @@ exit 0
 Time left: [focus.remaining] 3m.
 - [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
 
-### 2 cli query focus.wtf timers | select {name, line, value} --json
-$ wtf query focus.wtf timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query focus.x.md timers | select {name, line, value} --json
+$ wtf query focus.x.md timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -71,40 +71,40 @@ exit 0
   }
 ]
 
-### 3 cli render running.wtf --format text
-$ wtf render running.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli render running.x.md --format text
+$ wtf render running.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [session] := 2m = 2m
 [focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ███░░░░░ 02:00 remaining · ▸ running
 Time left: [focus.remaining] 2m.
 
-### 4 cli render running.wtf --now 2026-09-16T14:01:59-04:00 --format text
-$ wtf render running.wtf --now 2026-09-16T14:01:59-04:00 --format text --root <root>
+### 4 cli render running.x.md --now 2026-09-16T14:01:59-04:00 --format text
+$ wtf render running.x.md --now 2026-09-16T14:01:59-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
 [focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:01 remaining · ▸ running
 Time left: [focus.remaining] 1s.
 
-### 5 cli render running.wtf --now 2026-09-16T14:02:00-04:00 --format text
-$ wtf render running.wtf --now 2026-09-16T14:02:00-04:00 --format text --root <root>
+### 5 cli render running.x.md --now 2026-09-16T14:02:00-04:00 --format text
+$ wtf render running.x.md --now 2026-09-16T14:02:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
 [focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:00 remaining · ✓ done
 Time left: [focus.remaining] 0s.
 
-### 6 cli render running.wtf --now 2026-09-16T16:30:00-04:00 --format text
-$ wtf render running.wtf --now 2026-09-16T16:30:00-04:00 --format text --root <root>
+### 6 cli render running.x.md --now 2026-09-16T16:30:00-04:00 --format text
+$ wtf render running.x.md --now 2026-09-16T16:30:00-04:00 --format text --root <root>
 exit 0
 --- stdout
 [session] := 2m = 2m
 [focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:00 remaining · ✓ done
 Time left: [focus.remaining] 0s.
 
-### 7 cli query running.wtf timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00
-$ wtf query running.wtf timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
+### 7 cli query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00
+$ wtf query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -147,14 +147,14 @@ exit 0
 ]
 
 ### 8 lsp
--- open multiline.wtf
--- await textDocument/publishDiagnostics multiline.wtf
+-- open multiline.x.md
+-- await textDocument/publishDiagnostics multiline.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/multiline.wtf",
+  "uri": "file://<root>/multiline.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.x.md}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -177,15 +177,15 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/multiline.wtf",
+          "uri": "file://<root>/multiline.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- open multiline-crlf.wtf
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
+-- open multiline-crlf.x.md
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.x.md}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -208,15 +208,15 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/multiline-crlf.wtf",
+          "uri": "file://<root>/multiline-crlf.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- open grouped.wtf
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.wtf}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
+-- open grouped.x.md
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.x.md}","kind":"timer","name":"watch"}],"command":"wtf.timer"}
 null
 -- await workspace/applyEdit
 {
@@ -239,14 +239,14 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/grouped.wtf",
+          "uri": "file://<root>/grouped.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- request textDocument/inlayHint grouped.wtf {"end":{"character":0,"line":99},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint grouped.x.md {"end":{"character":0,"line":99},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 30s",
@@ -257,7 +257,7 @@ null
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**limit · Duration**\n\n30s\n\n```text\n30s\n= 30s\n```\n\nDefinition: [limit](<file://<root>/grouped.wtf#L1>) · <root>/grouped.wtf:1"
+      "value": "**limit · Duration**\n\n30s\n\n```text\n30s\n= 30s\n```\n\nDefinition: [limit](<file://<root>/grouped.x.md#L1>) · <root>/grouped.x.md:1"
     }
   },
   {
@@ -269,7 +269,7 @@ null
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**watch · Countdown**\n\n◷ 00:30 remaining · ○ idle\n\n```text\n((countdown(limit)))\n= ((countdown(30s)))\n= ◷ 00:30 remaining · ○ idle\n```\n\nInputs: [limit](<file://<root>/grouped.wtf#L1>)\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/grouped.wtf#L2>) · <root>/grouped.wtf:2"
+      "value": "**watch · Countdown**\n\n◷ 00:30 remaining · ○ idle\n\n```text\n((countdown(limit)))\n= ((countdown(30s)))\n= ◷ 00:30 remaining · ○ idle\n```\n\nInputs: [limit](<file://<root>/grouped.x.md#L1>)\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/grouped.x.md#L2>) · <root>/grouped.x.md:2"
     }
   },
   {
@@ -286,18 +286,18 @@ null
   }
 ]
 
-### 9 cli render cycle.wtf --format text
-$ wtf render cycle.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli render cycle.x.md --format text
+$ wtf render cycle.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [a] := countdown(b.remaining)
 [b] := countdown(a.remaining)
 --- stderr
-<root>/cycle.wtf:1:2: error: Dependency cycle: a → b → a
+<root>/cycle.x.md:1:2: error: Dependency cycle: a → b → a
 wtf: 1 error(s) while rendering
 
-### 10 cli query cycle.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query cycle.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli query cycle.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query cycle.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

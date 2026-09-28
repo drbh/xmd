@@ -43,7 +43,7 @@ async function runAction(document, text, title) {
 
 exports.run = async function() {
   const root = vscode.workspace.workspaceFolders[0].uri;
-  const document = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, "main.wtf"));
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, "main.x.md"));
   const editor = await vscode.window.showTextDocument(document);
   assert.equal(document.languageId, "wtf");
   await vscode.extensions.getExtension("drbh.wtf").activate();
@@ -57,7 +57,7 @@ exports.run = async function() {
   assert(hovers.length > 0, "Calculation hover reaches VS Code");
 
   const definitions = await command("vscode.executeDefinitionProvider", document.uri, span(document, "smoke_spent\n").start);
-  assert(definitions.some(d => (d.targetUri || d.uri).path.endsWith("/values.wtf")), "Cross-file definition");
+  assert(definitions.some(d => (d.targetUri || d.uri).path.endsWith("/values.x.md")), "Cross-file definition");
 
   await replace(document, "$125", "$150");
   await until("unsaved calculation update", async () => (await hints(document)).some(h => label(h).includes("$100")));
@@ -81,8 +81,8 @@ exports.run = async function() {
 
   const rename = await command("vscode.executeDocumentRenameProvider", document.uri, span(document, "smoke_spent\n").start, "smoke_expenses");
   assert(await vscode.workspace.applyEdit(rename));
-  const values = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, "values.wtf"));
-  assert(document.getText().includes("smoke_budget - smoke_expenses"));
+  const values = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, "values.x.md"));
+  assert(document.getText().includes("smoke_budget - source.smoke_expenses"));
   assert(values.getText().includes(":smoke_expenses"));
   assert(values.isDirty, "Cross-file rename preserves unsaved buffers");
 

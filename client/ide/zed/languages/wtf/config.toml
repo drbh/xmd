@@ -1,6 +1,6 @@
 name = "WTF"
 grammar = "markdown"
-path_suffixes = ["wtf"]
+path_suffixes = ["x.md"]
 block_comment = ["<!-- ", " -->"]
 tab_size = 2
 unordered_list = ["- ", "* ", "+ "]

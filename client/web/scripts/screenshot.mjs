@@ -1,7 +1,7 @@
 // Emit a PNG of a rendered note, by default the README's minimal example.
 //
 //   node scripts/screenshot.mjs [--out media/screenshot.png] [--theme dark|light]
-//                               [--source note.wtf] [--now 2026-09-18T12:00:00Z]
+//                               [--source note.x.md] [--now 2026-09-18T12:00:00Z]
 //
 // The note is resolved by the native binary (`wtf render --format html`, so the
 // picture shows exactly the inline values and colors the editor shows), the web
@@ -42,8 +42,8 @@ const source = option("source") ? await readFile(resolve(option("source")), "utf
 // The binary only renders notes it can find under a root.
 const root = await mkdtemp(join(tmpdir(), "wtf-shot-"));
 try {
-  await writeFile(join(root, "example.wtf"), source);
-  const rendered = spawnSync(binary, ["render", "example.wtf", "--root", root, "--now", now, "--format", "html"], { encoding: "utf8" });
+  await writeFile(join(root, "example.x.md"), source);
+  const rendered = spawnSync(binary, ["render", "example.x.md", "--root", root, "--now", now, "--format", "html"], { encoding: "utf8" });
   if (rendered.error) throw new Error(`Cannot run ${binary}: ${rendered.error.message} (run \`cargo build\` first)`);
   if (rendered.stderr.trim()) console.error(rendered.stderr.trim());
   if (!rendered.stdout) throw new Error(`wtf render produced no HTML (exit ${rendered.status})`);

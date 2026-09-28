@@ -16,13 +16,13 @@
     },
     {
       "cli": [
-        "trip.wtf",
+        "trip.x.md",
         "total"
       ]
     },
     {
       "cli": [
-        "trip.wtf",
+        "trip.x.md",
         "tasks | where !done | count"
       ]
     },
@@ -45,7 +45,7 @@
       "cli": [
         "left"
       ],
-      "stdin": "left := import(\"./other.wtf\").budget - $200.00\n"
+      "stdin": "left := import(\"./other.x.md\").budget - $200.00\n"
     },
     {
       "cli": [
@@ -64,7 +64,7 @@
     },
     {
       "cli": [
-        "trip.wtf",
+        "trip.x.md",
         "-"
       ],
       "stdin": "tasks | count"

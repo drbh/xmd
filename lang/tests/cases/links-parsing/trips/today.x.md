@@ -1,0 +1,8 @@
+🦀 ../packing.x.md and ./images/map.png
+[src/main.rs]:source_file
+Open [source_file].
+[asset] := table
+| name | file |
+| --- | --- |
+| map | ./images/map.png |
+Unicode ./maps/日本語.png here.

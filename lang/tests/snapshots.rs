@@ -579,7 +579,7 @@ impl World {
         Value::Object(params)
     }
 
-    /// `${uri:note.wtf}` becomes a file URI; `${last}` and `${last.N}` reuse
+    /// `${uri:note.x.md}` becomes a file URI; `${last}` and `${last.N}` reuse
     /// the previous recorded result (whole, or its Nth array element).
     fn substitute(&self, value: &Value, last: &Value) -> Value {
         match value {

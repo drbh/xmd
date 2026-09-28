@@ -1,5 +1,5 @@
-### 0 cli render trip.wtf --format text
-$ wtf render trip.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render trip.x.md --format text
+$ wtf render trip.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # New York | Oaxaca
@@ -32,8 +32,8 @@ Zocalo
 
 01:00 PM    🍽️ Grab food at Mercado 20 Noviembre
 
-### 1 cli query trip.wtf map(days, fn(d) => {line: d.line, month: d.value.month, day: d.value.day, year: d.value.year, places: d.value.places, stops: length(d.value.stops)}) --json
-$ wtf query trip.wtf map(days, fn(d) => {line: d.line, month: d.value.month, day: d.value.day, year: d.value.year, places: d.value.places, stops: length(d.value.stops)}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query trip.x.md map(days, fn(d) => {line: d.line, month: d.value.month, day: d.value.day, year: d.value.year, places: d.value.places, stops: length(d.value.stops)}) --json
+$ wtf query trip.x.md map(days, fn(d) => {line: d.line, month: d.value.month, day: d.value.day, year: d.value.year, places: d.value.places, stops: length(d.value.stops)}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -55,8 +55,8 @@ exit 0
   }
 ]
 
-### 2 cli query trip.wtf map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, time: s.time, details: map(s.details, fn(d) => {key: d.key, value: d.value}), notes: s.notes}) --json
-$ wtf query trip.wtf map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, time: s.time, details: map(s.details, fn(d) => {key: d.key, value: d.value}), notes: s.notes}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query trip.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, time: s.time, details: map(s.details, fn(d) => {key: d.key, value: d.value}), notes: s.notes}) --json
+$ wtf query trip.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, time: s.time, details: map(s.details, fn(d) => {key: d.key, value: d.value}), notes: s.notes}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -168,8 +168,8 @@ exit 0
   }
 ]
 
-### 3 cli query trip.wtf map(get(days, 1).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, notes: s.notes}) --json
-$ wtf query trip.wtf map(get(days, 1).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, notes: s.notes}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query trip.x.md map(get(days, 1).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, notes: s.notes}) --json
+$ wtf query trip.x.md map(get(days, 1).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind, notes: s.notes}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -230,8 +230,8 @@ exit 0
   }
 ]
 
-### 4 cli query trip.wtf stops | sort at | select {title, line, at, at_date} --json
-$ wtf query trip.wtf stops | sort at | select {title, line, at, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query trip.x.md stops | sort at | select {title, line, at, at_date} --json
+$ wtf query trip.x.md stops | sort at | select {title, line, at, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -321,8 +321,8 @@ exit 0
   }
 ]
 
-### 5 cli query trip.wtf entries | sort at | select {kind, title, at} --json
-$ wtf query trip.wtf entries | sort at | select {kind, title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query trip.x.md entries | sort at | select {kind, title, at} --json
+$ wtf query trip.x.md entries | sort at | select {kind, title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -384,8 +384,8 @@ exit 0
   }
 ]
 
-### 6 cli query trip.wtf links | select {line, url} --json
-$ wtf query trip.wtf links | select {line, url} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query trip.x.md links | select {line, url} --json
+$ wtf query trip.x.md links | select {line, url} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -395,21 +395,21 @@ exit 0
   }
 ]
 
-### 7 cli query trip.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query trip.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 8 lsp
--- open trip.wtf
--- await textDocument/publishDiagnostics trip.wtf
+-- open trip.x.md
+-- await textDocument/publishDiagnostics trip.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/trip.wtf",
+  "uri": "file://<root>/trip.x.md",
   "version": 1
 }
--- request textDocument/hover trip.wtf 9:3
+-- request textDocument/hover trip.x.md 9:3
 {
   "contents": {
     "kind": "markdown",
@@ -426,7 +426,7 @@ exit 0
     }
   }
 }
--- request textDocument/documentSymbol trip.wtf
+-- request textDocument/documentSymbol trip.x.md
 [
   {
     "children": [
@@ -685,7 +685,7 @@ exit 0
     }
   }
 ]
--- request textDocument/foldingRange trip.wtf
+-- request textDocument/foldingRange trip.x.md
 [
   {
     "endLine": 28,
@@ -733,7 +733,7 @@ exit 0
     "startLine": 24
   }
 ]
--- request textDocument/formatting trip.wtf
+-- request textDocument/formatting trip.x.md
 [
   {
     "newText": "07:04 AM  > Depart JFK for MEX on AM 405",
@@ -957,7 +957,7 @@ exit 0
     }
   }
 ]
--- applied to trip.wtf (version 2)
+-- applied to trip.x.md (version 2)
 # New York | Oaxaca
 
 ## Friday, November 20, 2026 · New York | Oaxaca
@@ -987,17 +987,17 @@ SATURDAY, NOVEMBER 21  OAXACA
     Zocalo
 
 01:00 PM  * Grab food at Mercado 20 Noviembre
--- request textDocument/formatting trip.wtf
+-- request textDocument/formatting trip.x.md
 []
 
-### 9 cli query trip.wtf import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json
-$ wtf query trip.wtf import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json
+$ wtf query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 10 cli query trip.wtf import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00
-$ wtf query trip.wtf import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00 --root <root>
+### 10 cli query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00
+$ wtf query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00 --root <root>
 exit 0
 --- stdout
 [

@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "imports.wtf",
+        "imports.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "imports.wtf",
+        "imports.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "imports.wtf",
+        "imports.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "render",
-        "lookups.wtf",
+        "lookups.x.md",
         "--format",
         "text"
       ]
@@ -36,27 +36,27 @@
     {
       "lsp": [
         {
-          "open": "lookups.wtf"
+          "open": "lookups.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "lookups.wtf"
+          "file": "lookups.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "lookups.wtf",
+          "file": "lookups.x.md",
           "line": 0,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "lookups.wtf",
+          "file": "lookups.x.md",
           "line": 2,
           "character": 2
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "lookups.wtf",
+          "file": "lookups.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -71,7 +71,7 @@
         {
           "query": {
             "query": "values | where name == \"price\" | select {name, display}",
-            "uri": "lookups.wtf"
+            "uri": "lookups.x.md"
           }
         }
       ]
@@ -79,7 +79,7 @@
     {
       "cli": [
         "render",
-        "calendar.wtf",
+        "calendar.x.md",
         "--now",
         "2026-09-17T00:15:00+14:00",
         "--format",
@@ -89,7 +89,7 @@
     {
       "cli": [
         "query",
-        "calendar.wtf",
+        "calendar.x.md",
         "tasks | select {title, due}",
         "--json",
         "--now",
@@ -99,7 +99,7 @@
     {
       "cli": [
         "render",
-        "calendar.wtf",
+        "calendar.x.md",
         "--now",
         "2026-09-15T22:15:00-12:00",
         "--format",
@@ -109,7 +109,7 @@
     {
       "cli": [
         "query",
-        "calendar.wtf",
+        "calendar.x.md",
         "tasks | select {title, due}",
         "--json",
         "--now",
@@ -119,7 +119,7 @@
     {
       "cli": [
         "query",
-        "calendar.wtf",
+        "calendar.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json",
         "--now",

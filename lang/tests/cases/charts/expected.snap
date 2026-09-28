@@ -1,5 +1,5 @@
-### 0 cli render table.wtf --format text
-$ wtf render table.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render table.x.md --format text
+$ wtf render table.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [t] := table = 3 rows · 3 columns
@@ -10,8 +10,8 @@ exit 0
 | fig | 4 | $2 |
 [total] := sum(t, qty * price) = $20
 
-### 1 cli render timers.wtf --format text
-$ wtf render timers.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli render timers.x.md --format text
+$ wtf render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [focus] := countdown(10m, 4m) = ◷ ███░░░░░ 06:00 remaining · ‖ paused
@@ -22,18 +22,18 @@ exit 0
   - [ ] d
 
 ### 2 lsp
--- open table.wtf
--- await textDocument/publishDiagnostics table.wtf
+-- open table.x.md
+-- await textDocument/publishDiagnostics table.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/table.wtf",
+  "uri": "file://<root>/table.x.md",
   "version": 1
 }
--- request textDocument/hover table.wtf 1:10
+-- request textDocument/hover table.x.md 1:10
 {
   "contents": {
     "kind": "markdown",
-    "value": "**qty · Number**\n\nColumn of `t` · 3 rows\n\n`▁█▅` 2 → 6\n\nValues: 2, 6, 4\n\nDefinition: [qty](<file://<root>/table.wtf#L2>)"
+    "value": "**qty · Number**\n\nColumn of `t` · 3 rows\n\n`▁█▅` 2 → 6\n\nValues: 2, 6, 4\n\nDefinition: [qty](<file://<root>/table.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -46,11 +46,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover table.wtf 1:3
+-- request textDocument/hover table.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**item · Text**\n\nColumn of `t` · 3 rows\n\nValues: apple, pear, fig\n\nDefinition: [item](<file://<root>/table.wtf#L2>)"
+    "value": "**item · Text**\n\nColumn of `t` · 3 rows\n\nValues: apple, pear, fig\n\nDefinition: [item](<file://<root>/table.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -63,11 +63,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover table.wtf 6:2
+-- request textDocument/hover table.x.md 6:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**total · Money**\n\n$20\n\n```text\nsum(t, qty * price)\n= $20\n```\n\nRow contributions:\n\n`▁▁█` $6 → $8\n\n- Row 1: $6\n- Row 2: $6\n- Row 3: $8\n\nInputs: [price](<file://<root>/table.wtf#L2>), [qty](<file://<root>/table.wtf#L2>), [t](<file://<root>/table.wtf#L1>)\n\nDefinition: [total](<file://<root>/table.wtf#L7>) · <root>/table.wtf:7"
+    "value": "**total · Money**\n\n$20\n\n```text\nsum(t, qty * price)\n= $20\n```\n\nRow contributions:\n\n`▁▁█` $6 → $8\n\n- Row 1: $6\n- Row 2: $6\n- Row 3: $8\n\nInputs: [price](<file://<root>/table.x.md#L2>), [qty](<file://<root>/table.x.md#L2>), [t](<file://<root>/table.x.md#L1>)\n\nDefinition: [total](<file://<root>/table.x.md#L7>) · <root>/table.x.md:7"
   },
   "range": {
     "end": {
@@ -80,12 +80,12 @@ exit 0
     }
   }
 }
--- open timers.wtf
--- request textDocument/hover timers.wtf 0:2
+-- open timers.x.md
+-- request textDocument/hover timers.x.md 0:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+    "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.x.md#L1>) · <root>/timers.x.md:1"
   },
   "range": {
     "end": {
@@ -98,11 +98,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover timers.wtf 1:8
+-- request textDocument/hover timers.x.md 1:8
 {
   "contents": {
     "kind": "markdown",
-    "value": "**plan · Checklist**\n\n3 tasks\n\n`███████░░░ 67%` 2/3 complete\n\nDefinition: [plan](<file://<root>/timers.wtf#L2>) · <root>/timers.wtf:2"
+    "value": "**plan · Checklist**\n\n3 tasks\n\n`███████░░░ 67%` 2/3 complete\n\nDefinition: [plan](<file://<root>/timers.x.md#L2>) · <root>/timers.x.md:2"
   },
   "range": {
     "end": {
@@ -115,7 +115,7 @@ exit 0
     }
   }
 }
--- request textDocument/inlayHint timers.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint timers.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ◷ ███░░░░░ 06:00 remaining · ‖ paused",
@@ -126,7 +126,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.wtf#L1>) · <root>/timers.wtf:1"
+      "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/timers.x.md#L1>) · <root>/timers.x.md:1"
     }
   },
   {
@@ -155,8 +155,8 @@ exit 0
   }
 ]
 
-### 3 cli render edges.wtf --format text
-$ wtf render edges.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli render edges.x.md --format text
+$ wtf render edges.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 # Done :done ████████ 2/2 complete
@@ -170,16 +170,16 @@ exit 1
 | a | 1 |
 | b | two |
 --- stderr
-<root>/edges.wtf:10:7: error: Column 'value' expects Number, found Text
+<root>/edges.x.md:10:7: error: Column 'value' expects Number, found Text
 wtf: 1 error(s) while rendering
 
 ### 4 lsp
--- open edges.wtf
--- request textDocument/hover edges.wtf 0:8
+-- open edges.x.md
+-- request textDocument/hover edges.x.md 0:8
 {
   "contents": {
     "kind": "markdown",
-    "value": "**done · Checklist**\n\n2 tasks\n\n`██████████ 100%` 2/2 complete\n\nDefinition: [done](<file://<root>/edges.wtf#L1>) · <root>/edges.wtf:1"
+    "value": "**done · Checklist**\n\n2 tasks\n\n`██████████ 100%` 2/2 complete\n\nDefinition: [done](<file://<root>/edges.x.md#L1>) · <root>/edges.x.md:1"
   },
   "range": {
     "end": {
@@ -192,11 +192,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover edges.wtf 3:9
+-- request textDocument/hover edges.x.md 3:9
 {
   "contents": {
     "kind": "markdown",
-    "value": "**fresh · Checklist**\n\n1 tasks\n\n`░░░░░░░░░░ 0%` 0/1 complete\n\nDefinition: [fresh](<file://<root>/edges.wtf#L4>) · <root>/edges.wtf:4"
+    "value": "**fresh · Checklist**\n\n1 tasks\n\n`░░░░░░░░░░ 0%` 0/1 complete\n\nDefinition: [fresh](<file://<root>/edges.x.md#L4>) · <root>/edges.x.md:4"
   },
   "range": {
     "end": {
@@ -209,11 +209,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover edges.wtf 6:11
+-- request textDocument/hover edges.x.md 6:11
 {
   "contents": {
     "kind": "markdown",
-    "value": "**value · Number**\n\nColumn of `mixed` · 2 rows\n\nValues: 1, two\n\nDefinition: [value](<file://<root>/edges.wtf#L7>)"
+    "value": "**value · Number**\n\nColumn of `mixed` · 2 rows\n\nValues: 1, two\n\nDefinition: [value](<file://<root>/edges.x.md#L7>)"
   },
   "range": {
     "end": {

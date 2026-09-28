@@ -1,6 +1,6 @@
-### 0 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render main.x.md --format text
+$ wtf render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/bad.wtf: module.api must be 1
+wtf: <root>/.wtf/modules/bad.x.md: module.api must be 1
 

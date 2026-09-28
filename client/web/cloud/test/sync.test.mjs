@@ -34,48 +34,48 @@ test("wtf sync mirrors a directory with a folder, merging and flagging conflicts
   const sync = (...args) => execFileSync(WTF, ["sync", dir, ...args], { env: { ...process.env, XDG_CONFIG_HOME: config }, encoding: "utf8" });
   const { key } = await api("/api/keys", { method: "POST", body: { name: "test" } });
   const folderName = `Synced ${Date.now()}`;
-  writeFileSync(join(dir, "Budget.wtf"), "# Budget\n\nrent := $900\n\nfood := $200\n");
-  writeFileSync(join(dir, "Trip.wtf"), '# Trip\n\nb := import("./Budget.wtf")\nTotal [b.rent]\n');
+  writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $900\n\nfood := $200\n");
+  writeFileSync(join(dir, "Trip.x.md"), '# Trip\n\nb := import("./Budget.x.md")\nTotal [b.rent]\n');
   // First run creates the folder and both documents; the second has nothing to do.
   let out = sync("--url", BASE, "--folder", folderName, "--key", key);
   assert.match(out, /created folder/); assert.match(out, /created Budget/); assert.match(out, /created Trip/);
   assert.match(sync(), /Up to date/);
   const manifest = JSON.parse(readFileSync(join(dir, ".wtf-sync/manifest.json"), "utf8"));
-  const folder = manifest.folder_id, budget = manifest.files["Budget.wtf"].id;
+  const folder = manifest.folder_id, budget = manifest.files["Budget.x.md"].id;
   const remote = async () => (await api(`/api/documents/${budget}`)).text;
   const putRemote = text => api(`/api/documents/${budget}`, { method: "PUT", body: { name: "Budget", file: "Budget", folder, text } });
   // A change in the web app is pulled.
   await putRemote("# Budget\n\nrent := $900\n\nfood := $250\n");
   assert.match(sync(), /pulled Budget/);
-  assert.match(readFileSync(join(dir, "Budget.wtf"), "utf8"), /food := \$250/);
+  assert.match(readFileSync(join(dir, "Budget.x.md"), "utf8"), /food := \$250/);
   // Different lines changed on both sides merge.
-  writeFileSync(join(dir, "Budget.wtf"), "# Budget\n\nrent := $950\n\nfood := $250\n");
+  writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $950\n\nfood := $250\n");
   await putRemote("# Budget\n\nrent := $900\n\nfood := $250\n\nfun := $50\n");
   assert.match(sync(), /merged Budget/);
   assert.equal(await remote(), "# Budget\n\nrent := $950\n\nfood := $250\n\nfun := $50\n");
   // The same line changed both ways is a conflict file; the local file is untouched and frozen until resolved.
-  writeFileSync(join(dir, "Budget.wtf"), "# Budget\n\nrent := $1,000\n\nfood := $250\n\nfun := $50\n");
+  writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $1,000\n\nfood := $250\n\nfun := $50\n");
   await putRemote("# Budget\n\nrent := $975\n\nfood := $250\n\nfun := $50\n");
   assert.match(sync(), /conflict in Budget/);
-  assert.match(readFileSync(join(dir, "Budget.conflict.wtf"), "utf8"), /<<<<<<<[\s\S]*\$1,000[\s\S]*\$975/);
-  assert.match(readFileSync(join(dir, "Budget.wtf"), "utf8"), /\$1,000/);
-  assert.match(sync(), /still has Budget.conflict.wtf/);
+  assert.match(readFileSync(join(dir, "Budget.conflict.x.md"), "utf8"), /<<<<<<<[\s\S]*\$1,000[\s\S]*\$975/);
+  assert.match(readFileSync(join(dir, "Budget.x.md"), "utf8"), /\$1,000/);
+  assert.match(sync(), /still has Budget\.conflict\.x\.md/);
   assert.match(await remote(), /\$975/);
-  writeFileSync(join(dir, "Budget.wtf"), "# Budget\n\nrent := $980\n\nfood := $250\n\nfun := $50\n");
-  rmSync(join(dir, "Budget.conflict.wtf"));
+  writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $980\n\nfood := $250\n\nfun := $50\n");
+  rmSync(join(dir, "Budget.conflict.x.md"));
   assert.match(sync(), /pushed Budget/);
   assert.match(await remote(), /\$980/);
   // Deleting locally removes it from the web app; removing in the web app moves the file to trash.
-  rmSync(join(dir, "Trip.wtf"));
+  rmSync(join(dir, "Trip.x.md"));
   assert.match(sync(), /removed Trip/);
   const list = await api("/api/documents");
   assert.ok(!list.some(d => d.file === "Trip" && d.folder === folder));
   await api(`/api/documents/${budget}`, { method: "DELETE" });
   assert.match(sync(), /moved Budget to/);
-  assert.ok(!existsSync(join(dir, "Budget.wtf")));
-  assert.ok(readdirSync(join(dir, ".wtf-sync/trash")).includes("Budget.wtf"));
+  assert.ok(!existsSync(join(dir, "Budget.x.md")));
+  assert.ok(readdirSync(join(dir, ".wtf-sync/trash")).includes("Budget.x.md"));
   // Dry runs report without touching anything.
-  writeFileSync(join(dir, "New.wtf"), "# New\n");
+  writeFileSync(join(dir, "New.x.md"), "# New\n");
   assert.match(sync("--dry-run"), /would create New/);
   assert.ok(!(await api("/api/documents")).some(d => d.file === "New"));
   rmSync(dir, { recursive: true }); rmSync(config, { recursive: true });

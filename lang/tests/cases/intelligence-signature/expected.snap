@@ -1,6 +1,6 @@
 ### 0 lsp
--- open sig.wtf
--- await textDocument/publishDiagnostics sig.wtf
+-- open sig.x.md
+-- await textDocument/publishDiagnostics sig.x.md
 {
   "diagnostics": [
     {
@@ -20,10 +20,10 @@
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/sig.wtf",
+  "uri": "file://<root>/sig.x.md",
   "version": 1
 }
--- request textDocument/signatureHelp sig.wtf 0:26
+-- request textDocument/signatureHelp sig.x.md 0:26
 {
   "activeParameter": 2,
   "activeSignature": 0,
@@ -48,7 +48,7 @@
     }
   ]
 }
--- request textDocument/signatureHelp sig.wtf 0:17
+-- request textDocument/signatureHelp sig.x.md 0:17
 {
   "activeParameter": 0,
   "activeSignature": 0,
@@ -73,7 +73,7 @@
     }
   ]
 }
--- request textDocument/signatureHelp sig.wtf 0:30
+-- request textDocument/signatureHelp sig.x.md 0:30
 {
   "activeSignature": 0,
   "signatures": [
@@ -87,9 +87,9 @@
     }
   ]
 }
--- request textDocument/signatureHelp sig.wtf 1:11
+-- request textDocument/signatureHelp sig.x.md 1:11
 null
--- request textDocument/signatureHelp sig.wtf 2:25
+-- request textDocument/signatureHelp sig.x.md 2:25
 {
   "activeParameter": 0,
   "activeSignature": 0,
@@ -108,7 +108,7 @@ null
     }
   ]
 }
--- request textDocument/signatureHelp sig.wtf 7:26
+-- request textDocument/signatureHelp sig.x.md 7:26
 {
   "activeParameter": 1,
   "activeSignature": 0,

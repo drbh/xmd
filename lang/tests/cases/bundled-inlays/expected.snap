@@ -1,5 +1,5 @@
-### 0 cli render checklists.wtf --format text
-$ wtf render checklists.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli render checklists.x.md --format text
+$ wtf render checklists.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Work ████░░░░ 2/4 complete · 90m estimated left
@@ -11,8 +11,8 @@ exit 0
   - [ ] Child @estimate(1h)
 # Empty
 
-### 1 cli render formula.wtf --format text
-$ wtf render formula.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli render formula.x.md --format text
+$ wtf render formula.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 # Formula
@@ -23,11 +23,11 @@ exit 1
 Clock [now()] 2026-09-18 12:00:00 +00:00.
 Broken [missing + 2].
 --- stderr
-<root>/formula.wtf:7:9: error: Unknown name 'missing'
+<root>/formula.x.md:7:9: error: Unknown name 'missing'
 wtf: 1 error(s) while rendering
 
-### 2 cli render table.wtf --format text
-$ wtf render table.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 2 cli render table.x.md --format text
+$ wtf render table.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 prices := table
@@ -36,19 +36,19 @@ prices := table
 | Tea | [$2 * 3] $6 |
 | Pie | [missing + 1] |
 --- stderr
-<root>/table.wtf:5:10: error: Unknown name 'missing'
+<root>/table.x.md:5:10: error: Unknown name 'missing'
 wtf: 1 error(s) while rendering
 
-### 3 cli render plain.wtf --format text
-$ wtf render plain.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 3 cli render plain.x.md --format text
+$ wtf render plain.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Empty
 plain text
 
 ### 4 lsp
--- open checklists.wtf
--- request textDocument/inlayHint checklists.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- open checklists.x.md
+-- request textDocument/inlayHint checklists.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "████░░░░ 2/4 complete · 90m estimated left",
@@ -87,8 +87,8 @@ plain text
     }
   }
 ]
--- open formula.wtf
--- request textDocument/inlayHint formula.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- open formula.x.md
+-- request textDocument/inlayHint formula.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "$25",
@@ -127,7 +127,7 @@ plain text
     }
   }
 ]
--- await textDocument/publishDiagnostics formula.wtf
+-- await textDocument/publishDiagnostics formula.x.md
 {
   "diagnostics": [
     {
@@ -147,11 +147,11 @@ plain text
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/formula.wtf",
+  "uri": "file://<root>/formula.x.md",
   "version": 1
 }
--- open table.wtf
--- request textDocument/inlayHint table.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- open table.x.md
+-- request textDocument/inlayHint table.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "$6",
@@ -166,7 +166,7 @@ plain text
     }
   }
 ]
--- open plain.wtf
--- request textDocument/inlayHint plain.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- open plain.x.md
+-- request textDocument/inlayHint plain.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 []
 

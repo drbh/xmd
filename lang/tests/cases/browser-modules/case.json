@@ -7,21 +7,21 @@
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/main.wtf"
+            "uri": "file:///workspace/main.x.md"
           }
         },
         {
           "method": "setModules",
           "params": {
             "sources": {
-              "tickets.wtf": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
+              "tickets.x.md": "module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"
             }
           }
         },
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/main.wtf"
+            "uri": "file:///workspace/main.x.md"
           }
         },
         {
@@ -49,13 +49,13 @@
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/main.wtf"
+            "uri": "file:///workspace/main.x.md"
           }
         },
         {
           "method": "hover",
           "params": {
-            "uri": "file:///workspace/main.wtf",
+            "uri": "file:///workspace/main.x.md",
             "position": {
               "line": 0,
               "character": 10
@@ -66,7 +66,7 @@
           "method": "setModules",
           "params": {
             "sources": {
-              "tickets.wtf": "module := {"
+              "tickets.x.md": "module := {"
             }
           }
         },
@@ -80,14 +80,14 @@
           "method": "setModules",
           "params": {
             "sources": {
-              "custom.wtf": "module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"
+              "custom.x.md": "module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"
             }
           }
         },
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/main.wtf"
+            "uri": "file:///workspace/main.x.md"
           }
         },
         {
@@ -95,14 +95,14 @@
           "params": {
             "command": "${last:/result/lenses/1/command}",
             "versions": {
-              "file:///workspace/main.wtf": 1
+              "file:///workspace/main.x.md": 1
             }
           }
         },
         {
           "method": "setDocument",
           "params": {
-            "uri": "file:///workspace/main.wtf",
+            "uri": "file:///workspace/main.x.md",
             "version": 2,
             "text": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nGoodbye [round(2.6)]\n"
           }
@@ -116,7 +116,7 @@
               "arguments": [
                 {
                   "kind": "edit",
-                  "document": "file:///workspace/main.wtf",
+                  "document": "file:///workspace/main.x.md",
                   "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
                   "edits": [
                     {
@@ -137,7 +137,7 @@
               ]
             },
             "versions": {
-              "file:///workspace/main.wtf": 1
+              "file:///workspace/main.x.md": 1
             }
           }
         },
@@ -150,7 +150,7 @@
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/main.wtf"
+            "uri": "file:///workspace/main.x.md"
           }
         }
       ]

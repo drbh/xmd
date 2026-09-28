@@ -4,7 +4,7 @@
 //! (names and values), `view` (how a note looks) and `controls` (what a person
 //! can do). Two modules tie them together: `locate` decides what sits at a
 //! position, and `providers` is the one extension point through which the
-//! editor's own features and .wtf feature modules contribute inlays, hovers,
+//! editor's own features and .x.md feature modules contribute inlays, hovers,
 //! diagnostics, controls and edits. Exposes its interface from the root.
 mod api;
 mod controls;

@@ -9,7 +9,7 @@ args = ["lsp"]
 [[language]]
 name = "wtf"
 scope = "text.wtf"
-file-types = ["wtf"]
+file-types = [{ glob = "*.x.md" }]
 roots = [".wtf", ".git"]
 language-servers = ["wtf"]
 indent = { tab-width = 2, unit = "  " }

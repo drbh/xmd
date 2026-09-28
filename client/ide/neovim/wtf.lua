@@ -8,7 +8,8 @@ assert(vim.fn.executable(binary) == 1,
   .. ' `curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh`,'
   .. ' or set vim.g.wtf_server_path')
 
-vim.filetype.add({ extension = { wtf = 'wtf' } })
+-- `.x.md` is a two-part suffix, so match it as a pattern rather than an extension.
+vim.filetype.add({ pattern = { ['.*%.x%.md'] = 'wtf' } })
 
 local function highlights()
   -- Link semantic tokens to the user's theme; all tokenization stays in Rust.

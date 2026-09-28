@@ -29,7 +29,7 @@
     "languages": [{
       "id": "wtf",
       "aliases": ["WTF", "wtf"],
-      "extensions": [".wtf"],
+      "filenamePatterns": ["*.x.md"],
       "configuration": "./language-configuration.json"
     }],
     "commands": [{ "command": "wtf.restartServer", "title": "WTF: Restart Language Server" }],

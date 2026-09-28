@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]

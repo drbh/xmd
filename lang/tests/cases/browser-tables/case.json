@@ -4,27 +4,27 @@
   "steps": [
     {
       "browser": [
-        { "method": "analyze", "params": { "uri": "file:///workspace/fruit.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/fruit.x.md" } },
         {
           "method": "definition",
           "params": {
-            "uri": "file:///workspace/fruit.wtf",
+            "uri": "file:///workspace/fruit.x.md",
             "position": { "line": 5, "character": 29 }
           }
         },
         {
           "method": "rename",
           "params": {
-            "uri": "file:///workspace/fruit.wtf",
+            "uri": "file:///workspace/fruit.x.md",
             "position": { "line": 5, "character": 29 },
             "newName": "unit_price"
           }
         },
-        { "method": "formatting", "params": { "uri": "file:///workspace/fruit.wtf" } },
+        { "method": "formatting", "params": { "uri": "file:///workspace/fruit.x.md" } },
         {
           "method": "onTypeFormatting",
           "params": {
-            "uri": "file:///workspace/typing.wtf",
+            "uri": "file:///workspace/typing.x.md",
             "position": { "line": 3, "character": 9 },
             "ch": "|"
           }
@@ -32,7 +32,7 @@
         {
           "method": "onTypeFormatting",
           "params": {
-            "uri": "file:///workspace/typing.wtf",
+            "uri": "file:///workspace/typing.x.md",
             "position": { "line": 5, "character": 0 },
             "ch": "\n"
           }
@@ -41,29 +41,29 @@
     },
     {
       "lsp": [
-        { "open": "fruit.wtf" },
-        { "open": "typing.wtf" },
+        { "open": "fruit.x.md" },
+        { "open": "typing.x.md" },
         {
           "request": "textDocument/definition",
-          "file": "fruit.wtf",
+          "file": "fruit.x.md",
           "line": 5,
           "character": 29
         },
         {
           "request": "textDocument/rename",
-          "file": "fruit.wtf",
+          "file": "fruit.x.md",
           "line": 5,
           "character": 29,
           "extra": { "newName": "unit_price" }
         },
         {
           "request": "textDocument/formatting",
-          "file": "fruit.wtf",
+          "file": "fruit.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "typing.wtf",
+          "file": "typing.x.md",
           "line": 3,
           "character": 9,
           "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } },
@@ -71,7 +71,7 @@
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "typing.wtf",
+          "file": "typing.x.md",
           "line": 5,
           "character": 0,
           "extra": { "ch": "\n", "options": { "tabSize": 2, "insertSpaces": true } },

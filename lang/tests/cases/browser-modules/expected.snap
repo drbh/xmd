@@ -1,6 +1,6 @@
 ### 0 browser
--- setDocument main.wtf
--- analyze {"uri":"file:///workspace/main.wtf"}
+-- setDocument main.x.md
+-- analyze {"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -58,7 +58,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "https://issues.example/tickets/42:ticket",
                 "row": 0
               },
@@ -85,7 +85,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "Points [ticket.points].",
                 "row": 1
               },
@@ -265,19 +265,19 @@
       15,
       0
     ],
-    "uri": "file:///workspace/main.wtf",
+    "uri": "file:///workspace/main.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/main.wtf": 1
+      "file:///workspace/main.x.md": 1
     }
   }
 }
--- setModules {"sources":{"tickets.wtf":"module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"}}
+-- setModules {"sources":{"tickets.x.md":"module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], properties: [\"title\", \"points\"]}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket \" + ctx.url.path, ctx.cached.title)\nhover := fn(ctx) => \"Details for \" + ctx.url.raw\nproperty := fn(ctx, name) => get(ctx.cached, name)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{\\\"summary\\\":\\\"Ship it\\\",\\\"points\\\":8}\"]}\ndecode := fn(url, data) => {title: data.summary, points: data.points}\n"}}
 {
   "ok": true,
   "result": null
 }
--- analyze {"uri":"file:///workspace/main.wtf"}
+-- analyze {"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -342,7 +342,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "https://issues.example/tickets/42:ticket",
                 "row": 0
               },
@@ -369,7 +369,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "Points [ticket.points].",
                 "row": 1
               },
@@ -549,10 +549,10 @@
       15,
       0
     ],
-    "uri": "file:///workspace/main.wtf",
+    "uri": "file:///workspace/main.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/main.wtf": 1
+      "file:///workspace/main.x.md": 1
     }
   }
 }
@@ -571,7 +571,7 @@
   "error": "Stage 2: Unknown function 'eval'",
   "ok": false
 }
--- analyze {"uri":"file:///workspace/main.wtf"}
+-- analyze {"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -636,7 +636,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "https://issues.example/tickets/42:ticket",
                 "row": 0
               },
@@ -663,7 +663,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "Points [ticket.points].",
                 "row": 1
               },
@@ -843,14 +843,14 @@
       15,
       0
     ],
-    "uri": "file:///workspace/main.wtf",
+    "uri": "file:///workspace/main.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/main.wtf": 1
+      "file:///workspace/main.x.md": 1
     }
   }
 }
--- hover {"position":{"character":10,"line":0},"uri":"file:///workspace/main.wtf"}
+-- hover {"position":{"character":10,"line":0},"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -870,9 +870,9 @@
     }
   }
 }
--- setModules {"sources":{"tickets.wtf":"module := {"}}
+-- setModules {"sources":{"tickets.x.md":"module := {"}}
 {
-  "error": "/workspace/.wtf/modules/tickets.wtf: /workspace/.wtf/modules/tickets.wtf:1: Expected a record field name",
+  "error": "/workspace/.wtf/modules/tickets.x.md: /workspace/.wtf/modules/tickets.x.md:1: Expected a record field name",
   "ok": false
 }
 -- query {"query":"values | where name == \"ticket\" | select eval(\"ticket.points\")"}
@@ -880,12 +880,12 @@
   "error": "Stage 2: Unknown function 'eval'",
   "ok": false
 }
--- setModules {"sources":{"custom.wtf":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
+-- setModules {"sources":{"custom.x.md":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
 {
   "ok": true,
   "result": null
 }
--- analyze {"uri":"file:///workspace/main.wtf"}
+-- analyze {"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -943,7 +943,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "https://issues.example/tickets/42:ticket",
                 "row": 0
               },
@@ -968,7 +968,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/main.wtf",
+              "document": "file:///workspace/main.x.md",
               "edits": [
                 {
                   "newText": "Goodbye",
@@ -1008,7 +1008,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "Points [ticket.points].",
                 "row": 1
               },
@@ -1033,7 +1033,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/main.wtf",
+              "document": "file:///workspace/main.x.md",
               "edits": [
                 {
                   "newText": "Goodbye",
@@ -1071,7 +1071,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/main.wtf",
+              "document": "file:///workspace/main.x.md",
               "edits": [
                 {
                   "newText": "Goodbye",
@@ -1264,14 +1264,14 @@
       15,
       0
     ],
-    "uri": "file:///workspace/main.wtf",
+    "uri": "file:///workspace/main.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/main.wtf": 1
+      "file:///workspace/main.x.md": 1
     }
   }
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/main.wtf","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -1294,7 +1294,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file:///workspace/main.wtf",
+            "uri": "file:///workspace/main.x.md",
             "version": 1
           }
         }
@@ -1302,12 +1302,12 @@
     }
   }
 }
--- setDocument {"text":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nGoodbye [round(2.6)]\n","uri":"file:///workspace/main.wtf","version":2}
+-- setDocument {"text":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nGoodbye [round(2.6)]\n","uri":"file:///workspace/main.x.md","version":2}
 {
   "ok": true,
   "result": null
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/main.wtf","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/main.x.md","edits":[{"newText":"Goodbye","range":{"end":{"character":5,"line":2},"start":{"character":0,"line":2}}}],"expected":"https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n","kind":"edit"}],"command":"wtf.applyEdits","title":"Replace"},"versions":{"file:///workspace/main.x.md":1}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false
@@ -1317,7 +1317,7 @@
   "ok": true,
   "result": null
 }
--- analyze {"uri":"file:///workspace/main.wtf"}
+-- analyze {"uri":"file:///workspace/main.x.md"}
 {
   "ok": true,
   "result": {
@@ -1375,7 +1375,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "https://issues.example/tickets/42:ticket",
                 "row": 0
               },
@@ -1402,7 +1402,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/main.wtf",
+                "document": "file:///workspace/main.x.md",
                 "expected": "Points [ticket.points].",
                 "row": 1
               },
@@ -1582,10 +1582,10 @@
       15,
       0
     ],
-    "uri": "file:///workspace/main.wtf",
+    "uri": "file:///workspace/main.x.md",
     "version": 2,
     "versions": {
-      "file:///workspace/main.wtf": 2
+      "file:///workspace/main.x.md": 2
     }
   }
 }

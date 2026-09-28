@@ -4,22 +4,22 @@
 -- .wtf/lookups.json
 (missing: entity not found)
 
-### 1 cli render links.wtf --format text
-$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli render links.x.md --format text
+$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ◌ PR #42 · refresh for status
 [ready] := pr.merged && pr.checks_passed
 --- stderr
-<root>/links.wtf:2:12: warning: Module github.property: No cached GitHub status; run wtf refresh
+<root>/links.x.md:2:12: warning: Module github.property: No cached GitHub status; run wtf refresh
 
-### 2 cli render money.wtf --format text
-$ wtf render money.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli render money.x.md --format text
+$ wtf render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [price] := quote(ACME)
 --- stderr
-<root>/money.wtf:1:12: warning: No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens
+<root>/money.x.md:1:12: warning: No cached quote for ACME; run wtf refresh or use the ⟳ lookups lens
 
 ### 3 cli refresh
 $ wtf refresh --root <root>
@@ -58,21 +58,21 @@ Resource cache updated (1 resources)
   }
 }
 
-### 5 cli render links.wtf --format text
-$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli render links.x.md --format text
+$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now
 [ready] := pr.merged && pr.checks_passed = true
 
-### 6 cli render money.wtf --format text
-$ wtf render money.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli render money.x.md --format text
+$ wtf render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [price] := quote(ACME) = $12.50
 
-### 7 cli query links.wtf values | select {name, display} --json
-$ wtf query links.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query links.x.md values | select {name, display} --json
+$ wtf query links.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -112,8 +112,8 @@ wtf: https://github.com/acme/app/pull/42: gh failed: fixture failure
   }
 }
 
-### 10 cli render links.wtf --format text
-$ wtf render links.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli render links.x.md --format text
+$ wtf render links.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [https://github.com/acme/app/pull/42]:pr ✓ merged · ● checks · ✓ approved · just now

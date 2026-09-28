@@ -1,19 +1,19 @@
 {
   "steps": [
-    { "cli": ["render", "savings.wtf", "--format", "text"] },
-    { "cli": ["query", "savings.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "savings.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "savings.x.md", "--format", "text"] },
+    { "cli": ["query", "savings.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "savings.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "savings.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "savings.wtf" },
-        { "request": "textDocument/hover", "file": "savings.wtf", "line": 3, "character": 3 }
+        { "open": "savings.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "savings.x.md" },
+        { "request": "textDocument/hover", "file": "savings.x.md", "line": 3, "character": 3 }
       ]
     },
-    { "cli": ["render", "units.wtf", "--format", "text"] },
-    { "cli": ["query", "units.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "unknowns.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["render", "broken.wtf", "--format", "text"] },
-    { "cli": ["query", "broken.wtf", "diagnostics | select {line, severity, code, message}", "--json"] }
+    { "cli": ["render", "units.x.md", "--format", "text"] },
+    { "cli": ["query", "units.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "unknowns.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["render", "broken.x.md", "--format", "text"] },
+    { "cli": ["query", "broken.x.md", "diagnostics | select {line, severity, code, message}", "--json"] }
   ]
 }

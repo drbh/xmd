@@ -1,7 +1,7 @@
 ### 0 browser
--- setDocument money.wtf
--- setDocument symbols.wtf
--- setDocument trip.wtf
+-- setDocument money.x.md
+-- setDocument symbols.x.md
+-- setDocument trip.x.md
 -- semanticLegend {}
 {
   "ok": true,
@@ -46,7 +46,7 @@
     ]
   }
 }
--- render {"uri":"file:///workspace/trip.wtf"}
+-- render {"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
@@ -63,7 +63,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.x.md#L2>) · /workspace/trip.x.md:2"
         }
       },
       {
@@ -75,11 +75,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.x.md#L2>) · /workspace/trip.x.md:2"
         }
       }
     ],
-    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
     "lenses": [],
     "lineClasses": [
       "h1",
@@ -254,16 +254,16 @@
       16,
       0
     ],
-    "uri": "file:///workspace/trip.wtf",
+    "uri": "file:///workspace/trip.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/money.wtf": 1,
-      "file:///workspace/symbols.wtf": 1,
-      "file:///workspace/trip.wtf": 1
+      "file:///workspace/money.x.md": 1,
+      "file:///workspace/symbols.x.md": 1,
+      "file:///workspace/trip.x.md": 1
     }
   }
 }
--- analyze {"uri":"file:///workspace/trip.wtf"}
+-- analyze {"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
@@ -280,7 +280,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.x.md#L2>) · /workspace/trip.x.md:2"
         }
       },
       {
@@ -292,11 +292,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+          "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file:///workspace/trip.x.md#L2>) · /workspace/trip.x.md:2"
         }
       }
     ],
-    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.wtf#L2&gt;) · /workspace/trip.wtf:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
+    "html": "<span class=\"line h1\" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">#</span><span class=\"t-heading\" title=\"\"> Real 🦀</span>\r\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-variable declaration\" title=\"\">a</span><span class=\"t-operator\" title=\"\"> :=</span> <span class=\"t-number\" title=\"\">1</span> <span class=\"t-operator\" title=\"\">+</span> <span class=\"t-number\" title=\"\">2</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> = 3</span>\r\n</span><span class=\"line \" data-line=\"2\">Value <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">a</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](&lt;file:///workspace/trip.x.md#L2&gt;) · /workspace/trip.x.md:2\"> 3</span>.\r\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfCode\" title=\"\"># Inert</span>\r\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfCode\" title=\"\">```</span>\r\n</span><span class=\"line \" data-line=\"6\"></span>",
     "lenses": [],
     "lineClasses": [
       "h1",
@@ -471,16 +471,16 @@
       16,
       0
     ],
-    "uri": "file:///workspace/trip.wtf",
+    "uri": "file:///workspace/trip.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/money.wtf": 1,
-      "file:///workspace/symbols.wtf": 1,
-      "file:///workspace/trip.wtf": 1
+      "file:///workspace/money.x.md": 1,
+      "file:///workspace/symbols.x.md": 1,
+      "file:///workspace/trip.x.md": 1
     }
   }
 }
--- documentSymbols {"uri":"file:///workspace/symbols.wtf"}
+-- documentSymbols {"uri":"file:///workspace/symbols.x.md"}
 {
   "ok": true,
   "result": [
@@ -642,7 +642,7 @@
     }
   ]
 }
--- analyze {"uri":"file:///workspace/money.wtf"}
+-- analyze {"uri":"file:///workspace/money.x.md"}
 {
   "ok": true,
   "result": {
@@ -659,7 +659,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.wtf#L1>) · /workspace/money.wtf:1"
+          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.x.md#L1>) · /workspace/money.x.md:1"
         }
       },
       {
@@ -671,11 +671,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.wtf#L1>) · /workspace/money.wtf:1"
+          "value": "**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](<file:///workspace/money.x.md#L1>) · /workspace/money.x.md:1"
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-wtfMoney\" title=\"\">$3.30</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.wtf#L1&gt;) · /workspace/money.wtf:1\"> = $3.30</span>\n</span><span class=\"line \" data-line=\"1\">Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.wtf#L1&gt;) · /workspace/money.wtf:1\"> $3.30</span>.\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-wtfMoney\" title=\"\">$3.30</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> = $3.30</span>\n</span><span class=\"line \" data-line=\"1\">Have <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">value</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**value · Money**\n\n$3.30\n\n```text\n$3.30\n= $3.30\n```\n\nDefinition: [value](&lt;file:///workspace/money.x.md#L1&gt;) · /workspace/money.x.md:1\"> $3.30</span>.\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [],
     "lineClasses": [
       "",
@@ -794,18 +794,18 @@
       15,
       0
     ],
-    "uri": "file:///workspace/money.wtf",
+    "uri": "file:///workspace/money.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/money.wtf": 1,
-      "file:///workspace/symbols.wtf": 1,
-      "file:///workspace/trip.wtf": 1
+      "file:///workspace/money.x.md": 1,
+      "file:///workspace/symbols.x.md": 1,
+      "file:///workspace/trip.x.md": 1
     }
   }
 }
 
-### 1 cli render trip.wtf --format text
-$ wtf render trip.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli render trip.x.md --format text
+$ wtf render trip.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Real 🦀␍
@@ -816,10 +816,10 @@ Value [a] 3.␍
 ```␍
 
 ### 2 lsp
--- open trip.wtf
--- open symbols.wtf
--- open money.wtf
--- request textDocument/documentSymbol symbols.wtf
+-- open trip.x.md
+-- open symbols.x.md
+-- open money.x.md
+-- request textDocument/documentSymbol symbols.x.md
 [
   {
     "children": [
@@ -978,7 +978,7 @@ Value [a] 3.␍
     }
   }
 ]
--- request textDocument/semanticTokens/full money.wtf
+-- request textDocument/semanticTokens/full money.x.md
 0:0+1 wtfPunctuation "["
 0:1+5 variable [declaration] "value"
 0:6+1 wtfPunctuation "]"
@@ -987,7 +987,7 @@ Value [a] 3.␍
 1:5+1 wtfPunctuation "["
 1:6+5 variable "value"
 1:11+1 wtfPunctuation "]"
--- request textDocument/inlayHint trip.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint trip.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 3",
@@ -998,7 +998,7 @@ Value [a] 3.␍
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.wtf#L2>) · <root>/trip.wtf:2"
+      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.x.md#L2>) · <root>/trip.x.md:2"
     }
   },
   {
@@ -1010,7 +1010,7 @@ Value [a] 3.␍
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.wtf#L2>) · <root>/trip.wtf:2"
+      "value": "**a · Number**\n\n3\n\n```text\n1 + 2\n= 3\n```\n\nDefinition: [a](<file://<root>/trip.x.md#L2>) · <root>/trip.x.md:2"
     }
   }
 ]

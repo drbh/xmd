@@ -19,12 +19,12 @@ import { finalNote, now } from "./lib/story.mjs";
 // the note in, and `shown` is then the pipeline as a person would type it.
 // Pauses let the answer be read.
 const session = [
-  { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.wtf | wtf 'total'" },
-  { comment: "filter and project, like SQL", args: ["query", "trip.wtf", "tasks | where !done | select {title, due}"] },
-  { comment: "typed JSON for scripts", args: ["query", "trip.wtf", "car + groceries", "--json"] },
-  { comment: "every value in the note, with its type", args: ["query", "trip.wtf", "values | select {name, type, display}"] },
+  { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.x.md | wtf 'total'" },
+  { comment: "filter and project, like SQL", args: ["query", "trip.x.md", "tasks | where !done | select {title, due}"] },
+  { comment: "typed JSON for scripts", args: ["query", "trip.x.md", "car + groceries", "--json"] },
+  { comment: "every value in the note, with its type", args: ["query", "trip.x.md", "values | select {name, type, display}"] },
   { comment: "fail a build when a note is broken", args: ["query", "--workspace", 'diagnostics | where severity == "error"', "--fail-on-match"] },
-  { comment: "the note with every value written in", args: ["render", "trip.wtf", "--format", "text"] },
+  { comment: "the note with every value written in", args: ["render", "trip.x.md", "--format", "text"] },
 ];
 
 const theme = option("theme", "light");
@@ -35,7 +35,7 @@ const frameHeight = 360;
 
 requireFfmpeg();
 const root = await mkdtemp(join(tmpdir(), "wtf-terminal-"));
-await writeFile(join(root, "trip.wtf"), finalNote());
+await writeFile(join(root, "trip.x.md"), finalNote());
 
 const run = (args, stdin) => {
   const result = spawnSync(binary, [...args, "--root", root, "--now", now], { encoding: "utf8", input: stdin, env: { ...process.env, TZ: "UTC" } });

@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "weather.wtf",
+        "weather.x.md",
         "diagnostics | select {line, severity, message}",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "errors.wtf",
+        "errors.x.md",
         "diagnostics | select {line, message}",
         "--json"
       ]
@@ -20,11 +20,11 @@
     {
       "lsp": [
         {
-          "open": "weather.wtf"
+          "open": "weather.x.md"
         },
         {
           "request": "textDocument/codeLens",
-          "file": "weather.wtf"
+          "file": "weather.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -33,7 +33,7 @@
             "arguments": [
               {
                 "kind": "refresh",
-                "document": "${uri:weather.wtf}"
+                "document": "${uri:weather.x.md}"
               }
             ]
           }
@@ -43,7 +43,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "weather.wtf",
+          "file": "weather.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -65,7 +65,7 @@
     {
       "cli": [
         "render",
-        "weather.wtf",
+        "weather.x.md",
         "--format",
         "text"
       ]

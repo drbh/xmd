@@ -3,7 +3,7 @@
 //! The directory keeps a manifest and the last synced copy of every file under
 //! `.wtf-sync/`, so each run is a three-way comparison per file: unchanged on
 //! one side means the other side wins; changed on both sides is merged line by
-//! line, and a real conflict is written beside the file as `NAME.conflict.wtf`
+//! line, and a real conflict is written beside the file as `NAME.conflict.x.md`
 //! (the note extension comes from `common`)
 //! without touching either version. The web app addresses documents by file
 //! name within a folder, so relative imports mean the same thing on both sides.
@@ -501,7 +501,7 @@ fn title_of(text: &str, fallback: &str) -> String {
         })
         .unwrap_or_else(|| fallback.to_string())
 }
-/// Where a conflicted merge is written beside the note: `NAME.conflict.wtf`.
+/// Where a conflicted merge is written beside the note: `NAME.conflict.x.md`.
 fn conflict_file(stem: &str) -> String {
     common::note_file(&format!("{stem}.conflict"))
 }

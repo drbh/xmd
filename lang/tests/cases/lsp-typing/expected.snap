@@ -112,14 +112,14 @@
     "version": "0.1.0"
   }
 }
--- open plan.wtf
--- await textDocument/publishDiagnostics plan.wtf
+-- open plan.x.md
+-- await textDocument/publishDiagnostics plan.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/plan.wtf",
+  "uri": "file://<root>/plan.x.md",
   "version": 1
 }
--- request textDocument/onTypeFormatting plan.wtf 7:0
+-- request textDocument/onTypeFormatting plan.x.md 7:0
 [
   {
     "newText": "- [ ] ",
@@ -135,7 +135,7 @@
     }
   }
 ]
--- applied to plan.wtf (version 2)
+-- applied to plan.x.md (version 2)
 [$3,000]:budget
 [t] := table
 | item | qty |
@@ -144,7 +144,7 @@
 # Plan :plan
 - [ ] Buy :buy @after(budget > $0)
 - [ ] 
--- request textDocument/onTypeFormatting plan.wtf 4:13
+-- request textDocument/onTypeFormatting plan.x.md 4:13
 [
   {
     "newText": "| item  | qty |",
@@ -186,7 +186,7 @@
     }
   }
 ]
--- applied to plan.wtf (version 3)
+-- applied to plan.x.md (version 3)
 [$3,000]:budget
 [t] := table
 | item  | qty |
@@ -196,8 +196,8 @@
 - [ ] Buy :buy @after(budget > $0)
 - [ ] 
 
-### 1 read plan.wtf
--- plan.wtf
+### 1 read plan.x.md
+-- plan.x.md
 [$3,000]:budget
 [t] := table
 | item | qty |

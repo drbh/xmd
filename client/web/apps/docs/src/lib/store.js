@@ -141,7 +141,7 @@ export function titleOf(text, fallback) {
   return heading ? heading.replace(/^#+\s+/, "").replace(/\s+:\w+$/, "").trim() : fallback;
 }
 // Documents live in a virtual directory shaped like a synced folder on disk:
-// docs/<Folder name>/<File name>.wtf, so imports use the same relative paths
+// docs/<Folder name>/<File name>.x.md, so imports use the same relative paths
 // in the app, on disk, and through `wtf sync`.
 const segment = s => encodeURIComponent(s);
 export function uriOf(doc, folders = []) {

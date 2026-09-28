@@ -1,9 +1,9 @@
 ### 0 lsp
--- open note.wtf
--- await textDocument/publishDiagnostics note.wtf
+-- open note.x.md
+-- await textDocument/publishDiagnostics note.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/note.wtf",
+  "uri": "file://<root>/note.x.md",
   "version": 1
 }
 -- request workspace/executeCommand {"arguments":[],"command":"wtf.task"}
@@ -11,7 +11,7 @@ error: {
   "code": -32602,
   "message": "wtf.task expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":0},"extra"],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":0},"extra"],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "wtf.task expects a single action argument"
@@ -21,22 +21,22 @@ error: {
   "code": -32602,
   "message": "Expected a task action"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"explode"}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"explode"}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "unknown variant `explode`, expected one of `invoke`, `edit`, `toggle_task`, `timer`, `open_resource`, `refresh_resource`, `refresh`, `show_today`"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"toggle_task","row":0}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "missing field `expected`"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":-1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":-1}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "invalid value: integer `-1`, expected usize"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":"0"}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":"0"}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "invalid type: string \"0\", expected usize"
@@ -46,42 +46,42 @@ error: {
   "code": -32602,
   "message": "Expected a local file URI"
 }
--- request workspace/executeCommand {"arguments":[{"document":"file:///workspace/note.wtf#L1","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"file:///workspace/note.x.md#L1","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Document URIs cannot contain queries or fragments"
 }
--- request workspace/executeCommand {"arguments":[{"action":"explode","document":"${uri:note.wtf}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"explode","document":"${uri:note.x.md}","kind":"timer","name":"focus"}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "unknown variant `explode`, expected one of `start`, `pause`, `resume`, `reset`"
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:note.wtf}","kind":"timer","name":12}],"command":"wtf.timer"}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:note.x.md}","kind":"timer","name":12}],"command":"wtf.timer"}
 error: {
   "code": -32602,
   "message": "invalid type: integer `12`, expected a string"
 }
--- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:note.wtf}","expected":"- [ ] Task","row":0},"url":"not a URL"}],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:note.x.md}","expected":"- [ ] Task","row":0},"url":"not a URL"}],"command":"wtf.openResource"}
 error: {
   "code": -32602,
   "message": "relative URL without a base: \"not a URL\""
 }
--- request workspace/executeCommand {"arguments":[{"kind":"refresh_resource","target":{"document":"${uri:note.wtf}","expected":"- [ ] Task","row":0},"url":"https://example.com"}],"command":"wtf.openResource"}
+-- request workspace/executeCommand {"arguments":[{"kind":"refresh_resource","target":{"document":"${uri:note.x.md}","expected":"- [ ] Task","row":0},"url":"https://example.com"}],"command":"wtf.openResource"}
 error: {
   "code": -32602,
   "message": "Expected an open-resource action"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","kind":"refresh"},"extra"],"command":"wtf.refresh"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"refresh"},"extra"],"command":"wtf.refresh"}
 error: {
   "code": -32602,
   "message": "wtf.refresh expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":["${uri:note.wtf}"],"command":"wtf.today"}
+-- request workspace/executeCommand {"arguments":["${uri:note.x.md}"],"command":"wtf.today"}
 error: {
   "code": -32602,
-  "message": "invalid type: string \"file://<root>/note.wtf\", expected internally tagged enum Action"
+  "message": "invalid type: string \"file://<root>/note.x.md\", expected internally tagged enum Action"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.wtf}","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"wtf.applyEdits"}
 error: {
   "code": -32602,
   "message": "Expected an edit action"
@@ -97,9 +97,9 @@ error: {
   "message": "Unknown command: unknown"
 }
 
-### 1 read .wtf/cache.json note.wtf
+### 1 read .wtf/cache.json note.x.md
 -- .wtf/cache.json
 (missing: entity not found)
--- note.wtf
+-- note.x.md
 - [ ] Task
 

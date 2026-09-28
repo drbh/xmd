@@ -5,7 +5,7 @@
 
 /// Who a built-in is for. A note only ever sees the `Note` tier; the `Toolkit`
 /// is the list and text plumbing a note may reach for once it needs it;
-/// `Module` names the primitives a .wtf module is written with, which outside
+/// `Module` names the primitives a .x.md module is written with, which outside
 /// a module are not names at all.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr, strum::VariantArray)]
 #[strum(serialize_all = "snake_case")]

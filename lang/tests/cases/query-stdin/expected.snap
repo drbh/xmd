@@ -25,14 +25,14 @@ exit 0
   }
 ]
 
-### 2 cli trip.wtf total
-$ wtf trip.wtf total
+### 2 cli trip.x.md total
+$ wtf trip.x.md total
 exit 0
 --- stdout
 $600.50
 
-### 3 cli trip.wtf tasks | where !done | count
-$ wtf trip.wtf tasks | where !done | count
+### 3 cli trip.x.md tasks | where !done | count
+$ wtf trip.x.md tasks | where !done | count
 exit 0
 --- stdout
 2
@@ -87,8 +87,8 @@ Options:
   -h, --help           Print help
   -V, --version        Print version
 
-Examples: cat note.wtf | wtf 'total'
-          wtf note.wtf 'tasks | where !done' --json
+Examples: cat note.x.md | wtf 'total'
+          wtf note.x.md 'tasks | where !done' --json
           wtf --workspace 'filter(tasks, fn(t) => !t.done)' --json
           wtf lsp   # the language server, for editors
 Run `wtf query --help` for the query bindings, functions and stages.
@@ -97,7 +97,7 @@ Run `wtf query --help` for the query bindings, functions and stages.
 ### 7 cli left
 $ wtf left
 --- stdin
-left := import("./other.wtf").budget - $200.00
+left := import("./other.x.md").budget - $200.00
 exit 0
 --- stdout
 $800
@@ -120,8 +120,8 @@ exit 0
   1
 ]
 
-### 10 cli trip.wtf -
-$ wtf trip.wtf -
+### 10 cli trip.x.md -
+$ wtf trip.x.md -
 --- stdin
 tasks | count
 exit 0

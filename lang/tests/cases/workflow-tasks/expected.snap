@@ -1,5 +1,5 @@
-### 0 cli query release.wtf values | select {name, display} --json
-$ wtf query release.wtf values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 0 cli query release.x.md values | select {name, display} --json
+$ wtf query release.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -13,8 +13,8 @@ exit 0
   }
 ]
 
-### 1 cli query released.wtf values | select {name, display} --json
-$ wtf query released.wtf values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 1 cli query released.x.md values | select {name, display} --json
+$ wtf query released.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -28,8 +28,8 @@ exit 0
   }
 ]
 
-### 2 cli query relative.wtf [length(entries), length(diagnostics)] --json
-$ wtf query relative.wtf [length(entries), length(diagnostics)] --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 2 cli query relative.x.md [length(entries), length(diagnostics)] --json
+$ wtf query relative.x.md [length(entries), length(diagnostics)] --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -37,16 +37,16 @@ exit 0
   0
 ]
 
-### 3 cli query relative.wtf import("agenda").between(entries, today(), today()) | select title --json
-$ wtf query relative.wtf import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 3 cli query relative.x.md import("agenda").between(entries, today(), today()) | select title --json
+$ wtf query relative.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
   "Coffee"
 ]
 
-### 4 cli query cycle.wtf diagnostics | select {line, severity, message} --json
-$ wtf query cycle.wtf diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 4 cli query cycle.x.md diagnostics | select {line, severity, message} --json
+$ wtf query cycle.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -62,8 +62,8 @@ exit 0
   }
 ]
 
-### 5 cli query unicode.wtf values | select {name, display} --json
-$ wtf query unicode.wtf values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 5 cli query unicode.x.md values | select {name, display} --json
+$ wtf query unicode.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -78,8 +78,8 @@ exit 0
 ]
 
 ### 6 lsp
--- open release.wtf
--- request textDocument/inlayHint release.wtf {"end":{"character":0,"line":8},"start":{"character":0,"line":0}}
+-- open release.x.md
+-- request textDocument/inlayHint release.x.md {"end":{"character":0,"line":8},"start":{"character":0,"line":0}}
 [
   {
     "label": "██░░░░░░ 1/4 complete · 1h estimated left",
@@ -114,7 +114,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**progress · Ratio**\n\n25%\n\n```text\ncompleted(release)/total(release)\n= completed(4 tasks)/total(4 tasks)\n= 25%\n```\n\nInputs: [release](<file://<root>/release.wtf#L1>)\n\nDefinition: [progress](<file://<root>/release.wtf#L7>) · <root>/release.wtf:7"
+      "value": "**progress · Ratio**\n\n25%\n\n```text\ncompleted(release)/total(release)\n= completed(4 tasks)/total(4 tasks)\n= 25%\n```\n\nInputs: [release](<file://<root>/release.x.md#L1>)\n\nDefinition: [progress](<file://<root>/release.x.md#L7>) · <root>/release.x.md:7"
     }
   },
   {
@@ -126,11 +126,11 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**work · Duration**\n\n1h\n\n```text\neffort(release)\n= effort(4 tasks)\n= 1h\n```\n\nInputs: [release](<file://<root>/release.wtf#L1>)\n\nDefinition: [work](<file://<root>/release.wtf#L8>) · <root>/release.wtf:8"
+      "value": "**work · Duration**\n\n1h\n\n```text\neffort(release)\n= effort(4 tasks)\n= 1h\n```\n\nInputs: [release](<file://<root>/release.x.md#L1>)\n\nDefinition: [work](<file://<root>/release.x.md#L8>) · <root>/release.x.md:8"
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:release.wtf}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:release.x.md}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {
@@ -218,15 +218,15 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/release.wtf",
+          "uri": "file://<root>/release.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- open blocked.wtf
--- request textDocument/codeAction blocked.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+-- open blocked.x.md
+-- request textDocument/codeAction blocked.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
 [
   {
     "disabled": {
@@ -236,13 +236,13 @@ null
     "title": "✓ done"
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.wtf}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"wtf.task"}
 error: {
   "code": -32602,
   "message": "Blocked by review"
 }
--- open relative.wtf
--- request textDocument/codeAction relative.wtf {"end":{"character":0,"line":2},"start":{"character":0,"line":0}}
+-- open relative.x.md
+-- request textDocument/codeAction relative.x.md {"end":{"character":0,"line":2},"start":{"character":0,"line":0}}
 [
   {
     "edit": {
@@ -277,7 +277,7 @@ error: {
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/relative.wtf",
+            "uri": "file://<root>/relative.x.md",
             "version": 1
           }
         }
@@ -319,7 +319,7 @@ error: {
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/relative.wtf",
+            "uri": "file://<root>/relative.x.md",
             "version": 1
           }
         }
@@ -329,8 +329,8 @@ error: {
     "title": "Freeze relative date"
   }
 ]
--- open unicode.wtf
--- request textDocument/semanticTokens/full unicode.wtf
+-- open unicode.x.md
+-- request textDocument/semanticTokens/full unicode.x.md
 0:0+1 wtfPunctuation "#"
 0:1+8 heading " café 🌴"
 1:0+1 wtfPunctuation "-"
@@ -350,7 +350,7 @@ error: {
 2:15+4 variable "cost"
 2:19+1 operator "+"
 2:20+1 number "5"
--- request textDocument/codeAction unicode.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+-- request textDocument/codeAction unicode.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
 [
   {
     "edit": {
@@ -385,7 +385,7 @@ error: {
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/unicode.wtf",
+            "uri": "file://<root>/unicode.x.md",
             "version": 1
           }
         }
@@ -414,7 +414,7 @@ error: {
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/unicode.wtf",
+            "uri": "file://<root>/unicode.x.md",
             "version": 1
           }
         }
@@ -424,8 +424,8 @@ error: {
     "title": "Freeze relative date"
   }
 ]
--- open walk.wtf
--- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.wtf}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"wtf.task"}
+-- open walk.x.md
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.x.md}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"wtf.task"}
 null
 -- await workspace/applyEdit
 {
@@ -461,7 +461,7 @@ null
           }
         ],
         "textDocument": {
-          "uri": "file://<root>/walk.wtf",
+          "uri": "file://<root>/walk.x.md",
           "version": 1
         }
       }

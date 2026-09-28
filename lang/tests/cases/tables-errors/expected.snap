@@ -1,5 +1,5 @@
-### 0 cli render badcells.wtf --format text
-$ wtf render badcells.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render badcells.x.md --format text
+$ wtf render badcells.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [groceries] := table
@@ -10,12 +10,12 @@ exit 1
 
 [total] := sum(groceries, quantity * prcie)
 --- stderr
-<root>/badcells.wtf:5:10: error: Column 'quantity' expects Number, found Text
-<root>/badcells.wtf:7:38: error: Unknown column 'prcie' in table 'groceries'
+<root>/badcells.x.md:5:10: error: Column 'quantity' expects Number, found Text
+<root>/badcells.x.md:7:38: error: Unknown column 'prcie' in table 'groceries'
 wtf: 2 error(s) while rendering
 
-### 1 cli query badcells.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query badcells.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query badcells.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query badcells.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -34,8 +34,8 @@ exit 0
 ]
 
 ### 2 lsp
--- open badcells.wtf
--- await textDocument/publishDiagnostics badcells.wtf
+-- open badcells.x.md
+-- await textDocument/publishDiagnostics badcells.x.md
 {
   "diagnostics": [
     {
@@ -71,12 +71,12 @@ exit 0
       "source": "wtf"
     }
   ],
-  "uri": "file://<root>/badcells.wtf",
+  "uri": "file://<root>/badcells.x.md",
   "version": 1
 }
 
-### 3 cli query malformed-empty.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query malformed-empty.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query malformed-empty.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query malformed-empty.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -88,14 +88,14 @@ exit 0
   }
 ]
 
-### 4 cli query malformed-empty.wtf total --json
-$ wtf query malformed-empty.wtf total --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query malformed-empty.x.md total --json
+$ wtf query malformed-empty.x.md total --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Missing cell value
 
-### 5 cli query malformed-short.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query malformed-short.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query malformed-short.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query malformed-short.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -107,14 +107,14 @@ exit 0
   }
 ]
 
-### 6 cli query malformed-short.wtf total --json
-$ wtf query malformed-short.wtf total --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query malformed-short.x.md total --json
+$ wtf query malformed-short.x.md total --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Expected 3 cells, found 2
 
-### 7 cli query malformed-extra.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query malformed-extra.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query malformed-extra.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query malformed-extra.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -126,14 +126,14 @@ exit 0
   }
 ]
 
-### 8 cli query malformed-extra.wtf total --json
-$ wtf query malformed-extra.wtf total --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query malformed-extra.x.md total --json
+$ wtf query malformed-extra.x.md total --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Expected 3 cells, found 4
 
-### 9 cli query malformed-money.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query malformed-money.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query malformed-money.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query malformed-money.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -145,34 +145,34 @@ exit 0
   }
 ]
 
-### 10 cli query malformed-money.wtf total --json
-$ wtf query malformed-money.wtf total --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli query malformed-money.x.md total --json
+$ wtf query malformed-money.x.md total --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Invalid scalar literal '$oops'; quote it to store text
 
 ### 11 lsp
--- open malformed-empty.wtf
--- request textDocument/formatting malformed-empty.wtf
+-- open malformed-empty.x.md
+-- request textDocument/formatting malformed-empty.x.md
 []
--- open malformed-short.wtf
--- request textDocument/formatting malformed-short.wtf
+-- open malformed-short.x.md
+-- request textDocument/formatting malformed-short.x.md
 []
--- open malformed-extra.wtf
--- request textDocument/formatting malformed-extra.wtf
+-- open malformed-extra.x.md
+-- request textDocument/formatting malformed-extra.x.md
 []
--- open malformed-money.wtf
--- request textDocument/formatting malformed-money.wtf
+-- open malformed-money.x.md
+-- request textDocument/formatting malformed-money.x.md
 []
 
-### 12 cli query shape-empty.wtf t --json
-$ wtf query shape-empty.wtf t --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query shape-empty.x.md t --json
+$ wtf query shape-empty.x.md t --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: A table needs a pipe-delimited header on the next line
 
-### 13 cli query shape-empty.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query shape-empty.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 13 cli query shape-empty.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query shape-empty.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -184,14 +184,14 @@ exit 0
   }
 ]
 
-### 14 cli query shape-dupe.wtf t --json
-$ wtf query shape-dupe.wtf t --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 14 cli query shape-dupe.x.md t --json
+$ wtf query shape-dupe.x.md t --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Duplicate column 'a'
 
-### 15 cli query shape-dupe.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query shape-dupe.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 15 cli query shape-dupe.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query shape-dupe.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -203,14 +203,14 @@ exit 0
   }
 ]
 
-### 16 cli query shape-keyword.wtf t --json
-$ wtf query shape-keyword.wtf t --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 16 cli query shape-keyword.x.md t --json
+$ wtf query shape-keyword.x.md t --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Column names must be identifiers (not true or false)
 
-### 17 cli query shape-keyword.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query shape-keyword.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 17 cli query shape-keyword.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query shape-keyword.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -222,14 +222,14 @@ exit 0
   }
 ]
 
-### 18 cli query shape-separator.wtf t --json
-$ wtf query shape-separator.wtf t --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 18 cli query shape-separator.x.md t --json
+$ wtf query shape-separator.x.md t --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Table separator must have one --- cell per column
 
-### 19 cli query shape-separator.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query shape-separator.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 19 cli query shape-separator.x.md diagnostics | select {line, severity, code, message} --json
+$ wtf query shape-separator.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -241,32 +241,32 @@ exit 0
   }
 ]
 
-### 20 cli query empty.wtf sum(t, value) --json
-$ wtf query empty.wtf sum(t, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 20 cli query empty.x.md sum(t, value) --json
+$ wtf query empty.x.md sum(t, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Cannot sum an empty table: add a row to establish its value type
 
-### 21 cli query empty.wtf sum(12, value) --json
-$ wtf query empty.wtf sum(12, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 21 cli query empty.x.md sum(12, value) --json
+$ wtf query empty.x.md sum(12, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: The first argument to sum must be a table name
 
-### 22 cli query empty.wtf sum(t) --json
-$ wtf query empty.wtf sum(t) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 22 cli query empty.x.md sum(t) --json
+$ wtf query empty.x.md sum(t) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: sum expects a list, or a table and row expression
 
-### 23 cli query nested.wtf sum(t, sum(t, sum(t, sum(t, value)))) --json
-$ wtf query nested.wtf sum(t, sum(t, sum(t, sum(t, value)))) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 23 cli query nested.x.md sum(t, sum(t, sum(t, sum(t, value)))) --json
+$ wtf query nested.x.md sum(t, sum(t, sum(t, sum(t, value)))) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: Evaluation exceeds 200,000 steps; simplify nested row calculations
 
-### 24 cli query units.wtf [sum(money, value), sum(pct, value), sum(dur, value)] --json
-$ wtf query units.wtf [sum(money, value), sum(pct, value), sum(dur, value)] --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 24 cli query units.x.md [sum(money, value), sum(pct, value), sum(dur, value)] --json
+$ wtf query units.x.md [sum(money, value), sum(pct, value), sum(dur, value)] --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -285,8 +285,8 @@ exit 0
   }
 ]
 
-### 25 cli query units.wtf sum(text, value) --json
-$ wtf query units.wtf sum(text, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 25 cli query units.x.md sum(text, value) --json
+$ wtf query units.x.md sum(text, value) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
 wtf: sum requires numeric, money, ratio, or duration results, found Text

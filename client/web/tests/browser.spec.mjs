@@ -37,7 +37,7 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   await expect(view).toContainText("Still [remaining]");
   await expect(view).not.toContainText("$556");
   // Documents are addressed by file name, exactly as on disk.
-  await page.evaluate(() => window.wtfDocs.controller.setSource(`# Second\n\nStill [source.remaining] to spend.\nsource := import("./Trip budget.wtf")\n`));
+  await page.evaluate(() => window.wtfDocs.controller.setSource(`# Second\n\nStill [source.remaining] to spend.\nsource := import("./Trip budget.x.md")\n`));
   await expect(view).toContainText("$556");
   // The title follows the first heading, and saves are debounced briefly.
   await expect(page.locator("input.title-input")).toHaveValue("Second");

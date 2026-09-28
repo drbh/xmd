@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "lf.wtf",
+        "lf.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "render",
-        "lf_trailing.wtf",
+        "lf_trailing.x.md",
         "--format",
         "text"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "render",
-        "crlf.wtf",
+        "crlf.x.md",
         "--format",
         "text"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "render",
-        "crlf_trailing.wtf",
+        "crlf_trailing.x.md",
         "--format",
         "text"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "render",
-        "empty.wtf",
+        "empty.x.md",
         "--format",
         "text"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "render",
-        "escape.wtf",
+        "escape.x.md",
         "--format",
         "text"
       ]
@@ -52,7 +52,7 @@
     {
       "cli": [
         "render",
-        "escape.wtf",
+        "escape.x.md",
         "--format",
         "html"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "render",
-        "empty.wtf",
+        "empty.x.md",
         "--format",
         "html"
       ]
@@ -68,16 +68,16 @@
     {
       "cli": [
         "render",
-        "missing.wtf",
+        "missing.x.md",
         "--format",
         "text"
       ]
     },
     {
       "read": [
-        "lf.wtf",
-        "crlf.wtf",
-        "escape.wtf"
+        "lf.x.md",
+        "crlf.x.md",
+        "escape.x.md"
       ]
     }
   ]

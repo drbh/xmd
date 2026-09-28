@@ -14,14 +14,14 @@ null
 
 Generated view. Follow a link to edit the original note.
 
-- [tasks.wtf:1](<file://<root>/tasks.wtf#L1>) — Active
+- [tasks.x.md:1](<file://<root>/tasks.x.md#L1>) — Active
 
 ### 2 lsp
--- write .wtf/modules/agenda.wtf
+-- write .wtf/modules/agenda.x.md
 module := {api: 1, id: "agenda", kind: "library", inputs: []}
 between := fn(entries, first, last) => filter(entries, fn(e) => e.done)
 -- write .wtf/modules.json
-["./modules/agenda.wtf"]
+["./modules/agenda.x.md"]
 -- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.today"}
 null
 -- await window/showDocument
@@ -46,5 +46,5 @@ null
 
 Generated view. Follow a link to edit the original note.
 
-- [tasks.wtf:2](<file://<root>/tasks.wtf#L2>) — Finished
+- [tasks.x.md:2](<file://<root>/tasks.x.md#L2>) — Finished
 

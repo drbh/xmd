@@ -1,26 +1,26 @@
 ### 0 browser
--- setDocument refresh.wtf
--- setDocument {"text":"","uri":"file:///etc/secrets.wtf","version":1}
+-- setDocument refresh.x.md
+-- setDocument {"text":"","uri":"file:///etc/secrets.x.md","version":1}
 {
-  "error": "Expected a .wtf file within the browser's /workspace",
+  "error": "Expected a .x.md file within the browser's /workspace",
   "ok": false
 }
--- setDocument {"text":"","uri":"https://example.com/note.wtf","version":1}
+-- setDocument {"text":"","uri":"https://example.com/note.x.md","version":1}
 {
   "error": "Expected a local file URI",
   "ok": false
 }
--- setDocument {"text":"","uri":"file:///workspace/../secret.wtf","version":1}
+-- setDocument {"text":"","uri":"file:///workspace/../secret.x.md","version":1}
 {
-  "error": "Expected a .wtf file within the browser's /workspace",
+  "error": "Expected a .x.md file within the browser's /workspace",
   "ok": false
 }
--- setDocument {"text":"","uri":"file:///workspace/test.wtf#L1","version":1}
+-- setDocument {"text":"","uri":"file:///workspace/test.x.md#L1","version":1}
 {
   "error": "Document URIs cannot contain queries or fragments",
   "ok": false
 }
--- setDocument {"text":"oops","uri":"file:///workspace/refresh.wtf","version":1}
+-- setDocument {"text":"oops","uri":"file:///workspace/refresh.x.md","version":1}
 {
   "error": "Stale document version",
   "ok": false
@@ -30,7 +30,7 @@
   "error": "expected ident at line 1 column 2",
   "ok": false
 }
--- analyze {"uri":"file:///workspace/refresh.wtf"}
+-- analyze {"uri":"file:///workspace/refresh.x.md"}
 {
   "ok": true,
   "result": {
@@ -76,7 +76,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/refresh.wtf",
+                "document": "file:///workspace/refresh.x.md",
                 "expected": "https://github.com/acme/app/pull/42",
                 "row": 1
               },
@@ -101,7 +101,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/refresh.wtf",
+              "document": "file:///workspace/refresh.x.md",
               "expected": "- [ ] Task",
               "kind": "toggle_task",
               "row": 2
@@ -127,7 +127,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/refresh.wtf",
+                "document": "file:///workspace/refresh.x.md",
                 "expected": "https://example.com/page",
                 "row": 3
               },
@@ -342,14 +342,14 @@
       17,
       0
     ],
-    "uri": "file:///workspace/refresh.wtf",
+    "uri": "file:///workspace/refresh.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/refresh.wtf": 1
+      "file:///workspace/refresh.x.md": 1
     }
   }
 }
--- actions {"range":{"end":{"character":0,"line":1},"start":{"character":0,"line":1}},"uri":"file:///workspace/refresh.wtf"}
+-- actions {"range":{"end":{"character":0,"line":1},"start":{"character":0,"line":1}},"uri":"file:///workspace/refresh.x.md"}
 {
   "ok": true,
   "result": {
@@ -360,7 +360,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/refresh.wtf",
+                "document": "file:///workspace/refresh.x.md",
                 "expected": "https://github.com/acme/app/pull/42",
                 "row": 1
               },
@@ -374,26 +374,26 @@
       }
     ],
     "versions": {
-      "file:///workspace/refresh.wtf": 1
+      "file:///workspace/refresh.x.md": 1
     }
   }
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","kind":"refresh"}],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","kind":"refresh"}],"command":"wtf.refresh","title":"⟳ refresh"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"refresh_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://github.com/acme/app/pull/42","row":1},"url":"https://github.com/acme/app/pull/42"}],"command":"wtf.refreshResource","title":"⟳ github"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2},"extra"],"command":"wtf.task","title":"bad"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "error": "wtf.task expects a single action argument",
   "ok": false
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.wtf","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/refresh.x.md","expected":"- [ ] Task","kind":"toggle_task","row":2}],"command":"wtf.task","title":"toggle"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -429,7 +429,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file:///workspace/refresh.wtf",
+            "uri": "file:///workspace/refresh.x.md",
             "version": 1
           }
         }
@@ -437,7 +437,7 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.wtf","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.wtf":1}}
+-- execute {"command":{"arguments":[{"kind":"open_resource","target":{"document":"file:///workspace/refresh.x.md","expected":"https://example.com/page","row":3},"url":"https://example.com/page"}],"command":"wtf.openResource","title":"open"},"versions":{"file:///workspace/refresh.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -449,22 +449,22 @@
   "error": "Unclosed delimiter in query",
   "ok": false
 }
--- query {"query":"ast","uri":"file:///workspace/missing.wtf"}
+-- query {"query":"ast","uri":"file:///workspace/missing.x.md"}
 {
-  "error": "Document is not indexed: /workspace/missing.wtf",
+  "error": "Document is not indexed: /workspace/missing.x.md",
   "ok": false
 }
--- query {"query":"ast","uri":"file:///outside/private.wtf"}
+-- query {"query":"ast","uri":"file:///outside/private.x.md"}
 {
-  "error": "Expected a .wtf file within the browser's /workspace",
+  "error": "Expected a .x.md file within the browser's /workspace",
   "ok": false
 }
--- query {"query":"ast","uri":"https://example.com/n.wtf"}
+-- query {"query":"ast","uri":"https://example.com/n.x.md"}
 {
   "error": "Expected a local file URI",
   "ok": false
 }
--- analyze {"uri":"file:///workspace/refresh.wtf"}
+-- analyze {"uri":"file:///workspace/refresh.x.md"}
 {
   "ok": true,
   "result": {
@@ -510,7 +510,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/refresh.wtf",
+                "document": "file:///workspace/refresh.x.md",
                 "expected": "https://github.com/acme/app/pull/42",
                 "row": 1
               },
@@ -535,7 +535,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/refresh.wtf",
+              "document": "file:///workspace/refresh.x.md",
               "expected": "- [ ] Task",
               "kind": "toggle_task",
               "row": 2
@@ -561,7 +561,7 @@
             {
               "kind": "open_resource",
               "target": {
-                "document": "file:///workspace/refresh.wtf",
+                "document": "file:///workspace/refresh.x.md",
                 "expected": "https://example.com/page",
                 "row": 3
               },
@@ -776,10 +776,10 @@
       17,
       0
     ],
-    "uri": "file:///workspace/refresh.wtf",
+    "uri": "file:///workspace/refresh.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/refresh.wtf": 1
+      "file:///workspace/refresh.x.md": 1
     }
   }
 }

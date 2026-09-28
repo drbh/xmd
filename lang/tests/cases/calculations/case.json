@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "calc.wtf",
+        "calc.x.md",
         "--format",
         "text"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "query",
-        "calc.wtf",
+        "calc.x.md",
         "calculations | select {line, expression, bracketed, display}",
         "--json"
       ]
@@ -19,7 +19,7 @@
     {
       "cli": [
         "query",
-        "calc.wtf",
+        "calc.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -27,7 +27,7 @@
     {
       "cli": [
         "query",
-        "calc.wtf",
+        "calc.x.md",
         "length(filter(references, fn(r) => r.name == \"budget\"))",
         "--json"
       ]
@@ -35,7 +35,7 @@
     {
       "cli": [
         "render",
-        "math.wtf",
+        "math.x.md",
         "--format",
         "text"
       ]
@@ -43,7 +43,7 @@
     {
       "cli": [
         "query",
-        "math.wtf",
+        "math.x.md",
         "calculations | select {line, expression, bracketed, display}",
         "--json"
       ]
@@ -51,7 +51,7 @@
     {
       "cli": [
         "query",
-        "math.wtf",
+        "math.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -59,7 +59,7 @@
     {
       "cli": [
         "render",
-        "errors.wtf",
+        "errors.x.md",
         "--format",
         "text"
       ]
@@ -67,7 +67,7 @@
     {
       "cli": [
         "query",
-        "errors.wtf",
+        "errors.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -75,7 +75,7 @@
     {
       "cli": [
         "query",
-        "unknown.wtf",
+        "unknown.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -83,36 +83,36 @@
     {
       "lsp": [
         {
-          "open": "ratio.wtf"
+          "open": "ratio.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "ratio.wtf"
+          "file": "ratio.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "ratio.wtf",
+          "file": "ratio.x.md",
           "line": 2,
           "character": 13
         },
         {
           "request": "textDocument/hover",
-          "file": "ratio.wtf",
+          "file": "ratio.x.md",
           "line": 2,
           "character": 8
         },
         {
-          "open": "math.wtf"
+          "open": "math.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "math.wtf",
+          "file": "math.x.md",
           "line": 2,
           "character": 10
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "calc.wtf"
+          "file": "calc.x.md"
         }
       ]
     }

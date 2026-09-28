@@ -3,46 +3,46 @@
     {
       "lsp": [
         {
-          "open": "data.wtf"
+          "open": "data.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "data.wtf"
+          "file": "data.x.md"
         },
         {
-          "open": "calc.wtf"
+          "open": "calc.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "calc.wtf"
+          "file": "calc.x.md"
         },
         {
           "request": "textDocument/completion",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37
         },
         {
           "request": "textDocument/definition",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37
         },
         {
           "request": "textDocument/hover",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37
         },
         {
           "request": "textDocument/references",
-          "file": "data.wtf",
+          "file": "data.x.md",
           "line": 2,
           "character": 15,
           "extra": {
@@ -53,7 +53,7 @@
         },
         {
           "request": "textDocument/rename",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37,
           "extra": {
@@ -62,7 +62,7 @@
         },
         {
           "request": "textDocument/rename",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 0,
           "character": 37,
           "extra": {
@@ -71,7 +71,7 @@
         },
         {
           "request": "textDocument/formatting",
-          "file": "data.wtf",
+          "file": "data.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -82,11 +82,11 @@
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "data.wtf"
+          "file": "data.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -100,13 +100,13 @@
         },
         {
           "change": {
-            "file": "data.wtf",
+            "file": "data.x.md",
             "text": "# Groceries\n[groceries] := table\n|item|quantity|price|\n|---|---|---|\n|apple|2|$3.30|\n|pear|5|$4.30|\n"
           }
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -119,40 +119,40 @@
           }
         },
         {
-          "open": "interactions.wtf"
+          "open": "interactions.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "interactions.wtf"
+          "file": "interactions.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "interactions.wtf",
+          "file": "interactions.x.md",
           "line": 3,
           "character": 5
         },
         {
           "request": "textDocument/documentHighlight",
-          "file": "interactions.wtf",
+          "file": "interactions.x.md",
           "line": 3,
           "character": 5
         },
         {
           "request": "textDocument/prepareRename",
-          "file": "interactions.wtf",
+          "file": "interactions.x.md",
           "line": 3,
           "character": 5
         },
         {
-          "open": "bakery.wtf"
+          "open": "bakery.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "bakery.wtf"
+          "file": "bakery.x.md"
         },
         {
           "request": "textDocument/rename",
-          "file": "bakery.wtf",
+          "file": "bakery.x.md",
           "line": 3,
           "character": 15,
           "extra": {
@@ -161,20 +161,20 @@
         },
         {
           "change": {
-            "file": "bakery.wtf",
+            "file": "bakery.x.md",
             "text": "[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint | expression |\n| ---------- | ---------- |\n| flour | 12 * bagels + 6.5 * doughnuts <= 400 |\n| bagel_min | bagels >= 40 |\n| doughnut_min | doughnuts >= 14 |\nBake [bakery.bagels] bagels.\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "bakery.wtf"
+          "file": "bakery.x.md"
         }
       ]
     },
     {
       "read": [
-        "data.wtf",
-        "bakery.wtf"
+        "data.x.md",
+        "bakery.x.md"
       ]
     }
   ]

@@ -1,5 +1,5 @@
-### 0 cli render daily.wtf --root parse --format text
-$ wtf render daily.wtf --root parse --format text --now 2026-09-16T12:00:00-04:00
+### 0 cli render daily.x.md --root parse --format text
+$ wtf render daily.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 # Heading ░░░░░░░░ 0/1 complete · 20m estimated left
@@ -14,8 +14,8 @@ Budget [$3,000]:budget. Spent [$1,410]:spent.
 <!-- [hidden] := 5 -->
 [日本語]:label
 
-### 1 cli query daily.wtf values | select {name, display} --root parse --json
-$ wtf query daily.wtf values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 1 cli query daily.x.md values | select {name, display} --root parse --json
+$ wtf query daily.x.md values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -37,8 +37,8 @@ exit 0
   }
 ]
 
-### 2 cli query daily.wtf [length(tasks), length(links), length(diagnostics)] --root parse --json
-$ wtf query daily.wtf [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
+### 2 cli query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json
+$ wtf query daily.x.md [length(tasks), length(links), length(diagnostics)] --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -47,8 +47,8 @@ exit 0
   0
 ]
 
-### 3 cli query expressions.wtf values | select {name, display, errors} --root parse --json
-$ wtf query expressions.wtf values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query expressions.x.md values | select {name, display, errors} --root parse --json
+$ wtf query expressions.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -99,8 +99,8 @@ exit 0
   }
 ]
 
-### 4 cli query places.wtf values | select {name, display, errors} --root parse --json
-$ wtf query places.wtf values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 4 cli query places.x.md values | select {name, display, errors} --root parse --json
+$ wtf query places.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -122,13 +122,13 @@ exit 0
 ]
 
 ### 5 lsp
--- open parse/places.wtf
--- request textDocument/documentLink parse/places.wtf
+-- open parse/places.x.md
+-- request textDocument/documentLink parse/places.x.md
 [
   {
     "range": {
       "end": {
-        "character": 52,
+        "character": 53,
         "line": 0
       },
       "start": {
@@ -155,14 +155,14 @@ exit 0
   }
 ]
 
-### 6 cli render lookalike.wtf --root parse --format text
-$ wtf render lookalike.wtf --root parse --format text --now 2026-09-16T12:00:00-04:00
+### 6 cli render lookalike.x.md --root parse --format text
+$ wtf render lookalike.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
 [https://github.com.evil.example/acme/app/pull/42]:fake link
 [ok] := fake.merged
 --- stderr
-<root>/parse/lookalike.wtf:2:9: error: Unknown resource property 'merged'
+<root>/parse/lookalike.x.md:2:9: error: Unknown resource property 'merged'
 wtf: 1 error(s) while rendering
 
 ### 7 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json
@@ -190,8 +190,8 @@ exit 0
 --- stdout
 []
 
-### 10 read cli/inbox.wtf cli/.wtf/cache.json
--- cli/inbox.wtf
+### 10 read cli/inbox.x.md cli/.wtf/cache.json
+-- cli/inbox.x.md
 - [ ] Call dentist #errands @due(2026-09-18)
 -- cli/.wtf/cache.json
 (missing: entity not found)

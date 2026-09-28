@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "daily.wtf",
+        "daily.x.md",
         "--root",
         "parse",
         "--format",
@@ -14,7 +14,7 @@
     {
       "cli": [
         "query",
-        "daily.wtf",
+        "daily.x.md",
         "values | select {name, display}",
         "--root",
         "parse",
@@ -24,7 +24,7 @@
     {
       "cli": [
         "query",
-        "daily.wtf",
+        "daily.x.md",
         "[length(tasks), length(links), length(diagnostics)]",
         "--root",
         "parse",
@@ -34,7 +34,7 @@
     {
       "cli": [
         "query",
-        "expressions.wtf",
+        "expressions.x.md",
         "values | select {name, display, errors}",
         "--root",
         "parse",
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "places.wtf",
+        "places.x.md",
         "values | select {name, display, errors}",
         "--root",
         "parse",
@@ -54,18 +54,18 @@
     {
       "lsp": [
         {
-          "open": "parse/places.wtf"
+          "open": "parse/places.x.md"
         },
         {
           "request": "textDocument/documentLink",
-          "file": "parse/places.wtf"
+          "file": "parse/places.x.md"
         }
       ]
     },
     {
       "cli": [
         "render",
-        "lookalike.wtf",
+        "lookalike.x.md",
         "--root",
         "parse",
         "--format",
@@ -107,7 +107,7 @@
     },
     {
       "read": [
-        "cli/inbox.wtf",
+        "cli/inbox.x.md",
         "cli/.wtf/cache.json"
       ]
     },

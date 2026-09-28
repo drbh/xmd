@@ -4,26 +4,26 @@
   "steps": [
     {
       "browser": [
-        { "method": "documentLinks", "params": { "uri": "file:///workspace/trip.wtf" } },
+        { "method": "documentLinks", "params": { "uri": "file:///workspace/trip.x.md" } },
         {
           "method": "hover",
           "params": {
-            "uri": "file:///workspace/trip.wtf",
+            "uri": "file:///workspace/trip.x.md",
             "position": { "line": 0, "character": 4 }
           }
         },
         {
           "method": "hover",
           "params": {
-            "uri": "file:///workspace/trip.wtf",
+            "uri": "file:///workspace/trip.x.md",
             "position": { "line": 2, "character": 8 }
           }
         },
-        { "method": "documentSymbols", "params": { "uri": "file:///workspace/trip.wtf" } },
+        { "method": "documentSymbols", "params": { "uri": "file:///workspace/trip.x.md" } },
         {
           "method": "query",
           "params": {
-            "uri": "file:///workspace/trip.wtf",
+            "uri": "file:///workspace/trip.x.md",
             "query": "values | select {name, display}"
           }
         }

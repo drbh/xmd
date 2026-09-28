@@ -4,7 +4,7 @@
     {
       "cli": [
         "graph",
-        "one.wtf",
+        "one.x.md",
         "--root",
         "notes"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "graph",
-        "one.wtf",
+        "one.x.md",
         "--root",
         "notes",
         "-q",
@@ -22,7 +22,7 @@
     {
       "cli": [
         "graph",
-        "one.wtf",
+        "one.x.md",
         "--root",
         "notes",
         "-q",
@@ -32,7 +32,7 @@
     {
       "cli": [
         "query",
-        "one.wtf",
+        "one.x.md",
         "length(graph.nodes)",
         "--root",
         "notes",
@@ -42,7 +42,7 @@
     {
       "cli": [
         "graph",
-        "one.wtf",
+        "one.x.md",
         "--root",
         "notes",
         "-q",
@@ -62,7 +62,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "--root",
         "notes",
         "-q",
@@ -72,7 +72,7 @@
     {
       "cli": [
         "graph",
-        "ignored.wtf",
+        "ignored.x.md",
         "--root",
         "notes",
         "-q",
@@ -82,7 +82,7 @@
     {
       "cli": [
         "graph",
-        "../outside.wtf",
+        "../outside.x.md",
         "--root",
         "notes",
         "-q",
@@ -92,14 +92,14 @@
     {
       "cli": [
         "graph",
-        "missing.wtf",
+        "missing.x.md",
         "--root",
         "notes"
       ]
     },
     {
       "read": [
-        "notes/one.wtf",
+        "notes/one.x.md",
         "notes/.wtf/cache.json"
       ]
     }

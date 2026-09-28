@@ -1,6 +1,6 @@
 ### 0 browser
--- setDocument timers.wtf
--- analyze {"uri":"file:///workspace/timers.wtf"}
+-- setDocument timers.x.md
+-- analyze {"uri":"file:///workspace/timers.x.md"}
 {
   "ok": true,
   "result": {
@@ -17,7 +17,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.x.md#L1>) · /workspace/timers.x.md:1"
         }
       },
       {
@@ -33,14 +33,14 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.x.md#L1&gt;) · /workspace/timers.x.md:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [
       {
         "command": {
           "arguments": [
             {
               "action": "start",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -63,7 +63,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "expected": "- [ ] Review @timer(focus)",
               "kind": "toggle_task",
               "row": 1
@@ -88,7 +88,7 @@
           "arguments": [
             {
               "action": "start",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -280,14 +280,14 @@
       15,
       0
     ],
-    "uri": "file:///workspace/timers.wtf",
+    "uri": "file:///workspace/timers.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/timers.wtf": 1
+      "file:///workspace/timers.x.md": 1
     }
   }
 }
--- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.x.md","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -310,7 +310,7 @@
             }
           ],
           "textDocument": {
-            "uri": "file:///workspace/timers.wtf",
+            "uri": "file:///workspace/timers.x.md",
             "version": 1
           }
         }
@@ -318,7 +318,7 @@
     }
   }
 }
--- analyze {"uri":"file:///workspace/timers.wtf"}
+-- analyze {"uri":"file:///workspace/timers.x.md"}
 {
   "ok": true,
   "result": {
@@ -335,7 +335,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+          "value": "**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.x.md#L1>) · /workspace/timers.x.md:1"
         }
       },
       {
@@ -351,14 +351,14 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:02 remaining · ○ idle\n\n```text\ncountdown(2s)\n= ◷ 00:02 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.x.md#L1&gt;) · /workspace/timers.x.md:1\"> = ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ░░░░░░░░ 00:02 remaining · ○ idle</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [
       {
         "command": {
           "arguments": [
             {
               "action": "start",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -381,7 +381,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "expected": "- [ ] Review @timer(focus)",
               "kind": "toggle_task",
               "row": 1
@@ -406,7 +406,7 @@
           "arguments": [
             {
               "action": "start",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -598,24 +598,24 @@
       15,
       0
     ],
-    "uri": "file:///workspace/timers.wtf",
+    "uri": "file:///workspace/timers.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/timers.wtf": 1
+      "file:///workspace/timers.x.md": 1
     }
   }
 }
--- setDocument {"text":"[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n","uri":"file:///workspace/timers.wtf","version":2}
+-- setDocument {"text":"[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n","uri":"file:///workspace/timers.x.md","version":2}
 {
   "ok": true,
   "result": null
 }
--- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.wtf","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.wtf":1}}
+-- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/timers.x.md","kind":"timer","name":"focus"}],"command":"wtf.timer","title":"▸ start focus"},"versions":{"file:///workspace/timers.x.md":1}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false
 }
--- analyze {"uri":"file:///workspace/timers.wtf"} at 2026-09-16T14:00:01-04:00
+-- analyze {"uri":"file:///workspace/timers.x.md"} at 2026-09-16T14:00:01-04:00
 {
   "ok": true,
   "result": {
@@ -632,7 +632,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+          "value": "**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.x.md#L1>) · /workspace/timers.x.md:1"
         }
       },
       {
@@ -648,14 +648,14 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:01 remaining · ▸ running\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:01 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1s. State: running. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.x.md#L1&gt;) · /workspace/timers.x.md:1\"> = ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████░░░░ 00:01 remaining · ▸ running</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [
       {
         "command": {
           "arguments": [
             {
               "action": "pause",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -679,7 +679,7 @@
           "arguments": [
             {
               "action": "reset",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -702,7 +702,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "expected": "- [ ] Review @timer(focus)",
               "kind": "toggle_task",
               "row": 1
@@ -727,7 +727,7 @@
           "arguments": [
             {
               "action": "pause",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -751,7 +751,7 @@
           "arguments": [
             {
               "action": "reset",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -963,14 +963,14 @@
       15,
       0
     ],
-    "uri": "file:///workspace/timers.wtf",
+    "uri": "file:///workspace/timers.x.md",
     "version": 2,
     "versions": {
-      "file:///workspace/timers.wtf": 2
+      "file:///workspace/timers.x.md": 2
     }
   }
 }
--- analyze {"uri":"file:///workspace/timers.wtf"} at 2026-09-16T14:00:03-04:00
+-- analyze {"uri":"file:///workspace/timers.x.md"} at 2026-09-16T14:00:03-04:00
 {
   "ok": true,
   "result": {
@@ -987,7 +987,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.wtf#L1>) · /workspace/timers.wtf:1"
+          "value": "**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file:///workspace/timers.x.md#L1>) · /workspace/timers.x.md:1"
         }
       },
       {
@@ -1003,14 +1003,14 @@
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.wtf#L1&gt;) · /workspace/timers.wtf:1\"> = ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">countdown</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-wtfDuration\" title=\"\">2s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDuration\" title=\"\">0s</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-wtfDate\" title=\"\">2026-09-16T14:00:00-04:00</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**focus · Countdown**\n\n◷ 00:00 remaining · ✓ done\n\n```text\ncountdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n= ◷ 00:00 remaining · ✓ done\n```\n\n`██████████ 100%`\n\nElapsed: 2s. State: done. Current segment started: 2026-09-16T14:00:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](&lt;file:///workspace/timers.x.md#L1&gt;) · /workspace/timers.x.md:1\"> = ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line task\" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">-</span> <span class=\"t-wtfCheckbox\" title=\"\">[ ]</span> Review <span class=\"t-decorator\" title=\"\">@timer</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">focus</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer.\"> ◷ ████████ 00:00 remaining · ✓ done</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
     "lenses": [
       {
         "command": {
           "arguments": [
             {
               "action": "reset",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -1033,7 +1033,7 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "expected": "- [ ] Review @timer(focus)",
               "kind": "toggle_task",
               "row": 1
@@ -1058,7 +1058,7 @@
           "arguments": [
             {
               "action": "reset",
-              "document": "file:///workspace/timers.wtf",
+              "document": "file:///workspace/timers.x.md",
               "kind": "timer",
               "name": "focus"
             }
@@ -1270,10 +1270,10 @@
       15,
       0
     ],
-    "uri": "file:///workspace/timers.wtf",
+    "uri": "file:///workspace/timers.x.md",
     "version": 2,
     "versions": {
-      "file:///workspace/timers.wtf": 2
+      "file:///workspace/timers.x.md": 2
     }
   }
 }

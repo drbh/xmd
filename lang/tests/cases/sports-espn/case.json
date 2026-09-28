@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "games.wtf",
+        "games.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "render",
-        "unsupported.wtf",
+        "unsupported.x.md",
         "--format",
         "text"
       ]
@@ -35,7 +35,7 @@
     {
       "cli": [
         "render",
-        "games.wtf",
+        "games.x.md",
         "--format",
         "text"
       ]
@@ -43,7 +43,7 @@
     {
       "cli": [
         "query",
-        "games.wtf",
+        "games.x.md",
         "diagnostics | select {message, code}",
         "--json"
       ]
@@ -51,27 +51,27 @@
     {
       "lsp": [
         {
-          "open": "games.wtf"
+          "open": "games.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "games.wtf"
+          "file": "games.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "games.wtf",
+          "file": "games.x.md",
           "line": 2,
           "character": 15
         },
         {
           "request": "textDocument/completion",
-          "file": "games.wtf",
+          "file": "games.x.md",
           "line": 3,
           "character": 6
         },
         {
           "request": "textDocument/codeAction",
-          "file": "games.wtf",
+          "file": "games.x.md",
           "range": {
             "start": {
               "line": 1,

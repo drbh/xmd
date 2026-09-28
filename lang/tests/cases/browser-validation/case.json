@@ -6,30 +6,30 @@
       "browser": [
         {
           "method": "setDocument",
-          "params": { "uri": "file:///etc/secrets.wtf", "text": "", "version": 1 }
+          "params": { "uri": "file:///etc/secrets.x.md", "text": "", "version": 1 }
         },
         {
           "method": "setDocument",
-          "params": { "uri": "https://example.com/note.wtf", "text": "", "version": 1 }
+          "params": { "uri": "https://example.com/note.x.md", "text": "", "version": 1 }
         },
         {
           "method": "setDocument",
-          "params": { "uri": "file:///workspace/../secret.wtf", "text": "", "version": 1 }
+          "params": { "uri": "file:///workspace/../secret.x.md", "text": "", "version": 1 }
         },
         {
           "method": "setDocument",
-          "params": { "uri": "file:///workspace/test.wtf#L1", "text": "", "version": 1 }
+          "params": { "uri": "file:///workspace/test.x.md#L1", "text": "", "version": 1 }
         },
         {
           "method": "setDocument",
-          "params": { "uri": "file:///workspace/refresh.wtf", "text": "oops", "version": 1 }
+          "params": { "uri": "file:///workspace/refresh.x.md", "text": "oops", "version": 1 }
         },
         { "method": "analyze", "body": "not JSON" },
-        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.x.md" } },
         {
           "method": "actions",
           "params": {
-            "uri": "file:///workspace/refresh.wtf",
+            "uri": "file:///workspace/refresh.x.md",
             "range": {
               "start": { "line": 1, "character": 0 },
               "end": { "line": 1, "character": 0 }
@@ -45,11 +45,11 @@
               "arguments": [
                 {
                   "kind": "refresh",
-                  "document": "file:///workspace/refresh.wtf"
+                  "document": "file:///workspace/refresh.x.md"
                 }
               ]
             },
-            "versions": { "file:///workspace/refresh.wtf": 1 }
+            "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
         {
@@ -62,7 +62,7 @@
                 {
                   "kind": "refresh_resource",
                   "target": {
-                    "document": "file:///workspace/refresh.wtf",
+                    "document": "file:///workspace/refresh.x.md",
                     "row": 1,
                     "expected": "https://github.com/acme/app/pull/42"
                   },
@@ -70,7 +70,7 @@
                 }
               ]
             },
-            "versions": { "file:///workspace/refresh.wtf": 1 }
+            "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
         {
@@ -82,14 +82,14 @@
               "arguments": [
                 {
                   "kind": "toggle_task",
-                  "document": "file:///workspace/refresh.wtf",
+                  "document": "file:///workspace/refresh.x.md",
                   "row": 2,
                   "expected": "- [ ] Task"
                 },
                 "extra"
               ]
             },
-            "versions": { "file:///workspace/refresh.wtf": 1 }
+            "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
         {
@@ -101,13 +101,13 @@
               "arguments": [
                 {
                   "kind": "toggle_task",
-                  "document": "file:///workspace/refresh.wtf",
+                  "document": "file:///workspace/refresh.x.md",
                   "row": 2,
                   "expected": "- [ ] Task"
                 }
               ]
             },
-            "versions": { "file:///workspace/refresh.wtf": 1 }
+            "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
         {
@@ -120,7 +120,7 @@
                 {
                   "kind": "open_resource",
                   "target": {
-                    "document": "file:///workspace/refresh.wtf",
+                    "document": "file:///workspace/refresh.x.md",
                     "row": 3,
                     "expected": "https://example.com/page"
                   },
@@ -128,14 +128,14 @@
                 }
               ]
             },
-            "versions": { "file:///workspace/refresh.wtf": 1 }
+            "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
         { "method": "query", "params": { "query": "tasks | where (" } },
-        { "method": "query", "params": { "uri": "file:///workspace/missing.wtf", "query": "ast" } },
-        { "method": "query", "params": { "uri": "file:///outside/private.wtf", "query": "ast" } },
-        { "method": "query", "params": { "uri": "https://example.com/n.wtf", "query": "ast" } },
-        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.wtf" } }
+        { "method": "query", "params": { "uri": "file:///workspace/missing.x.md", "query": "ast" } },
+        { "method": "query", "params": { "uri": "file:///outside/private.x.md", "query": "ast" } },
+        { "method": "query", "params": { "uri": "https://example.com/n.x.md", "query": "ast" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/refresh.x.md" } }
       ]
     }
   ]

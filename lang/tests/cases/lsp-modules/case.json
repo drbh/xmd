@@ -3,15 +3,15 @@
     {
       "lsp": [
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -29,7 +29,7 @@
         {
           "write": {
             "file": ".wtf/modules.json",
-            "text": "[\"./modules/docs.wtf\"]\n"
+            "text": "[\"./modules/docs.x.md\"]\n"
           }
         },
         {
@@ -48,7 +48,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -62,7 +62,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.wtf",
+            "file": ".wtf/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"second\"\n"
           }
         },
@@ -71,7 +71,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules/docs.wtf}",
+                "uri": "${uri:.wtf/modules/docs.x.md}",
                 "type": 2
               }
             ]
@@ -82,7 +82,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -96,7 +96,7 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.wtf",
+            "file": ".wtf/modules/docs.x.md",
             "text": "module := {\n"
           }
         },
@@ -105,7 +105,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:.wtf/modules/docs.wtf}",
+                "uri": "${uri:.wtf/modules/docs.x.md}",
                 "type": 2
               }
             ]
@@ -116,7 +116,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -150,7 +150,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -168,14 +168,14 @@
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/docs.wtf",
+            "file": ".wtf/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"saved\"\n"
           }
         },
         {
           "write": {
             "file": ".wtf/modules.json",
-            "text": "[\"./modules/docs.wtf\"]\n"
+            "text": "[\"./modules/docs.x.md\"]\n"
           }
         },
         {
@@ -193,15 +193,15 @@
           "await": "workspace/inlayHint/refresh"
         },
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -214,25 +214,25 @@
           }
         },
         {
-          "open": ".wtf/modules/docs.wtf"
+          "open": ".wtf/modules/docs.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": ".wtf/modules/docs.wtf"
+          "file": ".wtf/modules/docs.x.md"
         },
         {
           "change": {
-            "file": ".wtf/modules/docs.wtf",
+            "file": ".wtf/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"unsaved\"\nextra := fn(value) => value + 1\n"
           }
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": ".wtf/modules/docs.wtf"
+          "file": ".wtf/modules/docs.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -250,22 +250,22 @@
           }
         },
         {
-          "close": ".wtf/modules/docs.wtf"
+          "close": ".wtf/modules/docs.x.md"
         }
       ]
     },
     {
       "lsp": [
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -282,19 +282,19 @@
         },
         {
           "write": {
-            "file": ".wtf/modules/docs.wtf",
+            "file": ".wtf/modules/docs.x.md",
             "text": "module := {api: 1, id: \"docs\", kind: \"link\", hosts: [\"docs.example\"]}\ninlay := fn(ctx) => \"reloaded\"\n"
           }
         },
         {
-          "save": ".wtf/modules/docs.wtf"
+          "save": ".wtf/modules/docs.x.md"
         },
         {
           "await": "workspace/inlayHint/refresh"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -312,14 +312,14 @@
       "lsp": [
         {
           "write": {
-            "file": ".wtf/modules/edit.wtf",
+            "file": ".wtf/modules/edit.x.md",
             "text": "module := {api: 1, id: \"edit\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"Goodbye\"}]}}], [])\n"
           }
         },
         {
           "write": {
             "file": ".wtf/modules.json",
-            "text": "[\"./modules/edit.wtf\"]\n"
+            "text": "[\"./modules/edit.x.md\"]\n"
           }
         },
         {
@@ -337,15 +337,15 @@
           "await": "workspace/inlayHint/refresh"
         },
         {
-          "open": "main2.wtf"
+          "open": "main2.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main2.wtf"
+          "file": "main2.x.md"
         },
         {
           "request": "textDocument/codeLens",
-          "file": "main2.wtf"
+          "file": "main2.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -354,7 +354,7 @@
             "arguments": [
               {
                 "kind": "edit",
-                "document": "${uri:main2.wtf}",
+                "document": "${uri:main2.x.md}",
                 "expected": "Hello world\n",
                 "edits": [
                   {
@@ -380,13 +380,13 @@
         },
         {
           "change": {
-            "file": "main2.wtf",
+            "file": "main2.x.md",
             "text": "Goodbye world\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main2.wtf"
+          "file": "main2.x.md"
         },
         {
           "request": "workspace/executeCommand",
@@ -395,7 +395,7 @@
             "arguments": [
               {
                 "kind": "edit",
-                "document": "${uri:main2.wtf}",
+                "document": "${uri:main2.x.md}",
                 "expected": "Hello world\n",
                 "edits": [
                   {

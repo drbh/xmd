@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
@@ -19,13 +19,13 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/headings.wtf\", \"../custom.wtf\"]\n"
+        ".wtf/modules.json": "[\"../stdlib/headings.x.md\", \"../custom.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
@@ -40,14 +40,14 @@
     },
     {
       "write": {
-        ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"workspace\"}]\n",
-        ".wtf/modules.json": "[\"./modules/headings.wtf\"]\n"
+        ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"workspace\"}]\n",
+        ".wtf/modules.json": "[\"./modules/headings.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
@@ -73,112 +73,112 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"./modules/missing.wtf\"]\n"
+        ".wtf/modules.json": "[\"./modules/missing.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../custom.wtf\", \".././custom.wtf\"]\n"
+        ".wtf/modules.json": "[\"../custom.x.md\", \".././custom.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/*.wtf\"]\n"
+        ".wtf/modules.json": "[\"../stdlib/*.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../stdlib/headings.wtf\", \"../stdlib/m0.wtf\", \"../stdlib/m1.wtf\", \"../stdlib/m2.wtf\", \"../stdlib/m3.wtf\", \"../stdlib/m4.wtf\", \"../stdlib/m5.wtf\", \"../stdlib/m6.wtf\", \"../stdlib/m7.wtf\", \"../stdlib/m8.wtf\", \"../stdlib/m9.wtf\", \"../stdlib/m10.wtf\", \"../stdlib/m11.wtf\", \"../stdlib/m12.wtf\", \"../stdlib/m13.wtf\", \"../stdlib/m14.wtf\", \"../stdlib/m15.wtf\", \"../stdlib/m16.wtf\", \"../stdlib/m17.wtf\", \"../stdlib/m18.wtf\", \"../stdlib/m19.wtf\", \"../stdlib/m20.wtf\", \"../stdlib/m21.wtf\", \"../stdlib/m22.wtf\", \"../stdlib/m23.wtf\", \"../stdlib/m24.wtf\", \"../stdlib/m25.wtf\", \"../stdlib/m26.wtf\", \"../stdlib/m27.wtf\", \"../stdlib/m28.wtf\", \"../stdlib/m29.wtf\", \"../stdlib/m30.wtf\", \"../stdlib/m31.wtf\", \"../stdlib/m32.wtf\", \"../stdlib/m33.wtf\", \"../stdlib/m34.wtf\", \"../stdlib/m35.wtf\", \"../stdlib/m36.wtf\", \"../stdlib/m37.wtf\", \"../stdlib/m38.wtf\", \"../stdlib/m39.wtf\", \"../stdlib/m40.wtf\", \"../stdlib/m41.wtf\", \"../stdlib/m42.wtf\", \"../stdlib/m43.wtf\", \"../stdlib/m44.wtf\", \"../stdlib/m45.wtf\", \"../stdlib/m46.wtf\", \"../stdlib/m47.wtf\", \"../stdlib/m48.wtf\", \"../stdlib/m49.wtf\", \"../stdlib/m50.wtf\", \"../stdlib/m51.wtf\", \"../stdlib/m52.wtf\", \"../stdlib/m53.wtf\", \"../stdlib/m54.wtf\", \"../stdlib/m55.wtf\", \"../stdlib/m56.wtf\", \"../stdlib/m57.wtf\", \"../stdlib/m58.wtf\", \"../stdlib/m59.wtf\", \"../stdlib/m60.wtf\", \"../stdlib/m61.wtf\", \"../stdlib/m62.wtf\", \"../stdlib/m63.wtf\"]\n"
+        ".wtf/modules.json": "[\"../stdlib/headings.x.md\", \"../stdlib/m0.x.md\", \"../stdlib/m1.x.md\", \"../stdlib/m2.x.md\", \"../stdlib/m3.x.md\", \"../stdlib/m4.x.md\", \"../stdlib/m5.x.md\", \"../stdlib/m6.x.md\", \"../stdlib/m7.x.md\", \"../stdlib/m8.x.md\", \"../stdlib/m9.x.md\", \"../stdlib/m10.x.md\", \"../stdlib/m11.x.md\", \"../stdlib/m12.x.md\", \"../stdlib/m13.x.md\", \"../stdlib/m14.x.md\", \"../stdlib/m15.x.md\", \"../stdlib/m16.x.md\", \"../stdlib/m17.x.md\", \"../stdlib/m18.x.md\", \"../stdlib/m19.x.md\", \"../stdlib/m20.x.md\", \"../stdlib/m21.x.md\", \"../stdlib/m22.x.md\", \"../stdlib/m23.x.md\", \"../stdlib/m24.x.md\", \"../stdlib/m25.x.md\", \"../stdlib/m26.x.md\", \"../stdlib/m27.x.md\", \"../stdlib/m28.x.md\", \"../stdlib/m29.x.md\", \"../stdlib/m30.x.md\", \"../stdlib/m31.x.md\", \"../stdlib/m32.x.md\", \"../stdlib/m33.x.md\", \"../stdlib/m34.x.md\", \"../stdlib/m35.x.md\", \"../stdlib/m36.x.md\", \"../stdlib/m37.x.md\", \"../stdlib/m38.x.md\", \"../stdlib/m39.x.md\", \"../stdlib/m40.x.md\", \"../stdlib/m41.x.md\", \"../stdlib/m42.x.md\", \"../stdlib/m43.x.md\", \"../stdlib/m44.x.md\", \"../stdlib/m45.x.md\", \"../stdlib/m46.x.md\", \"../stdlib/m47.x.md\", \"../stdlib/m48.x.md\", \"../stdlib/m49.x.md\", \"../stdlib/m50.x.md\", \"../stdlib/m51.x.md\", \"../stdlib/m52.x.md\", \"../stdlib/m53.x.md\", \"../stdlib/m54.x.md\", \"../stdlib/m55.x.md\", \"../stdlib/m56.x.md\", \"../stdlib/m57.x.md\", \"../stdlib/m58.x.md\", \"../stdlib/m59.x.md\", \"../stdlib/m60.x.md\", \"../stdlib/m61.x.md\", \"../stdlib/m62.x.md\", \"../stdlib/m63.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules/twin.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"twin\"}]\n",
-        ".wtf/modules.json": "[\"./modules/headings.wtf\", \"./modules/twin.wtf\"]\n"
+        ".wtf/modules/twin.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"twin\"}]\n",
+        ".wtf/modules.json": "[\"./modules/headings.x.md\", \"./modules/twin.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules/twin.wtf": "module := {",
-        ".wtf/modules.json": "[\"./modules/twin.wtf\"]\n"
+        ".wtf/modules/twin.x.md": "module := {",
+        ".wtf/modules.json": "[\"./modules/twin.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"./modules/headings.wtf\"]\n",
-        ".wtf/modules/twin.wtf": null
+        ".wtf/modules.json": "[\"./modules/headings.x.md\"]\n",
+        ".wtf/modules/twin.x.md": null
       }
     },
     {
       "lsp": [
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "await": "window/logMessage"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -192,21 +192,21 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"saved\"}]\n"
+            ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"saved\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.wtf"
+            ".wtf/modules/headings.x.md"
           ]
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -220,12 +220,12 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.wtf": "module := {"
+            ".wtf/modules/headings.x.md": "module := {"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.wtf"
+            ".wtf/modules/headings.x.md"
           ]
         },
         {
@@ -233,11 +233,11 @@
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -251,21 +251,21 @@
         },
         {
           "write": {
-            ".wtf/modules/headings.wtf": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"reloaded\"}]\n"
+            ".wtf/modules/headings.x.md": "module := {api: 1, id: \"headings\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 0, label: \"reloaded\"}]\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/headings.wtf"
+            ".wtf/modules/headings.x.md"
           ]
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -289,11 +289,11 @@
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "main.wtf"
+          "file": "main.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "range": {
             "start": {
               "line": 0,

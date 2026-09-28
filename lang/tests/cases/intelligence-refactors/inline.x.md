@@ -1,0 +1,4 @@
+[base] := 5
+[result] := remote.subtotal * 2
+Use [remote.subtotal].
+remote := import("./other.x.md")

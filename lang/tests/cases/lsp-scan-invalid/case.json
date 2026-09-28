@@ -12,15 +12,15 @@
     {
       "lsp": [
         {
-          "open": "weather.wtf"
+          "open": "weather.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "weather.wtf"
+          "file": "weather.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "weather.wtf",
+          "file": "weather.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -34,17 +34,17 @@
         },
         {
           "change": {
-            "file": "weather.wtf",
+            "file": "weather.x.md",
             "text": "weather := forecast(\"Oaxaca\", 2026-11-20, F)\npack_rain_jacket := weather.rain > 80%\nWe should [pack_rain_jacket].\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "weather.wtf"
+          "file": "weather.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "weather.wtf",
+          "file": "weather.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -68,11 +68,11 @@
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "weather.wtf"
+          "file": "weather.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "weather.wtf",
+          "file": "weather.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -85,15 +85,15 @@
           }
         },
         {
-          "save": "weather.wtf"
+          "save": "weather.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "weather.wtf"
+          "file": "weather.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "weather.wtf",
+          "file": "weather.x.md",
           "range": {
             "start": {
               "line": 0,

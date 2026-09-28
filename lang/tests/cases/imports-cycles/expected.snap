@@ -1,10 +1,10 @@
-### 0 cli query main.wtf values | select {name, display, errors} --root pair --json
-$ wtf query main.wtf values | select {name, display, errors} --root pair --json --now 2026-09-16T12:00:00-04:00
+### 0 cli query main.x.md values | select {name, display, errors} --root pair --json
+$ wtf query main.x.md values | select {name, display, errors} --root pair --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   {
-    "display": "import(\"<root>/pair/other.wtf\")",
+    "display": "import(\"<root>/pair/other.x.md\")",
     "errors": [],
     "name": "other"
   },
@@ -22,22 +22,22 @@ exit 0
   }
 ]
 
-### 1 cli query main.wtf a --root pair --json
-$ wtf query main.wtf a --root pair --json --now 2026-09-16T12:00:00-04:00
+### 1 cli query main.x.md a --root pair --json
+$ wtf query main.x.md a --root pair --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
 wtf: Dependency cycle: a → b → a
 
-### 2 cli query main.wtf safe --root pair --json
-$ wtf query main.wtf safe --root pair --json --now 2026-09-16T12:00:00-04:00
+### 2 cli query main.x.md safe --root pair --json
+$ wtf query main.x.md safe --root pair --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   12
 ]
 
-### 3 cli query daily.wtf values | select {name, display, errors} --root self --json
-$ wtf query daily.wtf values | select {name, display, errors} --root self --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query daily.x.md values | select {name, display, errors} --root self --json
+$ wtf query daily.x.md values | select {name, display, errors} --root self --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -67,20 +67,20 @@ exit 0
   }
 ]
 
-### 4 cli render daily.wtf --root self --format text
-$ wtf render daily.wtf --root self --format text --now 2026-09-16T12:00:00-04:00
+### 4 cli render daily.x.md --root self --format text
+$ wtf render daily.x.md --root self --format text --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
-[remaining] := import("./resources.wtf").budget - spent = $1,590
+[remaining] := import("./resources.x.md").budget - spent = $1,590
 [spent] := 1410 = 1410
 [a] := b
 [b] := a
 --- stderr
-<root>/self/daily.wtf:3:2: error: Dependency cycle: a → b → a
+<root>/self/daily.x.md:3:2: error: Dependency cycle: a → b → a
 wtf: 1 error(s) while rendering
 
-### 5 cli query daily.wtf diagnostics | select {line, severity, message} --root ambiguous --json
-$ wtf query daily.wtf diagnostics | select {line, severity, message} --root ambiguous --json --now 2026-09-16T12:00:00-04:00
+### 5 cli query daily.x.md diagnostics | select {line, severity, message} --root ambiguous --json
+$ wtf query daily.x.md diagnostics | select {line, severity, message} --root ambiguous --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -91,12 +91,12 @@ exit 0
   }
 ]
 
-### 6 cli render daily.wtf --root ambiguous --format text
-$ wtf render daily.wtf --root ambiguous --format text --now 2026-09-16T12:00:00-04:00
+### 6 cli render daily.x.md --root ambiguous --format text
+$ wtf render daily.x.md --root ambiguous --format text --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
 Use [budget].
 --- stderr
-<root>/ambiguous/daily.wtf:1:6: error: Unknown name 'budget'
+<root>/ambiguous/daily.x.md:1:6: error: Unknown name 'budget'
 wtf: 1 error(s) while rendering
 

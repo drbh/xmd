@@ -1,11 +1,11 @@
 {
   "steps": [
-    { "cli": ["render", "main.wtf", "--format", "text"] },
+    { "cli": ["render", "main.x.md", "--format", "text"] },
     {
       "lsp": [
-        { "open": "main.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "main.wtf" },
-        { "request": "textDocument/semanticTokens/full", "file": "main.wtf" }
+        { "open": "main.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "main.x.md" },
+        { "request": "textDocument/semanticTokens/full", "file": "main.x.md" }
       ]
     }
   ]

@@ -78,6 +78,55 @@ fn facades_only_re_export() {
     }
 }
 
+/// The `lang` and `runtime` facades list what they expose item by item. A
+/// facade that forwards one of its private crates' namespaces as a whole would
+/// expose whatever that crate adds to it next, without anyone deciding to.
+#[test]
+fn facades_list_items_not_namespaces() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    for (facade, crates) in [
+        ("lang", &["common", "syntax", "model", "eval"][..]),
+        ("runtime", &["services", "host"][..]),
+    ] {
+        let source =
+            std::fs::read_to_string(root.join(facade).join("src/lib.rs")).expect("read a facade");
+        for krate in crates {
+            let dir = match facade {
+                "lang" => root.join("lang/core").join(krate),
+                _ => root.join("runtime").join(krate),
+            };
+            let lib = std::fs::read_to_string(dir.join("src/lib.rs")).expect("read a crate root");
+            // The crate's namespaces: inline `pub mod name {` blocks at its root.
+            let namespaces: Vec<&str> = lib
+                .lines()
+                .filter_map(|line| line.strip_prefix("pub mod "))
+                .filter_map(|rest| rest.strip_suffix(" {"))
+                .collect();
+            // Every name the facade re-exports straight from this crate's root.
+            let prefix = format!("pub use ::{krate}::");
+            for statement in source.split(';') {
+                let Some(start) = statement.find(&prefix) else {
+                    continue;
+                };
+                let rest = &statement[start + prefix.len()..];
+                let names: Vec<&str> = match rest.trim().strip_prefix('{') {
+                    Some(list) => list.trim_end_matches('}').split(',').collect(),
+                    None => vec![rest],
+                };
+                for name in names.iter().map(|n| n.trim()) {
+                    assert!(
+                        !namespaces.contains(&name),
+                        "{facade}/src/lib.rs forwards `{krate}::{name}` as a whole; list the \
+                         items it exposes instead"
+                    );
+                }
+            }
+        }
+    }
+}
+
 /// `lang/` and `runtime/` each keep their crates private behind one facade:
 /// a crate outside the directory may depend on the facade, never on a crate
 /// inside it. Derived from the directories, so new crates follow the rule.

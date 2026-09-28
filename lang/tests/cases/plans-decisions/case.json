@@ -1,39 +1,39 @@
 {
   "steps": [
-    { "cli": ["render", "gear.wtf", "--format", "text"] },
-    { "cli": ["query", "gear.wtf", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "gear.wtf", "decisions | select {title, plan, line, value}", "--json"] },
-    { "cli": ["query", "gear.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "gear.x.md", "--format", "text"] },
+    { "cli": ["query", "gear.x.md", "plans | select {name, display}", "--json"] },
+    { "cli": ["query", "gear.x.md", "decisions | select {title, plan, line, value}", "--json"] },
+    { "cli": ["query", "gear.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "gear.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "gear.wtf" },
-        { "request": "textDocument/hover", "file": "gear.wtf", "line": 1, "character": 29 },
-        { "request": "textDocument/hover", "file": "gear.wtf", "line": 7, "character": 2 },
-        { "request": "textDocument/hover", "file": "gear.wtf", "line": 16, "character": 2 },
+        { "open": "gear.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "gear.x.md" },
+        { "request": "textDocument/hover", "file": "gear.x.md", "line": 1, "character": 29 },
+        { "request": "textDocument/hover", "file": "gear.x.md", "line": 7, "character": 2 },
+        { "request": "textDocument/hover", "file": "gear.x.md", "line": 16, "character": 2 },
         {
           "request": "textDocument/codeAction",
-          "file": "gear.wtf",
+          "file": "gear.x.md",
           "range": { "start": { "line": 7, "character": 2 }, "end": { "line": 7, "character": 2 } },
           "extra": { "context": { "diagnostics": [] } }
         }
       ]
     },
-    { "cli": ["render", "packed.wtf", "--format", "text"] },
-    { "cli": ["query", "packed.wtf", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "packed.wtf", "rows | select {table, line, cells}", "--json"] },
+    { "cli": ["render", "packed.x.md", "--format", "text"] },
+    { "cli": ["query", "packed.x.md", "plans | select {name, display}", "--json"] },
+    { "cli": ["query", "packed.x.md", "rows | select {table, line, cells}", "--json"] },
     {
       "lsp": [
-        { "open": "packed.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "packed.wtf" },
+        { "open": "packed.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "packed.x.md" },
         {
           "request": "textDocument/formatting",
-          "file": "packed.wtf",
+          "file": "packed.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
         },
         {
           "request": "textDocument/codeAction",
-          "file": "packed.wtf",
+          "file": "packed.x.md",
           "range": { "start": { "line": 7, "character": 2 }, "end": { "line": 7, "character": 2 } },
           "extra": { "context": { "diagnostics": [] } }
         }

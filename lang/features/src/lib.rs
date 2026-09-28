@@ -4,7 +4,7 @@
 //! (names and values), `view` (how a note looks) and `controls` (what a person
 //! can do). Two modules tie them together: `locate` decides what sits at a
 //! position, and `providers` is the one extension point through which the
-//! editor's own features and .wtf feature modules contribute inlays, hovers,
+//! editor's own features and .x.md feature modules contribute inlays, hovers,
 //! diagnostics, controls and edits. Exposes its interface from the root.
 mod api;
 mod controls;
@@ -42,7 +42,7 @@ pub mod intelligence {
 pub mod presentation {
     pub use crate::view::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 }
-// The `wtf query` language and how it renders.
+// The `xmd query` language and how it renders.
 pub mod query {
     pub use crate::data::catalog::value::display;
     pub use crate::data::query::{Query, QueryResult};

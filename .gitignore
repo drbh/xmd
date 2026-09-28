@@ -1,7 +1,7 @@
 /target
 /client/ide/zed/target
 /client/ide/zed/extension.wasm
-/.wtf/
+/.xmd/
 /client/web/pkg/
 /client/web/node_modules/
 /client/web/apps/*/node_modules/

@@ -1,0 +1,305 @@
+// A workspace link module: ESPN game pages resolve to their score and result.
+// Activated by listing ../sports.x.md in .xmd/modules.json.
+module := {
+  api: 1,
+  id: "sports",
+  kind: "link",
+  hosts: ["www.espn.com", "espn.com"],
+  path_prefix: "/",
+  properties: [
+    "home",
+    "away",
+    "home_score",
+    "away_score",
+    "winner",
+    "status",
+    "completed",
+    "margin"
+  ],
+  imports: ["scores"],
+  inputs: [],
+  cache_version: 1
+}
+
+scores := import("scores")
+
+// Split the URL path into nonempty components.
+segments := fn(url) => (
+  filter(split(url.path, "/"), fn(s) => s != "")
+)
+
+// Read one path component, returning null when it is absent.
+part := fn(url, index) => (
+  get(segments(url), index)
+)
+
+// Check that every character belongs to the allowed alphabet.
+all_chars := fn(value, allowed) => (
+  type(value) == "Text"
+  && length(value) > 0
+  && length(filter(characters(value), fn(c) => contains(allowed, c) == false)) == 0
+)
+
+// Splitting on an empty separator also yields empty edge pieces; drop them.
+characters := fn(value) => (
+  filter(split(value, ""), fn(c) => c != "")
+)
+
+// Digits carry numeric places, so keep their values in a lookup record.
+digit_map := object(
+  get(
+    fold(
+      characters("0123456789"),
+      {n: 0, pairs: []},
+      fn(acc, c) => {n: acc.n + 1, pairs: concat(acc.pairs, [{key: c, value: acc.n}])}
+    ),
+    "pairs"
+  )
+)
+
+// Read a nonnegative integer out of text, or null when a character is not a digit.
+number_text := fn(value) => (
+  if(
+    all_chars(trim(value), "0123456789") == false,
+    null,
+    fold(
+      characters(trim(value)),
+      0,
+      fn(acc, c) => acc * 10 + get(digit_map, c)
+    )
+  )
+)
+
+// Accept ESPN scores whether the JSON reports them as numbers or as text.
+score_of := fn(value) => (
+  if(
+    type(value) == "Number",
+    value,
+    if(type(value) == "Text", number_text(value), null)
+  )
+)
+
+// ESPN puts the game id after /game/_/gameId/, one or two segments into the path.
+game_index := fn(url) => (
+  if(part(url, 1) == "game", 1, if(part(url, 2) == "game", 2, null))
+)
+
+// Read the numeric event id of a game page.
+game_id := fn(url) => (
+  if(
+    game_index(url) == null
+    || part(url, game_index(url) + 1) != "_"
+    || part(url, game_index(url) + 2) != "gameId"
+    || all_chars(part(url, game_index(url) + 3), "0123456789") == false,
+    null,
+    part(url, game_index(url) + 3)
+  )
+)
+
+// Map the first path segment onto ESPN's sport/league API pair.
+known_leagues := {
+  nba: {sport: "basketball", league: "nba"},
+  wnba: {sport: "basketball", league: "wnba"},
+  nfl: {sport: "football", league: "nfl"},
+  mlb: {sport: "baseball", league: "mlb"},
+  nhl: {sport: "hockey", league: "nhl"}
+}
+
+// Soccer keeps its competition in the second segment, e.g. /soccer/eng.1/game/...
+league_of := fn(url) => (
+  if(
+    part(url, 0) == "soccer",
+    if(
+      part(url, 1) == null || part(url, 1) == "game",
+      null,
+      {sport: "soccer", league: part(url, 1)}
+    ),
+    get(known_leagues, coalesce(part(url, 0), ""))
+  )
+)
+
+// Recognize ESPN game pages of a supported sport.
+matches := fn(url) => (
+  url.scheme == "https" && league_of(url) != null && game_id(url) != null
+)
+
+// Read optional JSON fields safely, even from non-record values.
+field := fn(value, key) => (
+  if(type(value) == "Record", get(value, key), null)
+)
+
+// The summary endpoint nests one competition inside the header.
+competition := fn(data) => (
+  get(field(field(data, "header"), "competitions"), 0)
+)
+
+// Missing competitor lists behave like an empty list.
+competitors := fn(data) => (
+  if(
+    type(field(competition(data), "competitors")) == "List",
+    field(competition(data), "competitors"),
+    []
+  )
+)
+
+// Select the home or away competitor by its homeAway marker.
+side := fn(data, which) => (
+  get(filter(competitors(data), fn(c) => field(c, "homeAway") == which), 0)
+)
+
+// Prefer the short abbreviation and fall back to any available team name.
+abbr := fn(competitor) => (
+  coalesce(
+    field(field(competitor, "team"), "abbreviation"),
+    field(field(competitor, "team"), "displayName"),
+    field(field(competitor, "team"), "name"),
+    "?"
+  )
+)
+
+// The status type carries completion and the human-readable detail.
+status_type := fn(data) => (
+  field(field(competition(data), "status"), "type")
+)
+
+// Report the game phase as scheduled, live, or final.
+phase := fn(data) => (
+  if(
+    field(status_type(data), "completed") == true,
+    "final",
+    if(
+      field(status_type(data), "state") == "in",
+      "live",
+      if(field(status_type(data), "state") == "post", "final", "scheduled")
+    )
+  )
+)
+
+// Prefer ESPN's short status text, e.g. "Final" or "8:12 - 3rd".
+status_text := fn(data) => (
+  coalesce(
+    field(status_type(data), "shortDetail"),
+    field(status_type(data), "detail"),
+    field(status_type(data), "description"),
+    ""
+  )
+)
+
+// Trust an explicit winner flag, then fall back to the scores of a finished game.
+winner_of := fn(data, home_score, away_score) => (
+  if(
+    field(side(data, "home"), "winner") == true,
+    "home",
+    if(
+      field(side(data, "away"), "winner") == true,
+      "away",
+      if(
+        field(status_type(data), "completed") == true
+        && home_score != null
+        && away_score != null,
+        scores.resolve(home_score, away_score),
+        null
+      )
+    )
+  )
+)
+
+// Name the game before any scores are known.
+identity := fn(data) => (
+  abbr(side(data, "away")) + " @ " + abbr(side(data, "home"))
+)
+
+// Normalize the ESPN summary response into the cached record.
+decode := fn(url, data) => (
+  {
+    title: identity(data),
+    state: phase(data),
+    home: abbr(side(data, "home")),
+    away: abbr(side(data, "away")),
+    home_score: score_of(field(side(data, "home"), "score")),
+    away_score: score_of(field(side(data, "away"), "score")),
+    winner: winner_of(
+      data,
+      score_of(field(side(data, "home"), "score")),
+      score_of(field(side(data, "away"), "score"))
+    ),
+    status: status_text(data),
+    completed: field(status_type(data), "completed") == true
+  }
+)
+
+// Describe an explicit curl request; the native host alone runs it.
+refresh := fn(url) => (
+  {
+    title: "⟳ score",
+    program: "curl",
+    args: [
+      "-sSL",
+      "https://site.api.espn.com/apis/site/v2/sports/"
+      + get(league_of(url), "sport")
+      + "/"
+      + get(league_of(url), "league")
+      + "/summary?event="
+      + game_id(url)
+    ]
+  }
+)
+
+// Mark finished games with a check and games in progress with a play arrow.
+marker := fn(cached) => (
+  if(cached.completed == true, "✓ ", if(cached.state == "live", "▸ ", ""))
+)
+
+// Show the scoreline when both scores are known, otherwise just the matchup.
+scoreline := fn(cached) => (
+  if(
+    cached.home_score == null || cached.away_score == null,
+    cached.away + " @ " + cached.home,
+    scores.scoreline(cached.home, cached.home_score, cached.away, cached.away_score)
+  )
+)
+
+// Combine marker, scoreline, and status into one label.
+label := fn(cached) => (
+  marker(cached) + scoreline(cached) + if(cached.status == "", "", " · " + cached.status)
+)
+
+// Show the cached score, or invite an explicit refresh.
+inlay := fn(ctx) => (
+  if(ctx.cached == null, "◌ score (refresh)", label(ctx.cached))
+)
+
+// Summarize the cached game and say when it was fetched.
+hover := fn(ctx) => (
+  if(
+    ctx.cached == null,
+    "No cached score. Use the refresh action on this link to fetch it with `curl`.",
+    "**"
+    + ctx.cached.title
+    + "**\n\n"
+    + scoreline(ctx.cached)
+    + if(ctx.cached.status == "", "", " · " + ctx.cached.status)
+    + "\n\nResult: "
+    + coalesce(ctx.cached.winner, "undecided")
+    + "\n\nFetched "
+    + format_date(ctx.fetched_at, "%Y-%m-%d %H:%M UTC")
+    + "."
+  )
+)
+
+// Read cached properties; margin is derived from the two scores.
+property := fn(ctx, name) => (
+  if(
+    ctx.cached == null,
+    error("No cached score for this game; refresh the link first"),
+    if(
+      name == "margin",
+      if(
+        ctx.cached.home_score == null || ctx.cached.away_score == null,
+        error("No scores reported yet"),
+        scores.margin(ctx.cached.home_score, ctx.cached.away_score)
+      ),
+      get(ctx.cached, name)
+    )
+  )
+)

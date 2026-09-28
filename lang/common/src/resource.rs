@@ -131,9 +131,7 @@ fn bare_file_path(s: &str) -> bool {
     s.contains('/')
         || matches!(
             extension.to_ascii_lowercase().as_str(),
-            "wtf"
-                | "md"
-                | "txt"
+            "md" | "txt"
                 | "pdf"
                 | "rs"
                 | "js"

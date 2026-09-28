@@ -1,4 +1,4 @@
-/* Application chrome. The document body keeps the library's .wtf styling; the
+/* Application chrome. The document body keeps the library's .xmd styling; the
    chrome uses the system UI font so the page reads as a writing app. */
 :root {
   --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -7,7 +7,7 @@
   --bg: #f8f9fa; --chrome: #ffffff; --paper: #ffffff; --hover: rgba(60, 64, 67, .08); --active: rgba(26, 115, 232, .12);
   --accent: #1a73e8; --accent-ink: #185abc; --paper-shadow: 0 1px 3px rgba(60, 64, 67, .3), 0 4px 8px 3px rgba(60, 64, 67, .15);
   --warn: #b06000; --error: #c5221f;
-  --wtf-background: var(--paper); --wtf-foreground: #1f1f1f; --wtf-inlay-background: #eef0f3; --wtf-inlay-foreground: #3c4653;
+  --xmd-background: var(--paper); --xmd-foreground: #1f1f1f; --xmd-inlay-background: #eef0f3; --xmd-inlay-foreground: #3c4653;
   font-family: var(--ui); font-size: 14px; color: var(--ink); background: var(--bg); color-scheme: light; font-synthesis: none;
 }
 :root[data-theme="dark"] {
@@ -15,7 +15,7 @@
   --bg: #1b1c1e; --chrome: #232528; --paper: #202124; --hover: rgba(232, 234, 237, .1); --active: rgba(138, 180, 248, .18);
   --accent: #8ab4f8; --accent-ink: #aecbfa; --paper-shadow: 0 1px 3px rgba(0, 0, 0, .6), 0 6px 16px rgba(0, 0, 0, .35);
   --warn: #fdd663; --error: #f28b82;
-  --wtf-background: var(--paper); --wtf-foreground: #e3e3e3; --wtf-inlay-background: #2d3138; --wtf-inlay-foreground: #c3cad6;
+  --xmd-background: var(--paper); --xmd-foreground: #e3e3e3; --xmd-inlay-background: #2d3138; --xmd-inlay-foreground: #c3cad6;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -127,8 +127,8 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .findbar .text { height: 30px; padding: 0 12px; border-radius: 6px; color: var(--accent-ink); font-weight: 500; white-space: nowrap; }
 .findbar .text:hover { background: var(--hover); } .findbar .text:disabled { color: var(--faint); background: none; cursor: default; }
 
-::highlight(wtf-find) { background: rgba(255, 196, 0, .35); }
-::highlight(wtf-find-current) { background: rgba(255, 140, 0, .75); color: #1f1f1f; }
+::highlight(xmd-find) { background: rgba(255, 196, 0, .35); }
+::highlight(xmd-find-current) { background: rgba(255, 140, 0, .75); color: #1f1f1f; }
 
 /* Console drawer */
 .console { position: relative; flex: none; display: flex; flex-direction: column; background: var(--chrome); border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 12px; }
@@ -290,8 +290,8 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
 .template-row { max-width: 1080px; margin: 0 auto; padding: 0 24px; display: flex; gap: 18px; overflow-x: auto; }
 .template { display: grid; gap: 8px; text-align: left; flex: none; width: 150px; }
 .template .thumb { display: block; height: 190px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); overflow: hidden; }
-.template .thumb .wtf { margin: 0; padding: 12px 10px; font-size: 5.5px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; pointer-events: none; }
-.template .thumb .wtf .inlay { font-size: inherit; }
+.template .thumb .xmd { margin: 0; padding: 12px 10px; font-size: 5.5px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; pointer-events: none; }
+.template .thumb .xmd .inlay { font-size: inherit; }
 .template .thumb.blank { display: grid; place-items: center; color: var(--accent); }
 .template:hover .thumb { border-color: var(--accent); }
 .template .label { font-weight: 500; font-size: 13px; }
@@ -377,7 +377,7 @@ code, kbd { font-family: var(--mono); font-size: 12px; }
   .canvas { padding: 8px 0 140px; }
   .page { width: 100%; min-height: 60vh; border-radius: 0; box-shadow: none; }
   .view { padding: 20px 16px 120px; font-size: 15px; }
-  .view .inlay, .wtf .inlay { white-space: pre-wrap; }
+  .view .inlay, .xmd .inlay { white-space: pre-wrap; }
   .lens { height: 26px; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.2); opacity: 1; }
   .lenses.below { padding-left: 0; z-index: 3; }
   .chip.console-chip, .chip.words { display: none; }

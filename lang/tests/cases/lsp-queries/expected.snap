@@ -1,12 +1,12 @@
 ### 0 lsp
--- open n.wtf
--- change n.wtf (version 2)
+-- open n.x.md
+-- change n.x.md (version 2)
 $9:price
 - [ ] Unsaved
--- await textDocument/publishDiagnostics n.wtf
+-- await textDocument/publishDiagnostics n.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/n.wtf",
+  "uri": "file://<root>/n.x.md",
   "version": 1
 }
 -- query values | select {name, value, day:today(), clock:now()}
@@ -68,7 +68,7 @@ $9:price
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/n.wtf": 2
+    "file://<root>/n.x.md": 2
   }
 }
 -- query tasks | where leaf && !done | sort source.path, source.line | select title
@@ -80,16 +80,16 @@ $9:price
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/n.wtf": 2
+    "file://<root>/n.x.md": 2
   }
 }
--- change n.wtf (version 3)
+-- change n.x.md (version 3)
 $12:price
 - [x] Finished
--- await textDocument/publishDiagnostics n.wtf
+-- await textDocument/publishDiagnostics n.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/n.wtf",
+  "uri": "file://<root>/n.x.md",
   "version": 2
 }
 -- query tasks | where leaf && !done | sort source.path, source.line
@@ -121,7 +121,7 @@ $12:price
       "scheduled": null,
       "source": {
         "line": 2,
-        "path": "<root>/two.wtf",
+        "path": "<root>/two.x.md",
         "range": {
           "end": {
             "character": 11,
@@ -132,7 +132,7 @@ $12:price
             "line": 1
           }
         },
-        "uri": "file://<root>/two.wtf#L2"
+        "uri": "file://<root>/two.x.md#L2"
       },
       "tags": [],
       "timer": null,
@@ -141,29 +141,29 @@ $12:price
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/n.wtf": 3
+    "file://<root>/n.x.md": 3
   }
 }
--- request wtf/query {"query":"tasks | where ("}
+-- request xmd/query {"query":"tasks | where ("}
 error: {
   "code": -32602,
   "message": "Unclosed delimiter in query"
 }
 
-### 1 read n.wtf
--- n.wtf
+### 1 read n.x.md
+-- n.x.md
 $5:price
 - [ ] Saved
 
 ### 2 lsp
--- open one.wtf
--- change one.wtf (version 2)
-answer := import("./two.wtf").rate * 2
+-- open one.x.md
+-- change one.x.md (version 2)
+answer := import("./two.x.md").rate * 2
 - [ ] Local
--- await textDocument/publishDiagnostics one.wtf
+-- await textDocument/publishDiagnostics one.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/one.wtf",
+  "uri": "file://<root>/one.x.md",
   "version": 1
 }
 -- query map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)
@@ -174,7 +174,7 @@ answer := import("./two.wtf").rate * 2
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/one.wtf": 2
+    "file://<root>/one.x.md": 2
   }
 }
 -- query tasks | select title
@@ -185,7 +185,7 @@ answer := import("./two.wtf").rate * 2
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/one.wtf": 2
+    "file://<root>/one.x.md": 2
   }
 }
 -- query length(tasks)
@@ -196,7 +196,7 @@ answer := import("./two.wtf").rate * 2
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/one.wtf": 2
+    "file://<root>/one.x.md": 2
   }
 }
 -- query graph.nodes | where external | select name
@@ -207,23 +207,23 @@ answer := import("./two.wtf").rate * 2
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/one.wtf": 2
+    "file://<root>/one.x.md": 2
   }
 }
--- request wtf/query {"query":"ast","uri":"https://example.com/n.wtf"}
+-- request xmd/query {"query":"ast","uri":"https://example.com/n.x.md"}
 error: {
   "code": -32602,
   "message": "Query uri must be a local file URI"
 }
--- request wtf/query {"query":"ast","uri":"${uri:missing.wtf}"}
+-- request xmd/query {"query":"ast","uri":"${uri:missing.x.md}"}
 error: {
   "code": -32602,
-  "message": "<root>/missing.wtf: No such file or directory (os error 2)"
+  "message": "<root>/missing.x.md: No such file or directory (os error 2)"
 }
 
 ### 3 lsp
--- open main.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- open main.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [
     {
@@ -240,19 +240,19 @@ error: {
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- change main.wtf (version 2)
-src := import("./.hidden/values.wtf")
+-- change main.x.md (version 2)
+src := import("./.hidden/values.x.md")
 answer := src.amount
--- await textDocument/publishDiagnostics main.wtf
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 2
 }
 -- query answer
@@ -263,16 +263,16 @@ answer := src.amount
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/main.wtf": 2
+    "file://<root>/main.x.md": 2
   }
 }
--- open .hidden/values.wtf
--- change .hidden/values.wtf (version 2)
+-- open .hidden/values.x.md
+-- change .hidden/values.x.md (version 2)
 amount := 77
--- await textDocument/publishDiagnostics .hidden/values.wtf
+-- await textDocument/publishDiagnostics .hidden/values.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/.hidden/values.wtf",
+  "uri": "file://<root>/.hidden/values.x.md",
   "version": 1
 }
 -- query answer
@@ -283,11 +283,11 @@ amount := 77
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/.hidden/values.wtf": 2,
-    "file://<root>/main.wtf": 2
+    "file://<root>/.hidden/values.x.md": 2,
+    "file://<root>/main.x.md": 2
   }
 }
--- close .hidden/values.wtf
+-- close .hidden/values.x.md
 -- query answer
 {
   "now": "2026-09-16T14:00:00-04:00",
@@ -296,13 +296,13 @@ amount := 77
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/main.wtf": 2
+    "file://<root>/main.x.md": 2
   }
 }
 
-### 4 read main.wtf .hidden/values.wtf
--- main.wtf
+### 4 read main.x.md .hidden/values.x.md
+-- main.x.md
 answer := amount
--- .hidden/values.wtf
+-- .hidden/values.x.md
 amount := 42
 

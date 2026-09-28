@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "release.wtf",
+        "release.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "released.wtf",
+        "released.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "relative.wtf",
+        "relative.x.md",
         "[length(entries), length(diagnostics)]",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "query",
-        "relative.wtf",
+        "relative.x.md",
         "import(\"agenda\").between(entries, today(), today()) | select title",
         "--json"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "query",
-        "cycle.wtf",
+        "cycle.x.md",
         "diagnostics | select {line, severity, message}",
         "--json"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "unicode.wtf",
+        "unicode.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -52,11 +52,11 @@
     {
       "lsp": [
         {
-          "open": "release.wtf"
+          "open": "release.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "release.wtf",
+          "file": "release.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -71,11 +71,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:release.wtf}",
+                "document": "${uri:release.x.md}",
                 "row": 1,
                 "expected": "- [ ] Parent"
               }
@@ -86,11 +86,11 @@
           "await": "workspace/applyEdit"
         },
         {
-          "open": "blocked.wtf"
+          "open": "blocked.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "blocked.wtf",
+          "file": "blocked.x.md",
           "range": {
             "start": {
               "line": 1,
@@ -110,11 +110,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:blocked.wtf}",
+                "document": "${uri:blocked.x.md}",
                 "row": 1,
                 "expected": "- [ ] Publish @after(review)"
               }
@@ -122,11 +122,11 @@
           }
         },
         {
-          "open": "relative.wtf"
+          "open": "relative.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "relative.wtf",
+          "file": "relative.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -144,15 +144,15 @@
           }
         },
         {
-          "open": "unicode.wtf"
+          "open": "unicode.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "unicode.wtf"
+          "file": "unicode.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "unicode.wtf",
+          "file": "unicode.x.md",
           "range": {
             "start": {
               "line": 1,
@@ -170,16 +170,16 @@
           }
         },
         {
-          "open": "walk.wtf"
+          "open": "walk.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:walk.wtf}",
+                "document": "${uri:walk.x.md}",
                 "row": 1,
                 "expected": "- [ ] Walk @every(day)"
               }

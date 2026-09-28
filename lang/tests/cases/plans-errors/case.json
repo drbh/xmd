@@ -1,24 +1,24 @@
 {
   "steps": [
-    { "cli": ["render", "units.wtf", "--format", "text"] },
-    { "cli": ["query", "units.wtf", "plans | select {name, display, solution}", "--json"] },
-    { "cli": ["query", "units.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "mixed.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "quadratic.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "strict.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "shape.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["render", "unbounded.wtf", "--format", "text"] },
-    { "cli": ["query", "unbounded.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["render", "infeasible.wtf", "--format", "text"] },
-    { "cli": ["query", "infeasible.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "units.x.md", "--format", "text"] },
+    { "cli": ["query", "units.x.md", "plans | select {name, display, solution}", "--json"] },
+    { "cli": ["query", "units.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "mixed.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "quadratic.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "strict.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "unbounded.x.md", "--format", "text"] },
+    { "cli": ["query", "unbounded.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "infeasible.x.md", "--format", "text"] },
+    { "cli": ["query", "infeasible.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "unbounded.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "unbounded.wtf" },
-        { "open": "infeasible.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "infeasible.wtf" },
-        { "open": "mixed.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "mixed.wtf" }
+        { "open": "unbounded.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "unbounded.x.md" },
+        { "open": "infeasible.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "infeasible.x.md" },
+        { "open": "mixed.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "mixed.x.md" }
       ]
     }
   ]

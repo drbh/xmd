@@ -1,9 +1,9 @@
 //! External data behind explicit refreshes: exchange rates, weather forecasts
-//! and stock quotes. Values live in `.wtf/lookups.json` with the time they were
+//! and stock quotes. Values live in `.xmd/lookups.json` with the time they were
 //! fetched, so notes keep working offline and every badge can show its age.
-//! Fetching happens only in the native app, on `wtf refresh` or the Refresh
+//! Fetching happens only in the native app, on `xmd refresh` or the Refresh
 //! lens, through built-in keyless providers or commands from
-//! `.wtf/providers.json`.
+//! `.xmd/providers.json`.
 use crate::{
     engine_impl::{Currency, Value, decimal},
     error::{EvalError, EvalResult, PropertyOwner},
@@ -65,10 +65,10 @@ pub struct Lookup {
     pub source: String,
 }
 /// Keyed by the spelling `LookupKey` displays, because that is the on-disk
-/// format of `.wtf/lookups.json`.
+/// format of `.xmd/lookups.json`.
 pub(crate) type Store = BTreeMap<String, Lookup>;
 
-/// What a note asked the world for. `Display` writes the key `.wtf/lookups.json`
+/// What a note asked the world for. `Display` writes the key `.xmd/lookups.json`
 /// is stored under and `FromStr` reads one back, so the spelling is defined
 /// once instead of being formatted and re-parsed at every use.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -305,23 +305,23 @@ pub mod native {
     use std::path::Path;
 
     pub fn load(root: &Path) -> Store {
-        std::fs::read(root.join(".wtf/lookups.json"))
+        std::fs::read(root.join(".xmd/lookups.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default()
     }
     pub fn save(root: &Path, store: &Store) -> Result<(), String> {
-        let dir = root.join(".wtf");
+        let dir = root.join(".xmd");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let bytes = serde_json::to_vec_pretty(store).map_err(|e| e.to_string())?;
         let tmp = dir.join(format!("lookups-{}.tmp", std::process::id()));
         std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
         std::fs::rename(tmp, dir.join("lookups.json")).map_err(|e| e.to_string())
     }
-    /// `.wtf/providers.json` maps a lookup kind to a command printing JSON,
+    /// `.xmd/providers.json` maps a lookup kind to a command printing JSON,
     /// with `{from}`, `{to}`, `{symbol}`, `{place}`, `{date}` placeholders.
     fn providers(root: &Path) -> BTreeMap<String, String> {
-        std::fs::read(root.join(".wtf/providers.json"))
+        std::fs::read(root.join(".xmd/providers.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default()
@@ -358,7 +358,7 @@ pub mod native {
                 "--max-time",
                 "15",
                 "-A",
-                "Mozilla/5.0 wtf",
+                "Mozilla/5.0 xmd",
                 url,
             ])
             .kill_on_drop(true);
@@ -426,7 +426,7 @@ pub mod native {
                     ));
                 }
                 // Yahoo's chart endpoint is unofficial but keyless; a provider
-                // command in .wtf/providers.json replaces it.
+                // command in .xmd/providers.json replaces it.
                 let body = get(&format!(
                     "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d",
                     encode(symbol)
@@ -436,7 +436,7 @@ pub mod native {
                     serde_json::from_str(&body).map_err(|e| e.to_string())?;
                 let meta = &data["chart"]["result"][0]["meta"];
                 let price = meta["regularMarketPrice"].as_f64().ok_or_else(|| {
-                    format!("No quote for {symbol} from finance.yahoo.com; set a quote provider in .wtf/providers.json")
+                    format!("No quote for {symbol} from finance.yahoo.com; set a quote provider in .xmd/providers.json")
                 })?;
                 Ok((
                     serde_json::json!({

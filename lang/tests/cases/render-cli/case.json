@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--root",
         "notes",
         "--now",
@@ -16,7 +16,7 @@
     {
       "cli": [
         "render",
-        "${root}/notes/main.wtf",
+        "${root}/notes/main.x.md",
         "--root",
         "notes",
         "--now",
@@ -27,15 +27,15 @@
     },
     {
       "read": [
-        "notes/main.wtf",
-        "notes/values.wtf",
-        "notes/.wtf/cache.json"
+        "notes/main.x.md",
+        "notes/values.x.md",
+        "notes/.xmd/cache.json"
       ]
     },
     {
       "cli": [
         "render",
-        "clock.wtf",
+        "clock.x.md",
         "--now",
         "2026-09-18T23:30:00-04:00",
         "--format",
@@ -45,7 +45,7 @@
     {
       "cli": [
         "render",
-        "clock.wtf",
+        "clock.x.md",
         "--on",
         "2026-09-17",
         "--format",
@@ -55,7 +55,7 @@
     {
       "cli": [
         "render",
-        "clock.wtf",
+        "clock.x.md",
         "--on",
         "2026-09-17",
         "--now",
@@ -74,7 +74,7 @@
     {
       "cli": [
         "render",
-        "plain_empty.wtf",
+        "plain_empty.x.md",
         "--format",
         "text"
       ]
@@ -82,7 +82,7 @@
     {
       "cli": [
         "render",
-        "plain_prose.wtf",
+        "plain_prose.x.md",
         "--format",
         "text"
       ]
@@ -90,7 +90,7 @@
     {
       "cli": [
         "render",
-        "plain_comment.wtf",
+        "plain_comment.x.md",
         "--format",
         "text"
       ]
@@ -98,7 +98,7 @@
     {
       "cli": [
         "render",
-        "plain_code.wtf",
+        "plain_code.x.md",
         "--format",
         "text"
       ]
@@ -106,7 +106,7 @@
     {
       "cli": [
         "render",
-        "diag.wtf",
+        "diag.x.md",
         "--format",
         "text"
       ]
@@ -114,7 +114,7 @@
     {
       "cli": [
         "render",
-        "warn.wtf",
+        "warn.x.md",
         "--on",
         "2026-09-18",
         "--format",
@@ -124,7 +124,7 @@
     {
       "cli": [
         "render",
-        "missing.wtf",
+        "missing.x.md",
         "--format",
         "text"
       ]
@@ -140,7 +140,7 @@
     {
       "cli": [
         "render",
-        "../outside.wtf",
+        "../outside.x.md",
         "--root",
         "notes",
         "--now",
@@ -151,13 +151,13 @@
     },
     {
       "write": {
-        "ignored.wtf": "answer := 42\n"
+        "ignored.x.md": "answer := 42\n"
       }
     },
     {
       "cli": [
         "render",
-        "ignored.wtf",
+        "ignored.x.md",
         "--format",
         "text"
       ]
@@ -165,21 +165,21 @@
     {
       "cli": [
         "render",
-        "money.wtf"
+        "money.x.md"
       ]
     },
     {
       "cli": [
         "render",
-        "money.wtf",
+        "money.x.md",
         "--format",
         "pdf"
       ]
     },
     {
       "read": [
-        ".wtf/cache.json",
-        "money.wtf"
+        ".xmd/cache.json",
+        "money.x.md"
       ]
     }
   ]

@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "values | select {name, display, errors}",
         "--root",
         "pair",
@@ -14,7 +14,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "a",
         "--root",
         "pair",
@@ -24,7 +24,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "safe",
         "--root",
         "pair",
@@ -34,7 +34,7 @@
     {
       "cli": [
         "query",
-        "daily.wtf",
+        "daily.x.md",
         "values | select {name, display, errors}",
         "--root",
         "self",
@@ -44,7 +44,7 @@
     {
       "cli": [
         "render",
-        "daily.wtf",
+        "daily.x.md",
         "--root",
         "self",
         "--format",
@@ -54,7 +54,7 @@
     {
       "cli": [
         "query",
-        "daily.wtf",
+        "daily.x.md",
         "diagnostics | select {line, severity, message}",
         "--root",
         "ambiguous",
@@ -64,7 +64,7 @@
     {
       "cli": [
         "render",
-        "daily.wtf",
+        "daily.x.md",
         "--root",
         "ambiguous",
         "--format",

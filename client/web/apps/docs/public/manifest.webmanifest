@@ -1,6 +1,6 @@
 {
-  "name": "WTF Docs",
-  "short_name": "WTF Docs",
+  "name": "XMD Docs",
+  "short_name": "XMD Docs",
   "description": "Plain-text documents that calculate, count, plan, and remember.",
   "start_url": "./",
   "scope": "./",

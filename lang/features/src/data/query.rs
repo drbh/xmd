@@ -160,7 +160,7 @@ impl Query {
     pub fn load_imports(&self, workspace: &mut eval::Workspace, only: Option<&Path>) {
         let context = only
             .map(Path::to_path_buf)
-            .unwrap_or_else(|| workspace.root().join("__query__.wtf"));
+            .unwrap_or_else(|| workspace.root().join(common::note_file("__query__")));
         let mut requests = std::collections::BTreeSet::new();
         if let Some(expr) = &self.expression {
             requests.extend(
@@ -330,7 +330,7 @@ pub(crate) fn execute(
     }
     let context = only
         .map(Path::to_path_buf)
-        .unwrap_or_else(|| ws.root().join("__query__.wtf"));
+        .unwrap_or_else(|| ws.root().join(common::note_file("__query__")));
     let mut items = Vec::new();
     if let Some(expr) = &query.expression {
         let bindings = Arc::new(WorkspaceBindings {

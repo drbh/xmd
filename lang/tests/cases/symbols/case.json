@@ -3,46 +3,46 @@
     {
       "lsp": [
         {
-          "open": "nested.wtf"
+          "open": "nested.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "nested.wtf"
+          "file": "nested.x.md"
         },
         {
-          "open": "crlf.wtf"
-        },
-        {
-          "request": "textDocument/documentSymbol",
-          "file": "crlf.wtf"
-        },
-        {
-          "open": "flat.wtf"
+          "open": "crlf.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "flat.wtf"
+          "file": "crlf.x.md"
         },
         {
-          "open": "trailing.wtf"
-        },
-        {
-          "request": "textDocument/documentSymbol",
-          "file": "trailing.wtf"
-        },
-        {
-          "open": "empty.wtf"
+          "open": "flat.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "empty.wtf"
+          "file": "flat.x.md"
         },
         {
-          "open": "prose.wtf"
+          "open": "trailing.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "prose.wtf"
+          "file": "trailing.x.md"
+        },
+        {
+          "open": "empty.x.md"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "empty.x.md"
+        },
+        {
+          "open": "prose.x.md"
+        },
+        {
+          "request": "textDocument/documentSymbol",
+          "file": "prose.x.md"
         }
       ]
     }

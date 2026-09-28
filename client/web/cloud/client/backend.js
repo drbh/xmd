@@ -4,7 +4,7 @@
 // nothing about the editor; live editing (live.js, with Yjs) loads on demand.
 const base = new URL("../", import.meta.url); // the site root; the API lives beside the app
 // Offline: the last library seen and saves that could not be sent yet.
-const CACHE = "wtf.docs.cloud.v1", OUTBOX = "wtf.docs.cloud.outbox.v1";
+const CACHE = "xmd.docs.cloud.v1", OUTBOX = "xmd.docs.cloud.outbox.v1";
 const read = key => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } };
 const write = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* cache is best effort */ } };
 const isNetworkError = e => e instanceof TypeError || e?.code === "offline";

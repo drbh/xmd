@@ -286,7 +286,7 @@ pub fn fragment(snapshot: &Snapshot<'_>) -> Result<String, String> {
 /// A standalone page has no scripts, fonts, or other external requests.
 pub fn document(title: &str, body: &str) -> String {
     format!(
-        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title><style>{}\nhtml {{ background: #202124; }} body {{ margin: 0; padding: 28px; }} @media print {{ html {{ background: white; }} body {{ padding: 0; }} }}</style></head><body><pre class=\"wtf\"><code>{body}</code></pre></body></html>\n",
+        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{}</title><style>{}\nhtml {{ background: #202124; }} body {{ margin: 0; padding: 28px; }} @media print {{ html {{ background: white; }} body {{ padding: 0; }} }}</style></head><body><pre class=\"xmd\"><code>{body}</code></pre></body></html>\n",
         escape(title),
         styles()
     )
@@ -318,7 +318,7 @@ pub fn styles() -> String {
             .expect("valid bundled token palette");
     let mut css = include_str!("../../../client/web/theme/base.css").to_string();
     for rule in rules {
-        write!(css, ".wtf .t-{}", rule["token_type"].as_str().unwrap()).unwrap();
+        write!(css, ".xmd .t-{}", rule["token_type"].as_str().unwrap()).unwrap();
         if let Some(modifiers) = rule["token_modifiers"].as_array() {
             for modifier in modifiers {
                 write!(css, ".{}", modifier.as_str().unwrap()).unwrap();

@@ -71,7 +71,7 @@ fn diagnostic(
     Diagnostic {
         range: span.range(&ws.documents[path].text),
         severity: Some(DiagnosticSeverity::ERROR),
-        source: Some("wtf".into()),
+        source: Some("xmd".into()),
         message,
         code: Some(NumberOrString::String(code.as_str().into())),
         related_information: (!related.is_empty()).then(|| {

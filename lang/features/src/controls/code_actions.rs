@@ -203,7 +203,7 @@ pub(crate) fn toggle_task(
         edits.push(TextEdit::new(
             Range::new(end, end),
             format!(
-                "{prefix}<!-- wtf-history {} -->{newline}",
+                "{prefix}<!-- xmd-history {} -->{newline}",
                 history.to_string().replace("-->", "--\\u003e")
             ),
         ));

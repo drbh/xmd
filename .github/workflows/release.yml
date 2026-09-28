@@ -1,6 +1,6 @@
 name: Release
 
-# Pushing a tag `vX.Y.Z` builds `wtf` for every supported platform, packages
+# Pushing a tag `vX.Y.Z` builds `xmd` for every supported platform, packages
 # the VS Code and Zed extensions, and publishes all of it as a GitHub Release
 # together with the install scripts. `workflow_dispatch` re-runs the same
 # pipeline for an existing tag, so a release can be repaired or the pipeline
@@ -96,7 +96,7 @@ jobs:
         with:
           key: ${{ matrix.target }}
       - name: Build
-        run: cargo build --release -p wtf --target ${{ matrix.target }}
+        run: cargo build --release -p xmd --target ${{ matrix.target }}
       - name: Package
         shell: bash
         env:
@@ -104,7 +104,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
-          exe=wtf
+          exe=xmd
           "target/$TARGET/release/$exe" --version
           rm -rf dist stage && mkdir -p dist stage
           # The binary sits at the archive root, next to the README (and the
@@ -112,8 +112,8 @@ jobs:
           cp "target/$TARGET/release/$exe" README.md stage/
           files="$exe README.md"
           if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
-          name="wtf-$VERSION-$TARGET.tar.gz"
-          stable="wtf-$TARGET.tar.gz"
+          name="xmd-$VERSION-$TARGET.tar.gz"
+          stable="xmd-$TARGET.tar.gz"
           tar -C stage -czf "dist/$name" $files
           cp "dist/$name" "dist/$stable"
           cd dist
@@ -123,7 +123,7 @@ jobs:
           cat ./*.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: wtf-${{ matrix.target }}
+          name: xmd-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
           retention-days: 3
@@ -154,14 +154,14 @@ jobs:
           set -euo pipefail
           npm --prefix client/ide/vscode run package
           mkdir -p dist
-          mv "client/ide/vscode/wtf-$VERSION.vsix" dist/
-          cp "dist/wtf-$VERSION.vsix" dist/wtf.vsix
+          mv "client/ide/vscode/xmd-$VERSION.vsix" dist/
+          cp "dist/xmd-$VERSION.vsix" dist/xmd.vsix
           cd dist
           for f in *.vsix; do sha256sum "$f" > "$f.sha256"; done
           cat ./*.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: wtf-vscode
+          name: xmd-vscode
           path: dist/*
           if-no-files-found: error
           retention-days: 3
@@ -192,16 +192,16 @@ jobs:
         run: |
           set -euo pipefail
           cd client/ide/zed
-          cp target/wasm32-wasip2/release/wtf_zed_extension.wasm extension.wasm
+          cp target/wasm32-wasip2/release/xmd_zed_extension.wasm extension.wasm
           mkdir -p dist
-          tar -czf "dist/wtf-zed-$VERSION.tar.gz" extension.toml extension.wasm languages
-          cp "dist/wtf-zed-$VERSION.tar.gz" dist/wtf-zed.tar.gz
+          tar -czf "dist/xmd-zed-$VERSION.tar.gz" extension.toml extension.wasm languages
+          cp "dist/xmd-zed-$VERSION.tar.gz" dist/xmd-zed.tar.gz
           cd dist
           for f in *.tar.gz; do sha256sum "$f" > "$f.sha256"; done
           cat ./*.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: wtf-zed
+          name: xmd-zed
           path: client/ide/zed/dist/*
           if-no-files-found: error
           retention-days: 3
@@ -219,7 +219,7 @@ jobs:
           ref: ${{ needs.version.outputs.tag }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: wtf-*
+          pattern: xmd-*
           path: assets
           merge-multiple: true
       - name: Assemble the assets
@@ -236,7 +236,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}
-          name: wtf ${{ needs.version.outputs.version }}
+          name: xmd ${{ needs.version.outputs.version }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: assets/*

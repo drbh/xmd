@@ -3,79 +3,79 @@
     {
       "lsp": [
         {
-          "open": "links.wtf"
+          "open": "links.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "request": "textDocument/documentLink",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "links.wtf",
+          "file": "links.x.md",
           "line": 0,
           "character": 4
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "change": {
-            "file": "links.wtf",
-            "text": "\ud83e\udd80 ./other.wtf\n[focus] := $3.30\n- [x] Interview 09/17/2026 at 7AM\n"
+            "file": "links.x.md",
+            "text": "\ud83e\udd80 ./other.x.md\n[focus] := $3.30\n- [x] Interview 09/17/2026 at 7AM\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "request": "textDocument/documentLink",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "links.wtf"
+          "file": "links.x.md"
         },
         {
-          "open": "symbols.wtf"
+          "open": "symbols.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "symbols.wtf"
+          "file": "symbols.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "symbols.wtf"
+          "file": "symbols.x.md"
         },
         {
           "change": {
-            "file": "symbols.wtf",
+            "file": "symbols.x.md",
             "text": "# Trip\n[$3,000]:budget\n## Cash\n[remaining] := budget - $1,410\n- [ ] Pack :pack\n  - [x] Passport\n[timer] := countdown(25m)\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "symbols.wtf"
+          "file": "symbols.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "symbols.wtf"
+          "file": "symbols.x.md"
         },
         {
-          "open": "prose.wtf"
+          "open": "prose.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "prose.wtf"
+          "file": "prose.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "prose.wtf",
+          "file": "prose.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -89,17 +89,17 @@
         },
         {
           "change": {
-            "file": "prose.wtf",
+            "file": "prose.x.md",
             "text": "# Trip\n\nOur budget is [$3,000]:trip_budget.\n\nWe've spent [$1,410]:trip_spent.\n\n[trip_left] := trip_budget - trip_spent\n\nWe have [trip_left] remaining.\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "prose.wtf"
+          "file": "prose.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "prose.wtf",
+          "file": "prose.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -115,19 +115,19 @@
     },
     {
       "read": [
-        "links.wtf",
-        "symbols.wtf",
-        "prose.wtf"
+        "links.x.md",
+        "symbols.x.md",
+        "prose.x.md"
       ]
     },
     {
       "lsp": [
         {
-          "open": "flat.wtf"
+          "open": "flat.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "flat.wtf"
+          "file": "flat.x.md"
         }
       ],
       "capabilities": {}
@@ -143,15 +143,15 @@
     {
       "lsp": [
         {
-          "open": "ignored/TODOS.wtf"
+          "open": "ignored/TODOS.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "ignored/TODOS.wtf"
+          "file": "ignored/TODOS.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "ignored/TODOS.wtf",
+          "file": "ignored/TODOS.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -165,21 +165,21 @@
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "ignored/TODOS.wtf"
+          "file": "ignored/TODOS.x.md"
         },
         {
           "change": {
-            "file": "ignored/TODOS.wtf",
+            "file": "ignored/TODOS.x.md",
             "text": "# Notes\n\n## Checklist :launch\n\n- [x] First @estimate(20m)\n- [X] Finished\n\ndone := completed(launch)\nleft := remaining(launch)\nwork := effort(launch)\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "ignored/TODOS.wtf"
+          "file": "ignored/TODOS.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "ignored/TODOS.wtf",
+          "file": "ignored/TODOS.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -196,7 +196,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:ignored/TODOS.wtf}",
+                "uri": "${uri:ignored/TODOS.x.md}",
                 "type": 2
               }
             ]
@@ -204,7 +204,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "ignored/TODOS.wtf",
+          "file": "ignored/TODOS.x.md",
           "range": {
             "start": {
               "line": 0,

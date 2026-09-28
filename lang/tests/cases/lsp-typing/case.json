@@ -6,15 +6,15 @@
           "initialize": true
         },
         {
-          "open": "plan.wtf"
+          "open": "plan.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "plan.wtf"
+          "file": "plan.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "plan.wtf",
+          "file": "plan.x.md",
           "line": 7,
           "character": 0,
           "extra": {
@@ -28,7 +28,7 @@
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "plan.wtf",
+          "file": "plan.x.md",
           "line": 4,
           "character": 13,
           "extra": {
@@ -44,7 +44,7 @@
     },
     {
       "read": [
-        "plan.wtf"
+        "plan.x.md"
       ]
     }
   ]

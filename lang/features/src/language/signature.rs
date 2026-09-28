@@ -71,7 +71,11 @@ const fn describe(builtin: Builtin) -> Signature {
         Builtin::Import => Doc {
             params: &["id: Text"],
             result: Kind(ValueType::Record),
-            documentation: "Load a module by ID, or a note by path such as import(\"./values.wtf\"); members keep their own source.",
+            documentation: concat!(
+                "Load a module by ID, or a note by path such as import(\"./values.",
+                common::note_extension!(),
+                "\"); members keep their own source."
+            ),
             example: "\"format\"",
         },
         Builtin::SolveLinear => Doc {
@@ -403,13 +407,13 @@ const fn describe(builtin: Builtin) -> Signature {
         Builtin::Rate => Doc {
             params: &["from: currency code", "to: currency code"],
             result: Kind(ValueType::Number),
-            documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with wtf refresh or the ⟳ lookups lens; hovers show the age.",
+            documentation: "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with xmd refresh or the ⟳ lookups lens; hovers show the age.",
             example: "EUR, USD",
         },
         Builtin::To => Doc {
             params: &["amount: Money", "currency: code"],
             result: Kind(ValueType::Money),
-            documentation: "Convert money with the cached rate, e.g. to(hotel, USD); without one the note warns until wtf refresh.",
+            documentation: "Convert money with the cached rate, e.g. to(hotel, USD); without one the note warns until xmd refresh.",
             example: "hotel, USD",
         },
         Builtin::Forecast => Doc {
@@ -427,7 +431,7 @@ const fn describe(builtin: Builtin) -> Signature {
         Builtin::Quote => Doc {
             params: &["symbol: ticker code"],
             result: Kind(ValueType::Money),
-            documentation: "The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need a provider in .wtf/providers.json.",
+            documentation: "The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need a provider in .xmd/providers.json.",
             example: "NVDA",
         },
         Builtin::Date => Doc {

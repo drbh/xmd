@@ -1,5 +1,5 @@
-### 0 cli render games.wtf --format text
-$ wtf render games.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli render games.x.md --format text
+$ xmd render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 # Scores
@@ -13,15 +13,15 @@ called := scores.resolve(112, 108) = home
 spread := scores.margin(112, 108) = 4
 drawn := scores.resolve(2, 2) = draw
 --- stderr
-<root>/games.wtf:3:20: error: Module sports.property: No cached score for this game; refresh the link first
-<root>/games.wtf:3:41: error: Module sports.property: No cached score for this game; refresh the link first
-<root>/games.wtf:3:72: error: Module sports.property: No cached score for this game; refresh the link first
-<root>/games.wtf:4:7: error: Module sports.property: No cached score for this game; refresh the link first
-<root>/games.wtf:4:45: error: Module sports.property: No cached score for this game; refresh the link first
-wtf: 5 error(s) while rendering
+<root>/games.x.md:3:20: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.x.md:3:41: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.x.md:3:72: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.x.md:4:7: error: Module sports.property: No cached score for this game; refresh the link first
+<root>/games.x.md:4:45: error: Module sports.property: No cached score for this game; refresh the link first
+xmd: 5 error(s) while rendering
 
-### 1 cli render unsupported.wtf --format text
-$ wtf render unsupported.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli render unsupported.x.md --format text
+$ xmd render unsupported.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 https://www.espn.com/nba/standings
@@ -31,13 +31,13 @@ https://www.espn.com/soccer/game/_/gameId/704321
 https://www.espn.com.evil/nba/game/_/gameId/401584896
 
 ### 2 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (3 resources)
 
-### 3 read .wtf/cache.json
--- .wtf/cache.json
+### 3 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://espn.com/nfl/game/_/gameId/401671793": {
     "title": "BUF @ KC",
@@ -102,10 +102,10 @@ Resource cache updated (3 resources)
 }
 
 ### 4 write
--- write .wtf/cache.json (1446 bytes)
+-- write .xmd/cache.json (1446 bytes)
 
-### 5 cli render games.wtf --format text
-$ wtf render games.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 5 cli render games.x.md --format text
+$ xmd render games.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Scores
@@ -119,25 +119,25 @@ called := scores.resolve(112, 108) = home
 spread := scores.margin(112, 108) = 4
 drawn := scores.resolve(2, 2) = draw
 
-### 6 cli query games.wtf diagnostics | select {message, code} --json
-$ wtf query games.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli query games.x.md diagnostics | select {message, code} --json
+$ xmd query games.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []
 
 ### 7 lsp
--- open games.wtf
--- await textDocument/publishDiagnostics games.wtf
+-- open games.x.md
+-- await textDocument/publishDiagnostics games.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/games.wtf",
+  "uri": "file://<root>/games.x.md",
   "version": 1
 }
--- request textDocument/hover games.wtf 2:15
+-- request textDocument/hover games.x.md 2:15
 {
   "contents": {
     "kind": "markdown",
-    "value": "game.home_score = 112\n\n**game · Resource**\n\nhttps://www.espn.com/nba/game/_/gameId/401584896\n\n[Open resource](<https://www.espn.com/nba/game/_/gameId/401584896>)\n\n**LAL @ BOS**\n\nBOS 112 – LAL 108 · Final\n\nResult: home\n\nFetched 2026-09-18 11:00 UTC.\n\nDefinition: [game](<file://<root>/games.wtf#L2>) · <root>/games.wtf:2"
+    "value": "game.home_score = 112\n\n**game · Resource**\n\nhttps://www.espn.com/nba/game/_/gameId/401584896\n\n[Open resource](<https://www.espn.com/nba/game/_/gameId/401584896>)\n\n**LAL @ BOS**\n\nBOS 112 – LAL 108 · Final\n\nResult: home\n\nFetched 2026-09-18 11:00 UTC.\n\nDefinition: [game](<file://<root>/games.x.md#L2>) · <root>/games.x.md:2"
   },
   "range": {
     "end": {
@@ -150,7 +150,7 @@ exit 0
     }
   }
 }
--- request textDocument/completion games.wtf 3:6
+-- request textDocument/completion games.x.md 3:6
 [
   {
     "detail": "Text · https://www.espn.com/nba/game/_/gameId/401584896",
@@ -315,21 +315,21 @@ exit 0
     }
   }
 ]
--- request textDocument/codeAction games.wtf {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+-- request textDocument/codeAction games.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
 [
   {
     "arguments": [
       {
         "kind": "open_resource",
         "target": {
-          "document": "file://<root>/games.wtf",
+          "document": "file://<root>/games.x.md",
           "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
           "row": 1
         },
         "url": "https://www.espn.com/nba/game/_/gameId/401584896"
       }
     ],
-    "command": "wtf.openResource",
+    "command": "xmd.openResource",
     "title": "↗ open"
   },
   {
@@ -337,14 +337,14 @@ exit 0
       {
         "kind": "refresh_resource",
         "target": {
-          "document": "file://<root>/games.wtf",
+          "document": "file://<root>/games.x.md",
           "expected": "https://www.espn.com/nba/game/_/gameId/401584896:game",
           "row": 1
         },
         "url": "https://www.espn.com/nba/game/_/gameId/401584896"
       }
     ],
-    "command": "wtf.refreshResource",
+    "command": "xmd.refreshResource",
     "title": "⟳ score"
   }
 ]

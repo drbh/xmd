@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "map(filter(tasks, fn(t) => !t.done), fn(t) => t.title)",
         "--root",
         "notes",
@@ -14,7 +14,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "tasks | where !done | select title",
         "--root",
         "notes",
@@ -24,7 +24,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "{count: length(tasks), value: double(n)}",
         "--root",
         "notes",
@@ -34,7 +34,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "sum(tasks.estimate)",
         "--root",
         "notes",
@@ -54,7 +54,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "map(sort_by(tasks, fn(t) => t.title), fn(t) => upper(t.title))",
         "--root",
         "notes",
@@ -64,7 +64,7 @@
     {
       "cli": [
         "query",
-        "a.wtf",
+        "a.x.md",
         "map(group_by(tasks, fn(t) => t.done), fn(g) => {done:g.key, count:length(g.rows)})",
         "--root",
         "notes",
@@ -74,7 +74,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()}",
         "--json"
       ]
@@ -82,7 +82,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "tasks | select map([1], fn(title) => title + 1)",
         "--json"
       ]
@@ -90,7 +90,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "tasks | select if(false, nonexistent, title)",
         "--json"
       ]
@@ -98,7 +98,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "if(true, 1, values)",
         "--json"
       ]
@@ -106,7 +106,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "tasks | select { // | , } inside a comment\n title, nested: {title}}",
         "--json"
       ]
@@ -114,7 +114,7 @@
     {
       "cli": [
         "query",
-        "scope.wtf",
+        "scope.x.md",
         "[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))",
         "--json"
       ]
@@ -122,7 +122,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "add(2)(3)",
         "--json"
       ]
@@ -130,7 +130,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "values | select {name, type, display}",
         "--json"
       ]
@@ -138,7 +138,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "caller(90%)",
         "--json"
       ]
@@ -146,7 +146,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "map([$2, $3], add_tax)",
         "--json"
       ]
@@ -154,7 +154,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "values | where name == \"result\" | select {value, display}",
         "--json"
       ]
@@ -162,7 +162,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "values | where name == \"result\" | select map([1, 2], fn(x) => x + value)",
         "--json"
       ]
@@ -170,7 +170,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "if(true, {title: upper(\"hello\")}, 1 / 0).title",
         "--json"
       ]
@@ -178,7 +178,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "coalesce(get({}, \"missing\"), get([3, 4], 1))",
         "--json"
       ]
@@ -186,7 +186,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "[get([], 0), get({a: 1}, \"a\"), length([])]",
         "--json"
       ]
@@ -194,7 +194,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "{name, cost:money.amount}.name",
         "--json"
       ]
@@ -202,7 +202,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "sum([{x:30m}, {x:null}, {x:90s}].x)",
         "--json"
       ]
@@ -210,7 +210,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "map(sort_by([3, null, 1], fn(x) => x), fn(x) => x)",
         "--json"
       ]
@@ -218,7 +218,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "length(group_by([1, 2, 1], fn(x) => x))",
         "--json"
       ]
@@ -226,7 +226,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "[null < today(), \"a\" < \"b\", date(now()) == today()]",
         "--json"
       ]
@@ -234,7 +234,7 @@
     {
       "cli": [
         "query",
-        "shadow.wtf",
+        "shadow.x.md",
         "read_clock()",
         "--json"
       ]
@@ -242,7 +242,7 @@
     {
       "cli": [
         "query",
-        "shadow.wtf",
+        "shadow.x.md",
         "values | where name == \"now\" | select value",
         "--json"
       ]
@@ -250,7 +250,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "{slice: slice(\"a\ud83e\udd80z\", 1, 2), joined: join(concat([\"a\"], [\"b\"]), \"/\"), bar: repeat(\"\u2588\", round(2.6)), trimmed: trim(\"  hi  \")}",
         "--json"
       ]
@@ -258,7 +258,7 @@
     {
       "cli": [
         "query",
-        "data.wtf",
+        "data.x.md",
         "length(join([\"a\", \"b\", \"c\"], replace(\"xxxxxxxxxx\", \"x\", replace(\"xxxxxxxxxx\", \"x\", \"small\"))))",
         "--json"
       ]
@@ -266,7 +266,7 @@
     {
       "cli": [
         "query",
-        "lib.wtf",
+        "lib.x.md",
         "eval(\"rate\")",
         "--json"
       ]

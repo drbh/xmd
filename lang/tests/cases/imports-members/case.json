@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "grouped.wtf",
+        "grouped.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "graph",
-        "main.wtf",
+        "main.x.md",
         "-q",
         "map(graph.nodes, fn(n) => {name: n.name, external: n.external, path: n.source.path})"
       ]
@@ -28,29 +28,29 @@
     {
       "lsp": [
         {
-          "open": "main.wtf"
+          "open": "main.x.md"
         },
         {
-          "open": "values.wtf"
+          "open": "values.x.md"
         },
         {
-          "open": "grouped.wtf"
+          "open": "grouped.x.md"
         },
         {
           "request": "textDocument/definition",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "line": 1,
           "character": 16
         },
         {
           "request": "textDocument/definition",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "line": 2,
           "character": 10
         },
         {
           "request": "textDocument/references",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "line": 1,
           "character": 16,
           "extra": {
@@ -61,7 +61,7 @@
         },
         {
           "request": "textDocument/rename",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "line": 1,
           "character": 16,
           "extra": {
@@ -70,19 +70,19 @@
         },
         {
           "request": "textDocument/completion",
-          "file": "main.wtf",
+          "file": "main.x.md",
           "line": 1,
           "character": 14
         },
         {
           "request": "textDocument/definition",
-          "file": "grouped.wtf",
+          "file": "grouped.x.md",
           "line": 5,
           "character": 7
         },
         {
           "request": "textDocument/hover",
-          "file": "grouped.wtf",
+          "file": "grouped.x.md",
           "line": 5,
           "character": 7
         }

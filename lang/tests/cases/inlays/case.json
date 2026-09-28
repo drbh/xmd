@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "n.wtf",
+        "n.x.md",
         "--format",
         "text"
       ]
@@ -12,15 +12,15 @@
     {
       "lsp": [
         {
-          "open": "n.wtf"
+          "open": "n.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "n.wtf"
+          "file": "n.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "n.wtf",
+          "file": "n.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -34,7 +34,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "n.wtf",
+          "file": "n.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -48,7 +48,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "missing.wtf",
+          "file": "missing.x.md",
           "range": {
             "start": {
               "line": 0,

@@ -1,5 +1,5 @@
-### 0 cli render trip.wtf --format text
-$ wtf render trip.wtf --format text --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli render trip.x.md --format text
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 ## Friday, November 20, 2026 · New York | Oaxaca 1 stops · 07:04 AM – 07:04 AM · in 64 days · 24°C / 12°C · light rain · 40% rain
@@ -14,8 +14,8 @@ exit 0
 [later] := forecast("Oaxaca", 2026-11-21) = 25°C / 14°C · seasonal outlook (estimate) · 50% rain
 [pack_rain_jacket] := later.rain > 30% = true
 
-### 1 cli query trip.wtf map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json
-$ wtf query trip.wtf map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query trip.x.md map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json
+$ xmd query trip.x.md map(days, fn(d) => {line: d.line, places: d.value.places, forecast: d.value.forecast}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -47,8 +47,8 @@ exit 0
   }
 ]
 
-### 2 cli query trip.wtf values | select {name, display} --json
-$ wtf query trip.wtf values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 2 cli query trip.x.md values | select {name, display} --json
+$ xmd query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -74,21 +74,21 @@ exit 0
   }
 ]
 
-### 3 cli query trip.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query trip.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 3 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 []
 
 ### 4 lsp
--- open trip.wtf
--- await textDocument/publishDiagnostics trip.wtf
+-- open trip.x.md
+-- await textDocument/publishDiagnostics trip.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/trip.wtf",
+  "uri": "file://<root>/trip.x.md",
   "version": 1
 }
--- request textDocument/inlayHint trip.wtf {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint trip.x.md {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
 [
   {
     "label": "1 stops · 07:04 AM – 07:04 AM · in 64 days · 24°C / 12°C · light rain · 40% rain",
@@ -123,7 +123,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**weather · Forecast**\n\n76°F / 53°F · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 76°F / 53°F · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [weather](<file://<root>/trip.wtf#L7>) · <root>/trip.wtf:7"
+      "value": "**weather · Forecast**\n\n76°F / 53°F · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 76°F / 53°F · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [weather](<file://<root>/trip.x.md#L7>) · <root>/trip.x.md:7"
     }
   },
   {
@@ -135,7 +135,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**rain · Ratio**\n\n40%\n\n```text\nweather.rain\n= 40%\n= 40%\n```\n\nInputs: [weather](<file://<root>/trip.wtf#L7>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [rain](<file://<root>/trip.wtf#L8>) · <root>/trip.wtf:8"
+      "value": "**rain · Ratio**\n\n40%\n\n```text\nweather.rain\n= 40%\n= 40%\n```\n\nInputs: [weather](<file://<root>/trip.x.md#L7>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [rain](<file://<root>/trip.x.md#L8>) · <root>/trip.x.md:8"
     }
   },
   {
@@ -147,7 +147,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**celsius · Forecast**\n\n24°C / 12°C · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20)\n= 24°C / 12°C · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [celsius](<file://<root>/trip.wtf#L9>) · <root>/trip.wtf:9"
+      "value": "**celsius · Forecast**\n\n24°C / 12°C · light rain · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20)\n= 24°C / 12°C · light rain · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com\n\nDefinition: [celsius](<file://<root>/trip.x.md#L9>) · <root>/trip.x.md:9"
     }
   },
   {
@@ -159,7 +159,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**later · Forecast**\n\n25°C / 14°C · seasonal outlook (estimate) · 50% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-21)\n= 25°C / 14°C · seasonal outlook (estimate) · 50% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-21 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [later](<file://<root>/trip.wtf#L10>) · <root>/trip.wtf:10"
+      "value": "**later · Forecast**\n\n25°C / 14°C · seasonal outlook (estimate) · 50% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-21)\n= 25°C / 14°C · seasonal outlook (estimate) · 50% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-21 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [later](<file://<root>/trip.x.md#L10>) · <root>/trip.x.md:10"
     }
   },
   {
@@ -171,7 +171,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nlater.rain > 30%\n= 50% > 30%\n= true\n```\n\nInputs: [later](<file://<root>/trip.wtf#L10>)\n\nLookups:\n- forecast oaxaca 2026-11-21 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/trip.wtf#L11>) · <root>/trip.wtf:11"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nlater.rain > 30%\n= 50% > 30%\n= true\n```\n\nInputs: [later](<file://<root>/trip.x.md#L10>)\n\nLookups:\n- forecast oaxaca 2026-11-21 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/trip.x.md#L11>) · <root>/trip.x.md:11"
     }
   }
 ]

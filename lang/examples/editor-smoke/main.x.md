@@ -1,0 +1,29 @@
+# Editor smoke test :smoke_checklist
+
+<!-- Change 125 to 150. The remaining value should change from $75 to $100. -->
+[$125]:smoke_budget
+source := import("./values.x.md")
+[smoke_remaining] := smoke_budget - source.smoke_spent
+Remaining: [smoke_remaining].
+
+<!-- Go to definition on smoke_spent above to open values.x.md. -->
+<!-- Rename smoke_spent from either file and verify both files change. -->
+
+[smoke_clock] := countdown(30s)
+- [ ] Try task completion and undo :smoke_task @timer(smoke_clock)
+Time left: [smoke_clock.remaining].
+
+<!-- Use code actions or CodeLens to start, pause, resume, and reset the timer. -->
+<!-- Try completion after smoke_clock. and hover smoke_remaining. -->
+
+[smoke_items] := table
+| item | cost |
+| --- | --- |
+| apple | $2 |
+| bread | $5 |
+[smoke_total] := sum(smoke_items, cost)
+Total: [smoke_total].
+
+<!-- Format this document to align the table. -->
+<!-- In editors with on-type formatting, Enter after a checkbox continues it. -->
+<!-- Change smoke_budget to smoke_budgte in the formula to test diagnostics. -->

@@ -1,30 +1,30 @@
 {
   "steps": [
-    { "cli": ["render", "durations.wtf", "--format", "text"] },
+    { "cli": ["render", "durations.x.md", "--format", "text"] },
     {
       "cli": [
         "query",
-        "durations.wtf",
+        "durations.x.md",
         "[30s + 1m, 1m / 2, 0.5m, watch.elapsed > 30s, 2026-09-16T14:00:00-04:00 + 45s, 2026-09-16T14:00:45-04:00 - 2026-09-16T14:00:00-04:00, 2026-09-17 - 2026-09-16, effort(chores), now() - now(), now(), watch.elapsed - alias.elapsed]",
         "--json",
         "--now",
         "2026-09-16T14:00:45-04:00"
       ]
     },
-    { "cli": ["query", "durations.wtf", "2026-09-16 + 1s", "--json"] },
-    { "cli": ["query", "durations.wtf", "tasks | where leaf | select {title, estimate, due}", "--json"] },
+    { "cli": ["query", "durations.x.md", "2026-09-16 + 1s", "--json"] },
+    { "cli": ["query", "durations.x.md", "tasks | where leaf | select {title, estimate, due}", "--json"] },
     {
       "lsp": [
-        { "open": "durations.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "durations.wtf" },
+        { "open": "durations.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "durations.x.md" },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:durations.wtf}",
+                "document": "${uri:durations.x.md}",
                 "row": 3,
                 "expected": "- [ ] Water plants @every(2w) @due(2026-09-16)"
               }

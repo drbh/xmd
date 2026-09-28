@@ -1,18 +1,18 @@
 ### 0 cli query --workspace values | select {name, display} --json
-$ wtf query --workspace values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+$ xmd query --workspace values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 1
 --- stderr
-wtf: <root>/unreadable.wtf: stream did not contain valid UTF-8
+xmd: <root>/unreadable.x.md: stream did not contain valid UTF-8
 
 ### 1 lsp
--- open weather.wtf
--- await textDocument/publishDiagnostics weather.wtf
+-- open weather.x.md
+-- await textDocument/publishDiagnostics weather.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/weather.wtf",
+  "uri": "file://<root>/weather.x.md",
   "version": 1
 }
--- request textDocument/inlayHint weather.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint weather.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 77°F / 57°F · seasonal outlook (estimate) · 40% rain",
@@ -23,7 +23,7 @@ wtf: <root>/unreadable.wtf: stream did not contain valid UTF-8
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.wtf#L1>) · <root>/weather.wtf:1"
+      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.x.md#L1>) · <root>/weather.x.md:1"
     }
   },
   {
@@ -35,7 +35,7 @@ wtf: <root>/unreadable.wtf: stream did not contain valid UTF-8
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 30%\n= 40% > 30%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 30%\n= 40% > 30%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   },
   {
@@ -47,21 +47,21 @@ wtf: <root>/unreadable.wtf: stream did not contain valid UTF-8
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 30%\n= 40% > 30%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 30%\n= 40% > 30%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   }
 ]
--- change weather.wtf (version 2)
+-- change weather.x.md (version 2)
 weather := forecast("Oaxaca", 2026-11-20, F)
 pack_rain_jacket := weather.rain > 80%
 We should [pack_rain_jacket].
--- await textDocument/publishDiagnostics weather.wtf
+-- await textDocument/publishDiagnostics weather.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/weather.wtf",
+  "uri": "file://<root>/weather.x.md",
   "version": 2
 }
--- request textDocument/inlayHint weather.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint weather.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 77°F / 57°F · seasonal outlook (estimate) · 40% rain",
@@ -72,7 +72,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.wtf#L1>) · <root>/weather.wtf:1"
+      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 40% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 40% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.x.md#L1>) · <root>/weather.x.md:1"
     }
   },
   {
@@ -84,7 +84,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\nfalse\n\n```text\nweather.rain > 80%\n= 40% > 80%\n= false\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\nfalse\n\n```text\nweather.rain > 80%\n= 40% > 80%\n= false\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   },
   {
@@ -96,19 +96,19 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\nfalse\n\n```text\nweather.rain > 80%\n= 40% > 80%\n= false\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\nfalse\n\n```text\nweather.rain > 80%\n= 40% > 80%\n= false\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   }
 ]
--- write .wtf/lookups.json (271 bytes)
--- watched .wtf/lookups.json
--- await textDocument/publishDiagnostics weather.wtf
+-- write .xmd/lookups.json (271 bytes)
+-- watched .xmd/lookups.json
+-- await textDocument/publishDiagnostics weather.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/weather.wtf",
+  "uri": "file://<root>/weather.x.md",
   "version": 2
 }
--- request textDocument/inlayHint weather.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint weather.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 77°F / 57°F · seasonal outlook (estimate) · 90% rain",
@@ -119,7 +119,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 90% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 90% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.wtf#L1>) · <root>/weather.wtf:1"
+      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 90% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 90% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.x.md#L1>) · <root>/weather.x.md:1"
     }
   },
   {
@@ -131,7 +131,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   },
   {
@@ -143,18 +143,18 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   }
 ]
--- save weather.wtf
--- await textDocument/publishDiagnostics weather.wtf
+-- save weather.x.md
+-- await textDocument/publishDiagnostics weather.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/weather.wtf",
+  "uri": "file://<root>/weather.x.md",
   "version": 2
 }
--- request textDocument/inlayHint weather.wtf {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint weather.x.md {"end":{"character":0,"line":10},"start":{"character":0,"line":0}}
 [
   {
     "label": "= 77°F / 57°F · seasonal outlook (estimate) · 90% rain",
@@ -165,7 +165,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 90% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 90% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.wtf#L1>) · <root>/weather.wtf:1"
+      "value": "**weather · Forecast**\n\n77°F / 57°F · seasonal outlook (estimate) · 90% rain\n\n```text\nforecast(\"Oaxaca\", 2026-11-20, F)\n= 77°F / 57°F · seasonal outlook (estimate) · 90% rain\n```\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [weather](<file://<root>/weather.x.md#L1>) · <root>/weather.x.md:1"
     }
   },
   {
@@ -177,7 +177,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   },
   {
@@ -189,7 +189,7 @@ We should [pack_rain_jacket].
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.wtf#L2>) · <root>/weather.wtf:2"
+      "value": "**pack_rain_jacket · Boolean**\n\ntrue\n\n```text\nweather.rain > 80%\n= 90% > 80%\n= true\n```\n\nInputs: [weather](<file://<root>/weather.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [pack_rain_jacket](<file://<root>/weather.x.md#L2>) · <root>/weather.x.md:2"
     }
   }
 ]

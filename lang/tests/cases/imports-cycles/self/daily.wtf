@@ -1,4 +1,0 @@
-[remaining] := import("./resources.wtf").budget - spent
-[spent] := 1410
-[a] := b
-[b] := a

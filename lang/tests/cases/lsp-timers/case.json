@@ -3,15 +3,15 @@
     {
       "lsp": [
         {
-          "open": "timers.wtf"
+          "open": "timers.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "timers.wtf"
+          "file": "timers.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -25,17 +25,17 @@
         },
         {
           "request": "textDocument/codeLens",
-          "file": "timers.wtf"
+          "file": "timers.x.md"
         },
         {
           "request": "textDocument/completion",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "line": 3,
           "character": 13
         },
         {
           "request": "textDocument/rename",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "line": 3,
           "character": 7,
           "extra": {
@@ -45,11 +45,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:timers.wtf}",
+                "document": "${uri:timers.x.md}",
                 "name": "watch",
                 "action": "start"
               }
@@ -61,17 +61,17 @@
         },
         {
           "change": {
-            "file": "timers.wtf",
+            "file": "timers.x.md",
             "text": "[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)\n[focus] := countdown(2s)\n- [ ] Work @timer(watch)\nSpent [watch.elapsed].\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "timers.wtf"
+          "file": "timers.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -86,11 +86,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:timers.wtf}",
+                "document": "${uri:timers.x.md}",
                 "name": "watch",
                 "action": "start"
               }
@@ -100,11 +100,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:timers.wtf}",
+                "document": "${uri:timers.x.md}",
                 "name": "watch",
                 "action": "pause"
               }
@@ -116,17 +116,17 @@
         },
         {
           "change": {
-            "file": "timers.wtf",
+            "file": "timers.x.md",
             "text": "[watch] := stopwatch(0s)\n[focus] := countdown(2s)\n- [ ] Work @timer(watch)\nSpent [watch.elapsed].\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "timers.wtf"
+          "file": "timers.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -141,11 +141,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:timers.wtf}",
+                "document": "${uri:timers.x.md}",
                 "name": "watch",
                 "action": "reset"
               }
@@ -156,15 +156,15 @@
           "await": "workspace/applyEdit"
         },
         {
-          "open": "expired.wtf"
+          "open": "expired.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "expired.wtf"
+          "file": "expired.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "expired.wtf",
+          "file": "expired.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -178,13 +178,13 @@
         },
         {
           "request": "textDocument/codeLens",
-          "file": "expired.wtf"
+          "file": "expired.x.md"
         }
       ]
     },
     {
       "read": [
-        "timers.wtf"
+        "timers.x.md"
       ]
     }
   ]

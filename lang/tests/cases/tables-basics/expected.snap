@@ -1,5 +1,5 @@
-### 0 cli render groceries.wtf --format text
-$ wtf render groceries.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render groceries.x.md --format text
+$ xmd render groceries.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [groceries] := table = 2 rows · 3 columns
@@ -13,8 +13,8 @@ exit 0
 [average] := total / units = $3.97
 Cost [total] $23.80.
 
-### 1 cli query groceries.wtf values | select {name, display} --json
-$ wtf query groceries.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query groceries.x.md values | select {name, display} --json
+$ xmd query groceries.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -36,8 +36,8 @@ exit 0
   }
 ]
 
-### 2 cli query groceries.wtf tables | select {name, display} --json
-$ wtf query groceries.wtf tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query groceries.x.md tables | select {name, display} --json
+$ xmd query groceries.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -47,8 +47,8 @@ exit 0
   }
 ]
 
-### 3 cli query groceries.wtf rows | select {table, line, cells} --json
-$ wtf query groceries.wtf rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query groceries.x.md rows | select {table, line, cells} --json
+$ xmd query groceries.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -80,8 +80,8 @@ exit 0
   }
 ]
 
-### 4 cli query groceries.wtf cells | select {title, line, value} --json
-$ wtf query groceries.wtf cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query groceries.x.md cells | select {title, line, value} --json
+$ xmd query groceries.x.md cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -125,25 +125,25 @@ exit 0
   }
 ]
 
-### 5 cli query groceries.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query groceries.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query groceries.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query groceries.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 6 lsp
--- open groceries.wtf
--- await textDocument/publishDiagnostics groceries.wtf
+-- open groceries.x.md
+-- await textDocument/publishDiagnostics groceries.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/groceries.wtf",
+  "uri": "file://<root>/groceries.x.md",
   "version": 1
 }
--- request textDocument/hover groceries.wtf 6:2
+-- request textDocument/hover groceries.x.md 6:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**total · Money**\n\n$23.80\n\n```text\nsum(groceries, quantity * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [groceries](<file://<root>/groceries.wtf#L1>), [price](<file://<root>/groceries.wtf#L2>), [quantity](<file://<root>/groceries.wtf#L2>)\n\nDefinition: [total](<file://<root>/groceries.wtf#L7>) · <root>/groceries.wtf:7"
+    "value": "**total · Money**\n\n$23.80\n\n```text\nsum(groceries, quantity * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [groceries](<file://<root>/groceries.x.md#L1>), [price](<file://<root>/groceries.x.md#L2>), [quantity](<file://<root>/groceries.x.md#L2>)\n\nDefinition: [total](<file://<root>/groceries.x.md#L7>) · <root>/groceries.x.md:7"
   },
   "range": {
     "end": {
@@ -156,11 +156,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover groceries.wtf 1:21
+-- request textDocument/hover groceries.x.md 1:21
 {
   "contents": {
     "kind": "markdown",
-    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/groceries.wtf#L2>)"
+    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/groceries.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -173,7 +173,7 @@ exit 0
     }
   }
 }
--- request textDocument/hover groceries.wtf 3:15
+-- request textDocument/hover groceries.x.md 3:15
 {
   "contents": {
     "kind": "markdown",
@@ -190,7 +190,7 @@ exit 0
     }
   }
 }
--- request textDocument/documentSymbol groceries.wtf
+-- request textDocument/documentSymbol groceries.x.md
 [
   {
     "children": [
@@ -370,7 +370,7 @@ exit 0
     }
   }
 ]
--- change groceries.wtf (version 2)
+-- change groceries.x.md (version 2)
 [groceries] := table
 | item | quantity | price |
 | --- | --- | --- |
@@ -382,11 +382,11 @@ exit 0
 [units] := sum(groceries, quantity)
 [average] := total / units
 Cost [total].
--- request textDocument/hover groceries.wtf 7:2
+-- request textDocument/hover groceries.x.md 7:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**total · Money**\n\n$30.10\n\n```text\nsum(groceries, quantity * price)\n= $30.10\n```\n\nRow contributions:\n\n`▃█▁` $2 → $21.50\n\n- Row 1: $6.60\n- Row 2: $21.50\n- Row 3: $2\n\nInputs: [groceries](<file://<root>/groceries.wtf#L1>), [price](<file://<root>/groceries.wtf#L2>), [quantity](<file://<root>/groceries.wtf#L2>)\n\nDefinition: [total](<file://<root>/groceries.wtf#L8>) · <root>/groceries.wtf:8"
+    "value": "**total · Money**\n\n$30.10\n\n```text\nsum(groceries, quantity * price)\n= $30.10\n```\n\nRow contributions:\n\n`▃█▁` $2 → $21.50\n\n- Row 1: $6.60\n- Row 2: $21.50\n- Row 3: $2\n\nInputs: [groceries](<file://<root>/groceries.x.md#L1>), [price](<file://<root>/groceries.x.md#L2>), [quantity](<file://<root>/groceries.x.md#L2>)\n\nDefinition: [total](<file://<root>/groceries.x.md#L8>) · <root>/groceries.x.md:8"
   },
   "range": {
     "end": {
@@ -400,8 +400,8 @@ Cost [total].
   }
 }
 
-### 7 cli render scoped.wtf --format text
-$ wtf render scoped.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli render scoped.x.md --format text
+$ xmd render scoped.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [groceries] := table = 2 rows · 3 columns
@@ -424,8 +424,8 @@ exit 0
 | 1 | 2 |
 [future] := sum(dates, today + tomorrow) = 3
 
-### 8 cli query scoped.wtf values | select {name, display} --json
-$ wtf query scoped.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query scoped.x.md values | select {name, display} --json
+$ xmd query scoped.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -463,25 +463,25 @@ exit 0
   }
 ]
 
-### 9 cli query scoped.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query scoped.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query scoped.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query scoped.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 10 lsp
--- open scoped.wtf
--- await textDocument/publishDiagnostics scoped.wtf
+-- open scoped.x.md
+-- await textDocument/publishDiagnostics scoped.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/scoped.wtf",
+  "uri": "file://<root>/scoped.x.md",
   "version": 1
 }
--- request textDocument/hover scoped.wtf 13:38
+-- request textDocument/hover scoped.x.md 13:38
 {
   "contents": {
     "kind": "markdown",
-    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/scoped.wtf#L2>)"
+    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/scoped.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -494,11 +494,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover scoped.wtf 13:2
+-- request textDocument/hover scoped.x.md 13:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**total · Money**\n\n$23.80\n\n```text\nsum(groceries, quantity * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [groceries](<file://<root>/scoped.wtf#L1>), [price](<file://<root>/scoped.wtf#L2>), [quantity](<file://<root>/scoped.wtf#L2>)\n\nDefinition: [total](<file://<root>/scoped.wtf#L14>) · <root>/scoped.wtf:14"
+    "value": "**total · Money**\n\n$23.80\n\n```text\nsum(groceries, quantity * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [groceries](<file://<root>/scoped.x.md#L1>), [price](<file://<root>/scoped.x.md#L2>), [quantity](<file://<root>/scoped.x.md#L2>)\n\nDefinition: [total](<file://<root>/scoped.x.md#L14>) · <root>/scoped.x.md:14"
   },
   "range": {
     "end": {
@@ -511,11 +511,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover scoped.wtf 18:33
+-- request textDocument/hover scoped.x.md 18:33
 {
   "contents": {
     "kind": "markdown",
-    "value": "**tomorrow · Number**\n\nColumn of `dates` · 1 rows\n\nValues: 2\n\nDefinition: [tomorrow](<file://<root>/scoped.wtf#L16>)"
+    "value": "**tomorrow · Number**\n\nColumn of `dates` · 1 rows\n\nValues: 2\n\nDefinition: [tomorrow](<file://<root>/scoped.x.md#L16>)"
   },
   "range": {
     "end": {
@@ -528,17 +528,17 @@ exit 0
     }
   }
 }
--- request textDocument/rename scoped.wtf 1:21
+-- request textDocument/rename scoped.x.md 1:21
 error: {
   "code": -32602,
   "message": "That name already exists in this scope"
 }
--- request textDocument/rename scoped.wtf 1:21
+-- request textDocument/rename scoped.x.md 1:21
 error: {
   "code": -32602,
   "message": "Use an identifier other than true or false"
 }
--- request textDocument/rename scoped.wtf 1:21
+-- request textDocument/rename scoped.x.md 1:21
 {
   "documentChanges": [
     {
@@ -571,22 +571,22 @@ error: {
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/scoped.wtf",
+        "uri": "file://<root>/scoped.x.md",
         "version": 1
       }
     }
   ]
 }
 
-### 11 cli render alias.wtf --format text
-$ wtf render alias.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli render alias.x.md --format text
+$ xmd render alias.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[alias] := import("./groceries.wtf").groceries = 2 rows · 3 columns
+[alias] := import("./groceries.x.md").groceries = 2 rows · 3 columns
 [cost] := sum(alias, quantity * price) = $23.80
 
-### 12 cli query alias.wtf values | select {name, display} --json
-$ wtf query alias.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query alias.x.md values | select {name, display} --json
+$ xmd query alias.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -601,14 +601,14 @@ exit 0
 ]
 
 ### 13 lsp
--- open alias.wtf
--- await textDocument/publishDiagnostics alias.wtf
+-- open alias.x.md
+-- await textDocument/publishDiagnostics alias.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/alias.wtf",
+  "uri": "file://<root>/alias.x.md",
   "version": 1
 }
--- request textDocument/definition alias.wtf 1:33
+-- request textDocument/definition alias.x.md 1:33
 {
   "range": {
     "end": {
@@ -620,13 +620,13 @@ exit 0
       "line": 1
     }
   },
-  "uri": "file://<root>/groceries.wtf"
+  "uri": "file://<root>/groceries.x.md"
 }
--- request textDocument/hover alias.wtf 1:33
+-- request textDocument/hover alias.x.md 1:33
 {
   "contents": {
     "kind": "markdown",
-    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/groceries.wtf#L2>)"
+    "value": "**price · Money**\n\nColumn of `groceries` · 2 rows\n\n`▁█` $3.30 → $4.30\n\nValues: $3.30, $4.30\n\nDefinition: [price](<file://<root>/groceries.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -641,8 +641,8 @@ exit 0
 }
 
 ### 14 lsp
--- open partial.wtf
--- request textDocument/completion partial.wtf 6:39
+-- open partial.x.md
+-- request textDocument/completion partial.x.md 6:39
 [
   {
     "detail": "Text · column of groceries",
@@ -699,7 +699,7 @@ exit 0
     }
   }
 ]
--- request textDocument/signatureHelp partial.wtf 6:39
+-- request textDocument/signatureHelp partial.x.md 6:39
 {
   "activeParameter": 1,
   "activeSignature": 0,

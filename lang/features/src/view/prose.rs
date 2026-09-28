@@ -39,9 +39,9 @@ pub(super) fn values(line: &str) -> Vec<(usize, usize, &'static str)> {
         {
             let combined = format!("{} {}", word.text, next.text);
             let kind = if clock_time(&combined) {
-                Some("wtfTime")
+                Some("xmdTime")
             } else if word.text.eq_ignore_ascii_case("next") && relative_date(&combined) {
-                Some("wtfDate")
+                Some("xmdDate")
             } else {
                 None
             };
@@ -109,20 +109,20 @@ fn clock_time(text: &str) -> bool {
 }
 fn kind(text: &str) -> Option<&'static str> {
     if relative_date(text) {
-        return Some("wtfDate");
+        return Some("xmdDate");
     }
     if matches!(text, "true" | "false") {
-        return Some("wtfBoolean");
+        return Some("xmdBoolean");
     }
     let first = text.chars().next()?;
     if !first.is_ascii_digit() && !matches!(first, '$' | '-' | '+' | '.') {
         return None;
     }
     if calendar_date(text) {
-        return Some("wtfDate");
+        return Some("xmdDate");
     }
     if clock_time(text) {
-        return Some("wtfTime");
+        return Some("xmdTime");
     }
     let unsigned = text.strip_prefix(['-', '+']).unwrap_or(text);
     let tokens = engine::lex(unsigned).ok()?;
@@ -133,9 +133,9 @@ fn kind(text: &str) -> Option<&'static str> {
         return None;
     }
     match token.kind {
-        Lexeme::Value(Literal::Money(..)) => Some("wtfMoney"),
-        Lexeme::Value(Literal::Ratio(_)) => Some("wtfRatio"),
-        Lexeme::Value(Literal::Duration(_)) => Some("wtfDuration"),
+        Lexeme::Value(Literal::Money(..)) => Some("xmdMoney"),
+        Lexeme::Value(Literal::Ratio(_)) => Some("xmdRatio"),
+        Lexeme::Value(Literal::Duration(_)) => Some("xmdDuration"),
         Lexeme::Value(Literal::Number(_)) => Some("number"),
         _ => None,
     }

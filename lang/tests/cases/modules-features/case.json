@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "calc.wtf",
+        "calc.x.md",
         "--format",
         "text"
       ]
@@ -12,47 +12,47 @@
     {
       "cli": [
         "query",
-        "calc.wtf",
+        "calc.x.md",
         "calculations | select anchor",
         "--json"
       ]
     },
     {
       "write": {
-        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"calculations\", kind: \"feature\", enabled: false}\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"calculations\", kind: \"feature\", enabled: false}\n"
       }
     },
     {
       "cli": [
         "render",
-        "calc.wtf",
+        "calc.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"hooks\", kind: \"feature\", inputs: [\"diagnostics\"]}\nhovers := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, contents: \"Greeting\"}]\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, severity: 2, message: \"Check greeting\", code: \"greeting\"}]\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"HELLO\"}]\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"hooks\", kind: \"feature\", inputs: [\"diagnostics\"]}\nhovers := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, contents: \"Greeting\"}]\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, severity: 2, message: \"Check greeting\", code: \"greeting\"}]\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: \"HELLO\"}]\n"
       }
     },
     {
       "lsp": [
         {
-          "open": "hello.wtf"
+          "open": "hello.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "hello.wtf"
+          "file": "hello.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "line": 0,
           "character": 1
         },
         {
           "request": "textDocument/formatting",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -65,21 +65,21 @@
     },
     {
       "write": {
-        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"insert\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Insert greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: \"Hello \"}]}}], [])\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"insert\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Insert greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: \"Hello \"}]}}], [])\n"
       }
     },
     {
       "lsp": [
         {
-          "open": "hello.wtf"
+          "open": "hello.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "hello.wtf"
+          "file": "hello.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -108,22 +108,22 @@
         },
         {
           "change": {
-            "file": "hello.wtf",
+            "file": "hello.x.md",
             "text": "changed\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "hello.wtf"
+          "file": "hello.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.applyEdits",
+            "command": "xmd.applyEdits",
             "arguments": [
               {
                 "kind": "edit",
-                "document": "${uri:hello.wtf}",
+                "document": "${uri:hello.x.md}",
                 "expected": "Hello\n",
                 "edits": [
                   {
@@ -148,21 +148,21 @@
     },
     {
       "write": {
-        ".wtf/modules/custom.wtf": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"Stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"Stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
       }
     },
     {
       "lsp": [
         {
-          "open": "hello.wtf"
+          "open": "hello.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "hello.wtf"
+          "file": "hello.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -191,21 +191,21 @@
         },
         {
           "write": {
-            ".wtf/modules/custom.wtf": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"New stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+            ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"New stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
           }
         },
         {
           "watched": [
-            ".wtf/modules/custom.wtf"
+            ".xmd/modules/custom.x.md"
           ]
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "hello.wtf"
+          "file": "hello.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -225,11 +225,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.invoke",
+            "command": "xmd.invoke",
             "arguments": [
               {
                 "kind": "invoke",
-                "document": "${uri:hello.wtf}",
+                "document": "${uri:hello.x.md}",
                 "expected": "Hello\n",
                 "module": "stamp",
                 "revision": "0",

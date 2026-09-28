@@ -1,13 +1,13 @@
 ### 0 browser
--- setDocument trip.wtf
--- documentLinks {"uri":"file:///workspace/trip.wtf"}
+-- setDocument trip.x.md
+-- documentLinks {"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": [
     {
       "range": {
         "end": {
-          "character": 14,
+          "character": 15,
           "line": 0
         },
         "start": {
@@ -15,17 +15,17 @@
           "line": 0
         }
       },
-      "target": "file:///workspace/today.wtf",
-      "tooltip": "Open file:///workspace/today.wtf"
+      "target": "file:///workspace/today.x.md",
+      "tooltip": "Open file:///workspace/today.x.md"
     },
     {
       "range": {
         "end": {
-          "character": 43,
+          "character": 44,
           "line": 0
         },
         "start": {
-          "character": 19,
+          "character": 20,
           "line": 0
         }
       },
@@ -34,17 +34,17 @@
     }
   ]
 }
--- hover {"position":{"character":4,"line":0},"uri":"file:///workspace/trip.wtf"}
+-- hover {"position":{"character":4,"line":0},"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
     "contents": {
       "kind": "markdown",
-      "value": "[Open resource](<file:///workspace/today.wtf>)"
+      "value": "[Open resource](<file:///workspace/today.x.md>)"
     },
     "range": {
       "end": {
-        "character": 14,
+        "character": 15,
         "line": 0
       },
       "start": {
@@ -54,13 +54,13 @@
     }
   }
 }
--- hover {"position":{"character":8,"line":2},"uri":"file:///workspace/trip.wtf"}
+-- hover {"position":{"character":8,"line":2},"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
     "contents": {
       "kind": "markdown",
-      "value": "**price · Money**\n\n$3\n\nDefinition: [price](<file:///workspace/trip.wtf#L2>) · /workspace/trip.wtf:2"
+      "value": "**price · Money**\n\n$3\n\nDefinition: [price](<file:///workspace/trip.x.md#L2>) · /workspace/trip.x.md:2"
     },
     "range": {
       "end": {
@@ -74,7 +74,7 @@
     }
   }
 }
--- documentSymbols {"uri":"file:///workspace/trip.wtf"}
+-- documentSymbols {"uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": [
@@ -105,7 +105,7 @@
     }
   ]
 }
--- query {"query":"values | select {name, display}","uri":"file:///workspace/trip.wtf"}
+-- query {"query":"values | select {name, display}","uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
@@ -118,7 +118,7 @@
     ],
     "schemaVersion": 1,
     "versions": {
-      "file:///workspace/trip.wtf": 1
+      "file:///workspace/trip.x.md": 1
     }
   }
 }

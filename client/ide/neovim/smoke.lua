@@ -5,20 +5,20 @@ local function wait(description, check)
   assert(vim.wait(15000, check, 50), 'Timed out: ' .. description)
 end
 local function run()
-  vim.fn.mkdir(temporary .. '/.wtf', 'p')
-  for _, name in ipairs({ 'main.wtf', 'values.wtf' }) do
+  vim.fn.mkdir(temporary .. '/.xmd', 'p')
+  for _, name in ipairs({ 'main.x.md', 'values.x.md' }) do
     vim.fn.writefile(vim.fn.readfile(repo .. '/lang/examples/editor-smoke/' .. name), temporary .. '/' .. name)
   end
-  vim.g.wtf_server_path = vim.env.WTF_SERVER_PATH
-    or repo .. '/target/debug/wtf' .. (vim.fn.has('win32') == 1 and '.exe' or '')
-  dofile(repo .. '/client/ide/neovim/wtf.lua')
+  vim.g.xmd_server_path = vim.env.XMD_SERVER_PATH
+    or repo .. '/target/debug/xmd' .. (vim.fn.has('win32') == 1 and '.exe' or '')
+  dofile(repo .. '/client/ide/neovim/xmd.lua')
   vim.cmd('filetype on')
-  vim.cmd.edit(vim.fn.fnameescape(temporary .. '/main.wtf'))
+  vim.cmd.edit(vim.fn.fnameescape(temporary .. '/main.x.md'))
   local bufnr = vim.api.nvim_get_current_buf()
   local uri = vim.uri_from_bufnr(bufnr)
   local client
-  wait('WTF attaches', function()
-    client = vim.lsp.get_clients({ bufnr = bufnr, name = 'wtf' })[1]
+  wait('XMD attaches', function()
+    client = vim.lsp.get_clients({ bufnr = bufnr, name = 'xmd' })[1]
     return client and client.initialized
   end)
   local function request(method, params)
@@ -37,10 +37,10 @@ local function run()
     return vim.inspect(vim.lsp.inlay_hint.get({ bufnr = bufnr }))
   end
   wait('inlay hints are displayed', function() return visible_hints():find('$75', 1, true) end)
-  assert(vim.bo.filetype == 'wtf')
+  assert(vim.bo.filetype == 'xmd')
   local position = at('smoke_spent')
   local definitions = request('textDocument/definition', { textDocument = { uri = uri }, position = position })
-  assert(vim.inspect(definitions):find('values.wtf', 1, true), 'Cross-file definition')
+  assert(vim.inspect(definitions):find('values.x.md', 1, true), 'Cross-file definition')
   assert(#request('textDocument/semanticTokens/full', { textDocument = { uri = uri } }).data > 0)
 
   local budget = at('[$125]')
@@ -81,11 +81,11 @@ local function run()
   })
   vim.lsp.util.apply_workspace_edit(edits, client.offset_encoding)
   assert(contains('smoke_budget - smoke_expenses'))
-  local other = vim.fn.bufnr(temporary .. '/values.wtf')
+  local other = vim.fn.bufnr(temporary .. '/values.x.md')
   assert(table.concat(vim.api.nvim_buf_get_lines(other, 0, -1, false), '\n'):find(':smoke_expenses', 1, true))
   assert(vim.bo[other].modified, 'Rename leaves other buffer unsaved')
   client:stop()
-  print('WTF Neovim smoke test passed: attach, hints, tokens, cross-file navigation, edits/undo, live timers, rename.')
+  print('XMD Neovim smoke test passed: attach, hints, tokens, cross-file navigation, edits/undo, live timers, rename.')
 end
 local ok, err = xpcall(run, debug.traceback)
 vim.fn.delete(temporary, 'rf')

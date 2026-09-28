@@ -1,53 +1,53 @@
 {
   "steps": [
-    { "cli": ["render", "bakery.wtf", "--format", "text"] },
-    { "cli": ["query", "bakery.wtf", "plans | select {name, expression, display, solution}", "--json"] },
-    { "cli": ["query", "bakery.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "bakery.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "bakery.x.md", "--format", "text"] },
+    { "cli": ["query", "bakery.x.md", "plans | select {name, expression, display, solution}", "--json"] },
+    { "cli": ["query", "bakery.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "bakery.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "bakery.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "bakery.wtf" },
-        { "request": "textDocument/hover", "file": "bakery.wtf", "line": 1, "character": 3 },
-        { "request": "textDocument/hover", "file": "bakery.wtf", "line": 1, "character": 27 },
-        { "request": "textDocument/hover", "file": "bakery.wtf", "line": 4, "character": 24 },
-        { "request": "textDocument/documentSymbol", "file": "bakery.wtf" },
-        { "request": "textDocument/completion", "file": "bakery.wtf", "line": 8, "character": 13 },
-        { "request": "textDocument/prepareCallHierarchy", "file": "bakery.wtf", "line": 1, "character": 3 },
+        { "open": "bakery.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "bakery.x.md" },
+        { "request": "textDocument/hover", "file": "bakery.x.md", "line": 1, "character": 3 },
+        { "request": "textDocument/hover", "file": "bakery.x.md", "line": 1, "character": 27 },
+        { "request": "textDocument/hover", "file": "bakery.x.md", "line": 4, "character": 24 },
+        { "request": "textDocument/documentSymbol", "file": "bakery.x.md" },
+        { "request": "textDocument/completion", "file": "bakery.x.md", "line": 8, "character": 13 },
+        { "request": "textDocument/prepareCallHierarchy", "file": "bakery.x.md", "line": 1, "character": 3 },
         { "request": "callHierarchy/outgoingCalls", "params": { "item": "${last.0}" } },
-        { "request": "textDocument/prepareCallHierarchy", "file": "bakery.wtf", "line": 4, "character": 24 },
+        { "request": "textDocument/prepareCallHierarchy", "file": "bakery.x.md", "line": 4, "character": 24 },
         { "request": "callHierarchy/outgoingCalls", "params": { "item": "${last.0}" } },
         {
           "change": {
-            "file": "bakery.wtf",
+            "file": "bakery.x.md",
             "text": "[300]:flour_stock\n[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint   | expression                                   |\n| ------------ | -------------------------------------------- |\n| flour        | 12 * bagels + 6.5 * doughnuts <= flour_stock |\n| milk         | bagels + 0.5 * doughnuts <= 200              |\n| bagel_min    | bagels >= 12                                 |\n| doughnut_min | doughnuts >= 14                              |\nBake [bakery.bagels] bagels for [bakery].\n"
           }
         },
-        { "request": "textDocument/hover", "file": "bakery.wtf", "line": 1, "character": 3 },
+        { "request": "textDocument/hover", "file": "bakery.x.md", "line": 1, "character": 3 },
         {
           "change": {
-            "file": "bakery.wtf",
+            "file": "bakery.x.md",
             "text": "[400]:flour_stock\n[bakery] := maximize($3 * bagels + $1.25 * doughnuts)\n| constraint   | expression                                   |\n| ------------ | -------------------------------------------- |\n| flour        | 12 * bagels + 6.5 * doughnuts <= flour_stock |\n| milk         | bagels + 0.5 * doughnuts <= 200              |\n| bagel_min    | bagels >= 12                                 |\n| doughnut_min | doughnuts >= 14                              |\nBake [bakery.bagels] bagels for [bakery].\n[20]:doughnuts\n"
           }
         },
-        { "request": "textDocument/hover", "file": "bakery.wtf", "line": 1, "character": 3 }
+        { "request": "textDocument/hover", "file": "bakery.x.md", "line": 1, "character": 3 }
       ]
     },
-    { "cli": ["query", "bakery.wtf", "[bakery.bagels, bakery.flour, bagels * 2, bakery.objective]", "--json"] },
-    { "cli": ["render", "multiline.wtf", "--format", "text"] },
+    { "cli": ["query", "bakery.x.md", "[bakery.bagels, bakery.flour, bagels * 2, bakery.objective]", "--json"] },
+    { "cli": ["render", "multiline.x.md", "--format", "text"] },
     {
       "lsp": [
-        { "open": "multiline.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "multiline.wtf" },
-        { "request": "textDocument/documentSymbol", "file": "multiline.wtf" },
-        { "request": "textDocument/hover", "file": "multiline.wtf", "line": 3, "character": 8 }
+        { "open": "multiline.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "multiline.x.md" },
+        { "request": "textDocument/documentSymbol", "file": "multiline.x.md" },
+        { "request": "textDocument/hover", "file": "multiline.x.md", "line": 3, "character": 8 }
       ]
     },
-    { "cli": ["query", "multiline.wtf", "plans | select {name, display, solution}", "--json"] },
-    { "cli": ["query", "multiline.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["render", "crlf.wtf", "--format", "text"] },
-    { "cli": ["query", "crlf.wtf", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "crlf.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "read": ["crlf.wtf"] }
+    { "cli": ["query", "multiline.x.md", "plans | select {name, display, solution}", "--json"] },
+    { "cli": ["query", "multiline.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "crlf.x.md", "--format", "text"] },
+    { "cli": ["query", "crlf.x.md", "plans | select {name, display}", "--json"] },
+    { "cli": ["query", "crlf.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "read": ["crlf.x.md"] }
   ]
 }

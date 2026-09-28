@@ -11,7 +11,7 @@
 //! keeps buffers for module sources too — a module is highlighted while it is
 //! being written without being activated — and accepts a repeated version,
 //! because an editor resends one when a note is reopened. The browser has
-//! neither: every write must carry a strictly newer version, and a `.wtf` file
+//! neither: every write must carry a strictly newer version, and a `.x.md` file
 //! under the virtual workspace is always an ordinary note.
 use crate::{
     controls::code_actions::{CodeActionItem, TaskToggle},

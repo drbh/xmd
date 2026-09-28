@@ -2,23 +2,23 @@
   "steps": [
     {
       "lsp": [
-        { "open": "ragged.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "ragged.wtf" },
+        { "open": "ragged.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "ragged.x.md" },
         {
           "request": "textDocument/formatting",
-          "file": "ragged.wtf",
+          "file": "ragged.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
           "apply": true
         },
         {
           "request": "textDocument/formatting",
-          "file": "ragged.wtf",
+          "file": "ragged.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
         },
-        { "open": "ragged-ontype.wtf" },
+        { "open": "ragged-ontype.x.md" },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "ragged-ontype.wtf",
+          "file": "ragged-ontype.x.md",
           "line": 4,
           "character": 10,
           "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } },
@@ -28,24 +28,24 @@
     },
     {
       "lsp": [
-        { "open": "crlf.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "crlf.wtf" },
+        { "open": "crlf.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "crlf.x.md" },
         {
           "request": "textDocument/formatting",
-          "file": "crlf.wtf",
+          "file": "crlf.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } },
           "apply": true
         },
         {
           "request": "textDocument/formatting",
-          "file": "crlf.wtf",
+          "file": "crlf.x.md",
           "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
         }
       ]
     },
-    { "cli": ["query", "crlf.wtf", "sum(t, n)", "--json"] },
-    { "cli": ["query", "crlf.wtf", "tables | select {name, display}", "--json"] },
-    { "cli": ["query", "inert.wtf", "tables | select {name, display}", "--json"] },
-    { "cli": ["render", "inert.wtf", "--format", "text"] }
+    { "cli": ["query", "crlf.x.md", "sum(t, n)", "--json"] },
+    { "cli": ["query", "crlf.x.md", "tables | select {name, display}", "--json"] },
+    { "cli": ["query", "inert.x.md", "tables | select {name, display}", "--json"] },
+    { "cli": ["render", "inert.x.md", "--format", "text"] }
   ]
 }

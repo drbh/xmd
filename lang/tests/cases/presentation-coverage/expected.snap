@@ -1,5 +1,5 @@
-### 0 cli render tasks.wtf --format text
-$ wtf render tasks.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render tasks.x.md --format text
+$ xmd render tasks.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 # Tasks ███░░░░░ 3/8 complete
@@ -21,12 +21,12 @@ https://example.com/page:site link
 Photo [photo] image · open preview and spot [spot] place · open map.
 - [ ] stuck @after(later) @due(today) ⊘ blocked by later · → due today
 --- stderr
-<root>/tasks.wtf:9:21: error: Unknown name 'nope'
-wtf: 1 error(s) while rendering
+<root>/tasks.x.md:9:21: error: Unknown name 'nope'
+xmd: 1 error(s) while rendering
 
 ### 1 lsp
--- open tasks.wtf
--- await textDocument/publishDiagnostics tasks.wtf
+-- open tasks.x.md
+-- await textDocument/publishDiagnostics tasks.x.md
 {
   "diagnostics": [
     {
@@ -43,13 +43,13 @@ wtf: 1 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/tasks.wtf",
+  "uri": "file://<root>/tasks.x.md",
   "version": 1
 }
--- request textDocument/hover tasks.wtf 3:4
+-- request textDocument/hover tasks.x.md 3:4
 {
   "contents": {
     "kind": "markdown",
@@ -66,11 +66,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 4:6
+-- request textDocument/hover tasks.x.md 4:6
 {
   "contents": {
     "kind": "markdown",
-    "value": "**b**\n\nIncomplete\n\nBlocked by: [later](<file://<root>/tasks.wtf#L8>)\n\nEstimate: 30m\n\nTimer: ◷ 06:00 remaining · ‖ paused\n\n`████░░░░░░ 40%`\n\nSubtasks: `█████░░░░░ 50%` 1/2\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
+    "value": "**b**\n\nIncomplete\n\nBlocked by: [later](<file://<root>/tasks.x.md#L8>)\n\nEstimate: 30m\n\nTimer: ◷ 06:00 remaining · ‖ paused\n\n`████░░░░░░ 40%`\n\nSubtasks: `█████░░░░░ 50%` 1/2\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
   },
   "range": {
     "end": {
@@ -83,7 +83,7 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 5:6
+-- request textDocument/hover tasks.x.md 5:6
 {
   "contents": {
     "kind": "markdown",
@@ -100,7 +100,7 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 7:8
+-- request textDocument/hover tasks.x.md 7:8
 {
   "contents": {
     "kind": "markdown",
@@ -117,7 +117,7 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 8:6
+-- request textDocument/hover tasks.x.md 8:6
 {
   "contents": {
     "kind": "markdown",
@@ -134,7 +134,7 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 9:6
+-- request textDocument/hover tasks.x.md 9:6
 {
   "contents": {
     "kind": "markdown",
@@ -151,11 +151,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 2:10
+-- request textDocument/hover tasks.x.md 2:10
 {
   "contents": {
     "kind": "markdown",
-    "value": "**plan · Checklist**\n\n7 tasks\n\n`████░░░░░░ 43%` 3/7 complete\n\nDefinition: [plan](<file://<root>/tasks.wtf#L3>) · <root>/tasks.wtf:3"
+    "value": "**plan · Checklist**\n\n7 tasks\n\n`████░░░░░░ 43%` 3/7 complete\n\nDefinition: [plan](<file://<root>/tasks.x.md#L3>) · <root>/tasks.x.md:3"
   },
   "range": {
     "end": {
@@ -168,11 +168,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 11:11
+-- request textDocument/hover tasks.x.md 11:11
 {
   "contents": {
     "kind": "markdown",
-    "value": "**empty · Checklist**\n\n1 tasks\n\n`░░░░░░░░░░ 0%` 0/1 complete\n\nDefinition: [empty](<file://<root>/tasks.wtf#L12>) · <root>/tasks.wtf:12"
+    "value": "**empty · Checklist**\n\n1 tasks\n\n`░░░░░░░░░░ 0%` 0/1 complete\n\nDefinition: [empty](<file://<root>/tasks.x.md#L12>) · <root>/tasks.x.md:12"
   },
   "range": {
     "end": {
@@ -185,11 +185,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 1:3
+-- request textDocument/hover tasks.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/tasks.wtf#L2>) · <root>/tasks.wtf:2"
+    "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/tasks.x.md#L2>) · <root>/tasks.x.md:2"
   },
   "range": {
     "end": {
@@ -202,11 +202,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 12:16
+-- request textDocument/hover tasks.x.md 12:16
 {
   "contents": {
     "kind": "markdown",
-    "value": "**photo · Resource**\n\n./photo.png\n\n[Open resource](<file://<root>/photo.png>)\n\n![Preview](<file://<root>/photo.png>)\n\nDefinition: [photo](<file://<root>/tasks.wtf#L13>) · <root>/tasks.wtf:13"
+    "value": "**photo · Resource**\n\n./photo.png\n\n[Open resource](<file://<root>/photo.png>)\n\n![Preview](<file://<root>/photo.png>)\n\nDefinition: [photo](<file://<root>/tasks.x.md#L13>) · <root>/tasks.x.md:13"
   },
   "range": {
     "end": {
@@ -219,11 +219,11 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 13:22
+-- request textDocument/hover tasks.x.md 13:22
 {
   "contents": {
     "kind": "markdown",
-    "value": "**spot · Resource**\n\ngeo:17.06,-96.72\n\n[Open map](<https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72>)\n\nDefinition: [spot](<file://<root>/tasks.wtf#L14>) · <root>/tasks.wtf:14"
+    "value": "**spot · Resource**\n\ngeo:17.06,-96.72\n\n[Open map](<https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72>)\n\nDefinition: [spot](<file://<root>/tasks.x.md#L14>) · <root>/tasks.x.md:14"
   },
   "range": {
     "end": {
@@ -236,9 +236,9 @@ wtf: 1 error(s) while rendering
     }
   }
 }
--- request textDocument/hover tasks.wtf 14:18
+-- request textDocument/hover tasks.x.md 14:18
 null
--- request textDocument/hover tasks.wtf 15:10
+-- request textDocument/hover tasks.x.md 15:10
 {
   "contents": {
     "kind": "markdown",
@@ -255,19 +255,19 @@ null
     }
   }
 }
--- request textDocument/codeLens tasks.wtf
+-- request textDocument/codeLens tasks.x.md
 [
   {
     "command": {
       "arguments": [
         {
           "action": "resume",
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "kind": "timer",
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume focus"
     },
     "range": {
@@ -286,12 +286,12 @@ null
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "kind": "timer",
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset focus"
     },
     "range": {
@@ -309,13 +309,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "- [x] a",
           "kind": "toggle_task",
           "row": 3
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -334,12 +334,12 @@ null
       "arguments": [
         {
           "action": "resume",
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "kind": "timer",
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume focus"
     },
     "range": {
@@ -358,12 +358,12 @@ null
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "kind": "timer",
           "name": "focus"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset focus"
     },
     "range": {
@@ -381,13 +381,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "  - [x] c",
           "kind": "toggle_task",
           "row": 5
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -405,13 +405,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "  - [ ] d",
           "kind": "toggle_task",
           "row": 6
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -429,13 +429,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "- [ ] later :later @due(today)",
           "kind": "toggle_task",
           "row": 7
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -453,13 +453,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "- [ ] bad @estimate(nope)",
           "kind": "toggle_task",
           "row": 8
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -477,13 +477,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "- [ ] w @every(week)",
           "kind": "toggle_task",
           "row": 9
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "↻ next"
     },
     "range": {
@@ -501,13 +501,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/tasks.wtf",
+          "document": "file://<root>/tasks.x.md",
           "expected": "- [x] finished",
           "kind": "toggle_task",
           "row": 10
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "○ reopen"
     },
     "range": {
@@ -527,14 +527,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "[./photo.png]:photo",
             "row": 12
           },
           "url": "file://<root>/photo.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -554,14 +554,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "[geo:17.06,-96.72]:spot",
             "row": 13
           },
           "url": "https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ map"
     },
     "range": {
@@ -581,14 +581,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "[./notes.txt]:doc",
             "row": 14
           },
           "url": "file://<root>/notes.txt"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -608,14 +608,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "https://example.com/page:site",
             "row": 15
           },
           "url": "https://example.com/page"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -635,14 +635,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "Photo [photo] and spot [spot].",
             "row": 16
           },
           "url": "file://<root>/photo.png"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ image"
     },
     "range": {
@@ -662,14 +662,14 @@ null
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/tasks.wtf",
+            "document": "file://<root>/tasks.x.md",
             "expected": "Photo [photo] and spot [spot].",
             "row": 16
           },
           "url": "https://www.openstreetmap.org/?mlat=17.06&mlon=-96.72#map=16/17.06/-96.72"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ map"
     },
     "range": {
@@ -684,27 +684,27 @@ null
     }
   }
 ]
--- request textDocument/codeAction tasks.wtf {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+-- request textDocument/codeAction tasks.x.md {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
 error: {
   "code": -32602,
   "message": "missing field `context`"
 }
--- request textDocument/codeAction tasks.wtf {"end":{"character":0,"line":3},"start":{"character":0,"line":3}}
+-- request textDocument/codeAction tasks.x.md {"end":{"character":0,"line":3},"start":{"character":0,"line":3}}
 error: {
   "code": -32602,
   "message": "missing field `context`"
 }
--- request textDocument/codeAction tasks.wtf {"end":{"character":0,"line":4},"start":{"character":0,"line":4}}
+-- request textDocument/codeAction tasks.x.md {"end":{"character":0,"line":4},"start":{"character":0,"line":4}}
 error: {
   "code": -32602,
   "message": "missing field `context`"
 }
--- request textDocument/codeAction tasks.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":9}}
+-- request textDocument/codeAction tasks.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":9}}
 error: {
   "code": -32602,
   "message": "missing field `context`"
 }
--- request textDocument/documentSymbol tasks.wtf
+-- request textDocument/documentSymbol tasks.x.md
 [
   {
     "children": [
@@ -1140,7 +1140,7 @@ error: {
     }
   }
 ]
--- request textDocument/inlayHint tasks.wtf {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint tasks.x.md {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
 [
   {
     "label": "███░░░░░ 3/8 complete",
@@ -1163,7 +1163,7 @@ error: {
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/tasks.wtf#L2>) · <root>/tasks.wtf:2"
+      "value": "**focus · Countdown**\n\n◷ 06:00 remaining · ‖ paused\n\n```text\ncountdown(10m, 4m)\n= ◷ 06:00 remaining · ‖ paused\n```\n\n`████░░░░░░ 40%`\n\nElapsed: 4m. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/tasks.x.md#L2>) · <root>/tasks.x.md:2"
     }
   },
   {
@@ -1311,13 +1311,13 @@ error: {
     }
   }
 ]
--- open money.wtf
--- await textDocument/publishDiagnostics money.wtf
+-- open money.x.md
+-- await textDocument/publishDiagnostics money.x.md
 {
   "diagnostics": [
     {
       "code": "evaluation",
-      "message": "No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+      "message": "No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
       "range": {
         "end": {
           "character": 27,
@@ -1329,17 +1329,17 @@ error: {
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/money.wtf",
+  "uri": "file://<root>/money.x.md",
   "version": 1
 }
--- request textDocument/hover money.wtf 1:3
+-- request textDocument/hover money.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**hotel_usd · Money**\n\n$490.50\n\n```text\nto(hotel, USD)\n= to(€450, USD)\n= $490.50\n```\n\nInputs: [hotel](<file://<root>/money.wtf#L1>)\n\nLookups:\n- rate EUR→USD · 5m ago · frankfurter.app\n\nDefinition: [hotel_usd](<file://<root>/money.wtf#L2>) · <root>/money.wtf:2"
+    "value": "**hotel_usd · Money**\n\n$490.50\n\n```text\nto(hotel, USD)\n= to(€450, USD)\n= $490.50\n```\n\nInputs: [hotel](<file://<root>/money.x.md#L1>)\n\nLookups:\n- rate EUR→USD · 5m ago · frankfurter.app\n\nDefinition: [hotel_usd](<file://<root>/money.x.md#L2>) · <root>/money.x.md:2"
   },
   "range": {
     "end": {
@@ -1352,11 +1352,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 2:3
+-- request textDocument/hover money.x.md 2:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**cost · Number**\n\n2.18\n\n```text\nrate(EUR, USD) * 2\n= 2.18\n```\n\nLookups:\n- rate EUR→USD · 5m ago · frankfurter.app\n\nDefinition: [cost](<file://<root>/money.wtf#L3>) · <root>/money.wtf:3"
+    "value": "**cost · Number**\n\n2.18\n\n```text\nrate(EUR, USD) * 2\n= 2.18\n```\n\nLookups:\n- rate EUR→USD · 5m ago · frankfurter.app\n\nDefinition: [cost](<file://<root>/money.x.md#L3>) · <root>/money.x.md:3"
   },
   "range": {
     "end": {
@@ -1369,11 +1369,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 3:3
+-- request textDocument/hover money.x.md 3:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**missing**\n\nNo cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.wtf#L4>) · <root>/money.wtf:4"
+    "value": "**missing**\n\nNo cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens\n\n```text\nrate(GBP, USD)\n```\n\nLookups:\n- rate GBP→USD · not fetched yet\n\nDefinition: [missing](<file://<root>/money.x.md#L4>) · <root>/money.x.md:4"
   },
   "range": {
     "end": {
@@ -1386,11 +1386,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 5:3
+-- request textDocument/hover money.x.md 5:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**item · Text**\n\nColumn of `t` · 3 rows\n\nValues: apple, pear, fig\n\nDefinition: [item](<file://<root>/money.wtf#L6>)"
+    "value": "**item · Text**\n\nColumn of `t` · 3 rows\n\nValues: apple, pear, fig\n\nDefinition: [item](<file://<root>/money.x.md#L6>)"
   },
   "range": {
     "end": {
@@ -1403,11 +1403,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 5:9
+-- request textDocument/hover money.x.md 5:9
 {
   "contents": {
     "kind": "markdown",
-    "value": "**qty · Number**\n\nColumn of `t` · 3 rows\n\n`▁█▅` 2 → 6\n\nValues: 2, 6, 4\n\nDefinition: [qty](<file://<root>/money.wtf#L6>)"
+    "value": "**qty · Number**\n\nColumn of `t` · 3 rows\n\n`▁█▅` 2 → 6\n\nValues: 2, 6, 4\n\nDefinition: [qty](<file://<root>/money.x.md#L6>)"
   },
   "range": {
     "end": {
@@ -1420,11 +1420,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 10:3
+-- request textDocument/hover money.x.md 10:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**total · Money**\n\n$20\n\n```text\nsum(t, qty * price)\n= $20\n```\n\nRow contributions:\n\n`▁▁█` $6 → $8\n\n- Row 1: $6\n- Row 2: $6\n- Row 3: $8\n\nInputs: [price](<file://<root>/money.wtf#L6>), [qty](<file://<root>/money.wtf#L6>), [t](<file://<root>/money.wtf#L5>)\n\nDefinition: [total](<file://<root>/money.wtf#L11>) · <root>/money.wtf:11"
+    "value": "**total · Money**\n\n$20\n\n```text\nsum(t, qty * price)\n= $20\n```\n\nRow contributions:\n\n`▁▁█` $6 → $8\n\n- Row 1: $6\n- Row 2: $6\n- Row 3: $8\n\nInputs: [price](<file://<root>/money.x.md#L6>), [qty](<file://<root>/money.x.md#L6>), [t](<file://<root>/money.x.md#L5>)\n\nDefinition: [total](<file://<root>/money.x.md#L11>) · <root>/money.x.md:11"
   },
   "range": {
     "end": {
@@ -1437,11 +1437,11 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 12:9
+-- request textDocument/hover money.x.md 12:9
 {
   "contents": {
     "kind": "markdown",
-    "value": "**qty · Number**\n\nColumn of `flat` · 2 rows\n\n`▅▅` 5 → 5\n\nValues: 5, 5\n\nDefinition: [qty](<file://<root>/money.wtf#L13>)"
+    "value": "**qty · Number**\n\nColumn of `flat` · 2 rows\n\n`▅▅` 5 → 5\n\nValues: 5, 5\n\nDefinition: [qty](<file://<root>/money.x.md#L13>)"
   },
   "range": {
     "end": {
@@ -1454,19 +1454,19 @@ error: {
     }
   }
 }
--- request textDocument/hover money.wtf 4:3
+-- request textDocument/hover money.x.md 4:3
 null
--- request textDocument/codeLens money.wtf
+-- request textDocument/codeLens money.x.md
 [
   {
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/money.wtf",
+          "document": "file://<root>/money.x.md",
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1484,11 +1484,11 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/money.wtf",
+          "document": "file://<root>/money.x.md",
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1506,11 +1506,11 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/money.wtf",
+          "document": "file://<root>/money.x.md",
           "kind": "refresh"
         }
       ],
-      "command": "wtf.refresh",
+      "command": "xmd.refresh",
       "title": "⟳ lookups"
     },
     "range": {
@@ -1525,7 +1525,7 @@ null
     }
   }
 ]
--- request textDocument/documentSymbol money.wtf
+-- request textDocument/documentSymbol money.x.md
 [
   {
     "detail": "Money · €450",
@@ -1603,7 +1603,7 @@ null
     }
   },
   {
-    "detail": "Error · No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens",
+    "detail": "Error · No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens",
     "kind": 13,
     "name": "missing",
     "range": {
@@ -1832,31 +1832,31 @@ null
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"wtf.today"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.today"}
 null
 -- await window/showDocument
 {
   "external": false,
   "takeFocus": true,
-  "uri": "file://<root>/.wtf/today.md"
+  "uri": "file://<root>/.xmd/today.md"
 }
 
-### 2 read .wtf/today.md
--- .wtf/today.md
+### 2 read .xmd/today.md
+-- .xmd/today.md
 # Today — 2026-09-16
 
 Generated view. Follow a link to edit the original note.
 
-- [edge.wtf:2](<file://<root>/edge.wtf#L2>) — timed
-- [edge.wtf:3](<file://<root>/edge.wtf#L3>) — odd
-- [tasks.wtf:7](<file://<root>/tasks.wtf#L7>) — d
-- [tasks.wtf:8](<file://<root>/tasks.wtf#L8>) — later
-- [tasks.wtf:9](<file://<root>/tasks.wtf#L9>) — bad
-- [tasks.wtf:10](<file://<root>/tasks.wtf#L10>) — w
-- [tasks.wtf:18](<file://<root>/tasks.wtf#L18>) — stuck (blocked by later)
+- [edge.x.md:2](<file://<root>/edge.x.md#L2>) — timed
+- [edge.x.md:3](<file://<root>/edge.x.md#L3>) — odd
+- [tasks.x.md:7](<file://<root>/tasks.x.md#L7>) — d
+- [tasks.x.md:8](<file://<root>/tasks.x.md#L8>) — later
+- [tasks.x.md:9](<file://<root>/tasks.x.md#L9>) — bad
+- [tasks.x.md:10](<file://<root>/tasks.x.md#L10>) — w
+- [tasks.x.md:18](<file://<root>/tasks.x.md#L18>) — stuck (blocked by later)
 
-### 3 cli render money.wtf --format text
-$ wtf render money.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli render money.x.md --format text
+$ xmd render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [€450]:hotel
@@ -1876,11 +1876,11 @@ exit 0
 | one | 5 |
 | two | 5 |
 --- stderr
-<root>/money.wtf:4:14: warning: No cached rate GBP→USD; run wtf refresh or use the ⟳ lookups lens
+<root>/money.x.md:4:14: warning: No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens
 
 ### 4 lsp
--- open edge.wtf
--- await textDocument/publishDiagnostics edge.wtf
+-- open edge.x.md
+-- await textDocument/publishDiagnostics edge.x.md
 {
   "diagnostics": [
     {
@@ -1897,7 +1897,7 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "attribute",
@@ -1913,13 +1913,13 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/edge.wtf",
+  "uri": "file://<root>/edge.x.md",
   "version": 1
 }
--- request textDocument/hover edge.wtf 1:8
+-- request textDocument/hover edge.x.md 1:8
 {
   "contents": {
     "kind": "markdown",
@@ -1936,7 +1936,7 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 2:8
+-- request textDocument/hover edge.x.md 2:8
 {
   "contents": {
     "kind": "markdown",
@@ -1953,11 +1953,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 4:9
+-- request textDocument/hover edge.x.md 4:9
 {
   "contents": {
     "kind": "markdown",
-    "value": "**cost · Money**\n\nColumn of `m` · 3 rows\n\n`▅▁█` -$3 → $12.50\n\nValues: $5, -$3, $12.50\n\nDefinition: [cost](<file://<root>/edge.wtf#L5>)"
+    "value": "**cost · Money**\n\nColumn of `m` · 3 rows\n\n`▅▁█` -$3 → $12.50\n\nValues: $5, -$3, $12.50\n\nDefinition: [cost](<file://<root>/edge.x.md#L5>)"
   },
   "range": {
     "end": {
@@ -1970,11 +1970,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 4:16
+-- request textDocument/hover edge.x.md 4:16
 {
   "contents": {
     "kind": "markdown",
-    "value": "**took · Duration**\n\nColumn of `m` · 3 rows\n\n`█▁▂` 30m → 2h\n\nValues: 2h, 30m, 45m\n\nDefinition: [took](<file://<root>/edge.wtf#L5>)"
+    "value": "**took · Duration**\n\nColumn of `m` · 3 rows\n\n`█▁▂` 30m → 2h\n\nValues: 2h, 30m, 45m\n\nDefinition: [took](<file://<root>/edge.x.md#L5>)"
   },
   "range": {
     "end": {
@@ -1987,11 +1987,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 4:23
+-- request textDocument/hover edge.x.md 4:23
 {
   "contents": {
     "kind": "markdown",
-    "value": "**ok · Boolean**\n\nColumn of `m` · 3 rows\n\n`█▁█` false → true\n\nValues: true, false, true\n\nDefinition: [ok](<file://<root>/edge.wtf#L5>)"
+    "value": "**ok · Boolean**\n\nColumn of `m` · 3 rows\n\n`█▁█` false → true\n\nValues: true, false, true\n\nDefinition: [ok](<file://<root>/edge.x.md#L5>)"
   },
   "range": {
     "end": {
@@ -2004,11 +2004,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 4:28
+-- request textDocument/hover edge.x.md 4:28
 {
   "contents": {
     "kind": "markdown",
-    "value": "**share · Ratio**\n\nColumn of `m` · 3 rows\n\n`▂█▁` 5% → 55%\n\nValues: 10%, 55%, 5%\n\nDefinition: [share](<file://<root>/edge.wtf#L5>)"
+    "value": "**share · Ratio**\n\nColumn of `m` · 3 rows\n\n`▂█▁` 5% → 55%\n\nValues: 10%, 55%, 5%\n\nDefinition: [share](<file://<root>/edge.x.md#L5>)"
   },
   "range": {
     "end": {
@@ -2021,15 +2021,15 @@ exit 0
     }
   }
 }
--- request textDocument/hover edge.wtf 4:34
+-- request textDocument/hover edge.x.md 4:34
 null
--- request textDocument/hover edge.wtf 4:40
+-- request textDocument/hover edge.x.md 4:40
 null
--- request textDocument/hover edge.wtf 9:3
+-- request textDocument/hover edge.x.md 9:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**spent · Money**\n\n$14.50\n\n```text\nsum(m, cost)\n= $14.50\n```\n\nRow contributions:\n\n`▅▁█` -$3 → $12.50\n\n- Row 1: $5\n- Row 2: -$3\n- Row 3: $12.50\n\nInputs: [cost](<file://<root>/edge.wtf#L5>), [m](<file://<root>/edge.wtf#L4>)\n\nDefinition: [spent](<file://<root>/edge.wtf#L10>) · <root>/edge.wtf:10"
+    "value": "**spent · Money**\n\n$14.50\n\n```text\nsum(m, cost)\n= $14.50\n```\n\nRow contributions:\n\n`▅▁█` -$3 → $12.50\n\n- Row 1: $5\n- Row 2: -$3\n- Row 3: $12.50\n\nInputs: [cost](<file://<root>/edge.x.md#L5>), [m](<file://<root>/edge.x.md#L4>)\n\nDefinition: [spent](<file://<root>/edge.x.md#L10>) · <root>/edge.x.md:10"
   },
   "range": {
     "end": {
@@ -2042,11 +2042,11 @@ null
     }
   }
 }
--- request textDocument/hover edge.wtf 10:3
+-- request textDocument/hover edge.x.md 10:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**hours · Duration**\n\n195m\n\n```text\nsum(m, took)\n= 195m\n```\n\nRow contributions:\n\n`█▁▂` 30m → 2h\n\n- Row 1: 2h\n- Row 2: 30m\n- Row 3: 45m\n\nInputs: [m](<file://<root>/edge.wtf#L4>), [took](<file://<root>/edge.wtf#L5>)\n\nDefinition: [hours](<file://<root>/edge.wtf#L11>) · <root>/edge.wtf:11"
+    "value": "**hours · Duration**\n\n195m\n\n```text\nsum(m, took)\n= 195m\n```\n\nRow contributions:\n\n`█▁▂` 30m → 2h\n\n- Row 1: 2h\n- Row 2: 30m\n- Row 3: 45m\n\nInputs: [m](<file://<root>/edge.x.md#L4>), [took](<file://<root>/edge.x.md#L5>)\n\nDefinition: [hours](<file://<root>/edge.x.md#L11>) · <root>/edge.x.md:11"
   },
   "range": {
     "end": {
@@ -2059,11 +2059,11 @@ null
     }
   }
 }
--- request textDocument/hover edge.wtf 13:6
+-- request textDocument/hover edge.x.md 13:6
 {
   "contents": {
     "kind": "markdown",
-    "value": "**y · Money**\n\nColumn of `one` · 1 rows\n\nValues: $2\n\nDefinition: [y](<file://<root>/edge.wtf#L14>)"
+    "value": "**y · Money**\n\nColumn of `one` · 1 rows\n\nValues: $2\n\nDefinition: [y](<file://<root>/edge.x.md#L14>)"
   },
   "range": {
     "end": {
@@ -2076,19 +2076,19 @@ null
     }
   }
 }
--- request textDocument/codeLens edge.wtf
+-- request textDocument/codeLens edge.x.md
 [
   {
     "command": {
       "arguments": [
         {
           "action": "resume",
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "kind": "timer",
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2107,12 +2107,12 @@ null
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "kind": "timer",
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2130,13 +2130,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "expected": "- [ ] timed @timer(watch)",
           "kind": "toggle_task",
           "row": 1
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {
@@ -2155,12 +2155,12 @@ null
       "arguments": [
         {
           "action": "resume",
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "kind": "timer",
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2179,12 +2179,12 @@ null
       "arguments": [
         {
           "action": "reset",
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "kind": "timer",
           "name": "watch"
         }
       ],
-      "command": "wtf.timer",
+      "command": "xmd.timer",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2202,13 +2202,13 @@ null
     "command": {
       "arguments": [
         {
-          "document": "file://<root>/edge.wtf",
+          "document": "file://<root>/edge.x.md",
           "expected": "- [ ] odd @timer(hotel) @estimate(2)",
           "kind": "toggle_task",
           "row": 2
         }
       ],
-      "command": "wtf.task",
+      "command": "xmd.task",
       "title": "✓ done"
     },
     "range": {

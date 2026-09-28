@@ -4,15 +4,15 @@
     {
       "lsp": [
         {
-          "open": "note.wtf"
+          "open": "note.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "note.wtf"
+          "file": "note.x.md"
         },
         {
           "request": "textDocument/codeLens",
-          "file": "note.wtf"
+          "file": "note.x.md"
         }
       ]
     },
@@ -21,7 +21,7 @@
         {
           "method": "actions",
           "params": {
-            "uri": "file:///workspace/note.wtf",
+            "uri": "file:///workspace/note.x.md",
             "range": {
               "start": {
                 "line": 0,
@@ -37,7 +37,7 @@
         {
           "method": "actions",
           "params": {
-            "uri": "file:///workspace/note.wtf",
+            "uri": "file:///workspace/note.x.md",
             "range": {
               "start": {
                 "line": 1,
@@ -53,7 +53,7 @@
         {
           "method": "actions",
           "params": {
-            "uri": "file:///workspace/note.wtf",
+            "uri": "file:///workspace/note.x.md",
             "range": {
               "start": {
                 "line": 2,
@@ -69,7 +69,7 @@
         {
           "method": "actions",
           "params": {
-            "uri": "file:///workspace/note.wtf",
+            "uri": "file:///workspace/note.x.md",
             "range": {
               "start": {
                 "line": 3,
@@ -86,15 +86,15 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 1
+              "file:///workspace/note.x.md": 1
             },
             "command": {
               "title": "",
-              "command": "wtf.task",
+              "command": "xmd.task",
               "arguments": [
                 {
                   "kind": "toggle_task",
-                  "document": "file:///workspace/note.wtf",
+                  "document": "file:///workspace/note.x.md",
                   "row": 1,
                   "expected": "- [ ] Task"
                 }
@@ -106,15 +106,15 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 1
+              "file:///workspace/note.x.md": 1
             },
             "command": {
               "title": "",
-              "command": "wtf.timer",
+              "command": "xmd.timer",
               "arguments": [
                 {
                   "kind": "timer",
-                  "document": "file:///workspace/note.wtf",
+                  "document": "file:///workspace/note.x.md",
                   "name": "focus",
                   "action": "start"
                 }
@@ -126,11 +126,11 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 1
+              "file:///workspace/note.x.md": 1
             },
             "command": {
               "title": "",
-              "command": "wtf.refresh",
+              "command": "xmd.refresh",
               "arguments": [
                 {
                   "kind": "refresh",
@@ -144,11 +144,11 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 1
+              "file:///workspace/note.x.md": 1
             },
             "command": {
               "title": "",
-              "command": "wtf.today",
+              "command": "xmd.today",
               "arguments": [
                 {
                   "kind": "show_today"
@@ -161,16 +161,16 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 1
+              "file:///workspace/note.x.md": 1
             },
             "command": {
               "title": "",
-              "command": "wtf.refreshResource",
+              "command": "xmd.refreshResource",
               "arguments": [
                 {
                   "kind": "refresh_resource",
                   "target": {
-                    "document": "file:///workspace/note.wtf",
+                    "document": "file:///workspace/note.x.md",
                     "row": 2,
                     "expected": "https://github.com/acme/app/pull/42"
                   },
@@ -184,15 +184,15 @@
           "method": "execute",
           "params": {
             "versions": {
-              "file:///workspace/note.wtf": 2
+              "file:///workspace/note.x.md": 2
             },
             "command": {
               "title": "",
-              "command": "wtf.task",
+              "command": "xmd.task",
               "arguments": [
                 {
                   "kind": "toggle_task",
-                  "document": "file:///workspace/note.wtf",
+                  "document": "file:///workspace/note.x.md",
                   "row": 1,
                   "expected": "- [ ] Task"
                 }

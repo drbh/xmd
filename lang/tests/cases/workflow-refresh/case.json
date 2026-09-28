@@ -3,14 +3,14 @@
   "steps": [
     {
       "read": [
-        ".wtf/cache.json",
-        ".wtf/lookups.json"
+        ".xmd/cache.json",
+        ".xmd/lookups.json"
       ]
     },
     {
       "cli": [
         "render",
-        "links.wtf",
+        "links.x.md",
         "--format",
         "text"
       ]
@@ -18,7 +18,7 @@
     {
       "cli": [
         "render",
-        "money.wtf",
+        "money.x.md",
         "--format",
         "text"
       ]
@@ -30,14 +30,14 @@
     },
     {
       "read": [
-        ".wtf/cache.json",
-        ".wtf/lookups.json"
+        ".xmd/cache.json",
+        ".xmd/lookups.json"
       ]
     },
     {
       "cli": [
         "render",
-        "links.wtf",
+        "links.x.md",
         "--format",
         "text"
       ]
@@ -45,7 +45,7 @@
     {
       "cli": [
         "render",
-        "money.wtf",
+        "money.x.md",
         "--format",
         "text"
       ]
@@ -53,7 +53,7 @@
     {
       "cli": [
         "query",
-        "links.wtf",
+        "links.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -63,18 +63,18 @@
         "refresh"
       ],
       "env": {
-        "WTF_TEST_FAIL": "1"
+        "XMD_TEST_FAIL": "1"
       }
     },
     {
       "read": [
-        ".wtf/cache.json"
+        ".xmd/cache.json"
       ]
     },
     {
       "cli": [
         "render",
-        "links.wtf",
+        "links.x.md",
         "--format",
         "text"
       ]

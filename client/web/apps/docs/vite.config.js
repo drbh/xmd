@@ -8,6 +8,6 @@ export default defineConfig({
     outDir: "../../dist/docs",
     emptyOutDir: true,
     // All apps load the release's single library and Wasm artifact.
-    rollupOptions: { external: id => id.startsWith("@wtf/web") },
+    rollupOptions: { external: id => id.startsWith("@xmd/web") },
   },
 });

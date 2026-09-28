@@ -5,23 +5,23 @@
     {
       "browser": [
         { "method": "semanticLegend", "params": {} },
-        { "method": "render", "params": { "uri": "file:///workspace/trip.wtf" } },
-        { "method": "analyze", "params": { "uri": "file:///workspace/trip.wtf" } },
-        { "method": "documentSymbols", "params": { "uri": "file:///workspace/symbols.wtf" } },
-        { "method": "analyze", "params": { "uri": "file:///workspace/money.wtf" } }
+        { "method": "render", "params": { "uri": "file:///workspace/trip.x.md" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/trip.x.md" } },
+        { "method": "documentSymbols", "params": { "uri": "file:///workspace/symbols.x.md" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/money.x.md" } }
       ]
     },
-    { "cli": ["render", "trip.wtf", "--format", "text"] },
+    { "cli": ["render", "trip.x.md", "--format", "text"] },
     {
       "lsp": [
-        { "open": "trip.wtf" },
-        { "open": "symbols.wtf" },
-        { "open": "money.wtf" },
-        { "request": "textDocument/documentSymbol", "file": "symbols.wtf" },
-        { "request": "textDocument/semanticTokens/full", "file": "money.wtf" },
+        { "open": "trip.x.md" },
+        { "open": "symbols.x.md" },
+        { "open": "money.x.md" },
+        { "request": "textDocument/documentSymbol", "file": "symbols.x.md" },
+        { "request": "textDocument/semanticTokens/full", "file": "money.x.md" },
         {
           "request": "textDocument/inlayHint",
-          "file": "trip.wtf",
+          "file": "trip.x.md",
           "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } }
         }
       ]

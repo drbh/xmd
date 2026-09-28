@@ -1,11 +1,11 @@
-id = "wtf"
-name = "WTF"
+id = "xmd"
+name = "XMD"
 version = "0.1.0"
 schema_version = 1
 authors = ["drbh"]
-description = "Language support for WTF documents."
+description = "Language support for XMD documents."
 repository = "https://github.com/drbh/jot"
 
-[language_servers.wtf]
-name = "WTF Language Server"
-languages = ["WTF"]
+[language_servers.xmd]
+name = "XMD Language Server"
+languages = ["XMD"]

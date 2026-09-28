@@ -3,7 +3,7 @@
     {
       "cli": [
         "query",
-        "defs.wtf",
+        "defs.x.md",
         "values | select {name, type, display}",
         "--json"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "render",
-        "defs.wtf",
+        "defs.x.md",
         "--format",
         "text"
       ]
@@ -19,7 +19,7 @@
     {
       "cli": [
         "query",
-        "defs.wtf",
+        "defs.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -27,26 +27,26 @@
     {
       "lsp": [
         {
-          "open": "defs.wtf"
+          "open": "defs.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "defs.wtf"
+          "file": "defs.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "defs.wtf"
+          "file": "defs.x.md"
         },
         {
           "request": "textDocument/documentLink",
-          "file": "defs.wtf"
+          "file": "defs.x.md"
         }
       ]
     },
     {
       "cli": [
         "render",
-        "calc.wtf",
+        "calc.x.md",
         "--format",
         "text"
       ]
@@ -54,7 +54,7 @@
     {
       "cli": [
         "query",
-        "calc.wtf",
+        "calc.x.md",
         "values | select {name, display}",
         "--json"
       ]
@@ -62,27 +62,27 @@
     {
       "lsp": [
         {
-          "open": "calc.wtf"
+          "open": "calc.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "calc.wtf",
+          "file": "calc.x.md",
           "line": 2,
           "character": 2
         },
         {
-          "open": "prose.wtf"
+          "open": "prose.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "prose.wtf"
+          "file": "prose.x.md"
         }
       ]
     },
     {
       "cli": [
         "query",
-        "prose.wtf",
+        "prose.x.md",
         "values | select {name}",
         "--json"
       ]
@@ -90,7 +90,7 @@
     {
       "cli": [
         "render",
-        "both.wtf",
+        "both.x.md",
         "--format",
         "text"
       ]
@@ -98,11 +98,11 @@
     {
       "lsp": [
         {
-          "open": "both.wtf"
+          "open": "both.x.md"
         },
         {
           "request": "textDocument/references",
-          "file": "both.wtf",
+          "file": "both.x.md",
           "line": 0,
           "character": 28,
           "extra": {
@@ -113,13 +113,13 @@
         },
         {
           "request": "textDocument/prepareRename",
-          "file": "both.wtf",
+          "file": "both.x.md",
           "line": 0,
           "character": 28
         },
         {
           "request": "textDocument/rename",
-          "file": "both.wtf",
+          "file": "both.x.md",
           "line": 0,
           "character": 28,
           "extra": {

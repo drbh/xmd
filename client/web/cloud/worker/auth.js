@@ -54,10 +54,10 @@ async function verify(token, env) {
   return claims;
 }
 
-/** A person from an API key (`Authorization: Bearer wtf_…`), or null. */
+/** A person from an API key (`Authorization: Bearer xmd_…`), or null. */
 export async function authenticateKey(request, env) {
   const header = request.headers.get("authorization") || "";
-  const m = /^Bearer\s+(wtf_[A-Za-z0-9_-]{20,})$/.exec(header);
+  const m = /^Bearer\s+(xmd_[A-Za-z0-9_-]{20,})$/.exec(header);
   if (!m) return null;
   const hash = await sha256(m[1]);
   const row = await env.DB.prepare("SELECT k.id AS key_id, u.id, u.email, u.name FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.hash = ?1 AND k.revoked_at IS NULL").bind(hash).first();
@@ -71,5 +71,5 @@ export async function sha256(text) {
 }
 export function newKey() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return "wtf_" + btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return "xmd_" + btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }

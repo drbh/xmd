@@ -9,7 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { chromium } from "@playwright/test";
 
 export const web = fileURLToPath(new URL("../../", import.meta.url));
-export const binary = resolve(web, "../../target/debug/wtf");
+export const binary = resolve(web, "../../target/debug/xmd");
 
 /// `--name value` from the command line, or the fallback.
 export function option(name, fallback) {
@@ -25,7 +25,7 @@ export function requireFfmpeg() {
 /// Serve dist/ on our own port so a running dev server is never mistaken for
 /// the fresh build. Returns the base URL and a function that stops it.
 export async function serve(port) {
-  const server = spawn(process.execPath, [join(web, "serve.mjs")], { env: { ...process.env, WTF_WEB_PORT: String(port) }, stdio: "ignore" });
+  const server = spawn(process.execPath, [join(web, "serve.mjs")], { env: { ...process.env, XMD_WEB_PORT: String(port) }, stdio: "ignore" });
   const base = `http://127.0.0.1:${port}`;
   for (let tries = 0; ; tries++) {
     if (await fetch(base).then(r => r.ok, () => false)) break;
@@ -42,7 +42,7 @@ export function launch() {
 /// Screenshots `clip` on a fixed clock until stopped, so a pause in the story
 /// is a pause in the GIF. Returns the frame directory and the stop function.
 export async function record(page, clip, fps) {
-  const frames = await mkdtemp(join(tmpdir(), "wtf-gif-"));
+  const frames = await mkdtemp(join(tmpdir(), "xmd-gif-"));
   let frame = 0;
   let rolling = true;
   const camera = (async () => {

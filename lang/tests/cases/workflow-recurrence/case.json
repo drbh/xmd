@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "bill.wtf",
+        "bill.x.md",
         "tasks | select {title, due, done}",
         "--json"
       ]
@@ -12,16 +12,16 @@
     {
       "lsp": [
         {
-          "open": "bill.wtf"
+          "open": "bill.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:bill.wtf}",
+                "document": "${uri:bill.x.md}",
                 "row": 0,
                 "expected": "- [ ] Pay bill :bill @every(month) @due(2026-01-31)"
               }

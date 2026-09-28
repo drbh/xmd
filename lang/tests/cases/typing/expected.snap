@@ -1,6 +1,6 @@
 ### 0 lsp
--- open table.wtf
--- request textDocument/onTypeFormatting table.wtf 4:19
+-- open table.x.md
+-- request textDocument/onTypeFormatting table.x.md 4:19
 [
   {
     "newText": "| item       | qty |",
@@ -55,16 +55,16 @@
     }
   }
 ]
--- applied to table.wtf (version 2)
+-- applied to table.x.md (version 2)
 [t] := table
 | item       | qty |
 | ---------- | --- |
 | apple      | 2   |
 | watermelon | 10  |
--- request textDocument/formatting table.wtf
+-- request textDocument/formatting table.x.md
 []
--- open partial.wtf
--- request textDocument/onTypeFormatting partial.wtf 4:8
+-- open partial.x.md
+-- request textDocument/onTypeFormatting partial.x.md 4:8
 [
   {
     "newText": "| item  | qty |",
@@ -106,25 +106,25 @@
     }
   }
 ]
--- applied to partial.wtf (version 2)
+-- applied to partial.x.md (version 2)
 [t] := table
 | item  | qty |
 | ----- | --- |
 | apple | 2   |
 | pear |
--- open prose.wtf
--- request textDocument/onTypeFormatting prose.wtf 0:7
+-- open prose.x.md
+-- request textDocument/onTypeFormatting prose.x.md 0:7
 []
--- applied to prose.wtf (version 2)
+-- applied to prose.x.md (version 2)
 Plain | prose
 - [ ] task
--- request textDocument/onTypeFormatting prose.wtf 1:5
+-- request textDocument/onTypeFormatting prose.x.md 1:5
 []
--- applied to prose.wtf (version 3)
+-- applied to prose.x.md (version 3)
 Plain | prose
 - [ ] task
--- open list.wtf
--- request textDocument/onTypeFormatting list.wtf 2:0
+-- open list.x.md
+-- request textDocument/onTypeFormatting list.x.md 2:0
 [
   {
     "newText": "  - [ ] ",
@@ -140,12 +140,12 @@ Plain | prose
     }
   }
 ]
--- applied to list.wtf (version 2)
+-- applied to list.x.md (version 2)
 # List
   - [x] done :done
   - [ ] 
--- open indent.wtf
--- request textDocument/onTypeFormatting indent.wtf 1:2
+-- open indent.x.md
+-- request textDocument/onTypeFormatting indent.x.md 1:2
 [
   {
     "newText": "* [ ] ",
@@ -161,11 +161,11 @@ Plain | prose
     }
   }
 ]
--- applied to indent.wtf (version 2)
+-- applied to indent.x.md (version 2)
 * [ ] first
 * [ ] 
--- open endlist.wtf
--- request textDocument/onTypeFormatting endlist.wtf 2:0
+-- open endlist.x.md
+-- request textDocument/onTypeFormatting endlist.x.md 2:0
 [
   {
     "newText": "",
@@ -181,19 +181,19 @@ Plain | prose
     }
   }
 ]
--- applied to endlist.wtf (version 2)
+-- applied to endlist.x.md (version 2)
 - [ ] first
 
--- open words.wtf
--- request textDocument/onTypeFormatting words.wtf 1:0
+-- open words.x.md
+-- request textDocument/onTypeFormatting words.x.md 1:0
 []
--- applied to words.wtf (version 2)
+-- applied to words.x.md (version 2)
 Just words
 
--- open split.wtf
--- request textDocument/onTypeFormatting split.wtf 1:1
+-- open split.x.md
+-- request textDocument/onTypeFormatting split.x.md 1:1
 []
--- applied to split.wtf (version 2)
+-- applied to split.x.md (version 2)
 - [ ] ab
 cd
 

@@ -5,7 +5,7 @@
 // The terminal is a styled page in headless Chrome, so both themes use the
 // note's own colors and fonts, but every answer is the real binary's output:
 // each command is typed, then run against the note at the frozen clock and its
-// stdout/stderr printed. Needs `cargo build` (the wtf binary), headless Chrome
+// stdout/stderr printed. Needs `cargo build` (the xmd binary), headless Chrome
 // and ffmpeg on PATH.
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,17 +14,17 @@ import { spawnSync } from "node:child_process";
 import { assemble, binary, keystroke, launch, option, record, requireFfmpeg, web } from "./lib/capture.mjs";
 import { finalNote, now } from "./lib/story.mjs";
 
-// Each session step is a comment, then a command whose `wtf …` is shown as
+// Each session step is a comment, then a command whose `xmd …` is shown as
 // typed while `args` is what actually runs. A step with `stdin` really pipes
 // the note in, and `shown` is then the pipeline as a person would type it.
 // Pauses let the answer be read.
 const session = [
-  { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.wtf | wtf 'total'" },
-  { comment: "filter and project, like SQL", args: ["query", "trip.wtf", "tasks | where !done | select {title, due}"] },
-  { comment: "typed JSON for scripts", args: ["query", "trip.wtf", "car + groceries", "--json"] },
-  { comment: "every value in the note, with its type", args: ["query", "trip.wtf", "values | select {name, type, display}"] },
+  { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.x.md | xmd 'total'" },
+  { comment: "filter and project, like SQL", args: ["query", "trip.x.md", "tasks | where !done | select {title, due}"] },
+  { comment: "typed JSON for scripts", args: ["query", "trip.x.md", "car + groceries", "--json"] },
+  { comment: "every value in the note, with its type", args: ["query", "trip.x.md", "values | select {name, type, display}"] },
   { comment: "fail a build when a note is broken", args: ["query", "--workspace", 'diagnostics | where severity == "error"', "--fail-on-match"] },
-  { comment: "the note with every value written in", args: ["render", "trip.wtf", "--format", "text"] },
+  { comment: "the note with every value written in", args: ["render", "trip.x.md", "--format", "text"] },
 ];
 
 const theme = option("theme", "light");
@@ -34,15 +34,15 @@ const frameWidth = 720;
 const frameHeight = 360;
 
 requireFfmpeg();
-const root = await mkdtemp(join(tmpdir(), "wtf-terminal-"));
-await writeFile(join(root, "trip.wtf"), finalNote());
+const root = await mkdtemp(join(tmpdir(), "xmd-terminal-"));
+await writeFile(join(root, "trip.x.md"), finalNote());
 
 const run = (args, stdin) => {
   const result = spawnSync(binary, [...args, "--root", root, "--now", now], { encoding: "utf8", input: stdin, env: { ...process.env, TZ: "UTC" } });
   if (result.error) throw new Error(`Cannot run ${binary}: ${result.error.message} (run \`cargo build\` first)`);
   return { text: (result.stdout + result.stderr).replace(/\n$/, ""), status: result.status };
 };
-const shown = step => step.shown ?? `wtf ${step.args.map(a => (/[\s|!{}"()*]/.test(a) ? `'${a}'` : a)).join(" ")}`;
+const shown = step => step.shown ?? `xmd ${step.args.map(a => (/[\s|!{}"()*]/.test(a) ? `'${a}'` : a)).join(" ")}`;
 
 const palette = theme === "light"
   ? { paper: "#ffffff", ink: "#1f1f1f", dim: "#7a8088", prompt: "#2f6f9f", ok: "#3f7d3f", err: "#b2453d" }

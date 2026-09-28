@@ -5,7 +5,7 @@
 //! `error` is the one failure vocabulary every one of them answers with, so a
 //! caller can tell a mistake in a note from data that is merely unfetched
 //! without reading the sentence.
-//! `modules` compiles the .wtf feature, link and library modules and `context`
+//! `modules` compiles the .x.md feature, link and library modules and `context`
 //! holds the one workspace snapshot, clock and memo a request evaluates
 //! against. `link_features` is the contract a link module implements, next to
 //! the module compiler that produces it. `itinerary` resolves the days and
@@ -102,7 +102,7 @@ pub mod lookups {
     pub use crate::lookups_impl::native;
     pub use crate::lookups_impl::{LookupKey, day_place, forecast_from};
 }
-// The .wtf feature, link and library modules the engine calls into.
+// The .x.md feature, link and library modules the engine calls into.
 pub mod modules {
     pub use crate::modules_impl::{
         Collection, Hook, Module, ModuleKind, ModuleRegistry, from_json, is_module_path, json,

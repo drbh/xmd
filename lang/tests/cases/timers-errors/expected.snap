@@ -1,5 +1,5 @@
-### 0 cli query bad.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -89,8 +89,8 @@ exit 0
   }
 ]
 
-### 1 cli query attributes.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query attributes.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query attributes.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query attributes.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -108,21 +108,21 @@ exit 0
   }
 ]
 
-### 2 cli render attributes.wtf --format text
-$ wtf render attributes.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli render attributes.x.md --format text
+$ xmd render attributes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [watch] := stopwatch() = ◴ 00:00 elapsed · ○ idle
 - [ ] Bad @timer(1m)
 [watch.bogus]
 --- stderr
-<root>/attributes.wtf:2:18: error: @timer requires a named stopwatch or countdown, e.g. @timer(focus)
-<root>/attributes.wtf:3:8: error: Module timer.property: Unknown timer property 'bogus'
-wtf: 2 error(s) while rendering
+<root>/attributes.x.md:2:18: error: @timer requires a named stopwatch or countdown, e.g. @timer(focus)
+<root>/attributes.x.md:3:8: error: Module timer.property: Unknown timer property 'bogus'
+xmd: 2 error(s) while rendering
 
 ### 3 lsp
--- open attributes.wtf
--- await textDocument/publishDiagnostics attributes.wtf
+-- open attributes.x.md
+-- await textDocument/publishDiagnostics attributes.x.md
 {
   "diagnostics": [
     {
@@ -139,7 +139,7 @@ wtf: 2 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "property",
@@ -155,10 +155,10 @@ wtf: 2 error(s) while rendering
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/attributes.wtf",
+  "uri": "file://<root>/attributes.x.md",
   "version": 1
 }
 

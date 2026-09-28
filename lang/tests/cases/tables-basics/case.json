@@ -1,76 +1,76 @@
 {
   "steps": [
-    { "cli": ["render", "groceries.wtf", "--format", "text"] },
-    { "cli": ["query", "groceries.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "groceries.wtf", "tables | select {name, display}", "--json"] },
-    { "cli": ["query", "groceries.wtf", "rows | select {table, line, cells}", "--json"] },
-    { "cli": ["query", "groceries.wtf", "cells | select {title, line, value}", "--json"] },
-    { "cli": ["query", "groceries.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "groceries.x.md", "--format", "text"] },
+    { "cli": ["query", "groceries.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "groceries.x.md", "tables | select {name, display}", "--json"] },
+    { "cli": ["query", "groceries.x.md", "rows | select {table, line, cells}", "--json"] },
+    { "cli": ["query", "groceries.x.md", "cells | select {title, line, value}", "--json"] },
+    { "cli": ["query", "groceries.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "groceries.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "groceries.wtf" },
-        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 6, "character": 2 },
-        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 1, "character": 21 },
-        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 3, "character": 15 },
-        { "request": "textDocument/documentSymbol", "file": "groceries.wtf" },
+        { "open": "groceries.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "groceries.x.md" },
+        { "request": "textDocument/hover", "file": "groceries.x.md", "line": 6, "character": 2 },
+        { "request": "textDocument/hover", "file": "groceries.x.md", "line": 1, "character": 21 },
+        { "request": "textDocument/hover", "file": "groceries.x.md", "line": 3, "character": 15 },
+        { "request": "textDocument/documentSymbol", "file": "groceries.x.md" },
         {
           "change": {
-            "file": "groceries.wtf",
+            "file": "groceries.x.md",
             "text": "[groceries] := table\n| item | quantity | price |\n| --- | --- | --- |\n| apple | 2 | $3.30 |\n| pear | 5 | $4.30 |\n| peach | 1 | $2.00 |\n\n[total] := sum(groceries, quantity * price)\n[units] := sum(groceries, quantity)\n[average] := total / units\nCost [total].\n"
           }
         },
-        { "request": "textDocument/hover", "file": "groceries.wtf", "line": 7, "character": 2 }
+        { "request": "textDocument/hover", "file": "groceries.x.md", "line": 7, "character": 2 }
       ]
     },
-    { "cli": ["render", "scoped.wtf", "--format", "text"] },
-    { "cli": ["query", "scoped.wtf", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "scoped.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "scoped.x.md", "--format", "text"] },
+    { "cli": ["query", "scoped.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "scoped.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "scoped.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "scoped.wtf" },
-        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 13, "character": 38 },
-        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 13, "character": 2 },
-        { "request": "textDocument/hover", "file": "scoped.wtf", "line": 18, "character": 33 },
+        { "open": "scoped.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "scoped.x.md" },
+        { "request": "textDocument/hover", "file": "scoped.x.md", "line": 13, "character": 38 },
+        { "request": "textDocument/hover", "file": "scoped.x.md", "line": 13, "character": 2 },
+        { "request": "textDocument/hover", "file": "scoped.x.md", "line": 18, "character": 33 },
         {
           "request": "textDocument/rename",
-          "file": "scoped.wtf",
+          "file": "scoped.x.md",
           "line": 1,
           "character": 21,
           "extra": { "newName": "quantity" }
         },
         {
           "request": "textDocument/rename",
-          "file": "scoped.wtf",
+          "file": "scoped.x.md",
           "line": 1,
           "character": 21,
           "extra": { "newName": "true" }
         },
         {
           "request": "textDocument/rename",
-          "file": "scoped.wtf",
+          "file": "scoped.x.md",
           "line": 1,
           "character": 21,
           "extra": { "newName": "unit_price" }
         }
       ]
     },
-    { "cli": ["render", "alias.wtf", "--format", "text"] },
-    { "cli": ["query", "alias.wtf", "values | select {name, display}", "--json"] },
+    { "cli": ["render", "alias.x.md", "--format", "text"] },
+    { "cli": ["query", "alias.x.md", "values | select {name, display}", "--json"] },
     {
       "lsp": [
-        { "open": "alias.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "alias.wtf" },
-        { "request": "textDocument/definition", "file": "alias.wtf", "line": 1, "character": 33 },
-        { "request": "textDocument/hover", "file": "alias.wtf", "line": 1, "character": 33 }
+        { "open": "alias.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "alias.x.md" },
+        { "request": "textDocument/definition", "file": "alias.x.md", "line": 1, "character": 33 },
+        { "request": "textDocument/hover", "file": "alias.x.md", "line": 1, "character": 33 }
       ]
     },
     {
       "lsp": [
-        { "open": "partial.wtf" },
-        { "request": "textDocument/completion", "file": "partial.wtf", "line": 6, "character": 39 },
-        { "request": "textDocument/signatureHelp", "file": "partial.wtf", "line": 6, "character": 39 }
+        { "open": "partial.x.md" },
+        { "request": "textDocument/completion", "file": "partial.x.md", "line": 6, "character": 39 },
+        { "request": "textDocument/signatureHelp", "file": "partial.x.md", "line": 6, "character": 39 }
       ]
     }
   ]

@@ -1,8 +1,8 @@
 {
   "now": "2026-09-16T14:00:00-04:00",
   "steps": [
-    { "cli": ["render", "units.wtf", "--format", "text"] },
-    { "cli": ["render", "bad.wtf", "--format", "text"] },
-    { "cli": ["query", "bad.wtf", "diagnostics | select {message, code}", "--json"] }
+    { "cli": ["render", "units.x.md", "--format", "text"] },
+    { "cli": ["render", "bad.x.md", "--format", "text"] },
+    { "cli": ["query", "bad.x.md", "diagnostics | select {message, code}", "--json"] }
   ]
 }

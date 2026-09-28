@@ -1,5 +1,5 @@
-### 0 cli render calc.wtf --format text
-$ wtf render calc.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render calc.x.md --format text
+$ xmd render calc.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [$10]:unit
@@ -12,8 +12,8 @@ exit 0
 | one   | [unit] $10       |
 [total] := sum(groceries, price) = $43.30
 
-### 1 cli query calc.wtf cells | select {title, line, value} --json
-$ wtf query calc.wtf cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query calc.x.md cells | select {title, line, value} --json
+$ xmd query calc.x.md cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -61,21 +61,21 @@ exit 0
   }
 ]
 
-### 2 cli query calc.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query calc.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query calc.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query calc.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 lsp
--- open calc.wtf
--- await textDocument/publishDiagnostics calc.wtf
+-- open calc.x.md
+-- await textDocument/publishDiagnostics calc.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/calc.wtf",
+  "uri": "file://<root>/calc.x.md",
   "version": 1
 }
--- request textDocument/hover calc.wtf 6:11
+-- request textDocument/hover calc.x.md 6:11
 {
   "contents": {
     "kind": "markdown",
@@ -92,7 +92,7 @@ exit 0
     }
   }
 }
--- request textDocument/references calc.wtf 0:7
+-- request textDocument/references calc.x.md 0:7
 [
   {
     "range": {
@@ -105,7 +105,7 @@ exit 0
         "line": 0
       }
     },
-    "uri": "file://<root>/calc.wtf"
+    "uri": "file://<root>/calc.x.md"
   },
   {
     "range": {
@@ -118,7 +118,7 @@ exit 0
         "line": 6
       }
     },
-    "uri": "file://<root>/calc.wtf"
+    "uri": "file://<root>/calc.x.md"
   },
   {
     "range": {
@@ -131,14 +131,14 @@ exit 0
         "line": 7
       }
     },
-    "uri": "file://<root>/calc.wtf"
+    "uri": "file://<root>/calc.x.md"
   }
 ]
--- request textDocument/formatting calc.wtf
+-- request textDocument/formatting calc.x.md
 []
 
-### 4 cli query wrong.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query wrong.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query wrong.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query wrong.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -151,8 +151,8 @@ exit 0
 ]
 
 ### 5 lsp
--- open wrong.wtf
--- await textDocument/publishDiagnostics wrong.wtf
+-- open wrong.x.md
+-- await textDocument/publishDiagnostics wrong.x.md
 {
   "diagnostics": [
     {
@@ -169,15 +169,15 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/wrong.wtf",
+  "uri": "file://<root>/wrong.x.md",
   "version": 1
 }
 
-### 6 cli query unknown.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query unknown.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query unknown.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query unknown.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -189,8 +189,8 @@ exit 0
   }
 ]
 
-### 7 cli query empty.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query empty.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query empty.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query empty.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

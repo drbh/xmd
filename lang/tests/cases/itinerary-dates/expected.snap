@@ -1,5 +1,5 @@
-### 0 cli render markers.wtf --format text
-$ wtf render markers.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render markers.x.md --format text
+$ xmd render markers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 Friday, November 20, 2026 3 stops · 09:00 AM – 11:00 AM · in 65 days
@@ -8,11 +8,11 @@ Friday, November 20, 2026 3 stops · 09:00 AM – 11:00 AM · in 65 days
 10:00 AM  Something vague → 1h until *Lunch
 11:00 AM  *Lunch
 --- stderr
-<root>/markers.wtf:4:11: warning: Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)
-<root>/markers.wtf:5:11: warning: Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)
+<root>/markers.x.md:4:11: warning: Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)
+<root>/markers.x.md:5:11: warning: Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)
 
-### 1 cli query markers.wtf map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json
-$ wtf query markers.wtf map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query markers.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json
+$ xmd query markers.x.md map(get(days, 0).value.stops, fn(s) => {line: s.line, title: s.title, kind: s.kind}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -36,8 +36,8 @@ exit 0
   }
 ]
 
-### 2 cli query markers.wtf stops | select {title, line, at_date} --json
-$ wtf query markers.wtf stops | select {title, line, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query markers.x.md stops | select {title, line, at_date} --json
+$ xmd query markers.x.md stops | select {title, line, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -67,8 +67,8 @@ exit 0
   }
 ]
 
-### 3 cli query markers.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query markers.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query markers.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query markers.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -87,8 +87,8 @@ exit 0
 ]
 
 ### 4 lsp
--- open markers.wtf
--- await textDocument/publishDiagnostics markers.wtf
+-- open markers.x.md
+-- await textDocument/publishDiagnostics markers.x.md
 {
   "diagnostics": [
     {
@@ -105,7 +105,7 @@ exit 0
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     },
     {
       "code": "itinerary-kind",
@@ -121,23 +121,23 @@ exit 0
         }
       },
       "severity": 2,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/markers.wtf",
+  "uri": "file://<root>/markers.x.md",
   "version": 1
 }
--- request textDocument/formatting markers.wtf
+-- request textDocument/formatting markers.x.md
 []
--- applied to markers.wtf (version 2)
+-- applied to markers.x.md (version 2)
 Friday, November 20, 2026
 
 09:00 AM  > JFK to MEX
 10:00 AM  Something vague
 11:00 AM  *Lunch
 
-### 5 cli query carry.wtf stops | select {title, at_date} --json
-$ wtf query carry.wtf stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query carry.x.md stops | select {title, at_date} --json
+$ xmd query carry.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -157,8 +157,8 @@ exit 0
   }
 ]
 
-### 6 cli query past.wtf stops | select {title, at_date} --json
-$ wtf query past.wtf stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query past.x.md stops | select {title, at_date} --json
+$ xmd query past.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -171,14 +171,14 @@ exit 0
   }
 ]
 
-### 7 cli query prose.wtf days | select {title, line} --json
-$ wtf query prose.wtf days | select {title, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query prose.x.md days | select {title, line} --json
+$ xmd query prose.x.md days | select {title, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 8 cli query bad.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query bad.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -215,8 +215,8 @@ exit 0
 ]
 
 ### 9 lsp
--- open complete.wtf
--- request textDocument/completion complete.wtf 2:11
+-- open complete.x.md
+-- request textDocument/completion complete.x.md 2:11
 [
   {
     "detail": "itinerary stop",
@@ -237,7 +237,7 @@ exit 0
     }
   }
 ]
--- request textDocument/completion complete.wtf 5:2
+-- request textDocument/completion complete.x.md 5:2
 [
   {
     "detail": "stop detail",

@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "multiline.wtf",
+        "multiline.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "multiline.wtf",
+        "multiline.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "multiline.wtf",
+        "multiline.x.md",
         "add(2)(3)",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "query",
-        "multiline.wtf",
+        "multiline.x.md",
         "config.title",
         "--json"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "query",
-        "multiline.wtf",
+        "multiline.x.md",
         "references | select {name, line: source.line}",
         "--json"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "multiline.wtf",
+        "multiline.x.md",
         "[length(sections), length(tasks), length(links)]",
         "--json"
       ]
@@ -52,7 +52,7 @@
     {
       "cli": [
         "query",
-        "multiline_crlf.wtf",
+        "multiline_crlf.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "query",
-        "multiline_crlf.wtf",
+        "multiline_crlf.x.md",
         "diagnostics | select {line, message}",
         "--json"
       ]
@@ -68,7 +68,7 @@
     {
       "cli": [
         "query",
-        "unfinished_prose.wtf",
+        "unfinished_prose.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -76,7 +76,7 @@
     {
       "cli": [
         "query",
-        "unfinished_indent.wtf",
+        "unfinished_indent.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -84,7 +84,7 @@
     {
       "cli": [
         "query",
-        "unfinished_comment.wtf",
+        "unfinished_comment.x.md",
         "values | select {name, display, errors}",
         "--json"
       ]
@@ -92,7 +92,7 @@
     {
       "cli": [
         "query",
-        "errors.wtf",
+        "errors.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -100,7 +100,7 @@
     {
       "cli": [
         "render",
-        "errors.wtf",
+        "errors.x.md",
         "--format",
         "text"
       ]
@@ -108,7 +108,7 @@
     {
       "cli": [
         "query",
-        "loop.wtf",
+        "loop.x.md",
         "loop(1)",
         "--json"
       ]
@@ -116,7 +116,7 @@
     {
       "cli": [
         "render",
-        "hello.wtf",
+        "hello.x.md",
         "--format",
         "text"
       ]
@@ -124,22 +124,22 @@
     {
       "lsp": [
         {
-          "open": "multiline.wtf"
+          "open": "multiline.x.md"
         },
         {
           "request": "textDocument/documentSymbol",
-          "file": "multiline.wtf"
+          "file": "multiline.x.md"
         },
         {
           "request": "textDocument/foldingRange",
-          "file": "multiline.wtf"
+          "file": "multiline.x.md"
         },
         {
-          "open": "hello.wtf"
+          "open": "hello.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "hello.wtf",
+          "file": "hello.x.md",
           "range": {
             "start": {
               "line": 0,

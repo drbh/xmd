@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>A note on your page</title>
   <!-- 1. the stylesheet (and the font, optionally) -->
-  <link rel="stylesheet" href="https://wtf-docs.drbh.workers.dev/lib/theme/style.css">
-  <link rel="stylesheet" href="https://wtf-docs.drbh.workers.dev/lib/theme/fonts.css">
+  <link rel="stylesheet" href="https://xmd.dholtz.com/lib/theme/style.css">
+  <link rel="stylesheet" href="https://xmd.dholtz.com/lib/theme/fonts.css">
   <style>
     body { max-width: 720px; margin: 40px auto; padding: 0 20px; font: 16px/1.6 system-ui, sans-serif; color: #1f1f1f; }
-    #note { padding: 24px; border: 1px solid #dadce0; border-radius: 8px; --wtf-background: #fff; }
+    #note { padding: 24px; border: 1px solid #dadce0; border-radius: 8px; --xmd-background: #fff; }
     .snippet { position: relative; background: #f6f8fa; border: 1px solid #e3e6ea; border-radius: 8px; }
     .snippet pre { margin: 0; padding: 14px 16px; overflow: auto; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #1f1f1f; }
     .snippet .copy { position: absolute; top: 8px; right: 8px; height: 28px; padding: 0 12px; border: 1px solid #dadce0; border-radius: 14px; background: #fff; color: #1f1f1f; font: 500 12px system-ui, sans-serif; cursor: pointer; }
@@ -18,7 +18,7 @@
     .tag { color: #22863a; } .attr { color: #6f42c1; } .str { color: #032f62; } .kw { color: #d73a49; } .fn { color: #005cc5; } .cmt { color: #6a737d; }
   </style>
 </head>
-<body class="wtf-light">
+<body class="xmd-light">
   <h1>A live note on any page</h1>
   <p>Everything below is a real editor: values, calculations, checklists and timers resolve as you type. Nothing runs on a server; the engine loads from the CDN into a worker in this page.</p>
 
@@ -27,7 +27,7 @@
 
   <!-- 3. mount it -->
   <script type="module">
-    import { mountEditor } from "https://wtf-docs.drbh.workers.dev/lib/adapters/contenteditable.js";
+    import { mountEditor } from "https://xmd.dholtz.com/lib/adapters/contenteditable.js";
 
     mountEditor(document.querySelector("#note"), {
       layout: "document",
@@ -54,10 +54,10 @@ That leaves [remaining] for food and fun, [remaining / 2] a day.
   <script type="module">
     // The snippet is highlighted by hand: it is four lines, so a real
     // highlighter would be heavier than the thing it colours.
-    const snippet = `<link rel="stylesheet" href="https://wtf-docs.drbh.workers.dev/lib/theme/style.css">
+    const snippet = `<link rel="stylesheet" href="https://xmd.dholtz.com/lib/theme/style.css">
 <div id="note"></div>
 <script type="module">
-  import { mountEditor } from "https://wtf-docs.drbh.workers.dev/lib/adapters/contenteditable.js";
+  import { mountEditor } from "https://xmd.dholtz.com/lib/adapters/contenteditable.js";
   mountEditor(document.querySelector("#note"), { source: "rent := $900\\nfood := $250\\nTotal [rent + food]\\n" });
 <\/script>`;
     const escape = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -78,6 +78,6 @@ That leaves [remaining] for food and fun, [remaining / 2] a day.
       setTimeout(() => { button.textContent = "Copy"; button.classList.remove("done"); }, 2000);
     });
   </script>
-  <p>Use <code>mount</code> instead of <code>mountEditor</code> for a read-only view, <code>render</code> for static HTML, and <code>onChange</code> to save what people type. <a href="https://wtf-docs.drbh.workers.dev/docs/">The document app</a> and <a href="https://wtf-docs.drbh.workers.dev/docs/#/reference">the reference</a> show everything the language can do.</p>
+  <p>Use <code>mount</code> instead of <code>mountEditor</code> for a read-only view, <code>render</code> for static HTML, and <code>onChange</code> to save what people type. <a href="https://xmd.dholtz.com/docs/">The document app</a> and <a href="https://xmd.dholtz.com/docs/#/reference">the reference</a> show everything the language can do.</p>
 </body>
 </html>

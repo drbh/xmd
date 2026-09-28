@@ -1,9 +1,9 @@
 // Emit a PNG of a rendered note, by default the README's minimal example.
 //
 //   node scripts/screenshot.mjs [--out media/screenshot.png] [--theme dark|light]
-//                               [--source note.wtf] [--now 2026-09-18T12:00:00Z]
+//                               [--source note.x.md] [--now 2026-09-18T12:00:00Z]
 //
-// The note is resolved by the native binary (`wtf render --format html`, so the
+// The note is resolved by the native binary (`xmd render --format html`, so the
 // picture shows exactly the inline values and colors the editor shows), the web
 // fonts are attached from theme/, and a headless Chrome captures the page.
 // Build the binary first: `cargo build` at the repository root.
@@ -36,24 +36,24 @@ const web = fileURLToPath(new URL("../", import.meta.url));
 const out = resolve(web, option("out", "media/screenshot.png"));
 const theme = option("theme", "dark");
 const now = option("now", "2026-09-18T12:00:00Z");
-const binary = resolve(web, "../../target/debug/wtf");
+const binary = resolve(web, "../../target/debug/xmd");
 const source = option("source") ? await readFile(resolve(option("source")), "utf8") : example;
 
 // The binary only renders notes it can find under a root.
-const root = await mkdtemp(join(tmpdir(), "wtf-shot-"));
+const root = await mkdtemp(join(tmpdir(), "xmd-shot-"));
 try {
-  await writeFile(join(root, "example.wtf"), source);
-  const rendered = spawnSync(binary, ["render", "example.wtf", "--root", root, "--now", now, "--format", "html"], { encoding: "utf8" });
+  await writeFile(join(root, "example.x.md"), source);
+  const rendered = spawnSync(binary, ["render", "example.x.md", "--root", root, "--now", now, "--format", "html"], { encoding: "utf8" });
   if (rendered.error) throw new Error(`Cannot run ${binary}: ${rendered.error.message} (run \`cargo build\` first)`);
   if (rendered.stderr.trim()) console.error(rendered.stderr.trim());
-  if (!rendered.stdout) throw new Error(`wtf render produced no HTML (exit ${rendered.status})`);
+  if (!rendered.stdout) throw new Error(`xmd render produced no HTML (exit ${rendered.status})`);
 
   // The export embeds the dark palette but neither the fonts nor the light
   // rules; attach the full theme from theme/ and pad the note with its own paper.
   const link = name => `<link rel="stylesheet" href="${new URL(`../theme/${name}`, import.meta.url).href}">`;
   const html = rendered.stdout
-    .replace("</head>", `${link("fonts.css")}${link("style.css")}<style>pre.wtf { display: inline-block; margin: 0; padding: 32px 40px 32px 32px; }</style></head>`)
-    .replace("<html", theme === "light" ? '<html class="wtf-light"' : "<html");
+    .replace("</head>", `${link("fonts.css")}${link("style.css")}<style>pre.xmd { display: inline-block; margin: 0; padding: 32px 40px 32px 32px; }</style></head>`)
+    .replace("<html", theme === "light" ? '<html class="xmd-light"' : "<html");
   const pageFile = join(root, "example.html");
   await writeFile(pageFile, html);
 
@@ -63,7 +63,7 @@ try {
     await page.goto(`file://${pageFile}`);
     await page.evaluate(() => document.fonts.ready);
     await mkdir(dirname(out), { recursive: true });
-    await page.locator("pre.wtf").screenshot({ path: out });
+    await page.locator("pre.xmd").screenshot({ path: out });
   } finally {
     await browser.close();
   }

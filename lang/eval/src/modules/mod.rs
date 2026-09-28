@@ -1,4 +1,4 @@
-//! Hot-reloadable WTF modules: what one is, and how the engine calls into it.
+//! Hot-reloadable XMD modules: what one is, and how the engine calls into it.
 use crate::{
     engine_impl::Value,
     error::{EvalError, EvalResult},
@@ -224,12 +224,12 @@ impl Module {
 }
 
 pub fn is_module_path(path: &Path) -> bool {
-    path.extension().is_some_and(|s| s == "wtf")
+    common::is_note(path)
         && path.parent().is_some_and(|p| {
             p.file_name().is_some_and(|s| s == "stdlib")
                 || (p.file_name().is_some_and(|s| s == "modules")
                     && p.parent()
-                        .is_some_and(|p| p.file_name().is_some_and(|s| s == ".wtf")))
+                        .is_some_and(|p| p.file_name().is_some_and(|s| s == ".xmd")))
         })
 }
 

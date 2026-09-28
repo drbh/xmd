@@ -1,5 +1,5 @@
-### 0 cli render links.wtf --format text
-$ wtf render links.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+### 0 cli render links.x.md --format text
+$ xmd render links.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 Links of every shape:
@@ -15,8 +15,8 @@ https://github.com/o/r/pull/no
 https://github.com/o/r/tree/main
 https://github.com/o/r/pull/
 
-### 1 cli query links.wtf resources | select {target, metadata} --json
-$ wtf query links.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+### 1 cli query links.x.md resources | select {target, metadata} --json
+$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
@@ -105,14 +105,14 @@ exit 0
 ]
 
 ### 2 lsp
--- open links.wtf
--- await textDocument/publishDiagnostics links.wtf
+-- open links.x.md
+-- await textDocument/publishDiagnostics links.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/links.wtf",
+  "uri": "file://<root>/links.x.md",
   "version": 1
 }
--- request textDocument/hover links.wtf 1:5
+-- request textDocument/hover links.x.md 1:5
 {
   "contents": {
     "kind": "markdown",
@@ -129,7 +129,7 @@ exit 0
     }
   }
 }
--- request textDocument/hover links.wtf 5:5
+-- request textDocument/hover links.x.md 5:5
 {
   "contents": {
     "kind": "markdown",
@@ -146,7 +146,7 @@ exit 0
     }
   }
 }
--- request textDocument/hover links.wtf 8:5
+-- request textDocument/hover links.x.md 8:5
 {
   "contents": {
     "kind": "markdown",
@@ -163,7 +163,7 @@ exit 0
     }
   }
 }
--- request textDocument/documentLink links.wtf
+-- request textDocument/documentLink links.x.md
 [
   {
     "range": {

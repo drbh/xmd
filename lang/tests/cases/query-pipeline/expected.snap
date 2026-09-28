@@ -1,13 +1,13 @@
-### 0 cli query tasks.wtf tasks | count --json
-$ wtf query tasks.wtf tasks | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 0 cli query tasks.x.md tasks | count --json
+$ xmd query tasks.x.md tasks | count --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   4
 ]
 
-### 1 cli query tasks.wtf tasks | where leaf && !done && contains(tags, "errands") | select {title, due, estimate, source, parent} | sort due | limit 1 --json
-$ wtf query tasks.wtf tasks | where leaf && !done && contains(tags, "errands") | select {title, due, estimate, source, parent} | sort due | limit 1 --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 1 cli query tasks.x.md tasks | where leaf && !done && contains(tags, "errands") | select {title, due, estimate, source, parent} | sort due | limit 1 --json
+$ xmd query tasks.x.md tasks | where leaf && !done && contains(tags, "errands") | select {title, due, estimate, source, parent} | sort due | limit 1 --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -22,7 +22,7 @@ exit 0
     },
     "parent": {
       "line": 1,
-      "path": "<root>/tasks.wtf",
+      "path": "<root>/tasks.x.md",
       "range": {
         "end": {
           "character": 5,
@@ -33,11 +33,11 @@ exit 0
           "line": 0
         }
       },
-      "uri": "file://<root>/tasks.wtf#L1"
+      "uri": "file://<root>/tasks.x.md#L1"
     },
     "source": {
       "line": 2,
-      "path": "<root>/tasks.wtf",
+      "path": "<root>/tasks.x.md",
       "range": {
         "end": {
           "character": 54,
@@ -48,22 +48,22 @@ exit 0
           "line": 1
         }
       },
-      "uri": "file://<root>/tasks.wtf#L2"
+      "uri": "file://<root>/tasks.x.md#L2"
     },
     "title": "Child #errands"
   }
 ]
 
-### 2 cli query tasks.wtf tasks | where parent != null | count --json
-$ wtf query tasks.wtf tasks | where parent != null | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 2 cli query tasks.x.md tasks | where parent != null | count --json
+$ xmd query tasks.x.md tasks | where parent != null | count --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   2
 ]
 
-### 3 cli query tasks.wtf tasks | select {title, due}
-$ wtf query tasks.wtf tasks | select {title, due} --root <root> --now 2026-09-16T12:00:00-04:00
+### 3 cli query tasks.x.md tasks | select {title, due}
+$ xmd query tasks.x.md tasks | select {title, due} --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 due=null	title=Parent
@@ -71,8 +71,8 @@ due=2026-09-17	title=Child #errands
 due=null	title=Done
 due=2026-10-01	title=Later
 
-### 4 cli query pipes.wtf tasks | where title == "a|b" || (false && nonexistent) | select {label: title, separator: ":,|", nested: contains(title, "|"), timestamp: 2026-09-16T12:00:00-04:00} --json
-$ wtf query pipes.wtf tasks | where title == "a|b" || (false && nonexistent) | select {label: title, separator: ":,|", nested: contains(title, "|"), timestamp: 2026-09-16T12:00:00-04:00} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 4 cli query pipes.x.md tasks | where title == "a|b" || (false && nonexistent) | select {label: title, separator: ":,|", nested: contains(title, "|"), timestamp: 2026-09-16T12:00:00-04:00} --json
+$ xmd query pipes.x.md tasks | where title == "a|b" || (false && nonexistent) | select {label: title, separator: ":,|", nested: contains(title, "|"), timestamp: 2026-09-16T12:00:00-04:00} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -87,24 +87,24 @@ exit 0
   }
 ]
 
-### 5 cli query pipes.wtf tasks | where true || nonexistent | count --json
-$ wtf query pipes.wtf tasks | where true || nonexistent | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 5 cli query pipes.x.md tasks | where true || nonexistent | count --json
+$ xmd query pipes.x.md tasks | where true || nonexistent | count --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   2
 ]
 
-### 6 cli query pipes.wtf tasks | select {name: title} | where contains(name, "b") | select name --json
-$ wtf query pipes.wtf tasks | select {name: title} | where contains(name, "b") | select name --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 6 cli query pipes.x.md tasks | select {name: title} | where contains(name, "b") | select name --json
+$ xmd query pipes.x.md tasks | select {name: title} | where contains(name, "b") | select name --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   "a|b"
 ]
 
-### 7 cli query due.wtf tasks | sort due | select title --json
-$ wtf query due.wtf tasks | sort due | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 7 cli query due.x.md tasks | sort due | select title --json
+$ xmd query due.x.md tasks | sort due | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -114,8 +114,8 @@ exit 0
   "Missing"
 ]
 
-### 8 cli query due.wtf tasks | sort due desc, title desc | select title --json
-$ wtf query due.wtf tasks | sort due desc, title desc | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 8 cli query due.x.md tasks | sort due desc, title desc | select title --json
+$ xmd query due.x.md tasks | sort due desc, title desc | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -125,8 +125,8 @@ exit 0
   "Missing"
 ]
 
-### 9 cli query due.wtf tasks | where due < today() | count --json
-$ wtf query due.wtf tasks | where due < today() | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 9 cli query due.x.md tasks | where due < today() | count --json
+$ xmd query due.x.md tasks | where due < today() | count --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -134,7 +134,7 @@ exit 0
 ]
 
 ### 10 cli query --workspace tasks | sum estimate --root effort --json
-$ wtf query --workspace tasks | sum estimate --root effort --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | sum estimate --root effort --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -145,7 +145,7 @@ exit 0
 ]
 
 ### 11 cli query --workspace tasks | group source.path | select {path:key, tasks:length(rows), effort:sum(rows.estimate)} | sort path --root effort --json
-$ wtf query --workspace tasks | group source.path | select {path:key, tasks:length(rows), effort:sum(rows.estimate)} | sort path --root effort --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | group source.path | select {path:key, tasks:length(rows), effort:sum(rows.estimate)} | sort path --root effort --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -154,26 +154,26 @@ exit 0
       "seconds": 1890,
       "type": "duration"
     },
-    "path": "<root>/effort/a.wtf",
+    "path": "<root>/effort/a.x.md",
     "tasks": 2
   },
   {
     "effort": null,
-    "path": "<root>/effort/b.wtf",
+    "path": "<root>/effort/b.x.md",
     "tasks": 1
   }
 ]
 
 ### 12 cli query --workspace tasks | sum estimate --root empty --json
-$ wtf query --workspace tasks | sum estimate --root empty --json --now 2026-09-16T12:00:00-04:00
+$ xmd query --workspace tasks | sum estimate --root empty --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   null
 ]
 
-### 13 cli query time.wtf values | select {name, value} --json --now 2026-09-16T23:00:00-04:00
-$ wtf query time.wtf values | select {name, value} --json --now 2026-09-16T23:00:00-04:00 --root <root>
+### 13 cli query time.x.md values | select {name, value} --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md values | select {name, value} --json --now 2026-09-16T23:00:00-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -193,16 +193,16 @@ exit 0
   }
 ]
 
-### 14 cli query time.wtf events | where at_date == today() | select title --json --now 2026-09-16T23:00:00-04:00
-$ wtf query time.wtf events | where at_date == today() | select title --json --now 2026-09-16T23:00:00-04:00 --root <root>
+### 14 cli query time.x.md events | where at_date == today() | select title --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md events | where at_date == today() | select title --json --now 2026-09-16T23:00:00-04:00 --root <root>
 exit 0
 --- stdout
 [
   "Late"
 ]
 
-### 15 cli query time.wtf values | where name == "day" | select {tomorrow: value + 1d} --json --now 2026-09-16T23:00:00-04:00
-$ wtf query time.wtf values | where name == "day" | select {tomorrow: value + 1d} --json --now 2026-09-16T23:00:00-04:00 --root <root>
+### 15 cli query time.x.md values | where name == "day" | select {tomorrow: value + 1d} --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md values | where name == "day" | select {tomorrow: value + 1d} --json --now 2026-09-16T23:00:00-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -214,8 +214,8 @@ exit 0
   }
 ]
 
-### 16 cli query union.wtf union(tasks, events) | select kind --json
-$ wtf query union.wtf union(tasks, events) | select kind --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 16 cli query union.x.md union(tasks, events) | select kind --json
+$ xmd query union.x.md union(tasks, events) | select kind --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [

@@ -1,5 +1,5 @@
-### 0 cli render feeds.wtf --format text
-$ wtf render feeds.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+### 0 cli render feeds.x.md --format text
+$ xmd render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 # Feeds
@@ -12,67 +12,67 @@ Notes: [notes.latest] updated [notes.updated].
 Titles: [map(blog.items, fn(i) => i.title)]
 Dates: [map(blog.items, fn(i) => i.published)]
 --- stderr
-<root>/feeds.wtf:5:20: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:5:35: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:5:52: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:6:25: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:6:45: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:7:15: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:7:38: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:8:14: warning: Module rss.property: No cached feed; run wtf refresh
-<root>/feeds.wtf:9:13: warning: Module rss.property: No cached feed; run wtf refresh
+<root>/feeds.x.md:5:20: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:5:35: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:5:52: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:6:25: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:6:45: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:7:15: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:7:38: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:8:14: warning: Module rss.property: No cached feed; run xmd refresh
+<root>/feeds.x.md:9:13: warning: Module rss.property: No cached feed; run xmd refresh
 
-### 1 cli query feeds.wtf diagnostics | select {message, code} --json
-$ wtf query feeds.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
+### 1 cli query feeds.x.md diagnostics | select {message, code} --json
+$ xmd query feeds.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "property",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "evaluation",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   },
   {
     "code": "evaluation",
-    "message": "Module rss.property: No cached feed; run wtf refresh"
+    "message": "Module rss.property: No cached feed; run xmd refresh"
   }
 ]
 
 ### 2 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 1
 --- stderr
-wtf: https://broken.example.net/rss: Not an RSS or Atom feed
+xmd: https://broken.example.net/rss: Not an RSS or Atom feed
 
-### 3 read .wtf/cache.json
--- .wtf/cache.json
+### 3 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://example.com/blog/feed.xml": {
     "title": "Typed & Notes",
@@ -144,8 +144,8 @@ wtf: https://broken.example.net/rss: Not an RSS or Atom feed
   }
 }
 
-### 4 cli render feeds.wtf --format text
-$ wtf render feeds.wtf --format text --root <root> --now 2026-09-16T18:00:00Z
+### 4 cli render feeds.x.md --format text
+$ xmd render feeds.x.md --format text --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 # Feeds
@@ -158,8 +158,8 @@ Notes: [notes.latest] Reading a feed — natively updated [notes.updated] 2026-0
 Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations", "An older post"]
 Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
 
-### 5 cli query feeds.wtf resources | select {target, metadata} --json
-$ wtf query feeds.wtf resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+### 5 cli query feeds.x.md resources | select {target, metadata} --json
+$ xmd query feeds.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
@@ -321,8 +321,8 @@ exit 0
   }
 ]
 
-### 6 cli render feeds.wtf --format text --on 2026-10-01
-$ wtf render feeds.wtf --format text --on 2026-10-01 --root <root>
+### 6 cli render feeds.x.md --format text --on 2026-10-01
+$ xmd render feeds.x.md --format text --on 2026-10-01 --root <root>
 exit 0
 --- stdout
 # Feeds
@@ -336,14 +336,14 @@ Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations",
 Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
 
 ### 7 lsp
--- open feeds.wtf
--- await textDocument/publishDiagnostics feeds.wtf
+-- open feeds.x.md
+-- await textDocument/publishDiagnostics feeds.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/feeds.wtf",
+  "uri": "file://<root>/feeds.x.md",
   "version": 1
 }
--- request textDocument/hover feeds.wtf 1:12
+-- request textDocument/hover feeds.x.md 1:12
 {
   "contents": {
     "kind": "markdown",
@@ -360,7 +360,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
     }
   }
 }
--- request textDocument/hover feeds.wtf 2:12
+-- request textDocument/hover feeds.x.md 2:12
 {
   "contents": {
     "kind": "markdown",
@@ -377,7 +377,7 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
     }
   }
 }
--- request textDocument/codeLens feeds.wtf
+-- request textDocument/codeLens feeds.x.md
 [
   {
     "command": {
@@ -385,14 +385,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://example.com/blog/feed.xml:blog",
             "row": 1
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -412,14 +412,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://example.com/blog/feed.xml:blog",
             "row": 1
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -439,14 +439,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://notes.example.org/atom:notes",
             "row": 2
           },
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -466,14 +466,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://notes.example.org/atom:notes",
             "row": 2
           },
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -493,14 +493,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://broken.example.net/rss:broken",
             "row": 3
           },
           "url": "https://broken.example.net/rss"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -520,14 +520,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "https://broken.example.net/rss:broken",
             "row": 3
           },
           "url": "https://broken.example.net/rss"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -547,14 +547,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Newest post: [blog.latest] ([blog.updated]), [blog.count] in the archive.",
             "row": 4
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -574,14 +574,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Newest post: [blog.latest] ([blog.updated]), [blog.count] in the archive.",
             "row": 4
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -601,14 +601,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "The blog lives at [blog.link], titled [blog.title].",
             "row": 5
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -628,14 +628,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "The blog lives at [blog.link], titled [blog.title].",
             "row": 5
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -655,14 +655,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Notes: [notes.latest] updated [notes.updated].",
             "row": 6
           },
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -682,14 +682,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Notes: [notes.latest] updated [notes.updated].",
             "row": 6
           },
           "url": "https://notes.example.org/atom"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -709,14 +709,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Titles: [map(blog.items, fn(i) => i.title)]",
             "row": 7
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -736,14 +736,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Titles: [map(blog.items, fn(i) => i.title)]",
             "row": 7
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {
@@ -763,14 +763,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "open_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Dates: [map(blog.items, fn(i) => i.published)]",
             "row": 8
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.openResource",
+      "command": "xmd.openResource",
       "title": "↗ open"
     },
     "range": {
@@ -790,14 +790,14 @@ Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-
         {
           "kind": "refresh_resource",
           "target": {
-            "document": "file://<root>/feeds.wtf",
+            "document": "file://<root>/feeds.x.md",
             "expected": "Dates: [map(blog.items, fn(i) => i.published)]",
             "row": 8
           },
           "url": "https://example.com/blog/feed.xml"
         }
       ],
-      "command": "wtf.refreshResource",
+      "command": "xmd.refreshResource",
       "title": "⟳ feed"
     },
     "range": {

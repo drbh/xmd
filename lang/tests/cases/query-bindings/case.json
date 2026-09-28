@@ -34,7 +34,7 @@
     {
       "cli": [
         "query",
-        "usd.wtf",
+        "usd.x.md",
         "values | where name == \"total\" | select {name, hover}",
         "--root",
         "money",
@@ -54,7 +54,7 @@
     {
       "cli": [
         "query",
-        "tables.wtf",
+        "tables.x.md",
         "tables | select {name}",
         "--json"
       ]
@@ -62,7 +62,7 @@
     {
       "cli": [
         "query",
-        "tables.wtf",
+        "tables.x.md",
         "rows | where table == \"groceries\" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity}",
         "--json"
       ]
@@ -70,7 +70,7 @@
     {
       "cli": [
         "query",
-        "tables.wtf",
+        "tables.x.md",
         "values | where name == \"total\" | select {name, value, display}",
         "--json"
       ]
@@ -78,7 +78,7 @@
     {
       "cli": [
         "query",
-        "plans.wtf",
+        "plans.x.md",
         "plans | select {name}",
         "--json"
       ]
@@ -86,7 +86,7 @@
     {
       "cli": [
         "query",
-        "plans.wtf",
+        "plans.x.md",
         "plans | where name == \"bakery\" | select solution",
         "--json"
       ]
@@ -94,7 +94,7 @@
     {
       "cli": [
         "query",
-        "links.wtf",
+        "links.x.md",
         "resources | select {target, metadata}",
         "--json"
       ]
@@ -102,7 +102,7 @@
     {
       "cli": [
         "query",
-        "links.wtf",
+        "links.x.md",
         "resources | where metadata != null | select metadata.title",
         "--json"
       ]
@@ -110,7 +110,7 @@
     {
       "cli": [
         "query",
-        "bad.wtf",
+        "bad.x.md",
         "values | select {name, value, errors}",
         "--json"
       ]
@@ -118,7 +118,7 @@
     {
       "cli": [
         "query",
-        "bad.wtf",
+        "bad.x.md",
         "tasks | select {title, due, errors}",
         "--json"
       ]
@@ -126,7 +126,7 @@
     {
       "cli": [
         "query",
-        "bad.wtf",
+        "bad.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -134,24 +134,24 @@
     {
       "lsp": [
         {
-          "open": "bad.wtf"
+          "open": "bad.x.md"
         },
         {
           "query": {
             "query": "tasks | select {title, errors}",
-            "uri": "bad.wtf"
+            "uri": "bad.x.md"
           }
         },
         {
           "change": {
-            "file": "bad.wtf",
+            "file": "bad.x.md",
             "text": "good := 41 + 1\n- [ ] Fixed @due(2026-09-17)\n"
           }
         },
         {
           "query": {
             "query": "values | select {name, display}",
-            "uri": "bad.wtf"
+            "uri": "bad.x.md"
           }
         },
         {
@@ -160,10 +160,10 @@
           }
         },
         {
-          "request": "wtf/query",
+          "request": "xmd/query",
           "params": {
             "query": "tasks",
-            "uri": "${uri:missing.wtf}"
+            "uri": "${uri:missing.x.md}"
           }
         }
       ]

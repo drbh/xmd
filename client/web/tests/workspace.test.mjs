@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createWorkspace, applyTextEdits } from "../src/workspace.js";
 import { createRpc } from "../src/rpc.js";
 
-const uri = "file:///workspace/a.wtf", other = "file:///workspace/b.wtf";
+const uri = "file:///workspace/a.x.md", other = "file:///workspace/b.x.md";
 function engine() {
   const docs = new Map(), calls = [];
   const transport = async (method, params, now) => {

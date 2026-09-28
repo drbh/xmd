@@ -1,7 +1,7 @@
 ### 0 browser
--- setDocument fruit.wtf
--- setDocument typing.wtf
--- analyze {"uri":"file:///workspace/fruit.wtf"}
+-- setDocument fruit.x.md
+-- setDocument typing.x.md
+-- analyze {"uri":"file:///workspace/fruit.x.md"}
 {
   "ok": true,
   "result": {
@@ -18,7 +18,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**fruit · Table**\n\n2 rows · 3 columns\n\nDefinition: [fruit](<file:///workspace/fruit.wtf#L1>) · /workspace/fruit.wtf:1"
+          "value": "**fruit · Table**\n\n2 rows · 3 columns\n\nDefinition: [fruit](<file:///workspace/fruit.x.md#L1>) · /workspace/fruit.x.md:1"
         }
       },
       {
@@ -30,7 +30,7 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](<file:///workspace/fruit.wtf#L1>), [price](<file:///workspace/fruit.wtf#L2>), [qty](<file:///workspace/fruit.wtf#L2>)\n\nDefinition: [cost](<file:///workspace/fruit.wtf#L6>) · /workspace/fruit.wtf:6"
+          "value": "**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](<file:///workspace/fruit.x.md#L1>), [price](<file:///workspace/fruit.x.md#L2>), [qty](<file:///workspace/fruit.x.md#L2>)\n\nDefinition: [cost](<file:///workspace/fruit.x.md#L6>) · /workspace/fruit.x.md:6"
         }
       },
       {
@@ -42,11 +42,11 @@
         },
         "tooltip": {
           "kind": "markdown",
-          "value": "**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](<file:///workspace/fruit.wtf#L1>), [price](<file:///workspace/fruit.wtf#L2>), [qty](<file:///workspace/fruit.wtf#L2>)\n\nDefinition: [cost](<file:///workspace/fruit.wtf#L6>) · /workspace/fruit.wtf:6"
+          "value": "**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](<file:///workspace/fruit.x.md#L1>), [price](<file:///workspace/fruit.x.md#L2>), [qty](<file:///workspace/fruit.x.md#L2>)\n\nDefinition: [cost](<file:///workspace/fruit.x.md#L6>) · /workspace/fruit.x.md:6"
         }
       }
     ],
-    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">fruit</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span><span class=\"t-keyword\" title=\"\"> table</span><span class=\"inlay\" contenteditable=\"false\" title=\"**fruit · Table**\n\n2 rows · 3 columns\n\nDefinition: [fruit](&lt;file:///workspace/fruit.wtf#L1&gt;) · /workspace/fruit.wtf:1\"> = 2 rows · 3 columns</span>\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">name</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">qty</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"2\"><span class=\"t-wtfPunctuation\" title=\"\">|---|---|---|</span>\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-string\" title=\"\">apple</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-number\" title=\"\">2</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-wtfMoney\" title=\"\">$3.30</span><span class=\"t-wtfPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-string\" title=\"\">pear</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-number\" title=\"\">4</span><span class=\"t-wtfPunctuation\" title=\"\">|</span><span class=\"t-wtfMoney\" title=\"\">$4.30</span><span class=\"t-wtfPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">cost</span><span class=\"t-wtfPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">sum</span><span class=\"t-wtfPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">fruit</span><span class=\"t-wtfPunctuation\" title=\"\">,</span> <span class=\"t-property\" title=\"\">qty</span> <span class=\"t-operator\" title=\"\">*</span> <span class=\"t-property\" title=\"\">price</span><span class=\"t-wtfPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](&lt;file:///workspace/fruit.wtf#L1&gt;), [price](&lt;file:///workspace/fruit.wtf#L2&gt;), [qty](&lt;file:///workspace/fruit.wtf#L2&gt;)\n\nDefinition: [cost](&lt;file:///workspace/fruit.wtf#L6&gt;) · /workspace/fruit.wtf:6\"> = $23.80</span>\n</span><span class=\"line \" data-line=\"6\">Cost <span class=\"t-wtfPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">cost</span><span class=\"t-wtfPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](&lt;file:///workspace/fruit.wtf#L1&gt;), [price](&lt;file:///workspace/fruit.wtf#L2&gt;), [qty](&lt;file:///workspace/fruit.wtf#L2&gt;)\n\nDefinition: [cost](&lt;file:///workspace/fruit.wtf#L6&gt;) · /workspace/fruit.wtf:6\"> $23.80</span>.\n</span><span class=\"line \" data-line=\"7\"></span>",
+    "html": "<span class=\"line \" data-line=\"0\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">fruit</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span><span class=\"t-keyword\" title=\"\"> table</span><span class=\"inlay\" contenteditable=\"false\" title=\"**fruit · Table**\n\n2 rows · 3 columns\n\nDefinition: [fruit](&lt;file:///workspace/fruit.x.md#L1&gt;) · /workspace/fruit.x.md:1\"> = 2 rows · 3 columns</span>\n</span><span class=\"line \" data-line=\"1\"><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">name</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">qty</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-property declaration\" title=\"\">price</span><span class=\"t-xmdPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"2\"><span class=\"t-xmdPunctuation\" title=\"\">|---|---|---|</span>\n</span><span class=\"line \" data-line=\"3\"><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-string\" title=\"\">apple</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-number\" title=\"\">2</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-xmdMoney\" title=\"\">$3.30</span><span class=\"t-xmdPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"4\"><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-string\" title=\"\">pear</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-number\" title=\"\">4</span><span class=\"t-xmdPunctuation\" title=\"\">|</span><span class=\"t-xmdMoney\" title=\"\">$4.30</span><span class=\"t-xmdPunctuation\" title=\"\">|</span>\n</span><span class=\"line \" data-line=\"5\"><span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable declaration\" title=\"\">cost</span><span class=\"t-xmdPunctuation\" title=\"\">]</span> <span class=\"t-operator\" title=\"\">:=</span> <span class=\"t-function defaultLibrary\" title=\"\">sum</span><span class=\"t-xmdPunctuation\" title=\"\">(</span><span class=\"t-variable\" title=\"\">fruit</span><span class=\"t-xmdPunctuation\" title=\"\">,</span> <span class=\"t-property\" title=\"\">qty</span> <span class=\"t-operator\" title=\"\">*</span> <span class=\"t-property\" title=\"\">price</span><span class=\"t-xmdPunctuation\" title=\"\">)</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](&lt;file:///workspace/fruit.x.md#L1&gt;), [price](&lt;file:///workspace/fruit.x.md#L2&gt;), [qty](&lt;file:///workspace/fruit.x.md#L2&gt;)\n\nDefinition: [cost](&lt;file:///workspace/fruit.x.md#L6&gt;) · /workspace/fruit.x.md:6\"> = $23.80</span>\n</span><span class=\"line \" data-line=\"6\">Cost <span class=\"t-xmdPunctuation\" title=\"\">[</span><span class=\"t-variable\" title=\"\">cost</span><span class=\"t-xmdPunctuation\" title=\"\">]</span><span class=\"inlay\" contenteditable=\"false\" title=\"**cost · Money**\n\n$23.80\n\n```text\nsum(fruit, qty * price)\n= $23.80\n```\n\nRow contributions:\n\n`▁█` $6.60 → $17.20\n\n- Row 1: $6.60\n- Row 2: $17.20\n\nInputs: [fruit](&lt;file:///workspace/fruit.x.md#L1&gt;), [price](&lt;file:///workspace/fruit.x.md#L2&gt;), [qty](&lt;file:///workspace/fruit.x.md#L2&gt;)\n\nDefinition: [cost](&lt;file:///workspace/fruit.x.md#L6&gt;) · /workspace/fruit.x.md:6\"> $23.80</span>.\n</span><span class=\"line \" data-line=\"7\"></span>",
     "lenses": [],
     "lineClasses": [
       "",
@@ -207,28 +207,28 @@
       "function",
       "property",
       "decorator",
-      "wtfMoney",
-      "wtfDate",
-      "wtfDuration",
-      "wtfRatio",
-      "wtfBoolean",
-      "wtfPunctuation",
-      "wtfCode",
-      "wtfLink",
-      "wtfCheckbox",
-      "wtfTaskDone",
-      "wtfCheckboxChecked",
-      "wtfTime",
-      "wtfDay",
-      "wtfPlace",
-      "wtfDetailKey",
-      "wtfDepart",
-      "wtfArrive",
-      "wtfTransit",
-      "wtfStay",
-      "wtfMeal",
-      "wtfVisit",
-      "wtfExplore"
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
     ],
     "tokens": [
       0,
@@ -442,15 +442,15 @@
       15,
       0
     ],
-    "uri": "file:///workspace/fruit.wtf",
+    "uri": "file:///workspace/fruit.x.md",
     "version": 1,
     "versions": {
-      "file:///workspace/fruit.wtf": 1,
-      "file:///workspace/typing.wtf": 1
+      "file:///workspace/fruit.x.md": 1,
+      "file:///workspace/typing.x.md": 1
     }
   }
 }
--- definition {"position":{"character":29,"line":5},"uri":"file:///workspace/fruit.wtf"}
+-- definition {"position":{"character":29,"line":5},"uri":"file:///workspace/fruit.x.md"}
 {
   "ok": true,
   "result": {
@@ -464,10 +464,10 @@
         "line": 1
       }
     },
-    "uri": "file:///workspace/fruit.wtf"
+    "uri": "file:///workspace/fruit.x.md"
   }
 }
--- rename {"newName":"unit_price","position":{"character":29,"line":5},"uri":"file:///workspace/fruit.wtf"}
+-- rename {"newName":"unit_price","position":{"character":29,"line":5},"uri":"file:///workspace/fruit.x.md"}
 {
   "ok": true,
   "result": {
@@ -502,14 +502,14 @@
           }
         ],
         "textDocument": {
-          "uri": "file:///workspace/fruit.wtf",
+          "uri": "file:///workspace/fruit.x.md",
           "version": 1
         }
       }
     ]
   }
 }
--- formatting {"uri":"file:///workspace/fruit.wtf"}
+-- formatting {"uri":"file:///workspace/fruit.x.md"}
 {
   "ok": true,
   "result": [
@@ -567,7 +567,7 @@
     }
   ]
 }
--- onTypeFormatting {"ch":"|","position":{"character":9,"line":3},"uri":"file:///workspace/typing.wtf"}
+-- onTypeFormatting {"ch":"|","position":{"character":9,"line":3},"uri":"file:///workspace/typing.x.md"}
 {
   "ok": true,
   "result": [
@@ -612,7 +612,7 @@
     }
   ]
 }
--- onTypeFormatting {"ch":"\n","position":{"character":0,"line":5},"uri":"file:///workspace/typing.wtf"}
+-- onTypeFormatting {"ch":"\n","position":{"character":0,"line":5},"uri":"file:///workspace/typing.x.md"}
 {
   "ok": true,
   "result": [
@@ -633,9 +633,9 @@
 }
 
 ### 1 lsp
--- open fruit.wtf
--- open typing.wtf
--- request textDocument/definition fruit.wtf 5:29
+-- open fruit.x.md
+-- open typing.x.md
+-- request textDocument/definition fruit.x.md 5:29
 {
   "range": {
     "end": {
@@ -647,9 +647,9 @@
       "line": 1
     }
   },
-  "uri": "file://<root>/fruit.wtf"
+  "uri": "file://<root>/fruit.x.md"
 }
--- request textDocument/rename fruit.wtf 5:29
+-- request textDocument/rename fruit.x.md 5:29
 {
   "documentChanges": [
     {
@@ -682,13 +682,13 @@
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/fruit.wtf",
+        "uri": "file://<root>/fruit.x.md",
         "version": 1
       }
     }
   ]
 }
--- request textDocument/formatting fruit.wtf
+-- request textDocument/formatting fruit.x.md
 [
   {
     "newText": "| name  | qty | price |",
@@ -743,7 +743,7 @@
     }
   }
 ]
--- request textDocument/onTypeFormatting typing.wtf 3:9
+-- request textDocument/onTypeFormatting typing.x.md 3:9
 [
   {
     "newText": "| name  | qty |",
@@ -785,14 +785,14 @@
     }
   }
 ]
--- applied to typing.wtf (version 2)
+-- applied to typing.x.md (version 2)
 [fruit] := table
 | name  | qty |
 | ----- | --- |
 | apple | 2   |
 - [ ] first
 
--- request textDocument/onTypeFormatting typing.wtf 5:0
+-- request textDocument/onTypeFormatting typing.x.md 5:0
 [
   {
     "newText": "- [ ] ",
@@ -808,7 +808,7 @@
     }
   }
 ]
--- applied to typing.wtf (version 3)
+-- applied to typing.x.md (version 3)
 [fruit] := table
 | name  | qty |
 | ----- | --- |

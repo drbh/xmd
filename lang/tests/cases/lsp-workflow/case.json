@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "daily.wtf",
+        "daily.x.md",
         "--format",
         "text"
       ]
@@ -11,15 +11,15 @@
     {
       "lsp": [
         {
-          "open": "daily.wtf"
+          "open": "daily.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "daily.wtf"
+          "file": "daily.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -33,23 +33,23 @@
         },
         {
           "request": "textDocument/hover",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "line": 2,
           "character": 18
         },
         {
           "request": "textDocument/definition",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "line": 2,
           "character": 18
         },
         {
           "request": "textDocument/documentLink",
-          "file": "daily.wtf"
+          "file": "daily.x.md"
         },
         {
           "request": "textDocument/rename",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "line": 2,
           "character": 18,
           "extra": {
@@ -58,7 +58,7 @@
         },
         {
           "request": "textDocument/codeAction",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "range": {
             "start": {
               "line": 2,
@@ -77,17 +77,17 @@
         },
         {
           "change": {
-            "file": "daily.wtf",
-            "text": "# Release :release\n- [x] Parser\n- [x] Review [src.receipt] :review @estimate(30m) @completed(2026-09-16)\n- [ ] Publish @after(review) @due(src.departure-7d)\n[progress] := completed(release)/total(release)\nsrc := import(\"./resources.wtf\")\n"
+            "file": "daily.x.md",
+            "text": "# Release :release\n- [x] Parser\n- [x] Review [src.receipt] :review @estimate(30m) @completed(2026-09-16)\n- [ ] Publish @after(review) @due(src.departure-7d)\n[progress] := completed(release)/total(release)\nsrc := import(\"./resources.x.md\")\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "daily.wtf"
+          "file": "daily.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -104,7 +104,7 @@
           "params": {
             "changes": [
               {
-                "uri": "${uri:resources.wtf}",
+                "uri": "${uri:resources.x.md}",
                 "type": 2
               }
             ]
@@ -115,7 +115,7 @@
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "daily.wtf",
+          "file": "daily.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -135,8 +135,8 @@
     },
     {
       "read": [
-        "daily.wtf",
-        "resources.wtf"
+        "daily.x.md",
+        "resources.x.md"
       ]
     }
   ]

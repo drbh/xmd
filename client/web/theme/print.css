@@ -1,6 +1,6 @@
 @media print {
-  .wtf { color-scheme: light; background: white; color: #202820; font-size: 10px; }
-  .wtf [class] { color: inherit !important; }
-  .wtf .inlay { background: #e9eee5; }
-  .wtf-controls { display: none; }
+  .xmd { color-scheme: light; background: white; color: #202820; font-size: 10px; }
+  .xmd [class] { color: inherit !important; }
+  .xmd .inlay { background: #e9eee5; }
+  .xmd-controls { display: none; }
 }

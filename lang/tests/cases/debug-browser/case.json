@@ -6,7 +6,7 @@
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/debug.wtf"
+            "uri": "file:///workspace/debug.x.md"
           }
         }
       ]

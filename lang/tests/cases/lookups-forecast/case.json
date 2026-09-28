@@ -8,13 +8,13 @@
     },
     {
       "read": [
-        ".wtf/lookups.json"
+        ".xmd/lookups.json"
       ]
     },
     {
       "cli": [
         "render",
-        "trip.wtf",
+        "trip.x.md",
         "--format",
         "text"
       ]
@@ -22,7 +22,7 @@
     {
       "cli": [
         "query",
-        "trip.wtf",
+        "trip.x.md",
         "next_year.high",
         "--json"
       ]
@@ -30,7 +30,7 @@
     {
       "cli": [
         "query",
-        "trip.wtf",
+        "trip.x.md",
         "first_seasonal.rain",
         "--json"
       ]
@@ -40,20 +40,20 @@
         "refresh"
       ],
       "env": {
-        "WTF_NOW": "2026-10-01T14:00:00+00:00"
+        "XMD_NOW": "2026-10-01T14:00:00+00:00"
       }
     },
     {
       "cli": [
         "query",
-        "trip.wtf",
+        "trip.x.md",
         "first_seasonal",
         "--json"
       ]
     },
     {
       "write": {
-        "trip.wtf": "network := forecast(\"Oaxaca\", 2026-11-21)\nmalformed := forecast(\"Oaxaca\", 2026-11-22)\nmissing := forecast(\"Oaxaca\", 2026-11-23)\nwrong_day := forecast(\"Oaxaca\", 2026-11-24)\nmissing_rain := forecast(\"Oaxaca\", 2026-11-25).rain\nsingle_member := forecast(\"Oaxaca\", 2026-11-26).rain\nwet := forecast(\"Oaxaca\", 2026-11-27).rain\n"
+        "trip.x.md": "network := forecast(\"Oaxaca\", 2026-11-21)\nmalformed := forecast(\"Oaxaca\", 2026-11-22)\nmissing := forecast(\"Oaxaca\", 2026-11-23)\nwrong_day := forecast(\"Oaxaca\", 2026-11-24)\nmissing_rain := forecast(\"Oaxaca\", 2026-11-25).rain\nsingle_member := forecast(\"Oaxaca\", 2026-11-26).rain\nwet := forecast(\"Oaxaca\", 2026-11-27).rain\n"
       }
     },
     {
@@ -64,15 +64,15 @@
     {
       "cli": [
         "render",
-        "trip.wtf",
+        "trip.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        "trip.wtf": "custom := forecast(\"Oaxaca\", 2027-05-20)\n",
-        ".wtf/providers.json": "{\"forecast\":\"my-forecast {date}\"}\n"
+        "trip.x.md": "custom := forecast(\"Oaxaca\", 2027-05-20)\n",
+        ".xmd/providers.json": "{\"forecast\":\"my-forecast {date}\"}\n"
       }
     },
     {
@@ -83,7 +83,7 @@
     {
       "cli": [
         "query",
-        "trip.wtf",
+        "trip.x.md",
         "custom",
         "--json"
       ]

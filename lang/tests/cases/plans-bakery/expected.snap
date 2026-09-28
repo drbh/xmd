@@ -1,5 +1,5 @@
-### 0 cli render bakery.wtf --format text
-$ wtf render bakery.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render bakery.x.md --format text
+$ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock
@@ -12,8 +12,8 @@ exit 0
 | doughnut_min | doughnuts >= 14                              | 14 ≥ 14 · ● binding
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
 
-### 1 cli query bakery.wtf plans | select {name, expression, display, solution} --json
-$ wtf query bakery.wtf plans | select {name, expression, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query bakery.x.md plans | select {name, expression, display, solution} --json
+$ xmd query bakery.x.md plans | select {name, expression, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -131,8 +131,8 @@ exit 0
   }
 ]
 
-### 2 cli query bakery.wtf values | select {name, display} --json
-$ wtf query bakery.wtf values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query bakery.x.md values | select {name, display} --json
+$ xmd query bakery.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -146,25 +146,25 @@ exit 0
   }
 ]
 
-### 3 cli query bakery.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query bakery.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query bakery.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query bakery.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 4 lsp
--- open bakery.wtf
--- await textDocument/publishDiagnostics bakery.wtf
+-- open bakery.x.md
+-- await textDocument/publishDiagnostics bakery.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/bakery.wtf",
+  "uri": "file://<root>/bakery.x.md",
   "version": 1
 }
--- request textDocument/hover bakery.wtf 1:3
+-- request textDocument/hover bakery.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bakery · Plan**\n\n$94.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 25.75 + $1.25 * 14)\n= $94.75\n```\n\nMaximizes the objective. Variables: bagels = 25.75, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- milk: `██░░░░░░░░ 16%` 32.75 ≤ 200 · ○ slack 167.25\n- bagel_min: 25.75 ≥ 12 · ○ slack 13.75\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.wtf#L2>), [doughnuts](<file://<root>/bakery.wtf#L2>)\n\nDefinition: [bakery](<file://<root>/bakery.wtf#L2>) · <root>/bakery.wtf:2"
+    "value": "**bakery · Plan**\n\n$94.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 25.75 + $1.25 * 14)\n= $94.75\n```\n\nMaximizes the objective. Variables: bagels = 25.75, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- milk: `██░░░░░░░░ 16%` 32.75 ≤ 200 · ○ slack 167.25\n- bagel_min: 25.75 ≥ 12 · ○ slack 13.75\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.x.md#L2>), [doughnuts](<file://<root>/bakery.x.md#L2>)\n\nDefinition: [bakery](<file://<root>/bakery.x.md#L2>) · <root>/bakery.x.md:2"
   },
   "range": {
     "end": {
@@ -177,11 +177,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover bakery.wtf 1:27
+-- request textDocument/hover bakery.x.md 1:27
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/bakery.wtf#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/bakery.wtf#L2>) · <root>/bakery.wtf:2"
+    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/bakery.x.md#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/bakery.x.md#L2>) · <root>/bakery.x.md:2"
   },
   "range": {
     "end": {
@@ -194,11 +194,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover bakery.wtf 4:24
+-- request textDocument/hover bakery.x.md 4:24
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/bakery.wtf#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/bakery.wtf#L2>) · <root>/bakery.wtf:2"
+    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/bakery.x.md#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/bakery.x.md#L2>) · <root>/bakery.x.md:2"
   },
   "range": {
     "end": {
@@ -211,7 +211,7 @@ exit 0
     }
   }
 }
--- request textDocument/documentSymbol bakery.wtf
+-- request textDocument/documentSymbol bakery.x.md
 [
   {
     "detail": "Number · 400",
@@ -416,7 +416,7 @@ exit 0
     }
   }
 ]
--- request textDocument/completion bakery.wtf 8:13
+-- request textDocument/completion bakery.x.md 8:13
 [
   {
     "detail": "Money · $94.75",
@@ -545,14 +545,14 @@ exit 0
     }
   }
 ]
--- request textDocument/prepareCallHierarchy bakery.wtf 1:3
+-- request textDocument/prepareCallHierarchy bakery.x.md 1:3
 [
   {
     "data": {
       "column": 0,
       "index": 1,
       "kind": "definition",
-      "path": "<root>/bakery.wtf"
+      "path": "<root>/bakery.x.md"
     },
     "detail": "plan · maximize $94.75 · 2 variables",
     "kind": 23,
@@ -577,7 +577,7 @@ exit 0
         "line": 1
       }
     },
-    "uri": "file://<root>/bakery.wtf"
+    "uri": "file://<root>/bakery.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -600,7 +600,7 @@ exit 0
         "column": 0,
         "index": 0,
         "kind": "definition",
-        "path": "<root>/bakery.wtf"
+        "path": "<root>/bakery.x.md"
       },
       "detail": "Number · 400",
       "kind": 14,
@@ -625,18 +625,18 @@ exit 0
           "line": 0
         }
       },
-      "uri": "file://<root>/bakery.wtf"
+      "uri": "file://<root>/bakery.x.md"
     }
   }
 ]
--- request textDocument/prepareCallHierarchy bakery.wtf 4:24
+-- request textDocument/prepareCallHierarchy bakery.x.md 4:24
 [
   {
     "data": {
       "column": 0,
       "index": 0,
       "kind": "variable",
-      "path": "<root>/bakery.wtf"
+      "path": "<root>/bakery.x.md"
     },
     "detail": "decision variable of bakery · 25.75",
     "kind": 13,
@@ -661,7 +661,7 @@ exit 0
         "line": 1
       }
     },
-    "uri": "file://<root>/bakery.wtf"
+    "uri": "file://<root>/bakery.x.md"
   }
 ]
 -- request callHierarchy/outgoingCalls {"item":"${last.0}"}
@@ -684,7 +684,7 @@ exit 0
         "column": 0,
         "index": 1,
         "kind": "definition",
-        "path": "<root>/bakery.wtf"
+        "path": "<root>/bakery.x.md"
       },
       "detail": "plan · maximize $94.75 · 2 variables",
       "kind": 23,
@@ -709,11 +709,11 @@ exit 0
           "line": 1
         }
       },
-      "uri": "file://<root>/bakery.wtf"
+      "uri": "file://<root>/bakery.x.md"
     }
   }
 ]
--- change bakery.wtf (version 2)
+-- change bakery.x.md (version 2)
 [300]:flour_stock
 [bakery] := maximize($3 * bagels + $1.25 * doughnuts)
 | constraint   | expression                                   |
@@ -723,11 +723,11 @@ exit 0
 | bagel_min    | bagels >= 12                                 |
 | doughnut_min | doughnuts >= 14                              |
 Bake [bakery.bagels] bagels for [bakery].
--- request textDocument/hover bakery.wtf 1:3
+-- request textDocument/hover bakery.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bakery · Plan**\n\n$69.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 17.4167 + $1.25 * 14)\n= $69.75\n```\n\nMaximizes the objective. Variables: bagels = 17.4167, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 300 ≤ 300 · ● binding\n- milk: `█░░░░░░░░░ 12%` 24.4167 ≤ 200 · ○ slack 175.5833\n- bagel_min: 17.4167 ≥ 12 · ○ slack 5.4167\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.wtf#L2>), [doughnuts](<file://<root>/bakery.wtf#L2>)\n\nDefinition: [bakery](<file://<root>/bakery.wtf#L2>) · <root>/bakery.wtf:2"
+    "value": "**bakery · Plan**\n\n$69.75\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 17.4167 + $1.25 * 14)\n= $69.75\n```\n\nMaximizes the objective. Variables: bagels = 17.4167, doughnuts = 14\n\nConstraints:\n\n- flour: `██████████ 100%` 300 ≤ 300 · ● binding\n- milk: `█░░░░░░░░░ 12%` 24.4167 ≤ 200 · ○ slack 175.5833\n- bagel_min: 17.4167 ≥ 12 · ○ slack 5.4167\n- doughnut_min: 14 ≥ 14 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.x.md#L2>), [doughnuts](<file://<root>/bakery.x.md#L2>)\n\nDefinition: [bakery](<file://<root>/bakery.x.md#L2>) · <root>/bakery.x.md:2"
   },
   "range": {
     "end": {
@@ -740,7 +740,7 @@ Bake [bakery.bagels] bagels for [bakery].
     }
   }
 }
--- change bakery.wtf (version 3)
+-- change bakery.x.md (version 3)
 [400]:flour_stock
 [bakery] := maximize($3 * bagels + $1.25 * doughnuts)
 | constraint   | expression                                   |
@@ -751,11 +751,11 @@ Bake [bakery.bagels] bagels for [bakery].
 | doughnut_min | doughnuts >= 14                              |
 Bake [bakery.bagels] bagels for [bakery].
 [20]:doughnuts
--- request textDocument/hover bakery.wtf 1:3
+-- request textDocument/hover bakery.x.md 1:3
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bakery · Plan**\n\n$92.50\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 22.5 + $1.25 * 20)\n= $92.50\n```\n\nMaximizes the objective. Variables: bagels = 22.5\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- milk: `██░░░░░░░░ 16%` 32.5 ≤ 200 · ○ slack 167.5\n- bagel_min: 22.5 ≥ 12 · ○ slack 10.5\n- doughnut_min: 20 ≥ 14 · ○ slack 6\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.wtf#L2>), [doughnuts](<file://<root>/bakery.wtf#L10>)\n\nDefinition: [bakery](<file://<root>/bakery.wtf#L2>) · <root>/bakery.wtf:2"
+    "value": "**bakery · Plan**\n\n$92.50\n\n```text\nmaximize($3 * bagels + $1.25 * doughnuts)\n= maximize($3 * 22.5 + $1.25 * 20)\n= $92.50\n```\n\nMaximizes the objective. Variables: bagels = 22.5\n\nConstraints:\n\n- flour: `██████████ 100%` 400 ≤ 400 · ● binding\n- milk: `██░░░░░░░░ 16%` 32.5 ≤ 200 · ○ slack 167.5\n- bagel_min: 22.5 ≥ 12 · ○ slack 10.5\n- doughnut_min: 20 ≥ 14 · ○ slack 6\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [bagels](<file://<root>/bakery.x.md#L2>), [doughnuts](<file://<root>/bakery.x.md#L10>)\n\nDefinition: [bakery](<file://<root>/bakery.x.md#L2>) · <root>/bakery.x.md:2"
   },
   "range": {
     "end": {
@@ -769,8 +769,8 @@ Bake [bakery.bagels] bagels for [bakery].
   }
 }
 
-### 5 cli query bakery.wtf [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json
-$ wtf query bakery.wtf [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query bakery.x.md [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json
+$ xmd query bakery.x.md [bakery.bagels, bakery.flour, bagels * 2, bakery.objective] --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -784,8 +784,8 @@ exit 0
   }
 ]
 
-### 6 cli render multiline.wtf --format text
-$ wtf render multiline.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli render multiline.x.md --format text
+$ xmd render multiline.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock
@@ -803,14 +803,14 @@ exit 0
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
 
 ### 7 lsp
--- open multiline.wtf
--- await textDocument/publishDiagnostics multiline.wtf
+-- open multiline.x.md
+-- await textDocument/publishDiagnostics multiline.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/multiline.wtf",
+  "uri": "file://<root>/multiline.x.md",
   "version": 1
 }
--- request textDocument/documentSymbol multiline.wtf
+-- request textDocument/documentSymbol multiline.x.md
 [
   {
     "detail": "Number · 400",
@@ -1015,11 +1015,11 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
     }
   }
 ]
--- request textDocument/hover multiline.wtf 3:8
+-- request textDocument/hover multiline.x.md 3:8
 {
   "contents": {
     "kind": "markdown",
-    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/multiline.wtf#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/multiline.wtf#L4>) · <root>/multiline.wtf:4"
+    "value": "**bagels · Number**\n\n25.75\n\nDecision variable of [bakery](<file://<root>/multiline.x.md#L2>): no note defines this name, so the plan chooses its value.\n\nDefinition: [bagels](<file://<root>/multiline.x.md#L4>) · <root>/multiline.x.md:4"
   },
   "range": {
     "end": {
@@ -1033,8 +1033,8 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
   }
 }
 
-### 8 cli query multiline.wtf plans | select {name, display, solution} --json
-$ wtf query multiline.wtf plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query multiline.x.md plans | select {name, display, solution} --json
+$ xmd query multiline.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1151,14 +1151,14 @@ exit 0
   }
 ]
 
-### 9 cli query multiline.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query multiline.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query multiline.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query multiline.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 10 cli render crlf.wtf --format text
-$ wtf render crlf.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli render crlf.x.md --format text
+$ xmd render crlf.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [400]:flour_stock␍
@@ -1175,8 +1175,8 @@ exit 0
 | doughnut_min | doughnuts >= 14                              | 14 ≥ 14 · ● binding␍
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.␍
 
-### 11 cli query crlf.wtf plans | select {name, display} --json
-$ wtf query crlf.wtf plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli query crlf.x.md plans | select {name, display} --json
+$ xmd query crlf.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1186,14 +1186,14 @@ exit 0
   }
 ]
 
-### 12 cli query crlf.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query crlf.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query crlf.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query crlf.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 13 read crlf.wtf
--- crlf.wtf
+### 13 read crlf.x.md
+-- crlf.x.md
 [400]:flour_stock␍
 [bakery] := maximize(␍
   // Profit per batch.␍

@@ -5,6 +5,7 @@
 //! programs link modules request, fetching lookups, parsing feeds, and
 //! performing the effects a command module asks for under `xmd run`.
 //! Exposes its interface from the root.
+mod clock;
 mod command;
 mod feeds;
 mod files;
@@ -15,8 +16,10 @@ mod refresh;
 pub use files::{WorkspaceFiles, load_modules};
 // Running a command module and the effects it asks for.
 pub use command::run_command;
-// Running a link module's refresh request.
-pub use refresh::fetch_link;
+// The process clock, which `XMD_NOW` can freeze.
+pub use clock::now;
+// Refreshing what a workspace reads from outside: link statuses and lookups.
+pub use refresh::{fetch_link, refresh_workspace};
 // Fetching and saving cached lookups.
 pub mod lookups {
     pub use crate::lookups_impl::{load, refresh, save};

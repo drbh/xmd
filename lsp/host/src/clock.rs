@@ -1,4 +1,6 @@
-//! The process clock every host reads a request's "now" from.
+//! The process clock every native host reads a request's "now" from. The
+//! language core never reads a clock or the environment: a host passes it the
+//! time.
 //!
 //! Tests need that clock to be reproducible, so `XMD_NOW` freezes it: set it
 //! to an RFC3339 timestamp (for example `2026-09-16T14:00:00-04:00`) and

@@ -1,7 +1,12 @@
-//! Running the refresh a link module requests: its program, with its arguments
-//! and environment, only when a person asks for a refresh.
+//! Refreshing what a workspace reads from outside, only when a person asks:
+//! running the program a link module requests for each resource, and fetching
+//! every lookup the notes want. The command line and the language server both
+//! refresh through here.
+use chrono::{DateTime, FixedOffset};
+use eval::Workspace;
 use eval::link_features::{LinkFeatures, RefreshFormat};
 use eval::resources::Metadata;
+use std::{collections::BTreeSet, path::Path};
 
 /// Run the refresh program for a link and decode its output through the module.
 pub async fn fetch_link(features: LinkFeatures<'_>, target: &str) -> Result<Metadata, String> {
@@ -33,6 +38,41 @@ pub async fn fetch_link(features: LinkFeatures<'_>, target: &str) -> Result<Meta
     };
     // The request clock, so a frozen `XMD_NOW` also freezes `fetched_at`.
     features
-        .decode_refresh(target, &data, eval::clock::now().to_utc())
+        .decode_refresh(target, &data, crate::now().to_utc())
         .map_err(|e| e.to_string())
+}
+
+/// Refresh every refreshable resource and every wanted lookup in memory,
+/// optionally for one note only; returns the errors. The caller decides when
+/// to save the caches, since an editor first checks its modules did not change.
+pub async fn refresh_workspace(
+    workspace: &mut Workspace,
+    now: DateTime<FixedOffset>,
+    only: Option<&Path>,
+) -> Vec<String> {
+    let targets: BTreeSet<_> = workspace
+        .documents
+        .iter()
+        .filter(|(path, _)| only.is_none_or(|only| *path == only))
+        .flat_map(|(_, doc)| {
+            doc.definitions
+                .iter()
+                .filter(|d| !d.expression)
+                .map(|d| d.source.as_str())
+                .chain(doc.links.iter().map(|l| l.target.as_str()))
+        })
+        .filter(|s| workspace.link_features().refresh_request(s).is_some())
+        .map(str::to_owned)
+        .collect();
+    let mut errors = Vec::new();
+    for target in targets {
+        match fetch_link(workspace.link_features(), &target).await {
+            Ok(metadata) => {
+                workspace.cache.insert(target, metadata);
+            }
+            Err(e) => errors.push(format!("{target}: {e}")),
+        }
+    }
+    errors.extend(crate::lookups_impl::refresh(workspace, now, only).await);
+    errors
 }

@@ -17,8 +17,6 @@
 // `eval::x::` path. Kept wherever a name collides across files (`parse`) or
 // forms one coherent family (`engine`), or another crate already spells a
 // name that way.
-#[path = "clock.rs"]
-mod clock_impl;
 mod context;
 #[path = "engine/mod.rs"]
 mod engine_impl;
@@ -64,10 +62,6 @@ pub mod engine {
         Value, ValueType, is_builtin_function, lex, lex_with_comments, literal, next_occurrence,
         relative_date, sum_scope_at, value_json,
     };
-}
-// The one clock a note's dates and durations are read against.
-pub mod clock {
-    pub use crate::clock_impl::now;
 }
 // Pure functions the evaluator's builtins are implemented in terms of.
 pub mod functional {

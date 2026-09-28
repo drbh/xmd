@@ -5,7 +5,6 @@ use eval::engine::{Value, value_json};
 use features::query::{self, display};
 use host::WorkspaceFiles;
 use std::{
-    collections::BTreeSet,
     ffi::OsString,
     io::{self, IsTerminal, Read, Write},
     path::PathBuf,
@@ -144,41 +143,10 @@ pub(crate) enum RenderFormat {
     Text,
 }
 pub(crate) async fn refresh(workspace: &mut Workspace) -> Vec<String> {
-    let mut errors = refresh_in_memory(workspace, None).await;
+    let mut errors = host::refresh_workspace(workspace, host::now(), None).await;
     if let Err(e) = workspace.save_cache() {
         errors.push(e);
     }
-    errors
-}
-/// The editor validates its registry snapshot before persisting resource results.
-pub(crate) async fn refresh_in_memory(
-    workspace: &mut Workspace,
-    only: Option<&std::path::Path>,
-) -> Vec<String> {
-    let targets: BTreeSet<_> = workspace
-        .documents
-        .iter()
-        .filter(|(path, _)| only.is_none_or(|only| *path == only))
-        .flat_map(|(_, doc)| {
-            doc.definitions
-                .iter()
-                .filter(|d| !d.expression)
-                .map(|d| d.source.as_str())
-                .chain(doc.links.iter().map(|l| l.target.as_str()))
-        })
-        .filter(|s| workspace.link_features().refresh_request(s).is_some())
-        .map(str::to_owned)
-        .collect();
-    let mut errors = Vec::new();
-    for target in targets {
-        match host::fetch_link(workspace.link_features(), &target).await {
-            Ok(metadata) => {
-                workspace.cache.insert(target, metadata);
-            }
-            Err(e) => errors.push(format!("{target}: {e}")),
-        }
-    }
-    errors.extend(host::lookups::refresh(workspace, crate::editor::now(), only).await);
     errors
 }
 fn load(root: PathBuf) -> Result<Workspace, String> {
@@ -342,7 +310,7 @@ fn request_time(
             )
     } else {
         // `XMD_NOW` freezes the clock; see the `editor` module.
-        Ok(crate::editor::now())
+        Ok(host::now())
     }
 }
 fn render_command(options: RenderOptions) -> Result<(), String> {
@@ -447,7 +415,5 @@ fn run_module(name: &str, args: &[String], root: &std::path::Path) -> Result<(),
     } else {
         args
     };
-    host::run_command(module, &dir, rest, crate::editor::now, |line| {
-        println!("{line}")
-    })
+    host::run_command(module, &dir, rest, host::now, |line| println!("{line}"))
 }

@@ -1,7 +1,6 @@
 //! The language server host.
 //!
-//! Every request evaluates the workspace at "now", read from
-//! [`eval::clock::now`].
+//! Every request evaluates the workspace at "now", read from [`host::now`].
 use common::{uri, uri_from_url, url_from_uri};
 use eval::{SymbolKind, Workspace};
 use features::actions::TaskToggle;
@@ -23,9 +22,9 @@ use tower_lsp_server::{
 };
 use url::Url;
 
-pub(crate) use eval::clock::now;
 pub(crate) use features::presentation::semantic_tokens;
 use features::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES};
+use host::now;
 
 struct State {
     session: WorkspaceSession,
@@ -709,7 +708,7 @@ impl LanguageServer for Backend {
             PreparedAction::Refresh { path } => {
                 let mut workspace = self.state.read().await.session.workspace.clone();
                 let mut errors =
-                    crate::cli::refresh_in_memory(&mut workspace, path.as_deref()).await;
+                    host::refresh_workspace(&mut workspace, now(), path.as_deref()).await;
                 let workspace = {
                     let mut state = self.state.write().await;
                     if !Arc::ptr_eq(&workspace.modules, &state.session.workspace.modules) {

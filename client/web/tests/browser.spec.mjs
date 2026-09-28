@@ -106,6 +106,8 @@ test("the document app writes like a document editor: typing, formatting, find, 
   await page.keyboard.press("ControlOrMeta+Shift+c");
   await expect(page.locator(".dialog")).toContainText("Words");
   await page.keyboard.press("Escape");
+  // Shortcuts are ignored while focus is inside a dialog, so wait for it to close.
+  await expect(page.locator(".dialog")).toHaveCount(0);
   // The console runs read-only queries against the resolved document.
   await page.keyboard.press("ControlOrMeta+Alt+j");
   const query = page.locator(".console input");

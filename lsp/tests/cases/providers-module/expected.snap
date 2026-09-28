@@ -1,0 +1,33 @@
+### 0 cli refresh
+$ xmd refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (0 resources)
+
+### 1 read .xmd/lookups.json
+-- .xmd/lookups.json
+{
+  "rate:EUR:GBP": {
+    "value": {
+      "rate": 2.0
+    },
+    "fetched_at": "2026-09-16T18:00:00Z",
+    "source": "fixed rates"
+  },
+  "rate:EUR:USD": {
+    "value": {
+      "rate": 1.25
+    },
+    "fetched_at": "2026-09-16T18:00:00Z",
+    "source": "fixed rates"
+  }
+}
+
+### 2 cli render money.x.md --format text
+$ xmd render money.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[€100]:hotel
+[hotel_usd] := to(hotel, USD) = $125
+[pounds] := rate(EUR, GBP) * 10 = 20
+

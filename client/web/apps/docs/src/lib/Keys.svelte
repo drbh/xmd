@@ -1,5 +1,5 @@
 <script>
-  // API keys for `xmd sync`. A new key is shown once; only its hash is kept.
+  // API keys for the sync plugin. A new key is shown once; only its hash is kept.
   import Dialog from "./Dialog.svelte";
   import Icon from "./Icon.svelte";
   import { relativeTime } from "./store.js";
@@ -20,7 +20,7 @@
 </script>
 
 <Dialog title="API keys" {onClose} wide>
-  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>xmd sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
+  <p>A key lets the command line sync a folder of <code>.{EXTENSION}</code> files with this account: <code>xmd run sync ./notes --url {site} --folder Notes</code>. Keys can read and write your documents and folders, not share them.</p>
   {#if fresh}
     <div class="fresh-key">
       <p><strong>Your new key.</strong> Copy it now; it is not shown again.</p>

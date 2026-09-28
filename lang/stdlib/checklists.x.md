@@ -4,7 +4,7 @@ module := {
   id: "checklists",
   kind: "feature",
   inputs: {
-    sections: ["anchor", "line", "end_line"],
+    sections: ["anchor", "line", "end_line", "level"],
     tasks: ["line", "leaf", "done", "estimate"]
   }
 }
@@ -52,10 +52,12 @@ section_hints := fn(section, tasks) => (
   if(length(tasks) == 0, [], [hint(section, tasks, length(filter(tasks, fn(t) => t.done)))])
 )
 
-// Summarize each section's leaf tasks using evaluated completion.
+// Summarize each section's leaf tasks using evaluated completion. A level-one
+// heading is the document's title, and its bar would only repeat the sections
+// below it, so progress starts at level two.
 collect := fn(ctx) => (
   fold(
-    ctx.document.sections,
+    filter(ctx.document.sections, fn(s) => s.level > 1),
     [],
     fn(hints, s) => concat(
       hints,

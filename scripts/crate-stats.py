@@ -96,7 +96,7 @@ def rust_files(crate_dir, other_crate_dirs):
         parts = file.relative_to(crate_dir).parts
         if "target" in parts or "node_modules" in parts:
             continue
-        # Skip crates nested inside this one, such as lang/renderer in lang.
+        # Skip crates nested inside this one, such as lsp/renderer in lsp.
         if any(crate_dir in d.parents and d in file.parents for d in other_crate_dirs):
             continue
         yield file

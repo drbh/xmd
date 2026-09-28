@@ -142,7 +142,7 @@ export function titleOf(text, fallback) {
 }
 // Documents live in a virtual directory shaped like a synced folder on disk:
 // docs/<Folder name>/<File name>.x.md, so imports use the same relative paths
-// in the app, on disk, and through `xmd sync`.
+// in the app, on disk, and through the sync plugin.
 const segment = s => encodeURIComponent(s);
 export function uriOf(doc, folders = []) {
   const folder = doc.folder ? folders.find(f => f.id === doc.folder) : null;

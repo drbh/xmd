@@ -269,7 +269,7 @@ fn wanted(
     only: Option<&std::path::Path>,
 ) -> std::collections::BTreeSet<LookupKey> {
     let mut engine = crate::engine_impl::Engine::at(ws, now);
-    let today = engine.today;
+    let today = engine.today();
     let symbols = ws.symbols();
     for (path, doc) in ws
         .documents

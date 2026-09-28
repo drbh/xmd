@@ -195,7 +195,7 @@ exit 0
   {
     "children": [
       {
-        "detail": "Text",
+        "detail": "Text · column of groceries",
         "kind": 8,
         "name": "item",
         "range": {
@@ -220,7 +220,7 @@ exit 0
         }
       },
       {
-        "detail": "Number",
+        "detail": "Number · column of groceries",
         "kind": 8,
         "name": "quantity",
         "range": {
@@ -245,7 +245,7 @@ exit 0
         }
       },
       {
-        "detail": "Money",
+        "detail": "Money · column of groceries",
         "kind": 8,
         "name": "price",
         "range": {
@@ -270,7 +270,7 @@ exit 0
         }
       }
     ],
-    "detail": "Table · 2 rows · 3 columns",
+    "detail": "table · 2 rows · 3 columns",
     "kind": 23,
     "name": "groceries",
     "range": {

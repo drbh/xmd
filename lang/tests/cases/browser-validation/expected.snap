@@ -217,7 +217,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Task",
         "range": {
@@ -651,7 +651,7 @@
         }
       },
       {
-        "detail": "Incomplete",
+        "detail": "task · incomplete",
         "kind": 17,
         "name": "Task",
         "range": {

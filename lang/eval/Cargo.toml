@@ -13,7 +13,6 @@ common = { path = "../common" }
 feed-rs = { version = "3", optional = true }
 good_lp = { version = "1.15", default-features = false, features = ["microlp"] }
 ignore = { version = "0.4", optional = true }
-lsp-types = { workspace = true }
 model = { path = "../model" }
 serde = { workspace = true }
 serde_json = { workspace = true }

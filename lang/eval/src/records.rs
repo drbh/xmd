@@ -172,6 +172,61 @@ fn list(value: &Value) -> EvalResult<&[Value]> {
     }
 }
 
+/// A Rust struct a module or a query reads as a record.
+pub trait RecordFields {
+    /// Every field by name, flattened ones included.
+    fn fields(&self) -> BTreeMap<String, Value>;
+}
+
+/// A record whose keys are only known at run time, such as the collections a
+/// module asked for; flattened into a declared record like any other.
+impl RecordFields for BTreeMap<String, Value> {
+    fn fields(&self) -> BTreeMap<String, Value> {
+        self.clone()
+    }
+}
+
+/// Declare a record once: the struct and its [`ToValue`]. A
+/// field's key is its Rust name unless it names one (`type_: String =>
+/// "type"`), and a field written `..base: Base` is flattened in, its own fields
+/// joining this record's.
+#[macro_export]
+macro_rules! record {
+    (@key $field:ident $key:literal) => { $key };
+    (@key $field:ident) => { stringify!($field) };
+    (
+        $(#[$meta:meta])*
+        $vis:vis struct $name:ident {
+            $(.. $flat:ident: $flat_ty:ty,)*
+            $($(#[$field_meta:meta])* $field_vis:vis $field:ident: $ty:ty $(=> $key:literal)?,)*
+        }
+    ) => {
+        $(#[$meta])*
+        $vis struct $name {
+            $(pub(crate) $flat: $flat_ty,)*
+            $($(#[$field_meta])* $field_vis $field: $ty,)*
+        }
+        impl $crate::RecordFields for $name {
+            fn fields(&self) -> ::std::collections::BTreeMap<String, $crate::engine::Value> {
+                let mut fields = ::std::collections::BTreeMap::new();
+                $(fields.extend($crate::RecordFields::fields(&self.$flat));)*
+                $(
+                    fields.insert(
+                        $crate::record!(@key $field $($key)?).to_string(),
+                        $crate::ToValue::to_value(&self.$field),
+                    );
+                )*
+                fields
+            }
+        }
+        impl $crate::ToValue for $name {
+            fn to_value(&self) -> $crate::engine::Value {
+                $crate::engine::Value::Record($crate::RecordFields::fields(self))
+            }
+        }
+    };
+}
+
 /// Reads the fields of a record a module returned.
 #[derive(Clone, Copy)]
 pub(crate) struct Fields<'a> {
@@ -217,130 +272,64 @@ impl<'a> Fields<'a> {
     }
 }
 
-/// Where a timer stands, as `timer.wtf` reads and writes it.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct TimerRecord {
-    pub limit: Option<i64>,
-    pub elapsed: i64,
-    pub started: Option<DateTime<FixedOffset>>,
-    pub idle: bool,
-}
-impl TimerRecord {
-    const LIMIT: &'static str = "limit";
-    const ELAPSED: &'static str = "elapsed";
-    const STARTED: &'static str = "started";
-    const IDLE: &'static str = "idle";
-}
-impl ToValue for TimerRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::LIMIT.into(), self.limit.to_value()),
-            (Self::ELAPSED.into(), self.elapsed.to_value()),
-            (Self::STARTED.into(), self.started.to_value()),
-            (Self::IDLE.into(), self.idle.to_value()),
-        ]))
+record! {
+    /// Where a timer stands, as `timer.wtf` reads and writes it.
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct TimerRecord {
+        pub limit: Option<i64>,
+        pub elapsed: i64,
+        pub started: Option<DateTime<FixedOffset>>,
+        pub idle: bool,
     }
 }
 impl FromValue for TimerRecord {
     fn from_value(value: &Value) -> EvalResult<Self> {
         let fields = Fields::expect(value, "Timer constructor must return a record")?;
         Ok(Self {
-            limit: fields.required_or(Self::LIMIT, "Invalid timer limit")?,
-            elapsed: fields.required_or(Self::ELAPSED, "Invalid timer elapsed time")?,
-            started: fields.required_or(Self::STARTED, "Invalid timer timestamp")?,
-            idle: fields.required_or(Self::IDLE, "Invalid timer state")?,
+            limit: fields.required_or("limit", "Invalid timer limit")?,
+            elapsed: fields.required_or("elapsed", "Invalid timer elapsed time")?,
+            started: fields.required_or("started", "Invalid timer timestamp")?,
+            idle: fields.required_or("idle", "Invalid timer state")?,
         })
     }
 }
 
-/// One side of a linear constraint, as `plan.wtf` receives it: a constant, the
-/// coefficients by variable name, and one value carrying the form's unit.
-pub(crate) struct FormRecord {
-    pub constant: f64,
-    pub terms: BTreeMap<String, f64>,
-    pub unit: Value,
-}
-impl FormRecord {
-    const CONSTANT: &'static str = "constant";
-    const TERMS: &'static str = "terms";
-    const UNIT: &'static str = "unit";
-}
-impl ToValue for FormRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::CONSTANT.into(), self.constant.to_value()),
-            (Self::TERMS.into(), self.terms.to_value()),
-            (Self::UNIT.into(), self.unit.clone()),
-        ]))
+record! {
+    /// One side of a linear constraint, as `plan.wtf` receives it: a constant,
+    /// the coefficients by variable name, and one value carrying the form's unit.
+    pub(crate) struct FormRecord {
+        pub constant: f64,
+        pub terms: BTreeMap<String, f64>,
+        pub unit: Value,
     }
 }
 
-/// One decision column the plan solves for.
-pub(crate) struct DecisionRecord {
-    pub name: String,
-    pub kind: String,
-}
-impl DecisionRecord {
-    const NAME: &'static str = "name";
-    const KIND: &'static str = "kind";
-}
-impl ToValue for DecisionRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::NAME.into(), self.name.to_value()),
-            (Self::KIND.into(), self.kind.to_value()),
-        ]))
+record! {
+    /// One decision column the plan solves for.
+    pub(crate) struct DecisionRecord {
+        pub name: String,
+        pub kind: String,
     }
 }
 
-/// One named constraint on the way into `plan.solve_model`.
-pub(crate) struct ConstraintInput {
-    pub name: String,
-    pub lhs: FormRecord,
-    pub rhs: FormRecord,
-    pub op: String,
-}
-impl ConstraintInput {
-    const NAME: &'static str = "name";
-    const LHS: &'static str = "lhs";
-    const RHS: &'static str = "rhs";
-    const OP: &'static str = "op";
-}
-impl ToValue for ConstraintInput {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::NAME.into(), self.name.to_value()),
-            (Self::LHS.into(), self.lhs.to_value()),
-            (Self::RHS.into(), self.rhs.to_value()),
-            (Self::OP.into(), self.op.to_value()),
-        ]))
+record! {
+    /// One named constraint on the way into `plan.solve_model`.
+    pub(crate) struct ConstraintInput {
+        pub name: String,
+        pub lhs: FormRecord,
+        pub rhs: FormRecord,
+        pub op: String,
     }
 }
 
-/// The whole model `plan.solve_model` is handed.
-pub(crate) struct PlanInput {
-    pub goal: String,
-    pub names: Vec<String>,
-    pub decisions: Vec<DecisionRecord>,
-    pub objective: FormRecord,
-    pub constraints: Vec<ConstraintInput>,
-}
-impl PlanInput {
-    const GOAL: &'static str = "goal";
-    const NAMES: &'static str = "names";
-    const DECISIONS: &'static str = "decisions";
-    const OBJECTIVE: &'static str = "objective";
-    const CONSTRAINTS: &'static str = "constraints";
-}
-impl ToValue for PlanInput {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::GOAL.into(), self.goal.to_value()),
-            (Self::NAMES.into(), self.names.to_value()),
-            (Self::DECISIONS.into(), self.decisions.to_value()),
-            (Self::OBJECTIVE.into(), self.objective.to_value()),
-            (Self::CONSTRAINTS.into(), self.constraints.to_value()),
-        ]))
+record! {
+    /// The whole model `plan.solve_model` is handed.
+    pub(crate) struct PlanInput {
+        pub goal: String,
+        pub names: Vec<String>,
+        pub decisions: Vec<DecisionRecord>,
+        pub objective: FormRecord,
+        pub constraints: Vec<ConstraintInput>,
     }
 }
 
@@ -349,16 +338,12 @@ pub(crate) struct VariableRecord {
     pub name: String,
     pub value: Value,
 }
-impl VariableRecord {
-    const NAME: &'static str = "name";
-    const VALUE: &'static str = "value";
-}
 impl FromValue for VariableRecord {
     fn from_value(value: &Value) -> EvalResult<Self> {
         let fields = Fields::new(value)?;
         Ok(Self {
-            name: fields.required::<Value>(Self::NAME)?.display(),
-            value: fields.required(Self::VALUE)?,
+            name: fields.required::<Value>("name")?.display(),
+            value: fields.required("value")?,
         })
     }
 }
@@ -372,24 +357,16 @@ pub(crate) struct ConstraintOutcome {
     pub slack: Value,
     pub binding: bool,
 }
-impl ConstraintOutcome {
-    const NAME: &'static str = "name";
-    const OP: &'static str = "op";
-    const LHS: &'static str = "lhs";
-    const RHS: &'static str = "rhs";
-    const SLACK: &'static str = "slack";
-    const BINDING: &'static str = "binding";
-}
 impl FromValue for ConstraintOutcome {
     fn from_value(value: &Value) -> EvalResult<Self> {
         let fields = Fields::new(value)?;
         Ok(Self {
-            name: fields.required::<Value>(Self::NAME)?.display(),
-            op: fields.required::<Value>(Self::OP)?.display(),
-            lhs: fields.required(Self::LHS)?,
-            rhs: fields.required(Self::RHS)?,
-            slack: fields.required(Self::SLACK)?,
-            binding: matches!(fields.required::<Value>(Self::BINDING)?, Value::Bool(true)),
+            name: fields.required::<Value>("name")?.display(),
+            op: fields.required::<Value>("op")?.display(),
+            lhs: fields.required("lhs")?,
+            rhs: fields.required("rhs")?,
+            slack: fields.required("slack")?,
+            binding: matches!(fields.required::<Value>("binding")?, Value::Bool(true)),
         })
     }
 }
@@ -402,76 +379,38 @@ pub(crate) struct SolutionRecord {
     pub rows: Value,
     pub objective: Value,
 }
-impl SolutionRecord {
-    const VARIABLES: &'static str = "variables";
-    const CONSTRAINTS: &'static str = "constraints";
-    const ROWS: &'static str = "rows";
-    const OBJECTIVE: &'static str = "objective";
-}
 impl FromValue for SolutionRecord {
     fn from_value(value: &Value) -> EvalResult<Self> {
         let fields = Fields::new(value)?;
         Ok(Self {
-            variables: fields.list(Self::VARIABLES)?,
-            constraints: fields.list(Self::CONSTRAINTS)?,
-            rows: fields.required(Self::ROWS)?,
-            objective: fields.required(Self::OBJECTIVE)?,
+            variables: fields.list("variables")?,
+            constraints: fields.list("constraints")?,
+            rows: fields.required("rows")?,
+            objective: fields.required("objective")?,
         })
     }
 }
 
-/// One decision cell a plan filled in, with the source geometry an editor needs
-/// to draw and rewrite it.
-pub(crate) struct CellRecord {
-    pub value: Value,
-    pub label: String,
-    pub document: String,
-    pub source: String,
-    pub line: usize,
-    pub anchor: Value,
-    pub range: Value,
-    pub width: usize,
-}
-impl CellRecord {
-    const VALUE: &'static str = "value";
-    const LABEL: &'static str = "label";
-    const DOCUMENT: &'static str = "document";
-    const SOURCE: &'static str = "source";
-    const LINE: &'static str = "line";
-    const ANCHOR: &'static str = "anchor";
-    const RANGE: &'static str = "range";
-    const WIDTH: &'static str = "width";
-}
-impl ToValue for CellRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::VALUE.into(), self.value.clone()),
-            (Self::LABEL.into(), self.label.to_value()),
-            (Self::DOCUMENT.into(), self.document.to_value()),
-            (Self::SOURCE.into(), self.source.to_value()),
-            (Self::LINE.into(), self.line.to_value()),
-            (Self::ANCHOR.into(), self.anchor.clone()),
-            (Self::RANGE.into(), self.range.clone()),
-            (Self::WIDTH.into(), self.width.to_value()),
-        ]))
+record! {
+    /// One decision cell a plan filled in, with the source geometry an editor
+    /// needs to draw and rewrite it.
+    pub(crate) struct CellRecord {
+        pub value: Value,
+        pub label: String,
+        pub document: String,
+        pub source: String,
+        pub line: usize,
+        pub anchor: Value,
+        pub range: Value,
+        pub width: usize,
     }
 }
 
-/// One decision column, with the cells the plan chose for it.
-pub(crate) struct ColumnRecord {
-    pub name: String,
-    pub cells: Vec<CellRecord>,
-}
-impl ColumnRecord {
-    const NAME: &'static str = "name";
-    const CELLS: &'static str = "cells";
-}
-impl ToValue for ColumnRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::NAME.into(), self.name.to_value()),
-            (Self::CELLS.into(), self.cells.to_value()),
-        ]))
+record! {
+    /// One decision column, with the cells the plan chose for it.
+    pub(crate) struct ColumnRecord {
+        pub name: String,
+        pub cells: Vec<CellRecord>,
     }
 }
 
@@ -487,32 +426,23 @@ pub(crate) struct ConstraintRecord {
     pub anchor: Option<Value>,
     pub range: Option<Value>,
 }
-impl ConstraintRecord {
-    const NAME: &'static str = "name";
-    const OP: &'static str = "op";
-    const LHS: &'static str = "lhs";
-    const RHS: &'static str = "rhs";
-    const SLACK: &'static str = "slack";
-    const BINDING: &'static str = "binding";
-    const ANCHOR: &'static str = "anchor";
-    const RANGE: &'static str = "range";
-}
 impl ToValue for ConstraintRecord {
     fn to_value(&self) -> Value {
         let mut fields = BTreeMap::from([
-            (Self::NAME.into(), self.name.to_value()),
-            (Self::OP.into(), self.op.to_value()),
-            (Self::LHS.into(), self.lhs.clone()),
-            (Self::RHS.into(), self.rhs.clone()),
-            (Self::SLACK.into(), self.slack.clone()),
-            (Self::BINDING.into(), self.binding.to_value()),
+            ("name".into(), self.name.to_value()),
+            ("op".into(), self.op.to_value()),
+            ("lhs".into(), self.lhs.clone()),
+            ("rhs".into(), self.rhs.clone()),
+            ("slack".into(), self.slack.clone()),
+            ("binding".into(), self.binding.to_value()),
         ]);
-        // Only a plan still present in the workspace has a place in the source.
+        // Only a plan still present in the workspace has a place in the source,
+        // and a plan elsewhere has no such keys at all rather than null ones.
         if let Some(anchor) = &self.anchor {
-            fields.insert(Self::ANCHOR.into(), anchor.clone());
+            fields.insert("anchor".into(), anchor.clone());
         }
         if let Some(range) = &self.range {
-            fields.insert(Self::RANGE.into(), range.clone());
+            fields.insert("range".into(), range.clone());
         }
         Value::Record(fields)
     }
@@ -528,213 +458,100 @@ pub(crate) struct PlanRecord {
     pub constraints: Vec<ConstraintRecord>,
     pub columns: Vec<ColumnRecord>,
 }
-impl PlanRecord {
-    const GOAL: &'static str = "goal";
-    const OBJECTIVE: &'static str = "objective";
-    const VARIABLES: &'static str = "variables";
-    const VARIABLE_ORDER: &'static str = "variable_order";
-    const CONSTRAINTS: &'static str = "constraints";
-    const COLUMNS: &'static str = "columns";
-}
 impl ToValue for PlanRecord {
     fn to_value(&self) -> Value {
         Value::Record(BTreeMap::from([
-            (Self::GOAL.into(), self.goal.to_value()),
-            (Self::OBJECTIVE.into(), self.objective.clone()),
+            ("goal".into(), self.goal.to_value()),
+            ("objective".into(), self.objective.clone()),
             (
-                Self::VARIABLES.into(),
+                "variables".into(),
                 Value::Record(self.variables.iter().cloned().collect()),
             ),
             (
-                Self::VARIABLE_ORDER.into(),
+                "variable_order".into(),
                 Value::List(self.variables.iter().map(|(n, _)| n.to_value()).collect()),
             ),
-            (Self::CONSTRAINTS.into(), self.constraints.to_value()),
-            (Self::COLUMNS.into(), self.columns.to_value()),
+            ("constraints".into(), self.constraints.to_value()),
+            ("columns".into(), self.columns.to_value()),
         ]))
     }
 }
 
-/// Where a line of an itinerary sits, for every record that names one.
-pub(crate) struct LineRecord {
-    pub line: usize,
-    pub raw: String,
-    pub line_range: Value,
-    pub anchor: Value,
-}
-impl LineRecord {
-    const LINE: &'static str = "line";
-    const RAW: &'static str = "raw";
-    const LINE_RANGE: &'static str = "line_range";
-    const ANCHOR: &'static str = "anchor";
-    fn insert(&self, fields: &mut BTreeMap<String, Value>) {
-        fields.insert(Self::LINE.into(), self.line.to_value());
-        fields.insert(Self::RAW.into(), self.raw.to_value());
-        fields.insert(Self::LINE_RANGE.into(), self.line_range.clone());
-        fields.insert(Self::ANCHOR.into(), self.anchor.clone());
-    }
-}
-impl ToValue for LineRecord {
-    fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::new();
-        self.insert(&mut fields);
-        Value::Record(fields)
+record! {
+    /// Where a line of an itinerary sits, for every record that names one.
+    pub(crate) struct LineRecord {
+        pub line: usize,
+        pub raw: String,
+        pub line_range: Value,
+        pub anchor: Value,
     }
 }
 
-/// The calendar parts a day line spells out, before any year is carried forward.
-pub(crate) struct DayParts {
-    pub month: usize,
-    pub day: usize,
-    pub year: Option<f64>,
-}
-impl DayParts {
-    const MONTH: &'static str = "month";
-    const DAY: &'static str = "day";
-    const YEAR: &'static str = "year";
-    fn insert(&self, fields: &mut BTreeMap<String, Value>) {
-        fields.insert(Self::MONTH.into(), self.month.to_value());
-        fields.insert(Self::DAY.into(), self.day.to_value());
-        fields.insert(Self::YEAR.into(), self.year.to_value());
-    }
-}
-impl ToValue for DayParts {
-    fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::new();
-        self.insert(&mut fields);
-        Value::Record(fields)
+record! {
+    /// The calendar parts a day line spells out, before any year is carried
+    /// forward.
+    pub(crate) struct DayParts {
+        pub month: usize,
+        pub day: usize,
+        pub year: Option<f64>,
     }
 }
 
-/// What kind of stop a marker names.
-pub(crate) struct KindRecord {
-    pub marker: String,
-    pub name: String,
-}
-impl KindRecord {
-    const MARKER: &'static str = "marker";
-    const NAME: &'static str = "name";
-}
-impl ToValue for KindRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::MARKER.into(), self.marker.to_value()),
-            (Self::NAME.into(), self.name.to_value()),
-        ]))
+record! {
+    /// What kind of stop a marker names.
+    pub(crate) struct KindRecord {
+        pub marker: String,
+        pub name: String,
     }
 }
 
-/// One `key: value` line hanging off a stop.
-pub(crate) struct DetailRecord {
-    pub line: LineRecord,
-    pub key: String,
-    pub value: String,
-}
-impl DetailRecord {
-    const KEY: &'static str = "key";
-    const VALUE: &'static str = "value";
-}
-impl ToValue for DetailRecord {
-    fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::new();
-        self.line.insert(&mut fields);
-        fields.insert(Self::KEY.into(), self.key.to_value());
-        fields.insert(Self::VALUE.into(), self.value.to_value());
-        Value::Record(fields)
+record! {
+    /// One `key: value` line hanging off a stop.
+    pub(crate) struct DetailRecord {
+        ..line: LineRecord,
+        pub key: String,
+        pub value: String,
     }
 }
 
-/// One stop of an itinerary day, with every span the editor draws on.
-pub(crate) struct StopRecord {
-    pub line: LineRecord,
-    pub kind: Option<KindRecord>,
-    pub time: i64,
-    pub twelve_hour: bool,
-    pub title: String,
-    pub time_range: Value,
-    pub title_range: Value,
-    pub range: Value,
-    pub details: Vec<DetailRecord>,
-    pub notes: Vec<LineRecord>,
-}
-impl StopRecord {
-    const KIND: &'static str = "kind";
-    const TIME: &'static str = "time";
-    const TWELVE_HOUR: &'static str = "twelve_hour";
-    const TITLE: &'static str = "title";
-    const TIME_RANGE: &'static str = "time_range";
-    const TITLE_RANGE: &'static str = "title_range";
-    const RANGE: &'static str = "range";
-    const DETAILS: &'static str = "details";
-    const NOTES: &'static str = "notes";
-}
-impl ToValue for StopRecord {
-    fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::new();
-        self.line.insert(&mut fields);
-        fields.extend([
-            (Self::KIND.into(), self.kind.to_value()),
-            (Self::TIME.into(), self.time.to_value()),
-            (Self::TWELVE_HOUR.into(), self.twelve_hour.to_value()),
-            (Self::TITLE.into(), self.title.to_value()),
-            (Self::TIME_RANGE.into(), self.time_range.clone()),
-            (Self::TITLE_RANGE.into(), self.title_range.clone()),
-            (Self::RANGE.into(), self.range.clone()),
-            (Self::DETAILS.into(), self.details.to_value()),
-            (Self::NOTES.into(), self.notes.to_value()),
-        ]);
-        Value::Record(fields)
+record! {
+    /// One stop of an itinerary day, with every span the editor draws on.
+    pub(crate) struct StopRecord {
+        ..line: LineRecord,
+        pub kind: Option<KindRecord>,
+        pub time: i64,
+        pub twelve_hour: bool,
+        pub title: String,
+        pub time_range: Value,
+        pub title_range: Value,
+        pub range: Value,
+        pub details: Vec<DetailRecord>,
+        pub notes: Vec<LineRecord>,
     }
 }
 
-/// One day of an itinerary: its calendar parts, its line, and its stops.
-pub(crate) struct DayRecord {
-    pub parts: DayParts,
-    pub line: LineRecord,
-    pub weekday: Option<usize>,
-    pub weekday_range: Value,
-    pub date_range: Value,
-    pub places: Option<String>,
-    pub forecast: Value,
-    pub stops: Vec<StopRecord>,
-}
-impl DayRecord {
-    const WEEKDAY: &'static str = "weekday";
-    const WEEKDAY_RANGE: &'static str = "weekday_range";
-    const DATE_RANGE: &'static str = "date_range";
-    const PLACES: &'static str = "places";
-    const FORECAST: &'static str = "forecast";
-    const STOPS: &'static str = "stops";
-}
-impl ToValue for DayRecord {
-    fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::new();
-        self.parts.insert(&mut fields);
-        self.line.insert(&mut fields);
-        fields.extend([
-            (Self::WEEKDAY.into(), self.weekday.to_value()),
-            (Self::WEEKDAY_RANGE.into(), self.weekday_range.clone()),
-            (Self::DATE_RANGE.into(), self.date_range.clone()),
-            (Self::PLACES.into(), self.places.to_value()),
-            (Self::FORECAST.into(), self.forecast.clone()),
-            (Self::STOPS.into(), self.stops.to_value()),
-        ]);
-        Value::Record(fields)
+record! {
+    /// One day of an itinerary: its calendar parts, its line, and its stops.
+    pub(crate) struct DayRecord {
+        ..parts: DayParts,
+        ..line: LineRecord,
+        pub weekday: Option<usize>,
+        pub weekday_range: Value,
+        pub date_range: Value,
+        pub places: Option<String>,
+        pub forecast: Value,
+        pub stops: Vec<StopRecord>,
     }
 }
 
-/// A URL, split the way a link module reads it.
-pub(crate) struct UrlRecord {
-    pub raw: String,
-    pub host: String,
-    pub path: String,
-    pub scheme: String,
-}
-impl UrlRecord {
-    const RAW: &'static str = "raw";
-    const HOST: &'static str = "host";
-    const PATH: &'static str = "path";
-    const SCHEME: &'static str = "scheme";
+record! {
+    /// A URL, split the way a link module reads it.
+    pub(crate) struct UrlRecord {
+        pub raw: String,
+        pub host: String,
+        pub path: String,
+        pub scheme: String,
+    }
 }
 impl From<&url::Url> for UrlRecord {
     fn from(url: &url::Url) -> Self {
@@ -746,39 +563,15 @@ impl From<&url::Url> for UrlRecord {
         }
     }
 }
-impl ToValue for UrlRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::RAW.into(), self.raw.to_value()),
-            (Self::HOST.into(), self.host.to_value()),
-            (Self::PATH.into(), self.path.to_value()),
-            (Self::SCHEME.into(), self.scheme.to_value()),
-        ]))
-    }
-}
 
-/// Everything a link module's hook is handed about one URL.
-pub(crate) struct LinkContextRecord {
-    pub url: UrlRecord,
-    /// False in the browser, where a refresh cannot run a program.
-    pub native: bool,
-    pub cached: Value,
-    pub fetched_at: Option<DateTime<FixedOffset>>,
-}
-impl LinkContextRecord {
-    const URL: &'static str = "url";
-    const NATIVE: &'static str = "native";
-    const CACHED: &'static str = "cached";
-    const FETCHED_AT: &'static str = "fetched_at";
-}
-impl ToValue for LinkContextRecord {
-    fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
-            (Self::URL.into(), self.url.to_value()),
-            (Self::NATIVE.into(), self.native.to_value()),
-            (Self::CACHED.into(), self.cached.clone()),
-            (Self::FETCHED_AT.into(), self.fetched_at.to_value()),
-        ]))
+record! {
+    /// Everything a link module's hook is handed about one URL.
+    pub(crate) struct LinkContextRecord {
+        pub url: UrlRecord,
+        /// False in the browser, where a refresh cannot run a program.
+        pub native: bool,
+        pub cached: Value,
+        pub fetched_at: Option<DateTime<FixedOffset>>,
     }
 }
 
@@ -791,22 +584,15 @@ pub(crate) struct RefreshRecord {
     pub env: Option<BTreeMap<String, String>>,
     pub format: Option<String>,
 }
-impl RefreshRecord {
-    const TITLE: &'static str = "title";
-    const PROGRAM: &'static str = "program";
-    const ARGS: &'static str = "args";
-    const ENV: &'static str = "env";
-    const FORMAT: &'static str = "format";
-}
 impl FromValue for RefreshRecord {
     fn from_value(value: &Value) -> EvalResult<Self> {
         let fields = Fields::new(value)?;
         Ok(Self {
-            program: fields.required(Self::PROGRAM)?,
-            title: fields.present(Self::TITLE)?,
-            args: fields.list(Self::ARGS)?,
-            env: fields.present(Self::ENV)?,
-            format: fields.present(Self::FORMAT)?,
+            program: fields.required("program")?,
+            title: fields.present("title")?,
+            args: fields.list("args")?,
+            env: fields.present("env")?,
+            format: fields.present("format")?,
         })
     }
 }

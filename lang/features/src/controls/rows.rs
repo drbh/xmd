@@ -1,0 +1,179 @@
+use crate::controls::code_actions;
+use crate::controls::commands::{Action, Capabilities, RowTarget};
+use eval::engine::Value;
+use eval::glyphs;
+use eval::modules::{Hook, ModuleKind};
+use eval::resources::Resource;
+use lsp_types::*;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+};
+
+pub(crate) fn resources_at(
+    request: &eval::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+) -> Vec<Resource> {
+    let ws = request.workspace();
+
+    let Some(doc) = ws.documents.get(path) else {
+        return vec![];
+    };
+    let mut engine = request.engine();
+    let mut found = BTreeMap::new();
+    let mut add = |resource: Resource| {
+        if let Ok(url) = resource.url(path) {
+            found.insert(url.to_string(), resource);
+        }
+    };
+    for name in doc
+        .definitions
+        .iter()
+        .filter(|d| d.named.span.line == row)
+        .map(|d| d.named.name.as_str())
+        .chain(
+            doc.references
+                .iter()
+                .filter(|r| r.span.line == row)
+                .map(|r| r.name.as_str()),
+        )
+    {
+        if let Ok(Value::Resource(r)) = engine.named(path, name) {
+            add(r);
+        }
+    }
+    for link in doc.links.iter().filter(|l| l.span.line == row) {
+        if let Some(mut r) = Resource::parse(&link.target) {
+            r.origin = Some(path.into());
+            add(r);
+        }
+    }
+    found.into_values().collect()
+}
+/// The shared label for the task toggle lens and code action.
+pub(crate) fn task_toggle_title(recurring: bool, done: bool) -> String {
+    if recurring {
+        format!("{} next", glyphs::REPEAT)
+    } else if done {
+        format!("{} reopen", glyphs::OFF)
+    } else {
+        format!("{} done", glyphs::DONE)
+    }
+}
+pub(crate) fn builtin_controls(
+    request: &eval::RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    include_task: bool,
+    capabilities: Capabilities,
+) -> Vec<Command> {
+    let ws = request.workspace();
+    let Some(doc) = ws.documents.get(path) else {
+        return vec![];
+    };
+    let uri = common::file_url(path).unwrap();
+    let target = RowTarget {
+        document: uri.clone(),
+        row,
+        expected: doc.line(row).into(),
+    };
+    let mut result = vec![];
+    let mut push = |action: Action, title: String| {
+        if capabilities.supports(&action) {
+            result.push(action.command(title));
+        }
+    };
+    let engine = request.engine();
+    if include_task
+        && let Some((index, task)) = doc.tasks.iter().enumerate().find(|(_, t)| t.line == row)
+        && code_actions::toggle_task(request, path, index).is_ok()
+    {
+        let title = task_toggle_title(
+            task.attributes.contains_key("every"),
+            engine.task_done(path, index),
+        );
+        push(Action::ToggleTask(target.clone()), title);
+    }
+    for resource in resources_at(request, path, row) {
+        let url = resource.url(path).unwrap();
+        let kind = if resource.is_image() {
+            "image"
+        } else if resource.target.starts_with("geo:") {
+            "map"
+        } else {
+            "open"
+        };
+        push(
+            Action::OpenResource {
+                target: target.clone(),
+                url: url.clone(),
+            },
+            format!("{} {kind}", glyphs::OPEN),
+        );
+        if let Some(refresh) = request.link_features().refresh_request(&resource.target) {
+            push(
+                Action::RefreshResource {
+                    target: target.clone(),
+                    url,
+                },
+                refresh.title,
+            );
+        }
+    }
+    let line = doc.line(row);
+    let wants_lookup = ["rate(", "to(", "forecast(", "forecast_range(", "quote("]
+        .iter()
+        .any(|call| line.contains(call))
+        || doc.days.iter().any(|d| d.line == row && d.places.is_some());
+    if wants_lookup {
+        push(
+            Action::Refresh {
+                document: Some(uri),
+            },
+            format!("{} lookups", glyphs::REFRESH),
+        );
+    }
+    result
+}
+pub(crate) fn lenses(
+    request: &eval::RequestContext<'_>,
+    path: &Path,
+    capabilities: Capabilities,
+) -> Vec<CodeLens> {
+    let ws = request.workspace();
+
+    let Some(doc) = ws.documents.get(path) else {
+        return vec![];
+    };
+    let rows: BTreeSet<_> = doc
+        .definitions
+        .iter()
+        .map(|d| d.named.span.line)
+        .chain(doc.tasks.iter().map(|t| t.line))
+        .chain(doc.references.iter().map(|r| r.span.line))
+        .chain(doc.links.iter().map(|l| l.span.line))
+        .chain(
+            if ws
+                .modules
+                .active()
+                .any(|m| m.kind == ModuleKind::Feature && m.has(Hook::Actions))
+            {
+                0..doc.text.lines().count()
+            } else {
+                0..0
+            },
+        )
+        .collect();
+    rows.into_iter()
+        .flat_map(|row| {
+            crate::providers::controls(request, path, row, true, capabilities)
+                .into_iter()
+                .map(move |command| CodeLens {
+                    range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),
+                    command: Some(command),
+                    data: None,
+                })
+        })
+        .collect()
+}

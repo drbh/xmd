@@ -281,15 +281,15 @@ impl Engine<'_> {
     /// An ordinary calculation's source, for symbolic descent. Tables, plans,
     /// goal seeks and literals are opaque and evaluate to constants instead.
     fn definition_source(&self, path: &Path, name: &str) -> Option<(Symbol, String, Span)> {
-        let symbol = self.workspace.resolve(path, name).ok()?;
+        let symbol = self.request.workspace.resolve(path, name).ok()?;
         let SymbolKind::Definition(i) = symbol.kind else {
             return None;
         };
-        let doc = &self.workspace.documents[&symbol.path];
+        let doc = &self.request.workspace.documents[&symbol.path];
         let def = &doc.definitions[i];
         if !def.expression
-            || doc.tables.iter().any(|t| t.definition == i)
-            || doc.plans.iter().any(|p| p.definition == i)
+            || doc.table_of(i).is_some()
+            || doc.plan_of(i).is_some()
             || crate::plans::seek_body(&def.source).is_some()
             || crate::plans::goal(&def.source).is_some()
         {
@@ -402,7 +402,7 @@ impl Engine<'_> {
         &self,
         table: &crate::tables_impl::TableValue,
     ) -> BTreeMap<String, (usize, crate::tables::Domain)> {
-        crate::tables::table(self.workspace, &table.origin)
+        crate::tables::table(self.request.workspace, &table.origin)
             .map(|t| {
                 t.domains
                     .iter()

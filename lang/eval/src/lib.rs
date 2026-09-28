@@ -45,8 +45,6 @@ mod plans_impl;
 mod records;
 #[path = "resources.rs"]
 mod resources_impl;
-#[path = "session.rs"]
-mod session_impl;
 mod solver;
 #[path = "tables.rs"]
 mod tables_impl;
@@ -63,14 +61,14 @@ pub use workspace::{Symbol, SymbolKind, Workspace};
 // An import's target member, resolved against the note that defines it.
 pub use imports::member_symbol;
 // A value formatted the way a module's `record` builtin expects.
-pub use records::ToValue;
+pub use records::{RecordFields, ToValue};
 
 // The evaluator and the value kinds it produces.
 pub mod engine {
     pub use crate::engine_impl::{
         Bindings, Builtin, Engine, Expr, HostObject, Lexeme, Literal, Operator, Parser, Tier,
         Value, ValueType, is_builtin_function, lex, lex_with_comments, literal, next_occurrence,
-        relative_date, sum_scope_at, tier, value_json,
+        relative_date, sum_scope_at, value_json,
     };
 }
 // The one clock a note's dates and durations are read against.
@@ -119,17 +117,13 @@ pub mod lookups {
 // The .wtf feature, link and library modules the engine calls into.
 pub mod modules {
     pub use crate::modules_impl::{
-        Collection, Hook, Module, ModuleKind, ModuleRegistry, bundled, from_json, is_module_path,
-        json, record,
+        Collection, Hook, Module, ModuleKind, ModuleRegistry, from_json, is_module_path, json,
+        record,
     };
 }
 // A resource value and how a hover presents it.
 pub mod resources {
     pub use crate::resources_impl::{Resource, ResourcePresenting, ago};
-}
-// The editing session a host keeps open per workspace.
-pub mod session {
-    pub use crate::session_impl::WorkspaceSession;
 }
 // Timer edits a command line or editor action can apply.
 pub mod timers {

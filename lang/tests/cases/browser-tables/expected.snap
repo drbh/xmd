@@ -67,7 +67,7 @@
       {
         "children": [
           {
-            "detail": "Text",
+            "detail": "Text · column of fruit",
             "kind": 8,
             "name": "name",
             "range": {
@@ -92,7 +92,7 @@
             }
           },
           {
-            "detail": "Number",
+            "detail": "Number · column of fruit",
             "kind": 8,
             "name": "qty",
             "range": {
@@ -117,7 +117,7 @@
             }
           },
           {
-            "detail": "Money",
+            "detail": "Money · column of fruit",
             "kind": 8,
             "name": "price",
             "range": {
@@ -142,7 +142,7 @@
             }
           }
         ],
-        "detail": "Table · 2 rows · 3 columns",
+        "detail": "table · 2 rows · 3 columns",
         "kind": 23,
         "name": "fruit",
         "range": {

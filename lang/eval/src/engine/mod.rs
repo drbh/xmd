@@ -18,7 +18,6 @@ mod calls;
 mod host;
 mod json;
 mod linear;
-mod tiers;
 mod value;
 pub use arithmetic::Operator;
 pub(crate) use arithmetic::binary;
@@ -30,9 +29,8 @@ pub(crate) use host::Namespace;
 pub use json::value_json;
 pub(crate) use linear::{Linear, RowVariable, Unit};
 pub(crate) use syntax::timer_arguments;
-pub use syntax::{Builtin, Expr, Lexeme, Literal, Parser, lex, sum_scope_at};
+pub use syntax::{Builtin, Expr, Lexeme, Literal, Parser, Tier, lex, sum_scope_at};
 pub use syntax::{is_builtin_function, lex_with_comments};
-pub use tiers::{Tier, tier};
 pub(crate) use value::{TaskKey, date_value, decimal, duration};
 pub use value::{Value, literal, next_occurrence, relative_date};
 #[derive(Clone, Debug)]
@@ -57,8 +55,8 @@ pub(crate) enum MemoKey {
 pub(crate) struct MemoEntry {
     value: EvalResult<Value>,
     failure: Option<EvalFailure>,
-    wanted: Vec<crate::lookups_impl::LookupKey>,
-    time_dependent: bool,
+    pub(crate) wanted: Vec<crate::lookups_impl::LookupKey>,
+    pub(crate) time_dependent: bool,
 }
 /// Host-provided names are resolved lazily by the same evaluator as note functions.
 /// Resolution runs without the caller's bindings, so definitions cannot capture them.
@@ -86,22 +84,19 @@ struct Trace {
     contexts: Vec<(PathBuf, Span)>,
 }
 pub struct Engine<'a> {
-    pub workspace: &'a Workspace,
-    /// The one clock snapshot every date in this evaluation is read against.
-    pub today: NaiveDate,
-    pub now: DateTime<FixedOffset>,
-    features: crate::link_features_impl::LinkFeatures<'a>,
-    memo: std::sync::Arc<std::sync::Mutex<BTreeMap<MemoKey, MemoEntry>>>,
+    /// The workspace, clock snapshot, link registry and memo this evaluation
+    /// shares with every other engine of the same request.
+    request: crate::context::RequestContext<'a>,
     /// The dynamic environment a name is resolved against, innermost last.
     frames: Vec<Frame>,
     budget: Budget,
     trace: Trace,
-    pub failure: Option<EvalFailure>,
+    pub(crate) failure: Option<EvalFailure>,
     /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
-    pub wanted: Vec<crate::lookups_impl::LookupKey>,
-    pub time_dependent: bool,
+    pub(crate) wanted: Vec<crate::lookups_impl::LookupKey>,
+    pub(crate) time_dependent: bool,
     /// Decision-column variables met while linearizing a plan.
-    pub row_variables: Vec<RowVariable>,
+    pub(crate) row_variables: Vec<RowVariable>,
     /// A module's evaluation: immutable inputs only, its own workspace, and
     /// the expressions its note was parsed into. `module` is the plain answer
     /// to "am I running module code", which decides whether the module-tier
@@ -154,11 +149,7 @@ impl<'a> Engine<'a> {
     }
     pub(crate) fn in_request(request: &crate::context::RequestContext<'a>) -> Self {
         Self {
-            workspace: request.workspace(),
-            today: request.today(),
-            now: request.now(),
-            features: request.link_features(),
-            memo: request.memo.clone(),
+            request: request.clone(),
             frames: Vec::new(),
             budget: Budget::default(),
             trace: Trace::default(),
@@ -174,13 +165,38 @@ impl<'a> Engine<'a> {
     }
     /// Share immutable inputs and memoized results with another feature session.
     pub fn request(&self) -> crate::context::RequestContext<'a> {
-        crate::context::RequestContext {
-            workspace: self.workspace,
-            clock: crate::context::Clock::new(self.now),
-            today: self.today,
-            links: self.features,
-            memo: self.memo.clone(),
-        }
+        self.request.clone()
+    }
+    pub fn workspace(&self) -> &'a Workspace {
+        self.request.workspace
+    }
+    /// The one clock snapshot every date in this evaluation is read against.
+    pub fn now(&self) -> DateTime<FixedOffset> {
+        self.request.clock.now
+    }
+    pub fn today(&self) -> NaiveDate {
+        self.request.today
+    }
+    /// Where the last evaluation failed, when it did: the note and span to
+    /// report it at, and the definitions it involved.
+    pub fn failure(&self) -> Option<&EvalFailure> {
+        self.failure.as_ref()
+    }
+    /// Forget a reported failure before evaluating the next, unrelated thing.
+    pub fn clear_failure(&mut self) {
+        self.failure = None;
+    }
+    /// The lookups evaluation read so far, cached or not.
+    pub fn wanted(&self) -> &[crate::lookups_impl::LookupKey] {
+        &self.wanted
+    }
+    /// Whether anything evaluated so far reads the clock.
+    pub fn time_dependent(&self) -> bool {
+        self.time_dependent
+    }
+    /// Record that a caller showed something that moves with the clock.
+    pub fn mark_time_dependent(&mut self, dependent: bool) {
+        self.time_dependent |= dependent;
     }
     pub fn date(&self, value: &Value) -> EvalResult<NaiveDate> {
         self.request()
@@ -189,15 +205,14 @@ impl<'a> Engine<'a> {
             .ok_or(EvalError::Expected("a date or appointment time"))
     }
     pub fn link_features(&self) -> crate::link_features_impl::LinkFeatures<'a> {
-        self.features
+        self.request.links
     }
     /// Override the registry for an embedded host or test before evaluation begins.
     pub fn with_link_features(
         mut self,
         features: crate::link_features_impl::LinkFeatures<'a>,
     ) -> Self {
-        self.features = features;
-        self.memo = Default::default();
+        self.request = self.request.with_link_features(features);
         self
     }
     pub fn bound_expr(
@@ -348,6 +363,7 @@ impl<'a> Engine<'a> {
             self.failure = Some(EvalFailure {
                 path: path.clone(),
                 span: self
+                    .request
                     .workspace
                     .documents
                     .get(path)
@@ -427,7 +443,7 @@ impl<'a> Engine<'a> {
             && self.budget.calls == 0
     }
     pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
-        let symbol = self.workspace.resolve(path, name)?;
+        let symbol = self.request.workspace.resolve(path, name)?;
         self.symbol(&symbol)
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
@@ -436,6 +452,7 @@ impl<'a> Engine<'a> {
         }
         let key = MemoKey::Symbol(symbol.clone());
         let cached = self
+            .request
             .memo
             .lock()
             .expect("request cache poisoned")
@@ -455,12 +472,12 @@ impl<'a> Engine<'a> {
             let message = EvalError::Cycle {
                 names: related
                     .iter()
-                    .map(|s| self.workspace.named(s).name.clone())
+                    .map(|s| self.request.workspace.named(s).name.clone())
                     .collect(),
             };
             self.failure = Some(EvalFailure {
                 path: symbol.path.clone(),
-                span: self.workspace.named(symbol).span,
+                span: self.request.workspace.named(symbol).span,
                 message: message.clone(),
                 related,
             });
@@ -475,15 +492,15 @@ impl<'a> Engine<'a> {
         self.trace.symbols.push(symbol.clone());
         // Named definitions never capture a caller's frames.
         let height = self.barrier(false);
-        let doc = &self.workspace.documents[&symbol.path];
+        let doc = &self.request.workspace.documents[&symbol.path];
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
                 let def = &doc.definitions[i];
-                if let Some(plan) = doc.plans.iter().find(|p| p.definition == i) {
+                if let Some(plan) = doc.plan_of(i) {
                     crate::plans_impl::solve(self, symbol, plan)
                 } else if def.expression && crate::plans::seek_body(&def.source).is_some() {
                     crate::plans_impl::seek(self, symbol)
-                } else if let Some(table) = doc.tables.iter().find(|t| t.definition == i) {
+                } else if let Some(table) = doc.table_of(i) {
                     if let Some(problem) = table.problems.first() {
                         let message = EvalError::Message(problem.message.clone());
                         self.failure = Some(EvalFailure {
@@ -528,30 +545,17 @@ impl<'a> Engine<'a> {
                 }
             }
             SymbolKind::Task(i) => Ok(Value::Bool(self.task_done(&symbol.path, i))),
-            SymbolKind::Section(i) => {
-                let section = &doc.sections[i];
-                Ok(Value::Tasks(
-                    doc.tasks
-                        .iter()
-                        .enumerate()
-                        .filter(|(i, t)| {
-                            t.line > section.line
-                                && t.line < section.end_line
-                                && !doc.tasks.iter().any(|t| t.parent == Some(*i))
-                        })
-                        .map(|(i, _)| (symbol.path.clone(), i))
-                        .collect(),
-                ))
-            }
+            SymbolKind::Section(i) => Ok(Value::Tasks(
+                doc.section_tasks(i)
+                    .map(|task| (symbol.path.clone(), task))
+                    .collect(),
+            )),
             SymbolKind::Column(_, _) => Err(EvalError::Message(
                 "A column needs a row context, e.g. sum(table, column)".into(),
             )),
             SymbolKind::Variable(plan, name) => {
                 let name = doc.plans[plan].names[name].name.clone();
-                let definition = Symbol {
-                    path: symbol.path.clone(),
-                    kind: SymbolKind::Definition(doc.plans[plan].definition),
-                };
+                let definition = symbol.sibling(SymbolKind::Definition(doc.plans[plan].definition));
                 self.symbol(&definition).and_then(|value| match value {
                     Value::Plan(p) => p.property(&name),
                     _ => Err(EvalError::Expected("a plan")),
@@ -570,7 +574,8 @@ impl<'a> Engine<'a> {
             wanted: self.wanted[wanted_start..].to_vec(),
             time_dependent: self.time_dependent,
         };
-        self.memo
+        self.request
+            .memo
             .lock()
             .expect("request cache poisoned")
             .insert(key, entry);
@@ -776,13 +781,14 @@ impl<'a> Engine<'a> {
                     .unwrap_or(false),
             ));
         }
-        self.time_dependent |= self.features.time_dependent(
+        self.time_dependent |= self.request.links.time_dependent(
             &resource.target,
-            &self.workspace.cache,
-            self.now.to_utc(),
+            &self.request.workspace.cache,
+            self.request.clock.now.to_utc(),
         );
         let memo_key = MemoKey::ResourceProperty(resource.target.clone(), key.into());
         if let Some(entry) = self
+            .request
             .memo
             .lock()
             .expect("request cache poisoned")
@@ -791,21 +797,25 @@ impl<'a> Engine<'a> {
         {
             return entry.value;
         }
-        let value = self.features.property(
+        let value = self.request.links.property(
             &resource.target,
-            &self.workspace.cache,
-            self.now.to_utc(),
+            &self.request.workspace.cache,
+            self.request.clock.now.to_utc(),
             key,
         );
-        self.memo.lock().expect("request cache poisoned").insert(
-            memo_key,
-            MemoEntry {
-                value: value.clone(),
-                failure: None,
-                wanted: vec![],
-                time_dependent: false,
-            },
-        );
+        self.request
+            .memo
+            .lock()
+            .expect("request cache poisoned")
+            .insert(
+                memo_key,
+                MemoEntry {
+                    value: value.clone(),
+                    failure: None,
+                    wanted: vec![],
+                    time_dependent: false,
+                },
+            );
         value
     }
     fn property(&mut self, value: &Value, key: &str) -> EvalResult<Value> {
@@ -846,7 +856,7 @@ impl<'a> Engine<'a> {
         self
     }
     pub fn task_done(&self, path: &Path, i: usize) -> bool {
-        let doc = &self.workspace.documents[path];
+        let doc = &self.request.workspace.documents[path];
         let children: Vec<_> = doc
             .tasks
             .iter()
@@ -884,19 +894,20 @@ impl<'a> Engine<'a> {
             let related: Vec<_> = stack[start..]
                 .iter()
                 .chain(std::iter::once(&key))
-                .filter(|(p, index)| self.workspace.documents[p].tasks[*index].named.is_some())
-                .map(|(p, index)| Symbol {
-                    path: p.clone(),
-                    kind: SymbolKind::Task(*index),
+                .filter(|(p, index)| {
+                    self.request.workspace.documents[p].tasks[*index]
+                        .named
+                        .is_some()
                 })
+                .map(|(p, index)| Symbol::new(p.clone(), SymbolKind::Task(*index)))
                 .collect();
             let message = EvalError::TaskCycle {
                 names: related
                     .iter()
-                    .map(|s| self.workspace.named(s).name.clone())
+                    .map(|s| self.request.workspace.named(s).name.clone())
                     .collect(),
             };
-            let task = &self.workspace.documents[path].tasks[i];
+            let task = &self.request.workspace.documents[path].tasks[i];
             self.failure = Some(EvalFailure {
                 path: path.into(),
                 span: task
@@ -913,11 +924,11 @@ impl<'a> Engine<'a> {
             return Err(EvalError::DepthExceeded(Depth::Task));
         }
         stack.push(key);
-        let task = &self.workspace.documents[path].tasks[i];
+        let task = &self.request.workspace.documents[path].tasks[i];
         let mut blocked = Vec::new();
         if let Some(attr) = task.attributes.get("after") {
             for name in attr.value.split(',').map(str::trim) {
-                if let Ok(s) = self.workspace.resolve(path, name)
+                if let Ok(s) = self.request.workspace.resolve(path, name)
                     && let SymbolKind::Task(j) = s.kind
                 {
                     self.blocked_inner(&s.path, j, stack)?;
@@ -943,7 +954,7 @@ impl<'a> Engine<'a> {
         if let Some(v) = date_value(source) {
             return Ok(v);
         }
-        if let Some(v) = relative_date(source, self.today) {
+        if let Some(v) = relative_date(source, self.request.today) {
             return Ok(Value::Date(v));
         }
         let value = self.eval(path, source)?;

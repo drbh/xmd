@@ -2,12 +2,10 @@
 
 use chrono::{DateTime, FixedOffset};
 use common::{file_path, uri};
-use eval::RequestContext;
 use eval::Workspace;
-use eval::session::WorkspaceSession;
+use features::Request;
 use features::commands::{Action, Capabilities, PreparedAction};
-use features::reference::CommandInfo;
-use features::session::Session;
+use features::session::WorkspaceSession;
 use features::{actions::TaskToggle, intelligence, presentation};
 use lsp_types::*;
 use model::identifier;
@@ -23,10 +21,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct BrowserWorkspace {
     session: WorkspaceSession,
-    /// The command line has no wasm build of its own to ask, so a host that
-    /// embeds one (as the test binary does) injects its command list here;
-    /// otherwise `reference` reports none.
-    commands: Vec<CommandInfo>,
 }
 
 impl Default for BrowserWorkspace {
@@ -47,7 +41,6 @@ impl BrowserWorkspace {
                 lookups: Default::default(),
                 modules: Default::default(),
             }),
-            commands: Vec::new(),
         }
     }
 
@@ -65,15 +58,6 @@ impl BrowserWorkspace {
             Err(error) => json!({"ok":false,"error":error}),
         }
         .to_string()
-    }
-}
-
-impl BrowserWorkspace {
-    /// Not exposed to JS: `CommandInfo` is not wasm-bindgen compatible, and no
-    /// browser host has a command line to report. Native test harnesses that
-    /// embed this crate call this with `wtf::cli::command_reference()`.
-    pub fn set_commands(&mut self, commands: Vec<CommandInfo>) {
-        self.commands = commands;
     }
 }
 
@@ -126,14 +110,6 @@ impl BrowserWorkspace {
             return Ok(
                 json!({"tokenTypes": presentation::TOKEN_TYPES, "tokenModifiers": presentation::TOKEN_MODIFIERS}),
             );
-        }
-        if method == "reference" {
-            // The browser has no command line of its own; a host that embeds
-            // one (as the test binary does) reports it through `set_commands`.
-            return Ok(features::reference::model(
-                &self.session.workspace.modules,
-                &self.commands,
-            ));
         }
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
@@ -201,10 +177,10 @@ impl BrowserWorkspace {
                 .filter(|v| !v.is_null())
                 .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
                 .transpose()?;
-            let result = RequestContext::new(&self.session.workspace, now)
-                .query(&compiled, only.as_deref())?;
+            let result =
+                Request::new(&self.session.workspace, now).query(&compiled, only.as_deref())?;
             return Ok(
-                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.rows,"versions":self.session.versions_json()}),
+                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.json(),"versions":self.session.versions_json()}),
             );
         }
         let path = virtual_path(&field::<String>(&params, "uri")?)?;
@@ -215,7 +191,7 @@ impl BrowserWorkspace {
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
         let ws = &self.session.workspace;
-        let request = RequestContext::new(ws, now);
+        let request = Request::new(ws, now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &eval::Symbol| Location {
             uri: common::uri_from_url(&uri(&symbol.path)),
@@ -347,7 +323,7 @@ impl BrowserWorkspace {
         if let Some(document) = action.document() {
             virtual_path(document.as_str())?;
         }
-        let request = RequestContext::new(&self.session.workspace, now);
+        let request = Request::new(&self.session.workspace, now);
         match action.prepare(&request, Capabilities::BROWSER)? {
             PreparedAction::Edit { path, edits } => {
                 Ok(json!({"edit":self.single_edit(&path, edits)}))

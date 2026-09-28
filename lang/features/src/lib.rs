@@ -1,97 +1,67 @@
-//! What an editor shows and does, host-independent: each module here is one
-//! editor feature over the model and the evaluator. `session` lists them all as
-//! methods on a request, which is the only way a host reaches them; the feature
-//! modules never reach into each other's internals. Exposes its interface from
-//! the root.
-#[path = "actions.rs"]
-mod actions_impl;
-#[path = "agenda.rs"]
-mod agenda_impl;
-mod catalog;
-#[path = "commands.rs"]
-mod commands_impl;
-mod completion;
-#[path = "diagnostics.rs"]
-mod diagnostics_impl;
-#[path = "hierarchy.rs"]
-mod hierarchy_impl;
-mod highlighting;
-mod hover;
-mod inlays;
-mod inspection;
-#[path = "intelligence.rs"]
-mod intelligence_impl;
-mod interaction;
-mod modules;
-#[path = "presentation.rs"]
-mod presentation_impl;
-mod prose;
-#[path = "query.rs"]
-mod query_impl;
-mod refactor;
-#[path = "reference.rs"]
-mod reference_impl;
-#[path = "rendering.rs"]
-mod rendering_impl;
-#[path = "session.rs"]
-mod session_impl;
-mod signature;
-#[path = "symbols.rs"]
-mod symbols_impl;
-#[path = "typing.rs"]
-mod typing_impl;
-
-// Each `#[path]` module above keeps its file private (`..._impl`); the inline
-// `pub mod` below it is the one published namespace at that name, re-exporting
-// only what hosts and the facade actually name (`features::<namespace>::…`).
+//! What an editor shows and does, host-independent. [`Request`] lists every
+//! feature as a method, which is the only way a host reaches them. The crate is
+//! grouped by what a feature is about: `data` (records and queries), `language`
+//! (names and values), `view` (how a note looks) and `controls` (what a person
+//! can do). Two modules tie them together: `locate` decides what sits at a
+//! position, and `providers` is the one extension point through which the
+//! editor's own features and .wtf feature modules contribute inlays, hovers,
+//! diagnostics, controls and edits. Exposes its interface from the root.
+mod api;
+mod controls;
+mod data;
+mod language;
+mod locate;
+mod providers;
+mod view;
 
 // Editor actions and commands: how a host applies an edit.
 pub mod actions {
-    pub use crate::actions_impl::{TaskToggle, apply_edits};
+    pub use crate::controls::code_actions::{TaskToggle, apply_edits};
 }
 pub mod commands {
-    pub use crate::commands_impl::{Action, Capabilities, PreparedAction};
+    pub use crate::controls::commands::{Action, Capabilities, PreparedAction};
 }
 // The day's agenda, rendered as markdown.
 pub mod agenda {
-    pub use crate::agenda_impl::today_markdown;
+    pub use crate::data::agenda::today_markdown;
 }
 // Diagnostics and the dependency graph they can point across.
 pub mod diagnostics {
-    pub use crate::diagnostics_impl::severity_name;
+    pub use crate::language::diagnostics::severity_name;
 }
 pub mod hierarchy {
-    pub use crate::hierarchy_impl::{decode, dependencies, dependents, prepare, ranges};
+    pub use crate::language::hierarchy::{decode, dependencies, dependents, prepare, ranges};
 }
 // Symbol lookup and go-to for a position in a document.
 pub mod intelligence {
-    pub use crate::intelligence_impl::{occurrences, signature, symbol_at};
+    pub use crate::language::navigation::occurrences;
+    pub use crate::language::signature::signature;
+    pub use crate::locate::symbol_at;
 }
 // Semantic tokens and their legend.
 pub mod presentation {
-    pub use crate::presentation_impl::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
+    pub use crate::view::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 }
 // The `wtf query` language and how it renders.
 pub mod query {
-    pub use crate::query_impl::{Query, QueryValue};
-}
-// The reference model the CLI and the browser host both render from.
-pub mod reference {
-    pub use crate::reference_impl::{CommandInfo, markdown, model, snippets};
+    pub use crate::data::catalog::value::display;
+    pub use crate::data::query::{Query, QueryResult};
 }
 // Standalone HTML rendering, shared by the CLI's export and the browser.
 pub mod rendering {
-    pub use crate::rendering_impl::{fragment, line_classes};
+    pub use crate::view::rendering::{fragment, line_classes};
 }
+// Every feature is a method on a request.
+pub use api::Request;
 // The editing session a host keeps open per workspace.
 pub mod session {
-    pub use crate::session_impl::{RefreshReport, Session, SessionRefresh};
+    pub use crate::api::{RefreshReport, WorkspaceSession};
 }
 // The document outline and folding ranges.
 pub mod symbols {
-    pub use crate::symbols_impl::{flat_symbols, folding_ranges};
+    pub use crate::language::symbols::{flat_symbols, folding_ranges};
 }
 // On-type formatting triggers.
 pub mod typing {
-    pub use crate::typing_impl::{TRIGGERS, on_type};
+    pub use crate::view::typing::{TRIGGERS, on_type};
 }

@@ -243,7 +243,7 @@
 -- request textDocument/completion base.wtf 10:16
 [
   {
-    "detail": "Checklist · 1 tasks",
+    "detail": "checklist · 1/1 complete",
     "documentation": {
       "kind": "markdown",
       "value": "Defined in <root>/base.wtf\n\n[checklist](<file://<root>/base.wtf#L9>)"
@@ -438,7 +438,7 @@
     }
   },
   {
-    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
     "kind": 10,
     "label": "title",
     "textEdit": {
@@ -456,7 +456,7 @@
     }
   },
   {
-    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
     "kind": 10,
     "label": "state",
     "textEdit": {
@@ -474,7 +474,7 @@
     }
   },
   {
-    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
     "kind": 10,
     "label": "merged",
     "textEdit": {
@@ -492,7 +492,7 @@
     }
   },
   {
-    "detail": "Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
     "kind": 10,
     "label": "checks_passed",
     "textEdit": {

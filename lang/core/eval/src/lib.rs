@@ -86,7 +86,7 @@ pub mod tables {
 }
 // The contract a link module implements, and the built-in ones.
 pub mod link_features {
-    pub use crate::link_features_impl::{BUILTINS, LinkFeatures, RefreshFormat, RefreshRequest};
+    pub use crate::link_features_impl::{BUILTINS, LinkFeatures, RefreshFormat};
 }
 // Fetched lookup values; a host fetches and stores them.
 pub mod lookups {

@@ -47,7 +47,7 @@ pub mod presentation {
 // The `xmd query` language and how it renders.
 pub mod query {
     pub use crate::data::catalog::value::display;
-    pub use crate::data::query::{Query, QueryResult};
+    pub use crate::data::query::Query;
 }
 // Standalone HTML rendering, shared by the CLI's export and the browser.
 pub mod rendering {

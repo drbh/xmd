@@ -10,7 +10,7 @@ mod resource;
 mod span;
 mod values;
 
-pub use notes::{EXTENSION, is_note, note_file, note_stem};
+pub use notes::{EXTENSION, is_note, note_file};
 pub use paths::{file_path, file_url, uri, uri_from_url, url_from_uri};
 pub use resource::Resource;
 pub use span::Span;

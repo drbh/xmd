@@ -1,0 +1,23 @@
+#!/bin/sh
+# A stand-in for `curl`: prints an RSS document whose text uses CDATA sections.
+for url in "$@"; do :; done
+case "$url" in
+  *example.com/cdata/feed.xml)
+    cat <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title><![CDATA[CDATA Feed]]></title>
+<link>https://example.com/cdata</link>
+<item>
+<title><![CDATA[Item <with> brackets]]></title>
+<link>https://example.com/cdata/one</link>
+<pubDate>Thu, 17 Sep 2026 09:00:00 +0000</pubDate>
+<description><![CDATA[<p>Full <b>HTML</b> content & raw ampersand</p>]]></description>
+</item>
+</channel></rss>
+XML
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

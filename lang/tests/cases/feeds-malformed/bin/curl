@@ -1,0 +1,18 @@
+#!/bin/sh
+# A stand-in for `curl`: prints a feed document that is truncated mid-item,
+# with an unclosed <link>, an unclosed <pubDate> and no closing tags at all.
+for url in "$@"; do :; done
+case "$url" in
+  *example.com/broken/feed.xml)
+    printf '%s' '<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>Truncated Feed</title>
+<item>
+<title>First Item</title>
+<link>https://example.com/broken/first
+<pubDate>Fri, 18 Sep 2026 10:00'
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

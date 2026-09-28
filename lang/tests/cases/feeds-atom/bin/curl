@@ -1,0 +1,33 @@
+#!/bin/sh
+# A stand-in for `curl`: prints the Atom document for the requested URL.
+for url in "$@"; do :; done
+case "$url" in
+  *example.org/atom)
+    cat <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Test</title>
+  <link rel="self" href="https://example.org/atom"/>
+  <link rel="alternate" href="https://example.org/"/>
+  <updated>2026-09-15T12:00:00Z</updated>
+  <entry>
+    <title>Summary entry</title>
+    <link rel="alternate" href="https://example.org/summary-entry"/>
+    <published>2026-09-14T09:00:00Z</published>
+    <updated>2026-09-14T10:00:00Z</updated>
+    <summary type="html">&lt;p&gt;Just a summary&lt;/p&gt;</summary>
+    <content type="html">&lt;p&gt;Full content here&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <title>Content only entry</title>
+    <link rel="alternate" href="https://example.org/content-only"/>
+    <updated>2026-09-13T08:00:00Z</updated>
+    <content type="html">&lt;p&gt;Only content, no summary&lt;/p&gt;</content>
+  </entry>
+</feed>
+XML
+    ;;
+  *)
+    printf 'not xml at all'
+    ;;
+esac

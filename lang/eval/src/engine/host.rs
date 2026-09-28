@@ -146,11 +146,12 @@ impl HostObject for Vec<TaskKey> {
             .iter()
             .filter(|(path, index)| engine.task_done(path, *index))
             .count();
-        Some(format!(
-            "\n\n`{}` {done}/{} complete",
-            crate::charts_impl::bar(done, self.len()),
-            self.len()
-        ))
+        let summary = engine.present(
+            "task",
+            "checklist",
+            vec![Value::Count(done), Value::Count(self.len())],
+        );
+        Some(format!("\n\n{summary}"))
     }
 }
 /// An imported note. Its members are the note's definitions, which the engine
@@ -189,17 +190,7 @@ impl HostObject for Resource {
         Some(record([("target", Value::Text(self.target.clone()))]))
     }
     fn hover(&self, engine: &mut Engine<'_>, path: &Path) -> Option<String> {
-        let links = engine.link_features();
-        Some(format!(
-            "\n\n{}",
-            self.presentation(
-                path,
-                &engine.workspace().cache,
-                engine.now().to_utc(),
-                links
-            )
-            .hover
-        ))
+        Some(format!("\n\n{}", self.presentation(engine, path).hover))
     }
 }
 impl HostObject for Timer {

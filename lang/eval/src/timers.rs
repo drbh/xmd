@@ -10,15 +10,7 @@ use common::Span;
 use std::path::Path;
 
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    serde::Serialize,
-    serde::Deserialize,
-    strum::IntoStaticStr,
-    strum::EnumString,
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::IntoStaticStr,
 )]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -124,12 +116,6 @@ impl Timer {
         self.implementation
             .call(name, vec![self.record()], self.now)
     }
-    pub fn done(&self) -> bool {
-        matches!(self.call("done"), Ok(Value::Bool(true)))
-    }
-    pub fn running(&self) -> bool {
-        matches!(self.call("running"), Ok(Value::Bool(true)))
-    }
     pub fn time_dependent(&self) -> EvalResult<bool> {
         if !self.implementation.has("time_dependent") {
             return Ok(self.implementation.live);
@@ -148,20 +134,17 @@ impl Timer {
             .and_then(|v| v.display().parse().ok())
             .unwrap_or(TimerState::Idle)
     }
-    pub fn display(&self) -> String {
-        self.call("display")
+    /// The timer module's words for this timer, or why it has none.
+    fn words(&self, name: &str) -> String {
+        self.call(name)
             .map(|v| v.display())
             .unwrap_or_else(|e| e.to_string())
     }
-    pub fn inlay(&self) -> String {
-        self.call("inlay")
-            .map(|v| v.display())
-            .unwrap_or_else(|e| e.to_string())
+    pub fn display(&self) -> String {
+        self.words("display")
     }
     pub fn hover(&self) -> String {
-        self.call("hover")
-            .map(|v| v.display())
-            .unwrap_or_else(|e| e.to_string())
+        self.words("hover")
     }
     pub fn property(&self, name: &str) -> EvalResult<Value> {
         self.implementation.call(
@@ -169,15 +152,6 @@ impl Timer {
             vec![self.record(), Value::Text(name.into())],
             self.now,
         )
-    }
-    pub fn actions(&self) -> Vec<TimerAction> {
-        let Ok(Value::List(actions)) = self.call("actions") else {
-            return vec![];
-        };
-        actions
-            .into_iter()
-            .filter_map(|v| v.display().parse().ok())
-            .collect()
     }
 }
 

@@ -1,6 +1,6 @@
 //! What a note computes: the evaluator and the value kinds it produces
-//! (timers, resources, lookups, plans), plus the text charts and the glyph
-//! vocabulary every label draws from.
+//! (timers, resources, lookups, plans). The text charts and the glyph
+//! vocabulary every label draws from live in the stdlib's `format` module.
 //!
 //! `error` is the one failure vocabulary every one of them answers with, so a
 //! caller can tell a mistake in a note from data that is merely unfetched
@@ -17,8 +17,6 @@
 // `eval::x::` path. Kept wherever a name collides across files (`parse`) or
 // forms one coherent family (`engine`), or another crate already spells a
 // name that way.
-#[path = "charts.rs"]
-mod charts_impl;
 #[path = "clock.rs"]
 mod clock_impl;
 mod context;
@@ -29,8 +27,6 @@ mod error;
 mod feeds;
 #[path = "functional.rs"]
 mod functional_impl;
-#[path = "glyphs.rs"]
-mod glyphs_impl;
 mod imports;
 #[path = "itinerary.rs"]
 mod itinerary_impl;
@@ -75,14 +71,6 @@ pub mod engine {
 pub mod clock {
     pub use crate::clock_impl::now;
 }
-// Text charts a hover renders next to a plan or a timer.
-pub mod charts {
-    pub use crate::charts_impl::{bar, bar_fraction, series};
-}
-// The glyph every label in a hover, action or diagnostic draws from.
-pub mod glyphs {
-    pub use crate::glyphs_impl::{DONE, FLAG, OFF, OPEN, REFRESH, REPEAT};
-}
 // Pure functions the evaluator's builtins are implemented in terms of.
 pub mod functional {
     pub use crate::functional_impl::{compare, sum};
@@ -123,7 +111,7 @@ pub mod modules {
 }
 // A resource value and how a hover presents it.
 pub mod resources {
-    pub use crate::resources_impl::{Resource, ResourcePresenting, ago};
+    pub use crate::resources_impl::{Resource, ResourcePresenting};
 }
 // Timer edits a command line or editor action can apply.
 pub mod timers {

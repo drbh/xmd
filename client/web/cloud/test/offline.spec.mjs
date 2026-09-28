@@ -9,7 +9,7 @@ test("a signed-in user keeps working offline and the room catches up afterwards"
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
-  const source = () => page.evaluate(() => window.wtfDocs.controller.getSource());
+  const source = () => page.evaluate(() => window.wtfDocs.controller?.getSource());
 
   // Online: create two documents, open only the first, and let the service worker install.
   await page.goto("/docs/?test");

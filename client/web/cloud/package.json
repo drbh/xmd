@@ -11,6 +11,7 @@
     "test": "node --test --test-concurrency=1 test/*.test.mjs && npx playwright test"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260928.1",
     "@playwright/test": "^1.63.0",
     "esbuild": "^0.28.2",
     "wrangler": "^4.135.0"
@@ -22,5 +23,8 @@
     "y-partyserver": "^2.2.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32"
+  },
+  "overrides": {
+    "@cloudflare/workers-types": "$@cloudflare/workers-types"
   }
 }

@@ -1,7 +1,7 @@
 //! Hovers: what the editor explains about the thing under the cursor.
 use crate::locate::Target;
 use common::Span;
-use eval::engine::Value;
+use eval::engine::{Engine, Value};
 use eval::resources::{self, ResourcePresenting};
 use eval::{Symbol, SymbolKind, Workspace};
 use lsp_types::*;
@@ -53,80 +53,76 @@ pub(crate) fn hover_at(
     }
 }
 
-/// A task's state, blockers, estimate, timer and subtask progress.
+/// A task's state, blockers, estimate, timer and subtask progress, worded by
+/// the stdlib's `task` module.
 fn task_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents.get(path)?;
     let task = &doc.tasks[index];
     let mut engine = request.engine();
-    let blocked = engine.blocked(path, index);
-    let mut value = format!(
-        "**{}**\n\n{}",
-        task.title,
-        if engine.task_done(path, index) {
-            "Complete"
-        } else {
-            "Incomplete"
-        }
-    );
-    match blocked {
-        Ok(names) if !names.is_empty() => {
-            let names = names
+    let (blocked, blocked_error) = match engine.blocked(path, index) {
+        Ok(names) => (
+            names
                 .into_iter()
                 .map(|name| {
-                    ws.resolve(path, &name)
-                        .map(|s| source_link(ws, &s))
-                        .unwrap_or(name)
+                    Value::Text(
+                        ws.resolve(path, &name)
+                            .map(|s| source_link(ws, &s))
+                            .unwrap_or(name),
+                    )
                 })
-                .collect::<Vec<_>>();
-            value.push_str(&format!("\n\nBlocked by: {}", names.join(", ")));
-        }
-        Err(e) => value.push_str(&format!("\n\n{e}")),
-        _ => {}
-    }
-    if let Some(attr) = task.attributes.get("estimate")
-        && let Ok(v) = engine.eval(path, &attr.value)
-    {
-        value.push_str(&format!("\n\nEstimate: {}", v.display()));
-    }
-    if let Some(attr) = task.attributes.get("timer")
-        && let Ok(v) = engine.eval(path, &attr.value)
-    {
-        value.push_str(&format!("\n\nTimer: {}", v.display()));
-        if let Value::Timer(timer) = &v
-            && let Some(limit) = timer.limit
-        {
-            value.push_str(&format!(
-                "\n\n`{}`",
-                eval::charts::bar_fraction(timer.elapsed as f64 / limit as f64)
-            ));
-        }
-    }
-    let children: Vec<_> = doc
-        .tasks
-        .iter()
-        .enumerate()
-        .filter(|(_, t)| t.parent == Some(index))
-        .map(|(j, _)| j)
+                .collect(),
+            Value::Null,
+        ),
+        Err(e) => (vec![], Value::Text(e.to_string())),
+    };
+    let done = engine.task_done(path, index);
+    let mut attribute = |key: &str| {
+        task.attributes
+            .get(key)
+            .and_then(|attr| engine.eval(path, &attr.value).ok())
+    };
+    let estimate = attribute("estimate");
+    let timer = attribute("timer");
+    let children: Vec<_> = (0..doc.tasks.len())
+        .filter(|j| doc.tasks[*j].parent == Some(index))
         .collect();
-    if !children.is_empty() {
-        let done = children
-            .iter()
-            .filter(|j| engine.task_done(path, **j))
-            .count();
-        value.push_str(&format!(
-            "\n\nSubtasks: `{}` {done}/{}",
-            eval::charts::bar(done, children.len()),
-            children.len()
-        ));
-    }
-    value.push_str(
-        "\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers.",
-    );
+    let children_done = children
+        .iter()
+        .filter(|j| engine.task_done(path, **j))
+        .count();
+    let text = |value: Option<&Value>| value.map_or(Value::Null, |v| Value::Text(v.display()));
+    let record = eval::modules::record([
+        ("title".into(), Value::Text(task.title.clone())),
+        ("done".into(), Value::Bool(done)),
+        ("blocked".into(), Value::List(blocked)),
+        ("blocked_error".into(), blocked_error),
+        ("estimate".into(), text(estimate.as_ref())),
+        ("timer".into(), text(timer.as_ref())),
+        (
+            "countdown".into(),
+            match &timer {
+                Some(Value::Timer(timer)) => timer.record(),
+                _ => Value::Null,
+            },
+        ),
+        ("children".into(), Value::Count(children.len())),
+        ("children_done".into(), Value::Count(children_done)),
+    ]);
     Some(Hover {
-        contents: HoverContents::Markup(markup(value)),
+        contents: HoverContents::Markup(markup(engine.present("task", "hover", vec![record]))),
         range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
     })
+}
+
+/// `format.series` over a column or a sum's rows: a sparkline and its range,
+/// or nothing when fewer than two values can be charted.
+fn series(engine: &mut Engine<'_>, values: Vec<Value>) -> Option<String> {
+    match engine.call_module("format", "series", vec![Value::List(values)]) {
+        Ok(Value::Null) => None,
+        Ok(chart) => Some(chart.display()),
+        Err(e) => Some(e.to_string()),
+    }
 }
 
 fn link_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
@@ -139,14 +135,7 @@ fn link_hover(request: &eval::RequestContext<'_>, path: &Path, index: usize) -> 
     };
     Some(Hover {
         contents: HoverContents::Markup(markup(
-            resource
-                .presentation(
-                    path,
-                    &ws.cache,
-                    request.now().to_utc(),
-                    request.link_features(),
-                )
-                .hover,
+            resource.presentation(&mut request.engine(), path).hover,
         )),
         range: Some(link.span.range(&doc.text)),
     })
@@ -204,7 +193,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                 source_link(ws, symbol)
             );
         }
-        let chart = eval::charts::series(&values)
+        let chart = series(&mut engine, values)
             .map(|chart| format!("\n\n{chart}"))
             .unwrap_or_default();
         return format!(
@@ -253,20 +242,15 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
                     && let Ok(difference) = lhs.minus(&rhs)
                 {
                     let coefficient = difference.terms.get(&named.name).copied().unwrap_or(0.0);
-                    out.push_str(&format!(
-                        "\n\nGoal seek: {} `{body}`.",
-                        engine
-                            .call_module(
-                                "plan",
-                                "seek_summary",
-                                vec![
-                                    Value::Text(op.as_str().into()),
-                                    Value::Bool(coefficient > 0.0)
-                                ]
-                            )
-                            .map(|v| v.display())
-                            .unwrap_or_else(|e| e.to_string())
-                    ));
+                    let summary = engine.present(
+                        "plan",
+                        "seek_summary",
+                        vec![
+                            Value::Text(op.as_str().into()),
+                            Value::Bool(coefficient > 0.0),
+                        ],
+                    );
+                    out.push_str(&format!("\n\nGoal seek: {summary} `{body}`."));
                 }
             }
             if let Ok(Value::Plan(plan)) = &value
@@ -276,7 +260,7 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
             }
             if let Some(contributions) = engine.sum_contributions(&symbol.path, &def.source) {
                 out.push_str("\n\nRow contributions:\n");
-                if let Some(chart) = eval::charts::series(&contributions) {
+                if let Some(chart) = series(&mut engine, contributions.clone()) {
                     out.push_str(&format!("\n{chart}\n"));
                 }
                 for (row, value) in contributions.iter().enumerate().take(30) {
@@ -322,12 +306,18 @@ pub(crate) fn symbol_hover(request: &eval::RequestContext<'_>, symbol: &Symbol) 
         out.push_str("\n\nLookups:");
         for key in keys {
             match key.lookup(&ws.lookups) {
-                Some(lookup) => out.push_str(&format!(
-                    "\n- {} · {} · {}",
-                    key.describe(),
-                    eval::resources::ago(lookup.fetched_at, now),
-                    lookup.source
-                )),
+                Some(lookup) => {
+                    let age = engine.present(
+                        "format",
+                        "age",
+                        vec![Value::Duration((now - lookup.fetched_at).num_seconds())],
+                    );
+                    out.push_str(&format!(
+                        "\n- {} · {age} · {}",
+                        key.describe(),
+                        lookup.source
+                    ))
+                }
                 None => out.push_str(&format!("\n- {} · not fetched yet", key.describe())),
             }
         }

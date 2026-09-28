@@ -121,6 +121,19 @@ pub(crate) fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     .unwrap_or(Null)
             }
         }
+        (B::Merge3, [Text(base), Text(ours), Text(theirs)]) => {
+            // A line-based three-way merge. Conflicting regions come back
+            // marked with <<<<<<<, ======= and >>>>>>> and `clean` false.
+            let (clean, text) = if ours == theirs {
+                (true, ours.clone())
+            } else {
+                match diffy::merge(base, ours, theirs) {
+                    Ok(text) => (true, text),
+                    Err(text) => (false, text),
+                }
+            };
+            Record([("clean".into(), Bool(clean)), ("text".into(), Text(text))].into())
+        }
         (B::DurationParts, [Duration(seconds)]) => Record(
             [
                 ("hours".into(), Number((seconds / 3600) as f64)),

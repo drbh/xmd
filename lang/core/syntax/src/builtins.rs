@@ -80,6 +80,7 @@ builtins! {
     Source => "source", Toolkit;
     MakeDate => "make_date", Module;
     DurationParts => "duration_parts", Module;
+    Merge3 => "merge3", Module;
     DateParts => "date_parts", Module;
     AtTime => "at_time", Module;
     ParseTime => "parse_time", Module;

@@ -44,6 +44,10 @@ pub enum ModuleKind {
     Feature,
     /// Plain functions other modules and the engine import by name.
     Library,
+    /// A command a person runs with `xmd run`: its pure `step` hook asks the
+    /// host for effects (HTTP, files in the run's directory) and reads their
+    /// results on the next step. Nothing runs while editing or rendering.
+    Command,
 }
 impl ModuleKind {
     pub fn as_str(self) -> &'static str {
@@ -55,6 +59,7 @@ impl ModuleKind {
             Self::Link => Some(Hook::Inlay),
             Self::Feature => Some(Hook::Collect),
             Self::Library => None,
+            Self::Command => Some(Hook::Step),
         }
     }
 }
@@ -89,6 +94,7 @@ pub enum Hook {
     Hovers,
     Diagnostics,
     Format,
+    Step,
 }
 impl Hook {
     /// Declaration order is also the order compilation validates them in.
@@ -107,6 +113,7 @@ impl Hook {
         match self {
             Self::Collect => Some(ModuleKind::Feature),
             Self::Inlay => Some(ModuleKind::Link),
+            Self::Step => Some(ModuleKind::Command),
             _ => None,
         }
     }

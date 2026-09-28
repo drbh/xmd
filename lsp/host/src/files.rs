@@ -178,7 +178,7 @@ fn load_cache(root: &Path) -> Cache {
 
 /// Compile the modules each root's `.xmd/modules.json` activates, over the
 /// bundled stdlib.
-fn load_modules(roots: &[PathBuf]) -> Result<ModuleRegistry, String> {
+pub fn load_modules(roots: &[PathBuf]) -> Result<ModuleRegistry, String> {
     let mut sources = BTreeMap::new();
     for root in roots {
         let manifest = root.join(".xmd/modules.json");

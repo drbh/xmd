@@ -70,6 +70,7 @@ Commands:
   graph    Inspect dependencies between values, tasks and checklists in one note (JSON)
   refresh  Explicitly refresh cached resource status and external lookups
   sync     Keep a directory of notes in step with a folder in the web app
+  run      Run a command module: its id among --root's activated modules, or a path to its file
   help     Print this message or the help of the given subcommand(s)
 
 Arguments:

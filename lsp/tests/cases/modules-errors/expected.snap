@@ -31,7 +31,7 @@ xmd: <root>/.xmd/modules/tickets.x.md: inlay must be a function with 1 parameter
 $ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/tickets.x.md: module.kind must be link, feature, or library
+xmd: <root>/.xmd/modules/tickets.x.md: module.kind must be link, feature, command, or library
 
 ### 7 write
 -- write .xmd/modules/tickets.x.md (465 bytes)

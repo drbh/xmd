@@ -58,6 +58,24 @@ pub(crate) enum Command {
     },
     /// Keep a directory of notes in step with a folder in the web app.
     Sync(crate::sync::SyncOptions),
+    /// Run a command module: its id among --root's activated modules, or a path to its file.
+    #[command(
+        after_help = concat!("The command works inside DIRECTORY (default .) and can only read and write there.\nExamples: xmd run ./plugins/sync.", common::note_extension!(), " ./notes --url https://xmd.example.com\n          xmd run sync ./notes --root .")
+    )]
+    Run {
+        /// The command module's id, or a path to its file.
+        module: String,
+        /// The directory the command works in, then its own arguments and --flags.
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            value_name = "DIRECTORY AND ARGS"
+        )]
+        args: Vec<String>,
+        /// Where to find activated modules when MODULE is an id.
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+    },
 }
 #[derive(Args)]
 pub(crate) struct QueryOptions {
@@ -178,6 +196,7 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
         Command::Sync(options) => crate::sync::run(options),
+        Command::Run { module, args, root } => run_module(&module, &args, &root),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -391,4 +410,47 @@ fn render(value: &Value) -> String {
         })
         .collect::<Vec<_>>()
         .join("\t")
+}
+
+/// `xmd run`: find the command module, then let the host perform its effects.
+fn run_module(name: &str, args: &[String], root: &std::path::Path) -> Result<(), String> {
+    let path = std::path::Path::new(name);
+    let registry = if common::is_note(path) {
+        let path = path
+            .canonicalize()
+            .map_err(|e| format!("Cannot open {name}: {e}"))?;
+        let source = std::fs::read_to_string(&path).map_err(|e| format!("{name}: {e}"))?;
+        eval::modules::ModuleRegistry::compile([(path, source)].into())?
+    } else {
+        host::load_modules(&[root.to_path_buf()])?
+    };
+    let module = registry
+        .modules
+        .iter()
+        .find(|m| {
+            if common::is_note(path) {
+                m.path == path.canonicalize().unwrap_or_default()
+            } else {
+                m.id == name
+            }
+        })
+        .ok_or_else(|| {
+            format!(
+                "No command module '{name}' is activated under {}",
+                root.display()
+            )
+        })?;
+    let dir = args
+        .first()
+        .filter(|first| !first.starts_with("--"))
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| ".".into());
+    let rest = if args.first().is_some_and(|first| !first.starts_with("--")) {
+        &args[1..]
+    } else {
+        args
+    };
+    host::run_command(module, &dir, rest, crate::editor::now, |line| {
+        println!("{line}")
+    })
 }

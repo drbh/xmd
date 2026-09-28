@@ -126,6 +126,12 @@ const fn describe(builtin: Builtin) -> Signature {
             documentation: "Construct a calendar date; invalid dates return null.",
             example: "2026, 9, 18",
         },
+        Builtin::Merge3 => Doc {
+            params: &["base: Text", "ours: Text", "theirs: Text"],
+            result: Kind(ValueType::Record),
+            documentation: "Merge two edits of a common base line by line: {clean, text}, with conflict markers when both changed the same lines.",
+            example: "base, ours, theirs",
+        },
         Builtin::DurationParts => Doc {
             params: &["duration: Duration"],
             result: Kind(ValueType::Record),

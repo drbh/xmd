@@ -90,7 +90,7 @@ impl Module {
         }
         let kind: ModuleKind = text(config.get("kind").ok_or("module.kind is required")?)?
             .parse()
-            .map_err(|_| "module.kind must be link, feature, or library")?;
+            .map_err(|_| "module.kind must be link, feature, command, or library")?;
         let enabled = match config.get("enabled") {
             None => true,
             Some(Value::Bool(v)) => *v,

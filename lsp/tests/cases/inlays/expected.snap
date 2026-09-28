@@ -2,7 +2,7 @@
 $ xmd render n.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
-# 🦀 Trip 12:00 ░░░░░░░░ 0/1 complete
+# 🦀 Trip 12:00
 - [ ] Pack @due(tomorrow) → due tomorrow
 clock := now() = 2026-09-16 12:00:00 -04:00
 
@@ -26,18 +26,6 @@ clock := now() = 2026-09-16 12:00:00 -04:00
     "tooltip": {
       "kind": "markdown",
       "value": ""
-    }
-  },
-  {
-    "label": "░░░░░░░░ 0/1 complete",
-    "paddingLeft": true,
-    "position": {
-      "character": 9,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`░░░░░░░░░░ 0%` 0/1 complete"
     }
   },
   {
@@ -77,18 +65,6 @@ clock := now() = 2026-09-16 12:00:00 -04:00
     "tooltip": {
       "kind": "markdown",
       "value": ""
-    }
-  },
-  {
-    "label": "░░░░░░░░ 0/1 complete",
-    "paddingLeft": true,
-    "position": {
-      "character": 9,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`░░░░░░░░░░ 0%` 0/1 complete"
     }
   }
 ]

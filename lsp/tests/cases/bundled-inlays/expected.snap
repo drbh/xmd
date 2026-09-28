@@ -2,7 +2,7 @@
 $ xmd render checklists.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
-# Work ████░░░░ 2/4 complete · 90m estimated left
+# Work
 - [x] Done @estimate(20m)
 - [ ] Next @estimate(30m)
 ## Nested ████░░░░ 1/2 complete · 1h estimated left
@@ -50,18 +50,6 @@ plain text
 -- open checklists.x.md
 -- request textDocument/inlayHint checklists.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
-  {
-    "label": "████░░░░ 2/4 complete · 90m estimated left",
-    "paddingLeft": true,
-    "position": {
-      "character": 6,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`█████░░░░░ 50%` 2/4 complete · 90m estimated left"
-    }
-  },
   {
     "label": "████░░░░ 1/2 complete · 1h estimated left",
     "paddingLeft": true,

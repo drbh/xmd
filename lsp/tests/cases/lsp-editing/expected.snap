@@ -707,18 +707,6 @@ exit 0
     "label": "████░░░░ 1/2 complete · 20m estimated left",
     "paddingLeft": true,
     "position": {
-      "character": 7,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`█████░░░░░ 50%` 1/2 complete · 20m estimated left"
-    }
-  },
-  {
-    "label": "████░░░░ 1/2 complete · 20m estimated left",
-    "paddingLeft": true,
-    "position": {
       "character": 20,
       "line": 2
     },
@@ -821,18 +809,6 @@ work := effort(launch)
     "label": "████████ 2/2 complete",
     "paddingLeft": true,
     "position": {
-      "character": 7,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`██████████ 100%` 2/2 complete"
-    }
-  },
-  {
-    "label": "████████ 2/2 complete",
-    "paddingLeft": true,
-    "position": {
       "character": 20,
       "line": 2
     },
@@ -881,18 +857,6 @@ work := effort(launch)
 -- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/ignored/TODOS.x.md"}]}
 -- request textDocument/inlayHint ignored/TODOS.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
-  {
-    "label": "████████ 2/2 complete",
-    "paddingLeft": true,
-    "position": {
-      "character": 7,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`██████████ 100%` 2/2 complete"
-    }
-  },
   {
     "label": "████████ 2/2 complete",
     "paddingLeft": true,

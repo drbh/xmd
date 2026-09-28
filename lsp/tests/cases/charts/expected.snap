@@ -15,7 +15,7 @@ $ xmd render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-0
 exit 0
 --- stdout
 [focus] := countdown(10m, 4m) = ◷ ███░░░░░ 06:00 remaining · ‖ paused
-# Plan :plan █████░░░ 2/3 complete
+# Plan :plan
 - [x] a
 - [ ] b :b @timer(focus) ◷ ███░░░░░ 06:00 remaining · ‖ paused · ████░░░░ 1/2 subtasks
   - [x] c
@@ -130,18 +130,6 @@ exit 0
     }
   },
   {
-    "label": "█████░░░ 2/3 complete",
-    "paddingLeft": true,
-    "position": {
-      "character": 12,
-      "line": 1
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`███████░░░ 67%` 2/3 complete"
-    }
-  },
-  {
     "label": "◷ ███░░░░░ 06:00 remaining · ‖ paused · ████░░░░ 1/2 subtasks",
     "paddingLeft": true,
     "position": {
@@ -159,10 +147,10 @@ exit 0
 $ xmd render edges.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
-# Done :done ████████ 2/2 complete
+# Done :done
 - [x] a
 - [x] b
-# Fresh :fresh ░░░░░░░░ 0/1 complete
+# Fresh :fresh
 - [ ] c
 [mixed] := table
 | label | value |

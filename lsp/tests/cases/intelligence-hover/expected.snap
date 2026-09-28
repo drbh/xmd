@@ -10,7 +10,7 @@ exit 0
 [work] := stopwatch() = ◴ 00:00 elapsed · ○ idle
 [30m]:estimate
 [https://github.com/zed-industries/zed/pull/1]:pr ◌ PR #1 · refresh for status
-# Checklist :checklist ████████ 1/1 complete
+# Checklist :checklist
 - [x] Done :done
 [watch] := stopwatch(73s) = ◴ 01:13 elapsed · ‖ paused
 Use [remaining_cash] $1,590 today.

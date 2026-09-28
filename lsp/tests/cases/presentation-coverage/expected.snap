@@ -2,7 +2,7 @@
 $ xmd render tasks.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
-# Tasks ███░░░░░ 3/8 complete
+# Tasks
 [focus] := countdown(10m, 4m) = ◷ ███░░░░░ 06:00 remaining · ‖ paused
 ## Plan :plan ███░░░░░ 3/7 complete
 - [x] a
@@ -1142,18 +1142,6 @@ error: {
 ]
 -- request textDocument/inlayHint tasks.x.md {"end":{"character":0,"line":20},"start":{"character":0,"line":0}}
 [
-  {
-    "label": "███░░░░░ 3/8 complete",
-    "paddingLeft": true,
-    "position": {
-      "character": 7,
-      "line": 0
-    },
-    "tooltip": {
-      "kind": "markdown",
-      "value": "`████░░░░░░ 38%` 3/8 complete"
-    }
-  },
   {
     "label": "= ◷ ███░░░░░ 06:00 remaining · ‖ paused",
     "paddingLeft": true,

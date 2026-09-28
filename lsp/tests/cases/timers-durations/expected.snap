@@ -2,7 +2,7 @@
 $ xmd render durations.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-# Chores :chores ░░░░░░░░ 0/3 complete · 31m 30s estimated left
+# Chores :chores
 - [ ] First @estimate(90s)
 - [ ] Second @estimate(30m)
 - [ ] Water plants @every(2w) @due(2026-09-16) → due today · ↻ every 2w

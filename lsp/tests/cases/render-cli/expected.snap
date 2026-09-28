@@ -2,7 +2,7 @@
 $ xmd render main.x.md --root notes --now 2026-09-18T12:00:00Z --format text
 exit 0
 --- stdout
-# Work 🦀 custom 12:00 ░░░░░░░░ 0/1 complete · 20m estimated left␍
+# Work 🦀 custom 12:00␍
 - [ ] Ship @estimate(20m)␍
 [total] := import("./values.x.md").price * 2 = $14␍
 Total [total] $14.␍
@@ -12,7 +12,7 @@ https://github.com/o/r/pull/42 ○ open · just now␍
 $ xmd render <root>/notes/main.x.md --root notes --now 2026-09-18T12:00:00Z --format text
 exit 0
 --- stdout
-# Work 🦀 custom 12:00 ░░░░░░░░ 0/1 complete · 20m estimated left␍
+# Work 🦀 custom 12:00␍
 - [ ] Ship @estimate(20m)␍
 [total] := import("./values.x.md").price * 2 = $14␍
 Total [total] $14.␍

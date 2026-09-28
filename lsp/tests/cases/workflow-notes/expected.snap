@@ -2,7 +2,7 @@
 $ xmd render daily.x.md --root parse --format text --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
-# Heading ░░░░░░░░ 0/1 complete · 20m estimated left
+# Heading
 Budget [$3,000]:budget. Spent [$1,410]:spent.
 [remaining] := budget-spent = $1,590
 - [ ] Review [remaining] $1,590 @estimate(20m)

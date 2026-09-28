@@ -1,5 +1,0 @@
-# Work 🦀
-- [ ] Ship @estimate(20m)
-[total] := import("./values.wtf").price * 2
-Total [total].
-https://github.com/o/r/pull/42

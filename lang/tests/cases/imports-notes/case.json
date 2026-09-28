@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "values | select {name, display, errors}",
         "--root",
         "local",
@@ -14,7 +14,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "diagnostics | select {line, severity, message}",
         "--root",
         "local",
@@ -24,7 +24,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "plans | where name == \"plan\" | select solution.variables",
         "--root",
         "local",
@@ -34,7 +34,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "values | select {name, display, errors}",
         "--root",
         "lazy",
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "get(src, \"amount\")",
         "--root",
         "lazy",
@@ -54,7 +54,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "get(src, \"absent\")",
         "--root",
         "lazy",
@@ -64,7 +64,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "get(src, \"broken\")",
         "--root",
         "lazy",
@@ -74,7 +74,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "[src, src].amount",
         "--root",
         "lazy",
@@ -84,7 +84,7 @@
     {
       "cli": [
         "query",
-        "main.wtf",
+        "main.x.md",
         "resources | select {target, path: source.path}",
         "--root",
         "lazy",
@@ -94,7 +94,7 @@
     {
       "cli": [
         "render",
-        "main.wtf",
+        "main.x.md",
         "--root",
         "lazy",
         "--format",
@@ -104,8 +104,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "import(\"./\" + \"sub/values.wtf\")",
+        "main.x.md",
+        "import(\"./\" + \"sub/values.x.md\")",
         "--root",
         "lazy",
         "--json"
@@ -114,8 +114,8 @@
     {
       "cli": [
         "query",
-        "main.wtf",
-        "import(\"values.wtf\")",
+        "main.x.md",
+        "import(\"values.x.md\")",
         "--root",
         "lazy",
         "--json"
@@ -124,7 +124,7 @@
     {
       "cli": [
         "query",
-        "notes/main.wtf",
+        "notes/main.x.md",
         "values | select {name, display}",
         "--root",
         "hidden",
@@ -134,7 +134,7 @@
     {
       "cli": [
         "query",
-        "notes/main.wtf",
+        "notes/main.x.md",
         "notes | select {title, path: source.path}",
         "--root",
         "hidden",

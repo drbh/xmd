@@ -8,7 +8,7 @@ const path = require("node:path");
 
 const REPO = "drbh/jot";
 const INSTALL_HINT = "curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh";
-const CONSENT_KEY = "wtf.downloadConsent";
+const CONSENT_KEY = "xmd.downloadConsent";
 
 let client;
 let pending = Promise.resolve();
@@ -16,7 +16,7 @@ let closing = false;
 
 async function version(binary) {
   const { stdout } = await promisify(execFile)(binary, ["--version"], { timeout: 5000 });
-  return /^wtf \d+\.\d+\.\d+/m.test(stdout);
+  return /^xmd \d+\.\d+\.\d+/m.test(stdout);
 }
 
 // The release asset for this machine, named as the release workflow names it.
@@ -24,9 +24,9 @@ function asset() {
   const os = { darwin: "apple-darwin", linux: "unknown-linux-gnu" }[process.platform];
   const arch = { x64: "x86_64", arm64: "aarch64" }[process.arch];
   if (!os || !arch) {
-    throw new Error(`no prebuilt language server for ${process.platform}/${process.arch}. Build one with \`cargo install --git https://github.com/${REPO} wtf\` and set wtf.serverPath.`);
+    throw new Error(`no prebuilt language server for ${process.platform}/${process.arch}. Build one with \`cargo install --git https://github.com/${REPO} xmd\` and set xmd.serverPath.`);
   }
-  return `wtf-${arch}-${os}.tar.gz`;
+  return `xmd-${arch}-${os}.tar.gz`;
 }
 
 async function get(url) {
@@ -40,7 +40,7 @@ async function get(url) {
 async function download(context, output) {
   const release = context.extension.packageJSON.version;
   const dir = path.join(context.globalStorageUri.fsPath, "server", release);
-  const exe = path.join(dir, process.platform === "win32" ? "wtf.exe" : "wtf");
+  const exe = path.join(dir, process.platform === "win32" ? "xmd.exe" : "xmd");
   try {
     await access(exe, constants.X_OK);
     return exe;
@@ -50,7 +50,7 @@ async function download(context, output) {
   const base = `https://github.com/${REPO}/releases/download/v${release}`;
   await vscode.window.withProgress({
     location: vscode.ProgressLocation.Notification,
-    title: `Downloading the WTF language server ${release}`,
+    title: `Downloading the XMD language server ${release}`,
   }, async () => {
     output.appendLine(`downloading ${base}/${name}`);
     const [archive, checksums] = await Promise.all([
@@ -80,34 +80,34 @@ async function download(context, output) {
   return exe;
 }
 
-// Where the language server comes from, in order: the wtf.serverPath setting,
-// `wtf` on PATH, a server this extension downloaded before, a fresh download
+// Where the language server comes from, in order: the xmd.serverPath setting,
+// `xmd` on PATH, a server this extension downloaded before, a fresh download
 // (asked once; the answer is remembered).
 async function resolve(context, output, folder) {
-  const config = vscode.workspace.getConfiguration("wtf", folder?.uri);
+  const config = vscode.workspace.getConfiguration("xmd", folder?.uri);
   const configured = config.get("serverPath", "");
   if (configured) {
     await access(configured, constants.X_OK);
     if (!(await version(configured))) {
-      throw new Error(`${configured} is not the WTF notes executable. On macOS, /usr/bin/wtf is an unrelated command; set wtf.serverPath to the installed one.`);
+      throw new Error(`${configured} is not the XMD notes executable. On macOS, /usr/bin/xmd is an unrelated command; set xmd.serverPath to the installed one.`);
     }
     return configured;
   }
   try {
-    if (await version("wtf")) return "wtf";
-    output.appendLine("wtf on PATH is not the WTF notes executable (on macOS, /usr/bin/wtf is an unrelated command)");
+    if (await version("xmd")) return "xmd";
+    output.appendLine("xmd on PATH is not the XMD notes executable (on macOS, /usr/bin/xmd is an unrelated command)");
   } catch {}
 
   if (!config.get("autoDownload", true)) {
-    throw new Error(`wtf is not on PATH. Install it with \`${INSTALL_HINT}\`, or set wtf.serverPath.`);
+    throw new Error(`xmd is not on PATH. Install it with \`${INSTALL_HINT}\`, or set xmd.serverPath.`);
   }
   if (!context.globalState.get(CONSENT_KEY)) {
     const choice = await vscode.window.showInformationMessage(
-      "WTF needs its language server (about 8 MB). Download it from the GitHub release?",
+      "XMD needs its language server (about 8 MB). Download it from the GitHub release?",
       "Download", "Use PATH instead",
     );
     if (choice !== "Download") {
-      throw new Error(`wtf is not on PATH. Install it with \`${INSTALL_HINT}\`, or set wtf.serverPath. Set wtf.autoDownload to false to stop being asked.`);
+      throw new Error(`xmd is not on PATH. Install it with \`${INSTALL_HINT}\`, or set xmd.serverPath. Set xmd.autoDownload to false to stop being asked.`);
     }
     await context.globalState.update(CONSENT_KEY, true);
   }
@@ -115,7 +115,7 @@ async function resolve(context, output, folder) {
 }
 
 async function activate(context) {
-  const output = vscode.window.createOutputChannel("WTF", { log: true });
+  const output = vscode.window.createOutputChannel("XMD", { log: true });
   context.subscriptions.push(output);
 
   async function start() {
@@ -127,14 +127,14 @@ async function activate(context) {
 
     const folder = vscode.workspace.workspaceFolders?.[0];
     const binary = await resolve(context, output, folder);
-    const document = vscode.workspace.textDocuments.find(d => d.languageId === "wtf" && d.uri.scheme === "file");
+    const document = vscode.workspace.textDocuments.find(d => d.languageId === "xmd" && d.uri.scheme === "file");
     const cwd = folder?.uri.fsPath || (document && path.dirname(document.uri.fsPath));
-    client = new LanguageClient("wtf", "WTF", {
+    client = new LanguageClient("xmd", "XMD", {
       command: binary,
       args: ["lsp"],
       options: { cwd },
     }, {
-      documentSelector: [{ language: "wtf", scheme: "file" }],
+      documentSelector: [{ language: "xmd", scheme: "file" }],
       outputChannel: output,
       markdown: { isTrusted: false },
     });
@@ -145,17 +145,17 @@ async function activate(context) {
     pending = pending.then(start).catch(error => {
       output.appendLine(String(error));
       // Do not wait for a notification to be dismissed before finishing activation.
-      void vscode.window.showErrorMessage(`WTF: ${error.message}`, "Open Settings").then(choice => {
-        if (choice) void vscode.commands.executeCommand("workbench.action.openSettings", "wtf.serverPath");
+      void vscode.window.showErrorMessage(`XMD: ${error.message}`, "Open Settings").then(choice => {
+        if (choice) void vscode.commands.executeCommand("workbench.action.openSettings", "xmd.serverPath");
       });
     });
     return pending;
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("wtf.restartServer", restart),
+    vscode.commands.registerCommand("xmd.restartServer", restart),
     vscode.workspace.onDidChangeConfiguration(event => {
-      if (event.affectsConfiguration("wtf")) void restart();
+      if (event.affectsConfiguration("xmd")) void restart();
     }),
     // The server reads workspace roots at initialize time.
     vscode.workspace.onDidChangeWorkspaceFolders(() => { void restart(); }),

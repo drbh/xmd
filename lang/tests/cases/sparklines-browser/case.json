@@ -6,7 +6,7 @@
         {
           "method": "analyze",
           "params": {
-            "uri": "file:///workspace/charts.wtf"
+            "uri": "file:///workspace/charts.x.md"
           }
         }
       ]

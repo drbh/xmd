@@ -1,12 +1,12 @@
 ### 0 lsp
--- open base.wtf
--- await textDocument/publishDiagnostics base.wtf
+-- open base.x.md
+-- await textDocument/publishDiagnostics base.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/base.wtf",
+  "uri": "file://<root>/base.x.md",
   "version": 1
 }
--- change base.wtf (version 2)
+-- change base.x.md (version 2)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -18,13 +18,13 @@
 # Checklist :checklist
 - [x] Done :done
 - [ ] Do @timer(
--- request textDocument/completion base.wtf 10:16
+-- request textDocument/completion base.x.md 10:16
 [
   {
     "detail": "Countdown · ◷ 25:00 remaining · ○ idle",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[focus](<file://<root>/base.wtf#L5>)"
+      "value": "Defined in <root>/base.x.md\n\n[focus](<file://<root>/base.x.md#L5>)"
     },
     "kind": 6,
     "label": "focus",
@@ -47,7 +47,7 @@
     "detail": "Stopwatch · ◴ 00:00 elapsed · ○ idle",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[work](<file://<root>/base.wtf#L6>)"
+      "value": "Defined in <root>/base.x.md\n\n[work](<file://<root>/base.x.md#L6>)"
     },
     "kind": 6,
     "label": "work",
@@ -67,7 +67,7 @@
     }
   }
 ]
--- change base.wtf (version 3)
+-- change base.x.md (version 3)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -79,13 +79,13 @@
 # Checklist :checklist
 - [x] Done :done
 - [ ] Do @due(
--- request textDocument/completion base.wtf 10:14
+-- request textDocument/completion base.x.md 10:14
 [
   {
     "detail": "Date · 2026-09-25",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+      "value": "Defined in <root>/base.x.md\n\n[departure](<file://<root>/base.x.md#L4>)"
     },
     "kind": 6,
     "label": "departure",
@@ -228,7 +228,7 @@
     }
   }
 ]
--- change base.wtf (version 4)
+-- change base.x.md (version 4)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -240,13 +240,13 @@
 # Checklist :checklist
 - [x] Done :done
 [sum] := effort(
--- request textDocument/completion base.wtf 10:16
+-- request textDocument/completion base.x.md 10:16
 [
   {
     "detail": "checklist · 1/1 complete",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[checklist](<file://<root>/base.wtf#L9>)"
+      "value": "Defined in <root>/base.x.md\n\n[checklist](<file://<root>/base.x.md#L9>)"
     },
     "kind": 6,
     "label": "checklist",
@@ -266,7 +266,7 @@
     }
   }
 ]
--- change base.wtf (version 5)
+-- change base.x.md (version 5)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -278,7 +278,7 @@
 # Checklist :checklist
 - [x] Done :done
 [value] := countdown(25m, 0s, 
--- request textDocument/completion base.wtf 10:30
+-- request textDocument/completion base.x.md 10:30
 [
   {
     "detail": "DateTime",
@@ -305,7 +305,7 @@
     }
   }
 ]
--- change base.wtf (version 6)
+-- change base.x.md (version 6)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -317,7 +317,7 @@
 # Checklist :checklist
 - [x] Done :done
 - [ ] Do @every(we
--- request textDocument/completion base.wtf 10:18
+-- request textDocument/completion base.x.md 10:18
 [
   {
     "kind": 12,
@@ -405,7 +405,7 @@
     }
   }
 ]
--- change base.wtf (version 7)
+-- change base.x.md (version 7)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -417,7 +417,7 @@
 # Checklist :checklist
 - [x] Done :done
 🦀 [value] := pr.sta
--- request textDocument/completion base.wtf 10:20
+-- request textDocument/completion base.x.md 10:20
 [
   {
     "detail": "Text · https://github.com/zed-industries/zed/pull/1",
@@ -438,7 +438,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "title",
     "textEdit": {
@@ -456,7 +456,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "state",
     "textEdit": {
@@ -474,7 +474,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "merged",
     "textEdit": {
@@ -492,7 +492,7 @@
     }
   },
   {
-    "detail": "Error · Module github.property: No cached GitHub status; run wtf refresh",
+    "detail": "Error · Module github.property: No cached GitHub status; run xmd refresh",
     "kind": 10,
     "label": "checks_passed",
     "textEdit": {
@@ -510,7 +510,7 @@
     }
   }
 ]
--- change base.wtf (version 8)
+-- change base.x.md (version 8)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -522,7 +522,7 @@
 # Checklist :checklist
 - [x] Done :done
 Use [work.
--- request textDocument/completion base.wtf 10:10
+-- request textDocument/completion base.x.md 10:10
 [
   {
     "detail": "Duration · 0s",
@@ -597,7 +597,7 @@ Use [work.
     }
   }
 ]
--- change base.wtf (version 9)
+-- change base.x.md (version 9)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -609,13 +609,13 @@ Use [work.
 # Checklist :checklist
 - [x] Done :done
 - [ ] Do @due(dat
--- request textDocument/completion base.wtf 10:17
+-- request textDocument/completion base.x.md 10:17
 [
   {
     "detail": "Date · 2026-09-25",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+      "value": "Defined in <root>/base.x.md\n\n[departure](<file://<root>/base.x.md#L4>)"
     },
     "kind": 6,
     "label": "departure",
@@ -760,8 +760,8 @@ Use [work.
 ]
 
 ### 1 lsp capabilities {}
--- open base.wtf
--- change base.wtf (version 2)
+-- open base.x.md
+-- change base.x.md (version 2)
 [$3,000]:budget
 [$1,410]:spent
 [remaining_cash] := budget - spent
@@ -773,13 +773,13 @@ Use [work.
 # Checklist :checklist
 - [x] Done :done
 - [ ] Do @due(dat
--- request textDocument/completion base.wtf 10:17
+-- request textDocument/completion base.x.md 10:17
 [
   {
     "detail": "Date · 2026-09-25",
     "documentation": {
       "kind": "markdown",
-      "value": "Defined in <root>/base.wtf\n\n[departure](<file://<root>/base.wtf#L4>)"
+      "value": "Defined in <root>/base.x.md\n\n[departure](<file://<root>/base.x.md#L4>)"
     },
     "kind": 6,
     "label": "departure",

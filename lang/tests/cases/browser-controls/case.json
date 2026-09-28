@@ -4,19 +4,19 @@
   "steps": [
     {
       "browser": [
-        { "method": "analyze", "params": { "uri": "file:///workspace/timers.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/timers.x.md" } },
         {
           "method": "execute",
           "params": {
             "command": "${last:/result/lenses/0/command}",
-            "versions": { "file:///workspace/timers.wtf": 1 }
+            "versions": { "file:///workspace/timers.x.md": 1 }
           }
         },
-        { "method": "analyze", "params": { "uri": "file:///workspace/timers.wtf" } },
+        { "method": "analyze", "params": { "uri": "file:///workspace/timers.x.md" } },
         {
           "method": "setDocument",
           "params": {
-            "uri": "file:///workspace/timers.wtf",
+            "uri": "file:///workspace/timers.x.md",
             "version": 2,
             "text": "[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)\n- [ ] Review @timer(focus)\n"
           }
@@ -26,27 +26,27 @@
           "params": {
             "command": {
               "title": "▸ start focus",
-              "command": "wtf.timer",
+              "command": "xmd.timer",
               "arguments": [
                 {
                   "kind": "timer",
-                  "document": "file:///workspace/timers.wtf",
+                  "document": "file:///workspace/timers.x.md",
                   "name": "focus",
                   "action": "start"
                 }
               ]
             },
-            "versions": { "file:///workspace/timers.wtf": 1 }
+            "versions": { "file:///workspace/timers.x.md": 1 }
           }
         },
         {
           "method": "analyze",
-          "params": { "uri": "file:///workspace/timers.wtf" },
+          "params": { "uri": "file:///workspace/timers.x.md" },
           "now": "2026-09-16T14:00:01-04:00"
         },
         {
           "method": "analyze",
-          "params": { "uri": "file:///workspace/timers.wtf" },
+          "params": { "uri": "file:///workspace/timers.x.md" },
           "now": "2026-09-16T14:00:03-04:00"
         }
       ]

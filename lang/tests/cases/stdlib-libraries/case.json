@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "watch.wtf",
+        "watch.x.md",
         "--format",
         "text"
       ]
@@ -12,15 +12,15 @@
     {
       "lsp": [
         {
-          "open": "watch.wtf"
+          "open": "watch.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "watch.wtf"
+          "file": "watch.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "watch.wtf",
+          "file": "watch.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -49,7 +49,7 @@
         },
         {
           "request": "textDocument/hover",
-          "file": "watch.wtf",
+          "file": "watch.x.md",
           "line": 1,
           "character": 9
         }
@@ -57,13 +57,13 @@
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/timer_disabled.wtf\"]\n"
+        ".xmd/modules.json": "[\"../variants/timer_disabled.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "watch.wtf",
+        "watch.x.md",
         "--format",
         "text"
       ]
@@ -71,20 +71,20 @@
     {
       "cli": [
         "query",
-        "watch.wtf",
+        "watch.x.md",
         "diagnostics | select {message, code}",
         "--json"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/timer_failing.wtf\"]\n"
+        ".xmd/modules.json": "[\"../variants/timer_failing.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "watch.wtf",
+        "watch.x.md",
         "--format",
         "text"
       ]
@@ -92,46 +92,46 @@
     {
       "cli": [
         "query",
-        "watch.wtf",
+        "watch.x.md",
         "diagnostics | select {message, code}",
         "--json"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[]\n"
+        ".xmd/modules.json": "[]\n"
       }
     },
     {
       "cli": [
         "render",
-        "counting.wtf",
+        "counting.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/format_blocks.wtf\"]\n"
+        ".xmd/modules.json": "[\"../variants/format_blocks.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "counting.wtf",
+        "counting.x.md",
         "--format",
         "text"
       ]
     },
     {
       "write": {
-        ".wtf/modules.json": "[\"../variants/plan_failing.wtf\"]\n"
+        ".xmd/modules.json": "[\"../variants/plan_failing.x.md\"]\n"
       }
     },
     {
       "cli": [
         "render",
-        "bakery.wtf",
+        "bakery.x.md",
         "--format",
         "text"
       ]
@@ -139,7 +139,7 @@
     {
       "cli": [
         "query",
-        "bakery.wtf",
+        "bakery.x.md",
         "diagnostics | select {message, code}",
         "--json"
       ]

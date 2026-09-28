@@ -88,6 +88,12 @@ export interface View {
   destroy(): void;
 }
 export const defaultUri: string;
+/** The note extension, without its dot. */
+export const EXTENSION: string;
+/** A note's file name from its stem: `noteFile("trip")` is "trip.x.md". */
+export function noteFile(stem: string): string;
+/** A name without a trailing note extension, in any case. */
+export function noteStem(name: string): string;
 export function createWorkspace(options?: WorkspaceOptions): Workspace;
 export function render(source: string, options?: RenderOptions): Promise<string>;
 export function mount(element: HTMLElement, options?: MountOptions): Promise<View>;

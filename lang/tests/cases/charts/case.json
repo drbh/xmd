@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "table.wtf",
+        "table.x.md",
         "--format",
         "text"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "render",
-        "timers.wtf",
+        "timers.x.md",
         "--format",
         "text"
       ]
@@ -19,48 +19,48 @@
     {
       "lsp": [
         {
-          "open": "table.wtf"
+          "open": "table.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "table.wtf"
+          "file": "table.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "line": 1,
           "character": 10
         },
         {
           "request": "textDocument/hover",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "line": 1,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "line": 6,
           "character": 2
         },
         {
-          "open": "timers.wtf"
+          "open": "timers.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "line": 0,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "line": 1,
           "character": 8
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -77,7 +77,7 @@
     {
       "cli": [
         "render",
-        "edges.wtf",
+        "edges.x.md",
         "--format",
         "text"
       ]
@@ -85,23 +85,23 @@
     {
       "lsp": [
         {
-          "open": "edges.wtf"
+          "open": "edges.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "edges.wtf",
+          "file": "edges.x.md",
           "line": 0,
           "character": 8
         },
         {
           "request": "textDocument/hover",
-          "file": "edges.wtf",
+          "file": "edges.x.md",
           "line": 3,
           "character": 9
         },
         {
           "request": "textDocument/hover",
-          "file": "edges.wtf",
+          "file": "edges.x.md",
           "line": 6,
           "character": 11
         }

@@ -1,21 +1,21 @@
 #!/bin/sh
-# Installs the wtf binary (the command line and the language server) from the
+# Installs the xmd binary (the command line and the language server) from the
 # GitHub release for this machine. No Rust toolchain needed.
 #
 #   curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
 #
-#   WTF_VERSION=v0.1.0     pin a release instead of the latest one
-#   WTF_INSTALL_DIR=DIR    install somewhere other than ~/.local/bin
-#   WTF_ASSET_URL=URL      fetch the archive and checksums.txt from this
+#   XMD_VERSION=v0.1.0     pin a release instead of the latest one
+#   XMD_INSTALL_DIR=DIR    install somewhere other than ~/.local/bin
+#   XMD_ASSET_URL=URL      fetch the archive and checksums.txt from this
 #                          directory URL instead of GitHub (for testing;
 #                          file:// works too)
 set -eu
 
 repo="drbh/jot"
-install_dir="${WTF_INSTALL_DIR:-$HOME/.local/bin}"
+install_dir="${XMD_INSTALL_DIR:-$HOME/.local/bin}"
 
 fail() {
-  echo "wtf: $*" >&2
+  echo "xmd: $*" >&2
   exit 1
 }
 
@@ -25,20 +25,20 @@ case "$os" in
   Darwin) os_target="apple-darwin" ;;
   Linux) os_target="unknown-linux-gnu" ;;
   MINGW* | MSYS* | CYGWIN*) fail "Windows is not supported; use WSL" ;;
-  *) fail "no prebuilt binary for $os; build one with: cargo install --git https://github.com/$repo wtf" ;;
+  *) fail "no prebuilt binary for $os; build one with: cargo install --git https://github.com/$repo xmd" ;;
 esac
 case "$arch" in
   x86_64 | amd64) arch_target="x86_64" ;;
   arm64 | aarch64) arch_target="aarch64" ;;
-  *) fail "no prebuilt binary for $os $arch; build one with: cargo install --git https://github.com/$repo wtf" ;;
+  *) fail "no prebuilt binary for $os $arch; build one with: cargo install --git https://github.com/$repo xmd" ;;
 esac
 target="$arch_target-$os_target"
-asset="wtf-$target.tar.gz"
+asset="xmd-$target.tar.gz"
 
-if [ -n "${WTF_ASSET_URL:-}" ]; then
-  base="${WTF_ASSET_URL%/}"
-elif [ -n "${WTF_VERSION:-}" ]; then
-  base="https://github.com/$repo/releases/download/$WTF_VERSION"
+if [ -n "${XMD_ASSET_URL:-}" ]; then
+  base="${XMD_ASSET_URL%/}"
+elif [ -n "${XMD_VERSION:-}" ]; then
+  base="https://github.com/$repo/releases/download/$XMD_VERSION"
 else
   base="https://github.com/$repo/releases/latest/download"
 fi
@@ -78,13 +78,13 @@ expected=$(grep "  $asset\$" "$tmp/checksums.txt" | head -n1 | cut -d' ' -f1)
 actual=$(sha256 "$tmp/$asset")
 [ "$actual" = "$expected" ] || fail "checksum mismatch for $asset: expected $expected, got $actual"
 
-tar -xzf "$tmp/$asset" -C "$tmp" wtf
+tar -xzf "$tmp/$asset" -C "$tmp" xmd
 mkdir -p "$install_dir"
 # Replace by rename so a running language server keeps its old executable.
-chmod 755 "$tmp/wtf"
-mv -f "$tmp/wtf" "$install_dir/wtf"
+chmod 755 "$tmp/xmd"
+mv -f "$tmp/xmd" "$install_dir/xmd"
 
-echo "installed $("$install_dir/wtf" --version) to $install_dir/wtf"
+echo "installed $("$install_dir/xmd" --version) to $install_dir/xmd"
 case ":$PATH:" in
   *":$install_dir:"*) ;;
   *)

@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "import(\"agenda\").between(entries, today(), today()) | select title",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "import(\"agenda\").between(entries, today(), today()) | count",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "import(\"agenda\").between(entries, today(), today() + 6d) | select title",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "entries | select {kind, title}",
         "--json"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "import(\"agenda\").between(entries, today(), today())"
       ]
     }

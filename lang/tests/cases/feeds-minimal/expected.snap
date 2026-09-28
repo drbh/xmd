@@ -1,11 +1,11 @@
 ### 0 cli refresh
-$ wtf refresh --root <root>
+$ xmd refresh --root <root>
 exit 0
 --- stdout
 Resource cache updated (1 resources)
 
-### 1 read .wtf/cache.json
--- .wtf/cache.json
+### 1 read .xmd/cache.json
+-- .xmd/cache.json
 {
   "https://example.com/minimal/feed.xml": {
     "title": "Bare Feed",

@@ -1,7 +1,7 @@
 <script>
   import { onMount, tick, untrack } from "svelte";
-  import { mountEditor } from "@wtf/web/contenteditable";
-  import { renderHover } from "@wtf/web";
+  import { mountEditor } from "@xmd/web/contenteditable";
+  import { renderHover } from "@xmd/web";
   import { lineOf, rangeOf } from "./editing.js";
   import Icon from "./Icon.svelte";
   let { workspace, uri, text, readOnly = false, frame = "page", live = null, onSnapshot, onCaret, onError, controller = $bindable() } = $props();

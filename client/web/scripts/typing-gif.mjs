@@ -25,9 +25,9 @@ let camera;
 try {
   const page = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 880, height: 1000 } });
   await page.goto(`${site.base}/docs/?test`);
-  await page.waitForFunction(() => window.wtfDocs?.ready, null, { timeout: 45_000 });
+  await page.waitForFunction(() => window.xmdDocs?.ready, null, { timeout: 45_000 });
   await page.locator(".template", { hasText: "Blank" }).click();
-  await page.waitForFunction(() => window.wtfDocs.controller);
+  await page.waitForFunction(() => window.xmdDocs.controller);
   // The app's own theme toggle, before the chrome that holds it is hidden.
   if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== theme) {
     await page.locator(".theme-toggle").click();
@@ -37,8 +37,8 @@ try {
   // the page fill the frame: no menus, toolbar or console chip.
   await page.addStyleTag({ content: "header.chrome, .toolbar, .chip, .console-chip, .status { display: none !important; } .canvas { padding-top: 0 !important; }" });
   // The note is already written; the first thing the viewer sees is it changing.
-  await page.evaluate(text => window.wtfDocs.controller.setSource(text), opening);
-  await page.evaluate(() => window.wtfDocs.controller.select(0));
+  await page.evaluate(text => window.xmdDocs.controller.setSource(text), opening);
+  await page.evaluate(() => window.xmdDocs.controller.select(0));
   await page.waitForTimeout(400);
   const box = await page.locator(".view").boundingBox();
   // A fixed frame: the page scrolls beneath it so the caret's line stays in
@@ -58,8 +58,8 @@ try {
     const room = pane.clientHeight - 40;
     if (bottom > room) pane.scrollTop += bottom - room;
   });
-  const caret = offset => page.evaluate(offset => window.wtfDocs.controller.select(offset), offset);
-  const source = () => page.evaluate(() => window.wtfDocs.controller.getSource());
+  const caret = offset => page.evaluate(offset => window.xmdDocs.controller.select(offset), offset);
+  const source = () => page.evaluate(() => window.xmdDocs.controller.getSource());
 
   camera = await record(page, clip, fps);
   await page.waitForTimeout(600);
@@ -71,7 +71,7 @@ try {
           // the editor's task-list continuation, and the story types every
           // bullet itself.
           await page.evaluate(async () => {
-            const c = window.wtfDocs.controller;
+            const c = window.xmdDocs.controller;
             const at = c.selection()?.focus ?? c.getSource().length;
             await c.replaceRange(at, at, "\n");
           });
@@ -91,7 +91,7 @@ try {
       // Select the old text, hold so the selection reads, then type over it.
       const at = (await source()).indexOf(step.replace);
       if (at === -1) throw new Error(`"${step.replace}" is not in the note`);
-      await page.evaluate(([a, b]) => window.wtfDocs.controller.select(a, b), [at, at + step.replace.length]);
+      await page.evaluate(([a, b]) => window.xmdDocs.controller.select(a, b), [at, at + step.replace.length]);
       await follow();
       await page.waitForTimeout(700);
       for (const ch of step.with) {

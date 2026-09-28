@@ -1,3 +1,0 @@
-[alias] := import("./shared.wtf").focus
-Remaining [alias.remaining].
-- [ ] Work @timer(alias)

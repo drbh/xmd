@@ -1,5 +1,5 @@
-### 0 cli render charts.wtf --format text
-$ wtf render charts.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render charts.x.md --format text
+$ xmd render charts.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 trend := sparkline([12, 18, 9, 24]) = ▂▅▁█
@@ -14,8 +14,8 @@ duration := sparkline([1h, 3h, 2h]) = ▁█▅
 [trend] ▂▅▁█ [sparkline([3, 2, 1])] █▅▁
 [debug({label: "bracket ] and \"quote\"", values: [1, 2]})] {"label":"bracket ] and \"quote\"","values":[1,2]} then [sparkline([2, 1])] █▁
 
-### 1 cli query errors.wtf diagnostics | select {line, message} --json
-$ wtf query errors.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query errors.x.md diagnostics | select {line, message} --json
+$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -54,8 +54,8 @@ exit 0
 ]
 
 ### 2 lsp
--- open charts.wtf
--- request textDocument/inlayHint charts.wtf {"end":{"character":0,"line":12},"start":{"character":0,"line":0}}
+-- open charts.x.md
+-- request textDocument/inlayHint charts.x.md {"end":{"character":0,"line":12},"start":{"character":0,"line":0}}
 [
   {
     "label": "= ▂▅▁█",
@@ -66,7 +66,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.wtf#L1>) · <root>/charts.wtf:1"
+      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.x.md#L1>) · <root>/charts.x.md:1"
     }
   },
   {
@@ -78,7 +78,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**fixed · Text**\n\n▁▁▅██\n\n```text\nsparkline([-10, 0, 50, 100, 120], 0, 100)\n= ▁▁▅██\n```\n\nDefinition: [fixed](<file://<root>/charts.wtf#L2>) · <root>/charts.wtf:2"
+      "value": "**fixed · Text**\n\n▁▁▅██\n\n```text\nsparkline([-10, 0, 50, 100, 120], 0, 100)\n= ▁▁▅██\n```\n\nDefinition: [fixed](<file://<root>/charts.x.md#L2>) · <root>/charts.x.md:2"
     }
   },
   {
@@ -90,7 +90,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**rain · Text**\n\n▂·▄█\n\n```text\nsparkline([20%, null, 40%, 100%], 0%, 100%)\n= ▂·▄█\n```\n\nDefinition: [rain](<file://<root>/charts.wtf#L3>) · <root>/charts.wtf:3"
+      "value": "**rain · Text**\n\n▂·▄█\n\n```text\nsparkline([20%, null, 40%, 100%], 0%, 100%)\n= ▂·▄█\n```\n\nDefinition: [rain](<file://<root>/charts.x.md#L3>) · <root>/charts.x.md:3"
     }
   },
   {
@@ -102,7 +102,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**flat · Text**\n\n▅▅▅\n\n```text\nsparkline([5, 5, 5])\n= ▅▅▅\n```\n\nDefinition: [flat](<file://<root>/charts.wtf#L4>) · <root>/charts.wtf:4"
+      "value": "**flat · Text**\n\n▅▅▅\n\n```text\nsparkline([5, 5, 5])\n= ▅▅▅\n```\n\nDefinition: [flat](<file://<root>/charts.x.md#L4>) · <root>/charts.x.md:4"
     }
   },
   {
@@ -114,7 +114,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**one · Text**\n\n▅\n\n```text\nsparkline([5])\n= ▅\n```\n\nDefinition: [one](<file://<root>/charts.wtf#L5>) · <root>/charts.wtf:5"
+      "value": "**one · Text**\n\n▅\n\n```text\nsparkline([5])\n= ▅\n```\n\nDefinition: [one](<file://<root>/charts.x.md#L5>) · <root>/charts.x.md:5"
     }
   },
   {
@@ -126,7 +126,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**empty · Text**\n\n\n\n```text\nsparkline([])\n= \n```\n\nDefinition: [empty](<file://<root>/charts.wtf#L6>) · <root>/charts.wtf:6"
+      "value": "**empty · Text**\n\n\n\n```text\nsparkline([])\n= \n```\n\nDefinition: [empty](<file://<root>/charts.x.md#L6>) · <root>/charts.x.md:6"
     }
   },
   {
@@ -138,7 +138,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**gaps · Text**\n\n··\n\n```text\nsparkline([null, null])\n= ··\n```\n\nDefinition: [gaps](<file://<root>/charts.wtf#L7>) · <root>/charts.wtf:7"
+      "value": "**gaps · Text**\n\n··\n\n```text\nsparkline([null, null])\n= ··\n```\n\nDefinition: [gaps](<file://<root>/charts.x.md#L7>) · <root>/charts.x.md:7"
     }
   },
   {
@@ -150,7 +150,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**money · Text**\n\n▁█▅\n\n```text\nsparkline([$10, $30, $20])\n= ▁█▅\n```\n\nDefinition: [money](<file://<root>/charts.wtf#L8>) · <root>/charts.wtf:8"
+      "value": "**money · Text**\n\n▁█▅\n\n```text\nsparkline([$10, $30, $20])\n= ▁█▅\n```\n\nDefinition: [money](<file://<root>/charts.x.md#L8>) · <root>/charts.x.md:8"
     }
   },
   {
@@ -162,7 +162,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**duration · Text**\n\n▁█▅\n\n```text\nsparkline([1h, 3h, 2h])\n= ▁█▅\n```\n\nDefinition: [duration](<file://<root>/charts.wtf#L9>) · <root>/charts.wtf:9"
+      "value": "**duration · Text**\n\n▁█▅\n\n```text\nsparkline([1h, 3h, 2h])\n= ▁█▅\n```\n\nDefinition: [duration](<file://<root>/charts.x.md#L9>) · <root>/charts.x.md:9"
     }
   },
   {
@@ -174,7 +174,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.wtf#L1>) · <root>/charts.wtf:1"
+      "value": "**trend · Text**\n\n▂▅▁█\n\n```text\nsparkline([12, 18, 9, 24])\n= ▂▅▁█\n```\n\nDefinition: [trend](<file://<root>/charts.x.md#L1>) · <root>/charts.x.md:1"
     }
   },
   {
@@ -214,7 +214,7 @@ exit 0
     }
   }
 ]
--- request textDocument/signatureHelp charts.wtf 1:47
+-- request textDocument/signatureHelp charts.x.md 1:47
 {
   "activeParameter": 2,
   "activeSignature": 0,

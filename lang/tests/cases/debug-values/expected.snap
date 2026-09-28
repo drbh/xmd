@@ -1,5 +1,5 @@
-### 0 cli query debug.wtf values | select {name, display, errors} --json
-$ wtf query debug.wtf values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query debug.x.md values | select {name, display, errors} --json
+$ xmd query debug.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -39,7 +39,7 @@ exit 0
     "name": "function_json"
   },
   {
-    "display": "{\"path\":\"<root>/other.wtf\",\"type\":\"namespace\"}",
+    "display": "{\"path\":\"<root>/other.x.md\",\"type\":\"namespace\"}",
     "errors": [],
     "name": "namespace_json"
   },
@@ -55,8 +55,8 @@ exit 0
   }
 ]
 
-### 1 cli query errors.wtf diagnostics | select {line, message} --json
-$ wtf query errors.wtf diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query errors.x.md diagnostics | select {line, message} --json
+$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -75,14 +75,14 @@ exit 0
 ]
 
 ### 2 lsp
--- open debug.wtf
--- await textDocument/publishDiagnostics debug.wtf
+-- open debug.x.md
+-- await textDocument/publishDiagnostics debug.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/debug.wtf",
+  "uri": "file://<root>/debug.x.md",
   "version": 1
 }
--- request textDocument/inlayHint debug.wtf {"end":{"character":0,"line":3},"start":{"character":0,"line":1}}
+-- request textDocument/inlayHint debug.x.md {"end":{"character":0,"line":3},"start":{"character":0,"line":1}}
 [
   {
     "label": "= {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}",
@@ -93,7 +93,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**forecast_json · Text**\n\n{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n\n```text\ndebug(weather)\n= debug(77°F / 57°F · seasonal outlook (estimate) · 40% rain)\n= {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n```\n\nInputs: [weather](<file://<root>/debug.wtf#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [forecast_json](<file://<root>/debug.wtf#L2>) · <root>/debug.wtf:2"
+      "value": "**forecast_json · Text**\n\n{\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n\n```text\ndebug(weather)\n= debug(77°F / 57°F · seasonal outlook (estimate) · 40% rain)\n= {\"high\":77,\"low\":57,\"rain\":{\"type\":\"ratio\",\"value\":0.4},\"summary\":\"seasonal outlook (estimate)\",\"unit\":\"F\"}\n```\n\nInputs: [weather](<file://<root>/debug.x.md#L1>)\n\nLookups:\n- forecast oaxaca 2026-11-20 · 2h ago · open-meteo.com (seasonal ensemble)\n\nDefinition: [forecast_json](<file://<root>/debug.x.md#L2>) · <root>/debug.x.md:2"
     }
   },
   {
@@ -109,7 +109,7 @@ exit 0
     }
   }
 ]
--- request textDocument/signatureHelp debug.wtf 1:28
+-- request textDocument/signatureHelp debug.x.md 1:28
 {
   "activeParameter": 0,
   "activeSignature": 0,

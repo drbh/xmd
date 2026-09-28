@@ -1374,7 +1374,10 @@ fn raw_link_end(line: &str, start: usize) -> Option<usize> {
     // A browser has no home directory, but can still recognize and highlight ~/.
     if !candidate.starts_with("~/")
         && resource
-            .url(std::path::Path::new("/workspace/note.wtf"))
+            .url(std::path::Path::new(&format!(
+                "/workspace/{}",
+                common::note_file("note")
+            )))
             .is_err()
     {
         return None;

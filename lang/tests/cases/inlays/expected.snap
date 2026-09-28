@@ -1,5 +1,5 @@
-### 0 cli render n.wtf --format text
-$ wtf render n.wtf --format text --root <root> --now 2026-09-16T12:00:00-04:00
+### 0 cli render n.x.md --format text
+$ xmd render n.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 # 🦀 Trip 12:00 ░░░░░░░░ 0/1 complete
@@ -7,14 +7,14 @@ exit 0
 clock := now() = 2026-09-16 12:00:00 -04:00
 
 ### 1 lsp
--- open n.wtf
--- await textDocument/publishDiagnostics n.wtf
+-- open n.x.md
+-- await textDocument/publishDiagnostics n.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/n.wtf",
+  "uri": "file://<root>/n.x.md",
   "version": 1
 }
--- request textDocument/inlayHint n.wtf {"end":{"character":0,"line":100},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint n.x.md {"end":{"character":0,"line":100},"start":{"character":0,"line":0}}
 [
   {
     "label": "12:00",
@@ -61,11 +61,11 @@ clock := now() = 2026-09-16 12:00:00 -04:00
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**clock · DateTime**\n\n2026-09-16 12:00:00 -04:00\n\n```text\nnow()\n= 2026-09-16 12:00:00 -04:00\n```\n\nDefinition: [clock](<file://<root>/n.wtf#L3>) · <root>/n.wtf:3"
+      "value": "**clock · DateTime**\n\n2026-09-16 12:00:00 -04:00\n\n```text\nnow()\n= 2026-09-16 12:00:00 -04:00\n```\n\nDefinition: [clock](<file://<root>/n.x.md#L3>) · <root>/n.x.md:3"
     }
   }
 ]
--- request textDocument/inlayHint n.wtf {"end":{"character":24,"line":1},"start":{"character":9,"line":0}}
+-- request textDocument/inlayHint n.x.md {"end":{"character":24,"line":1},"start":{"character":9,"line":0}}
 [
   {
     "label": "12:00",
@@ -92,6 +92,6 @@ clock := now() = 2026-09-16 12:00:00 -04:00
     }
   }
 ]
--- request textDocument/inlayHint missing.wtf {"end":{"character":0,"line":100},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint missing.x.md {"end":{"character":0,"line":100},"start":{"character":0,"line":0}}
 null
 

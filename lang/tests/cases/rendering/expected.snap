@@ -1,5 +1,5 @@
-### 0 cli render lf.wtf --format text
-$ wtf render lf.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli render lf.x.md --format text
+$ xmd render lf.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [$10]:budget
@@ -8,8 +8,8 @@ exit 0
 ) = $20
 🦀 Total [total] $20, extra [total + $1] $21.
 
-### 1 cli render lf_trailing.wtf --format text
-$ wtf render lf_trailing.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli render lf_trailing.x.md --format text
+$ xmd render lf_trailing.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [$10]:budget
@@ -18,8 +18,8 @@ exit 0
 ) = $20
 🦀 Total [total] $20, extra [total + $1] $21.
 
-### 2 cli render crlf.wtf --format text
-$ wtf render crlf.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 2 cli render crlf.x.md --format text
+$ xmd render crlf.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [$10]:budget␍
@@ -28,8 +28,8 @@ exit 0
 ) = $20␍
 🦀 Total [total] $20, extra [total + $1] $21.
 
-### 3 cli render crlf_trailing.wtf --format text
-$ wtf render crlf_trailing.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 3 cli render crlf_trailing.x.md --format text
+$ xmd render crlf_trailing.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [$10]:budget␍
@@ -38,12 +38,12 @@ exit 0
 ) = $20␍
 🦀 Total [total] $20, extra [total + $1] $21.␍
 
-### 4 cli render empty.wtf --format text
-$ wtf render empty.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 4 cli render empty.x.md --format text
+$ xmd render empty.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 
-### 5 cli render escape.wtf --format text
-$ wtf render escape.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 5 cli render escape.x.md --format text
+$ xmd render escape.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 abc 🦀
@@ -52,51 +52,51 @@ abc 🦀
 [link](https://example.com/?a=1&b=2)
 oops := missing + 1
 --- stderr
-<root>/escape.wtf:5:9: error: Unknown name 'missing'
-wtf: 1 error(s) while rendering
+<root>/escape.x.md:5:9: error: Unknown name 'missing'
+xmd: 1 error(s) while rendering
 
-### 6 cli render escape.wtf --format html
-$ wtf render escape.wtf --format html --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli render escape.x.md --format html
+$ xmd render escape.x.md --format html --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stdout
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>escape.wtf</title><style>…</style></head><body><pre class="wtf"><code><span class="line " data-line="0">abc 🦀
-</span><span class="line " data-line="1">&lt;script&gt;bad()&lt;<a class="t-wtfLink" title="Open file:///script" href="file:///script">/script</a>&gt;
-</span><span class="line " data-line="2"><span class="t-wtfPunctuation" title="">[</span><span class="t-wtfLink" title="">docs</span><span class="t-wtfPunctuation" title="">](</span><span class="t-wtfLink" title="">javascript:bad(</span><span class="t-wtfPunctuation" title="">)</span>)
-</span><span class="line " data-line="3"><a class="t-wtfPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">[</a><a class="t-wtfLink" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">link</a><a class="t-wtfPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">](</a><a class="t-wtfLink" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">https://example.com/?a=1&amp;b=2</a><a class="t-wtfPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">)</a>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>escape.x.md</title><style>…</style></head><body><pre class="xmd"><code><span class="line " data-line="0">abc 🦀
+</span><span class="line " data-line="1">&lt;script&gt;bad()&lt;<a class="t-xmdLink" title="Open file:///script" href="file:///script">/script</a>&gt;
+</span><span class="line " data-line="2"><span class="t-xmdPunctuation" title="">[</span><span class="t-xmdLink" title="">docs</span><span class="t-xmdPunctuation" title="">](</span><span class="t-xmdLink" title="">javascript:bad(</span><span class="t-xmdPunctuation" title="">)</span>)
+</span><span class="line " data-line="3"><a class="t-xmdPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">[</a><a class="t-xmdLink" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">link</a><a class="t-xmdPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">](</a><a class="t-xmdLink" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">https://example.com/?a=1&amp;b=2</a><a class="t-xmdPunctuation" title="Open https://example.com/?a=1&amp;b=2" href="https://example.com/?a=1&amp;b=2">)</a>
 </span><span class="line " data-line="4"><span class="t-variable declaration" title="">oops</span><span class="t-operator" title=""> :=</span> <span class="t-variable diagnostic error" title="Unknown name &#39;missing&#39;">missing</span> <span class="t-operator" title="">+</span> <span class="t-number" title="">1</span>
 </span><span class="line " data-line="5"></span></code></pre></body></html>
 --- stderr
-<root>/escape.wtf:5:9: error: Unknown name 'missing'
-wtf: 1 error(s) while rendering
+<root>/escape.x.md:5:9: error: Unknown name 'missing'
+xmd: 1 error(s) while rendering
 
-### 7 cli render empty.wtf --format html
-$ wtf render empty.wtf --format html --root <root> --now 2026-09-18T12:00:00Z
+### 7 cli render empty.x.md --format html
+$ xmd render empty.x.md --format html --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>empty.wtf</title><style>…</style></head><body><pre class="wtf"><code><span class="line " data-line="0"></span></code></pre></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>empty.x.md</title><style>…</style></head><body><pre class="xmd"><code><span class="line " data-line="0"></span></code></pre></body></html>
 
-### 8 cli render missing.wtf --format text
-$ wtf render missing.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli render missing.x.md --format text
+$ xmd render missing.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/missing.wtf: No such file or directory (os error 2)
+xmd: <root>/missing.x.md: No such file or directory (os error 2)
 
-### 9 read lf.wtf crlf.wtf escape.wtf
--- lf.wtf
+### 9 read lf.x.md crlf.x.md escape.x.md
+-- lf.x.md
 [$10]:budget
 [total] := (
   budget * 2
 )
 🦀 Total [total], extra [total + $1].
--- crlf.wtf
+-- crlf.x.md
 [$10]:budget␍
 [total] := (␍
   budget * 2␍
 )␍
 🦀 Total [total], extra [total + $1].
--- escape.wtf
+-- escape.x.md
 abc 🦀
 <script>bad()</script>
 [docs](javascript:bad())

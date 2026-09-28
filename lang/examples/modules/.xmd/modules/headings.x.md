@@ -1,0 +1,4 @@
+# A general inlay module
+
+module := {api: 1, id: "heading-size", kind: "feature"}
+collect := fn(ctx) => map(ctx.document.sections, fn(section) => {line: section.line, label: text(length(section.title)) + " characters", tooltip: "Computed by heading-size.x.md"})

@@ -29,19 +29,19 @@
     "documentSymbolProvider": true,
     "executeCommandProvider": {
       "commands": [
-        "wtf.invoke",
-        "wtf.applyEdits",
-        "wtf.task",
-        "wtf.timer",
-        "wtf.openResource",
-        "wtf.refreshResource",
-        "wtf.refresh",
-        "wtf.today"
+        "xmd.invoke",
+        "xmd.applyEdits",
+        "xmd.task",
+        "xmd.timer",
+        "xmd.openResource",
+        "xmd.refreshResource",
+        "xmd.refresh",
+        "xmd.today"
       ]
     },
     "experimental": {
-      "wtfQuery": {
-        "method": "wtf/query",
+      "xmdQuery": {
+        "method": "xmd/query",
         "schemaVersion": 1
       }
     },
@@ -70,28 +70,28 @@
           "function",
           "property",
           "decorator",
-          "wtfMoney",
-          "wtfDate",
-          "wtfDuration",
-          "wtfRatio",
-          "wtfBoolean",
-          "wtfPunctuation",
-          "wtfCode",
-          "wtfLink",
-          "wtfCheckbox",
-          "wtfTaskDone",
-          "wtfCheckboxChecked",
-          "wtfTime",
-          "wtfDay",
-          "wtfPlace",
-          "wtfDetailKey",
-          "wtfDepart",
-          "wtfArrive",
-          "wtfTransit",
-          "wtfStay",
-          "wtfMeal",
-          "wtfVisit",
-          "wtfExplore"
+          "xmdMoney",
+          "xmdDate",
+          "xmdDuration",
+          "xmdRatio",
+          "xmdBoolean",
+          "xmdPunctuation",
+          "xmdCode",
+          "xmdLink",
+          "xmdCheckbox",
+          "xmdTaskDone",
+          "xmdCheckboxChecked",
+          "xmdTime",
+          "xmdDay",
+          "xmdPlace",
+          "xmdDetailKey",
+          "xmdDepart",
+          "xmdArrive",
+          "xmdTransit",
+          "xmdStay",
+          "xmdMeal",
+          "xmdVisit",
+          "xmdExplore"
         ]
       }
     },
@@ -108,18 +108,18 @@
     "workspaceSymbolProvider": true
   },
   "serverInfo": {
-    "name": "WTF",
+    "name": "XMD",
     "version": "0.1.0"
   }
 }
--- open plan.wtf
--- await textDocument/publishDiagnostics plan.wtf
+-- open plan.x.md
+-- await textDocument/publishDiagnostics plan.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/plan.wtf",
+  "uri": "file://<root>/plan.x.md",
   "version": 1
 }
--- request textDocument/onTypeFormatting plan.wtf 7:0
+-- request textDocument/onTypeFormatting plan.x.md 7:0
 [
   {
     "newText": "- [ ] ",
@@ -135,7 +135,7 @@
     }
   }
 ]
--- applied to plan.wtf (version 2)
+-- applied to plan.x.md (version 2)
 [$3,000]:budget
 [t] := table
 | item | qty |
@@ -144,7 +144,7 @@
 # Plan :plan
 - [ ] Buy :buy @after(budget > $0)
 - [ ] 
--- request textDocument/onTypeFormatting plan.wtf 4:13
+-- request textDocument/onTypeFormatting plan.x.md 4:13
 [
   {
     "newText": "| item  | qty |",
@@ -186,7 +186,7 @@
     }
   }
 ]
--- applied to plan.wtf (version 3)
+-- applied to plan.x.md (version 3)
 [$3,000]:budget
 [t] := table
 | item  | qty |
@@ -196,8 +196,8 @@
 - [ ] Buy :buy @after(budget > $0)
 - [ ] 
 
-### 1 read plan.wtf
--- plan.wtf
+### 1 read plan.x.md
+-- plan.x.md
 [$3,000]:budget
 [t] := table
 | item | qty |

@@ -3,25 +3,25 @@
     {
       "lsp": [
         {
-          "open": "controls.wtf"
+          "open": "controls.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "controls.wtf"
+          "file": "controls.x.md"
         },
         {
           "request": "textDocument/codeLens",
-          "file": "controls.wtf"
+          "file": "controls.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.openResource",
+            "command": "xmd.openResource",
             "arguments": [
               {
                 "kind": "open_resource",
                 "target": {
-                  "document": "${uri:controls.wtf}",
+                  "document": "${uri:controls.x.md}",
                   "row": 1,
                   "expected": "[./receipt.png]:receipt"
                 },
@@ -36,11 +36,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:controls.wtf}",
+                "document": "${uri:controls.x.md}",
                 "row": 0,
                 "expected": "- [ ] First :first"
               }
@@ -52,36 +52,36 @@
         },
         {
           "change": {
-            "file": "controls.wtf",
+            "file": "controls.x.md",
             "text": "- [x] First :first @completed(2026-09-16)\n[./receipt.png]:receipt\nUse [receipt].\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "controls.wtf"
+          "file": "controls.x.md"
         },
         {
           "request": "textDocument/codeLens",
-          "file": "controls.wtf"
+          "file": "controls.x.md"
         },
         {
           "change": {
-            "file": "controls.wtf",
+            "file": "controls.x.md",
             "text": "- [ ] Different task\n- [x] First :first @completed(2026-09-16)\n[./receipt.png]:receipt\nUse [receipt].\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "controls.wtf"
+          "file": "controls.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:controls.wtf}",
+                "document": "${uri:controls.x.md}",
                 "row": 0,
                 "expected": "- [x] First :first @completed(2026-09-16)"
               }
@@ -92,22 +92,22 @@
     },
     {
       "read": [
-        ".wtf/cache.json",
-        "controls.wtf"
+        ".xmd/cache.json",
+        "controls.x.md"
       ]
     },
     {
       "lsp": [
         {
-          "open": "edits.wtf"
+          "open": "edits.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "edits.wtf"
+          "file": "edits.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "edits.wtf",
+          "file": "edits.x.md",
           "range": {
             "start": {
               "line": 6,
@@ -126,7 +126,7 @@
         },
         {
           "request": "textDocument/codeAction",
-          "file": "edits.wtf",
+          "file": "edits.x.md",
           "range": {
             "start": {
               "line": 2,
@@ -148,27 +148,27 @@
         },
         {
           "change": {
-            "file": "edits.wtf",
+            "file": "edits.x.md",
             "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [cash].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "edits.wtf"
+          "file": "edits.x.md"
         },
         {
           "change": {
-            "file": "edits.wtf",
+            "file": "edits.x.md",
             "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [csah].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "edits.wtf"
+          "file": "edits.x.md"
         },
         {
           "request": "textDocument/codeAction",
-          "file": "edits.wtf",
+          "file": "edits.x.md",
           "range": {
             "start": {
               "line": 4,
@@ -190,13 +190,13 @@
         },
         {
           "change": {
-            "file": "edits.wtf",
+            "file": "edits.x.md",
             "text": "[$3,000]:budget\n[$1,410]:spent\n[calculation] := budget - spent\n[cash] := calculation\nUse [cash].\n[focus] := countdown(25m, 0s)\n- [ ] Review :review @timer(focus)\nPlain prose.\n"
           }
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "edits.wtf"
+          "file": "edits.x.md"
         }
       ]
     }

@@ -1,46 +1,46 @@
 {
   "steps": [
-    { "cli": ["render", "badcells.wtf", "--format", "text"] },
-    { "cli": ["query", "badcells.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "badcells.x.md", "--format", "text"] },
+    { "cli": ["query", "badcells.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
     {
       "lsp": [
-        { "open": "badcells.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "badcells.wtf" }
+        { "open": "badcells.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "badcells.x.md" }
       ]
     },
-    { "cli": ["query", "malformed-empty.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "malformed-empty.wtf", "total", "--json"] },
-    { "cli": ["query", "malformed-short.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "malformed-short.wtf", "total", "--json"] },
-    { "cli": ["query", "malformed-extra.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "malformed-extra.wtf", "total", "--json"] },
-    { "cli": ["query", "malformed-money.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "malformed-money.wtf", "total", "--json"] },
+    { "cli": ["query", "malformed-empty.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-empty.x.md", "total", "--json"] },
+    { "cli": ["query", "malformed-short.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-short.x.md", "total", "--json"] },
+    { "cli": ["query", "malformed-extra.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-extra.x.md", "total", "--json"] },
+    { "cli": ["query", "malformed-money.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-money.x.md", "total", "--json"] },
     {
       "lsp": [
-        { "open": "malformed-empty.wtf" },
-        { "request": "textDocument/formatting", "file": "malformed-empty.wtf", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
-        { "open": "malformed-short.wtf" },
-        { "request": "textDocument/formatting", "file": "malformed-short.wtf", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
-        { "open": "malformed-extra.wtf" },
-        { "request": "textDocument/formatting", "file": "malformed-extra.wtf", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
-        { "open": "malformed-money.wtf" },
-        { "request": "textDocument/formatting", "file": "malformed-money.wtf", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } }
+        { "open": "malformed-empty.x.md" },
+        { "request": "textDocument/formatting", "file": "malformed-empty.x.md", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
+        { "open": "malformed-short.x.md" },
+        { "request": "textDocument/formatting", "file": "malformed-short.x.md", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
+        { "open": "malformed-extra.x.md" },
+        { "request": "textDocument/formatting", "file": "malformed-extra.x.md", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } },
+        { "open": "malformed-money.x.md" },
+        { "request": "textDocument/formatting", "file": "malformed-money.x.md", "extra": { "options": { "tabSize": 2, "insertSpaces": true } } }
       ]
     },
-    { "cli": ["query", "shape-empty.wtf", "t", "--json"] },
-    { "cli": ["query", "shape-empty.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "shape-dupe.wtf", "t", "--json"] },
-    { "cli": ["query", "shape-dupe.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "shape-keyword.wtf", "t", "--json"] },
-    { "cli": ["query", "shape-keyword.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "shape-separator.wtf", "t", "--json"] },
-    { "cli": ["query", "shape-separator.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "empty.wtf", "sum(t, value)", "--json"] },
-    { "cli": ["query", "empty.wtf", "sum(12, value)", "--json"] },
-    { "cli": ["query", "empty.wtf", "sum(t)", "--json"] },
-    { "cli": ["query", "nested.wtf", "sum(t, sum(t, sum(t, sum(t, value))))", "--json"] },
-    { "cli": ["query", "units.wtf", "[sum(money, value), sum(pct, value), sum(dur, value)]", "--json"] },
-    { "cli": ["query", "units.wtf", "sum(text, value)", "--json"] }
+    { "cli": ["query", "shape-empty.x.md", "t", "--json"] },
+    { "cli": ["query", "shape-empty.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-dupe.x.md", "t", "--json"] },
+    { "cli": ["query", "shape-dupe.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-keyword.x.md", "t", "--json"] },
+    { "cli": ["query", "shape-keyword.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-separator.x.md", "t", "--json"] },
+    { "cli": ["query", "shape-separator.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "empty.x.md", "sum(t, value)", "--json"] },
+    { "cli": ["query", "empty.x.md", "sum(12, value)", "--json"] },
+    { "cli": ["query", "empty.x.md", "sum(t)", "--json"] },
+    { "cli": ["query", "nested.x.md", "sum(t, sum(t, sum(t, sum(t, value))))", "--json"] },
+    { "cli": ["query", "units.x.md", "[sum(money, value), sum(pct, value), sum(dur, value)]", "--json"] },
+    { "cli": ["query", "units.x.md", "sum(text, value)", "--json"] }
   ]
 }

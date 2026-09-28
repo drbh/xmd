@@ -3,27 +3,27 @@
     {
       "lsp": [
         {
-          "open": "note.wtf"
+          "open": "note.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "note.wtf"
+          "file": "note.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": []
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": 0,
                 "expected": "- [ ] Task"
               },
@@ -34,7 +34,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "show_today"
@@ -45,11 +45,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "explode",
-                "document": "${uri:note.wtf}"
+                "document": "${uri:note.x.md}"
               }
             ]
           }
@@ -57,11 +57,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": 0
               }
             ]
@@ -70,11 +70,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": -1,
                 "expected": "- [ ] Task"
               }
@@ -84,11 +84,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": "0",
                 "expected": "- [ ] Task"
               }
@@ -98,7 +98,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
@@ -112,11 +112,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.task",
+            "command": "xmd.task",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "file:///workspace/note.wtf#L1",
+                "document": "file:///workspace/note.x.md#L1",
                 "row": 0,
                 "expected": "- [ ] Task"
               }
@@ -126,11 +126,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "name": "focus",
                 "action": "explode"
               }
@@ -140,11 +140,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.timer",
+            "command": "xmd.timer",
             "arguments": [
               {
                 "kind": "timer",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "name": 12,
                 "action": "start"
               }
@@ -154,12 +154,12 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.openResource",
+            "command": "xmd.openResource",
             "arguments": [
               {
                 "kind": "open_resource",
                 "target": {
-                  "document": "${uri:note.wtf}",
+                  "document": "${uri:note.x.md}",
                   "row": 0,
                   "expected": "- [ ] Task"
                 },
@@ -171,12 +171,12 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.openResource",
+            "command": "xmd.openResource",
             "arguments": [
               {
                 "kind": "refresh_resource",
                 "target": {
-                  "document": "${uri:note.wtf}",
+                  "document": "${uri:note.x.md}",
                   "row": 0,
                   "expected": "- [ ] Task"
                 },
@@ -188,11 +188,11 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.refresh",
+            "command": "xmd.refresh",
             "arguments": [
               {
                 "kind": "refresh",
-                "document": "${uri:note.wtf}"
+                "document": "${uri:note.x.md}"
               },
               "extra"
             ]
@@ -201,20 +201,20 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.today",
+            "command": "xmd.today",
             "arguments": [
-              "${uri:note.wtf}"
+              "${uri:note.x.md}"
             ]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.applyEdits",
+            "command": "xmd.applyEdits",
             "arguments": [
               {
                 "kind": "toggle_task",
-                "document": "${uri:note.wtf}",
+                "document": "${uri:note.x.md}",
                 "row": 0,
                 "expected": "- [ ] Task"
               }
@@ -224,7 +224,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "wtf.applyEdits",
+            "command": "xmd.applyEdits",
             "arguments": [
               {
                 "kind": "edit"
@@ -243,8 +243,8 @@
     },
     {
       "read": [
-        ".wtf/cache.json",
-        "note.wtf"
+        ".xmd/cache.json",
+        "note.x.md"
       ]
     }
   ]

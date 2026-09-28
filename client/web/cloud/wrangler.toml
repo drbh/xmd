@@ -1,10 +1,14 @@
 # Hosted deployment of the docs app: static site plus an accounts API.
 # Everything Cloudflare-specific lives in this folder; the app itself only
 # knows the optional `backend.js` module that build.mjs places beside it.
-name = "wtf-docs"
+name = "xmd-docs"
 main = "worker/index.js"
 compatibility_date = "2026-09-01"
 account_id = "1d9f1ba803a2b9c6118173364bde3155"
+# The app's public hostname, attached as a Custom Domain on every deploy so it
+# follows the Worker instead of living only in the dashboard. Cloudflare Access
+# (ACCESS_AUD below) protects this hostname.
+routes = [{ pattern = "xmd.dholtz.com", custom_domain = true }]
 
 [assets]
 directory = "../dist"
@@ -21,7 +25,7 @@ new_sqlite_classes = ["Room"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "wtf-docs"
+database_name = "xmd-docs"
 database_id = "7138a96c-8e07-42b7-8aae-a887571c67fc"
 migrations_dir = "migrations"
 
@@ -31,4 +35,4 @@ migrations_dir = "migrations"
 # configured. The AUD tag is on the application's page in Zero Trust, and also
 # appears as `kid`/`aud` in the login redirect for the hostname.
 ACCESS_TEAM_DOMAIN = "drbh.cloudflareaccess.com"
-ACCESS_AUD = "8f3623199c0d1ee9ab946c638bb9cb63b9b8dbfcbdd1b69ff352b58afa7834a2"
+ACCESS_AUD = "1d00ebb70805e71a324736b4a4e742fc232b3571301eb2f3cb9517e8a1beeed5"

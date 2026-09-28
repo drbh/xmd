@@ -13,16 +13,20 @@ pub struct Member {
 }
 
 pub fn is_note_path(id: &str) -> bool {
-    id.starts_with('.') || id.contains('/') || id.ends_with(".wtf")
+    id.starts_with('.') || id.contains('/') || common::is_note(id)
 }
 
 /// Normalize lexically so native and virtual files use identical import identities.
 pub fn note_path(from: &Path, id: &str) -> Result<PathBuf, String> {
     if !(id.starts_with("./") || id.starts_with("../") || Path::new(id).is_absolute())
-        || Path::new(id).extension().is_none_or(|s| s != "wtf")
+        || !common::is_note(id)
         || id.contains(['\0', '\\'])
     {
-        return Err("Use an explicit .wtf path, e.g. import(\"./values.wtf\")".into());
+        return Err(format!(
+            "Use an explicit .{} path, e.g. import(\"./{}\")",
+            common::EXTENSION,
+            common::note_file("values")
+        ));
     }
     let joined = from.parent().unwrap_or(Path::new(".")).join(id);
     let mut path = PathBuf::new();

@@ -1,9 +1,10 @@
-//! `wtf sync`: mirror a directory of notes with a folder in the web app.
+//! `xmd sync`: mirror a directory of notes with a folder in the web app.
 //!
 //! The directory keeps a manifest and the last synced copy of every file under
-//! `.wtf-sync/`, so each run is a three-way comparison per file: unchanged on
+//! `.xmd-sync/`, so each run is a three-way comparison per file: unchanged on
 //! one side means the other side wins; changed on both sides is merged line by
-//! line, and a real conflict is written beside the file as `NAME.conflict.wtf`
+//! line, and a real conflict is written beside the file as `NAME.conflict.x.md`
+//! (the note extension comes from `common`)
 //! without touching either version. The web app addresses documents by file
 //! name within a folder, so relative imports mean the same thing on both sides.
 //! Transport is `curl`, like the rest of the command line.
@@ -16,22 +17,22 @@ use std::{
     time::Duration,
 };
 
-const STATE_DIR: &str = ".wtf-sync";
+const STATE_DIR: &str = ".xmd-sync";
 
 #[derive(clap::Args)]
 #[command(
-    after_help = "The key comes from --key, WTF_API_KEY, or the credentials saved by an earlier --key.\nCreate one in the web app under your account menu, API keys.\nExamples: wtf sync ./notes --url https://wtf-docs.example.com --folder Notes\n          wtf sync ./notes --watch"
+    after_help = "The key comes from --key, XMD_API_KEY, or the credentials saved by an earlier --key.\nCreate one in the web app under your account menu, API keys.\nExamples: xmd sync ./notes --url https://xmd-docs.example.com --folder Notes\n          xmd sync ./notes --watch"
 )]
 pub(crate) struct SyncOptions {
-    /// The directory of .wtf files to keep in step with a folder in the web app.
+    /// The directory of notes to keep in step with a folder in the web app.
     pub dir: PathBuf,
-    /// The web app's address (remembered in DIR/.wtf-sync/config.json).
+    /// The web app's address (remembered in DIR/.xmd-sync/config.json).
     #[arg(long)]
     pub url: Option<String>,
     /// The folder in the web app; created if missing (remembered too).
     #[arg(long)]
     pub folder: Option<String>,
-    /// An API key (or WTF_API_KEY); saved for this address in the user's config directory.
+    /// An API key (or XMD_API_KEY); saved for this address in the user's config directory.
     #[arg(long)]
     pub key: Option<String>,
     /// Keep running, syncing whenever either side changes.
@@ -98,7 +99,7 @@ pub(crate) fn run(options: SyncOptions) -> Result<(), String> {
         config.folder = folder.clone();
     }
     if config.url.is_empty() {
-        return Err("Pass --url the first time, e.g. --url https://wtf-docs.example.com".into());
+        return Err("Pass --url the first time, e.g. --url https://xmd-docs.example.com".into());
     }
     if config.folder.is_empty() {
         config.folder = dir
@@ -110,7 +111,7 @@ pub(crate) fn run(options: SyncOptions) -> Result<(), String> {
     let given = options
         .key
         .clone()
-        .or_else(|| std::env::var("WTF_API_KEY").ok().filter(|k| !k.is_empty()));
+        .or_else(|| std::env::var("XMD_API_KEY").ok().filter(|k| !k.is_empty()));
     let key = resolve_key(&config.url, given.as_deref())?;
     let client = Client {
         url: config.url.clone(),
@@ -192,10 +193,7 @@ fn sync_once(
         .filter(|d| !matches!(d.role.as_deref(), Some("viewer")))
         .map(|d| {
             (
-                format!(
-                    "{}.wtf",
-                    d.file.clone().unwrap_or_else(|| file_name_for(&d.name))
-                ),
+                common::note_file(&d.file.clone().unwrap_or_else(|| file_name_for(&d.name))),
                 d,
             )
         })
@@ -206,13 +204,14 @@ fn sync_once(
         .filter(|entry| entry.path().is_file())
         .filter_map(|entry| {
             let name = entry.file_name().to_string_lossy().to_string();
-            (name.ends_with(".wtf") && !name.ends_with(".conflict.wtf") && !name.starts_with('.'))
-                .then(|| {
-                    fs::read_to_string(entry.path())
-                        .ok()
-                        .map(|text| (name, text))
-                })
-                .flatten()
+            (common::note_stem(&name).is_some_and(|stem| !stem.ends_with(".conflict"))
+                && !name.starts_with('.'))
+            .then(|| {
+                fs::read_to_string(entry.path())
+                    .ok()
+                    .map(|text| (name, text))
+            })
+            .flatten()
         })
         .collect();
     let names: BTreeSet<String> = local
@@ -240,11 +239,12 @@ fn sync_once(
             (Some(_), None) => true,
             (None, None) => false,
         };
-        let stem = name.trim_end_matches(".wtf").to_string();
+        let stem = common::note_stem(&name).unwrap_or(&name).to_string();
+        let conflict = conflict_file(&stem);
         // A conflict waits for a person: nothing moves until the marker file is gone.
-        if dir.join(format!("{stem}.conflict.wtf")).exists() {
+        if dir.join(&conflict).exists() {
             report.push(format!(
-                "{stem}: still has {stem}.conflict.wtf; resolve it to continue syncing this file"
+                "{stem}: still has {conflict}; resolve it to continue syncing this file"
             ));
             continue;
         }
@@ -461,7 +461,8 @@ fn finish_merge(
             }
         }
         Err(conflicted) => {
-            let path = dir.join(format!("{stem}.conflict.wtf"));
+            let conflict = conflict_file(stem);
+            let path = dir.join(&conflict);
             fs::write(&path, conflicted)
                 .map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
             // Remember the version we saw so the remote side is not "changed" again until it really changes.
@@ -474,7 +475,7 @@ fn finish_merge(
             );
             fs::write(&base_path, &remote.text).map_err(|e| e.to_string())?;
             report.push(format!(
-                "conflict in {stem}: resolve {stem}.conflict.wtf, copy it over {name}, and delete it"
+                "conflict in {stem}: resolve {conflict}, copy it over {name}, and delete it"
             ));
         }
     }
@@ -500,6 +501,10 @@ fn title_of(text: &str, fallback: &str) -> String {
         })
         .unwrap_or_else(|| fallback.to_string())
 }
+/// Where a conflicted merge is written beside the note: `NAME.conflict.x.md`.
+fn conflict_file(stem: &str) -> String {
+    common::note_file(&format!("{stem}.conflict"))
+}
 fn file_name_for(name: &str) -> String {
     let clean: String = name
         .chars()
@@ -514,8 +519,8 @@ fn file_name_for(name: &str) -> String {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
-    let clean = clean
-        .trim_end_matches(".wtf")
+    let clean = common::note_stem(&clean)
+        .unwrap_or(&clean)
         .trim()
         .chars()
         .take(120)
@@ -554,7 +559,7 @@ fn credentials_path() -> Option<PathBuf> {
     let home = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(home.join("wtf").join("credentials.json"))
+    Some(home.join("xmd").join("credentials.json"))
 }
 fn resolve_key(url: &str, given: Option<&str>) -> Result<String, String> {
     let path = credentials_path();
@@ -578,7 +583,7 @@ fn resolve_key(url: &str, given: Option<&str>) -> Result<String, String> {
     saved
         .get(url)
         .cloned()
-        .ok_or_else(|| "No API key: pass --key once, or set WTF_API_KEY".to_string())
+        .ok_or_else(|| "No API key: pass --key once, or set XMD_API_KEY".to_string())
 }
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Option<T> {
     serde_json::from_str(&fs::read_to_string(path).ok()?).ok()
@@ -734,7 +739,10 @@ mod tests {
     fn titles_and_file_names_follow_the_app() {
         assert_eq!(title_of("# Trip budget :prep\n\ntext", "x"), "Trip budget");
         assert_eq!(title_of("no heading", "fallback"), "fallback");
-        assert_eq!(file_name_for(" a/b\\c  d.wtf "), "a b c d");
+        assert_eq!(
+            file_name_for(&format!(" a/b\\c  {} ", common::note_file("d"))),
+            "a b c d"
+        );
         assert_eq!(file_name_for(""), "Untitled document");
     }
 }

@@ -1,12 +1,12 @@
 {
   "steps": [
-    { "cli": ["query", "bad.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "attributes.wtf", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["render", "attributes.wtf", "--format", "text"] },
+    { "cli": ["query", "bad.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "attributes.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "attributes.x.md", "--format", "text"] },
     {
       "lsp": [
-        { "open": "attributes.wtf" },
-        { "await": "textDocument/publishDiagnostics", "file": "attributes.wtf" }
+        { "open": "attributes.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "attributes.x.md" }
       ]
     }
   ]

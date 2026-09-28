@@ -84,7 +84,7 @@ impl Workspace {
                     !e.file_type().is_some_and(|t| t.is_dir())
                         || !matches!(
                             e.file_name().to_str(),
-                            Some("target" | "node_modules" | ".git" | ".wtf")
+                            Some("target" | "node_modules" | ".git" | ".xmd")
                         )
                 })
                 .build();
@@ -97,7 +97,7 @@ impl Workspace {
                     }
                 };
                 if entry.file_type().is_some_and(|t| t.is_file())
-                    && entry.path().extension().is_some_and(|s| s == "wtf")
+                    && common::is_note(entry.path())
                     && !crate::modules_impl::is_module_path(entry.path())
                 {
                     let text = match std::fs::read_to_string(entry.path()) {
@@ -153,8 +153,8 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub fn include_file(&mut self, path: &Path) -> Result<(), String> {
-        if path.extension().is_none_or(|s| s != "wtf") {
-            return Err("Expected a .wtf note".into());
+        if !common::is_note(path) {
+            return Err(format!("Expected a .{} note", common::EXTENSION));
         }
         if !self.documents.contains_key(path) {
             let text =
@@ -287,7 +287,7 @@ impl Workspace {
     }
     #[cfg(feature = "native")]
     pub fn save_cache(&self) -> Result<(), String> {
-        let dir = self.root().join(".wtf");
+        let dir = self.root().join(".xmd");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let bytes = serde_json::to_vec_pretty(&self.cache).map_err(|e| e.to_string())?;
         // Atomic replacement avoids partially written cache data after a crash.

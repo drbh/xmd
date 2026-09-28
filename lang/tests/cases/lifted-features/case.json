@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "bakery.wtf",
+        "bakery.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "bakery.wtf",
+        "bakery.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "bakery.wtf",
+        "bakery.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "render",
-        "choice.wtf",
+        "choice.x.md",
         "--format",
         "text"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "query",
-        "choice.wtf",
+        "choice.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "choice.wtf",
+        "choice.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -52,7 +52,7 @@
     {
       "cli": [
         "render",
-        "timers.wtf",
+        "timers.x.md",
         "--format",
         "text"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "query",
-        "timers.wtf",
+        "timers.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -68,7 +68,7 @@
     {
       "cli": [
         "query",
-        "timers.wtf",
+        "timers.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -76,7 +76,7 @@
     {
       "cli": [
         "render",
-        "oaxaca.wtf",
+        "oaxaca.x.md",
         "--format",
         "text"
       ]
@@ -84,7 +84,7 @@
     {
       "cli": [
         "query",
-        "oaxaca.wtf",
+        "oaxaca.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -92,7 +92,7 @@
     {
       "cli": [
         "query",
-        "oaxaca.wtf",
+        "oaxaca.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -100,7 +100,7 @@
     {
       "cli": [
         "render",
-        "baddates.wtf",
+        "baddates.x.md",
         "--format",
         "text"
       ]
@@ -108,7 +108,7 @@
     {
       "cli": [
         "query",
-        "baddates.wtf",
+        "baddates.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -116,7 +116,7 @@
     {
       "cli": [
         "query",
-        "baddates.wtf",
+        "baddates.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -124,7 +124,7 @@
     {
       "cli": [
         "render",
-        "yearless.wtf",
+        "yearless.x.md",
         "--format",
         "text"
       ]
@@ -132,7 +132,7 @@
     {
       "cli": [
         "query",
-        "yearless.wtf",
+        "yearless.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -140,7 +140,7 @@
     {
       "cli": [
         "query",
-        "yearless.wtf",
+        "yearless.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -148,7 +148,7 @@
     {
       "cli": [
         "render",
-        "work.wtf",
+        "work.x.md",
         "--format",
         "text"
       ]
@@ -156,7 +156,7 @@
     {
       "cli": [
         "query",
-        "work.wtf",
+        "work.x.md",
         "values | select {name, display, type}",
         "--json"
       ]
@@ -164,7 +164,7 @@
     {
       "cli": [
         "query",
-        "work.wtf",
+        "work.x.md",
         "diagnostics | select {message, code, severity}",
         "--json"
       ]
@@ -172,15 +172,15 @@
     {
       "lsp": [
         {
-          "open": "bakery.wtf"
+          "open": "bakery.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "bakery.wtf"
+          "file": "bakery.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "bakery.wtf",
+          "file": "bakery.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -189,15 +189,15 @@
           }
         },
         {
-          "open": "choice.wtf"
+          "open": "choice.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "choice.wtf"
+          "file": "choice.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "choice.wtf",
+          "file": "choice.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -206,15 +206,15 @@
           }
         },
         {
-          "open": "timers.wtf"
+          "open": "timers.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "timers.wtf"
+          "file": "timers.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "timers.wtf",
+          "file": "timers.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -223,15 +223,15 @@
           }
         },
         {
-          "open": "oaxaca.wtf"
+          "open": "oaxaca.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "oaxaca.wtf"
+          "file": "oaxaca.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "oaxaca.wtf",
+          "file": "oaxaca.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -240,15 +240,15 @@
           }
         },
         {
-          "open": "baddates.wtf"
+          "open": "baddates.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "baddates.wtf"
+          "file": "baddates.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "baddates.wtf",
+          "file": "baddates.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -257,15 +257,15 @@
           }
         },
         {
-          "open": "yearless.wtf"
+          "open": "yearless.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "yearless.wtf"
+          "file": "yearless.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "yearless.wtf",
+          "file": "yearless.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -274,15 +274,15 @@
           }
         },
         {
-          "open": "work.wtf"
+          "open": "work.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "work.wtf"
+          "file": "work.x.md"
         },
         {
           "request": "textDocument/formatting",
-          "file": "work.wtf",
+          "file": "work.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -292,31 +292,31 @@
         },
         {
           "request": "textDocument/hover",
-          "file": "oaxaca.wtf",
+          "file": "oaxaca.x.md",
           "line": 1,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "oaxaca.wtf",
+          "file": "oaxaca.x.md",
           "line": 4,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "oaxaca.wtf",
+          "file": "oaxaca.x.md",
           "line": 9,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "yearless.wtf",
+          "file": "yearless.x.md",
           "line": 1,
           "character": 2
         },
         {
           "request": "textDocument/hover",
-          "file": "baddates.wtf",
+          "file": "baddates.x.md",
           "line": 1,
           "character": 2
         }

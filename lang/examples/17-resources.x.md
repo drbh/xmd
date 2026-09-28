@@ -1,0 +1,17 @@
+# Resources and links
+
+Links, files, places and GitHub items are values with an Open lens.
+
+https://github.com/zed-industries/zed/pull/1:zed_pr
+geo:17.0654,-96.7236:zocalo
+../README.md:readme
+[Zed](https://zed.dev) and https://github.com/drbh/alps also work inline.
+
+- [ ] Review [zed_pr] @estimate(30m)
+- [ ] Read the [readme] before the trip
+- [ ] Meet at [zocalo] @at(2026-11-21T10:00-06:00)
+
+merged := zed_pr.merged
+
+<!-- GitHub links get a status badge once refreshed: xmd refresh, or the
+⟳ github lens. Then zed_pr.merged and .checks_passed work. -->

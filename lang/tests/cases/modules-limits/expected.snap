@@ -1,12 +1,12 @@
 ### 0 lsp
--- open checklist.wtf
--- await textDocument/publishDiagnostics checklist.wtf
+-- open checklist.x.md
+-- await textDocument/publishDiagnostics checklist.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/checklist.wtf",
+  "uri": "file://<root>/checklist.x.md",
   "version": 1
 }
--- request textDocument/inlayHint checklist.wtf {"end":{"character":99,"line":0},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint checklist.x.md {"end":{"character":99,"line":0},"start":{"character":0,"line":0}}
 [
   {
     "label": "░░░░░░░░ 0/500 complete · 500m estimated left",
@@ -22,8 +22,8 @@
   }
 ]
 
-### 1 cli render busy.wtf --format text
-$ wtf render busy.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli render busy.x.md --format text
+$ xmd render busy.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 timer_0 := countdown(25m, 0s, 2026-09-16T13:59:30-04:00) = ◷ ░░░░░░░░ 24:30 remaining · ▸ running
@@ -80,15 +80,15 @@ timer_31 := countdown(25m, 0s, 2026-09-16T13:59:30-04:00) = ◷ ░░░░░�
 18:00 > Stop 18 → 1h until Stop 19
 19:00 > Stop 19
 
-### 2 cli query busy.wtf diagnostics --json
-$ wtf query busy.wtf diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query busy.x.md diagnostics --json
+$ xmd query busy.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
 ### 3 lsp
--- open oversized.wtf
--- await textDocument/publishDiagnostics oversized.wtf
+-- open oversized.x.md
+-- await textDocument/publishDiagnostics oversized.x.md
 {
   "diagnostics": [
     {
@@ -105,17 +105,17 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/oversized.wtf",
+  "uri": "file://<root>/oversized.x.md",
   "version": 1
 }
--- request textDocument/formatting oversized.wtf
+-- request textDocument/formatting oversized.x.md
 error: {
   "code": -32602,
   "message": "Value exceeds the collection or text size limit"
 }
--- request textDocument/hover oversized.wtf 1:0
+-- request textDocument/hover oversized.x.md 1:0
 null
 

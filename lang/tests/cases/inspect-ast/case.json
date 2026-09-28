@@ -4,7 +4,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "ast | where kind == \"document\" | select {kind, name, parent, text}"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "join(map(filter(ast, fn(n) => n.kind == \"line\"), fn(n) => n.text), \"\")"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "map(ast, fn(n) => {kind: n.kind, name: n.name, text: n.text, line: n.source.line, range: n.source.range})"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "map(ast, fn(n) => {id: n.id, kind: n.kind, parent: n.parent, children: n.children})"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "map(filter(ast, fn(n) => n.kind == \"definition\"), fn(n) => {name:n.name, text:n.text})"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "ast | where kind == \"lambda\" | select parameters"
       ]
@@ -52,7 +52,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "ast | where kind == \"name\" && name == \"missing\" | select text"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "ast | where kind == \"checkbox\" | select text"
       ]
@@ -68,7 +68,7 @@
     {
       "cli": [
         "ast",
-        "one.wtf",
+        "one.x.md",
         "-q",
         "ast | count"
       ]
@@ -76,7 +76,7 @@
     {
       "cli": [
         "query",
-        "one.wtf",
+        "one.x.md",
         "ast | count",
         "--json"
       ]
@@ -84,7 +84,7 @@
     {
       "cli": [
         "ast",
-        "tables.wtf",
+        "tables.x.md",
         "-q",
         "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
       ]
@@ -92,7 +92,7 @@
     {
       "cli": [
         "ast",
-        "plans.wtf",
+        "plans.x.md",
         "-q",
         "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
       ]
@@ -100,7 +100,7 @@
     {
       "cli": [
         "ast",
-        "other.wtf",
+        "other.x.md",
         "-q",
         "map(group_by(ast, fn(n) => n.kind), fn(g) => g.key)"
       ]
@@ -108,7 +108,7 @@
     {
       "cli": [
         "ast",
-        "other.wtf",
+        "other.x.md",
         "-q",
         "filter(ast, fn(n) => n.kind == \"parse_error\") | select {text, path: source.path}"
       ]
@@ -116,7 +116,7 @@
     {
       "cli": [
         "ast",
-        "empty.wtf",
+        "empty.x.md",
         "-q",
         "ast | select {kind, text}"
       ]
@@ -124,14 +124,14 @@
     {
       "cli": [
         "ast",
-        "empty.wtf",
+        "empty.x.md",
         "--jsonl"
       ]
     },
     {
       "cli": [
         "ast",
-        "missing.wtf"
+        "missing.x.md"
       ]
     }
   ]

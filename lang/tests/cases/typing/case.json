@@ -3,11 +3,11 @@
     {
       "lsp": [
         {
-          "open": "table.wtf"
+          "open": "table.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "line": 4,
           "character": 19,
           "extra": {
@@ -21,7 +21,7 @@
         },
         {
           "request": "textDocument/formatting",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "extra": {
             "options": {
               "tabSize": 2,
@@ -30,11 +30,11 @@
           }
         },
         {
-          "open": "partial.wtf"
+          "open": "partial.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "partial.wtf",
+          "file": "partial.x.md",
           "line": 4,
           "character": 8,
           "extra": {
@@ -47,11 +47,11 @@
           "apply": true
         },
         {
-          "open": "prose.wtf"
+          "open": "prose.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "prose.wtf",
+          "file": "prose.x.md",
           "line": 0,
           "character": 7,
           "extra": {
@@ -65,7 +65,7 @@
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "prose.wtf",
+          "file": "prose.x.md",
           "line": 1,
           "character": 5,
           "extra": {
@@ -78,11 +78,11 @@
           "apply": true
         },
         {
-          "open": "list.wtf"
+          "open": "list.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "list.wtf",
+          "file": "list.x.md",
           "line": 2,
           "character": 0,
           "extra": {
@@ -95,11 +95,11 @@
           "apply": true
         },
         {
-          "open": "indent.wtf"
+          "open": "indent.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "indent.wtf",
+          "file": "indent.x.md",
           "line": 1,
           "character": 2,
           "extra": {
@@ -112,11 +112,11 @@
           "apply": true
         },
         {
-          "open": "endlist.wtf"
+          "open": "endlist.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "endlist.wtf",
+          "file": "endlist.x.md",
           "line": 2,
           "character": 0,
           "extra": {
@@ -129,11 +129,11 @@
           "apply": true
         },
         {
-          "open": "words.wtf"
+          "open": "words.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "words.wtf",
+          "file": "words.x.md",
           "line": 1,
           "character": 0,
           "extra": {
@@ -146,11 +146,11 @@
           "apply": true
         },
         {
-          "open": "split.wtf"
+          "open": "split.x.md"
         },
         {
           "request": "textDocument/onTypeFormatting",
-          "file": "split.wtf",
+          "file": "split.x.md",
           "line": 1,
           "character": 1,
           "extra": {

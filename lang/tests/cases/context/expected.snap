@@ -1,17 +1,17 @@
-### 0 cli render imports.wtf --format text
-$ wtf render imports.wtf --format text --root <root> --now 2026-09-16T12:00:00-04:00
+### 0 cli render imports.x.md --format text
+$ xmd render imports.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
-[broken] := import("./b.wtf").remote + 1
+[broken] := import("./b.x.md").remote + 1
 [other] := 1 / 0
 [good] := 4 = 4
 --- stderr
-<root>/imports.wtf:1:2: error: Dependency error: Unknown name 'absent'
-<root>/imports.wtf:2:16: error: Division by zero (Number / Number)
-wtf: 2 error(s) while rendering
+<root>/imports.x.md:1:2: error: Dependency error: Unknown name 'absent'
+<root>/imports.x.md:2:16: error: Division by zero (Number / Number)
+xmd: 2 error(s) while rendering
 
-### 1 cli query imports.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query imports.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 1 cli query imports.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query imports.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -29,8 +29,8 @@ exit 0
   }
 ]
 
-### 2 cli query imports.wtf values | select {name, display} --json
-$ wtf query imports.wtf values | select {name, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 2 cli query imports.x.md values | select {name, display} --json
+$ xmd query imports.x.md values | select {name, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -48,8 +48,8 @@ exit 0
   }
 ]
 
-### 3 cli render lookups.wtf --format text
-$ wtf render lookups.wtf --format text --root <root> --now 2026-09-16T12:00:00-04:00
+### 3 cli render lookups.x.md --format text
+$ xmd render lookups.x.md --format text --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [price] := quote(ACME) = $10
@@ -57,18 +57,18 @@ exit 0
 [static] := 7 = 7
 
 ### 4 lsp
--- open lookups.wtf
--- await textDocument/publishDiagnostics lookups.wtf
+-- open lookups.x.md
+-- await textDocument/publishDiagnostics lookups.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/lookups.wtf",
+  "uri": "file://<root>/lookups.x.md",
   "version": 1
 }
--- request textDocument/hover lookups.wtf 0:2
+-- request textDocument/hover lookups.x.md 0:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**price · Money**\n\n$10\n\n```text\nquote(ACME)\n= $10\n```\n\nLookups:\n- quote ACME · just now · fixture\n\nDefinition: [price](<file://<root>/lookups.wtf#L1>) · <root>/lookups.wtf:1"
+    "value": "**price · Money**\n\n$10\n\n```text\nquote(ACME)\n= $10\n```\n\nLookups:\n- quote ACME · just now · fixture\n\nDefinition: [price](<file://<root>/lookups.x.md#L1>) · <root>/lookups.x.md:1"
   },
   "range": {
     "end": {
@@ -81,11 +81,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover lookups.wtf 2:2
+-- request textDocument/hover lookups.x.md 2:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**static · Number**\n\n7\n\n```text\n7\n= 7\n```\n\nDefinition: [static](<file://<root>/lookups.wtf#L3>) · <root>/lookups.wtf:3"
+    "value": "**static · Number**\n\n7\n\n```text\n7\n= 7\n```\n\nDefinition: [static](<file://<root>/lookups.x.md#L3>) · <root>/lookups.x.md:3"
   },
   "range": {
     "end": {
@@ -98,7 +98,7 @@ exit 0
     }
   }
 }
--- request textDocument/inlayHint lookups.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint lookups.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= $10",
@@ -109,7 +109,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**price · Money**\n\n$10\n\n```text\nquote(ACME)\n= $10\n```\n\nLookups:\n- quote ACME · just now · fixture\n\nDefinition: [price](<file://<root>/lookups.wtf#L1>) · <root>/lookups.wtf:1"
+      "value": "**price · Money**\n\n$10\n\n```text\nquote(ACME)\n= $10\n```\n\nLookups:\n- quote ACME · just now · fixture\n\nDefinition: [price](<file://<root>/lookups.x.md#L1>) · <root>/lookups.x.md:1"
     }
   },
   {
@@ -121,7 +121,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**live · DateTime**\n\n2026-09-16 12:00:00 -04:00\n\n```text\nnow()\n= 2026-09-16 12:00:00 -04:00\n```\n\nDefinition: [live](<file://<root>/lookups.wtf#L2>) · <root>/lookups.wtf:2"
+      "value": "**live · DateTime**\n\n2026-09-16 12:00:00 -04:00\n\n```text\nnow()\n= 2026-09-16 12:00:00 -04:00\n```\n\nDefinition: [live](<file://<root>/lookups.x.md#L2>) · <root>/lookups.x.md:2"
     }
   },
   {
@@ -133,7 +133,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**static · Number**\n\n7\n\n```text\n7\n= 7\n```\n\nDefinition: [static](<file://<root>/lookups.wtf#L3>) · <root>/lookups.wtf:3"
+      "value": "**static · Number**\n\n7\n\n```text\n7\n= 7\n```\n\nDefinition: [static](<file://<root>/lookups.x.md#L3>) · <root>/lookups.x.md:3"
     }
   }
 ]
@@ -148,19 +148,19 @@ exit 0
   ],
   "schemaVersion": 1,
   "versions": {
-    "file://<root>/lookups.wtf": 1
+    "file://<root>/lookups.x.md": 1
   }
 }
 
-### 5 cli render calendar.wtf --now 2026-09-17T00:15:00+14:00 --format text
-$ wtf render calendar.wtf --now 2026-09-17T00:15:00+14:00 --format text --root <root>
+### 5 cli render calendar.x.md --now 2026-09-17T00:15:00+14:00 --format text
+$ xmd render calendar.x.md --now 2026-09-17T00:15:00+14:00 --format text --root <root>
 exit 0
 --- stdout
 [day] := today() = 2026-09-17
 - [ ] Call @due(2026-09-16T10:30:00Z) → due today
 
-### 6 cli query calendar.wtf tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00
-$ wtf query calendar.wtf tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00 --root <root>
+### 6 cli query calendar.x.md tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00
+$ xmd query calendar.x.md tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00 --root <root>
 exit 0
 --- stdout
 [
@@ -173,15 +173,15 @@ exit 0
   }
 ]
 
-### 7 cli render calendar.wtf --now 2026-09-15T22:15:00-12:00 --format text
-$ wtf render calendar.wtf --now 2026-09-15T22:15:00-12:00 --format text --root <root>
+### 7 cli render calendar.x.md --now 2026-09-15T22:15:00-12:00 --format text
+$ xmd render calendar.x.md --now 2026-09-15T22:15:00-12:00 --format text --root <root>
 exit 0
 --- stdout
 [day] := today() = 2026-09-15
 - [ ] Call @due(2026-09-16T10:30:00Z) → due today
 
-### 8 cli query calendar.wtf tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00
-$ wtf query calendar.wtf tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00 --root <root>
+### 8 cli query calendar.x.md tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00
+$ xmd query calendar.x.md tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00 --root <root>
 exit 0
 --- stdout
 [
@@ -194,8 +194,8 @@ exit 0
   }
 ]
 
-### 9 cli query calendar.wtf diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00
-$ wtf query calendar.wtf diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00 --root <root>
+### 9 cli query calendar.x.md diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00
+$ xmd query calendar.x.md diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00 --root <root>
 exit 0
 --- stdout
 []

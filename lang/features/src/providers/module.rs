@@ -1,4 +1,4 @@
-//! A .wtf feature module as a provider: it consumes the same semantic records
+//! A .x.md feature module as a provider: it consumes the same semantic records
 //! as queries and returns data only, and this adapter validates every
 //! position and edit it proposes.
 use super::Provider;
@@ -387,7 +387,7 @@ impl Provider for Module {
                 let mut diagnostic: Diagnostic =
                     serde_json::from_value(item).map_err(|e| e.to_string())?;
                 validate(request, path, diagnostic.range)?;
-                diagnostic.source.get_or_insert("wtf".into());
+                diagnostic.source.get_or_insert("xmd".into());
                 batch.push(diagnostic);
             }
             Ok::<_, String>(batch)
@@ -396,7 +396,7 @@ impl Provider for Module {
             vec![Diagnostic {
                 range: Range::default(),
                 severity: Some(DiagnosticSeverity::ERROR),
-                source: Some("wtf".into()),
+                source: Some("xmd".into()),
                 code: Some(NumberOrString::String("module".into())),
                 message: format!("{}: {error}", self.id),
                 ..Default::default()

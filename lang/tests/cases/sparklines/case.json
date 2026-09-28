@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "charts.wtf",
+        "charts.x.md",
         "--format",
         "text"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "query",
-        "errors.wtf",
+        "errors.x.md",
         "diagnostics | select {line, message}",
         "--json"
       ]
@@ -19,11 +19,11 @@
     {
       "lsp": [
         {
-          "open": "charts.wtf"
+          "open": "charts.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "charts.wtf",
+          "file": "charts.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -37,7 +37,7 @@
         },
         {
           "request": "textDocument/signatureHelp",
-          "file": "charts.wtf",
+          "file": "charts.x.md",
           "line": 1,
           "character": 47
         }

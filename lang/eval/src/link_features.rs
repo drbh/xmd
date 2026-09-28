@@ -243,7 +243,7 @@ impl<'a> LinkFeatures<'a> {
                 &String::from_utf8_lossy(&output.stdout),
             )?),
         };
-        // The request clock, so a frozen `WTF_NOW` also freezes `fetched_at`.
+        // The request clock, so a frozen `XMD_NOW` also freezes `fetched_at`.
         feature
             .decode_refresh(&url, &data, super::clock_impl::now().to_utc())
             .map_err(|e| e.to_string())

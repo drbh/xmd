@@ -4,7 +4,7 @@
     {
       "cli": [
         "render",
-        "checklists.wtf",
+        "checklists.x.md",
         "--format",
         "text"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "render",
-        "formula.wtf",
+        "formula.x.md",
         "--format",
         "text"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "render",
-        "table.wtf",
+        "table.x.md",
         "--format",
         "text"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "render",
-        "plain.wtf",
+        "plain.x.md",
         "--format",
         "text"
       ]
@@ -36,11 +36,11 @@
     {
       "lsp": [
         {
-          "open": "checklists.wtf"
+          "open": "checklists.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "checklists.wtf",
+          "file": "checklists.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -53,11 +53,11 @@
           }
         },
         {
-          "open": "formula.wtf"
+          "open": "formula.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "formula.wtf",
+          "file": "formula.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -71,14 +71,14 @@
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "formula.wtf"
+          "file": "formula.x.md"
         },
         {
-          "open": "table.wtf"
+          "open": "table.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "table.wtf",
+          "file": "table.x.md",
           "range": {
             "start": {
               "line": 0,
@@ -91,11 +91,11 @@
           }
         },
         {
-          "open": "plain.wtf"
+          "open": "plain.x.md"
         },
         {
           "request": "textDocument/inlayHint",
-          "file": "plain.wtf",
+          "file": "plain.x.md",
           "range": {
             "start": {
               "line": 0,

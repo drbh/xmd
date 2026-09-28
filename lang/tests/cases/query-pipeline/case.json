@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "tasks.wtf",
+        "tasks.x.md",
         "tasks | count",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "tasks.wtf",
+        "tasks.x.md",
         "tasks | where leaf && !done && contains(tags, \"errands\") | select {title, due, estimate, source, parent} | sort due | limit 1",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "tasks.wtf",
+        "tasks.x.md",
         "tasks | where parent != null | count",
         "--json"
       ]
@@ -28,14 +28,14 @@
     {
       "cli": [
         "query",
-        "tasks.wtf",
+        "tasks.x.md",
         "tasks | select {title, due}"
       ]
     },
     {
       "cli": [
         "query",
-        "pipes.wtf",
+        "pipes.x.md",
         "tasks | where title == \"a|b\" || (false && nonexistent) | select {label: title, separator: \":,|\", nested: contains(title, \"|\"), timestamp: 2026-09-16T12:00:00-04:00}",
         "--json"
       ]
@@ -43,7 +43,7 @@
     {
       "cli": [
         "query",
-        "pipes.wtf",
+        "pipes.x.md",
         "tasks | where true || nonexistent | count",
         "--json"
       ]
@@ -51,7 +51,7 @@
     {
       "cli": [
         "query",
-        "pipes.wtf",
+        "pipes.x.md",
         "tasks | select {name: title} | where contains(name, \"b\") | select name",
         "--json"
       ]
@@ -59,7 +59,7 @@
     {
       "cli": [
         "query",
-        "due.wtf",
+        "due.x.md",
         "tasks | sort due | select title",
         "--json"
       ]
@@ -67,7 +67,7 @@
     {
       "cli": [
         "query",
-        "due.wtf",
+        "due.x.md",
         "tasks | sort due desc, title desc | select title",
         "--json"
       ]
@@ -75,7 +75,7 @@
     {
       "cli": [
         "query",
-        "due.wtf",
+        "due.x.md",
         "tasks | where due < today() | count",
         "--json"
       ]
@@ -113,7 +113,7 @@
     {
       "cli": [
         "query",
-        "time.wtf",
+        "time.x.md",
         "values | select {name, value}",
         "--json",
         "--now",
@@ -123,7 +123,7 @@
     {
       "cli": [
         "query",
-        "time.wtf",
+        "time.x.md",
         "events | where at_date == today() | select title",
         "--json",
         "--now",
@@ -133,7 +133,7 @@
     {
       "cli": [
         "query",
-        "time.wtf",
+        "time.x.md",
         "values | where name == \"day\" | select {tomorrow: value + 1d}",
         "--json",
         "--now",
@@ -143,7 +143,7 @@
     {
       "cli": [
         "query",
-        "union.wtf",
+        "union.x.md",
         "union(tasks, events) | select kind",
         "--json"
       ]

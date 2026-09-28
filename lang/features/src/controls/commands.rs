@@ -46,7 +46,7 @@ impl RowTarget {
     )
 )]
 pub enum Action {
-    #[strum_discriminants(strum(serialize = "wtf.invoke", message = "an invocation action"))]
+    #[strum_discriminants(strum(serialize = "xmd.invoke", message = "an invocation action"))]
     Invoke {
         document: Url,
         expected: String,
@@ -54,33 +54,33 @@ pub enum Action {
         revision: String,
         event: Value,
     },
-    #[strum_discriminants(strum(serialize = "wtf.applyEdits", message = "an edit action"))]
+    #[strum_discriminants(strum(serialize = "xmd.applyEdits", message = "an edit action"))]
     Edit {
         document: Url,
         expected: String,
         edits: Vec<TextEdit>,
     },
-    #[strum_discriminants(strum(serialize = "wtf.task", message = "a task action"))]
+    #[strum_discriminants(strum(serialize = "xmd.task", message = "a task action"))]
     ToggleTask(RowTarget),
-    #[strum_discriminants(strum(serialize = "wtf.timer", message = "a timer action"))]
+    #[strum_discriminants(strum(serialize = "xmd.timer", message = "a timer action"))]
     Timer {
         document: Url,
         name: String,
         action: TimerAction,
     },
     #[strum_discriminants(strum(
-        serialize = "wtf.openResource",
+        serialize = "xmd.openResource",
         message = "an open-resource action"
     ))]
     OpenResource { target: RowTarget, url: Url },
     #[strum_discriminants(strum(
-        serialize = "wtf.refreshResource",
+        serialize = "xmd.refreshResource",
         message = "a refresh-resource action"
     ))]
     RefreshResource { target: RowTarget, url: Url },
-    #[strum_discriminants(strum(serialize = "wtf.refresh", message = "a refresh action"))]
+    #[strum_discriminants(strum(serialize = "xmd.refresh", message = "a refresh action"))]
     Refresh { document: Option<Url> },
-    #[strum_discriminants(strum(serialize = "wtf.today", message = "a show-today action"))]
+    #[strum_discriminants(strum(serialize = "xmd.today", message = "a show-today action"))]
     ShowToday,
 }
 

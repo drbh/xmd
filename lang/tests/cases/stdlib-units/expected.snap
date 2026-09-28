@@ -1,5 +1,5 @@
-### 0 cli render units.wtf --format text
-$ wtf render units.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render units.x.md --format text
+$ xmd render units.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Unit conversions
@@ -18,20 +18,20 @@ round_trip := u.lb_to_kg(u.kg_to_lb(5)) = 5
 formatted := u.format(62.13711922373339, "miles") = 62.14 mi
 dimension := u.dimension("tbsp") = volume
 
-### 1 cli render bad.wtf --format text
-$ wtf render bad.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli render bad.x.md --format text
+$ xmd render bad.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 u := import("units") = <collection>
 mismatch := u.convert(1, "km", "kg")
 unknown := u.convert(1, "smoots", "m")
 --- stderr
-<root>/bad.wtf:2:13: error: Cannot convert km to kg
-<root>/bad.wtf:3:12: error: Unknown unit 'smoots'
-wtf: 2 error(s) while rendering
+<root>/bad.x.md:2:13: error: Cannot convert km to kg
+<root>/bad.x.md:3:12: error: Unknown unit 'smoots'
+xmd: 2 error(s) while rendering
 
-### 2 cli query bad.wtf diagnostics | select {message, code} --json
-$ wtf query bad.wtf diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query bad.x.md diagnostics | select {message, code} --json
+$ xmd query bad.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

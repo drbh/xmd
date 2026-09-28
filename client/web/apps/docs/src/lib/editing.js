@@ -141,11 +141,11 @@ export function rangeOf(view, start, end) {
 export function highlightMatches(view, matches, current) {
   if (!globalThis.CSS?.highlights || !view) return;
   const ranges = kind => matches.filter((_, i) => kind === "current" ? i === current : i !== current).map(m => rangeOf(view, m.start, m.end)).filter(Boolean);
-  CSS.highlights.set("wtf-find", new Highlight(...ranges("all")));
-  CSS.highlights.set("wtf-find-current", new Highlight(...ranges("current")));
+  CSS.highlights.set("xmd-find", new Highlight(...ranges("all")));
+  CSS.highlights.set("xmd-find-current", new Highlight(...ranges("current")));
 }
 export function clearHighlights() {
   if (!globalThis.CSS?.highlights) return;
-  CSS.highlights.delete("wtf-find");
-  CSS.highlights.delete("wtf-find-current");
+  CSS.highlights.delete("xmd-find");
+  CSS.highlights.delete("xmd-find-current");
 }

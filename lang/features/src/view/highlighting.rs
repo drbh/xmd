@@ -1,4 +1,4 @@
-//! Semantic colors describe WTF's syntax and types, independent of the editor.
+//! Semantic colors describe XMD's syntax and types, independent of the editor.
 //! Keep parser highlights intact: other LSP features use them to identify inert text.
 use crate::view::prose;
 use common::Span;
@@ -18,40 +18,40 @@ pub const TOKEN_TYPES: &[&str] = &[
     "function",
     "property",
     "decorator",
-    "wtfMoney",
-    "wtfDate",
-    "wtfDuration",
-    "wtfRatio",
-    "wtfBoolean",
-    "wtfPunctuation",
-    "wtfCode",
-    "wtfLink",
-    "wtfCheckbox",
-    "wtfTaskDone",
-    "wtfCheckboxChecked",
-    "wtfTime",
+    "xmdMoney",
+    "xmdDate",
+    "xmdDuration",
+    "xmdRatio",
+    "xmdBoolean",
+    "xmdPunctuation",
+    "xmdCode",
+    "xmdLink",
+    "xmdCheckbox",
+    "xmdTaskDone",
+    "xmdCheckboxChecked",
+    "xmdTime",
     // Itineraries: one hue per stop kind, so a day reads at a glance.
-    "wtfDay",
-    "wtfPlace",
-    "wtfDetailKey",
-    "wtfDepart",
-    "wtfArrive",
-    "wtfTransit",
-    "wtfStay",
-    "wtfMeal",
-    "wtfVisit",
-    "wtfExplore",
+    "xmdDay",
+    "xmdPlace",
+    "xmdDetailKey",
+    "xmdDepart",
+    "xmdArrive",
+    "xmdTransit",
+    "xmdStay",
+    "xmdMeal",
+    "xmdVisit",
+    "xmdExplore",
 ];
 /// The semantic token type for a stop kind.
 pub(crate) fn kind_token(kind: &eval::itinerary::Kind) -> &'static str {
     match kind.marker {
-        '>' => "wtfDepart",
-        '<' => "wtfArrive",
-        '~' => "wtfTransit",
-        '@' => "wtfStay",
-        '*' => "wtfMeal",
-        '+' => "wtfVisit",
-        _ => "wtfExplore",
+        '>' => "xmdDepart",
+        '<' => "xmdArrive",
+        '~' => "xmdTransit",
+        '@' => "xmdStay",
+        '*' => "xmdMeal",
+        '+' => "xmdVisit",
+        _ => "xmdExplore",
     }
 }
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
@@ -72,13 +72,13 @@ fn style(kind: &str, modifiers: u32) -> Style {
 }
 fn value_kind(value: &Literal) -> &'static str {
     match value {
-        Literal::Money(..) => "wtfMoney",
-        Literal::Date(_) | Literal::DateTime(_) => "wtfDate",
-        Literal::Duration(_) => "wtfDuration",
-        Literal::Ratio(_) => "wtfRatio",
-        Literal::Bool(_) => "wtfBoolean",
+        Literal::Money(..) => "xmdMoney",
+        Literal::Date(_) | Literal::DateTime(_) => "xmdDate",
+        Literal::Duration(_) => "xmdDuration",
+        Literal::Ratio(_) => "xmdRatio",
+        Literal::Bool(_) => "xmdBoolean",
         Literal::Text(_) => "string",
-        Literal::Resource(_) => "wtfLink",
+        Literal::Resource(_) => "xmdLink",
         Literal::Number(_) => "number",
     }
 }
@@ -124,7 +124,7 @@ impl<'a> Painter<'a> {
             named.span.start,
         );
         if self.source(colon) == ":" {
-            self.mark(colon, "wtfPunctuation");
+            self.mark(colon, "xmdPunctuation");
         }
     }
     /// Dim the brackets around a span, when there are any: bare definitions
@@ -134,13 +134,13 @@ impl<'a> Painter<'a> {
         if line[..span.start].ends_with('[') {
             self.mark(
                 Span::new(span.line, span.start - 1, span.start),
-                "wtfPunctuation",
+                "xmdPunctuation",
             );
         }
         if line[span.end..].starts_with(']') {
             self.mark(
                 Span::new(span.line, span.end, span.end + 1),
-                "wtfPunctuation",
+                "xmdPunctuation",
             );
         }
     }
@@ -162,7 +162,7 @@ impl<'a> Painter<'a> {
                         }
                         "function"
                     } else if matches!(name.as_str(), "true" | "false") {
-                        "wtfBoolean"
+                        "xmdBoolean"
                     } else if i > 0 && matches!(tokens[i - 1].kind, Lexeme::Dot)
                         || engine::sum_scope_at(source, token.start).is_some()
                     {
@@ -173,7 +173,7 @@ impl<'a> Painter<'a> {
                 }
                 Lexeme::Comment => "comment",
                 Lexeme::Op(_) => "operator",
-                _ => "wtfPunctuation",
+                _ => "xmdPunctuation",
             };
             self.paint(
                 span.relative(self.text, token.start, token.end),
@@ -182,7 +182,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn attribute(&mut self, name: &str, attr: &Attribute) {
-        self.mark(attr.span, "wtfPunctuation");
+        self.mark(attr.span, "xmdPunctuation");
         self.mark(
             Span::new(attr.span.line, attr.span.start, attr.value_span.start - 1),
             "decorator",
@@ -196,7 +196,7 @@ impl<'a> Painter<'a> {
         )
         .is_some()
         {
-            self.mark(attr.value_span, "wtfDate");
+            self.mark(attr.value_span, "xmdDate");
         } else if matches!(name, "tag" | "every") {
             self.mark(attr.value_span, "string");
         } else {
@@ -263,7 +263,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         p.mark(
             h.span,
             if h.kind == model::HighlightKind::String {
-                "wtfCode"
+                "xmdCode"
             } else {
                 h.kind.as_str()
             },
@@ -275,7 +275,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         let start = line.len() - line.trim_start().len();
         p.mark(
             Span::new(section.line, start, start + section.level),
-            "wtfPunctuation",
+            "xmdPunctuation",
         );
         if let Some(named) = &section.named {
             p.declaration(named);
@@ -284,14 +284,14 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     for task in &doc.tasks {
         p.mark(
             Span::new(task.line, task.indent, task.indent + 1),
-            "wtfPunctuation",
+            "xmdPunctuation",
         );
         p.mark(
             task.checkbox,
             if task.checked {
-                "wtfCheckboxChecked"
+                "xmdCheckboxChecked"
             } else {
-                "wtfCheckbox"
+                "xmdCheckbox"
             },
         );
         if task.checked {
@@ -302,7 +302,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
                 .chain(task.named.iter().map(|n| n.span.start - 1))
                 .min()
                 .unwrap_or(p.lines[task.line].len());
-            p.mark(Span::new(task.line, task.checkbox.end, end), "wtfTaskDone");
+            p.mark(Span::new(task.line, task.checkbox.end, end), "xmdTaskDone");
         }
         if let Some(named) = &task.named {
             p.declaration(named);
@@ -366,7 +366,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
                     reference.span.end,
                     reference.span.end + 1,
                 ),
-                "wtfPunctuation",
+                "xmdPunctuation",
             );
             p.mark(
                 Span::new(reference.span.line, reference.span.end + 1, reference.end()),
@@ -378,13 +378,13 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         for row in plan.header..plan.end_line {
             for (byte, ch) in p.lines[row].char_indices() {
                 if ch == '|' {
-                    p.mark(Span::new(row, byte, byte + 1), "wtfPunctuation");
+                    p.mark(Span::new(row, byte, byte + 1), "xmdPunctuation");
                 }
             }
         }
         if !plan.separators.is_empty() {
             let row = plan.header + 1;
-            p.mark(Span::new(row, 0, p.lines[row].len()), "wtfPunctuation");
+            p.mark(Span::new(row, 0, p.lines[row].len()), "xmdPunctuation");
         }
         for column in &plan.columns {
             p.mark(column.span, "keyword");
@@ -399,13 +399,13 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
         for row in table.header..table.end_line {
             for (byte, ch) in p.lines[row].char_indices() {
                 if ch == '|' {
-                    p.mark(Span::new(row, byte, byte + 1), "wtfPunctuation");
+                    p.mark(Span::new(row, byte, byte + 1), "xmdPunctuation");
                 }
             }
         }
         if !table.separators.is_empty() {
             let row = table.header + 1;
-            p.mark(Span::new(row, 0, p.lines[row].len()), "wtfPunctuation");
+            p.mark(Span::new(row, 0, p.lines[row].len()), "xmdPunctuation");
         }
         for column in &table.columns {
             p.paint(column.span, style("property", DECLARATION));
@@ -424,34 +424,34 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     }
     for day in &doc.days {
         if let Some((_, span)) = &day.weekday {
-            p.paint(*span, style("wtfDay", DECLARATION));
+            p.paint(*span, style("xmdDay", DECLARATION));
             p.paint(
                 Span::new(span.line, span.end, day.date_span.start),
-                style("wtfDay", 0),
+                style("xmdDay", 0),
             );
         }
-        p.paint(day.date_span, style("wtfDay", DECLARATION));
+        p.paint(day.date_span, style("xmdDay", DECLARATION));
         if let Some((_, span)) = &day.places {
-            p.mark(*span, "wtfPlace");
+            p.mark(*span, "xmdPlace");
         }
         for stop in &day.stops {
-            p.mark(stop.time_span, "wtfTime");
+            p.mark(stop.time_span, "xmdTime");
             let token = stop.kind.map(kind_token).unwrap_or("heading");
             if let Some(marker) = stop.marker_span {
                 p.paint(marker, style(token, DECLARATION));
             }
             p.mark(stop.title_span, token);
             for detail in &stop.details {
-                p.mark(detail.key_span, "wtfDetailKey");
+                p.mark(detail.key_span, "xmdDetailKey");
                 let key = detail.key.to_ascii_lowercase();
                 if key.ends_with("number")
                     || key == "seats"
                     || key == "confirmation"
                     || key == "pnr"
                 {
-                    p.mark(detail.value_span, "wtfCode");
+                    p.mark(detail.value_span, "xmdCode");
                 } else if key == "cancel by" {
-                    p.mark(detail.value_span, "wtfDate");
+                    p.mark(detail.value_span, "xmdDate");
                 }
                 p.mark(
                     Span::new(
@@ -459,13 +459,13 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
                         detail.key_span.end,
                         detail.value_span.start,
                     ),
-                    "wtfPunctuation",
+                    "xmdPunctuation",
                 );
             }
         }
     }
     for link in &doc.links {
-        p.mark(link.span, "wtfLink");
+        p.mark(link.span, "xmdLink");
         let raw = p.source(link.span);
         if raw.starts_with('[')
             && let Some(close) = raw.find("](")
@@ -477,7 +477,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
                         link.span.start + start,
                         link.span.start + end,
                     ),
-                    "wtfPunctuation",
+                    "xmdPunctuation",
                 );
             }
         }

@@ -4,7 +4,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "",
         "--json"
       ]
@@ -12,7 +12,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks |",
         "--json"
       ]
@@ -20,7 +20,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | where (true",
         "--json"
       ]
@@ -28,7 +28,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select {a:1,a:2}",
         "--json"
       ]
@@ -36,7 +36,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | limit -1",
         "--json"
       ]
@@ -44,7 +44,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | explode",
         "--json"
       ]
@@ -52,7 +52,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select {x:}",
         "--json"
       ]
@@ -60,7 +60,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "@today",
         "--json"
       ]
@@ -68,7 +68,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "@week",
         "--json"
       ]
@@ -76,7 +76,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "@tasks",
         "--json"
       ]
@@ -84,7 +84,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "@check",
         "--json"
       ]
@@ -92,7 +92,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "@unknown",
         "--json"
       ]
@@ -100,7 +100,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | where (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
         "--json"
       ]
@@ -108,7 +108,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
         "--json"
       ]
@@ -116,7 +116,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+",
         "--json"
       ]
@@ -124,7 +124,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | where title",
         "--json"
       ]
@@ -132,7 +132,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | where dne",
         "--json"
       ]
@@ -140,7 +140,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select title.dne",
         "--json"
       ]
@@ -148,7 +148,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select bogus()",
         "--json"
       ]
@@ -156,7 +156,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | sort tags",
         "--json"
       ]
@@ -164,7 +164,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "tasks | select {x: 1 + 2d}",
         "--json"
       ]
@@ -172,7 +172,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "unknown",
         "--json"
       ]
@@ -180,7 +180,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "1/0",
         "--json"
       ]
@@ -188,7 +188,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "2026-09-25 + 1h",
         "--json"
       ]
@@ -196,7 +196,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "sort_by([1, \"two\"], fn(x) => x)",
         "--json"
       ]
@@ -204,7 +204,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "repeat(\"a\", 1000000000)",
         "--json"
       ]
@@ -212,7 +212,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "slice([], 2, 1)",
         "--json"
       ]
@@ -220,7 +220,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "format_date(today(), \"%H\")",
         "--json"
       ]
@@ -228,7 +228,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "format_date(today(), \"%Q\")",
         "--json"
       ]
@@ -236,7 +236,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "error(\"bad\")",
         "--json"
       ]
@@ -244,7 +244,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "fn(x, x) => x",
         "--json"
       ]
@@ -252,7 +252,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "{x: 1, x: 2}",
         "--json"
       ]
@@ -260,7 +260,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "map([1], fn(x) => x)(2)",
         "--json"
       ]
@@ -268,7 +268,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "if(1, 2, 3)",
         "--json"
       ]
@@ -276,7 +276,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "good()",
         "--json"
       ]
@@ -284,7 +284,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "loop(1)",
         "--json"
       ]
@@ -292,7 +292,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "bad(2)",
         "--json"
       ]
@@ -300,7 +300,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "eval(code)",
         "--json"
       ]
@@ -308,7 +308,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "fold([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0, fn(a, x) => grow(a))",
         "--json"
       ]
@@ -316,7 +316,7 @@
     {
       "cli": [
         "query",
-        "mixed.wtf",
+        "mixed.x.md",
         "values | sort value | select name",
         "--json"
       ]
@@ -324,7 +324,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "divide(1)",
         "--json"
       ]
@@ -332,7 +332,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "good(2)",
         "--json"
       ]
@@ -340,7 +340,7 @@
     {
       "cli": [
         "query",
-        "n.wtf",
+        "n.x.md",
         "1 + 2",
         "--json"
       ]
@@ -348,7 +348,7 @@
     {
       "cli": [
         "query",
-        "broken.wtf",
+        "broken.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -356,7 +356,7 @@
     {
       "cli": [
         "query",
-        "missing.wtf",
+        "missing.x.md",
         "tasks",
         "--json"
       ]

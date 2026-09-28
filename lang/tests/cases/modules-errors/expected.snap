@@ -1,5 +1,5 @@
-### 0 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 # Hello 🦀
@@ -7,90 +7,90 @@ https://issues.example/tickets/42 ticket /tickets/42:ticket ticket /tickets/42
 See [ticket] ticket /tickets/42 and [issue](https://issues.example/tickets/42) ticket /tickets/42.
 
 ### 1 write
--- write .wtf/modules/tickets.wtf (460 bytes)
+-- write .xmd/modules/tickets.x.md (460 bytes)
 
-### 2 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 2 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/tickets.wtf: module.api must be 1
+xmd: <root>/.xmd/modules/tickets.x.md: module.api must be 1
 
 ### 3 write
--- write .wtf/modules/tickets.wtf (457 bytes)
+-- write .xmd/modules/tickets.x.md (457 bytes)
 
-### 4 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 4 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/tickets.wtf: inlay must be a function with 1 parameters
+xmd: <root>/.xmd/modules/tickets.x.md: inlay must be a function with 1 parameters
 
 ### 5 write
--- write .wtf/modules/tickets.wtf (461 bytes)
+-- write .xmd/modules/tickets.x.md (461 bytes)
 
-### 6 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/tickets.wtf: module.kind must be link, feature, or library
+xmd: <root>/.xmd/modules/tickets.x.md: module.kind must be link, feature, or library
 
 ### 7 write
--- write .wtf/modules/tickets.wtf (465 bytes)
+-- write .xmd/modules/tickets.x.md (465 bytes)
 
-### 8 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/tickets.wtf: <root>/.wtf/modules/tickets.wtf:2: Invalid or duplicate parameter 'ctx'
+xmd: <root>/.xmd/modules/tickets.x.md: <root>/.xmd/modules/tickets.x.md:2: Invalid or duplicate parameter 'ctx'
 
 ### 9 write
--- write .wtf/modules/tickets.wtf (464 bytes)
+-- write .xmd/modules/tickets.x.md (464 bytes)
 
-### 10 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 10 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: <root>/.wtf/modules/tickets.wtf: refresh and decode must be supplied together
+xmd: <root>/.xmd/modules/tickets.x.md: refresh and decode must be supplied together
 
 ### 11 write
--- write .wtf/modules/tickets.wtf (61 bytes)
+-- write .xmd/modules/tickets.x.md (61 bytes)
 
-### 12 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 12 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Unknown module import 'b'
+xmd: Unknown module import 'b'
 
 ### 13 write
--- write .wtf/modules.json (39 bytes)
--- write .wtf/modules/a.wtf (61 bytes)
--- write .wtf/modules/b.wtf (61 bytes)
+-- write .xmd/modules.json (41 bytes)
+-- write .xmd/modules/a.x.md (61 bytes)
+-- write .xmd/modules/b.x.md (61 bytes)
 
-### 14 cli render main.wtf --format text
-$ wtf render main.wtf --format text --root <root> --now 2026-09-18T12:00:00Z
+### 14 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-wtf: Module import cycle: a -> b -> a
+xmd: Module import cycle: a -> b -> a
 
 ### 15 write
--- write .wtf/modules.json (26 bytes)
--- remove .wtf/modules/a.wtf
--- remove .wtf/modules/b.wtf
--- write .wtf/modules/tickets.wtf (460 bytes)
+-- write .xmd/modules.json (27 bytes)
+-- remove .xmd/modules/a.x.md
+-- remove .xmd/modules/b.x.md
+-- write .xmd/modules/tickets.x.md (460 bytes)
 
 ### 16 lsp
--- open main.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- open main.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
 -- await window/logMessage
 {
-  "message": "WTF: tasks, timers, resources, dates, and workspace navigation ready",
+  "message": "XMD: tasks, timers, resources, dates, and workspace navigation ready",
   "type": 3
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "ticket /tickets/42",
@@ -141,15 +141,15 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- write .wtf/modules/tickets.wtf (404 bytes)
--- watched .wtf/modules/tickets.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- write .xmd/modules/tickets.x.md (404 bytes)
+-- watched .xmd/modules/tickets.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "module error · Module tickets.inlay: Function call depth exceeds 32",
@@ -200,15 +200,15 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- write .wtf/modules/tickets.wtf (415 bytes)
--- watched .wtf/modules/tickets.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- write .xmd/modules/tickets.x.md (415 bytes)
+-- watched .xmd/modules/tickets.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "module error · Module tickets.inlay: Unknown field 'file'",
@@ -259,15 +259,15 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- write .wtf/modules/tickets.wtf (113 bytes)
--- watched .wtf/modules/tickets.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- write .xmd/modules/tickets.x.md (113 bytes)
+-- watched .xmd/modules/tickets.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "module error · bad",
@@ -306,15 +306,15 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- write .wtf/modules/tickets.wtf (165 bytes)
--- watched .wtf/modules/tickets.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- write .xmd/modules/tickets.x.md (165 bytes)
+-- watched .xmd/modules/tickets.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "module error · bad",
@@ -353,15 +353,15 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- write .wtf/modules/tickets.wtf (74 bytes)
--- watched .wtf/modules/tickets.wtf
--- await textDocument/publishDiagnostics main.wtf
+-- write .xmd/modules/tickets.x.md (74 bytes)
+-- watched .xmd/modules/tickets.x.md
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 1
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 [
   {
     "label": "link",
@@ -388,9 +388,9 @@ wtf: Module import cycle: a -> b -> a
     }
   }
 ]
--- change main.wtf (version 2)
+-- change main.x.md (version 2)
 spun := import("loops").spin(1)
--- await textDocument/publishDiagnostics main.wtf
+-- await textDocument/publishDiagnostics main.x.md
 {
   "diagnostics": [
     {
@@ -407,12 +407,12 @@ spun := import("loops").spin(1)
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/main.wtf",
+  "uri": "file://<root>/main.x.md",
   "version": 2
 }
--- request textDocument/inlayHint main.wtf {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
 []
 

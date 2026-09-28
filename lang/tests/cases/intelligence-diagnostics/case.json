@@ -3,7 +3,7 @@
     {
       "cli": [
         "query",
-        "types.wtf",
+        "types.x.md",
         "diagnostics | select {line, severity, code, message}",
         "--json"
       ]
@@ -11,7 +11,7 @@
     {
       "cli": [
         "query",
-        "syntax.wtf",
+        "syntax.x.md",
         "diagnostics | select {line, code, message}",
         "--json"
       ]
@@ -19,7 +19,7 @@
     {
       "cli": [
         "query",
-        "clock.wtf",
+        "clock.x.md",
         "diagnostics | select {line, message}",
         "--json"
       ]
@@ -27,7 +27,7 @@
     {
       "cli": [
         "query",
-        "clock.wtf",
+        "clock.x.md",
         "diagnostics | select {line, message}",
         "--json",
         "--now",
@@ -37,39 +37,39 @@
     {
       "lsp": [
         {
-          "open": "types.wtf"
+          "open": "types.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "types.wtf"
+          "file": "types.x.md"
         },
         {
-          "open": "syntax.wtf"
-        },
-        {
-          "await": "textDocument/publishDiagnostics",
-          "file": "syntax.wtf"
-        },
-        {
-          "open": "cycles.wtf"
+          "open": "syntax.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "cycles.wtf"
+          "file": "syntax.x.md"
         },
         {
-          "open": "ambiguous.wtf"
-        },
-        {
-          "await": "textDocument/publishDiagnostics",
-          "file": "ambiguous.wtf"
-        },
-        {
-          "open": "tasks.wtf"
+          "open": "cycles.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "tasks.wtf"
+          "file": "cycles.x.md"
+        },
+        {
+          "open": "ambiguous.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "ambiguous.x.md"
+        },
+        {
+          "open": "tasks.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "tasks.x.md"
         }
       ]
     }

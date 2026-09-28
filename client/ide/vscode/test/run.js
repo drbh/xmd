@@ -6,16 +6,16 @@ const os = require("node:os");
 async function main() {
   const extension = path.resolve(__dirname, "..");
   const repo = path.dirname(path.dirname(path.dirname(extension)));
-  const binary = process.env.WTF_SERVER_PATH || path.join(repo, "target", "debug", process.platform === "win32" ? "wtf.exe" : "wtf");
+  const binary = process.env.XMD_SERVER_PATH || path.join(repo, "target", "debug", process.platform === "win32" ? "xmd.exe" : "xmd");
   await fs.access(binary);
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "wtf-vscode-"));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "xmd-vscode-"));
   const workspace = path.join(temporary, "notes");
   let passed = false;
   try {
     await fs.cp(path.join(repo, "lang", "examples", "editor-smoke"), workspace, { recursive: true });
     await fs.mkdir(path.join(workspace, ".vscode"));
     await fs.writeFile(path.join(workspace, ".vscode", "settings.json"), JSON.stringify({
-      "wtf.serverPath": binary,
+      "xmd.serverPath": binary,
       "files.autoSave": "off",
       "workbench.startupEditor": "none",
       "chat.disableAIFeatures": true,

@@ -3,7 +3,7 @@
     {
       "cli": [
         "render",
-        "values.wtf",
+        "values.x.md",
         "--format",
         "text"
       ]
@@ -11,70 +11,70 @@
     {
       "lsp": [
         {
-          "open": "values.wtf"
+          "open": "values.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "values.wtf"
+          "file": "values.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 2,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 0,
           "character": 10
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 4,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 10,
           "character": 3
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 7,
           "character": 47
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 11,
           "character": 8
         },
         {
           "request": "textDocument/hover",
-          "file": "values.wtf",
+          "file": "values.x.md",
           "line": 8,
           "character": 15
         },
         {
-          "open": "bakery.wtf"
+          "open": "bakery.x.md"
         },
         {
           "await": "textDocument/publishDiagnostics",
-          "file": "bakery.wtf"
+          "file": "bakery.x.md"
         },
         {
           "request": "textDocument/hover",
-          "file": "bakery.wtf",
+          "file": "bakery.x.md",
           "line": 3,
           "character": 17
         },
         {
           "request": "textDocument/hover",
-          "file": "bakery.wtf",
+          "file": "bakery.x.md",
           "line": 0,
           "character": 3
         }
@@ -83,7 +83,7 @@
     {
       "cli": [
         "render",
-        "bakery.wtf",
+        "bakery.x.md",
         "--format",
         "text"
       ]

@@ -1,5 +1,5 @@
-### 0 cli render gear.wtf --format text
-$ wtf render gear.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render gear.x.md --format text
+$ xmd render gear.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stdout
 [gear] := table = 4 rows · 4 columns
@@ -24,11 +24,11 @@ exit 1
 | protein    | sum(menu, protein * servings) >= 50 | 60 ≥ 50 · ○ slack 10
 [wrong] := sum(gear, weight * take)
 --- stderr
-<root>/gear.wtf:21:31: error: 'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize
-wtf: 1 error(s) while rendering
+<root>/gear.x.md:21:31: error: 'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize
+xmd: 1 error(s) while rendering
 
-### 1 cli query gear.wtf plans | select {name, display} --json
-$ wtf query gear.wtf plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query gear.x.md plans | select {name, display} --json
+$ xmd query gear.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -42,8 +42,8 @@ exit 0
   }
 ]
 
-### 2 cli query gear.wtf decisions | select {title, plan, line, value} --json
-$ wtf query gear.wtf decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query gear.x.md decisions | select {title, plan, line, value} --json
+$ xmd query gear.x.md decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -85,8 +85,8 @@ exit 0
   }
 ]
 
-### 3 cli query gear.wtf diagnostics | select {line, severity, code, message} --json
-$ wtf query gear.wtf diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query gear.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query gear.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -99,8 +99,8 @@ exit 0
 ]
 
 ### 4 lsp
--- open gear.wtf
--- await textDocument/publishDiagnostics gear.wtf
+-- open gear.x.md
+-- await textDocument/publishDiagnostics gear.x.md
 {
   "diagnostics": [
     {
@@ -117,17 +117,17 @@ exit 0
         }
       },
       "severity": 1,
-      "source": "wtf"
+      "source": "xmd"
     }
   ],
-  "uri": "file://<root>/gear.wtf",
+  "uri": "file://<root>/gear.x.md",
   "version": 1
 }
--- request textDocument/hover gear.wtf 1:29
+-- request textDocument/hover gear.x.md 1:29
 {
   "contents": {
     "kind": "markdown",
-    "value": "**take · Choice**\n\nDecision column of `gear` (name?): a plan that sums over it chooses yes or no for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: [take](<file://<root>/gear.wtf#L2>)"
+    "value": "**take · Choice**\n\nDecision column of `gear` (name?): a plan that sums over it chooses yes or no for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: [take](<file://<root>/gear.x.md#L2>)"
   },
   "range": {
     "end": {
@@ -140,11 +140,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover gear.wtf 7:2
+-- request textDocument/hover gear.x.md 7:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**pack · Plan**\n\n20\n\n```text\nmaximize(sum(gear, value * take))\n= 20\n```\n\ntake: tent, stove, camera, ~~books~~\n\nMaximizes the objective. Variables: \n\nConstraints:\n\n- weight: `██████████ 100%` 6 ≤ 6 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [gear](<file://<root>/gear.wtf#L1>), [take](<file://<root>/gear.wtf#L2>), [value](<file://<root>/gear.wtf#L2>)\n\nDefinition: [pack](<file://<root>/gear.wtf#L8>) · <root>/gear.wtf:8"
+    "value": "**pack · Plan**\n\n20\n\n```text\nmaximize(sum(gear, value * take))\n= 20\n```\n\ntake: tent, stove, camera, ~~books~~\n\nMaximizes the objective. Variables: \n\nConstraints:\n\n- weight: `██████████ 100%` 6 ≤ 6 · ● binding\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [gear](<file://<root>/gear.x.md#L1>), [take](<file://<root>/gear.x.md#L2>), [value](<file://<root>/gear.x.md#L2>)\n\nDefinition: [pack](<file://<root>/gear.x.md#L8>) · <root>/gear.x.md:8"
   },
   "range": {
     "end": {
@@ -157,11 +157,11 @@ exit 0
     }
   }
 }
--- request textDocument/hover gear.wtf 16:2
+-- request textDocument/hover gear.x.md 16:2
 {
   "contents": {
     "kind": "markdown",
-    "value": "**diet · Plan**\n\n$8\n\n```text\nminimize(sum(menu, cost * servings))\n= $8\n```\n\nservings: beans × 4, eggs × 0\n\nMinimizes the objective. Variables: \n\nConstraints:\n\n- protein: 60 ≥ 50 · ○ slack 10\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [cost](<file://<root>/gear.wtf#L13>), [menu](<file://<root>/gear.wtf#L12>), [servings](<file://<root>/gear.wtf#L13>)\n\nDefinition: [diet](<file://<root>/gear.wtf#L17>) · <root>/gear.wtf:17"
+    "value": "**diet · Plan**\n\n$8\n\n```text\nminimize(sum(menu, cost * servings))\n= $8\n```\n\nservings: beans × 4, eggs × 0\n\nMinimizes the objective. Variables: \n\nConstraints:\n\n- protein: 60 ≥ 50 · ○ slack 10\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds.\n\nInputs: [cost](<file://<root>/gear.x.md#L13>), [menu](<file://<root>/gear.x.md#L12>), [servings](<file://<root>/gear.x.md#L13>)\n\nDefinition: [diet](<file://<root>/gear.x.md#L17>) · <root>/gear.x.md:17"
   },
   "range": {
     "end": {
@@ -174,7 +174,7 @@ exit 0
     }
   }
 }
--- request textDocument/codeAction gear.wtf {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
+-- request textDocument/codeAction gear.x.md {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
 [
   {
     "edit": {
@@ -235,7 +235,7 @@ exit 0
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/gear.wtf",
+            "uri": "file://<root>/gear.x.md",
             "version": 1
           }
         }
@@ -246,8 +246,8 @@ exit 0
   }
 ]
 
-### 5 cli render packed.wtf --format text
-$ wtf render packed.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli render packed.x.md --format text
+$ xmd render packed.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [gear] := table = 4 rows · 4 columns
@@ -262,8 +262,8 @@ exit 0
 | ---------- | ----------------------------- |
 | weight     | sum(gear, weight * take) <= 6 | ████████ 6 ≤ 6 · ● binding
 
-### 6 cli query packed.wtf plans | select {name, display} --json
-$ wtf query packed.wtf plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query packed.x.md plans | select {name, display} --json
+$ xmd query packed.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -273,8 +273,8 @@ exit 0
   }
 ]
 
-### 7 cli query packed.wtf rows | select {table, line, cells} --json
-$ wtf query packed.wtf rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query packed.x.md rows | select {table, line, cells} --json
+$ xmd query packed.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -321,15 +321,15 @@ exit 0
 ]
 
 ### 8 lsp
--- open packed.wtf
--- await textDocument/publishDiagnostics packed.wtf
+-- open packed.x.md
+-- await textDocument/publishDiagnostics packed.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/packed.wtf",
+  "uri": "file://<root>/packed.x.md",
   "version": 1
 }
--- request textDocument/formatting packed.wtf
+-- request textDocument/formatting packed.x.md
 []
--- request textDocument/codeAction packed.wtf {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
+-- request textDocument/codeAction packed.x.md {"end":{"character":2,"line":7},"start":{"character":2,"line":7}}
 []
 

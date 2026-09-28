@@ -1,5 +1,5 @@
-### 0 cli render daily.wtf --format text
-$ wtf render daily.wtf --format text --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli render daily.x.md --format text
+$ xmd render daily.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 # Release :release ███░░░░░ 1/3 complete · 30m estimated left
@@ -7,17 +7,17 @@ exit 0
 - [ ] Review [src.receipt] image · open preview :review @estimate(30m)
 - [ ] Publish @after(review) @due(src.departure-7d) ⊘ blocked by review · → due 2026-09-18
 [progress] := completed(release)/total(release) = 33.3333%
-src := import("./resources.wtf") = import("<root>/resources.wtf")
+src := import("./resources.x.md") = import("<root>/resources.x.md")
 
 ### 1 lsp
--- open daily.wtf
--- await textDocument/publishDiagnostics daily.wtf
+-- open daily.x.md
+-- await textDocument/publishDiagnostics daily.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/daily.wtf",
+  "uri": "file://<root>/daily.x.md",
   "version": 1
 }
--- request textDocument/inlayHint daily.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint daily.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "███░░░░░ 1/3 complete · 30m estimated left",
@@ -64,27 +64,27 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**progress · Ratio**\n\n33.3333%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 33.3333%\n```\n\nInputs: [release](<file://<root>/daily.wtf#L1>)\n\nDefinition: [progress](<file://<root>/daily.wtf#L5>) · <root>/daily.wtf:5"
+      "value": "**progress · Ratio**\n\n33.3333%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 33.3333%\n```\n\nInputs: [release](<file://<root>/daily.x.md#L1>)\n\nDefinition: [progress](<file://<root>/daily.x.md#L5>) · <root>/daily.x.md:5"
     }
   },
   {
-    "label": "= import(\"<root>/resources.wtf\")",
+    "label": "= import(\"<root>/resources.x.md\")",
     "paddingLeft": true,
     "position": {
-      "character": 32,
+      "character": 33,
       "line": 5
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**src · Namespace**\n\nimport(\"<root>/resources.wtf\")\n\n```text\nimport(\"./resources.wtf\")\n= import(\"<root>/resources.wtf\")\n```\n\nDefinition: [src](<file://<root>/daily.wtf#L6>) · <root>/daily.wtf:6"
+      "value": "**src · Namespace**\n\nimport(\"<root>/resources.x.md\")\n\n```text\nimport(\"./resources.x.md\")\n= import(\"<root>/resources.x.md\")\n```\n\nDefinition: [src](<file://<root>/daily.x.md#L6>) · <root>/daily.x.md:6"
     }
   }
 ]
--- request textDocument/hover daily.wtf 2:18
+-- request textDocument/hover daily.x.md 2:18
 {
   "contents": {
     "kind": "markdown",
-    "value": "**receipt · Resource**\n\n./receipt.png\n\n[Open resource](<file://<root>/receipt.png>)\n\n![Preview](<file://<root>/receipt.png>)\n\nDefinition: [receipt](<file://<root>/resources.wtf#L1>) · <root>/resources.wtf:1"
+    "value": "**receipt · Resource**\n\n./receipt.png\n\n[Open resource](<file://<root>/receipt.png>)\n\n![Preview](<file://<root>/receipt.png>)\n\nDefinition: [receipt](<file://<root>/resources.x.md#L1>) · <root>/resources.x.md:1"
   },
   "range": {
     "end": {
@@ -97,7 +97,7 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
     }
   }
 }
--- request textDocument/definition daily.wtf 2:18
+-- request textDocument/definition daily.x.md 2:18
 {
   "range": {
     "end": {
@@ -109,9 +109,9 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
       "line": 0
     }
   },
-  "uri": "file://<root>/resources.wtf"
+  "uri": "file://<root>/resources.x.md"
 }
--- request textDocument/documentLink daily.wtf
+-- request textDocument/documentLink daily.x.md
 [
   {
     "range": {
@@ -128,7 +128,7 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
     "tooltip": "Open file://<root>/receipt.png"
   }
 ]
--- request textDocument/rename daily.wtf 2:18
+-- request textDocument/rename daily.x.md 2:18
 {
   "documentChanges": [
     {
@@ -148,7 +148,7 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/daily.wtf",
+        "uri": "file://<root>/daily.x.md",
         "version": 1
       }
     },
@@ -169,13 +169,13 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
         }
       ],
       "textDocument": {
-        "uri": "file://<root>/resources.wtf",
+        "uri": "file://<root>/resources.x.md",
         "version": null
       }
     }
   ]
 }
--- request textDocument/codeAction daily.wtf {"end":{"character":0,"line":2},"start":{"character":0,"line":2}}
+-- request textDocument/codeAction daily.x.md {"end":{"character":0,"line":2},"start":{"character":0,"line":2}}
 [
   {
     "edit": {
@@ -210,7 +210,7 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
             }
           ],
           "textDocument": {
-            "uri": "file://<root>/daily.wtf",
+            "uri": "file://<root>/daily.x.md",
             "version": 1
           }
         }
@@ -220,20 +220,20 @@ src := import("./resources.wtf") = import("<root>/resources.wtf")
     "title": "✓ done"
   }
 ]
--- change daily.wtf (version 2)
+-- change daily.x.md (version 2)
 # Release :release
 - [x] Parser
 - [x] Review [src.receipt] :review @estimate(30m) @completed(2026-09-16)
 - [ ] Publish @after(review) @due(src.departure-7d)
 [progress] := completed(release)/total(release)
-src := import("./resources.wtf")
--- await textDocument/publishDiagnostics daily.wtf
+src := import("./resources.x.md")
+-- await textDocument/publishDiagnostics daily.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/daily.wtf",
+  "uri": "file://<root>/daily.x.md",
   "version": 2
 }
--- request textDocument/inlayHint daily.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint daily.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "█████░░░ 2/3 complete",
@@ -280,26 +280,26 @@ src := import("./resources.wtf")
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**progress · Ratio**\n\n66.6667%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 66.6667%\n```\n\nInputs: [release](<file://<root>/daily.wtf#L1>)\n\nDefinition: [progress](<file://<root>/daily.wtf#L5>) · <root>/daily.wtf:5"
+      "value": "**progress · Ratio**\n\n66.6667%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 66.6667%\n```\n\nInputs: [release](<file://<root>/daily.x.md#L1>)\n\nDefinition: [progress](<file://<root>/daily.x.md#L5>) · <root>/daily.x.md:5"
     }
   },
   {
-    "label": "= import(\"<root>/resources.wtf\")",
+    "label": "= import(\"<root>/resources.x.md\")",
     "paddingLeft": true,
     "position": {
-      "character": 32,
+      "character": 33,
       "line": 5
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**src · Namespace**\n\nimport(\"<root>/resources.wtf\")\n\n```text\nimport(\"./resources.wtf\")\n= import(\"<root>/resources.wtf\")\n```\n\nDefinition: [src](<file://<root>/daily.wtf#L6>) · <root>/daily.wtf:6"
+      "value": "**src · Namespace**\n\nimport(\"<root>/resources.x.md\")\n\n```text\nimport(\"./resources.x.md\")\n= import(\"<root>/resources.x.md\")\n```\n\nDefinition: [src](<file://<root>/daily.x.md#L6>) · <root>/daily.x.md:6"
     }
   }
 ]
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/resources.wtf"}]}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/resources.x.md"}]}
 -- await workspace/inlayHint/refresh
 null
--- request textDocument/inlayHint daily.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint daily.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "█████░░░ 2/3 complete",
@@ -346,34 +346,34 @@ null
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**progress · Ratio**\n\n66.6667%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 66.6667%\n```\n\nInputs: [release](<file://<root>/daily.wtf#L1>)\n\nDefinition: [progress](<file://<root>/daily.wtf#L5>) · <root>/daily.wtf:5"
+      "value": "**progress · Ratio**\n\n66.6667%\n\n```text\ncompleted(release)/total(release)\n= completed(3 tasks)/total(3 tasks)\n= 66.6667%\n```\n\nInputs: [release](<file://<root>/daily.x.md#L1>)\n\nDefinition: [progress](<file://<root>/daily.x.md#L5>) · <root>/daily.x.md:5"
     }
   },
   {
-    "label": "= import(\"<root>/resources.wtf\")",
+    "label": "= import(\"<root>/resources.x.md\")",
     "paddingLeft": true,
     "position": {
-      "character": 32,
+      "character": 33,
       "line": 5
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**src · Namespace**\n\nimport(\"<root>/resources.wtf\")\n\n```text\nimport(\"./resources.wtf\")\n= import(\"<root>/resources.wtf\")\n```\n\nDefinition: [src](<file://<root>/daily.wtf#L6>) · <root>/daily.wtf:6"
+      "value": "**src · Namespace**\n\nimport(\"<root>/resources.x.md\")\n\n```text\nimport(\"./resources.x.md\")\n= import(\"<root>/resources.x.md\")\n```\n\nDefinition: [src](<file://<root>/daily.x.md#L6>) · <root>/daily.x.md:6"
     }
   }
 ]
 -- request shutdown null
 null
 
-### 2 read daily.wtf resources.wtf
--- daily.wtf
+### 2 read daily.x.md resources.x.md
+-- daily.x.md
 # Release :release
 - [x] Parser
 - [ ] Review [src.receipt] :review @estimate(30m)
 - [ ] Publish @after(review) @due(src.departure-7d)
 [progress] := completed(release)/total(release)
-src := import("./resources.wtf")
--- resources.wtf
+src := import("./resources.x.md")
+-- resources.x.md
 [./receipt.png]:receipt
 [2026-09-25]:departure
 

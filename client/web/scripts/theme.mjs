@@ -18,9 +18,9 @@ function onLight(hex) {
   const [R, G, B] = [[c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x]][Math.floor(h)];
   return "#" + [R, G, B].map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
 }
-const lightCss = rules.map(rule => `.wtf-light .wtf .t-${rule.token_type}${(rule.token_modifiers || []).map(m => `.${m}`).join("")} { color: ${onLight(rule.foreground_color)}; }`).join("\n");
+const lightCss = rules.map(rule => `.xmd-light .xmd .t-${rule.token_type}${(rule.token_modifiers || []).map(m => `.${m}`).join("")} { color: ${onLight(rule.foreground_color)}; }`).join("\n");
 const css = rules.map(rule => {
-  const selector = `.wtf .t-${rule.token_type}${(rule.token_modifiers || []).map(m => `.${m}`).join("")}`;
+  const selector = `.xmd .t-${rule.token_type}${(rule.token_modifiers || []).map(m => `.${m}`).join("")}`;
   const properties = [`color: ${rule.foreground_color}`];
   if (rule.font_weight) properties.push(`font-weight: ${rule.font_weight}`);
   if (rule.font_style) properties.push(`font-style: ${rule.font_style}`);
@@ -29,4 +29,4 @@ const css = rules.map(rule => {
   return `${selector} { ${properties.join("; ")}; }`;
 }).join("\n");
 await writeFile(new URL("style.css", theme), `${await readFile(new URL("base.css", theme), "utf8")}\n${css}\n${lightCss}\n${await readFile(new URL("print.css", theme), "utf8")}`);
-await writeFile(new URL("../../ide/zed/languages/wtf/semantic_token_rules.json", import.meta.url), await readFile(new URL("palette.json", theme)));
+await writeFile(new URL("../../ide/zed/languages/xmd/semantic_token_rules.json", import.meta.url), await readFile(new URL("palette.json", theme)));

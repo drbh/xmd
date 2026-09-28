@@ -3,123 +3,123 @@
     {
       "lsp": [
         {
-          "open": "checkbox.wtf"
+          "open": "checkbox.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "checkbox.wtf"
+          "file": "checkbox.x.md"
         },
         {
-          "open": "checklists.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "checklists.wtf"
-        },
-        {
-          "open": "codeword.wtf"
+          "open": "checklists.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "codeword.wtf"
+          "file": "checklists.x.md"
         },
         {
-          "open": "crlf_only.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "crlf_only.wtf"
-        },
-        {
-          "open": "empty.wtf"
+          "open": "codeword.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "empty.wtf"
+          "file": "codeword.x.md"
         },
         {
-          "open": "functions.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "functions.wtf"
-        },
-        {
-          "open": "functions_crlf.wtf"
+          "open": "crlf_only.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "functions_crlf.wtf"
+          "file": "crlf_only.x.md"
         },
         {
-          "open": "halftable.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "halftable.wtf"
-        },
-        {
-          "open": "inert.wtf"
+          "open": "empty.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "inert.wtf"
+          "file": "empty.x.md"
         },
         {
-          "open": "itinerary.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "itinerary.wtf"
-        },
-        {
-          "open": "kinds.wtf"
+          "open": "functions.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "kinds.wtf"
+          "file": "functions.x.md"
         },
         {
-          "open": "links.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "links.wtf"
-        },
-        {
-          "open": "malformed.wtf"
+          "open": "functions_crlf.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "malformed.wtf"
+          "file": "functions_crlf.x.md"
         },
         {
-          "open": "prose.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "prose.wtf"
-        },
-        {
-          "open": "tables.wtf"
+          "open": "halftable.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "tables.wtf"
+          "file": "halftable.x.md"
         },
         {
-          "open": "unclosed_string.wtf"
-        },
-        {
-          "request": "textDocument/semanticTokens/full",
-          "file": "unclosed_string.wtf"
-        },
-        {
-          "open": "unterminated.wtf"
+          "open": "inert.x.md"
         },
         {
           "request": "textDocument/semanticTokens/full",
-          "file": "unterminated.wtf"
+          "file": "inert.x.md"
+        },
+        {
+          "open": "itinerary.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "itinerary.x.md"
+        },
+        {
+          "open": "kinds.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "kinds.x.md"
+        },
+        {
+          "open": "links.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "links.x.md"
+        },
+        {
+          "open": "malformed.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "malformed.x.md"
+        },
+        {
+          "open": "prose.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "prose.x.md"
+        },
+        {
+          "open": "tables.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "tables.x.md"
+        },
+        {
+          "open": "unclosed_string.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "unclosed_string.x.md"
+        },
+        {
+          "open": "unterminated.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "unterminated.x.md"
         }
       ]
     }

@@ -24,7 +24,7 @@ pub(crate) use eval::Clock as QueryContext;
 pub(crate) use eval::modules::Collection;
 pub(crate) use record::{Record, source};
 
-/// The `kind` field every catalog record carries. Queries and .wtf modules
+/// The `kind` field every catalog record carries. Queries and .x.md modules
 /// match on these names, so they are part of the workspace's data contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, strum::IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]

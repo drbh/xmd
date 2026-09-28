@@ -1,17 +1,17 @@
 ### 0 lsp
--- open links.wtf
--- await textDocument/publishDiagnostics links.wtf
+-- open links.x.md
+-- await textDocument/publishDiagnostics links.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/links.wtf",
+  "uri": "file://<root>/links.x.md",
   "version": 1
 }
--- request textDocument/documentLink links.wtf
+-- request textDocument/documentLink links.x.md
 [
   {
     "range": {
       "end": {
-        "character": 16,
+        "character": 17,
         "line": 0
       },
       "start": {
@@ -19,17 +19,17 @@
         "line": 0
       }
     },
-    "target": "file://<root>/packing.wtf",
-    "tooltip": "Open file://<root>/packing.wtf"
+    "target": "file://<root>/packing.x.md",
+    "tooltip": "Open file://<root>/packing.x.md"
   },
   {
     "range": {
       "end": {
-        "character": 45,
+        "character": 46,
         "line": 0
       },
       "start": {
-        "character": 21,
+        "character": 22,
         "line": 0
       }
     },
@@ -37,15 +37,15 @@
     "tooltip": "Open https://example.com/docs"
   }
 ]
--- request textDocument/hover links.wtf 0:4
+-- request textDocument/hover links.x.md 0:4
 {
   "contents": {
     "kind": "markdown",
-    "value": "[Open resource](<file://<root>/packing.wtf>)"
+    "value": "[Open resource](<file://<root>/packing.x.md>)"
   },
   "range": {
     "end": {
-      "character": 16,
+      "character": 17,
       "line": 0
     },
     "start": {
@@ -54,37 +54,37 @@
     }
   }
 }
--- request textDocument/semanticTokens/full links.wtf
-0:3+13 wtfLink "./packing.wtf"
-0:21+24 wtfLink "https://example.com/docs"
-1:0+1 wtfPunctuation "["
+-- request textDocument/semanticTokens/full links.x.md
+0:3+14 xmdLink "./packing.x.md"
+0:22+24 xmdLink "https://example.com/docs"
+1:0+1 xmdPunctuation "["
 1:1+5 variable [declaration] "focus"
-1:6+1 wtfPunctuation "]"
+1:6+1 xmdPunctuation "]"
 1:8+2 operator ":="
 1:11+9 function [defaultLibrary] "countdown"
-1:20+1 wtfPunctuation "("
-1:21+3 wtfDuration "25m"
-1:24+1 wtfPunctuation ")"
-2:0+1 wtfPunctuation "-"
-2:2+3 wtfCheckbox "[ ]"
-2:16+10 wtfDate "09/17/2026"
-2:30+3 wtfTime "7AM"
--- change links.wtf (version 2)
-🦀 ./other.wtf
+1:20+1 xmdPunctuation "("
+1:21+3 xmdDuration "25m"
+1:24+1 xmdPunctuation ")"
+2:0+1 xmdPunctuation "-"
+2:2+3 xmdCheckbox "[ ]"
+2:16+10 xmdDate "09/17/2026"
+2:30+3 xmdTime "7AM"
+-- change links.x.md (version 2)
+🦀 ./other.x.md
 [focus] := $3.30
 - [x] Interview 09/17/2026 at 7AM
--- await textDocument/publishDiagnostics links.wtf
+-- await textDocument/publishDiagnostics links.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/links.wtf",
+  "uri": "file://<root>/links.x.md",
   "version": 2
 }
--- request textDocument/documentLink links.wtf
+-- request textDocument/documentLink links.x.md
 [
   {
     "range": {
       "end": {
-        "character": 14,
+        "character": 15,
         "line": 0
       },
       "start": {
@@ -92,28 +92,28 @@
         "line": 0
       }
     },
-    "target": "file://<root>/other.wtf",
-    "tooltip": "Open file://<root>/other.wtf"
+    "target": "file://<root>/other.x.md",
+    "tooltip": "Open file://<root>/other.x.md"
   }
 ]
--- request textDocument/semanticTokens/full links.wtf
-0:3+11 wtfLink "./other.wtf"
-1:0+1 wtfPunctuation "["
+-- request textDocument/semanticTokens/full links.x.md
+0:3+12 xmdLink "./other.x.md"
+1:0+1 xmdPunctuation "["
 1:1+5 variable [declaration] "focus"
-1:6+1 wtfPunctuation "]"
+1:6+1 xmdPunctuation "]"
 1:8+2 operator ":="
-1:11+5 wtfMoney "$3.30"
-2:0+1 wtfPunctuation "-"
-2:2+3 wtfCheckboxChecked "[x]"
-2:5+28 wtfTaskDone " Interview 09/17/2026 at 7AM"
--- open symbols.wtf
--- await textDocument/publishDiagnostics symbols.wtf
+1:11+5 xmdMoney "$3.30"
+2:0+1 xmdPunctuation "-"
+2:2+3 xmdCheckboxChecked "[x]"
+2:5+28 xmdTaskDone " Interview 09/17/2026 at 7AM"
+-- open symbols.x.md
+-- await textDocument/publishDiagnostics symbols.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/symbols.wtf",
+  "uri": "file://<root>/symbols.x.md",
   "version": 1
 }
--- request textDocument/documentSymbol symbols.wtf
+-- request textDocument/documentSymbol symbols.x.md
 [
   {
     "children": [
@@ -297,7 +297,7 @@
     }
   }
 ]
--- change symbols.wtf (version 2)
+-- change symbols.x.md (version 2)
 # Trip
 [$3,000]:budget
 ## Cash
@@ -305,13 +305,13 @@
 - [ ] Pack :pack
   - [x] Passport
 [timer] := countdown(25m)
--- await textDocument/publishDiagnostics symbols.wtf
+-- await textDocument/publishDiagnostics symbols.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/symbols.wtf",
+  "uri": "file://<root>/symbols.x.md",
   "version": 2
 }
--- request textDocument/documentSymbol symbols.wtf
+-- request textDocument/documentSymbol symbols.x.md
 [
   {
     "children": [
@@ -495,14 +495,14 @@
     }
   }
 ]
--- open prose.wtf
--- await textDocument/publishDiagnostics prose.wtf
+-- open prose.x.md
+-- await textDocument/publishDiagnostics prose.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/prose.wtf",
+  "uri": "file://<root>/prose.x.md",
   "version": 1
 }
--- request textDocument/inlayHint prose.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint prose.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= $556",
@@ -513,7 +513,7 @@
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.x.md#L3>), [trip_spent](<file://<root>/prose.x.md#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.x.md#L7>) · <root>/prose.x.md:7"
     }
   },
   {
@@ -525,11 +525,11 @@
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+      "value": "**trip_left · Money**\n\n$556\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $2,444\n= $556\n```\n\nInputs: [trip_budget](<file://<root>/prose.x.md#L3>), [trip_spent](<file://<root>/prose.x.md#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.x.md#L7>) · <root>/prose.x.md:7"
     }
   }
 ]
--- change prose.wtf (version 2)
+-- change prose.x.md (version 2)
 # Trip
 
 Our budget is [$3,000]:trip_budget.
@@ -539,13 +539,13 @@ We've spent [$1,410]:trip_spent.
 [trip_left] := trip_budget - trip_spent
 
 We have [trip_left] remaining.
--- await textDocument/publishDiagnostics prose.wtf
+-- await textDocument/publishDiagnostics prose.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/prose.wtf",
+  "uri": "file://<root>/prose.x.md",
   "version": 2
 }
--- request textDocument/inlayHint prose.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint prose.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "= $1,590",
@@ -556,7 +556,7 @@ We have [trip_left] remaining.
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.x.md#L3>), [trip_spent](<file://<root>/prose.x.md#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.x.md#L7>) · <root>/prose.x.md:7"
     }
   },
   {
@@ -568,17 +568,17 @@ We have [trip_left] remaining.
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.wtf#L3>), [trip_spent](<file://<root>/prose.wtf#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.wtf#L7>) · <root>/prose.wtf:7"
+      "value": "**trip_left · Money**\n\n$1,590\n\n```text\ntrip_budget - trip_spent\n= $3,000 - $1,410\n= $1,590\n```\n\nInputs: [trip_budget](<file://<root>/prose.x.md#L3>), [trip_spent](<file://<root>/prose.x.md#L5>)\n\nDefinition: [trip_left](<file://<root>/prose.x.md#L7>) · <root>/prose.x.md:7"
     }
   }
 ]
 
-### 1 read links.wtf symbols.wtf prose.wtf
--- links.wtf
-🦀 ./packing.wtf and https://example.com/docs.
+### 1 read links.x.md symbols.x.md prose.x.md
+-- links.x.md
+🦀 ./packing.x.md and https://example.com/docs.
 [focus] := countdown(25m)
 - [ ] Interview 09/17/2026 at 7AM
--- symbols.wtf
+-- symbols.x.md
 # Trip
 [$3,000]:budget
 ## Money
@@ -586,7 +586,7 @@ We have [trip_left] remaining.
 - [ ] Pack :pack
   - [x] Passport
 [timer] := countdown(25m)
--- prose.wtf
+-- prose.x.md
 # Trip
 
 Our budget is [$3,000]:trip_budget.
@@ -598,8 +598,8 @@ We've spent [$2,444]:trip_spent.
 We have [trip_left] remaining.
 
 ### 2 lsp capabilities {}
--- open flat.wtf
--- request textDocument/documentSymbol flat.wtf
+-- open flat.x.md
+-- request textDocument/documentSymbol flat.x.md
 [
   {
     "kind": 3,
@@ -614,7 +614,7 @@ We have [trip_left] remaining.
           "line": 0
         }
       },
-      "uri": "file://<root>/flat.wtf"
+      "uri": "file://<root>/flat.x.md"
     },
     "name": "Flat"
   },
@@ -632,7 +632,7 @@ We have [trip_left] remaining.
           "line": 1
         }
       },
-      "uri": "file://<root>/flat.wtf"
+      "uri": "file://<root>/flat.x.md"
     },
     "name": "answer"
   },
@@ -650,7 +650,7 @@ We have [trip_left] remaining.
           "line": 2
         }
       },
-      "uri": "file://<root>/flat.wtf"
+      "uri": "file://<root>/flat.x.md"
     },
     "name": "Packing"
   },
@@ -668,40 +668,40 @@ We have [trip_left] remaining.
           "line": 3
         }
       },
-      "uri": "file://<root>/flat.wtf"
+      "uri": "file://<root>/flat.x.md"
     },
     "name": "Passport"
   }
 ]
 
 ### 3 cli query --workspace notes | select {title} | sort title --json
-$ wtf query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
+$ xmd query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
   {
-    "title": "flat.wtf"
+    "title": "flat.x.md"
   },
   {
-    "title": "links.wtf"
+    "title": "links.x.md"
   },
   {
-    "title": "prose.wtf"
+    "title": "prose.x.md"
   },
   {
-    "title": "symbols.wtf"
+    "title": "symbols.x.md"
   }
 ]
 
 ### 4 lsp
--- open ignored/TODOS.wtf
--- await textDocument/publishDiagnostics ignored/TODOS.wtf
+-- open ignored/TODOS.x.md
+-- await textDocument/publishDiagnostics ignored/TODOS.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/ignored/TODOS.wtf",
+  "uri": "file://<root>/ignored/TODOS.x.md",
   "version": 1
 }
--- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint ignored/TODOS.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "████░░░░ 1/2 complete · 20m estimated left",
@@ -736,7 +736,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**done · Count**\n\n1\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+      "value": "**done · Count**\n\n1\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.x.md#L8>) · <root>/ignored/TODOS.x.md:8"
     }
   },
   {
@@ -748,7 +748,7 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**left · Count**\n\n1\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+      "value": "**left · Count**\n\n1\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 1\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.x.md#L9>) · <root>/ignored/TODOS.x.md:9"
     }
   },
   {
@@ -760,45 +760,45 @@ exit 0
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**work · Duration**\n\n20m\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 20m\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+      "value": "**work · Duration**\n\n20m\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 20m\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.x.md#L10>) · <root>/ignored/TODOS.x.md:10"
     }
   }
 ]
--- request textDocument/semanticTokens/full ignored/TODOS.wtf
-0:0+1 wtfPunctuation "#"
+-- request textDocument/semanticTokens/full ignored/TODOS.x.md
+0:0+1 xmdPunctuation "#"
 0:1+6 heading " Notes"
-2:0+2 wtfPunctuation "##"
+2:0+2 xmdPunctuation "##"
 2:2+11 heading " Checklist "
-2:13+1 wtfPunctuation ":"
+2:13+1 xmdPunctuation ":"
 2:14+6 variable [declaration] "launch"
-4:0+1 wtfPunctuation "-"
-4:2+3 wtfCheckbox "[ ]"
+4:0+1 xmdPunctuation "-"
+4:2+3 xmdCheckbox "[ ]"
 4:12+9 decorator "@estimate"
-4:21+1 wtfPunctuation "("
-4:22+3 wtfDuration "20m"
-4:25+1 wtfPunctuation ")"
-5:0+1 wtfPunctuation "-"
-5:2+3 wtfCheckboxChecked "[X]"
-5:5+9 wtfTaskDone " Finished"
+4:21+1 xmdPunctuation "("
+4:22+3 xmdDuration "20m"
+4:25+1 xmdPunctuation ")"
+5:0+1 xmdPunctuation "-"
+5:2+3 xmdCheckboxChecked "[X]"
+5:5+9 xmdTaskDone " Finished"
 7:0+4 variable [declaration] "done"
 7:4+3 operator " :="
 7:8+9 function [defaultLibrary] "completed"
-7:17+1 wtfPunctuation "("
+7:17+1 xmdPunctuation "("
 7:18+6 variable "launch"
-7:24+1 wtfPunctuation ")"
+7:24+1 xmdPunctuation ")"
 8:0+4 variable [declaration] "left"
 8:4+3 operator " :="
 8:8+9 function [defaultLibrary] "remaining"
-8:17+1 wtfPunctuation "("
+8:17+1 xmdPunctuation "("
 8:18+6 variable "launch"
-8:24+1 wtfPunctuation ")"
+8:24+1 xmdPunctuation ")"
 9:0+4 variable [declaration] "work"
 9:4+3 operator " :="
 9:8+6 function [defaultLibrary] "effort"
-9:14+1 wtfPunctuation "("
+9:14+1 xmdPunctuation "("
 9:15+6 variable "launch"
-9:21+1 wtfPunctuation ")"
--- change ignored/TODOS.wtf (version 2)
+9:21+1 xmdPunctuation ")"
+-- change ignored/TODOS.x.md (version 2)
 # Notes
 
 ## Checklist :launch
@@ -809,13 +809,13 @@ exit 0
 done := completed(launch)
 left := remaining(launch)
 work := effort(launch)
--- await textDocument/publishDiagnostics ignored/TODOS.wtf
+-- await textDocument/publishDiagnostics ignored/TODOS.x.md
 {
   "diagnostics": [],
-  "uri": "file://<root>/ignored/TODOS.wtf",
+  "uri": "file://<root>/ignored/TODOS.x.md",
   "version": 2
 }
--- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- request textDocument/inlayHint ignored/TODOS.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "████████ 2/2 complete",
@@ -850,7 +850,7 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.x.md#L8>) · <root>/ignored/TODOS.x.md:8"
     }
   },
   {
@@ -862,7 +862,7 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.x.md#L9>) · <root>/ignored/TODOS.x.md:9"
     }
   },
   {
@@ -874,12 +874,12 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.x.md#L10>) · <root>/ignored/TODOS.x.md:10"
     }
   }
 ]
--- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/ignored/TODOS.wtf"}]}
--- request textDocument/inlayHint ignored/TODOS.wtf {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
+-- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/ignored/TODOS.x.md"}]}
+-- request textDocument/inlayHint ignored/TODOS.x.md {"end":{"character":0,"line":200},"start":{"character":0,"line":0}}
 [
   {
     "label": "████████ 2/2 complete",
@@ -914,7 +914,7 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.wtf#L8>) · <root>/ignored/TODOS.wtf:8"
+      "value": "**done · Count**\n\n2\n\n```text\ncompleted(launch)\n= completed(2 tasks)\n= 2\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [done](<file://<root>/ignored/TODOS.x.md#L8>) · <root>/ignored/TODOS.x.md:8"
     }
   },
   {
@@ -926,7 +926,7 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.wtf#L9>) · <root>/ignored/TODOS.wtf:9"
+      "value": "**left · Count**\n\n0\n\n```text\nremaining(launch)\n= remaining(2 tasks)\n= 0\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [left](<file://<root>/ignored/TODOS.x.md#L9>) · <root>/ignored/TODOS.x.md:9"
     }
   },
   {
@@ -938,7 +938,7 @@ work := effort(launch)
     },
     "tooltip": {
       "kind": "markdown",
-      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.wtf#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.wtf#L10>) · <root>/ignored/TODOS.wtf:10"
+      "value": "**work · Duration**\n\n0s\n\n```text\neffort(launch)\n= effort(2 tasks)\n= 0s\n```\n\nInputs: [launch](<file://<root>/ignored/TODOS.x.md#L3>)\n\nDefinition: [work](<file://<root>/ignored/TODOS.x.md#L10>) · <root>/ignored/TODOS.x.md:10"
     }
   }
 ]

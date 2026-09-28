@@ -2,9 +2,9 @@
 // engine's module worker under lib/ is in scope too. The build appends a
 // precache list and a version; the app never depends on it, it only gets
 // faster and works without a network. The API and rooms are never intercepted.
-const VERSION = self.__WTF_VERSION__ || "dev";
-const PRECACHE = self.__WTF_PRECACHE__ || [];
-const CACHE = `wtf-docs-${VERSION}`;
+const VERSION = self.__XMD_VERSION__ || "dev";
+const PRECACHE = self.__XMD_PRECACHE__ || [];
+const CACHE = `xmd-docs-${VERSION}`;
 const site = new URL(self.registration.scope); // the site root: docs/ and lib/ live beneath it
 const shell = new URL("docs/", site);
 // A navigation cannot be answered with a redirected response, and some hosts
@@ -21,7 +21,7 @@ self.addEventListener("install", event => {
 });
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key.startsWith("wtf-docs-") && key !== CACHE) await caches.delete(key);
+    for (const key of await caches.keys()) if (key.startsWith("xmd-docs-") && key !== CACHE) await caches.delete(key);
     await self.clients.claim();
   })());
 });

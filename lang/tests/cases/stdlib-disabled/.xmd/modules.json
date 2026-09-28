@@ -1,0 +1,13 @@
+[
+  "./modules/calculations.x.md",
+  "./modules/definitions.x.md",
+  "./modules/checklists.x.md",
+  "./modules/tasks.x.md",
+  "./modules/itinerary.x.md",
+  "./modules/table_cells.x.md",
+  "./modules/links.x.md",
+  "./modules/references.x.md",
+  "./modules/plans.x.md",
+  "./modules/timers.x.md",
+  "./modules/github.x.md"
+]

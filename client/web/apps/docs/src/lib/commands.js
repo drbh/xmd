@@ -1,6 +1,7 @@
 // One table drives the menu bar, the toolbar, and keyboard shortcuts, so every
 // action has the same label and shortcut wherever it appears.
 import { toggleMark, insertLink, setHeading, toggleList, indent } from "./editing.js";
+import { EXTENSION, noteFile } from "@xmd/web";
 
 export const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -17,7 +18,7 @@ const SNIPPETS = {
   comment: "<!-- note to self -->",
   rule: "\n---\n",
   date: () => `${new Date().toISOString().slice(0, 10)}:when`,
-  import: 'source := import("./other.wtf")\n',
+  import: `source := import("./${noteFile("other")}")\n`,
 };
 
 /** `ctx` is the application: it supplies the editor and app-level operations. */
@@ -31,11 +32,11 @@ export function createCommands(ctx) {
     { id: "new", menu: "File", label: "New document", shortcut: "mod+alt+n", run: ctx.newDocument },
     { id: "open", menu: "File", label: "Open…", shortcut: "mod+o", run: ctx.home },
     { id: "copy", menu: "File", label: "Make a copy", run: ctx.duplicate },
-    { id: "import", menu: "File", label: "Import .wtf files…", run: ctx.importFiles, separator: true },
+    { id: "import", menu: "File", label: `Import .${EXTENSION} files…`, run: ctx.importFiles, separator: true },
     { id: "rename", menu: "File", label: "Rename", when: writable, run: ctx.rename },
     { id: "details", menu: "File", label: "Document details", run: () => ctx.dialog("details") },
     { id: "share", menu: "File", label: "Share…", when: ctx.canShare, run: () => ctx.dialog("share"), separator: true },
-    { id: "download", menu: "File", label: "Download (.wtf)", shortcut: "mod+shift+s", run: ctx.download },
+    { id: "download", menu: "File", label: `Download (.${EXTENSION})`, shortcut: "mod+shift+s", run: ctx.download },
     { id: "print", menu: "File", label: "Print", shortcut: "mod+p", icon: "print", run: ctx.print, separator: true },
     { id: "delete", menu: "File", label: "Move to trash", run: ctx.remove, separator: true },
     // Edit

@@ -1,0 +1,7 @@
+🦀 https://builds.example/runs/42
+See [nightly](https://builds.example/runs/42).
+[https://builds.example/runs/42]:guide
+[alias] := guide
+Read [guide], [alias], and [shared].
+Ordinary https://example.com/plain
+shared := import("./other.x.md").shared

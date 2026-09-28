@@ -15,8 +15,10 @@
 //! - `http {method, url, headers?, json?, pick?}` → `{ok, status, json, text}`;
 //!   `pick` keeps only the named fields of each record in a JSON list reply,
 //!   so a listing stays within the size a module call accepts.
-//! - `read {path}` → `{ok, text}`; `list {path}` → `{ok, files}` (file names);
-//!   `write {path, text}`, `move {from, to}` and `remove {path}` → `{ok}`.
+//! - `read {path, json?}` → `{ok, text}`, or `{ok, json}` parsed when `json`
+//!   is true; `list {path}` → `{ok, files}` (file names); `write {path, text}`
+//!   or `write {path, json}` (saved as pretty JSON), `move {from, to}` and
+//!   `remove {path}` → `{ok}`.
 //!   Paths are relative to the directory the command runs in and cannot leave it.
 //! - `credential {scope, set?}` → `{ok, value}`: a secret saved per command and
 //!   scope in the user's config directory, stored when `set` is given.
@@ -120,9 +122,21 @@ pub fn run_command(
         }
         match finished {
             None => return Err(format!("{} did not finish in {MAX_STEPS} steps", module.id)),
+            // Seconds, as a number or as text such as a `--interval` flag.
             Some(Some(Value::Number(seconds))) if seconds > 0.0 => {
                 std::thread::sleep(std::time::Duration::from_secs_f64(seconds.min(86_400.0)));
             }
+            Some(Some(Value::Text(seconds))) => match seconds.trim().parse::<f64>() {
+                Ok(seconds) if seconds > 0.0 => {
+                    std::thread::sleep(std::time::Duration::from_secs_f64(seconds.min(86_400.0)));
+                }
+                _ => {
+                    return Err(format!(
+                        "{}: repeat_after must be a number of seconds",
+                        module.id
+                    ));
+                }
+            },
             Some(_) => return Ok(()),
         }
     }
@@ -169,9 +183,13 @@ impl Context<'_> {
         let outcome = match kind {
             "http" => self.http(&request),
             "read" => self.path(&request["path"]).and_then(|path| {
-                std::fs::read_to_string(&path)
-                    .map(|text| serde_json::json!({ "text": text }))
-                    .map_err(|e| e.to_string())
+                let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                if request["json"].as_bool() == Some(true) {
+                    let json: serde_json::Value = serde_json::from_str(&text)
+                        .map_err(|e| format!("{}: {e}", path.display()))?;
+                    return Ok(serde_json::json!({ "json": json }));
+                }
+                Ok(serde_json::json!({ "text": text }))
             }),
             "list" => self.path(&request["path"]).and_then(|path| {
                 let mut files: Vec<String> = std::fs::read_dir(&path)
@@ -184,7 +202,13 @@ impl Context<'_> {
                 Ok(serde_json::json!({ "files": files }))
             }),
             "write" => self.path(&request["path"]).and_then(|path| {
-                let text = request["text"].as_str().ok_or("write needs text")?;
+                let text = match (&request["text"], &request["json"]) {
+                    (serde_json::Value::String(text), _) => text.clone(),
+                    (_, json) if !json.is_null() => {
+                        serde_json::to_string_pretty(json).map_err(|e| e.to_string())? + "\n"
+                    }
+                    _ => return Err("write needs text or json".into()),
+                };
                 if let Some(parent) = path.parent() {
                     std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
                 }

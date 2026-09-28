@@ -25,3 +25,8 @@ sw = sw.replace(/^self\.__XMD_PRECACHE__ = (\[.*\]);$/m, (_, list) => `self.__XM
 sw = sw.replace(/^self\.__XMD_VERSION__ = "([^"]+)";$/m, (_, v) => `self.__XMD_VERSION__ = ${JSON.stringify(createHash("sha256").update(v).update(extra.join("\n")).digest("hex").slice(0, 12))};`);
 await writeFile(swPath, sw);
 console.log("Cloud backend module bundled to client/web/dist/docs/backend.js and precached");
+// The sync plugin is served beside the site, so `xmd run` can be pointed at a
+// downloaded copy; the core command line knows nothing about this service.
+const { copyFile } = await import("node:fs/promises");
+await copyFile(new URL("sync.x.md", import.meta.url), new URL("../dist/sync.x.md", import.meta.url));
+console.log("Sync plugin copied to client/web/dist/sync.x.md");

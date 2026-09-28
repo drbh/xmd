@@ -807,7 +807,6 @@ dependencies = [
  "chrono",
  "clap",
  "common",
- "diffy",
  "eval",
  "features",
  "host",

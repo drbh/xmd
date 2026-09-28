@@ -170,7 +170,10 @@ fn core_does_no_io() {
             }
         }
     }
-    assert!(checked >= 4, "expected the lang/core crates, found {checked}");
+    assert!(
+        checked >= 4,
+        "expected the lang/core crates, found {checked}"
+    );
 }
 
 /// Removes every `start ... end` span from `s`, including the delimiters.

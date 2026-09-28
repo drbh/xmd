@@ -1,11 +1,10 @@
-//! The native hosts: the command line and the language server over stdio,
-//! plus the sync helper they share. `xmd`'s `native` feature pulls this in
+//! The native hosts: the command line and the language server over stdio.
+//! `xmd`'s `native` feature pulls this in
 //! and its `main.rs` is a one-liner calling [`main`]. Exposes its interface
 //! from the root.
 
 mod cli;
 mod editor;
-mod sync;
 
 use clap::{CommandFactory, Parser};
 use cli::{Cli, Command};

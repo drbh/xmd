@@ -8,7 +8,6 @@ publish = false
 chrono = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 common = { path = "../../lang/core/common" }
-diffy = "0.4"
 eval = { path = "../../lang/core/eval" }
 features = { path = "../features", features = ["native"] }
 host = { path = "../host" }

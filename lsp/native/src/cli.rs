@@ -56,11 +56,9 @@ pub(crate) enum Command {
         #[arg(long, default_value = ".")]
         root: PathBuf,
     },
-    /// Keep a directory of notes in step with a folder in the web app.
-    Sync(crate::sync::SyncOptions),
     /// Run a command module: its id among --root's activated modules, or a path to its file.
     #[command(
-        after_help = concat!("The command works inside DIRECTORY (default .) and can only read and write there.\nExamples: xmd run ./plugins/sync.", common::note_extension!(), " ./notes --url https://xmd.example.com\n          xmd run sync ./notes --root .")
+        after_help = concat!("The command works inside DIRECTORY (default .) and can only read and write there.\nExamples: xmd run ./sync.", common::note_extension!(), " ./notes --url https://xmd.example.com\n          xmd run sync ./notes --root .")
     )]
     Run {
         /// The command module's id, or a path to its file.
@@ -195,7 +193,6 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
         Command::Render(options) => render_command(options),
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
-        Command::Sync(options) => crate::sync::run(options),
         Command::Run { module, args, root } => run_module(&module, &args, &root),
         Command::Refresh { root } => {
             let mut workspace = load(root)?;

@@ -1,5 +1,5 @@
-// `xmd sync` against wrangler dev: push, pull, merge, conflict, delete.
-// Needs the CLI built (cargo build); skipped otherwise.
+// The sync plugin (`xmd run sync.x.md`) against wrangler dev: push, pull,
+// merge, conflict, delete. Needs the CLI built (cargo build); skipped otherwise.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const PORT = 8792, BASE = `http://127.0.0.1:${PORT}`;
 const XMD = fileURLToPath(new URL("../../../../target/debug/xmd", import.meta.url));
+const PLUGIN = fileURLToPath(new URL("../sync.x.md", import.meta.url));
 const user = "sync@example.com";
 let server;
 const api = (path, options = {}) => fetch(`${BASE}${path}`, { ...options, headers: { "x-dev-user": user, "content-type": "application/json", accept: "application/json" }, body: options.body && JSON.stringify(options.body) }).then(r => r.json());
@@ -29,9 +30,9 @@ before(async t => {
 });
 after(() => { server?.kill("SIGTERM"); });
 
-test("xmd sync mirrors a directory with a folder, merging and flagging conflicts", { skip: !existsSync(XMD) }, async () => {
+test("the sync plugin mirrors a directory with a folder, merging and flagging conflicts", { skip: !existsSync(XMD) }, async () => {
   const dir = mkdtempSync(join(tmpdir(), "xmd-sync-")), config = mkdtempSync(join(tmpdir(), "xmd-config-"));
-  const sync = (...args) => execFileSync(XMD, ["sync", dir, ...args], { env: { ...process.env, XDG_CONFIG_HOME: config }, encoding: "utf8" });
+  const sync = (...args) => execFileSync(XMD, ["run", PLUGIN, dir, ...args], { env: { ...process.env, XDG_CONFIG_HOME: config }, encoding: "utf8" });
   const { key } = await api("/api/keys", { method: "POST", body: { name: "test" } });
   const folderName = `Synced ${Date.now()}`;
   writeFileSync(join(dir, "Budget.x.md"), "# Budget\n\nrent := $900\n\nfood := $200\n");

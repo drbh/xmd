@@ -27,7 +27,7 @@ pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<Stri
     )
 }
 
-/// HTML-specific work lives in lang/lsp/renderer; this adapter gathers engine data.
+/// HTML-specific work lives in lsp/renderer; this adapter gathers engine data.
 pub fn fragment(
     doc: &Document,
     hints: &[InlayHint],

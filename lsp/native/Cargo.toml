@@ -7,12 +7,12 @@ publish = false
 [dependencies]
 chrono = { workspace = true }
 clap = { version = "4", features = ["derive"] }
-common = { path = "../../core/common" }
+common = { path = "../../lang/core/common" }
 diffy = "0.4"
-eval = { path = "../../core/eval", features = ["native"] }
+eval = { path = "../../lang/core/eval", features = ["native"] }
 features = { path = "../features", features = ["native"] }
 lsp-types = { workspace = true }
-model = { path = "../../core/model" }
+model = { path = "../../lang/core/model" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }

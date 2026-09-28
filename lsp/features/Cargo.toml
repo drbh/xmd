@@ -9,15 +9,15 @@ native = ["eval/native"]
 
 [dependencies]
 chrono = { workspace = true }
-common = { path = "../../core/common" }
-eval = { path = "../../core/eval" }
+common = { path = "../../lang/core/common" }
+eval = { path = "../../lang/core/eval" }
 lsp-types = { workspace = true }
-model = { path = "../../core/model" }
+model = { path = "../../lang/core/model" }
 renderer = { path = "../renderer" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 strum = { workspace = true }
-syntax = { path = "../../core/syntax" }
+syntax = { path = "../../lang/core/syntax" }
 url = { workspace = true }
 
 [lints]

@@ -1,12 +1,13 @@
 # The language, split into layered crates. lang/core is the language itself
-# (common, syntax, model, eval); lang/lsp is everything built on it for editors
-# and hosts (features, native, wasm, the renderer shared with the web client,
-# and the xmd facade and binary); lang/stdlib is the .x.md library on top.
+# (common, syntax, model, eval) and lang/stdlib is the .x.md library on top;
+# lsp, beside lang, is everything built on it for editors and hosts (features,
+# native, wasm, the renderer shared with the web client, and the xmd facade and
+# binary).
 # `client/ide/zed` is a crate too, but it targets wasm32-wasip2 and keeps its
 # own lockfile, so it stays out of this workspace.
 [workspace]
-members = ["lang/lsp", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "lang/lsp/features", "lang/lsp/native", "lang/lsp/wasm", "lang/lsp/renderer"]
-default-members = ["lang/lsp"]
+members = ["lsp", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "lsp/features", "lsp/native", "lsp/wasm", "lsp/renderer"]
+default-members = ["lsp"]
 exclude = ["client/ide/zed"]
 resolver = "3"
 
@@ -27,7 +28,7 @@ url = { version = "2", features = ["serde"] }
 # Each crate may depend only on the internal crates listed for it. Pipeline
 # order: syntax -> model -> eval -> features -> hosts; common is the shared
 # kernel every crate may use, and renderer is a leaf features builds on.
-# Enforced by lang/lsp/tests/architecture.rs.
+# Enforced by lsp/tests/architecture.rs.
 [workspace.metadata.layers]
 common = []
 syntax = ["common"]

@@ -56,10 +56,10 @@ jobs:
             echo "::error::tag '$tag' does not start with v" >&2
             exit 1
           fi
-          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' lang/lsp/Cargo.toml | head -n1)
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' lsp/Cargo.toml | head -n1)
           vscode=$(node -p 'require("./client/ide/vscode/package.json").version')
           zed=$(sed -n 's/^version = "\(.*\)"/\1/p' client/ide/zed/extension.toml | head -n1)
-          echo "tag $tag; lang/lsp/Cargo.toml $crate; vscode $vscode; zed $zed"
+          echo "tag $tag; lsp/Cargo.toml $crate; vscode $vscode; zed $zed"
           for found in "$crate" "$vscode" "$zed"; do
             if [ "$found" != "$version" ]; then
               echo "::error::tag $tag does not match version $found; bump the manifests first" >&2

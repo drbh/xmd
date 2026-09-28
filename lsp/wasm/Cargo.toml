@@ -9,14 +9,14 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 chrono = { workspace = true }
-common = { path = "../../core/common" }
-eval = { path = "../../core/eval" }
+common = { path = "../../lang/core/common" }
+eval = { path = "../../lang/core/eval" }
 features = { path = "../features" }
 lsp-types = { workspace = true }
-model = { path = "../../core/model" }
+model = { path = "../../lang/core/model" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-syntax = { path = "../../core/syntax" }
+syntax = { path = "../../lang/core/syntax" }
 url = { workspace = true }
 wasm-bindgen = "0.2"
 

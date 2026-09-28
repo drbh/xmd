@@ -50,7 +50,7 @@ fn crates_only_depend_on_allowed_layers() {
 #[test]
 fn facade_only_re_exports() {
     let source = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"))
-        .expect("read lang/lsp/src/lib.rs");
+        .expect("read lsp/src/lib.rs");
 
     // Strip doc/line comments, attributes, and `pub use ...;` items (which
     // may span multiple lines); anything left over is something other than
@@ -65,7 +65,7 @@ fn facade_only_re_exports() {
 
     assert!(
         without_use.trim().is_empty(),
-        "lang/lsp/src/lib.rs (the xmd facade) must contain only doc comments, attributes and `pub use` \
+        "lsp/src/lib.rs (the xmd facade) must contain only doc comments, attributes and `pub use` \
          items; found leftover content: {:?}",
         without_use.trim()
     );

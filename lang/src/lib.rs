@@ -13,10 +13,8 @@
 //!
 //! What this crate exposes is only what a host binary or the test harness
 //! needs by name: [`byte_at`] and [`actions`] from the pipeline, and the
-//! host entry points [`command_reference`] and `browser`.
+//! browser host as `browser`.
 pub use features::actions;
 pub use model::byte_at;
-#[cfg(feature = "native")]
-pub use native::command_reference;
 #[cfg(feature = "browser")]
 pub use wasm as browser;

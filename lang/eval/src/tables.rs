@@ -26,7 +26,7 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> EvalResult<Symbol> {
     for _ in 0..64 {
         let doc = &ws.documents[&symbol.path];
         if let SymbolKind::Definition(index) = symbol.kind {
-            if doc.tables.iter().any(|t| t.definition == index) {
+            if doc.table_of(index).is_some() {
                 return Ok(symbol);
             }
             let def = &doc.definitions[index];
@@ -45,10 +45,7 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> EvalResult<Symbol> {
 }
 pub fn table<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<&'a Table> {
     if let SymbolKind::Definition(index) = symbol.kind {
-        ws.documents[&symbol.path]
-            .tables
-            .iter()
-            .find(|t| t.definition == index)
+        ws.documents[&symbol.path].table_of(index)
     } else {
         None
     }
@@ -73,10 +70,7 @@ pub fn resolve_reference(ws: &Workspace, path: &Path, reference: &Reference) -> 
         .filter(|(_, c)| c.name == reference.name)
         .collect();
     match matches.as_slice() {
-        [(column, _)] => Ok(Symbol {
-            path: target.path,
-            kind: SymbolKind::Column(index, *column),
-        }),
+        [(column, _)] => Ok(Symbol::new(target.path, SymbolKind::Column(index, *column))),
         [] => Err(EvalError::UnknownColumn {
             name: reference.name.clone(),
             table: name,

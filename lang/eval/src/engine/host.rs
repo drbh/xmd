@@ -192,8 +192,13 @@ impl HostObject for Resource {
         let links = engine.link_features();
         Some(format!(
             "\n\n{}",
-            self.presentation(path, &engine.workspace.cache, engine.now.to_utc(), links)
-                .hover
+            self.presentation(
+                path,
+                &engine.workspace().cache,
+                engine.now().to_utc(),
+                links
+            )
+            .hover
         ))
     }
 }

@@ -300,7 +300,6 @@ dependencies = [
  "feed-rs",
  "good_lp",
  "ignore",
- "lsp-types",
  "model",
  "serde",
  "serde_json",

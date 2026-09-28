@@ -126,7 +126,7 @@ impl ModuleRegistry {
 }
 
 /// Bundled modules use exactly the same compiler and adapters as workspace modules.
-pub fn bundled() -> &'static [Module] {
+pub(crate) fn bundled() -> &'static [Module] {
     static MODULES: std::sync::OnceLock<Vec<Module>> = std::sync::OnceLock::new();
     MODULES.get_or_init(|| {
         let modules = [

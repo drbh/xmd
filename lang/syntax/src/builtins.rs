@@ -1,11 +1,34 @@
-//! The one list of built-in function names. Evaluation, the parser's notion of
-//! a reserved name and the editor's signature table all name the same variants,
-//! so a new built-in cannot be half-added.
+//! The one list of built-ins. Each row names a variant, the spelling a note
+//! writes, who may call it and whether it is a special form, so evaluation,
+//! the parser's reserved names and the editor's signature table all read the
+//! same facts and a new built-in cannot be half-added.
 
-/// Declare the built-ins once: the enum, the spelling each variant answers to,
-/// and the order `Builtin::ALL` (and therefore completion) walks them in.
+/// Who a built-in is for. A note only ever sees the `Note` tier; the `Toolkit`
+/// is the list and text plumbing a note may reach for once it needs it;
+/// `Module` names the primitives a .wtf module is written with, which outside
+/// a module are not names at all.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr, strum::VariantArray)]
+#[strum(serialize_all = "snake_case")]
+pub enum Tier {
+    Note,
+    Toolkit,
+    Module,
+}
+impl Tier {
+    pub fn as_str(self) -> &'static str {
+        self.into()
+    }
+}
+
+/// Declare the built-ins once. A row is `Variant => "spelling", Tier` and ends
+/// in `special` when the built-in is a special form: it decides for itself
+/// whether and how to evaluate its arguments (the branches of `if`, the module
+/// an `import` names, the row expression a `sum` walks, the lookups that record
+/// what they wanted). Every other built-in takes evaluated values.
 macro_rules! builtins {
-    ($($variant:ident => $name:literal,)*) => {
+    (@special special) => { true };
+    (@special) => { false };
+    ($($variant:ident => $name:literal, $tier:ident $(, $special:ident)?;)*) => {
         /// A built-in function, named rather than spelled out at every call site.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum Builtin {
@@ -18,6 +41,19 @@ macro_rules! builtins {
             pub const fn as_str(self) -> &'static str {
                 match self {
                     $(Builtin::$variant => $name,)*
+                }
+            }
+            /// Who may call it; the engine, completion and the reference all
+            /// read it from here.
+            pub const fn tier(self) -> Tier {
+                match self {
+                    $(Builtin::$variant => Tier::$tier,)*
+                }
+            }
+            /// Whether it evaluates its own arguments.
+            pub const fn is_special_form(self) -> bool {
+                match self {
+                    $(Builtin::$variant => builtins!(@special $($special)?),)*
                 }
             }
         }
@@ -34,105 +70,70 @@ macro_rules! builtins {
 }
 
 builtins! {
-    Import => "import",
-    SolveLinear => "solve_linear",
-    Object => "object",
-    ParseDate => "parse_date",
-    ParseDatetime => "parse_datetime",
-    Entries => "entries",
-    Number => "number",
-    Source => "source",
-    MakeDate => "make_date",
-    DurationParts => "duration_parts",
-    DateParts => "date_parts",
-    AtTime => "at_time",
-    ParseTime => "parse_time",
-    ParseDuration => "parse_duration",
-    PadStart => "pad_start",
-    PadEnd => "pad_end",
-    Slice => "slice",
-    Concat => "concat",
-    Trim => "trim",
-    Type => "type",
-    Floor => "floor",
-    Round => "round",
-    Repeat => "repeat",
-    FormatDate => "format_date",
-    Error => "error",
-    If => "if",
-    Coalesce => "coalesce",
-    Map => "map",
-    Filter => "filter",
-    SortBy => "sort_by",
-    GroupBy => "group_by",
-    Eval => "eval",
-    Fold => "fold",
-    Get => "get",
-    Length => "length",
-    Text => "text",
-    Debug => "debug",
-    Sparkline => "sparkline",
-    Contains => "contains",
-    StartsWith => "starts_with",
-    EndsWith => "ends_with",
-    Split => "split",
-    Join => "join",
-    Lower => "lower",
-    Upper => "upper",
-    Replace => "replace",
-    Sum => "sum",
-    Countdown => "countdown",
-    Stopwatch => "stopwatch",
-    Maximize => "maximize",
-    Solve => "solve",
-    Minimize => "minimize",
-    Today => "today",
-    Now => "now",
-    Rate => "rate",
-    To => "to",
-    Forecast => "forecast",
-    ForecastRange => "forecast_range",
-    Quote => "quote",
-    Date => "date",
-    Effort => "effort",
-    Total => "total",
-    Completed => "completed",
-    Remaining => "remaining",
-}
-
-impl Builtin {
-    /// A special form decides for itself whether and how to evaluate its
-    /// arguments: the branches of `if`, the module an `import` names, the row
-    /// expression a `sum` walks, the lookups that record what they wanted.
-    /// Every other built-in takes evaluated values and is answered by the
-    /// functional table.
-    pub fn is_special_form(self) -> bool {
-        matches!(
-            self,
-            Builtin::Import
-                | Builtin::If
-                | Builtin::Coalesce
-                | Builtin::Sum
-                | Builtin::Eval
-                | Builtin::Now
-                | Builtin::Today
-                | Builtin::Stopwatch
-                | Builtin::Countdown
-                | Builtin::Rate
-                | Builtin::To
-                | Builtin::Forecast
-                | Builtin::ForecastRange
-                | Builtin::Quote
-                | Builtin::Date
-                | Builtin::Total
-                | Builtin::Completed
-                | Builtin::Remaining
-                | Builtin::Effort
-                | Builtin::Maximize
-                | Builtin::Minimize
-                | Builtin::Solve
-        )
-    }
+    Import => "import", Note, special;
+    SolveLinear => "solve_linear", Module;
+    Object => "object", Toolkit;
+    ParseDate => "parse_date", Module;
+    ParseDatetime => "parse_datetime", Module;
+    Entries => "entries", Toolkit;
+    Number => "number", Toolkit;
+    Source => "source", Toolkit;
+    MakeDate => "make_date", Module;
+    DurationParts => "duration_parts", Module;
+    DateParts => "date_parts", Module;
+    AtTime => "at_time", Module;
+    ParseTime => "parse_time", Module;
+    ParseDuration => "parse_duration", Module;
+    PadStart => "pad_start", Toolkit;
+    PadEnd => "pad_end", Toolkit;
+    Slice => "slice", Toolkit;
+    Concat => "concat", Toolkit;
+    Trim => "trim", Toolkit;
+    Type => "type", Toolkit;
+    Floor => "floor", Toolkit;
+    Round => "round", Toolkit;
+    Repeat => "repeat", Toolkit;
+    FormatDate => "format_date", Module;
+    Error => "error", Module;
+    If => "if", Note, special;
+    Coalesce => "coalesce", Note, special;
+    Map => "map", Toolkit;
+    Filter => "filter", Toolkit;
+    SortBy => "sort_by", Toolkit;
+    GroupBy => "group_by", Toolkit;
+    Eval => "eval", Module, special;
+    Fold => "fold", Toolkit;
+    Get => "get", Toolkit;
+    Length => "length", Toolkit;
+    Text => "text", Toolkit;
+    Debug => "debug", Note;
+    Sparkline => "sparkline", Note;
+    Contains => "contains", Toolkit;
+    StartsWith => "starts_with", Toolkit;
+    EndsWith => "ends_with", Toolkit;
+    Split => "split", Toolkit;
+    Join => "join", Toolkit;
+    Lower => "lower", Toolkit;
+    Upper => "upper", Toolkit;
+    Replace => "replace", Toolkit;
+    Sum => "sum", Note, special;
+    Countdown => "countdown", Note, special;
+    Stopwatch => "stopwatch", Note, special;
+    Maximize => "maximize", Note, special;
+    Solve => "solve", Note, special;
+    Minimize => "minimize", Note, special;
+    Today => "today", Note, special;
+    Now => "now", Note, special;
+    Rate => "rate", Note, special;
+    To => "to", Note, special;
+    Forecast => "forecast", Note, special;
+    ForecastRange => "forecast_range", Note, special;
+    Quote => "quote", Note, special;
+    Date => "date", Note, special;
+    Effort => "effort", Note, special;
+    Total => "total", Note, special;
+    Completed => "completed", Note, special;
+    Remaining => "remaining", Note, special;
 }
 
 impl std::fmt::Display for Builtin {

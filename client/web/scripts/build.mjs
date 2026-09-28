@@ -4,16 +4,6 @@ import { fileURLToPath } from "node:url";
 import "./theme.mjs";
 
 const root = new URL("../", import.meta.url);
-// The reference view's offline copy of the engine's reference: regenerated from the
-// built binary when it is around, so a stale copy shows up as a git diff.
-{
-  const { spawnSync } = await import("node:child_process");
-  const binary = fileURLToPath(new URL("../../target/debug/wtf", root));
-  const generated = spawnSync(binary, ["reference", "--json"], { encoding: "utf8" });
-  if (generated.status === 0 && generated.stdout) {
-    await writeFile(new URL("apps/docs/src/lib/reference.fixture.json", root), generated.stdout);
-  }
-}
 const dist = new URL("dist/", root);
 await rm(dist, { recursive: true, force: true });
 await mkdir(new URL("lib/", dist), { recursive: true });

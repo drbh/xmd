@@ -651,9 +651,6 @@ impl World {
     #[cfg(feature = "browser")]
     fn browser(&self, items: &[Value], out: &mut String) {
         let mut host = wtf::browser::BrowserWorkspace::new();
-        // The browser has no command line of its own; the test binary embeds
-        // one, so it reports what `wtf reference` would.
-        host.set_commands(wtf::command_reference());
         // Every note in the case starts out loaded, mirroring a live editor.
         let mut notes: Vec<PathBuf> = Vec::new();
         collect_notes(&self.root, &mut notes);

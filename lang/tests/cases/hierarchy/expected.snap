@@ -358,7 +358,7 @@
         "kind": "definition",
         "path": "<root>/plan.wtf"
       },
-      "detail": "table · 1 rows",
+      "detail": "table · 1 rows · 3 columns",
       "kind": 23,
       "name": "t",
       "range": {
@@ -571,7 +571,7 @@
         "kind": "definition",
         "path": "<root>/plan.wtf"
       },
-      "detail": "table · 1 rows",
+      "detail": "table · 1 rows · 3 columns",
       "kind": 23,
       "name": "t",
       "range": {

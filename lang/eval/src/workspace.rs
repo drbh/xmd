@@ -19,6 +19,18 @@ pub struct Symbol {
     pub path: PathBuf,
     pub kind: SymbolKind,
 }
+impl Symbol {
+    pub fn new(path: impl Into<PathBuf>, kind: SymbolKind) -> Self {
+        Self {
+            path: path.into(),
+            kind,
+        }
+    }
+    /// Another symbol in the same note.
+    pub fn sibling(&self, kind: SymbolKind) -> Self {
+        Self::new(self.path.clone(), kind)
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Workspace {
     pub roots: Vec<PathBuf>,
@@ -155,7 +167,7 @@ impl Workspace {
     /// Follow explicit imports, including ignored files and files outside roots.
     /// Existing documents win so unsaved editor buffers remain authoritative.
     #[cfg(feature = "native")]
-    pub(crate) fn load_imports(&mut self) {
+    pub fn load_imports(&mut self) {
         let mut pending: Vec<_> = self.documents.keys().cloned().collect();
         let mut visited = std::collections::BTreeSet::new();
         while let Some(path) = pending.pop() {
@@ -213,10 +225,7 @@ impl Workspace {
         doc.plans.iter().enumerate().flat_map(move |(p, plan)| {
             self.plan_variables(path, plan)
                 .into_iter()
-                .map(move |(i, _)| Symbol {
-                    path: path.into(),
-                    kind: SymbolKind::Variable(p, i),
-                })
+                .map(move |(i, _)| Symbol::new(path, SymbolKind::Variable(p, i)))
         })
     }
     /// Names a plan reads that its own note does not declare: decision variables.
@@ -258,10 +267,7 @@ impl Workspace {
                     .filter(|(_, s)| s.named.is_some())
                     .map(|(i, _)| SymbolKind::Section(i)),
             )
-            .map(|kind| Symbol {
-                path: path.into(),
-                kind,
-            })
+            .map(move |kind| Symbol::new(path, kind))
     }
     pub fn named<'a>(&'a self, symbol: &Symbol) -> &'a Named {
         let doc = &self.documents[&symbol.path];

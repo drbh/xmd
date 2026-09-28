@@ -8,7 +8,7 @@ mod lexer;
 mod operators;
 mod values;
 
-pub use builtins::Builtin;
+pub use builtins::{Builtin, Tier};
 pub use lexer::{
     Expr, Lexeme, Parser, Token, expression_names, identifier, is_builtin_function, lex,
     lex_with_comments, simple_name, sum_scope_at, timer_arguments, valid_expression,

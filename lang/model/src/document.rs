@@ -988,6 +988,39 @@ impl Document {
     pub fn line_end(&self, row: usize) -> Position {
         Position::new(row as u32, utf16(self.line(row), self.line(row).len()))
     }
+    /// The plan this definition solves, when it is one.
+    pub fn plan_of(&self, definition: usize) -> Option<&crate::plans::Plan> {
+        self.plans.iter().find(|p| p.definition == definition)
+    }
+    /// The table this definition lays out, when it is one.
+    pub fn table_of(&self, definition: usize) -> Option<&crate::tables::Table> {
+        self.tables.iter().find(|t| t.definition == definition)
+    }
+    /// The first and last rows a definition spans: through its table or plan
+    /// when it lays one out, otherwise through its own value.
+    pub fn definition_rows(&self, definition: usize) -> (usize, usize) {
+        let def = &self.definitions[definition];
+        let first = def.named.span.line;
+        let last = self
+            .table_of(definition)
+            .map(|t| t.end_line)
+            .or_else(|| self.plan_of(definition).map(|p| p.end_line))
+            .map_or(def.end.line, |end| end.saturating_sub(1));
+        (first, last.max(first))
+    }
+    /// The leaf tasks under a section heading: what its checklist counts.
+    pub fn section_tasks(&self, section: usize) -> impl Iterator<Item = usize> + '_ {
+        let section = &self.sections[section];
+        self.tasks
+            .iter()
+            .enumerate()
+            .filter(move |(i, t)| {
+                t.line > section.line
+                    && t.line < section.end_line
+                    && !self.tasks.iter().any(|child| child.parent == Some(*i))
+            })
+            .map(|(i, _)| i)
+    }
 }
 
 /// Every byte range in a note that holds an expression: named definitions, an

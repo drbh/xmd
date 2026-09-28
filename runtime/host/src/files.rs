@@ -153,6 +153,18 @@ impl WorkspaceFiles for Workspace {
     }
 }
 
+/// Notes on disk, as the language services read imports through them.
+pub struct DiskFiles;
+
+impl services::session::NoteFiles for DiskFiles {
+    fn load_imports(&self, workspace: &mut Workspace) {
+        WorkspaceFiles::load_imports(workspace);
+    }
+    fn include_file(&self, workspace: &mut Workspace, path: &Path) -> Result<(), String> {
+        WorkspaceFiles::include_file(workspace, path)
+    }
+}
+
 /// A workspace with no notes yet, holding each root's cache and lookups.
 fn empty(roots: Vec<PathBuf>) -> Workspace {
     let mut result = Workspace {

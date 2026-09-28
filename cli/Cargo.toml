@@ -24,7 +24,7 @@ host = { path = "../runtime/host" }
 lsp = { path = "../lsp" }
 model = { path = "../lang/core/model" }
 serde_json = { workspace = true }
-services = { path = "../runtime/services", features = ["native"] }
+services = { path = "../runtime/services" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
 
 [dev-dependencies]

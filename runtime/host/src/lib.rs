@@ -13,7 +13,7 @@ mod lookups_impl;
 mod refresh;
 
 // Loading a workspace, its modules and caches from disk.
-pub use files::{WorkspaceFiles, load_modules};
+pub use files::{DiskFiles, WorkspaceFiles, load_modules};
 // Running a command module and the effects it asks for.
 pub use command::run_command;
 // The process clock, which `XMD_NOW` can freeze.

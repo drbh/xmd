@@ -57,7 +57,7 @@ pub mod rendering {
 pub use api::Request;
 // The editing session a host keeps open per workspace.
 pub mod session {
-    pub use crate::api::{RefreshReport, WorkspaceSession};
+    pub use crate::api::{NoteFiles, RefreshReport, WorkspaceSession};
 }
 // The document outline and folding ranges.
 pub mod symbols {

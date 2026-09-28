@@ -3,7 +3,6 @@ use crate::data::catalog::QueryContext;
 use crate::data::catalog::{self, Collection, Record, value as q};
 use eval::engine::{self, Bindings, Engine, Expr, Lexeme, Parser, Value};
 use eval::functional;
-#[cfg(feature = "native")]
 use model::ExprImports;
 use std::{
     cmp::Ordering,
@@ -156,8 +155,13 @@ impl Stage {
     }
 }
 impl Query {
-    #[cfg(feature = "native")]
-    pub fn load_imports(&self, workspace: &mut eval::Workspace, only: Option<&Path>) {
+    /// Read the notes this query imports, through a host's `files`.
+    pub fn load_imports(
+        &self,
+        workspace: &mut eval::Workspace,
+        only: Option<&Path>,
+        files: &dyn crate::api::NoteFiles,
+    ) {
         let context = only
             .map(Path::to_path_buf)
             .unwrap_or_else(|| workspace.root().join(common::note_file("__query__")));
@@ -190,7 +194,7 @@ impl Query {
         for (path, id) in requests {
             if let Ok(target) = model::note_path(&path, &id) {
                 // Like note imports, report missing dependencies only if evaluation reads them.
-                let _ = host::WorkspaceFiles::include_file(workspace, &target);
+                let _ = files.include_file(workspace, &target);
             }
         }
     }

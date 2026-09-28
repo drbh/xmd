@@ -69,7 +69,11 @@ impl Backend {
                 .include_file(path)
                 .map_err(Error::invalid_params)?;
         }
-        compiled.load_imports(&mut state.session.workspace, only.as_deref());
+        compiled.load_imports(
+            &mut state.session.workspace,
+            only.as_deref(),
+            &host::DiskFiles,
+        );
         let result = services::Request::new(&state.session.workspace, now)
             .query(&compiled, only.as_deref())
             .map_err(Error::invalid_params)?;
@@ -82,13 +86,16 @@ impl Backend {
         Self {
             client,
             state: Arc::new(RwLock::new(State {
-                session: WorkspaceSession::editor(Workspace {
-                    roots: Vec::new(),
-                    documents: BTreeMap::new(),
-                    cache: BTreeMap::new(),
-                    lookups: BTreeMap::new(),
-                    modules: Default::default(),
-                }),
+                session: WorkspaceSession::editor(
+                    Workspace {
+                        roots: Vec::new(),
+                        documents: BTreeMap::new(),
+                        cache: BTreeMap::new(),
+                        lookups: BTreeMap::new(),
+                        modules: Default::default(),
+                    },
+                    Arc::new(host::DiskFiles),
+                ),
                 hint_refresh: false,
                 watch: false,
                 lens_refresh: false,

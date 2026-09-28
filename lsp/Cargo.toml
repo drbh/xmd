@@ -8,7 +8,7 @@ publish = false
 chrono = { workspace = true }
 common = { path = "../lang/core/common" }
 eval = { path = "../lang/core/eval" }
-services = { path = "../runtime/services", features = ["native"] }
+services = { path = "../runtime/services" }
 host = { path = "../runtime/host" }
 lsp-types = { workspace = true }
 model = { path = "../lang/core/model" }

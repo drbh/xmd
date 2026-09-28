@@ -2,7 +2,8 @@
 //! listed for it in `[workspace.metadata.layers]` at the repo root; every
 //! other crate publishes a curated interface from its root (no public file
 //! modules, no glob re-exports, workspace lints on); the facade `xmd` (this
-//! crate's own `src/lib.rs`) only re-exports; and `lang/core` does no I/O.
+//! crate's own `src/lib.rs`) only re-exports; and the portable crates (the
+//! language, the services, the renderer and the browser host) do no I/O.
 use serde_json::Value;
 use std::process::Command;
 
@@ -117,11 +118,13 @@ fn components_publish_a_curated_interface() {
     }
 }
 
-/// `lang/core` is the language itself: it parses, evaluates and presents the
-/// notes it is handed, identically on every host. Reading files, running
-/// programs and talking to the network belong to a host such as `runtime/host`.
+/// The portable crates run identically on every host, the browser included:
+/// `lang/core` (the language itself), `runtime/services` (the language
+/// services), `runtime/renderer` and `browser`. Reading files, running
+/// programs and talking to the network belong to `runtime/host`, which the
+/// native hosts pass in where the services need files (`NoteFiles`).
 #[test]
-fn core_does_no_io() {
+fn portable_crates_do_no_io() {
     const FORBIDDEN_CRATES: [&str; 5] = ["tokio", "ignore", "feed-rs", "reqwest", "notify"];
     const FORBIDDEN_CODE: [&str; 5] = [
         "std::fs",
@@ -131,16 +134,21 @@ fn core_does_no_io() {
         "Command::new",
     ];
     let metadata = metadata();
-    let core = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .unwrap()
-        .join("lang/core");
+        .unwrap();
+    let portable = [
+        root.join("lang/core"),
+        root.join("runtime/services"),
+        root.join("runtime/renderer"),
+        root.join("browser"),
+    ];
     let mut checked = 0;
     for package in metadata["packages"].as_array().unwrap() {
         let name = package["name"].as_str().unwrap();
         let manifest = std::path::Path::new(package["manifest_path"].as_str().unwrap());
         let dir = manifest.parent().unwrap();
-        if !dir.starts_with(&core) {
+        if !portable.iter().any(|p| dir.starts_with(p)) {
             continue;
         }
         checked += 1;
@@ -148,7 +156,7 @@ fn core_does_no_io() {
             let dep = dep["name"].as_str().unwrap();
             assert!(
                 !FORBIDDEN_CRATES.contains(&dep),
-                "crate `{name}` in lang/core depends on `{dep}`; I/O belongs to a host crate"
+                "portable crate `{name}` depends on `{dep}`; I/O belongs to runtime/host"
             );
         }
         let mut pending = vec![dir.join("src")];
@@ -162,8 +170,8 @@ fn core_does_no_io() {
                     for pattern in FORBIDDEN_CODE {
                         assert!(
                             !source.contains(pattern),
-                            "{path:?} uses `{pattern}`; lang/core stays free of I/O, \
-                             which belongs to a host crate such as runtime/host"
+                            "{path:?} uses `{pattern}`; portable crates stay free of I/O, \
+                             which belongs to runtime/host"
                         );
                     }
                 }
@@ -171,8 +179,8 @@ fn core_does_no_io() {
         }
     }
     assert!(
-        checked >= 4,
-        "expected the lang/core crates, found {checked}"
+        checked >= 7,
+        "expected the portable crates, found {checked}"
     );
 }
 

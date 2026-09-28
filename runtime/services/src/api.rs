@@ -130,9 +130,20 @@ enum Kind {
     Browser,
 }
 
+/// Reading the notes a workspace imports from disk. `services` does no I/O:
+/// a native host supplies this (`host::DiskFiles`), and a browser has none.
+pub trait NoteFiles: Send + Sync {
+    /// Follow explicit imports, reading every imported note not yet loaded.
+    fn load_imports(&self, workspace: &mut Workspace);
+    /// Read one note, and what it imports, unless it is already loaded.
+    fn include_file(&self, workspace: &mut Workspace, path: &Path) -> Result<(), String>;
+}
+
 pub struct WorkspaceSession {
     pub workspace: Workspace,
     kind: Kind,
+    /// How an editor follows imports from disk; a browser has no files.
+    files: Option<std::sync::Arc<dyn NoteFiles>>,
     open: BTreeMap<PathBuf, i32>,
     module_buffers: BTreeMap<PathBuf, Document>,
     pub live: BTreeSet<PathBuf>,
@@ -141,18 +152,24 @@ pub struct WorkspaceSession {
 }
 
 impl WorkspaceSession {
-    /// A language-server session: module buffers, and versions that may repeat.
-    pub fn editor(workspace: Workspace) -> Self {
-        Self::with_kind(workspace, Kind::Editor)
+    /// A language-server session: module buffers, versions that may repeat,
+    /// and imports followed on disk through `files`.
+    pub fn editor(workspace: Workspace, files: std::sync::Arc<dyn NoteFiles>) -> Self {
+        Self::with_kind(workspace, Kind::Editor, Some(files))
     }
     /// A browser session: no module buffers, and strictly increasing versions.
     pub fn browser(workspace: Workspace) -> Self {
-        Self::with_kind(workspace, Kind::Browser)
+        Self::with_kind(workspace, Kind::Browser, None)
     }
-    fn with_kind(workspace: Workspace, kind: Kind) -> Self {
+    fn with_kind(
+        workspace: Workspace,
+        kind: Kind,
+        files: Option<std::sync::Arc<dyn NoteFiles>>,
+    ) -> Self {
         Self {
             workspace,
             kind,
+            files,
             open: BTreeMap::new(),
             module_buffers: BTreeMap::new(),
             live: BTreeSet::new(),
@@ -179,9 +196,8 @@ impl WorkspaceSession {
             self.workspace
                 .documents
                 .insert(path.to_path_buf(), Document::parse(text));
-            #[cfg(feature = "native")]
-            if self.kind == Kind::Editor {
-                host::WorkspaceFiles::load_imports(&mut self.workspace);
+            if let Some(files) = &self.files {
+                files.load_imports(&mut self.workspace);
             }
         }
         self.open.insert(path.to_path_buf(), version);
@@ -199,7 +215,6 @@ impl WorkspaceSession {
     /// on top of it: a note that has become a module keeps its buffer aside,
     /// one that has stopped being a module gets its buffer back, and activated
     /// module paths leave the note index entirely.
-    #[cfg(feature = "native")]
     pub fn rescan(&mut self, mut fresh: Workspace) {
         let open: Vec<_> = self.open.keys().cloned().collect();
         for path in open {
@@ -215,7 +230,9 @@ impl WorkspaceSession {
                 fresh.documents.insert(path, doc);
             }
         }
-        host::WorkspaceFiles::load_imports(&mut fresh);
+        if let Some(files) = &self.files {
+            files.load_imports(&mut fresh);
+        }
         fresh
             .documents
             .retain(|path, _| !fresh.modules.modules.iter().any(|m| m.path == *path));

@@ -262,7 +262,7 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         }
         None => (None, Workspace::load(vec![root])?),
     };
-    compiled.load_imports(&mut workspace, only.as_deref());
+    compiled.load_imports(&mut workspace, only.as_deref(), &host::DiskFiles);
     let result = services::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());

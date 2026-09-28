@@ -510,6 +510,7 @@ dependencies = [
  "ignore",
  "model",
  "serde_json",
+ "services",
  "tokio",
  "url",
 ]
@@ -1110,7 +1111,6 @@ dependencies = [
  "chrono",
  "common",
  "eval",
- "host",
  "lsp-types",
  "model",
  "renderer",

@@ -78,11 +78,36 @@ pub struct Attribute {
     pub span: Span,
     pub value_span: Span,
 }
+/// What a task's checkbox says: `[ ]`, `[-]` or `[x]`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TaskState {
+    #[default]
+    Open,
+    /// `[-]`: partly done, still open.
+    InProgress,
+    Done,
+}
+impl TaskState {
+    fn from_mark(mark: u8) -> Self {
+        match mark {
+            b' ' => Self::Open,
+            b'-' => Self::InProgress,
+            _ => Self::Done,
+        }
+    }
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::InProgress => "in_progress",
+            Self::Done => "done",
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Task {
     pub line: usize,
     pub indent: usize,
-    pub checked: bool,
+    pub state: TaskState,
     pub checkbox: Span,
     pub title: String,
     pub named: Option<Named>,
@@ -188,7 +213,7 @@ enum Line<'a> {
     Comment { start: usize, open: bool },
     /// `## Title :name`
     Heading(Heading<'a>),
-    /// `- [ ] title`, with `checkbox` at the `[`.
+    /// `- [ ] title` (or `[-]`, `[x]`), with `checkbox` at the `[`.
     Task { start: usize, checkbox: usize },
     /// Whitespace only: it says nothing about the note.
     Blank,
@@ -263,7 +288,7 @@ fn classify<'a>(line: &'a str, row: usize, state: &BlockState) -> Line<'a> {
         .find(|prefix| trimmed.starts_with(**prefix))
         .map(|_| start + 2)
         .filter(|s| {
-            matches!(line.as_bytes().get(s + 1), Some(b' ' | b'x' | b'X'))
+            matches!(line.as_bytes().get(s + 1), Some(b' ' | b'-' | b'x' | b'X'))
                 && line.as_bytes().get(s + 2) == Some(&b']')
                 && line
                     .as_bytes()
@@ -396,7 +421,7 @@ impl Document {
         self.tasks.push(Task {
             line: row,
             indent: start,
-            checked: line.as_bytes()[checkbox + 1] != b' ',
+            state: TaskState::from_mark(line.as_bytes()[checkbox + 1]),
             checkbox: Span::new(row, checkbox, checkbox + 3),
             title: line[checkbox + 3..title_end].trim().into(),
             named: named.clone(),

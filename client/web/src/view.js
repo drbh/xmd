@@ -93,7 +93,7 @@ export async function mount(element, options = {}) {
   });
   listen("mousedown", event => {
     if (options.interactive === false) return;
-    const box = event.target.closest?.(".t-xmdCheckbox, .t-xmdCheckboxChecked");
+    const box = event.target.closest?.(".t-xmdCheckbox, .t-xmdCheckboxChecked, .t-xmdCheckboxInProgress");
     if (!box || !view.contains(box)) return;
     event.preventDefault();
     const source = workspace.getDocument(uri)?.source;

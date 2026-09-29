@@ -10,9 +10,9 @@ struct XmdExtension {
 
 impl XmdExtension {
     /// Where the language server comes from, in order: the `lsp.xmd.binary`
-    /// setting, `xmd` on PATH, a server downloaded from the GitHub release
-    /// (cached per release in the extension's directory), and inside this
-    /// repository a debug build, so the extension works while developing it.
+    /// setting, `xmd` on PATH, and a server downloaded from the GitHub release
+    /// (cached per release in the extension's directory). While developing,
+    /// point `lsp.xmd.binary` at a debug build.
     fn server_path(
         &mut self,
         id: &zed::LanguageServerId,
@@ -26,13 +26,11 @@ impl XmdExtension {
                 return Ok(path.clone());
             }
         }
-        let local = format!("{}/target/debug/xmd", worktree.root_path());
         match self.download(id) {
             Ok(path) => {
                 self.downloaded = Some(path.clone());
                 Ok(path)
             }
-            Err(_) if fs::metadata(&local).is_ok() => Ok(local),
             Err(error) => {
                 zed::set_language_server_installation_status(id, &Status::Failed(error.clone()));
                 Err(error)

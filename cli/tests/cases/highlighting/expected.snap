@@ -13,6 +13,8 @@
 3:5+5 xmdTaskDone " Read"
 4:2+1 xmdPunctuation "-"
 4:4+3 xmdCheckbox "[ ]"
+5:0+1 xmdPunctuation "-"
+5:2+3 xmdCheckboxInProgress "[-]"
 -- open checklists.x.md
 -- request textDocument/semanticTokens/full checklists.x.md
 0:0+1 xmdPunctuation "-"

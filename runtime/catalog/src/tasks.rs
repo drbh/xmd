@@ -9,7 +9,7 @@ use lang::eval::engine::{Engine, Value};
 use lang::eval::timers::Timer;
 use lang::eval::{Clock, Workspace};
 use lang::eval::{ToValue, record};
-use lang::model::Document;
+use lang::model::{Document, TaskState};
 use std::{collections::BTreeMap, path::Path};
 
 /// The scheduling attributes a task reads, and the fields they land in.
@@ -104,6 +104,7 @@ record! {
         ..base: Base,
         ..scheduling: Scheduling,
         checked: bool,
+        in_progress: bool,
         name: Value,
         attributes: BTreeMap<String, Value>,
         blocked_error: Value,
@@ -156,7 +157,8 @@ pub(super) fn tasks(
                 tags: task.tags.clone(),
                 ..Scheduling::default()
             },
-            checked: task.checked,
+            checked: task.state == TaskState::Done,
+            in_progress: engine.task_in_progress(path, i),
             name: task
                 .named
                 .as_ref()

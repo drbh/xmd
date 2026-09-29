@@ -46,7 +46,7 @@ _subtasks := fn(t) => (
 // Explain a task's state, blockers, estimate, timer and subtask progress.
 hover := fn(t) => (
   "**" + t.title + "**\n\n"
-  + if(t.done, "Complete", "Incomplete")
+  + if(t.done, "Complete", if(t.in_progress, "In progress", "Incomplete"))
   + _blocked(t)
   + if(t.estimate == null, "", "\n\nEstimate: " + t.estimate)
   + _timer(t)

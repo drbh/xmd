@@ -8,32 +8,13 @@
 cli and language server (mac and linux):
 
 ```bash
-mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
+mkdir -p ~/.local/bin && \
+  curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | \
+  tar -xzC ~/.local/bin xmd
 ```
 
-vs code:
-
-```bash
-curl -fsSLO https://github.com/drbh/xmd/releases/latest/download/xmd.vsix && code --install-extension xmd.vsix
-```
-
-zed (then Extensions > Install Dev Extension > `xmd-zed`):
-
-```bash
-mkdir -p xmd-zed && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-zed.tar.gz | tar -xz -C xmd-zed
-```
-
-neovim 0.11+:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/drbh/xmd/main/client/ide/neovim/xmd.lua -o ~/.config/nvim/xmd.lua && echo "dofile(vim.fn.stdpath('config') .. '/xmd.lua')" >> ~/.config/nvim/init.lua
-```
-
-helix:
-
-```bash
-mkdir -p ~/.config/helix/runtime/queries/xmd && curl -fsSL https://raw.githubusercontent.com/drbh/xmd/main/client/ide/helix/languages.toml >> ~/.config/helix/languages.toml && for f in highlights injections; do curl -fsSL https://raw.githubusercontent.com/drbh/xmd/main/client/ide/helix/runtime/queries/xmd/$f.scm -o ~/.config/helix/runtime/queries/xmd/$f.scm; done
-```
+editors: [vs code](client/ide/vscode), [zed](client/ide/zed),
+[neovim](client/ide/neovim), [helix](client/ide/helix)
 
 now just update your `.md` files to `.x.md` and they will be recognized by xmd - and automatically fallback to markdown rendering by unsupported editors.
 
@@ -43,3 +24,7 @@ now just update your `.md` files to `.x.md` and they will be recognized by xmd -
 - cli tool; query docs via command line
 - web-based document editor; edit anywhere anytime - local first (offline capable)
 - mutable; written in its own language so you can extend and customize it easily
+
+## license
+
+MIT, see [LICENSE](LICENSE).

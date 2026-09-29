@@ -15,8 +15,8 @@ mod tables_impl;
 
 // The parsed note and the pieces named directly by other layers.
 pub use document::{
-    Attribute, Document, HighlightKind, Named, Reference, byte_at, expression_regions, identifier,
-    utf16,
+    Attribute, Document, HighlightKind, Named, Reference, TaskState, byte_at, expression_regions,
+    identifier, utf16,
 };
 pub use edits::{LineIndex, apply_edits, end_position};
 pub use imports::{ExprImports, is_note_path, note_path};

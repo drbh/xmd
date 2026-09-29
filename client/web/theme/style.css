@@ -8,7 +8,8 @@
 .xmd .error { text-decoration-color: #ef8b80; }
 .xmd .warning { text-decoration-color: #eac080; }
 .xmd .info, .xmd .hint { text-decoration-color: #90bed8; }
-.xmd[data-interactive] .t-xmdCheckbox, .xmd[data-interactive] .t-xmdCheckboxChecked { cursor: pointer; }
+.xmd[data-interactive] .t-xmdCheckbox, .xmd[data-interactive] .t-xmdCheckboxChecked,
+.xmd[data-interactive] .t-xmdCheckboxInProgress { cursor: pointer; }
 .xmd[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
 .xmd[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
 .xmd[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
@@ -57,6 +58,7 @@
 .xmd .t-xmdLink { color: #90BED8; text-decoration-line: underline; }
 .xmd .t-xmdCheckbox { color: #FFD580; }
 .xmd .t-xmdCheckboxChecked { color: #91E6AC; }
+.xmd .t-xmdCheckboxInProgress { color: #90BED8; }
 .xmd .t-xmdTaskDone { color: #87A788; text-decoration-line: line-through; }
 .xmd .t-xmdDay { color: #FF9ECF; font-weight: bold; }
 .xmd .t-xmdPlace { color: #E2C4FF; }
@@ -98,6 +100,7 @@
 .xmd-light .xmd .t-xmdLink { color: #366681; }
 .xmd-light .xmd .t-xmdCheckbox { color: #9e721a; }
 .xmd-light .xmd .t-xmdCheckboxChecked { color: #2b8d4a; }
+.xmd-light .xmd .t-xmdCheckboxInProgress { color: #2f6f99; }
 .xmd-light .xmd .t-xmdTaskDone { color: #506851; }
 .xmd-light .xmd .t-xmdDay { color: #9e1a5c; }
 .xmd-light .xmd .t-xmdPlace { color: #5d1a9e; }

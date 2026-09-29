@@ -72,6 +72,7 @@
       { "id": "xmdLink", "superType": "string", "description": "Resource link" },
       { "id": "xmdCheckbox", "description": "Open checkbox" },
       { "id": "xmdCheckboxChecked", "description": "Completed checkbox" },
+      { "id": "xmdCheckboxInProgress", "description": "In-progress checkbox" },
       { "id": "xmdTaskDone", "superType": "comment", "description": "Completed task" }
     ],
     "semanticTokenScopes": [{
@@ -89,6 +90,7 @@
         "xmdLink": ["markup.underline.link"],
         "xmdCheckbox": ["markup.list.unnumbered", "keyword"],
         "xmdCheckboxChecked": ["constant.language.boolean"],
+        "xmdCheckboxInProgress": ["markup.list.unnumbered", "constant.numeric"],
         "xmdTaskDone": ["comment"]
       }
     }]

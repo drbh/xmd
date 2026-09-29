@@ -1,0 +1,12 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {"cli": ["render", "main.x.md", "--format", "text"]},
+    {"lsp": [{"open": "main.x.md"}, {"request": "textDocument/inlayHint", "file": "main.x.md", "range": {"start": {"line": 0, "character": 0}, "end": {"line": 5, "character": 0}}}, {"request": "workspace/executeCommand", "params": {"command": "xmd.today", "arguments": [{"kind": "show_today"}]}}], "folder": "main.x.md"},
+    {"read": [".xmd/today.md"]},
+    {"write": {".xmd/modules.json": "[\"./modules/other.x.md\"]\n", ".xmd/modules/other.x.md": "module := {api: 1, id: \"other\", kind: \"library\"}\nx := 1\n"}},
+    {"cli": ["render", "main.x.md", "--format", "text"]},
+    {"write": {".xmd/modules/other.x.md": "module := {api: 1, id: \"wordcount\", kind: \"library\"}\nx := 1\n"}},
+    {"cli": ["render", "main.x.md", "--format", "text"]}
+  ]
+}

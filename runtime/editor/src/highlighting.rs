@@ -3,7 +3,7 @@
 use crate::prose;
 use lang::common::Span;
 use lang::eval::engine;
-use lang::model::{Attribute, Document, HighlightKind, Named};
+use lang::model::{Attribute, Document, HighlightKind, Named, TaskState};
 use lang::syntax::{Lexeme, Literal};
 use lsp_types::SemanticToken;
 
@@ -33,6 +33,7 @@ pub(crate) enum Token {
     XmdCheckbox,
     XmdTaskDone,
     XmdCheckboxChecked,
+    XmdCheckboxInProgress,
     XmdTime,
     // Itineraries: one hue per stop kind, so a day reads at a glance.
     XmdDay,
@@ -277,13 +278,13 @@ impl<'a> Painter<'a> {
             );
             self.mark(
                 task.checkbox,
-                if task.checked {
-                    Token::XmdCheckboxChecked
-                } else {
-                    Token::XmdCheckbox
+                match task.state {
+                    TaskState::Open => Token::XmdCheckbox,
+                    TaskState::InProgress => Token::XmdCheckboxInProgress,
+                    TaskState::Done => Token::XmdCheckboxChecked,
                 },
             );
-            if task.checked {
+            if task.state == TaskState::Done {
                 let end = task
                     .attributes
                     .values()

@@ -16,6 +16,7 @@ use chrono::{DateTime, FixedOffset, NaiveDate};
 pub(crate) use common::Currency;
 use common::Span;
 pub(crate) use common::ValueType;
+use model::TaskState;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -842,10 +843,22 @@ impl<'a> Engine<'a> {
             .map(|(j, _)| j)
             .collect();
         if children.is_empty() {
-            doc.tasks[i].checked
+            doc.tasks[i].state == TaskState::Done
         } else {
             children.into_iter().all(|j| self.task_done(path, j))
         }
+    }
+    /// Started but not finished: marked `[-]`, or a parent with some subtasks
+    /// done or in progress and others still open.
+    pub fn task_in_progress(&self, path: &Path, i: usize) -> bool {
+        if self.task_done(path, i) {
+            return false;
+        }
+        let doc = &self.request.workspace.documents[path];
+        doc.tasks[i].state == TaskState::InProgress
+            || doc.tasks.iter().enumerate().any(|(j, t)| {
+                t.parent == Some(i) && (self.task_done(path, j) || self.task_in_progress(path, j))
+            })
     }
 
     /// What each row adds to a `sum(table, row expression)`, or `None` when

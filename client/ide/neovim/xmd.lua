@@ -18,7 +18,7 @@ local function highlights()
     xmdTime = 'Constant', xmdDuration = 'Number', xmdRatio = 'Number',
     xmdBoolean = 'Boolean', xmdPunctuation = 'Delimiter', xmdCode = 'String',
     xmdLink = 'Underlined', xmdCheckbox = 'Todo', xmdCheckboxChecked = 'String',
-    xmdTaskDone = 'Comment',
+    xmdCheckboxInProgress = 'Number', xmdTaskDone = 'Comment',
   }
   for token, group in pairs(groups) do
     vim.api.nvim_set_hl(0, '@lsp.type.' .. token .. '.xmd', { link = group, default = true })

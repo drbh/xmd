@@ -1,0 +1,61 @@
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Trip plan 10 words
+
+Pack the bags, book the hotel.
+
+- [ ] buy tickets
+
+### 1 lsp folder main.x.md
+-- open main.x.md
+-- request textDocument/inlayHint main.x.md {"end":{"character":0,"line":5},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "10 words",
+    "paddingLeft": true,
+    "position": {
+      "character": 11,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Counted by wordcount.x.md"
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.today"}
+null
+
+### 2 read .xmd/today.md
+-- .xmd/today.md
+# Today — 2026-09-16
+
+Generated view. Follow a link to edit the original note.
+
+- [main.x.md:5](<file://<root>/main.x.md#L5>) — buy tickets
+
+### 3 write
+-- write .xmd/modules.json (25 bytes)
+-- write .xmd/modules/other.x.md (56 bytes)
+
+### 4 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Trip plan 10 words
+
+Pack the bags, book the hotel.
+
+- [ ] buy tickets
+
+### 5 write
+-- write .xmd/modules/other.x.md (60 bytes)
+
+### 6 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Duplicate module id 'wordcount'
+

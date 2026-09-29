@@ -107,10 +107,10 @@ jobs:
           exe=xmd
           "target/$TARGET/release/$exe" --version
           rm -rf dist stage && mkdir -p dist stage
-          # The binary sits at the archive root, next to the README (and the
+          # The binary sits at the archive root, next to the README and DOCS (and the
           # LICENSE once the repository has one).
-          cp "target/$TARGET/release/$exe" README.md stage/
-          files="$exe README.md"
+          cp "target/$TARGET/release/$exe" README.md DOCS.md stage/
+          files="$exe README.md DOCS.md"
           if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
           name="xmd-$VERSION-$TARGET.tar.gz"
           stable="xmd-$TARGET.tar.gz"

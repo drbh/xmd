@@ -1,0 +1,161 @@
+### 0 cli render text.x.md --format text
+$ xmd render text.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Text builtins
+
+lowered := lower("MiXeD") = mixed
+uppered := upper("MiXeD") = MIXED
+lower_bad := lower(1)
+replaced := replace("a-b-c", "-", "+") = a+b+c
+replace_limit := replace(repeat("a", 8192), "a", repeat("b", 200))
+split_ok := split("a,b,,c", ",") = ["a", "b", "", "c"]
+split_limit := split(repeat(",", 8192), ",")
+split_bad := split("a", 1)
+starts := starts_with("xmd notes", "xmd") = true
+starts_no := starts_with("xmd notes", "notes") = false
+starts_bad := starts_with(1, "x")
+ends := ends_with("xmd notes", "notes") = true
+ends_bad := ends_with("x", null)
+padded_start := pad_start("7", 3, "0") = 007
+padded_end := pad_end("ab", 5, ".") = ab...
+padded_wide := pad_start("long", 2, "0") = long
+pad_fill := pad_start("7", 3, "00")
+pad_width := pad_end("7", -1, "0")
+pad_limit := pad_start("7", 9000, "0")
+pad_bad := pad_end(7, 3, "0")
+encoded := import("probe").encode("a b&c=d/é") = a+b%26c%3Dd%2F%C3%A9
+encode_bad := import("probe").encode(3)
+encode_note := url_encode("a b")
+--- stderr
+<root>/text.x.md:5:14: error: Invalid arguments for lower
+<root>/text.x.md:7:18: error: Text exceeds 1 MiB
+<root>/text.x.md:9:16: error: List exceeds the collection size limit
+<root>/text.x.md:10:14: error: Invalid arguments for split
+<root>/text.x.md:13:15: error: Invalid arguments for starts_with
+<root>/text.x.md:15:13: error: Invalid arguments for ends_with
+<root>/text.x.md:19:13: error: Padding must be one character
+<root>/text.x.md:20:14: error: Expected a nonnegative integer
+<root>/text.x.md:21:14: error: Padding exceeds the size limit
+<root>/text.x.md:22:12: error: Invalid arguments for pad_end
+<root>/text.x.md:24:15: error: Invalid arguments for url_encode
+<root>/text.x.md:25:16: error: Unknown function 'url_encode'
+xmd: 12 error(s) while rendering
+
+### 1 cli render values.x.md --format text
+$ xmd render values.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Value builtins
+
+made := object([{key: "b", value: 2}, {key: "a", value: [1, 2]}]) = {"a": [1, 2], "b": 2}
+made_empty := object([]) = {}
+object_row := object([1])
+object_key := object([{key: 1, value: 2}])
+object_value := object([{key: "a"}])
+object_duplicate := object([{key: "a", value: 1}, {key: "a", value: 2}])
+object_bad := object({key: "a", value: 1})
+listed := entries({b: 2, a: "x"}) = [{"key": "a", "value": "x"}, {"key": "b", "value": 2}]
+entries_bad := entries([1])
+as_number := number($12.50) = 12.5
+number_duration := number(90s) = 90
+number_bool := number(true) = 1
+number_ratio := number(25%) = 0.25
+number_bad := number("12")
+kind_number := type(1) = Number
+kind_text := type("x") = Text
+kind_money := type($1) = Money
+kind_list := type([1]) = List
+kind_null := type(null) = Null
+floored := floor(2.7) = 2
+floored_ratio := floor(250%) = 2
+rounded := round(2.5) = 3
+rounded_negative := round(-2.5) = -3
+floor_bad := floor($2.70)
+round_bad := round("2")
+first := coalesce(null, null, 3, 4) = 3
+nothing := coalesce(null) = null
+empty := coalesce() = null
+lazy := coalesce(1, error("never evaluated")) = 1
+merged := import("probe").merge("a\nb\nc\nd\n", "A\nb\nc\nd\n", "a\nb\nc\nD\n") = {"clean": true, "text": "A\nb\nc\nD\n"}
+conflict := import("probe").merge("a\n", "b\n", "c\n") = {"clean": false, "text": "<<<<<<< ours\nb\n||||||| original\na\n=======\nc\n>>>>>>> theirs\n"}
+same := import("probe").merge("a\n", "z\n", "z\n") = {"clean": true, "text": "z\n"}
+merge_bad := import("probe").merge("a", "b", 3)
+solver := import("probe").solve({goal: "minimize", variables: {x: {kind: "continuous", lower: 2}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}) = {"status": "optimal", "values": {"x": 2}}
+solver_note := solve_linear({})
+
+## Chores :chores ███░░░░░ 1/3 complete
+
+- [x] Sweep
+- [ ] Mop
+- [ ] Dust
+
+left := remaining(chores) = 2
+left_bad := remaining(3)
+--- stderr
+<root>/values.x.md:5:15: error: object requires key/value records
+<root>/values.x.md:6:15: error: object keys must be text
+<root>/values.x.md:7:17: error: object entry needs value
+<root>/values.x.md:8:21: error: Duplicate object key 'a'
+<root>/values.x.md:9:15: error: Invalid arguments for object
+<root>/values.x.md:11:16: error: Invalid arguments for entries
+<root>/values.x.md:16:15: error: Expected a numeric value
+<root>/values.x.md:26:14: error: floor requires a number
+<root>/values.x.md:27:14: error: round requires a number
+<root>/values.x.md:35:14: error: Invalid arguments for merge3
+<root>/values.x.md:37:16: error: Unknown function 'solve_linear'
+<root>/values.x.md:46:13: error: remaining expects a named checklist heading
+xmd: 12 error(s) while rendering
+
+### 2 cli render dates.x.md --format text
+$ xmd render dates.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Date builtins
+
+date_ok := import("probe").date("16/09/2026", "%d/%m/%Y") = 2026-09-16
+date_miss := import("probe").date("31/02/2026", "%d/%m/%Y") = null
+date_bad := import("probe").date(20260916, "%Y%m%d")
+stamp_ok := import("probe").datetime("2026-09-16 09:30", "%Y-%m-%d %H:%M", now()) = 2026-09-16 09:30:00 -04:00
+stamp_miss := import("probe").datetime("2026-09-16", "%Y-%m-%d %H:%M", now()) = null
+stamp_bad := import("probe").datetime("2026-09-16 09:30", "%Y-%m-%d %H:%M", 2026-09-16)
+time_ok := import("probe").time("09:30", "%H:%M") = 570m
+time_miss := import("probe").time("25:00", "%H:%M") = null
+time_bad := import("probe").time(930, "%H%M")
+duration_ok := import("probe").duration("90m") = 90m
+duration_spaced := import("probe").duration("1h 30m") = null
+duration_miss := import("probe").duration("soon") = null
+duration_bad := import("probe").duration(90)
+made_date := import("probe").make(2026, 9, 16) = 2026-09-16
+made_leap := import("probe").make(2026, 2, 29) = null
+made_month := import("probe").make(2026, 13, 1) = null
+made_fraction := import("probe").make(2026, 1.5, 1) = null
+made_bad := import("probe").make("2026", 1, 1)
+parts_date := import("probe").parts(2026-09-16) = {"day": 16, "month": 9, "weekday": 2, "year": 2026}
+parts_stamp := import("probe").parts(2026-09-16T23:30:00-04:00) = {"day": 16, "month": 9, "weekday": 2, "year": 2026}
+parts_bad := import("probe").parts("2026-09-16")
+at := import("probe").at(2026-09-16, 90m, now()) = 2026-09-16 01:30:00 -04:00
+at_end := import("probe").at(2026-09-16, 86399s, now()) = 2026-09-16 23:59:59 -04:00
+at_day := import("probe").at(2026-09-16, 24h, now())
+at_negative := import("probe").at(2026-09-16, -1s, now())
+at_edge := import("probe").at(import("probe").make(262142, 12, 31), 23h, now())
+at_bad := import("probe").at(2026-09-16, 90m, 2026-09-16)
+split_time := import("probe").split_duration(12307s) = {"hours": 3, "minutes": 25, "seconds": 7}
+split_negative := import("probe").split_duration(-90s) = {"hours": 0, "minutes": -1, "seconds": -30}
+split_bad := import("probe").split_duration(5)
+note_tier := parse_date("2026-09-16", "%F")
+--- stderr
+<root>/dates.x.md:5:13: error: Invalid arguments for parse_date
+<root>/dates.x.md:8:14: error: Invalid arguments for parse_datetime
+<root>/dates.x.md:11:13: error: Invalid arguments for parse_time
+<root>/dates.x.md:15:17: error: Invalid arguments for parse_duration
+<root>/dates.x.md:20:13: error: Expected a finite number
+<root>/dates.x.md:23:14: error: date_parts requires a date or timestamp
+<root>/dates.x.md:26:11: error: Time must be within a calendar day
+<root>/dates.x.md:27:16: error: Time must be within a calendar day
+<root>/dates.x.md:28:12: error: Invalid timestamp
+<root>/dates.x.md:29:11: error: Invalid arguments for at_time
+<root>/dates.x.md:32:14: error: Invalid arguments for duration_parts
+<root>/dates.x.md:33:14: error: Unknown function 'parse_date'
+xmd: 12 error(s) while rendering
+

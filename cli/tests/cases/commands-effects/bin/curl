@@ -1,0 +1,17 @@
+#!/bin/sh
+# The runner calls: curl -sS -L --max-time 30 -X METHOD URL -H ACCEPT -w FORMAT
+# followed by any headers and, for a body, the content type and --data-binary @-.
+method="$6"
+url="$7"
+shift 11
+case "$url" in
+  https://api.example.com/items)
+    body=$(cat)
+    printf '{"method":"%s","rest":"%s","received":%s}\n%s' "$method" "$*" "$body" 201 ;;
+  https://api.example.com/plain)
+    printf 'plain words\n%s' 200 ;;
+  https://api.example.com/missing)
+    printf '{"message":"Not Found"}\n%s' 404 ;;
+  *)
+    echo "curl: (6) Could not resolve host for $url" >&2; exit 6 ;;
+esac

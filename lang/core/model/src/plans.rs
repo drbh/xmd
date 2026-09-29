@@ -77,8 +77,7 @@ pub fn goal(source: &str) -> Option<(Goal, usize, usize)> {
 pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
     let def = &doc.definitions[definition];
     let (goal, inner_start, inner_end) = goal(&def.source).unwrap();
-    let raw = def.value_span.source(&doc.text);
-    let offset = def.value_span.start + raw.len() - raw.trim_start().len();
+    let offset = def.expression_span(&doc.text).start;
     let header = def.end.line + 1;
     let objective = &def.source[inner_start..inner_end];
     let objective_start = inner_start + objective.len() - objective.trim_start().len();

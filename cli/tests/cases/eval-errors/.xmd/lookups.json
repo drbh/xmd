@@ -1,0 +1,12 @@
+{
+  "forecast:oaxaca:2026-11-20": {
+    "value": {
+      "high": 25.2,
+      "low": 14.0,
+      "summary": "seasonal outlook (estimate)",
+      "precipitation": 0.4
+    },
+    "fetched_at": "2026-09-16T12:00:00Z",
+    "source": "open-meteo.com (seasonal ensemble)"
+  }
+}

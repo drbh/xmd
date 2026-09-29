@@ -1,0 +1,38 @@
+{
+  "steps": [
+    { "cli": ["render", "records.x.md", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "controls.x.md" },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.timer",
+            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "nope", "action": "start" }]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.timer",
+            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "number", "action": "start" }]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.timer",
+            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "wrapped", "action": "start" }]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.timer",
+            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "plain", "action": "start" }]
+          }
+        }
+      ]
+    }
+  ]
+}

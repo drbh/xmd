@@ -3,22 +3,33 @@
 //! `TableValue` a note holds once its cells are evaluated. Parsing, typing and
 //! formatting a table's shape is `model::tables`, one layer down.
 use crate::{
-    engine_impl::Value,
-    error::{EvalError, EvalResult},
+    engine::Value,
     workspace::{Symbol, SymbolKind, Workspace},
 };
-use model::Reference;
-use std::path::Path;
-
-// A table's shape and formatting are parsed in `model`; this module reads
-// one against a live workspace, and both halves answer to `eval::tables`.
-pub use model::tables::*;
+use model::{
+    Reference,
+    tables::{Cell, Table, scope_at},
+};
+use std::{collections::BTreeMap, path::Path};
+use values::{EvalError, EvalResult};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableValue {
     pub origin: Symbol,
     pub columns: Vec<String>,
     pub rows: Vec<Vec<Value>>,
+}
+impl TableValue {
+    /// Each row as its column names and cell values.
+    pub(crate) fn named_rows(&self) -> impl Iterator<Item = BTreeMap<String, Value>> + '_ {
+        self.rows.iter().map(|row| {
+            self.columns
+                .iter()
+                .cloned()
+                .zip(row.iter().cloned())
+                .collect()
+        })
+    }
 }
 
 pub fn origin(ws: &Workspace, path: &Path, name: &str) -> EvalResult<Symbol> {
@@ -52,7 +63,7 @@ pub fn table<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<&'a Table> {
 }
 
 pub fn resolve_reference(ws: &Workspace, path: &Path, reference: &Reference) -> EvalResult<Symbol> {
-    let Some(name) = crate::tables::scope_at(&ws.documents[path], reference.span) else {
+    let Some(name) = scope_at(&ws.documents[path], reference.span) else {
         return ws.resolve(path, &reference.name);
     };
     let target = origin(ws, path, &name)?;
@@ -103,15 +114,23 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
     }
 }
 
+/// A plain cell's value, or why its text is not one.
+pub fn literal_value(cell: &Cell) -> EvalResult<Value> {
+    cell.value
+        .clone()
+        .map(Value::from)
+        .map_err(EvalError::Message)
+}
+
 /// Rows of a table, evaluating calculated cells and checking that each column
 /// keeps one type. Failures point at the offending cell. Used by
 /// `Engine::symbol` when a definition's source is a table.
 pub(crate) fn table_value(
-    engine: &mut crate::engine_impl::Engine<'_>,
+    engine: &mut crate::engine::Engine<'_>,
     symbol: &Symbol,
     table: &Table,
 ) -> EvalResult<Value> {
-    use crate::engine_impl::ValueType;
+    use crate::engine::ValueType;
     let mut types: Vec<Option<ValueType>> = table.types.clone();
     let mut rows = Vec::with_capacity(table.rows.len());
     for row in &table.rows {
@@ -120,23 +139,12 @@ pub(crate) fn table_value(
             let value = match &cell.expression {
                 Some((inner, span)) => {
                     let value = engine.eval_at(&symbol.path, inner, *span)?;
-                    if matches!(
-                        value,
-                        Value::Table(_) | Value::Plan(_) | Value::Tasks(_) | Value::Timer(_)
-                    ) {
+                    if matches!(value, Value::Host(_) | Value::Tasks(_)) {
                         let message = EvalError::Message(format!(
                             "A cell cannot hold a {}; use a scalar value",
                             value.type_name()
                         ));
-                        engine
-                            .failure
-                            .get_or_insert(crate::engine_impl::EvalFailure {
-                                path: symbol.path.clone(),
-                                span: *span,
-                                message: message.clone(),
-                                related: vec![],
-                            });
-                        return Err(message);
+                        return Err(engine.fail_at(&symbol.path, *span, message));
                     }
                     if let Some(expected) = types.get(column).copied().flatten() {
                         if expected != value.kind() {
@@ -145,32 +153,20 @@ pub(crate) fn table_value(
                                 table.columns[column].name,
                                 value.type_name()
                             ));
-                            engine
-                                .failure
-                                .get_or_insert(crate::engine_impl::EvalFailure {
-                                    path: symbol.path.clone(),
-                                    span: *span,
-                                    message: message.clone(),
-                                    related: vec![],
-                                });
-                            return Err(message);
+                            return Err(engine.fail_at(&symbol.path, *span, message));
                         }
                     } else if let Some(slot) = types.get_mut(column) {
                         *slot = Some(value.kind());
                     }
                     value
                 }
-                None => cell
-                    .value
-                    .clone()
-                    .map(Value::from)
-                    .map_err(EvalError::Message)?,
+                None => literal_value(cell)?,
             };
             values.push(value);
         }
         rows.push(values);
     }
-    Ok(Value::Table(std::sync::Arc::new(TableValue {
+    Ok(Value::Host(std::sync::Arc::new(TableValue {
         origin: symbol.clone(),
         columns: table.columns.iter().map(|c| c.name.clone()).collect(),
         rows,

@@ -1,0 +1,7 @@
+{
+  "steps": [
+    { "cli": ["render", "text.x.md", "--format", "text"] },
+    { "cli": ["render", "values.x.md", "--format", "text"] },
+    { "cli": ["render", "dates.x.md", "--format", "text"] }
+  ]
+}

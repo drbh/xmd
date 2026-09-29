@@ -1,5 +1,5 @@
-use crate::resources_impl::Cache;
 use model::{Document, Named};
+use modules::Cache;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -39,8 +39,8 @@ pub struct Workspace {
     pub(crate) roots: Vec<PathBuf>,
     pub(crate) documents: BTreeMap<PathBuf, Document>,
     pub(crate) cache: Cache,
-    pub(crate) lookups: crate::lookups_impl::Store,
-    pub(crate) modules: std::sync::Arc<crate::modules_impl::ModuleRegistry>,
+    pub(crate) lookups: values::Store,
+    pub(crate) modules: std::sync::Arc<modules::ModuleRegistry>,
 }
 impl Workspace {
     /// A workspace over `roots` with no notes, caches or modules of its own
@@ -51,7 +51,7 @@ impl Workspace {
             documents: BTreeMap::new(),
             cache: BTreeMap::new(),
             lookups: BTreeMap::new(),
-            modules: Default::default(),
+            modules: std::sync::Arc::new(crate::module_runtime::bundled()),
         }
     }
     /// The directories this workspace was opened on.
@@ -67,11 +67,11 @@ impl Workspace {
         &self.cache
     }
     /// Cached lookup values, by lookup key.
-    pub fn lookups(&self) -> &BTreeMap<String, crate::lookups_impl::Lookup> {
+    pub fn lookups(&self) -> &values::Store {
         &self.lookups
     }
     /// The active modules: the workspace's own, then the bundled ones.
-    pub fn modules(&self) -> &std::sync::Arc<crate::modules_impl::ModuleRegistry> {
+    pub fn modules(&self) -> &std::sync::Arc<modules::ModuleRegistry> {
         &self.modules
     }
     /// Add or replace a note, returning the one it replaces.
@@ -87,11 +87,11 @@ impl Workspace {
         self.documents.retain(|path, _| keep(path));
     }
     /// Record a link's freshly fetched status.
-    pub fn store_link_status(&mut self, target: String, status: crate::resources_impl::Metadata) {
+    pub fn store_link_status(&mut self, target: String, status: modules::Metadata) {
         self.cache.insert(target, status);
     }
     /// Record a lookup's freshly fetched value.
-    pub fn store_lookup(&mut self, key: String, lookup: crate::lookups_impl::Lookup) {
+    pub fn store_lookup(&mut self, key: String, lookup: values::Lookup) {
         self.lookups.insert(key, lookup);
     }
     /// Take the cached link statuses and lookups another snapshot of this
@@ -101,25 +101,18 @@ impl Workspace {
         self.lookups = refreshed.lookups.clone();
     }
     /// Add cached link statuses and lookups read from disk.
-    pub fn extend_caches(
-        &mut self,
-        cache: Cache,
-        lookups: BTreeMap<String, crate::lookups_impl::Lookup>,
-    ) {
+    pub fn extend_caches(&mut self, cache: Cache, lookups: values::Store) {
         self.cache.extend(cache);
         self.lookups.extend(lookups);
     }
     /// Activate a freshly compiled module registry.
-    pub fn replace_modules(
-        &mut self,
-        modules: std::sync::Arc<crate::modules_impl::ModuleRegistry>,
-    ) {
+    pub fn replace_modules(&mut self, modules: std::sync::Arc<modules::ModuleRegistry>) {
         self.modules = modules;
     }
-    pub fn link_features(&self) -> crate::link_features_impl::LinkFeatures<'_> {
-        crate::link_features_impl::BUILTINS.with_modules(&self.modules.modules)
+    pub fn link_features(&self) -> modules::LinkFeatures<'_> {
+        self.modules.link_features()
     }
-    pub fn resolve(&self, path: &Path, name: &str) -> crate::error::EvalResult<Symbol> {
+    pub fn resolve(&self, path: &Path, name: &str) -> values::EvalResult<Symbol> {
         let options: Vec<_> = self
             .documents
             .get(path)
@@ -128,9 +121,9 @@ impl Workspace {
             .filter(|s| self.named(s).name == name)
             .collect();
         match options.len() {
-            0 => Err(crate::error::EvalError::UnknownName { name: name.into() }),
+            0 => Err(values::EvalError::UnknownName { name: name.into() }),
             1 => Ok(options[0].clone()),
-            _ => Err(crate::error::EvalError::AmbiguousName { name: name.into() }),
+            _ => Err(values::EvalError::AmbiguousName { name: name.into() }),
         }
     }
     pub fn symbols(&self) -> Vec<Symbol> {

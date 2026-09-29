@@ -1,0 +1,298 @@
+### 0 browser
+-- setDocument main.x.md
+-- setModules {"sources":{"m00.x.md":"module := {api: 1, id: \"m00\", kind: \"library\"}\n","m01.x.md":"module := {api: 1, id: \"m01\", kind: \"library\"}\n","m02.x.md":"module := {api: 1, id: \"m02\", kind: \"library\"}\n","m03.x.md":"module := {api: 1, id: \"m03\", kind: \"library\"}\n","m04.x.md":"module := {api: 1, id: \"m04\", kind: \"library\"}\n","m05.x.md":"module := {api: 1, id: \"m05\", kind: \"library\"}\n","m06.x.md":"module := {api: 1, id: \"m06\", kind: \"library\"}\n","m07.x.md":"module := {api: 1, id: \"m07\", kind: \"library\"}\n","m08.x.md":"module := {api: 1, id: \"m08\", kind: \"library\"}\n","m09.x.md":"module := {api: 1, id: \"m09\", kind: \"library\"}\n","m10.x.md":"module := {api: 1, id: \"m10\", kind: \"library\"}\n","m11.x.md":"module := {api: 1, id: \"m11\", kind: \"library\"}\n","m12.x.md":"module := {api: 1, id: \"m12\", kind: \"library\"}\n","m13.x.md":"module := {api: 1, id: \"m13\", kind: \"library\"}\n","m14.x.md":"module := {api: 1, id: \"m14\", kind: \"library\"}\n","m15.x.md":"module := {api: 1, id: \"m15\", kind: \"library\"}\n","m16.x.md":"module := {api: 1, id: \"m16\", kind: \"library\"}\n","m17.x.md":"module := {api: 1, id: \"m17\", kind: \"library\"}\n","m18.x.md":"module := {api: 1, id: \"m18\", kind: \"library\"}\n","m19.x.md":"module := {api: 1, id: \"m19\", kind: \"library\"}\n","m20.x.md":"module := {api: 1, id: \"m20\", kind: \"library\"}\n","m21.x.md":"module := {api: 1, id: \"m21\", kind: \"library\"}\n","m22.x.md":"module := {api: 1, id: \"m22\", kind: \"library\"}\n","m23.x.md":"module := {api: 1, id: \"m23\", kind: \"library\"}\n","m24.x.md":"module := {api: 1, id: \"m24\", kind: \"library\"}\n","m25.x.md":"module := {api: 1, id: \"m25\", kind: \"library\"}\n","m26.x.md":"module := {api: 1, id: \"m26\", kind: \"library\"}\n","m27.x.md":"module := {api: 1, id: \"m27\", kind: \"library\"}\n","m28.x.md":"module := {api: 1, id: \"m28\", kind: \"library\"}\n","m29.x.md":"module := {api: 1, id: \"m29\", kind: \"library\"}\n","m30.x.md":"module := {api: 1, id: \"m30\", kind: \"library\"}\n","m31.x.md":"module := {api: 1, id: \"m31\", kind: \"library\"}\n","m32.x.md":"module := {api: 1, id: \"m32\", kind: \"library\"}\n","m33.x.md":"module := {api: 1, id: \"m33\", kind: \"library\"}\n","m34.x.md":"module := {api: 1, id: \"m34\", kind: \"library\"}\n","m35.x.md":"module := {api: 1, id: \"m35\", kind: \"library\"}\n","m36.x.md":"module := {api: 1, id: \"m36\", kind: \"library\"}\n","m37.x.md":"module := {api: 1, id: \"m37\", kind: \"library\"}\n","m38.x.md":"module := {api: 1, id: \"m38\", kind: \"library\"}\n","m39.x.md":"module := {api: 1, id: \"m39\", kind: \"library\"}\n","m40.x.md":"module := {api: 1, id: \"m40\", kind: \"library\"}\n","m41.x.md":"module := {api: 1, id: \"m41\", kind: \"library\"}\n","m42.x.md":"module := {api: 1, id: \"m42\", kind: \"library\"}\n","m43.x.md":"module := {api: 1, id: \"m43\", kind: \"library\"}\n","m44.x.md":"module := {api: 1, id: \"m44\", kind: \"library\"}\n","m45.x.md":"module := {api: 1, id: \"m45\", kind: \"library\"}\n","m46.x.md":"module := {api: 1, id: \"m46\", kind: \"library\"}\n","m47.x.md":"module := {api: 1, id: \"m47\", kind: \"library\"}\n","m48.x.md":"module := {api: 1, id: \"m48\", kind: \"library\"}\n","m49.x.md":"module := {api: 1, id: \"m49\", kind: \"library\"}\n","m50.x.md":"module := {api: 1, id: \"m50\", kind: \"library\"}\n","m51.x.md":"module := {api: 1, id: \"m51\", kind: \"library\"}\n","m52.x.md":"module := {api: 1, id: \"m52\", kind: \"library\"}\n","m53.x.md":"module := {api: 1, id: \"m53\", kind: \"library\"}\n","m54.x.md":"module := {api: 1, id: \"m54\", kind: \"library\"}\n","m55.x.md":"module := {api: 1, id: \"m55\", kind: \"library\"}\n","m56.x.md":"module := {api: 1, id: \"m56\", kind: \"library\"}\n","m57.x.md":"module := {api: 1, id: \"m57\", kind: \"library\"}\n","m58.x.md":"module := {api: 1, id: \"m58\", kind: \"library\"}\n","m59.x.md":"module := {api: 1, id: \"m59\", kind: \"library\"}\n","m60.x.md":"module := {api: 1, id: \"m60\", kind: \"library\"}\n","m61.x.md":"module := {api: 1, id: \"m61\", kind: \"library\"}\n","m62.x.md":"module := {api: 1, id: \"m62\", kind: \"library\"}\n","m63.x.md":"module := {api: 1, id: \"m63\", kind: \"library\"}\n","m64.x.md":"module := {api: 1, id: \"m64\", kind: \"library\"}\n"}}
+{
+  "error": "At most 64 modules may be loaded per source layer",
+  "ok": false
+}
+-- setModules {"sources":{"tickets.x.md":"module := {api: 1, id: \"tickets\", kind: \"link\", hosts: [\"issues.example\"], path_prefix: \"/tickets/\"}\ninlay := fn(ctx) => if(ctx.cached == null, \"ticket\", ctx.cached.title)\nrefresh := fn(url) => {program: \"/bin/echo\", args: [\"{}\"]}\ndecode := fn(url, data) => {title: data.summary}\n"}}
+{
+  "ok": true,
+  "result": null
+}
+-- setResourceData {"data":{"summary":"Wiki"},"url":"https://issues.example/wiki/7"}
+{
+  "error": "No feature recognizes this link",
+  "ok": false
+}
+-- setResourceData {"data":{"summary":"Nothing"},"url":"not a url"}
+{
+  "error": "No feature recognizes this link",
+  "ok": false
+}
+-- setResourceData {"data":{"summary":"Ship it"},"url":"https://issues.example/tickets/42"}
+{
+  "ok": true,
+  "result": null
+}
+-- analyze {"uri":"file:///workspace/main.x.md"}
+{
+  "ok": true,
+  "result": {
+    "diagnostics": [],
+    "editing": true,
+    "engineVersion": "0.1.0",
+    "hints": [
+      {
+        "label": "Ship it",
+        "paddingLeft": true,
+        "position": {
+          "character": 33,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)"
+        }
+      },
+      {
+        "label": "Ship it",
+        "paddingLeft": true,
+        "position": {
+          "character": 40,
+          "line": 0
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/tickets/42>)"
+        }
+      },
+      {
+        "label": "link",
+        "paddingLeft": true,
+        "position": {
+          "character": 34,
+          "line": 1
+        },
+        "tooltip": {
+          "kind": "markdown",
+          "value": "[Open resource](<https://issues.example/wiki/7>)"
+        }
+      }
+    ],
+    "html": "<span class=\"line \" data-line=\"0\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/tickets/42\" href=\"https://issues.example/tickets/42\">https://issues.example/tickets/42</a><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> Ship it</span><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">ticket</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/tickets/42&gt;)\"> Ship it</span>\n</span><span class=\"line \" data-line=\"1\"><a class=\"t-xmdLink\" title=\"Open https://issues.example/wiki/7\" href=\"https://issues.example/wiki/7\">https://issues.example/wiki/7</a><span class=\"t-xmdPunctuation\" title=\"\">:</span><span class=\"t-variable declaration\" title=\"\">page</span><span class=\"inlay\" contenteditable=\"false\" title=\"[Open resource](&lt;https://issues.example/wiki/7&gt;)\"> link</span>\n</span><span class=\"line \" data-line=\"2\"></span>",
+    "lenses": [
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.x.md",
+                "expected": "https://issues.example/tickets/42:ticket",
+                "row": 0
+              },
+              "url": "https://issues.example/tickets/42"
+            }
+          ],
+          "command": "xmd.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        }
+      },
+      {
+        "command": {
+          "arguments": [
+            {
+              "kind": "open_resource",
+              "target": {
+                "document": "file:///workspace/main.x.md",
+                "expected": "https://issues.example/wiki/7:page",
+                "row": 1
+              },
+              "url": "https://issues.example/wiki/7"
+            }
+          ],
+          "command": "xmd.openResource",
+          "title": "↗ open"
+        },
+        "range": {
+          "end": {
+            "character": 0,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "lineClasses": [
+      "",
+      "",
+      ""
+    ],
+    "links": [
+      {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "target": "https://issues.example/tickets/42",
+        "tooltip": "Open https://issues.example/tickets/42"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 29,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "target": "https://issues.example/wiki/7",
+        "tooltip": "Open https://issues.example/wiki/7"
+      }
+    ],
+    "live": false,
+    "now": "2026-09-18T12:00:00+00:00",
+    "schemaVersion": 1,
+    "source": "https://issues.example/tickets/42:ticket\nhttps://issues.example/wiki/7:page\n",
+    "symbols": [
+      {
+        "detail": "Resource · https://issues.example/tickets/42",
+        "kind": 14,
+        "name": "ticket",
+        "range": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 40,
+            "line": 0
+          },
+          "start": {
+            "character": 34,
+            "line": 0
+          }
+        }
+      },
+      {
+        "detail": "Resource · https://issues.example/wiki/7",
+        "kind": 14,
+        "name": "page",
+        "range": {
+          "end": {
+            "character": 34,
+            "line": 1
+          },
+          "start": {
+            "character": 0,
+            "line": 1
+          }
+        },
+        "selectionRange": {
+          "end": {
+            "character": 34,
+            "line": 1
+          },
+          "start": {
+            "character": 30,
+            "line": 1
+          }
+        }
+      }
+    ],
+    "tokenModifiers": [
+      "declaration",
+      "defaultLibrary"
+    ],
+    "tokenTypes": [
+      "comment",
+      "keyword",
+      "number",
+      "variable",
+      "operator",
+      "string",
+      "heading",
+      "function",
+      "property",
+      "decorator",
+      "xmdMoney",
+      "xmdDate",
+      "xmdDuration",
+      "xmdRatio",
+      "xmdBoolean",
+      "xmdPunctuation",
+      "xmdCode",
+      "xmdLink",
+      "xmdCheckbox",
+      "xmdTaskDone",
+      "xmdCheckboxChecked",
+      "xmdTime",
+      "xmdDay",
+      "xmdPlace",
+      "xmdDetailKey",
+      "xmdDepart",
+      "xmdArrive",
+      "xmdTransit",
+      "xmdStay",
+      "xmdMeal",
+      "xmdVisit",
+      "xmdExplore"
+    ],
+    "tokens": [
+      0,
+      0,
+      33,
+      17,
+      0,
+      0,
+      33,
+      1,
+      15,
+      0,
+      0,
+      1,
+      6,
+      3,
+      1,
+      1,
+      0,
+      29,
+      17,
+      0,
+      0,
+      29,
+      1,
+      15,
+      0,
+      0,
+      1,
+      4,
+      3,
+      1
+    ],
+    "uri": "file:///workspace/main.x.md",
+    "version": 1,
+    "versions": {
+      "file:///workspace/main.x.md": 1
+    }
+  }
+}
+

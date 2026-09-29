@@ -4,39 +4,40 @@
 //! refresh through here.
 use chrono::{DateTime, FixedOffset};
 use lang::eval::Workspace;
-use lang::eval::link_features::{LinkFeatures, RefreshFormat};
+use lang::eval::link_features::{LinkFeatures, RefreshFormat, RefreshRequest};
 use lang::eval::resources::Metadata;
-use std::{collections::BTreeSet, path::Path};
+use std::{collections::BTreeMap, path::Path};
 
-/// Run the refresh program for a link and decode its output through the module.
+/// Run the refresh program for a link and decode its output through the
+/// module. `fetched_at` is the clock once the program returns; a frozen
+/// `XMD_NOW` freezes it too.
 pub async fn fetch_link(features: LinkFeatures<'_>, target: &str) -> Result<Metadata, String> {
     let request = features
         .refresh_request(target)
         .ok_or("This link feature does not support refresh")?;
+    run_refresh(features, target, request).await
+}
+
+/// Run a refresh program the link's module already asked for.
+async fn run_refresh(
+    features: LinkFeatures<'_>,
+    target: &str,
+    request: RefreshRequest,
+) -> Result<Metadata, String> {
     let mut command = tokio::process::Command::new(&request.program);
-    command
-        .args(&request.args)
-        .envs(request.env)
-        .kill_on_drop(true);
-    let output = tokio::time::timeout(std::time::Duration::from_secs(20), command.output())
-        .await
-        .map_err(|_| format!("{} timed out", request.title))?
-        .map_err(|e| format!("Cannot run {}: {e}", request.program))?;
-    if !output.status.success() {
-        return Err(format!(
-            "{} failed: {}",
-            request.program,
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
-    }
+    command.args(&request.args).envs(request.env);
+    let stdout = crate::io::output(
+        &mut command,
+        &format!("{} timed out", request.title),
+        &request.program,
+        &request.program,
+    )
+    .await?;
     // A feed is markup, so the host parses it into the records a module reads.
     let data = match request.format {
-        RefreshFormat::Json => serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?,
-        RefreshFormat::Feed => crate::feeds::json(&crate::feeds::parse(&String::from_utf8_lossy(
-            &output.stdout,
-        ))?),
+        RefreshFormat::Json => serde_json::from_slice(&stdout).map_err(|e| e.to_string())?,
+        RefreshFormat::Feed => crate::feeds::parse(&String::from_utf8_lossy(&stdout))?,
     };
-    // The request clock, so a frozen `XMD_NOW` also freezes `fetched_at`.
     features
         .decode_refresh(target, &data, crate::now().to_utc())
         .map_err(|e| e.to_string())
@@ -50,7 +51,8 @@ pub async fn refresh_workspace(
     now: DateTime<FixedOffset>,
     only: Option<&Path>,
 ) -> Vec<String> {
-    let targets: BTreeSet<_> = workspace
+    let features = workspace.link_features();
+    let requests: BTreeMap<_, _> = workspace
         .documents()
         .iter()
         .filter(|(path, _)| only.is_none_or(|only| *path == only))
@@ -61,18 +63,17 @@ pub async fn refresh_workspace(
                 .map(|d| d.source.as_str())
                 .chain(doc.links.iter().map(|l| l.target.as_str()))
         })
-        .filter(|s| workspace.link_features().refresh_request(s).is_some())
-        .map(str::to_owned)
+        .filter_map(|s| Some((s.to_owned(), features.refresh_request(s)?)))
         .collect();
     let mut errors = Vec::new();
-    for target in targets {
-        match fetch_link(workspace.link_features(), &target).await {
+    for (target, request) in requests {
+        match run_refresh(workspace.link_features(), &target, request).await {
             Ok(metadata) => {
                 workspace.store_link_status(target, metadata);
             }
             Err(e) => errors.push(format!("{target}: {e}")),
         }
     }
-    errors.extend(crate::lookups_impl::refresh(workspace, now, only).await);
+    errors.extend(crate::lookups::refresh(workspace, now, only).await);
     errors
 }

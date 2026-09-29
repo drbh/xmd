@@ -1,0 +1,184 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "union(events, stops) | group kind | sort key",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "sections | select {title, level, line, end_line}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "sections",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "days",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "packed.x.md",
+        "decisions",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "values | select {name, display, hover}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "references | select {kind, expression, display, hover}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "calculations | select {expression, display, hover}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "values | select {name, presentation}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "map(sections, fn(s) => s.title + \" \" + text(length(days)))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "sections | select {title, file: source.path} | sort file, title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "values | sort value | select name",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "trip.x.md",
+        "sections | limit 1 | sort source",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "empty/prose.x.md",
+        "tasks | group title",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "tasks | group source.path | sort key",
+        "--root",
+        "empty",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "empty/prose.x.md",
+        "sections | sort title | count",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "trip.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "trip.x.md"
+        },
+        {
+          "query": {
+            "query": "sections | select {title, level}",
+            "uri": "trip.x.md"
+          }
+        },
+        {
+          "query": {
+            "query": "union(sections, days) | group kind | select {key, count: length(rows)} | sort key",
+            "uri": "trip.x.md"
+          }
+        },
+        {
+          "query": {
+            "query": "stops | select title",
+            "uri": "packed.x.md"
+          }
+        },
+        {
+          "request": "xmd/query",
+          "params": {
+            "query": "stops",
+            "uri": "https://example.com/trip.x.md"
+          }
+        },
+        {
+          "request": "xmd/query",
+          "params": {
+            "query": "stops | nope"
+          }
+        }
+      ]
+    }
+  ]
+}

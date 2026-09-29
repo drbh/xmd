@@ -7,7 +7,9 @@ publish = false
 # What every host shares, behind one public interface. The crates beside this
 # manifest are private to it: hosts depend on this facade, never on them.
 [dependencies]
-services = { path = "services" }
+analysis = { path = "analysis" }
+catalog = { path = "catalog" }
+editor = { path = "editor" }
 
 # Native I/O exists only off the web; a browser host gets the same facade
 # without it, and without a feature flag.

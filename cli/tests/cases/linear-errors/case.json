@@ -1,0 +1,9 @@
+{
+  "steps": [
+    { "cli": ["render", "seek.x.md", "--format", "text"] },
+    { "cli": ["render", "plans.x.md", "--format", "text"] },
+    { "cli": ["render", "solver.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules.json": "[\"./modules/probe.x.md\", \"../variants/plan.x.md\"]\n" } },
+    { "cli": ["render", "records.x.md", "--format", "text"] }
+  ]
+}

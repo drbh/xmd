@@ -7,14 +7,12 @@ publish = false
 [dependencies]
 chrono = { workspace = true }
 common = { path = "../common" }
-diffy = "0.4"
-good_lp = { version = "1.15", default-features = false, features = ["microlp"] }
 model = { path = "../model" }
+modules = { path = "../modules" }
 serde = { workspace = true }
-serde_json = { workspace = true }
 strum = { workspace = true }
 syntax = { path = "../syntax" }
-url = { workspace = true }
+values = { path = "../values" }
 
 [lints]
 workspace = true

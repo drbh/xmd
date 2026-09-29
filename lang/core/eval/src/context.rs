@@ -1,10 +1,10 @@
 //! Immutable request inputs and a cache shared by independent evaluator sessions.
 use crate::{
-    engine_impl::{Engine, MemoEntry, MemoKey, Value},
-    link_features_impl::LinkFeatures,
+    engine::{Engine, MemoEntry, MemoKey, Value},
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
+use modules::LinkFeatures;
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
@@ -29,9 +29,6 @@ impl Clock {
             _ => None,
         }
     }
-    pub fn engine(self, workspace: &Workspace) -> Engine<'_> {
-        RequestContext::new(workspace, self.now).engine()
-    }
 }
 
 /// One workspace snapshot, clock, provider registry and memo for a host request.
@@ -42,7 +39,6 @@ impl Clock {
 pub struct RequestContext<'a> {
     pub(crate) workspace: &'a Workspace,
     pub(crate) clock: Clock,
-    pub(crate) today: NaiveDate,
     pub(crate) links: LinkFeatures<'a>,
     pub(crate) memo: Arc<Mutex<BTreeMap<MemoKey, MemoEntry>>>,
 }
@@ -51,7 +47,6 @@ impl<'a> RequestContext<'a> {
         Self {
             workspace,
             clock: Clock::new(now),
-            today: now.date_naive(),
             links: workspace.link_features(),
             memo: Default::default(),
         }
@@ -63,7 +58,7 @@ impl<'a> RequestContext<'a> {
         self.clock.now
     }
     pub fn today(&self) -> NaiveDate {
-        self.today
+        self.clock.today()
     }
     pub fn clock(&self) -> Clock {
         self.clock

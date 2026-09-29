@@ -3,7 +3,7 @@
 //! and which of its properties read a member — is `model::imports`, one
 //! layer down; this walks that same syntax against the workspace's symbols.
 use crate::{
-    engine_impl::{Expr, Parser},
+    engine::{Expr, Parser},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use model::note_path;
@@ -32,7 +32,7 @@ pub fn member_symbol(ws: &Workspace, path: &Path, source: &str) -> Option<Symbol
         expr: &Expr,
         seen: &mut BTreeSet<Symbol>,
     ) -> Option<PathBuf> {
-        if let Expr::Builtin(crate::engine_impl::Builtin::Import, args) = expr.bare()
+        if let Expr::Builtin(crate::engine::Builtin::Import, args) = expr.bare()
             && let [arg] = args.as_slice()
             && let Expr::Value(Literal::Text(id)) = arg.bare()
         {

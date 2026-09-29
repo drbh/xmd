@@ -1,0 +1,3 @@
+#!/bin/sh
+# A forecast is stored exactly as printed, whole numbers included.
+echo "{\"high\": 18, \"low\": 9, \"summary\": \"Cloudy in $1 on $2\"}"

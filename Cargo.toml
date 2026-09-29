@@ -1,14 +1,18 @@
-# The language, split into layered crates. lang/core is the language itself
-# (common, syntax, model, eval) and lang/stdlib is the .x.md library on top.
+# The language, split into layered crates. lang/core is the language itself:
+# common (the shared kernel), syntax, model (a parsed note), values (what a
+# value is, apart from the engine), modules (the .x.md modules as data) and
+# eval (the evaluator); lang/stdlib is the .x.md library on top.
 # runtime is what every host shares and the source of truth for runtime
-# behavior: services (portable language services), host (native I/O and
-# orchestration) and the renderer shared with the web client. The hosts sit
-# beside it: lsp (the language server), browser (the wasm host) and cli (the
-# xmd binary, which assembles them, and the end-to-end tests).
+# behavior: analysis (language facts: hover, symbols, diagnostics, ...),
+# catalog (typed records over notes and the query language), editor (what an
+# editor shows and does and the editing session, HTML rendering included) and
+# host (native I/O and orchestration). The hosts sit beside it: lsp (the
+# language server), browser (the wasm host) and cli (the xmd binary, which
+# assembles them, and the end-to-end tests).
 # `client/ide/zed` is a crate too, but it targets wasm32-wasip2 and keeps its
 # own lockfile, so it stays out of this workspace.
 [workspace]
-members = ["cli", "lang", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/eval", "runtime", "runtime/services", "runtime/host", "runtime/renderer", "lsp", "browser"]
+members = ["cli", "lang", "lang/core/common", "lang/core/syntax", "lang/core/model", "lang/core/values", "lang/core/modules", "lang/core/eval", "runtime", "runtime/analysis", "runtime/catalog", "runtime/editor", "runtime/host", "lsp", "browser"]
 default-members = ["cli"]
 exclude = ["client/ide/zed"]
 resolver = "3"
@@ -28,23 +32,26 @@ tower-lsp-server = "0.22.1"
 url = { version = "2", features = ["serde"] }
 
 # Each crate may depend only on the internal crates listed for it. Pipeline
-# order: syntax -> model -> eval -> lang -> services -> runtime -> hosts;
-# common is the language's shared kernel, and renderer is a leaf services
-# builds on. Outside lang/ and runtime/, only their facades are visible.
+# order: syntax -> model, values -> modules -> eval -> lang -> analysis ->
+# catalog -> editor -> runtime -> hosts; common is the language's shared
+# kernel. Outside lang/ and runtime/, only their facades are visible.
 # Enforced by cli/tests/architecture.rs.
 [workspace.metadata.layers]
 # lang/: the language. Its crates are private to the lang facade.
 common = []
 syntax = ["common"]
 model = ["common", "syntax"]
-eval = ["common", "syntax", "model"]
-lang = ["common", "syntax", "model", "eval"]
+values = ["common", "syntax"]
+modules = ["common", "syntax", "model", "values"]
+eval = ["common", "syntax", "model", "values", "modules"]
+lang = ["common", "syntax", "model", "values", "modules", "eval"]
 # runtime/: what every host shares, reaching the language only through lang.
 # Its crates are private to the runtime facade.
-renderer = []
-services = ["lang", "renderer"]
-host = ["lang", "services"]
-runtime = ["services", "host"]
+analysis = ["lang"]
+catalog = ["lang", "analysis"]
+editor = ["lang", "analysis", "catalog"]
+host = ["lang", "catalog"]
+runtime = ["analysis", "catalog", "editor", "host"]
 # The hosts see only the two facades; xmd (cli/) is the one that assembles
 # them into the binary.
 lsp = ["lang", "runtime"]

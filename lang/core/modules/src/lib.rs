@@ -1,0 +1,20 @@
+//! The .x.md modules as data: what a feature, link, library, command or
+//! provider module declares, how its source compiles and links into a
+//! registry, and the contract a link module fulfils. Running a module's code
+//! is the evaluator's job, reached through `ModuleEnvironment`, so this crate
+//! describes and validates modules without naming the engine, and the engine
+//! calls into them without owning their shape.
+//!
+//! Exposes its interface from the root, as one flat list.
+mod link_features;
+mod module;
+mod registry;
+
+// A compiled module, its kind and hooks, and the environment it runs in.
+pub use module::{
+    Evaluator, Hook, Module, ModuleEnvironment, ModuleKind, NewEnvironment, is_module_path,
+};
+// The compiled set of modules, linked and ready to call.
+pub use registry::ModuleRegistry;
+// The link modules a request consults, and the refresh formats they name.
+pub use link_features::{Cache, LinkFeatures, Metadata, RefreshFormat, RefreshRequest};

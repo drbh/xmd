@@ -1,46 +1,30 @@
 //! The runtime every host shares, and the source of truth for runtime
 //! behavior: one public interface in front of the private crates beside it
-//! (`services`, `host`, `renderer`). Hosts reach the runtime only through here.
+//! (`analysis`, `catalog`, `editor`, `host`). Hosts reach the runtime only
+//! through here, and every name they can reach is listed, so nothing is
+//! exposed by accident.
 
 /// The language services, the same on every host: requests, sessions,
-/// queries, rendering and what an editor shows and does. Every name is listed.
+/// queries, rendering and what an editor shows and does. One namespace over
+/// three crates: language facts (`analysis`), records and queries (`catalog`)
+/// and the editing features and session (`editor`).
 pub mod services {
-    pub use ::services::Request;
-    pub mod actions {
-        pub use ::services::actions::{TaskToggle, apply_edits};
-    }
-    pub mod agenda {
-        pub use ::services::agenda::today_markdown;
-    }
+    pub use ::analysis::{
+        flat_symbols, folding_ranges, occurrences, severity_name, signature, symbol_at,
+    };
+    pub use ::catalog::{Query, display};
+    pub use ::editor::{
+        RefreshReport, Request, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession,
+        fragment, line_classes, semantic_tokens, today_markdown,
+    };
     pub mod commands {
-        pub use ::services::commands::{Action, Capabilities, PreparedAction};
-    }
-    pub mod diagnostics {
-        pub use ::services::diagnostics::severity_name;
+        pub use ::editor::{Action, Capabilities, PreparedAction};
     }
     pub mod hierarchy {
-        pub use ::services::hierarchy::{decode, dependencies, dependents, prepare, ranges};
-    }
-    pub mod intelligence {
-        pub use ::services::intelligence::{occurrences, signature, symbol_at};
-    }
-    pub mod presentation {
-        pub use ::services::presentation::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
-    }
-    pub mod query {
-        pub use ::services::query::{Query, display};
-    }
-    pub mod rendering {
-        pub use ::services::rendering::{fragment, line_classes};
-    }
-    pub mod session {
-        pub use ::services::session::{RefreshReport, WorkspaceSession};
-    }
-    pub mod symbols {
-        pub use ::services::symbols::{flat_symbols, folding_ranges};
+        pub use ::analysis::hierarchy::{decode, dependencies, dependents, prepare, ranges};
     }
     pub mod typing {
-        pub use ::services::typing::{TRIGGERS, on_type};
+        pub use ::editor::{TRIGGERS, on_type};
     }
 }
 
@@ -49,6 +33,7 @@ pub mod services {
 #[cfg(not(target_arch = "wasm32"))]
 pub mod host {
     pub use ::host::{
-        DiskFiles, WorkspaceFiles, fetch_link, load_modules, now, refresh_workspace, run_command,
+        DiskFiles, WorkspaceFiles, fetch_link, now, refresh_workspace, run_command_named,
+        save_cache,
     };
 }

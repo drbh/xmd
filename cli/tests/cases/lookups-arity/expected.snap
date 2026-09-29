@@ -1,0 +1,92 @@
+### 0 cli render rates.x.md --format text
+$ xmd render rates.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Rates and quotes
+
+- rate: [rate(EUR, USD)] 1.09 [rate(USD, USD)] 1 [rate(EUR)] [rate(EUR, USD, GBP)]
+- rate codes: [rate(1, USD)] [rate(EUR, 2)] [rate("XYZ", USD)] [rate("usd", EUR)] [rate(EUR, "Dollars")] [rate("EUR", "USD")] 1.09
+- to: [to(€10, USD)] $10.90 [to($10, USD)] $10 [to($5)] [to(5, USD)] [to($5, 3)] [to($5, "ABC")]
+- quote: [quote(NVDA)] $181.50 [quote()] [quote(NVDA, AAPL)] [quote(1)] [quote("NVDA")] $181.50
+--- stderr
+<root>/rates.x.md:3:44: error: rate expects two currency codes: rate(EUR, USD)
+<root>/rates.x.md:3:56: error: rate expects two currency codes: rate(EUR, USD)
+<root>/rates.x.md:4:16: error: The first currency must be a code such as USD, found Number
+<root>/rates.x.md:4:31: error: The second currency must be a code such as USD, found Number
+<root>/rates.x.md:4:46: warning: No cached rate XYZ→USD; run xmd refresh or use the ⟳ lookups lens
+<root>/rates.x.md:4:65: error: 'usd' is not a currency code such as USD
+<root>/rates.x.md:4:84: error: 'Dollars' is not a currency code such as USD
+<root>/rates.x.md:5:38: error: to expects a money value and a currency code: to(hotel, USD)
+<root>/rates.x.md:5:47: error: to converts money; the first argument is not money
+<root>/rates.x.md:5:60: error: The currency must be a code such as USD, found Number
+<root>/rates.x.md:5:72: warning: No cached rate USD→ABC; run xmd refresh or use the ⟳ lookups lens
+<root>/rates.x.md:6:25: error: quote expects a ticker symbol: quote(NVDA)
+<root>/rates.x.md:6:35: error: quote expects a ticker symbol: quote(NVDA)
+<root>/rates.x.md:6:55: error: The ticker must be a code such as USD, found Number
+xmd: 12 error(s) while rendering
+
+### 1 cli render weather.x.md --format text
+$ xmd render weather.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Forecasts
+
+- single: [forecast("Oaxaca", 2026-11-20)] 25°C / 14°C · sunny [forecast("Oaxaca", 2026-11-20, F)] 77°F / 57°F · sunny [forecast("Oaxaca", 2026-11-20, "CELSIUS")] 25°C / 14°C · sunny [forecast("Oaxaca", 2026-11-20, "FAHRENHEIT")] 77°F / 57°F · sunny
+- single arity: [forecast("Oaxaca")] [forecast("Oaxaca", 2026-11-20, F, C)]
+- single types: [forecast(1, 2026-11-20)] [forecast("Oaxaca", "soon")] [forecast("Oaxaca", 2026-11-20, K)] [forecast("Oaxaca", 2026-11-20, 3)]
+- range: [forecast_range("Oaxaca", 2026-11-20, 2026-11-20)] <collection> [forecast_range("Oaxaca", 2026-11-20, 2026-11-21)]
+- range arity: [forecast_range("Oaxaca", 2026-11-20)] [forecast_range("Oaxaca", 2026-11-20, 2026-11-21, F, C)]
+- range types: [forecast_range(3, 2026-11-20, 2026-11-21)] [forecast_range("Oaxaca", 2026-11-20, "later")] [forecast_range("Oaxaca", 2026-11-20, 2040-01-01)] [forecast_range("Oaxaca", 2026-11-20, 2026-11-20, K)]
+--- stderr
+<root>/weather.x.md:4:18: error: forecast expects a place and a date: forecast("Oaxaca", 2026-11-20)
+<root>/weather.x.md:4:39: error: forecast expects a place and a date: forecast("Oaxaca", 2026-11-20)
+<root>/weather.x.md:5:18: error: The place must be text, e.g. forecast("Oaxaca", 2026-11-20)
+<root>/weather.x.md:5:44: error: Expected a date or appointment time
+<root>/weather.x.md:5:73: error: Unknown temperature unit 'K'; use F or C
+<root>/weather.x.md:5:109: error: The unit must be a code such as USD, found Number
+<root>/weather.x.md:6:62: warning: No cached forecast for Oaxaca on 2026-11-21; run xmd refresh or use the ⟳ lookups lens
+<root>/weather.x.md:7:17: error: forecast_range expects a place, start date, end date, and optional unit: forecast_range("Oaxaca", 2026-11-20, 2026-11-26, F)
+<root>/weather.x.md:7:56: error: forecast_range expects a place, start date, end date, and optional unit: forecast_range("Oaxaca", 2026-11-20, 2026-11-26, F)
+<root>/weather.x.md:8:17: error: The place must be text, e.g. forecast("Oaxaca", 2026-11-20)
+<root>/weather.x.md:8:61: error: Expected a date or appointment time
+<root>/weather.x.md:8:109: error: List exceeds 4096 items
+<root>/weather.x.md:8:160: error: Unknown temperature unit 'K'; use F or C
+xmd: 12 error(s) while rendering
+
+### 2 cli render tail.x.md --format text
+$ xmd render tail.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# The one-argument tail
+
+## Chores :chores ████░░░░ 1/2 complete
+
+- [x] Sweep
+- [ ] Mop
+
+- clock: [today(1)] [now(1)] [today(1, 2)] [now(1, 2)] [today(chores)] [now(chores)]
+- plans: [maximize(1)] [minimize(1, 2)] [solve(1)] [maximize(chores)] [minimize(chores)] [solve(chores)]
+- checklists: [total(chores)] 2 [completed(chores)] 1 [effort(chores)] 0s [total(chores, chores)] [completed(1)]
+- dates: [date("2026-09-20")] 2026-09-20 [date("tomorrow")] 2026-09-17 [date("whenever")] [date(now())] 2026-09-16 [date(3)] [date()]
+- eval: [import("probe").pair()]
+--- stderr
+<root>/tail.x.md:8:11: error: today expects a named checklist heading
+<root>/tail.x.md:8:22: error: now expects a named checklist heading
+<root>/tail.x.md:8:31: error: today expects one argument
+<root>/tail.x.md:8:45: error: now expects one argument
+<root>/tail.x.md:8:57: error: Unknown function 'today'
+<root>/tail.x.md:8:73: error: Unknown function 'now'
+<root>/tail.x.md:9:11: error: maximize expects a named checklist heading
+<root>/tail.x.md:9:25: error: minimize expects one argument
+<root>/tail.x.md:9:42: error: solve expects a named checklist heading
+<root>/tail.x.md:9:53: error: Unknown function 'maximize'
+<root>/tail.x.md:9:72: error: Unknown function 'minimize'
+<root>/tail.x.md:9:91: error: Unknown function 'solve'
+<root>/tail.x.md:10:69: error: total expects one argument
+<root>/tail.x.md:10:93: error: completed expects a named checklist heading
+<root>/tail.x.md:11:51: error: Unrecognized date
+<root>/tail.x.md:11:84: error: Expected a date or appointment time
+<root>/tail.x.md:11:94: error: date expects one argument
+<root>/tail.x.md:12:10: error: eval expects one argument
+xmd: 18 error(s) while rendering
+

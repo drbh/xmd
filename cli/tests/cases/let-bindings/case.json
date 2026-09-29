@@ -1,0 +1,16 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {"cli": ["render", "main.x.md", "--format", "text"]},
+    {"cli": ["query", "main.x.md", "nested", "--json"]},
+    {"cli": ["query", "main.x.md", "let({}, 5)", "--json"]},
+    {"cli": ["query", "main.x.md", "(fn(r) => let({a: r + 1, b: a * r}, [r, a, b]))(3)", "--json"]},
+    {"cli": ["query", "main.x.md", "let({x: 1, x: 2}, x)", "--json"]},
+    {"cli": ["query", "main.x.md", "let({fn: 1}, 2)", "--json"]},
+    {"cli": ["query", "main.x.md", "let({x: 1}, y)", "--json"]},
+    {"cli": ["query", "main.x.md", "let(x, 1)", "--json"]},
+    {"cli": ["query", "main.x.md", "let({x: 1} x)", "--json"]},
+    {"cli": ["query", "main.x.md", "let({x}, x)", "--json"]},
+    {"lsp": [{"open": "main.x.md"}, {"request": "textDocument/references", "file": "main.x.md", "line": 3, "character": 0, "extra": {"context": {"includeDeclaration": true}}}, {"request": "textDocument/signatureHelp", "file": "main.x.md", "line": 5, "character": 16}]}
+  ]
+}

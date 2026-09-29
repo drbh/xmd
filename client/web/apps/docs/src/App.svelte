@@ -158,6 +158,14 @@
       activeId = d.id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
     } catch (e) { view = "home"; activeId = null; notice = e.message || "This link no longer works"; }
   }
+  // A newer build: taken by itself on the document list once nothing is saving,
+  // offered as a chip while a document is open.
+  function applyUpdate() {
+    if (!update.waiting) { location.reload(); return; } // another tab already switched to it
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), { once: true });
+    update.waiting.postMessage("skip-waiting");
+  }
+  $effect(() => { if (update && ready && !active && !dirty.size && saved !== "Saving…") applyUpdate(); });
   function home() { const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving); }
 
   // Saving: edits are debounced, then handed to the backend one document at a
@@ -513,7 +521,7 @@
     {#if find}<FindBar {controller} replace={find.replace} onClose={at => { find = null; controller?.select(at); }} />{/if}
     {#if prefs.wordCount && counts}<button type="button" class="chip words" title="Word count" onclick={() => (dialog = "stats")}>{counts.words} words</button>{/if}
     {#if problems.length}<button type="button" class="chip problems-chip" onclick={() => (dialog = "problems")}><Icon name="warning" size={14} /> {problems.length} problem{problems.length === 1 ? "" : "s"}</button>{/if}
-    {#if update}<button type="button" class="chip update-chip" onclick={() => { update.waiting?.postMessage("skip-waiting"); navigator.serviceWorker?.addEventListener("controllerchange", () => location.reload(), { once: true }); }}>A new version is ready · Reload</button>{/if}
+    {#if update}<button type="button" class="chip update-chip" onclick={applyUpdate}>A new version is ready · Reload</button>{/if}
     {#if !prefs.console}<button type="button" class="chip console-chip" onclick={() => (prefs.console = true)}><Icon name="code" size={14} /> Console</button>{/if}
     <button type="button" class="chip outline-toggle" aria-label="Toggle outline" onclick={() => (sidebarOpenMobile = !sidebarOpenMobile)}><Icon name="outline" size={16} /></button>
 

@@ -21,4 +21,4 @@ output
 .env
 
 .DS_Store
-scripts
+/scripts

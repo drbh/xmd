@@ -110,13 +110,7 @@ checks_badge := fn(checks) => (
   if(
     checks == null,
     [],
-    [
-      if(
-        checks == "passing",
-        "● checks",
-        if(checks == "failing", "✗ checks FAILING", "◌ checks pending")
-      )
-    ]
+    [match(checks, "passing", "● checks", "failing", "✗ checks FAILING", "◌ checks pending")]
   )
 )
 

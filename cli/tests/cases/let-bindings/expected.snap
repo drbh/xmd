@@ -1,0 +1,141 @@
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Let
+
+price := $19.99 = $19.99
+x := 100 = 100
+
+subtotal := let({each: price, count: 3}, each * count) = $59.97
+shadowed := let({x: 1}, x + 1) = 2
+nested := map([1, 2], fn(n) => let({sq: n * n}, let({cube: sq * n}, [n, sq, cube]))) = [[1, 1, 1], [2, 4, 8]]
+helper := let({inc: fn(n) => n + 1, twice: fn(n) => inc(inc(n))}, twice(x)) = 102
+
+Subtotal [subtotal] $59.97, shadowed [shadowed] 2, helper [helper] 102.
+
+### 1 cli query main.x.md nested --json
+$ xmd query main.x.md nested --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  [
+    1,
+    1,
+    1
+  ],
+  [
+    2,
+    4,
+    8
+  ]
+]
+
+### 2 cli query main.x.md let({}, 5) --json
+$ xmd query main.x.md let({}, 5) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  5
+]
+
+### 3 cli query main.x.md (fn(r) => let({a: r + 1, b: a * r}, [r, a, b]))(3) --json
+$ xmd query main.x.md (fn(r) => let({a: r + 1, b: a * r}, [r, a, b]))(3) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  3,
+  4,
+  12
+]
+
+### 4 cli query main.x.md let({x: 1, x: 2}, x) --json
+$ xmd query main.x.md let({x: 1, x: 2}, x) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Invalid or duplicate name 'x' in let
+
+### 5 cli query main.x.md let({fn: 1}, 2) --json
+$ xmd query main.x.md let({fn: 1}, 2) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Invalid or duplicate name 'fn' in let
+
+### 6 cli query main.x.md let({x: 1}, y) --json
+$ xmd query main.x.md let({x: 1}, y) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Unknown name 'y'
+
+### 7 cli query main.x.md let(x, 1) --json
+$ xmd query main.x.md let(x, 1) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: let expects {name: value, …} and a body
+
+### 8 cli query main.x.md let({x: 1} x) --json
+$ xmd query main.x.md let({x: 1} x) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: let expects {name: value, …} and a body
+
+### 9 cli query main.x.md let({x}, x) --json
+$ xmd query main.x.md let({x}, x) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Expected ':' after 'x' in let
+
+### 10 lsp
+-- open main.x.md
+-- request textDocument/references main.x.md 3:0
+[
+  {
+    "range": {
+      "end": {
+        "character": 1,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "uri": "file://<root>/main.x.md"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 73,
+        "line": 8
+      },
+      "start": {
+        "character": 72,
+        "line": 8
+      }
+    },
+    "uri": "file://<root>/main.x.md"
+  }
+]
+-- request textDocument/signatureHelp main.x.md 5:16
+{
+  "activeParameter": 0,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Name values for the body; each name can use the ones before it."
+      },
+      "label": "let(names: Record, body: Value) → Value",
+      "parameters": [
+        {
+          "label": "names: Record"
+        },
+        {
+          "label": "body: Value"
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,233 @@
+### 0 cli run sync notes
+$ xmd run sync notes
+exit 1
+--- stderr
+xmd: Pass --url the first time, e.g. --url https://xmd.example.com
+
+### 1 cli run sync notes --url https://sync.example.com/
+$ xmd run sync notes --url https://sync.example.com/
+exit 1
+--- stderr
+xmd: No API key: pass --key once, or set XMD_API_KEY
+
+### 2 cli run sync notes --url https://sync.example.com/ --key k1 --dry-run
+$ xmd run sync notes --url https://sync.example.com/ --key k1 --dry-run
+exit 0
+--- stdout
+would create folder "notes"
+
+### 3 cli run sync notes --url https://sync.example.com/ --key k1
+$ xmd run sync notes --url https://sync.example.com/ --key k1
+exit 0
+--- stdout
+created folder "notes"
+created list in the web app
+created scratch in the web app
+created trip in the web app
+
+### 4 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+Up to date.
+
+### 5 write
+-- write notes/list.x.md (47 bytes)
+
+### 6 cli run sync notes --dry-run
+$ xmd run sync notes --dry-run
+exit 0
+--- stdout
+would push list
+
+### 7 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+pushed list
+
+### 8 write
+-- write server/edit/trip.x.md (42 bytes)
+
+### 9 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+pulled trip
+
+### 10 read notes/trip.x.md
+-- notes/trip.x.md
+# Trip :trip
+
+budget := $1200
+nights := 4
+
+### 11 write
+-- write notes/trip.x.md (42 bytes)
+-- write server/edit/trip.x.md (49 bytes)
+
+### 12 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+merged trip
+
+### 13 read notes/trip.x.md
+-- notes/trip.x.md
+# Summer trip :trip
+
+budget := $1200
+nights := 5
+
+### 14 write
+-- write notes/list.x.md (47 bytes)
+-- write server/edit/list.x.md (51 bytes)
+
+### 15 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+conflict in list: resolve list.conflict.x.md, copy it over list.x.md, and delete it
+
+### 16 read notes/list.x.md notes/list.conflict.x.md
+-- notes/list.x.md
+# Groceries
+
+- [x] milk
+- [ ] eggs
+- [ ] bread
+-- notes/list.conflict.x.md
+# Groceries
+
+<<<<<<< ours
+- [x] milk
+||||||| original
+- [ ] milk
+=======
+- [ ] oat milk
+>>>>>>> theirs
+- [ ] eggs
+- [ ] bread
+
+### 17 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+list: still has list.conflict.x.md; resolve it to continue syncing this file
+
+### 18 write
+-- remove notes/list.conflict.x.md
+-- write notes/list.x.md (51 bytes)
+
+### 19 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+pushed list
+
+### 20 write
+-- remove notes/scratch.x.md
+
+### 21 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+removed scratch from the web app (it was deleted here)
+
+### 22 write
+-- write server/delete/trip.x.md (5 bytes)
+
+### 23 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+moved trip to .xmd-sync/trash (it was removed in the web app)
+
+### 24 read notes/.xmd-sync/trash/trip.x.md
+-- notes/.xmd-sync/trash/trip.x.md
+# Summer trip :trip
+
+budget := $1200
+nights := 5
+
+### 25 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+Up to date.
+
+### 26 write
+-- write more/other.x.md (8 bytes)
+
+### 27 cli run sync more --url https://sync.example.com --key k1 --folder NOTES
+$ xmd run sync more --url https://sync.example.com --key k1 --folder NOTES
+exit 0
+--- stdout
+pulled list
+created other in the web app
+
+### 28 read more/list.x.md
+-- more/list.x.md
+# Groceries
+
+- [x] oat milk
+- [ ] eggs
+- [ ] bread
+
+### 29 write
+-- write third/list.x.md (23 bytes)
+-- write third/other.x.md (8 bytes)
+
+### 30 cli run sync third --url https://sync.example.com --key k1 --folder notes
+$ xmd run sync third --url https://sync.example.com --key k1 --folder notes
+exit 0
+--- stdout
+conflict in list: resolve list.conflict.x.md, copy it over list.x.md, and delete it
+
+### 31 read third/list.x.md third/list.conflict.x.md
+-- third/list.x.md
+# Groceries
+
+- [ ] tea
+-- third/list.conflict.x.md
+<<<<<<< ours
+# Groceries
+
+- [ ] tea
+||||||| original
+=======
+# Groceries
+
+- [x] oat milk
+- [ ] eggs
+- [ ] bread
+>>>>>>> theirs
+
+### 32 write
+-- write more/other.x.md (20 bytes)
+-- write server/delete/other.x.md (5 bytes)
+
+### 33 cli run sync more
+$ xmd run sync more
+exit 0
+--- stdout
+created other in the web app
+
+### 34 write
+-- remove notes/list.x.md
+-- write server/delete/list.x.md (5 bytes)
+
+### 35 cli run sync notes
+$ xmd run sync notes
+exit 0
+--- stdout
+pulled other
+
+### 36 read notes/.xmd-sync/base/list.x.md notes/other.x.md
+-- notes/.xmd-sync/base/list.x.md
+(missing: entity not found)
+-- notes/other.x.md
+# Other
+
+more words
+

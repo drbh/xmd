@@ -48,8 +48,8 @@ $1,301
 the last one exits 1 when any note has an error, so it works as a ci check
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/drbh/jot/releases/download/media/terminal-dark.gif">
-  <img alt="querying the note from a terminal: single values, filtered tasks, typed json, diagnostics for ci and a rendered text export" src="https://github.com/drbh/jot/releases/download/media/terminal-light.gif" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/drbh/xmd/releases/download/media/terminal-dark.gif">
+  <img alt="querying the note from a terminal: single values, filtered tasks, typed json, diagnostics for ci and a rendered text export" src="https://github.com/drbh/xmd/releases/download/media/terminal-light.gif" width="720">
 </picture>
 
 ## install
@@ -57,12 +57,12 @@ the last one exits 1 when any note has an error, so it works as a ci check
 mac and linux:
 
 ```bash
-mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/jot/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
+mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
 ```
 
 that is the cli and the language server in one binary, `xmd`, in `~/.local/bin`.
 or grab a binary from the releases page:
-https://github.com/drbh/jot/releases
+https://github.com/drbh/xmd/releases
 
 editors:
 

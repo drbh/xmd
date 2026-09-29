@@ -1,7 +1,7 @@
 use std::fs;
 use zed_extension_api::{self as zed, LanguageServerInstallationStatus as Status};
 
-const REPO: &str = "drbh/jot";
+const REPO: &str = "drbh/xmd";
 
 struct XmdExtension {
     /// The server this extension downloaded, once it is known to run.

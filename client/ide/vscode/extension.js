@@ -6,8 +6,8 @@ const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const path = require("node:path");
 
-const REPO = "drbh/jot";
-const INSTALL_HINT = "mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/jot/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd";
+const REPO = "drbh/xmd";
+const INSTALL_HINT = "mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd";
 const CONSENT_KEY = "xmd.downloadConsent";
 
 let client;

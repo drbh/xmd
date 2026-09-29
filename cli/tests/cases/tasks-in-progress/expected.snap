@@ -1,0 +1,236 @@
+### 0 cli query plan.x.md tasks | select {title, done, checked, in_progress} --json
+$ xmd query plan.x.md tasks | select {title, done, checked, in_progress} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "checked": true,
+    "done": true,
+    "in_progress": false,
+    "title": "Draft"
+  },
+  {
+    "checked": false,
+    "done": false,
+    "in_progress": true,
+    "title": "Record the demo"
+  },
+  {
+    "checked": false,
+    "done": false,
+    "in_progress": true,
+    "title": "Ship"
+  },
+  {
+    "checked": true,
+    "done": true,
+    "in_progress": false,
+    "title": "Tag"
+  },
+  {
+    "checked": false,
+    "done": false,
+    "in_progress": false,
+    "title": "Publish"
+  },
+  {
+    "checked": false,
+    "done": false,
+    "in_progress": true,
+    "title": "Sweep"
+  }
+]
+
+### 1 cli ast plan.x.md -q ast | where kind == "checkbox" | select {text, state, checked}
+$ xmd ast plan.x.md -q ast | where kind == "checkbox" | select {text, state, checked} --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "checked": true,
+    "state": "done",
+    "text": "[x]"
+  },
+  {
+    "checked": false,
+    "state": "in_progress",
+    "text": "[-]"
+  },
+  {
+    "checked": false,
+    "state": "open",
+    "text": "[ ]"
+  },
+  {
+    "checked": true,
+    "state": "done",
+    "text": "[x]"
+  },
+  {
+    "checked": false,
+    "state": "open",
+    "text": "[ ]"
+  },
+  {
+    "checked": false,
+    "state": "in_progress",
+    "text": "[-]"
+  }
+]
+
+### 2 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Plan
+## Launch :launch ███░░░░░ 2/5 complete · 2 in progress · 1h estimated left
+- [x] Draft
+- [-] Record the demo @estimate(1h)
+- [ ] Ship :ship ████░░░░ 1/2 subtasks
+  - [x] Tag
+  - [ ] Publish
+* [-] Sweep
++ [-]Glued
+
+### 3 lsp
+-- open plan.x.md
+-- await textDocument/publishDiagnostics plan.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/plan.x.md",
+  "version": 1
+}
+-- request textDocument/semanticTokens/full plan.x.md
+0:0+1 xmdPunctuation "#"
+0:1+5 heading " Plan"
+1:0+2 xmdPunctuation "##"
+1:2+8 heading " Launch "
+1:10+1 xmdPunctuation ":"
+1:11+6 variable [declaration] "launch"
+2:0+1 xmdPunctuation "-"
+2:2+3 xmdCheckboxChecked "[x]"
+2:5+6 xmdTaskDone " Draft"
+3:0+1 xmdPunctuation "-"
+3:2+3 xmdCheckboxInProgress "[-]"
+3:22+9 decorator "@estimate"
+3:31+1 xmdPunctuation "("
+3:32+2 xmdDuration "1h"
+3:34+1 xmdPunctuation ")"
+4:0+1 xmdPunctuation "-"
+4:2+3 xmdCheckbox "[ ]"
+4:11+1 xmdPunctuation ":"
+4:12+4 variable [declaration] "ship"
+5:2+1 xmdPunctuation "-"
+5:4+3 xmdCheckboxChecked "[x]"
+5:7+4 xmdTaskDone " Tag"
+6:2+1 xmdPunctuation "-"
+6:4+3 xmdCheckbox "[ ]"
+7:0+1 xmdPunctuation "*"
+7:2+3 xmdCheckboxInProgress "[-]"
+-- request textDocument/hover plan.x.md 3:8
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Record the demo**\n\nIn progress\n\nEstimate: 1h\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
+  },
+  "range": {
+    "end": {
+      "character": 35,
+      "line": 3
+    },
+    "start": {
+      "character": 0,
+      "line": 3
+    }
+  }
+}
+-- request textDocument/hover plan.x.md 4:8
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Ship**\n\nIn progress\n\nSubtasks: `█████░░░░░ 50%` 1/2\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
+  },
+  "range": {
+    "end": {
+      "character": 16,
+      "line": 4
+    },
+    "start": {
+      "character": 0,
+      "line": 4
+    }
+  }
+}
+-- request textDocument/inlayHint plan.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "███░░░░░ 2/5 complete · 2 in progress · 1h estimated left",
+    "paddingLeft": true,
+    "position": {
+      "character": 17,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`████░░░░░░ 40%` 2/5 complete · 2 in progress · 1h estimated left"
+    }
+  },
+  {
+    "label": "████░░░░ 1/2 subtasks",
+    "paddingLeft": true,
+    "position": {
+      "character": 16,
+      "line": 4
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "`█████░░░░░ 50%` 1/2 subtasks\n\nUse code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  }
+]
+-- request textDocument/codeAction plan.x.md {"end":{"character":0,"line":3},"start":{"character":0,"line":3}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "x",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 3
+                },
+                "start": {
+                  "character": 3,
+                  "line": 3
+                }
+              }
+            },
+            {
+              "newText": " @completed(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 35,
+                  "line": 3
+                },
+                "start": {
+                  "character": 35,
+                  "line": 3
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/plan.x.md",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "✓ done"
+  }
+]
+

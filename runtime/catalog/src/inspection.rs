@@ -4,7 +4,7 @@ use analysis::hierarchy;
 use lang::common::Span;
 use lang::eval::engine::{Expr, Parser, Value, value_json};
 use lang::eval::{Symbol, ToValue, Workspace};
-use lang::model::{Attribute, Document};
+use lang::model::{Attribute, Document, TaskState};
 use serde_json::{Value as Json, json};
 use std::{collections::BTreeMap, path::Path};
 
@@ -217,13 +217,13 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             .map(|i| tasks[i])
             .unwrap_or_else(|| section_at(task.line));
         let node = syntax.add("task", syntax.block(task.line, task.line + 1), Some(parent),
-            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":task.checked,"tags":task.tags}));
+            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":task.state == TaskState::Done,"state":task.state.as_str(),"tags":task.tags}));
         tasks.push(node);
         syntax.add(
             "checkbox",
             task.checkbox,
             Some(node),
-            json!({"checked":task.checked}),
+            json!({"checked":task.state == TaskState::Done,"state":task.state.as_str()}),
         );
         syntax.attributes(&task.attributes, node);
     }

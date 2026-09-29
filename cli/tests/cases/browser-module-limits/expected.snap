@@ -244,6 +244,7 @@
       "xmdCheckbox",
       "xmdTaskDone",
       "xmdCheckboxChecked",
+      "xmdCheckboxInProgress",
       "xmdTime",
       "xmdDay",
       "xmdPlace",

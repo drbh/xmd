@@ -21,8 +21,8 @@ pub mod syntax {
 /// A parsed note: its definitions, attributes, imports and highlighting.
 pub mod model {
     pub use ::model::{
-        Attribute, Document, ExprImports, HighlightKind, LineIndex, Named, apply_edits, byte_at,
-        end_position, expression_regions, identifier, note_path, utf16,
+        Attribute, Document, ExprImports, HighlightKind, LineIndex, Named, TaskState, apply_edits,
+        byte_at, end_position, expression_regions, identifier, note_path, utf16,
     };
 }
 

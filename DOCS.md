@@ -57,21 +57,18 @@ the last one exits 1 when any note has an error, so it works as a ci check
 mac and linux:
 
 ```bash
-mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
+mkdir -p ~/.local/bin && \
+  curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | \
+  tar -xzC ~/.local/bin xmd
 ```
 
 that is the cli and the language server in one binary, `xmd`, in `~/.local/bin`.
 or grab a binary from the releases page:
 https://github.com/drbh/xmd/releases
 
-editors:
-
-- vs code: install the extension from the `.vsix` on the releases page
-  (Extensions view > ... > Install from VSIX); it downloads the server itself
-- zed: install the extension (unpack `xmd-zed.tar.gz` from the releases page,
-  Extensions > Install Dev Extension > that folder); it downloads the server itself
-- neovim and helix: install the binary with the one-liner, then the config file
-  in `client/ide/neovim` or `client/ide/helix`
+editors: each folder in `client/ide` has its install in its readme.
+vs code and zed download the server themselves; neovim and helix need the
+binary above
 
 from a checkout, `cargo install --path cli` builds the same binary.
 `client/web` is the browser app if you dont want to install anything
@@ -108,4 +105,4 @@ attribute as you type. `lang/examples` has one short
 note per feature, numbered in the order you tend to meet them. `lang/stdlib`
 is the standard library, tasks, timers, plans, feeds and units are all
 written in `.x.md` and you can replace any of them. `xmd --help` and
-`xmd query --help` list every command, binding, function and stage
+`xmd query --help` list every command, binding, function and stage. `MODULES.md` shows how to write your own module

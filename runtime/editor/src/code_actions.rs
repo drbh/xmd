@@ -4,7 +4,7 @@ use analysis::{CodeActionItem, refactors};
 use chrono::NaiveDate;
 use lang::common::Span;
 use lang::eval::engine::{Engine, next_occurrence};
-use lang::model::{Document, end_position};
+use lang::model::{Document, TaskState, end_position};
 use lsp_types::{CodeActionKind, Range, TextEdit};
 use std::path::Path;
 
@@ -120,7 +120,7 @@ fn recur(
 ) -> Result<Vec<TextEdit>, String> {
     let doc = &engine.workspace().documents()[path];
     let task = &doc.tasks[index];
-    if task.checked {
+    if task.state == TaskState::Done {
         return Err("A recurring task should remain unchecked; remove [x] to resume it".into());
     }
     let due = task

@@ -5,7 +5,7 @@ module := {
   kind: "feature",
   inputs: {
     sections: ["anchor", "line", "end_line", "level"],
-    tasks: ["line", "leaf", "done", "estimate"]
+    tasks: ["line", "leaf", "done", "in_progress", "estimate"]
   }
 }
 
@@ -28,9 +28,18 @@ remaining_effort := fn(tasks) => (
   )
 )
 
-// Combine completion counts with the effort still outstanding.
+// Count the `[-]` tasks, omitting the phrase when there are none.
+started := fn(tasks) => (
+  if(
+    length(filter(tasks, fn(t) => t.in_progress)) == 0,
+    "",
+    " · " + text(length(filter(tasks, fn(t) => t.in_progress))) + " in progress"
+  )
+)
+
+// Combine completion counts with the work started and the effort outstanding.
 summary := fn(tasks, done) => (
-  text(done) + "/" + text(length(tasks)) + " complete" + remaining_effort(estimated(tasks))
+  text(done) + "/" + text(length(tasks)) + " complete" + started(tasks) + remaining_effort(estimated(tasks))
 )
 
 // Build the section's compact label and expanded progress tooltip.

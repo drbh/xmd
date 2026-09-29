@@ -209,6 +209,16 @@ impl LanguageServer for Backend {
         {
             roots.push(root);
         }
+        // An editor that opens a single note (Zed does) names that file as
+        // the workspace folder; the workspace is the folder it sits in.
+        for root in &mut roots {
+            if root.is_file()
+                && let Some(parent) = root.parent()
+            {
+                *root = parent.to_path_buf();
+            }
+        }
+        roots.dedup();
         {
             let mut state = self.state.write().await;
             // Nothing is open before initialization, so the workspace starts

@@ -438,12 +438,9 @@ impl Context<'_> {
     }
 }
 
-/// Where saved credentials live: `$XDG_CONFIG_HOME/xmd` or `~/.config/xmd`.
+/// Where saved credentials live, beside the user's other settings.
 fn credentials_path() -> Option<PathBuf> {
-    let config = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
-    Some(config.join("xmd").join("credentials.json"))
+    Some(crate::io::config_dir()?.join("credentials.json"))
 }
 
 /// A random version-4-shaped identifier, without a dependency.

@@ -1,9 +1,20 @@
 //! The file and process plumbing the rest of the crate shares.
-use std::{fmt::Display, path::Path};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 /// An error about a file, as every host message names one: `{path}: {error}`.
 pub(crate) fn at<E: Display>(path: &Path) -> impl Fn(E) -> String + '_ {
     move |error| format!("{}: {error}", path.display())
+}
+
+/// The user's own settings: `$XDG_CONFIG_HOME/xmd` or `~/.config/xmd`.
+pub(crate) fn config_dir() -> Option<PathBuf> {
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
+    Some(config.join("xmd"))
 }
 
 /// A JSON file the host keeps for itself; missing or unreadable means empty.

@@ -114,6 +114,10 @@ fn task_hover(
     let record = lang::eval::modules::record([
         ("title", Value::Text(task.title.clone())),
         ("done", Value::Bool(done)),
+        (
+            "in_progress",
+            Value::Bool(engine.task_in_progress(path, index)),
+        ),
         ("blocked", Value::List(blocked)),
         ("blocked_error", blocked_error),
         ("estimate", text(estimate.as_ref())),

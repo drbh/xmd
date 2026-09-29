@@ -18,7 +18,8 @@
 //!
 //! Steps: `{"cli": [...]}` (optionally an object with `stdin`/`env`; `--root`
 //! and `--now` are appended where the subcommand takes them), `{"read": [..]}`,
-//! `{"write": {"path": "text" | null}}`, `{"lsp": [...]}` (one server per step;
+//! `{"write": {"path": "text" | null}}`, `{"lsp": [...]}` (one server per step,
+//! optionally with `capabilities` or a single workspace `folder`;
 //! items `open`/`change`/`save`/`close`/`request`/`await`/`query`/`initialize`/
 //! `notify`/`write`/`watched`; request params from `file`/`line`/`character`/
 //! `range`/`extra` or verbatim `params`, `${uri:f}`/`${root}`/`${last}`
@@ -225,17 +226,23 @@ impl World {
             let _ = writeln!(out, "### {index} cli {}", shown.join(" "));
             self.cli(&args, step.get("stdin").map(as_text), step.get("env"), out);
         } else if let Some(items) = step.get("lsp").and_then(Value::as_array) {
-            // An explicit `capabilities` object stands in for a poorer client.
+            // An explicit `capabilities` object stands in for a poorer client;
+            // a `folder` is the one workspace folder the client announces.
             let capabilities = step.get("capabilities").cloned();
+            let folder = step.get("folder").map(as_text);
             let _ = writeln!(
                 out,
-                "### {index} lsp{}",
+                "### {index} lsp{}{}",
                 capabilities
                     .as_ref()
                     .map(|c| format!(" capabilities {}", compact(c)))
+                    .unwrap_or_default(),
+                folder
+                    .as_ref()
+                    .map(|f| format!(" folder {f}"))
                     .unwrap_or_default()
             );
-            self.lsp(items, capabilities, out);
+            self.lsp(items, capabilities, folder.as_deref(), out);
         } else if let Some(paths) = step.get("read").and_then(Value::as_array) {
             let paths: Vec<String> = paths.iter().map(as_text).collect();
             let _ = writeln!(out, "### {index} read {}", paths.join(" "));
@@ -313,6 +320,8 @@ impl World {
             .env("TZ", "UTC")
             .env("XMD_NOW", &self.now)
             .env("PATH", self.path())
+            // Personal modules come from the case's own `config/xmd`, never the developer's.
+            .env("XDG_CONFIG_HOME", self.root.join("config"))
             .args(&full);
         if let Some(Value::Object(vars)) = env {
             for (key, value) in vars {
@@ -373,12 +382,23 @@ impl World {
 
     // ------------------------------------------------------------------ lsp
 
-    fn lsp(&self, items: &[Value], capabilities: Option<Value>, out: &mut String) {
-        let mut lsp = match capabilities {
-            Some(capabilities) => {
-                Lsp::start_with(&self.root, &self.now, &self.path(), capabilities)
-            }
-            None => Lsp::start(&self.root, &self.now, &self.path()),
+    fn lsp(
+        &self,
+        items: &[Value],
+        capabilities: Option<Value>,
+        folder: Option<&str>,
+        out: &mut String,
+    ) {
+        let folder = folder.map(|f| self.root.join(f));
+        let mut lsp = match (capabilities, &folder) {
+            (None, None) => Lsp::start(&self.root, &self.now, &self.path()),
+            (capabilities, folder) => Lsp::start_with(
+                &self.root,
+                &self.now,
+                &self.path(),
+                capabilities.unwrap_or_else(support::lsp::capabilities),
+                folder.as_deref(),
+            ),
         };
         let mut texts: BTreeMap<String, String> = BTreeMap::new();
         let mut versions: BTreeMap<String, i64> = BTreeMap::new();

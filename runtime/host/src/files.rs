@@ -185,15 +185,27 @@ fn empty(roots: Vec<PathBuf>) -> Workspace {
     result
 }
 
-/// Compile the modules each root's `.xmd/modules.json` activates, over the
-/// bundled stdlib.
+/// Compile the modules the personal `modules.json` in the config directory
+/// and each root's `.xmd/modules.json` activate, over the bundled stdlib.
 pub(crate) fn load_modules(roots: &[PathBuf]) -> Result<ModuleRegistry, String> {
+    let personal = crate::io::config_dir().map(|dir| dir.join("modules.json"));
+    let manifests = personal
+        .into_iter()
+        .chain(roots.iter().map(|root| root.join(".xmd/modules.json")));
     let mut sources = BTreeMap::new();
-    for root in roots {
-        let manifest = root.join(".xmd/modules.json");
+    for manifest in manifests {
         let text = match std::fs::read_to_string(&manifest) {
             Ok(v) => v,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            // A root can be a single note (an editor opening one file), and
+            // then its `.xmd` is simply not there.
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+                ) =>
+            {
+                continue;
+            }
             Err(e) => return Err(at(&manifest)(e)),
         };
         if text.len() > 65_536 {

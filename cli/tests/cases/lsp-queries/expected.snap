@@ -112,6 +112,7 @@ $12:price
       "due": null,
       "errors": [],
       "estimate": null,
+      "in_progress": false,
       "kind": "task",
       "leaf": true,
       "line": 1,

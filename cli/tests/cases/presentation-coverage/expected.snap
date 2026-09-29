@@ -70,7 +70,7 @@ xmd: 1 error(s) while rendering
 {
   "contents": {
     "kind": "markdown",
-    "value": "**b**\n\nIncomplete\n\nBlocked by: [later](<file://<root>/tasks.x.md#L8>)\n\nEstimate: 30m\n\nTimer: ◷ 06:00 remaining · ‖ paused\n\n`████░░░░░░ 40%`\n\nSubtasks: `█████░░░░░ 50%` 1/2\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
+    "value": "**b**\n\nIn progress\n\nBlocked by: [later](<file://<root>/tasks.x.md#L8>)\n\nEstimate: 30m\n\nTimer: ◷ 06:00 remaining · ‖ paused\n\n`████░░░░░░ 40%`\n\nSubtasks: `█████░░░░░ 50%` 1/2\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
   },
   "range": {
     "end": {

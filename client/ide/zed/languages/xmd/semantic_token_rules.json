@@ -29,6 +29,7 @@
   {"token_type": "xmdLink", "style": ["link_uri", "string"], "foreground_color": "#90BED8", "underline": true},
   {"token_type": "xmdCheckbox", "style": ["punctuation.list_marker"], "foreground_color": "#FFD580"},
   {"token_type": "xmdCheckboxChecked", "style": ["punctuation.list_marker"], "foreground_color": "#91E6AC"},
+  {"token_type": "xmdCheckboxInProgress", "style": ["punctuation.list_marker"], "foreground_color": "#90BED8"},
   {"token_type": "xmdTaskDone", "style": ["comment"], "foreground_color": "#87A788", "strikethrough": true},
   {"token_type": "xmdDay", "style": ["constant"], "foreground_color": "#FF9ECF", "font_weight": "bold"},
   {"token_type": "xmdPlace", "style": ["string"], "foreground_color": "#E2C4FF"},

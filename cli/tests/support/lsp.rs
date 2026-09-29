@@ -53,18 +53,26 @@ impl Lsp {
     /// Starts `xmd lsp` in `root` with the clock frozen at `now` (`XMD_NOW`),
     /// `PATH` set to `path`, and completes the initialize handshake.
     pub fn start(root: &Path, now: &str, path: &str) -> Self {
-        Self::start_with(root, now, path, capabilities())
+        Self::start_with(root, now, path, capabilities(), None)
     }
 
     /// Like `start`, but announcing the given client capabilities, so a case can
-    /// take the path a poorer editor takes.
-    pub fn start_with(root: &Path, now: &str, path: &str, capabilities: Value) -> Self {
+    /// take the path a poorer editor takes, and optionally one workspace folder
+    /// under `root`, which may be a single note the way Zed opens one file.
+    pub fn start_with(
+        root: &Path,
+        now: &str,
+        path: &str,
+        capabilities: Value,
+        folder: Option<&Path>,
+    ) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_xmd"))
             .arg("lsp")
             .current_dir(root)
             .env("XMD_NOW", now)
             .env("TZ", "UTC")
             .env("PATH", path)
+            .env("XDG_CONFIG_HOME", root.join("config"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -109,10 +117,13 @@ impl Lsp {
             initialize_result: Value::Null,
         };
         let root_uri = url::Url::from_directory_path(root).unwrap();
-        let result = client.request(
-            "initialize",
-            json!({"processId": null, "rootUri": root_uri, "capabilities": capabilities}),
-        );
+        let mut params =
+            json!({"processId": null, "rootUri": root_uri, "capabilities": capabilities});
+        if let Some(folder) = folder {
+            let uri = url::Url::from_file_path(folder).unwrap();
+            params["workspaceFolders"] = json!([{"uri": uri, "name": "folder"}]);
+        }
+        let result = client.request("initialize", params);
         let legend = &result["capabilities"]["semanticTokensProvider"]["legend"];
         client.token_types = strings(&legend["tokenTypes"]);
         client.token_modifiers = strings(&legend["tokenModifiers"]);

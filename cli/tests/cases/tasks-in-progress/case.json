@@ -1,0 +1,88 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "plan.x.md",
+        "tasks | select {title, done, checked, in_progress}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "ast",
+        "plan.x.md",
+        "-q",
+        "ast | where kind == \"checkbox\" | select {text, state, checked}"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "plan.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "plan.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "plan.x.md"
+        },
+        {
+          "request": "textDocument/semanticTokens/full",
+          "file": "plan.x.md"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "plan.x.md",
+          "line": 3,
+          "character": 8
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "plan.x.md",
+          "line": 4,
+          "character": 8
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "plan.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "plan.x.md",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

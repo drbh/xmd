@@ -1,0 +1,68 @@
+#!/bin/sh
+# A stand-in for the docs app's sync API, keeping its state under ./server.
+# The runner calls: curl -sS -L --max-time 30 -X METHOD URL -H ACCEPT -w FORMAT
+# followed by any headers and, for a body, the content type and --data-binary @-.
+# A test changes the web app's side by writing server/edit/FILE.x.md (new text)
+# or server/delete/FILE.x.md; both take effect at the next document listing.
+method="$6"
+url="$7"
+body=""
+case "$*" in *--data-binary*) body=$(cat) ;; esac
+path="${url#https://sync.example.com/sync/v1}"
+mkdir -p server/docs server/folders server/edit server/delete
+
+field() { printf '%s' "$1" | sed -nE "s/.*\"$2\":\"(([^\"\\\\]|\\\\.)*)\".*/\\1/p"; }
+number() { printf '%s' "$1" | sed -nE "s/.*\"$2\":([0-9]+).*/\\1/p"; }
+escape() { awk '{ gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); printf "%s\\n", $0 }' "$1"; }
+doc() { # id file folder name version text
+  printf '{"id":"%s","file":"%s","folder":"%s","name":"%s","role":"owner","version":%s,"text":"%s"}' "$1" "$2" "$3" "$4" "$5" "$6"
+}
+answer() { printf '%s\n%s' "$2" "$1"; exit 0; }
+
+apply_edits() {
+  for edit in server/edit/*.x.md server/delete/*.x.md; do
+    [ -f "$edit" ] || continue
+    file=$(basename "$edit" .x.md)
+    for d in server/docs/*.json; do
+      [ -f "$d" ] || continue
+      j=$(cat "$d")
+      [ "$(field "$j" file)" = "$file" ] || continue
+      case "$edit" in
+        server/delete/*) rm "$d" ;;
+        *) doc "$(field "$j" id)" "$file" "$(field "$j" folder)" "$(field "$j" name)" \
+             $(( $(number "$j" version) + 1 )) "$(escape "$edit")" > "$d" ;;
+      esac
+    done
+    rm "$edit"
+  done
+}
+
+list() { printf '['; first=1; for f in "$1"/*.json; do [ -f "$f" ] || continue
+  [ $first = 1 ] || printf ','; first=0; cat "$f"; done; printf ']'; }
+
+case "$method $path" in
+  "GET /folders") answer 200 "$(list server/folders)" ;;
+  "PUT /folders/"*)
+    id="${path#/folders/}"
+    printf '{"id":"%s","name":"%s","role":"owner"}' "$id" "$(field "$body" name)" > "server/folders/$id.json"
+    answer 200 "$(cat "server/folders/$id.json")" ;;
+  "GET /documents") apply_edits; answer 200 "$(list server/docs)" ;;
+  "GET /documents/"*)
+    id="${path#/documents/}"
+    [ -f "server/docs/$id.json" ] || answer 404 '{"error":"No such document"}'
+    answer 200 "$(cat "server/docs/$id.json")" ;;
+  "PUT /documents/"*)
+    id="${path#/documents/}"
+    sent=$(number "$body" version)
+    version=1
+    if [ -f "server/docs/$id.json" ]; then
+      current=$(cat "server/docs/$id.json")
+      [ "$sent" = "$(number "$current" version)" ] || answer 409 "{\"error\":\"Changed meanwhile\",\"current\":$current}"
+      version=$(( sent + 1 ))
+    fi
+    doc "$id" "$(field "$body" file)" "$(field "$body" folder)" "$(field "$body" name)" "$version" "$(field "$body" text)" > "server/docs/$id.json"
+    answer 200 "{\"version\":$version}" ;;
+  "DELETE /documents/"*) rm -f "server/docs/${path#/documents/}.json"; answer 200 '{}' ;;
+esac
+echo "curl: (6) Could not resolve host for $url" >&2
+exit 6

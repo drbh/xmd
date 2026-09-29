@@ -114,7 +114,7 @@ time_dependent := fn(t) => (
 
 // Distinguish completed, untouched, running, and paused timers.
 state := fn(t) => (
-  if(done(t), "done", if(t.idle, "idle", if(running(t), "running", "paused")))
+  if(done(t), "done", t.idle, "idle", running(t), "running", "paused")
 )
 
 // Choose the visual marker for the timer's current state.
@@ -149,37 +149,21 @@ inlay := fn(t) => (
 
 // Expose timer properties and reject countdown-only stopwatch reads.
 property := fn(t, name) => (
-  if(
-    name == "elapsed",
-    t.elapsed,
-    if(
-      name == "remaining",
-      if(t.limit == null, error("Only countdowns have .remaining"), t.limit - t.elapsed),
-      if(
-        name == "duration",
-        if(t.limit == null, error("Only countdowns have .duration"), t.limit),
-        if(
-          name == "running",
-          running(t),
-          if(
-            name == "done",
-            done(t),
-            if(name == "state", state(t), error("Unknown timer property '" + name + "'"))
-          )
-        )
-      )
-    )
+  match(name,
+    "elapsed", t.elapsed,
+    "remaining", if(t.limit == null, error("Only countdowns have .remaining"), t.limit - t.elapsed),
+    "duration", if(t.limit == null, error("Only countdowns have .duration"), t.limit),
+    "running", running(t),
+    "done", done(t),
+    "state", state(t),
+    error("Unknown timer property '" + name + "'")
   )
 )
 
 // Offer transitions that are valid for the current timer state.
 actions := fn(t) => (
   concat(
-    if(
-      state(t) == "idle",
-      ["start"],
-      if(state(t) == "running", ["pause"], if(state(t) == "paused", ["resume"], []))
-    ),
+    match(state(t), "idle", ["start"], "running", ["pause"], "paused", ["resume"], []),
     if(t.idle, [], ["reset"])
   )
 )

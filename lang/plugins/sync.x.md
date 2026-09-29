@@ -67,13 +67,13 @@ _word := fn(value) => (
 )
 
 // A heading without a trailing ` :name` label.
-_unlabel := fn(title) => (
+_unlabel := fn(title) => let({parts: split(title, " :"), last: length(parts) - 1}, (
   if(
-    length(split(title, " :")) > 1 && _word(get(split(title, " :"), length(split(title, " :")) - 1)),
-    trim(join(slice(split(title, " :"), 0, length(split(title, " :")) - 1), " :")),
+    last > 0 && _word(get(parts, last)),
+    trim(join(slice(parts, 0, last), " :")),
     title
   )
-)
+))
 
 // A line that is a heading with text after its marks.
 _heading := fn(line) => (
@@ -81,32 +81,21 @@ _heading := fn(line) => (
 )
 
 // The display name the web app would derive: the first heading, else the file name.
-_title := fn(text, fallback) => (
-  if(
-    length(filter(split(text, "\n"), _heading)) > 0,
-    _unlabel(trim(_unhash(get(filter(split(text, "\n"), _heading), 0)))),
-    fallback
-  )
-)
+_title := fn(text, fallback) => let({headings: filter(split(text, "\n"), _heading)}, (
+  if(length(headings) > 0, _unlabel(trim(_unhash(get(headings, 0)))), fallback)
+))
 
 // Why a response is not a success, or null when it is one.
 _problem := fn(r) => (
   if(
-    !r.ok,
-    r.error,
-    if(
-      r.status >= 200 && r.status < 300,
-      null,
-      if(
-        get(get(r, "json"), "error") == null,
-        "The web app answered " + text(r.status),
-        if(
-          r.status == 401,
-          get(get(r, "json"), "error") + " (create one in the web app under API keys)",
-          get(get(r, "json"), "error")
-        )
-      )
-    )
+    !r.ok, r.error,
+    r.status >= 200 && r.status < 300, null,
+    // Only a failed answer is a record that may carry an error.
+    let({error: get(get(r, "json"), "error")}, if(
+      error == null, "The web app answered " + text(r.status),
+      r.status == 401, error + " (create one in the web app under API keys)",
+      error
+    ))
   )
 )
 
@@ -153,26 +142,22 @@ _finish := fn(s, report) => (
 )
 
 // Read the next file's local text and its last synced copy, or finish.
-_next := fn(s, report) => (
+_next := fn(s, report) => let({name: get(s.queue, 0)}, (
   if(
     length(s.queue) == 0,
     _finish(_said(s, report), report),
     _ask(
-      _set(_set(_set(_said(s, report), "stage", "decide"), "name", get(s.queue, 0)), "queue", slice(s.queue, 1, length(s.queue))),
-      [{kind: "read", path: get(s.queue, 0)}, {kind: "read", path: _base(get(s.queue, 0))}],
+      _set(_set(_set(_said(s, report), "stage", "decide"), "name", name), "queue", slice(s.queue, 1, length(s.queue))),
+      [{kind: "read", path: name}, {kind: "read", path: _base(name)}],
       report
     )
   )
-)
+))
 
 // Continue once the effects of one file are done, stopping if a required one failed.
-_after := fn(s, results, report) => (
-  if(
-    length(filter(slice(results, 0, s.check), fn(r) => !r.ok)) > 0,
-    _fail(get(filter(slice(results, 0, s.check), fn(r) => !r.ok), 0).error),
-    _next(s, report)
-  )
-)
+_after := fn(s, results, report) => let({failed: filter(slice(results, 0, s.check), fn(r) => !r.ok)}, (
+  if(length(failed) > 0, _fail(get(failed, 0).error), _next(s, report))
+))
 
 // Perform effects, then move on to the next file. The first `check` requests
 // must succeed; the rest (removing an old base copy) may fail harmlessly.
@@ -224,109 +209,71 @@ _merged := fn(s, name, merged, remote) => (
 )
 
 // Carry out one decided action.
-_perform := fn(s, action) => (
-  if(
-    s.dry,
-    _next(s, if(_describe(action, _stem(s.name)) == null, [], [_describe(action, _stem(s.name))])),
-    if(
-      action.kind == "nothing",
-      _next(s, []),
-      if(
-        action.kind == "forget",
-        _then(_forget(s, s.name), [{kind: "remove", path: _base(s.name)}], 0, []),
-        if(
-          action.kind == "create",
-          _ask(_set(_set(s, "stage", "create"), "text", action.local), [{kind: "uuid"}], []),
-          if(
-            action.kind == "adopt",
-            _then(_track(s, s.name, action.remote.id, action.remote.version), [{kind: "write", path: _base(s.name), text: action.remote.text}], 1, []),
-            if(
-              action.kind == "pull",
-              _then(
-                _track(s, s.name, action.remote.id, action.remote.version),
-                [{kind: "write", path: s.name, text: action.remote.text}, {kind: "write", path: _base(s.name), text: action.remote.text}],
-                2,
-                ["pulled " + _stem(s.name)]
-              ),
-              if(
-                action.kind == "push",
-                _ask(
-                  _set(_set(_set(_set(s, "stage", "pushed"), "text", action.local), "doc", action.remote), "base", action.base),
-                  [_save(s, action.remote.id, _stem(s.name), action.local, action.remote.version)],
-                  []
-                ),
-                if(
-                  action.kind == "merge",
-                  _merged(s, s.name, merge3(action.base, action.local, action.remote.text), action.remote),
-                  if(
-                    action.kind == "delete_remote",
-                    _ask(_set(s, "stage", "deleted"), [_api(s, "DELETE", "/documents/" + action.remote.id, null)], []),
-                    _then(
-                      _forget(s, s.name),
-                      [{kind: "move", from: s.name, to: _state_dir + "/trash/" + s.name}, {kind: "remove", path: _base(s.name)}],
-                      1,
-                      ["moved " + _stem(s.name) + " to " + _state_dir + "/trash (it was removed in the web app)"]
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
+_perform := fn(s, action) => let({said: _describe(action, _stem(s.name))}, (
+  if(s.dry, _next(s, if(said == null, [], [said])), match(action.kind,
+    "nothing", _next(s, []),
+    "forget", _then(_forget(s, s.name), [{kind: "remove", path: _base(s.name)}], 0, []),
+    "create", _ask(_set(_set(s, "stage", "create"), "text", action.local), [{kind: "uuid"}], []),
+    "adopt", _then(
+      _track(s, s.name, action.remote.id, action.remote.version),
+      [{kind: "write", path: _base(s.name), text: action.remote.text}],
+      1,
+      []
+    ),
+    "pull", _then(
+      _track(s, s.name, action.remote.id, action.remote.version),
+      [{kind: "write", path: s.name, text: action.remote.text}, {kind: "write", path: _base(s.name), text: action.remote.text}],
+      2,
+      ["pulled " + _stem(s.name)]
+    ),
+    "push", _ask(
+      _set(_set(_set(_set(s, "stage", "pushed"), "text", action.local), "doc", action.remote), "base", action.base),
+      [_save(s, action.remote.id, _stem(s.name), action.local, action.remote.version)],
+      []
+    ),
+    "merge", _merged(s, s.name, merge3(action.base, action.local, action.remote.text), action.remote),
+    "delete_remote", _ask(_set(s, "stage", "deleted"), [_api(s, "DELETE", "/documents/" + action.remote.id, null)], []),
+    // trash_local
+    _then(
+      _forget(s, s.name),
+      [{kind: "move", from: s.name, to: _state_dir + "/trash/" + s.name}, {kind: "remove", path: _base(s.name)}],
+      1,
+      ["moved " + _stem(s.name) + " to " + _state_dir + "/trash (it was removed in the web app)"]
     )
-  )
-)
+  ))
+))
 
 // Decide what a file needs from its local text, last synced copy and remote
 // listing. `remote` carries text only once it has been fetched.
-_decide := fn(s, local, base, remote) => (
+_decide := fn(s, local, base, remote) => let({
+  synced: get(s.manifest.files, s.name),
+  moved: synced != null && remote != null && synced.version != remote.version
+}, (
   if(
-    local == null && remote == null,
-    {kind: "forget"},
-    if(
-      get(s.manifest.files, s.name) == null,
-      if(
-        remote == null,
-        {kind: "create", local: local},
-        if(
-          local == null,
-          {kind: "pull", remote: remote},
-          if(local == remote.text, {kind: "adopt", remote: remote}, {kind: "merge", base: "", local: local, remote: remote})
-        )
-      ),
-      if(
-        local == null,
-        if(
-          get(s.manifest.files, s.name).version != remote.version,
-          {kind: "pull", remote: remote},
-          {kind: "delete_remote", remote: remote}
-        ),
-        if(
-          remote == null,
-          if(base == local, {kind: "trash_local"}, {kind: "create", local: local}),
-          if(
-            base == local,
-            if(get(s.manifest.files, s.name).version != remote.version, {kind: "pull", remote: remote}, {kind: "nothing"}),
-            if(
-              get(s.manifest.files, s.name).version != remote.version,
-              {kind: "merge", base: coalesce(base, ""), local: local, remote: remote},
-              {kind: "push", local: local, remote: remote, base: coalesce(base, "")}
-            )
-          )
-        )
-      )
-    )
+    local == null && remote == null, {kind: "forget"},
+    // New to this directory.
+    synced == null && remote == null, {kind: "create", local: local},
+    synced == null && local == null, {kind: "pull", remote: remote},
+    synced == null && local == remote.text, {kind: "adopt", remote: remote},
+    synced == null, {kind: "merge", base: "", local: local, remote: remote},
+    // Synced before: deleted here, deleted there, or changed on either side.
+    local == null && moved, {kind: "pull", remote: remote},
+    local == null, {kind: "delete_remote", remote: remote},
+    remote == null && base == local, {kind: "trash_local"},
+    remote == null, {kind: "create", local: local},
+    base == local && moved, {kind: "pull", remote: remote},
+    base == local, {kind: "nothing"},
+    moved, {kind: "merge", base: coalesce(base, ""), local: local, remote: remote},
+    {kind: "push", local: local, remote: remote, base: coalesce(base, "")}
   )
-)
+))
 
 // Whether deciding this file needs the remote text: a remote document that is
 // new to this directory or has changed since the last sync. Pushes, trashing
 // and deletions work from the listing alone.
-_needs_text := fn(s, remote) => (
-  remote != null
-  && (get(s.manifest.files, s.name) == null || get(s.manifest.files, s.name).version != remote.version)
-)
+_needs_text := fn(s, remote) => let({synced: get(s.manifest.files, s.name)}, (
+  remote != null && (synced == null || synced.version != remote.version)
+))
 
 // The remote documents in the synced folder, keyed by file name.
 _remote := fn(documents, folder_id) => (
@@ -358,21 +305,18 @@ _unique := fn(names) => (
 )
 
 // Plan the files once the folder and the remote listing are known.
-_plan := fn(s, documents, report) => (
-  _next(
-    _set(_set(s, "remote", _remote(documents, s.folder_id)), "queue", _unique(_names(_set(s, "remote", _remote(documents, s.folder_id))))),
-    report
-  )
-)
+_plan := fn(s, documents, report) => let({known: _set(s, "remote", _remote(documents, s.folder_id))}, (
+  _next(_set(known, "queue", _unique(_names(known))), report)
+))
 
 // The saved manifest, or an empty one.
-_manifest := fn(result) => (
+_manifest := fn(result) => let({saved: get(result, "json")}, (
   if(
     result.ok,
-    {folder_id: get(get(result, "json"), "folder_id"), files: coalesce(get(get(result, "json"), "files"), {})},
+    {folder_id: get(saved, "folder_id"), files: coalesce(get(saved, "files"), {})},
     {folder_id: null, files: {}}
   )
-)
+))
 
 // Drop one trailing slash from an address.
 _trim_slash := fn(url) => (
@@ -380,9 +324,9 @@ _trim_slash := fn(url) => (
 )
 
 // A flag given as text, or null when absent or bare.
-_flag := fn(flags, name) => (
-  if(type(get(flags, name)) == "Text", get(flags, name), null)
-)
+_flag := fn(flags, name) => let({value: get(flags, name)}, (
+  if(type(value) == "Text", value, null)
+))
 
 step := fn(ctx) => (
   if(
@@ -401,49 +345,66 @@ step := fn(ctx) => (
   )
 )
 
+// Stop on a failed answer from the web app, else take the next step.
+_unless_failed := fn(result, next) => let({problem: _problem(result)}, (
+  if(problem != null, _fail(problem), next())
+))
+
 // Everything after the first step, by the stage the state records.
-_stage := fn(s, r, flags, dir) => (
-  if(
-    s.stage == "setup",
-    _setup(r, flags, dir),
-    if(
-      s.stage == "key",
-      _key(s, r),
-      if(
-        s.stage == "listed",
-        _listed(s, r),
-        if(
-          s.stage == "folder",
-          _ask(_set(s, "stage", "folder_created"), [_api(s, "PUT", "/folders/" + get(r, 0).value, {name: s.folder})], []),
-          if(
-            s.stage == "folder_created",
-            if(
-              _problem(get(r, 0)) != null,
-              _fail(_problem(get(r, 0))),
-              _plan(
-                _set(_set(s, "folder_id", get(get(get(r, 0), "json"), "id")), "manifest", _set(s.manifest, "folder_id", get(get(get(r, 0), "json"), "id"))),
-                s.documents,
-                ["created folder \"" + get(get(get(r, 0), "json"), "name") + "\""]
-              )
-            ),
-            _file_stage(s, r)
-          )
-        )
-      )
-    )
-  )
-)
+_stage := fn(s, r, flags, dir) => let({first: get(r, 0)}, match(s.stage,
+  "setup", _setup(r, flags, dir),
+  "key", _key(s, r),
+  "listed", _listed(s, r),
+  "folder", _ask(_set(s, "stage", "folder_created"), [_api(s, "PUT", "/folders/" + first.value, {name: s.folder})], []),
+  "folder_created", _unless_failed(first, fn() => let({folder: get(first, "json")}, _plan(
+    _set(_set(s, "folder_id", get(folder, "id")), "manifest", _set(s.manifest, "folder_id", get(folder, "id"))),
+    s.documents,
+    ["created folder \"" + get(folder, "name") + "\""]
+  ))),
+  // The per-file stages.
+  "decide", _file(
+    s,
+    if(contains(filter(s.local, _syncable), s.name) && first.ok, get(first, "text"), null),
+    if(get(r, 1).ok, get(get(r, 1), "text"), null)
+  ),
+  "fetched", _unless_failed(first, fn() => _perform(s, _decide(s, s.local_text, s.base_text, get(first, "json")))),
+  "create", _ask(_set(_set(s, "stage", "created"), "id", first.value), [_save(s, first.value, _stem(s.name), s.text, null)], []),
+  "created", _unless_failed(first, fn() => _then(
+    _track(s, s.name, s.id, coalesce(get(get(first, "json"), "version"), 1)),
+    [{kind: "write", path: _base(s.name), text: s.text}],
+    1,
+    ["created " + _stem(s.name) + " in the web app"]
+  )),
+  "pushed", _pushed(s, first),
+  "merged", _merge_saved(s, r),
+  "deleted", _unless_failed(first, fn() => _then(
+    _forget(s, s.name),
+    [{kind: "remove", path: _base(s.name)}],
+    0,
+    ["removed " + _stem(s.name) + " from the web app (it was deleted here)"]
+  )),
+  _after(s, r, [])
+))
 
 // Settle the address, folder and key, then list the web app's side.
-_setup := fn(r, flags, dir) => (
+_setup := fn(r, flags, dir) => let({
+  saved: get(get(r, 0), "json"),
+  given: coalesce(_flag(flags, "url"), get(saved, "url"), ""),
+  folder: coalesce(
+    _flag(flags, "folder"),
+    if(coalesce(get(saved, "folder"), "") == "", null, get(saved, "folder")),
+    if(dir == "", null, dir),
+    "Notes"
+  )
+}, (
   if(
-    coalesce(_flag(flags, "url"), get(get(get(r, 0), "json"), "url"), "") == "",
+    given == "",
     _fail("Pass --url the first time, e.g. --url https://xmd.example.com"),
-    _ask(
+    let({url: _trim_slash(given)}, _ask(
       {
         stage: "key",
-        url: _trim_slash(coalesce(_flag(flags, "url"), get(get(get(r, 0), "json"), "url"))),
-        folder: coalesce(_flag(flags, "folder"), if(coalesce(get(get(get(r, 0), "json"), "folder"), "") == "", null, get(get(get(r, 0), "json"), "folder")), if(dir == "", null, dir), "Notes"),
+        url: url,
+        folder: folder,
         manifest: _manifest(get(r, 1)),
         local: coalesce(get(get(r, 3), "files"), []),
         dry: get(flags, "dry_run") == true,
@@ -452,78 +413,51 @@ _setup := fn(r, flags, dir) => (
         said: false
       },
       [
-        {
-          kind: "write",
-          path: _state_dir + "/config.json",
-          json: {
-            url: _trim_slash(coalesce(_flag(flags, "url"), get(get(get(r, 0), "json"), "url"))),
-            folder: coalesce(_flag(flags, "folder"), if(coalesce(get(get(get(r, 0), "json"), "folder"), "") == "", null, get(get(get(r, 0), "json"), "folder")), if(dir == "", null, dir), "Notes")
-          }
-        },
-        {
-          kind: "credential",
-          scope: _trim_slash(coalesce(_flag(flags, "url"), get(get(get(r, 0), "json"), "url"))),
-          set: coalesce(_flag(flags, "key"), get(r, 2).value)
-        }
+        {kind: "write", path: _state_dir + "/config.json", json: {url: url, folder: folder}},
+        {kind: "credential", scope: url, set: coalesce(_flag(flags, "key"), get(r, 2).value)}
       ],
       []
-    )
+    ))
   )
-)
+))
 
 // With a key in hand, fetch the folders (the first time) and the documents.
-_key := fn(s, r) => (
+_key := fn(s, r) => let({key: get(r, 1).value, keyed: _set(s, "key", key)}, (
   if(
-    get(r, 1).value == null,
+    key == null,
     _fail("No API key: pass --key once, or set XMD_API_KEY"),
     _ask(
-      _set(_set(s, "stage", "listed"), "key", get(r, 1).value),
+      _set(keyed, "stage", "listed"),
       concat(
-        if(s.manifest.folder_id == null, [_api(_set(s, "key", get(r, 1).value), "GET", "/folders", null)], []),
-        [
-          {
-            kind: "http",
-            method: "GET",
-            url: s.url + "/sync/v1/documents",
-            headers: {Authorization: "Bearer " + get(r, 1).value},
-            pick: ["id", "name", "file", "version", "role", "folder"]
-          }
-        ]
+        if(s.manifest.folder_id == null, [_api(keyed, "GET", "/folders", null)], []),
+        [_set(_api(keyed, "GET", "/documents", null), "pick", ["id", "name", "file", "version", "role", "folder"])]
       ),
       []
     )
   )
-)
+))
 
 // Find or create the folder, then plan the files.
-_listed := fn(s, r) => (
+_listed := fn(s, r) => let({failed: filter(r, fn(x) => _problem(x) != null)}, (
   if(
-    length(filter(r, fn(x) => _problem(x) != null)) > 0,
-    _fail(_problem(get(filter(r, fn(x) => _problem(x) != null), 0))),
+    length(failed) > 0,
+    _fail(_problem(get(failed, 0))),
     if(
       s.manifest.folder_id != null,
       _plan(_set(s, "folder_id", s.manifest.folder_id), get(get(r, 0), "json"), []),
       _folder(s, get(get(r, 0), "json"), get(get(r, 1), "json"))
     )
   )
-)
+))
 
 // The named folder, matched without regard to case.
-_folder := fn(s, folders, documents) => (
+_folder := fn(s, folders, documents) => let({found: get(filter(folders, fn(f) => lower(f.name) == lower(s.folder)), 0)}, (
   if(
-    length(filter(folders, fn(f) => lower(f.name) == lower(s.folder))) > 0,
+    found != null,
     if(
-      get(filter(folders, fn(f) => lower(f.name) == lower(s.folder)), 0).role == "viewer",
-      _fail("You can only view the folder \"" + get(filter(folders, fn(f) => lower(f.name) == lower(s.folder)), 0).name + "\""),
-      _plan(
-        _set(
-          _set(s, "folder_id", get(filter(folders, fn(f) => lower(f.name) == lower(s.folder)), 0).id),
-          "manifest",
-          _set(s.manifest, "folder_id", get(filter(folders, fn(f) => lower(f.name) == lower(s.folder)), 0).id)
-        ),
-        documents,
-        []
-      )
+      found.role == "viewer",
+      _fail("You can only view the folder \"" + found.name + "\""),
+      _plan(_set(_set(s, "folder_id", found.id), "manifest", _set(s.manifest, "folder_id", found.id)), documents, [])
     ),
     if(
       s.dry,
@@ -531,111 +465,59 @@ _folder := fn(s, folders, documents) => (
       _ask(_set(_set(s, "stage", "folder"), "documents", documents), [{kind: "uuid"}], [])
     )
   )
-)
-
-// The per-file stages.
-_file_stage := fn(s, r) => (
-  if(
-    s.stage == "decide",
-    _file(s, if(contains(filter(s.local, _syncable), s.name) && get(r, 0).ok, get(get(r, 0), "text"), null), if(get(r, 1).ok, get(get(r, 1), "text"), null)),
-    if(
-      s.stage == "fetched",
-      if(
-        _problem(get(r, 0)) != null,
-        _fail(_problem(get(r, 0))),
-        _perform(s, _decide(s, s.local_text, s.base_text, get(get(r, 0), "json")))
-      ),
-      if(
-        s.stage == "create",
-        _ask(_set(_set(s, "stage", "created"), "id", get(r, 0).value), [_save(s, get(r, 0).value, _stem(s.name), s.text, null)], []),
-        if(
-          s.stage == "created",
-          if(
-            _problem(get(r, 0)) != null,
-            _fail(_problem(get(r, 0))),
-            _then(
-              _track(s, s.name, s.id, coalesce(get(get(get(r, 0), "json"), "version"), 1)),
-              [{kind: "write", path: _base(s.name), text: s.text}],
-              1,
-              ["created " + _stem(s.name) + " in the web app"]
-            )
-          ),
-          if(
-            s.stage == "pushed",
-            _pushed(s, get(r, 0)),
-            if(
-              s.stage == "merged",
-              _merge_saved(s, r),
-              if(
-                s.stage == "deleted",
-                if(
-                  _problem(get(r, 0)) != null,
-                  _fail(_problem(get(r, 0))),
-                  _then(_forget(s, s.name), [{kind: "remove", path: _base(s.name)}], 0, ["removed " + _stem(s.name) + " from the web app (it was deleted here)"])
-                ),
-                _after(s, r, [])
-              )
-            )
-          )
-        )
-      )
-    )
-  )
-)
+))
 
 // Decide one file, fetching the remote text first when the decision needs it.
-_file := fn(s, local, base) => (
+_file := fn(s, local, base) => let({conflict: _conflict(_stem(s.name)), remote: get(s.remote, s.name)}, (
   if(
-    contains(s.local, _conflict(_stem(s.name))),
-    _next(s, [_stem(s.name) + ": still has " + _conflict(_stem(s.name)) + "; resolve it to continue syncing this file"]),
+    contains(s.local, conflict),
+    _next(s, [_stem(s.name) + ": still has " + conflict + "; resolve it to continue syncing this file"]),
     if(
-      _needs_text(s, get(s.remote, s.name)),
+      _needs_text(s, remote),
       _ask(
         _set(_set(_set(s, "stage", "fetched"), "local_text", local), "base_text", base),
-        [_api(s, "GET", "/documents/" + get(s.remote, s.name).id, null)],
+        [_api(s, "GET", "/documents/" + remote.id, null)],
         []
       ),
-      _perform(s, _decide(s, local, base, get(s.remote, s.name)))
+      _perform(s, _decide(s, local, base, remote))
     )
   )
-)
+))
 
 // A push either lands, or finds the document moved on and merges against it.
-_pushed := fn(s, result) => (
+_pushed := fn(s, result) => let({
+  answer: get(result, "json"),
+  current: get(answer, "current"),
+  problem: _problem(result)
+}, (
   if(
-    result.ok && get(result, "status") == 409 && get(get(result, "json"), "current") != null,
-    _merged(s, s.name, merge3(s.base, s.text, get(get(result, "json"), "current").text), get(get(result, "json"), "current")),
-    if(
-      _problem(result) != null,
-      _fail(_problem(result)),
-      _then(
-        _track(s, s.name, s.doc.id, coalesce(get(get(result, "json"), "version"), s.doc.version + 1)),
-        [{kind: "write", path: _base(s.name), text: s.text}],
-        1,
-        ["pushed " + _stem(s.name)]
-      )
+    result.ok && get(result, "status") == 409 && current != null,
+    _merged(s, s.name, merge3(s.base, s.text, current.text), current),
+    problem != null,
+    _fail(problem),
+    _then(
+      _track(s, s.name, s.doc.id, coalesce(get(answer, "version"), s.doc.version + 1)),
+      [{kind: "write", path: _base(s.name), text: s.text}],
+      1,
+      ["pushed " + _stem(s.name)]
     )
   )
-)
+))
 
 // After writing a clean merge, record it, or report that the web app keeps changing.
-_merge_saved := fn(s, r) => (
+_merge_saved := fn(s, r) => let({written: get(r, 0), saved: get(r, 1), problem: _problem(saved)}, (
   if(
-    !get(r, 0).ok,
-    _fail(get(r, 0).error),
-    if(
-      get(r, 1).ok && get(get(r, 1), "status") == 409,
-      _next(s, [_stem(s.name) + " keeps changing in the web app; try again"]),
-      if(
-        _problem(get(r, 1)) != null,
-        _fail(_problem(get(r, 1))),
-        _then(
-          _track(s, s.name, s.doc.id, coalesce(get(get(get(r, 1), "json"), "version"), s.doc.version + 1)),
-          [{kind: "write", path: _base(s.name), text: s.text}],
-          1,
-          ["merged " + _stem(s.name)]
-        )
-      )
+    !written.ok,
+    _fail(written.error),
+    saved.ok && get(saved, "status") == 409,
+    _next(s, [_stem(s.name) + " keeps changing in the web app; try again"]),
+    problem != null,
+    _fail(problem),
+    _then(
+      _track(s, s.name, s.doc.id, coalesce(get(get(saved, "json"), "version"), s.doc.version + 1)),
+      [{kind: "write", path: _base(s.name), text: s.text}],
+      1,
+      ["merged " + _stem(s.name)]
     )
   )
-)
+))

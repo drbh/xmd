@@ -98,6 +98,8 @@ builtins! {
     FormatDate => "format_date", Module;
     Error => "error", Module;
     If => "if", Note, special;
+    Let => "let", Note, special;
+    Match => "match", Note, special;
     Coalesce => "coalesce", Note, special;
     Map => "map", Toolkit;
     Filter => "filter", Toolkit;

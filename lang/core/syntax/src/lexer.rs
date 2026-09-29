@@ -509,6 +509,16 @@ impl Parser {
                 self.parameters = enclosing;
                 Expr::Lambda(params, Box::new(body?))
             }
+            Lexeme::Name(n)
+                if n == "let"
+                    && matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Left)
+                    ) =>
+            {
+                self.at += 1;
+                self.let_form(start)?
+            }
             Lexeme::Name(n) => {
                 if matches!(
                     self.tokens.get(self.at).map(|t| &t.kind),
@@ -619,6 +629,110 @@ impl Parser {
             Some(index) => Expr::Param { name, index },
             None => Expr::Name(name),
         }
+    }
+    /// `let({a: 1, b: a + 1}, body)`, after its `(`: names bound once, each
+    /// seeing the ones before it. It is a lambda call written the other way
+    /// round, `(fn(a) => (fn(b) => body)(a + 1))(1)`, and parses into exactly
+    /// that, so evaluation and capture work as they do for any function.
+    fn let_form(&mut self, start: usize) -> Result<Expr, String> {
+        const SHAPE: &str = "let expects {name: value, …} and a body";
+        if !matches!(
+            self.tokens.get(self.at).map(|t| &t.kind),
+            Some(Lexeme::OpenRecord)
+        ) {
+            return Err(SHAPE.into());
+        }
+        self.at += 1;
+        let enclosing = self.parameters.clone();
+        let parsed = self.let_bindings();
+        let bindings = match parsed {
+            Ok(bindings) => bindings,
+            Err(error) => {
+                self.parameters = enclosing;
+                return Err(error);
+            }
+        };
+        let body = if matches!(
+            self.tokens.get(self.at).map(|t| &t.kind),
+            Some(Lexeme::Comma)
+        ) {
+            self.at += 1;
+            if let Some((name, _)) = bindings.last() {
+                self.parameters = vec![name.clone()];
+            }
+            self.expression(0)
+        } else {
+            Err(SHAPE.into())
+        };
+        self.parameters = enclosing;
+        let body = body?;
+        self.close()?;
+        let end = self.tokens[self.at - 1].end;
+        Ok(bindings
+            .into_iter()
+            .rev()
+            .fold(body, |body, (name, value)| {
+                Expr::Spanned(
+                    start,
+                    end,
+                    Box::new(Expr::Apply(
+                        Box::new(Expr::Lambda(vec![name], Box::new(body))),
+                        vec![value],
+                    )),
+                )
+            }))
+    }
+    /// The `{name: value, …}` of a `let`, after its `{`. Each value is parsed
+    /// with the previous name as the innermost parameter, as its lambda has it.
+    fn let_bindings(&mut self) -> Result<Vec<(String, Expr)>, String> {
+        let mut bindings: Vec<(String, Expr)> = Vec::new();
+        while !matches!(
+            self.tokens.get(self.at).map(|t| &t.kind),
+            Some(Lexeme::CloseRecord)
+        ) {
+            let Some(Token {
+                kind: Lexeme::Name(name),
+                ..
+            }) = self.tokens.get(self.at)
+            else {
+                return Err("Expected a name to bind".into());
+            };
+            let name = name.clone();
+            if bindings.iter().any(|(bound, _)| *bound == name)
+                || matches!(name.as_str(), "true" | "false" | "null" | "fn" | "let")
+                || is_code(&name)
+            {
+                return Err(format!("Invalid or duplicate name '{name}' in let"));
+            }
+            self.at += 1;
+            if !matches!(
+                self.tokens.get(self.at).map(|t| &t.kind),
+                Some(Lexeme::Colon)
+            ) {
+                return Err(format!("Expected ':' after '{name}' in let"));
+            }
+            self.at += 1;
+            if let Some((previous, _)) = bindings.last() {
+                self.parameters = vec![previous.clone()];
+            }
+            let value = self.expression(0)?;
+            bindings.push((name, value));
+            if !matches!(
+                self.tokens.get(self.at).map(|t| &t.kind),
+                Some(Lexeme::Comma)
+            ) {
+                break;
+            }
+            self.at += 1;
+        }
+        if !matches!(
+            self.tokens.get(self.at).map(|t| &t.kind),
+            Some(Lexeme::CloseRecord)
+        ) {
+            return Err("Expected '}'".into());
+        }
+        self.at += 1;
+        Ok(bindings)
     }
     fn close(&mut self) -> Result<(), String> {
         if !matches!(

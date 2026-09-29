@@ -28,7 +28,12 @@ impl Engine<'_> {
         match builtin {
             Builtin::Import => self.call_import(path, args),
             Builtin::If => self.call_if(path, args),
+            Builtin::Match => self.call_match(path, args),
             Builtin::Coalesce => self.call_coalesce(path, args),
+            // The parser turns every `let` into lambda calls.
+            Builtin::Let => Err(EvalError::Message(
+                "let expects {name: value, …} and a body".into(),
+            )),
             // Everything else with eagerly evaluated arguments.
             builtin if !builtin.is_special_form() => {
                 let values = self.values(path, args)?;
@@ -239,17 +244,43 @@ impl Engine<'_> {
         }
         self.import(path, &id)
     }
-    /// `if(condition, then, else)`: only the chosen branch is evaluated.
+    /// `if(condition, then, …, else)`: conditions in order until one holds,
+    /// and only the chosen result is evaluated.
     fn call_if(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
-        if args.len() != 3 {
+        if args.len() < 3 || args.len().is_multiple_of(2) {
             return Err(EvalError::Message(
-                "if expects a condition and two branches".into(),
+                "if expects conditions and results in pairs, then an else".into(),
             ));
         }
-        let Value::Bool(condition) = self.expr(path, &args[0])? else {
-            return Err(EvalError::Message("if requires a Boolean condition".into()));
-        };
-        self.expr(path, &args[if condition { 1 } else { 2 }])
+        let (otherwise, pairs) = args.split_last().expect("at least three arguments");
+        for pair in pairs.chunks(2) {
+            let Value::Bool(condition) = self.expr(path, &pair[0])? else {
+                return Err(EvalError::Message("if requires a Boolean condition".into()));
+            };
+            if condition {
+                return self.expr(path, &pair[1]);
+            }
+        }
+        self.expr(path, otherwise)
+    }
+    /// `match(value, case, result, …, otherwise)`: the first case equal to
+    /// the value picks its result, compared as `==` does; only the cases up
+    /// to it and the chosen result are evaluated.
+    fn call_match(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
+        if args.len() < 4 || !args.len().is_multiple_of(2) {
+            return Err(EvalError::Message(
+                "match expects a value, cases and results in pairs, then an otherwise".into(),
+            ));
+        }
+        let (otherwise, rest) = args.split_last().expect("at least four arguments");
+        let value = self.expr(path, &rest[0])?;
+        for pair in rest[1..].chunks(2) {
+            let case = self.expr(path, &pair[0])?;
+            if binary(BinaryOp::Equal, value.clone(), case)? == Value::Bool(true) {
+                return self.expr(path, &pair[1]);
+            }
+        }
+        self.expr(path, otherwise)
     }
     /// `coalesce(a, b, …)`: stop at the first non-null argument.
     fn call_coalesce(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {

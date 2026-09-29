@@ -48,7 +48,7 @@ _solve_raw := fn(model) => (
 
 // Measure unused room on the permitted side of a constraint.
 _slack := fn(op, lhs, rhs) => (
-  _tidy(if(op == "<=", rhs - lhs, if(op == ">=", lhs - rhs, 0)))
+  _tidy(match(op, "<=", rhs - lhs, ">=", lhs - rhs, 0))
 )
 
 // Assemble typed constraint values and binding status.
@@ -125,7 +125,7 @@ solve_model := fn(model) => (
 
 // Use compact mathematical symbols for displayed comparisons.
 _comparison := fn(op) => (
-  if(op == "<=", "≤", if(op == ">=", "≥", "="))
+  match(op, "<=", "≤", ">=", "≥", "=")
 )
 
 // Distinguish binding constraints from those with unused room.

@@ -110,7 +110,9 @@ signatures! {
         Repeat("text: Text", "count: Number") -> Text, "Repeat text a bounded number of times.", "\"█\", 3";
         FormatDate("date: Date or DateTime", "format: Text") -> Text, "Format a date or timestamp with strftime directives.", "today(), \"%Y-%m-%d\"";
         Error("message: Text") -> "Never", "Return an evaluation error.", "\"Missing data\"";
-        If("condition: Boolean", "then: Value", "else: Value") -> "Value", "Evaluate only the selected branch.", "true, 1, 0";
+        If("condition: Boolean", "then: Value", "else: Value") -> "Value", "Evaluate only the selected branch; more condition, result pairs may come before the else.", "n < 0, \"negative\", n == 0, \"zero\", \"positive\"";
+        Match("value: Value", "case: Value", "result: Value", "otherwise: Value") -> "Value", "Pick the result of the first case equal to the value, else the last argument; more case, result pairs may follow the first.", "state, \"open\", \"○\", \"done\", \"✓\", \"?\"";
+        Let("names: Record", "body: Value") -> "Value", "Name values for the body; each name can use the ones before it.", "{x: 2, y: x * 3}, x + y";
         Coalesce("values: Value...") -> "Value", "Return the first non-null value.", "null, 1";
         Map("items: List", "function: Function") -> List, "Apply a pure function to every item.", "[1, 2], fn(x) => x * 2";
         Filter("items: List", "predicate: Function") -> List, "Keep items whose predicate returns true.", "[1, 2], fn(x) => x > 1";

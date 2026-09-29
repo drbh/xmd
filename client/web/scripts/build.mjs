@@ -11,7 +11,14 @@ for (const name of ["src", "adapters", "theme", "pkg"]) {
   await cp(new URL(name, root), new URL(`lib/${name}`, dist), { recursive: true });
 }
 // Static hosts that honour _headers (Cloudflare) let other sites load lib/.
-await writeFile(new URL("_headers", dist), "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400\n");
+// The service worker is always revalidated so a new build is noticed at once;
+// files whose names carry a hash of their contents never change.
+await writeFile(new URL("_headers", dist), [
+  "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400",
+  "/sw.js\n  Cache-Control: no-cache",
+  "/docs/assets/*\n  Cache-Control: public, max-age=31536000, immutable",
+  "/docs/live-*\n  Cache-Control: public, max-age=31536000, immutable",
+].join("\n") + "\n");
 // The site root opens the document app.
 await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>XMD Docs</title><a href="docs/">Open XMD Docs</a>\n');
 // The embedding example: a plain page that loads the library like any other site would.
@@ -27,18 +34,7 @@ const wasmHash = createHash("sha256").update(wasm).digest("hex");
 await writeFile(new URL("manifest.json", dist), JSON.stringify({ schemaVersion: 1, wasm: "lib/pkg/xmd_bg.wasm", sha256: wasmHash }, null, 2) + "\n");
 // The service worker precaches everything the app needs to open offline; its
 // version changes whenever any of those files does.
-const { readdir } = await import("node:fs/promises");
-const walk = async dir => (await readdir(new URL(dir, dist), { withFileTypes: true, recursive: true })).filter(e => e.isFile()).map(e => `${e.parentPath ?? e.path}/${e.name}`.replace(fileURLToPath(dist), "").replace(/\\/g, "/").replace(/\/+/g, "/"));
-const precache = [
-  "docs/manifest.webmanifest", "docs/icon.svg", "docs/icon-192.png", "docs/icon-512.png", "docs/apple-touch-icon.png",
-  ...(await walk("docs/assets/")),
-  ...(await walk("lib/src/")).filter(p => p.endsWith(".js") && !/\/(node|server)\.js$/.test(p)),
-  "lib/adapters/contenteditable.js", "lib/theme/style.css", "lib/theme/fonts.css",
-  ...(await walk("lib/theme/fonts/")),
-  "lib/pkg/xmd.js", "lib/pkg/xmd_bg.wasm",
-].map(p => p.replace(/^\//, ""));
-const swVersion = createHash("sha256").update(precache.join("\n")).update(wasmHash).digest("hex").slice(0, 12);
-const template = new URL("docs/sw.js", dist);
-await writeFile(new URL("sw.js", dist), `self.__XMD_VERSION__ = ${JSON.stringify(swVersion)};\nself.__XMD_PRECACHE__ = ${JSON.stringify(precache)};\n${await readFile(template, "utf8")}`);
-await rm(template);
+const { writeServiceWorker } = await import("./lib/service-worker.mjs");
+await writeServiceWorker(dist, new URL("apps/docs/public/sw.js", root));
+await rm(new URL("docs/sw.js", dist)); // Vite's copy; the worker is served from the site root
 console.log("Static site built in client/web/dist; all clients share lib/pkg/xmd_bg.wasm");

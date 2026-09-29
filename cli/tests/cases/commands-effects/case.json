@@ -1,0 +1,22 @@
+{
+  "steps": [
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "http"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "env"], "env": { "XMD_SET": "yes", "XMD_EMPTY": "" } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "env-refused"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "credential"], "env": { "XDG_CONFIG_HOME": "config" } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "credential", "--key", "k9"], "env": { "XDG_CONFIG_HOME": "config" } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "credential"], "env": { "XDG_CONFIG_HOME": "config" } },
+    { "read": ["config/xmd/credentials.json"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "credential-unscoped"], "env": { "XDG_CONFIG_HOME": "config" } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "repeat"] },
+    { "write": { "work/runs.txt": null } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "repeat", "--every", "0.01"] },
+    { "write": { "work/runs.txt": null } },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "repeat", "--every", "soon"] },
+    { "read": ["work/runs.txt"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "unknown"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "malformed"] },
+    { "cli": ["run", "./effects.x.md", "work", "--mode", "fails"] },
+    { "cli": ["run", "./effects.x.md", "work"] }
+  ]
+}

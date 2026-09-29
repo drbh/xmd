@@ -1,0 +1,620 @@
+### 0 lsp
+-- open review.x.md
+-- await textDocument/publishDiagnostics review.x.md
+{
+  "diagnostics": [
+    {
+      "code": "open-task",
+      "message": "Still open: Draft outline",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    },
+    {
+      "code": "open-task",
+      "message": "Still open: Send invites",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/review.x.md",
+  "version": 1
+}
+-- request textDocument/inlayHint review.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "open · Draft outline",
+    "paddingLeft": true,
+    "position": {
+      "character": 22,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "row 1"
+    }
+  },
+  {
+    "label": "open · Send invites",
+    "paddingLeft": true,
+    "position": {
+      "character": 18,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "row 3"
+    }
+  }
+]
+-- request textDocument/hover review.x.md 3:4
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Send invites** as of 2026-09-16"
+  },
+  "range": {
+    "end": {
+      "character": 18,
+      "line": 3
+    },
+    "start": {
+      "character": 0,
+      "line": 3
+    }
+  }
+}
+-- request textDocument/hover review.x.md 0:2
+null
+-- request textDocument/codeLens review.x.md
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/review.x.md",
+          "expected": "- [ ] Draft outline   ",
+          "kind": "toggle_task",
+          "row": 1
+        }
+      ],
+      "command": "xmd.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/review.x.md",
+          "event": {
+            "line": 1,
+            "refresh": true
+          },
+          "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+          "kind": "invoke",
+          "module": "review",
+          "revision": "65248278ca91c769"
+        }
+      ],
+      "command": "xmd.invoke",
+      "title": "Finish Draft outline"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/review.x.md",
+          "expected": "- [x] Book room",
+          "kind": "toggle_task",
+          "row": 2
+        }
+      ],
+      "command": "xmd.task",
+      "title": "○ reopen"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/review.x.md",
+          "expected": "- [ ] Send invites",
+          "kind": "toggle_task",
+          "row": 3
+        }
+      ],
+      "command": "xmd.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/review.x.md",
+          "event": {
+            "line": 3,
+            "refresh": true
+          },
+          "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+          "kind": "invoke",
+          "module": "review",
+          "revision": "65248278ca91c769"
+        }
+      ],
+      "command": "xmd.invoke",
+      "title": "Finish Send invites"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+-- request textDocument/formatting review.x.md
+[
+  {
+    "newText": "- [ ] Draft outline",
+    "range": {
+      "end": {
+        "character": 22,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  }
+]
+-- applied to review.x.md (version 2)
+# Review
+- [ ] Draft outline
+- [x] Book room
+- [ ] Send invites
+Plain prose.
+-- await textDocument/publishDiagnostics review.x.md
+{
+  "diagnostics": [
+    {
+      "code": "open-task",
+      "message": "Still open: Draft outline",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    },
+    {
+      "code": "open-task",
+      "message": "Still open: Send invites",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/review.x.md",
+  "version": 2
+}
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/review.x.md",
+        "event": {
+          "line": 1,
+          "refresh": true
+        },
+        "expected": "# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+        "kind": "invoke",
+        "module": "review",
+        "revision": "65248278ca91c769"
+      }
+    ],
+    "command": "xmd.invoke",
+    "title": "Finish Draft outline"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "x",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 1
+                },
+                "start": {
+                  "character": 3,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "newText": " @completed(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 19,
+                  "line": 1
+                },
+                "start": {
+                  "character": 19,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/review.x.md",
+            "version": 2
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "✓ done"
+  }
+]
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":2},"start":{"character":0,"line":2}}
+[
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": " ",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 2
+                },
+                "start": {
+                  "character": 3,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/review.x.md",
+            "version": 2
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "○ reopen"
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:review.x.md}","event":{"line":1},"expected":"stale\n","kind":"invoke","module":"review","revision":"0"}],"command":"xmd.invoke"}
+error: {
+  "code": -32602,
+  "message": "Source changed; request fresh controls"
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:review.x.md}","event":{"line":1},"expected":"# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n","kind":"invoke","module":"gone","revision":"0"}],"command":"xmd.invoke"}
+error: {
+  "code": -32602,
+  "message": "Module is no longer available"
+}
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":1},"start":{"character":0,"line":1}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/review.x.md",
+        "event": {
+          "line": 1,
+          "refresh": true
+        },
+        "expected": "# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+        "kind": "invoke",
+        "module": "review",
+        "revision": "65248278ca91c769"
+      }
+    ],
+    "command": "xmd.invoke",
+    "title": "Finish Draft outline"
+  },
+  {
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "x",
+              "range": {
+                "end": {
+                  "character": 4,
+                  "line": 1
+                },
+                "start": {
+                  "character": 3,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "newText": " @completed(2026-09-16)",
+              "range": {
+                "end": {
+                  "character": 19,
+                  "line": 1
+                },
+                "start": {
+                  "character": 19,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/review.x.md",
+            "version": 2
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
+    "title": "✓ done"
+  }
+]
+-- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+null
+-- await workspace/applyEdit
+{
+  "edit": {
+    "documentChanges": [
+      {
+        "edits": [
+          {
+            "newText": "x",
+            "range": {
+              "end": {
+                "character": 4,
+                "line": 1
+              },
+              "start": {
+                "character": 3,
+                "line": 1
+              }
+            }
+          }
+        ],
+        "textDocument": {
+          "uri": "file://<root>/review.x.md",
+          "version": 2
+        }
+      }
+    ]
+  }
+}
+
+### 1 write
+-- write .xmd/modules/review.x.md (717 bytes)
+
+### 2 lsp
+-- open review.x.md
+-- await textDocument/publishDiagnostics review.x.md
+{
+  "diagnostics": [
+    {
+      "code": "module",
+      "message": "review: diagnostics must return a list",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/review.x.md",
+  "version": 1
+}
+-- request textDocument/inlayHint review.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · review",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "collect must return a list"
+    }
+  }
+]
+-- request textDocument/hover review.x.md 0:2
+null
+-- request textDocument/formatting review.x.md
+error: {
+  "code": -32602,
+  "message": "invalid type: integer `5`, expected a string"
+}
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "document": "file://<root>/review.x.md",
+        "event": {},
+        "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+        "kind": "invoke",
+        "module": "review",
+        "revision": "2f67ca228298b279"
+      }
+    ],
+    "command": "xmd.invoke",
+    "title": "Loop"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "show_today"
+      }
+    ],
+    "command": "xmd.today",
+    "title": "⚑ today"
+  }
+]
+-- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+error: {
+  "code": -32602,
+  "message": "A reducer must return a concrete action"
+}
+
+### 3 write
+-- write .xmd/modules/review.x.md (622 bytes)
+
+### 4 lsp
+-- open review.x.md
+-- await textDocument/publishDiagnostics review.x.md
+{
+  "diagnostics": [
+    {
+      "code": "module",
+      "message": "review: Invalid UTF-16 character boundary",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/review.x.md",
+  "version": 1
+}
+-- request textDocument/hover review.x.md 0:2
+null
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":4},"start":{"character":0,"line":4}}
+[]
+-- request textDocument/codeAction review.x.md {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+[
+  {
+    "arguments": [
+      {
+        "document": null,
+        "kind": "refresh"
+      }
+    ],
+    "command": "xmd.refresh",
+    "title": "21e6c0fff5c335e3"
+  },
+  {
+    "arguments": [
+      {
+        "kind": "show_today"
+      }
+    ],
+    "command": "xmd.today",
+    "title": "⚑ today"
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:review.x.md}","event":{},"expected":"# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n","kind":"invoke","module":"review","revision":"${last:/0/title}"}],"command":"xmd.invoke"}
+error: {
+  "code": -32602,
+  "message": "Module has no reducer"
+}
+

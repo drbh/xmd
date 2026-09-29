@@ -6,7 +6,7 @@
 //! before the module decodes. A `refresh` request that asks for
 //! [`RefreshFormat::Feed`](lang::eval::link_features::RefreshFormat) has its program's
 //! stdout run through [`parse`], and the module's `decode` sees the ordinary
-//! JSON record [`json`] produces.
+//! JSON record it produces.
 //!
 //! `feed-rs` does the actual XML/JSON-feed parsing (entities, CDATA, dates,
 //! namespaces); this module only adapts its richer model into the four-field
@@ -14,32 +14,18 @@
 //! that keeps a cache readable.
 use chrono::{DateTime, Utc};
 use feed_rs::model as feed_model;
-
-/// One feed: the channel's own fields plus its items, newest first.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct Feed {
-    pub title: String,
-    pub link: Option<String>,
-    pub updated: Option<DateTime<Utc>>,
-    pub items: Vec<Item>,
-}
-
-/// One entry of a feed. Only the title is required; the rest is often absent.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct Item {
-    pub title: String,
-    pub link: Option<String>,
-    pub published: Option<DateTime<Utc>>,
-    pub summary: Option<String>,
-}
+use serde_json::{Value, json};
+use std::cmp::Reverse;
 
 /// The newest items a feed contributes; longer archives are truncated.
 const ITEM_LIMIT: usize = 50;
 /// The longest summary kept, so one verbose feed cannot fill the cache.
 const SUMMARY_LIMIT: usize = 500;
 
-/// Read a feed document, or say why it is not one.
-pub(crate) fn parse(xml: &str) -> Result<Feed, String> {
+/// Read a feed document into the record a link module's `decode` receives:
+/// the channel's own fields plus its items, newest first. Or say why it is
+/// not a feed.
+pub(crate) fn parse(xml: &str) -> Result<Value, String> {
     let parsed = feed_rs::parser::parse(xml.as_bytes())
         .map_err(|_| "Not an RSS or Atom feed".to_string())?;
 
@@ -47,40 +33,36 @@ pub(crate) fn parse(xml: &str) -> Result<Feed, String> {
     let link = primary_link(&parsed.links);
     let updated = parsed.updated.or(parsed.published);
 
-    let mut items: Vec<Item> = parsed.entries.iter().filter_map(item_of).collect();
+    let mut items: Vec<_> = parsed.entries.iter().filter_map(item_of).collect();
     if title.is_empty() && items.is_empty() {
         return Err("Feed has no title and no items".into());
     }
-    items.sort_by(|a, b| match (a.published, b.published) {
-        (Some(a), Some(b)) => b.cmp(&a),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        (None, Some(_)) => std::cmp::Ordering::Greater,
-        (None, None) => std::cmp::Ordering::Equal,
-    });
+    items.sort_by_key(|(published, _)| Reverse(*published));
     items.truncate(ITEM_LIMIT);
-    Ok(Feed {
-        title,
-        link,
-        updated,
-        items,
-    })
+    Ok(json!({
+        "title": title,
+        "link": link,
+        "updated": updated.map(stamp),
+        "items": items.into_iter().map(|(_, item)| item).collect::<Vec<_>>(),
+    }))
 }
 
-/// Adapt one feed-rs entry, or drop it if it names nothing worth keeping.
-fn item_of(entry: &feed_model::Entry) -> Option<Item> {
+/// Adapt one feed-rs entry, with the instant it sorts by, or drop it if it
+/// names nothing worth keeping.
+fn item_of(entry: &feed_model::Entry) -> Option<(Option<DateTime<Utc>>, Value)> {
     let title = entry.title.as_ref().map(text).unwrap_or_default();
     let link = primary_link(&entry.links);
     if title.is_empty() && link.is_none() {
         return None;
     }
     let published = entry.published.or(entry.updated);
-    let summary = summary_of(entry);
-    Some(Item {
-        title,
-        link,
-        published,
-        summary,
-    })
+    let item = json!({
+        "title": title,
+        "link": link,
+        "published": published.map(stamp),
+        "summary": summary_of(entry),
+    });
+    Some((published, item))
 }
 
 /// The item's own description or summary, preferring `summary`/`description`
@@ -144,25 +126,6 @@ fn truncate(mut value: String) -> String {
     value.truncate(cut);
     value.push('…');
     value
-}
-
-/// The JSON a link module's `decode` receives for a feed refresh.
-pub(crate) fn json(feed: &Feed) -> serde_json::Value {
-    serde_json::json!({
-        "title": feed.title,
-        "link": feed.link,
-        "updated": feed.updated.map(stamp),
-        "items": feed
-            .items
-            .iter()
-            .map(|item| serde_json::json!({
-                "title": item.title,
-                "link": item.link,
-                "published": item.published.map(stamp),
-                "summary": item.summary,
-            }))
-            .collect::<Vec<_>>(),
-    })
 }
 
 /// One UTC instant, spelled the way every other module date is.

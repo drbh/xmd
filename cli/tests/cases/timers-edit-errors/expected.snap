@@ -1,0 +1,45 @@
+### 0 cli render records.x.md --format text
+$ xmd render records.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Malformed timer records module error · timers
+
+[scalar] := stopwatch("scalar")
+[limit] := stopwatch("limit")
+[elapsed] := stopwatch("elapsed")
+[started] := stopwatch("started")
+[idle] := stopwatch("idle")
+[live] := stopwatch("live")
+[fine] := stopwatch()
+--- stderr
+<root>/records.x.md:3:13: error: Timer constructor must return a record
+<root>/records.x.md:4:12: error: Invalid timer limit
+<root>/records.x.md:5:14: error: Invalid timer elapsed time
+<root>/records.x.md:6:14: error: Invalid timer timestamp
+<root>/records.x.md:7:11: error: Invalid timer state
+<root>/records.x.md:8:11: error: timer.time_dependent must return a boolean
+xmd: 6 error(s) while rendering
+
+### 1 lsp
+-- open controls.x.md
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:controls.x.md}","kind":"timer","name":"nope"}],"command":"xmd.timer"}
+error: {
+  "code": -32602,
+  "message": "Unknown name 'nope'"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:controls.x.md}","kind":"timer","name":"number"}],"command":"xmd.timer"}
+error: {
+  "code": -32602,
+  "message": "Expected a named timer"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:controls.x.md}","kind":"timer","name":"wrapped"}],"command":"xmd.timer"}
+error: {
+  "code": -32602,
+  "message": "Controls require a direct named countdown or stopwatch declaration"
+}
+-- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:controls.x.md}","kind":"timer","name":"plain"}],"command":"xmd.timer"}
+error: {
+  "code": -32602,
+  "message": "Transitions are frozen"
+}
+

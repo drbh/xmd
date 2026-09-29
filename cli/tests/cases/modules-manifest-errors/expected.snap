@@ -1,0 +1,546 @@
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/duplicate.x.md: Duplicate definition 'x'
+
+### 1 write
+-- write .xmd/modules.json (38 bytes)
+
+### 2 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/literal-definition.x.md: Module definitions must use :=
+
+### 3 write
+-- write .xmd/modules.json (32 bytes)
+
+### 4 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/not-a-record.x.md: module must be a record
+
+### 5 write
+-- write .xmd/modules.json (30 bytes)
+
+### 6 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/id-missing.x.md: module.id is required
+
+### 7 write
+-- write .xmd/modules.json (31 bytes)
+
+### 8 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/id-not-text.x.md: Expected text
+
+### 9 write
+-- write .xmd/modules.json (28 bytes)
+
+### 10 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/id-empty.x.md: Invalid module id
+
+### 11 write
+-- write .xmd/modules.json (30 bytes)
+
+### 12 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/id-invalid.x.md: Invalid module id
+
+### 13 write
+-- write .xmd/modules.json (32 bytes)
+
+### 14 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/kind-missing.x.md: module.kind is required
+
+### 15 write
+-- write .xmd/modules.json (32 bytes)
+
+### 16 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/enabled-text.x.md: enabled must be boolean
+
+### 17 write
+-- write .xmd/modules.json (33 bytes)
+
+### 18 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/inputs-record.x.md: Unknown input collection: frogs
+
+### 19 write
+-- write .xmd/modules.json (31 bytes)
+
+### 20 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/inputs-list.x.md: Unknown input collection: frogs
+
+### 21 write
+-- write .xmd/modules.json (31 bytes)
+
+### 22 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/inputs-text.x.md: Expected a list of text
+
+### 23 write
+-- write .xmd/modules.json (35 bytes)
+
+### 24 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/hosts-uppercase.x.md: Link modules require lowercase host names
+
+### 25 write
+-- write .xmd/modules.json (30 bytes)
+
+### 26 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/hosts-path.x.md: Link modules require lowercase host names
+
+### 27 write
+-- write .xmd/modules.json (34 bytes)
+
+### 28 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42:ticket link
+https://issues.example/wiki/7:page link
+
+### 29 write
+-- write .xmd/modules.json (31 bytes)
+
+### 30 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/hosts-empty.x.md: Link modules require hosts or a matches function
+
+### 31 write
+-- write .xmd/modules.json (29 bytes)
+
+### 32 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/hosts-any.x.md: Link modules require hosts or a matches function
+
+### 33 write
+-- write .xmd/modules.json (35 bytes)
+
+### 34 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/prefix-not-text.x.md: Expected text
+
+### 35 write
+-- write .xmd/modules.json (37 bytes)
+
+### 36 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/property-reserved.x.md: Invalid or reserved property name
+
+### 37 write
+-- write .xmd/modules.json (36 bytes)
+
+### 38 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/property-invalid.x.md: Invalid or reserved property name
+
+### 39 write
+-- write .xmd/modules.json (33 bytes)
+
+### 40 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/inlay-missing.x.md: Missing inlay function
+
+### 41 write
+-- write .xmd/modules.json (35 bytes)
+
+### 42 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/collect-missing.x.md: Missing collect function
+
+### 43 write
+-- write .xmd/modules.json (36 bytes)
+
+### 44 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42:ticket link
+https://issues.example/wiki/7:page link
+
+### 45 write
+-- write .xmd/modules.json (40 bytes)
+
+### 46 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/step-missing-command.x.md: Missing step function
+
+### 47 write
+-- write .xmd/modules.json (41 bytes)
+
+### 48 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/step-missing-provider.x.md: Missing step function
+
+### 49 write
+-- write .xmd/modules.json (38 bytes)
+
+### 50 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/inlay-not-function.x.md: inlay must be a function with 1 parameters
+
+### 51 write
+-- write .xmd/modules.json (30 bytes)
+
+### 52 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/hook-arity.x.md: property must be a function with 2 parameters
+
+### 53 write
+-- write .xmd/modules.json (33 bytes)
+
+### 54 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42:ticket link
+https://issues.example/wiki/7:page link
+
+### 55 write
+-- write .xmd/modules.json (37 bytes)
+
+### 56 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/property-function.x.md: Declared properties need a property function
+
+### 57 write
+-- write .xmd/modules.json (36 bytes)
+
+### 58 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/provides-missing.x.md: A provider module provides one or more of rate, quote and forecast
+
+### 59 write
+-- write .xmd/modules.json (34 bytes)
+
+### 60 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/provides-empty.x.md: A provider module provides one or more of rate, quote and forecast
+
+### 61 write
+-- write .xmd/modules.json (36 bytes)
+
+### 62 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/provides-unknown.x.md: A provider module provides one or more of rate, quote and forecast
+
+### 63 write
+-- write .xmd/modules.json (36 bytes)
+
+### 64 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/provides-command.x.md: Only provider modules declare provides
+
+### 65 write
+-- write .xmd/modules.json (38 bytes)
+
+### 66 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/cache-version-zero.x.md: cache_version must be a positive integer
+
+### 67 write
+-- write .xmd/modules.json (42 bytes)
+
+### 68 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/cache-version-fraction.x.md: cache_version must be a positive integer
+
+### 69 write
+-- write .xmd/modules.json (38 bytes)
+
+### 70 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/cache-version-text.x.md: cache_version must be a positive integer
+
+### 71 write
+-- write .xmd/modules.json (40 bytes)
+
+### 72 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/cache-namespace-text.x.md: cache_namespace may only be null (legacy cache) or omitted
+
+### 73 write
+-- write .xmd/modules.json (40 bytes)
+
+### 74 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42:ticket link
+https://issues.example/wiki/7:page link
+
+### 75 write
+-- write .xmd/modules.json (32 bytes)
+
+### 76 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-id-kind.x.md: Invalid module id
+
+### 77 write
+-- write .xmd/modules.json (39 bytes)
+
+### 78 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-enabled-inputs.x.md: enabled must be boolean
+
+### 79 write
+-- write .xmd/modules.json (37 bytes)
+
+### 80 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-inputs-hosts.x.md: Unknown input collection: frogs
+
+### 81 write
+-- write .xmd/modules.json (41 bytes)
+
+### 82 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-hosts-properties.x.md: Link modules require lowercase host names
+
+### 83 write
+-- write .xmd/modules.json (41 bytes)
+
+### 84 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-properties-inlay.x.md: Invalid or reserved property name
+
+### 85 write
+-- write .xmd/modules.json (36 bytes)
+
+### 86 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-inlay-hover.x.md: Missing inlay function
+
+### 87 write
+-- write .xmd/modules.json (38 bytes)
+
+### 88 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-hover-refresh.x.md: hover must be a function with 1 parameters
+
+### 89 write
+-- write .xmd/modules.json (41 bytes)
+
+### 90 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-refresh-property.x.md: refresh and decode must be supplied together
+
+### 91 write
+-- write .xmd/modules.json (42 bytes)
+
+### 92 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-property-provides.x.md: Declared properties need a property function
+
+### 93 write
+-- write .xmd/modules.json (41 bytes)
+
+### 94 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-provides-exports.x.md: Only provider modules declare provides
+
+### 95 write
+-- write .xmd/modules.json (38 bytes)
+
+### 96 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-exports-cache.x.md: A link module has no exports; its hooks are called by the host
+
+### 97 write
+-- write .xmd/modules.json (48 bytes)
+
+### 98 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-cache-version-namespace.x.md: cache_version must be a positive integer
+
+### 99 write
+-- write .xmd/modules.json (45 bytes)
+
+### 100 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/then-duplicate-assignment.x.md: Module definitions must use :=
+
+### 101 write
+-- write .xmd/modules.json (29 bytes)
+
+### 102 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/oversized.x.md exceeds 64 KiB
+
+### 103 cli run .xmd/modules/oversized.x.md
+$ xmd run .xmd/modules/oversized.x.md
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/oversized.x.md: Modules are limited to 64 KiB
+
+### 104 write
+-- write .xmd/modules.json (33 bytes)
+
+### 105 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://issues.example/tickets/42: decode must return a record
+
+### 106 write
+-- write .xmd/modules.json (35 bytes)
+
+### 107 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://issues.example/tickets/42: Cached module data must contain JSON values
+
+### 108 write
+-- write .xmd/modules.json (31 bytes)
+
+### 109 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://issues.example/tickets/42: Cached module data must contain JSON values
+
+### 110 write
+-- write .xmd/modules.json (34 bytes)
+
+### 111 cli refresh
+$ xmd refresh --root <root>
+exit 0
+--- stdout
+Resource cache updated (1 resources)
+
+### 112 read .xmd/cache.json
+-- .xmd/cache.json
+{
+  "https://issues.example/tickets/42": {
+    "title": "numbers",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "provider": "t:1",
+    "data": {
+      "count": 2,
+      "fetched": 1,
+      "fraction": 0.5,
+      "negative": -3.0,
+      "negative_whole": -4.0,
+      "title": "numbers",
+      "whole": 8
+    }
+  }
+}
+
+### 113 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42 ticket:ticket ticket
+https://issues.example/wiki/7:page link
+

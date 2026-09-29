@@ -1,7 +1,7 @@
 //! The `xmd` command line: queries, rendering, inspection, refresh and
 //! command modules, plus `xmd lsp`, which hands the process to the language
 //! server. Shared runtime behavior comes from `runtime/host` and
-//! `runtime/services`; this binary only parses arguments and reports.
+//! `runtime::services`; this binary only parses arguments and reports.
 mod cli;
 
 use clap::{CommandFactory, Parser};

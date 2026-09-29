@@ -4,7 +4,7 @@
 //! modules, no glob re-exports, workspace lints on); the facades (`xmd`,
 //! `lang`, `runtime`) only re-export, and the crates behind `lang` and
 //! `runtime` are private to them; and the portable crates (the
-//! language, the services, the renderer and the browser host) do no I/O.
+//! language, the services and the browser host) do no I/O.
 use serde_json::Value;
 use std::process::Command;
 
@@ -87,8 +87,11 @@ fn facades_list_items_not_namespaces() {
         .parent()
         .unwrap();
     for (facade, crates) in [
-        ("lang", &["common", "syntax", "model", "eval"][..]),
-        ("runtime", &["services", "host"][..]),
+        (
+            "lang",
+            &["common", "syntax", "model", "values", "modules", "eval"][..],
+        ),
+        ("runtime", &["analysis", "catalog", "editor", "host"][..]),
     ] {
         let source =
             std::fs::read_to_string(root.join(facade).join("src/lib.rs")).expect("read a facade");
@@ -216,9 +219,9 @@ fn components_publish_a_curated_interface() {
 }
 
 /// The portable crates run identically on every host, the browser included:
-/// `lang/core` (the language itself), `runtime/services` (the language
-/// services), `runtime/renderer` and `browser`. Reading files, running
-/// programs and talking to the network belong to `runtime/host`, which the
+/// `lang/core` (the language itself), the language services
+/// (`runtime/analysis`, `runtime/catalog`, `runtime/editor`) and `browser`.
+/// Reading files, running programs and talking to the network belong to `runtime/host`, which the
 /// native hosts pass in where the services need files (`NoteFiles`).
 #[test]
 fn portable_crates_do_no_io() {
@@ -236,8 +239,9 @@ fn portable_crates_do_no_io() {
         .unwrap();
     let portable = [
         root.join("lang"),
-        root.join("runtime/services"),
-        root.join("runtime/renderer"),
+        root.join("runtime/analysis"),
+        root.join("runtime/catalog"),
+        root.join("runtime/editor"),
         root.join("browser"),
     ];
     let mut checked = 0;
@@ -276,7 +280,7 @@ fn portable_crates_do_no_io() {
         }
     }
     assert!(
-        checked >= 7,
+        checked >= 11,
         "expected the portable crates, found {checked}"
     );
 }

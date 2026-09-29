@@ -1,0 +1,13 @@
+{
+  "rate:EUR:USD": {"value": {"rate": "high"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "rate:EUR:GBP": {"value": {"rate": -1}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "rate:EUR:JPY": {"value": {"error": "Service down"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "rate:EUR:CAD": {"value": {"error": "Upstream is busy; run xmd refresh later"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "quote:NVDA": {"value": {"price": "lots"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "quote:AAPL": {"value": {"error": "No such ticker"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "quote:MSFT": {"value": {"price": 10, "currency": "XYZ"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "forecast:oaxaca:2026-09-20": {"value": {"high": "hot", "low": 10}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "forecast:lima:2026-09-20": {"value": {"high": 20}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "forecast:quito:2026-09-20": {"value": {"error": "no forecast yet for Quito"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"},
+  "forecast:bogota:2026-09-21": {"value": {"error": "Station offline"}, "fetched_at": "2026-09-17T12:00:00Z", "source": "fixture"}
+}

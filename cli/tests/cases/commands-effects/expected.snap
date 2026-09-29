@@ -1,0 +1,117 @@
+### 0 cli run ./effects.x.md work --mode http
+$ xmd run ./effects.x.md work --mode http
+exit 0
+--- stdout
+{"json": {"method": "POST", "received": {"name": "Widget", "tags": ["a", "b"]}, "rest": "-H X-Trace: t1 -H Content-Type: application/json --data-binary @-"}, "ok": true, "status": 201, "text": ""}
+{"json": null, "ok": true, "status": 201, "text": "{\"method\":\"PATCH\",\"rest\":\"\",\"received\":}"}
+{"json": null, "ok": true, "status": 200, "text": "plain words"}
+{"json": {"message": "Not Found"}, "ok": true, "status": 404, "text": ""}
+{"error": "curl failed: curl: (6) Could not resolve host for https://api.example.com/broken", "ok": false}
+{"error": "Unsupported method TRACE", "ok": false}
+{"error": "ftp://example.com/file: only http and https addresses", "ok": false}
+{"error": "http needs a url", "ok": false}
+{"error": "Invalid header Bad:Name", "ok": false}
+{"error": "Header values must be text", "ok": false}
+
+### 1 cli run ./effects.x.md work --mode env
+$ XMD_EMPTY= XMD_SET=yes xmd run ./effects.x.md work --mode env
+exit 0
+--- stdout
+{"ok": true, "value": "yes"}
+{"ok": true, "value": null}
+{"ok": true, "value": null}
+
+### 2 cli run ./effects.x.md work --mode env-refused
+$ xmd run ./effects.x.md work --mode env-refused
+exit 1
+--- stderr
+xmd: effects: only XMD_* variables can be read
+
+### 3 cli run ./effects.x.md work --mode credential
+$ XDG_CONFIG_HOME=config xmd run ./effects.x.md work --mode credential
+exit 0
+--- stdout
+{"ok": true, "value": null}
+
+### 4 cli run ./effects.x.md work --mode credential --key k9
+$ XDG_CONFIG_HOME=config xmd run ./effects.x.md work --mode credential --key k9
+exit 0
+--- stdout
+{"ok": true, "value": "k9"}
+
+### 5 cli run ./effects.x.md work --mode credential
+$ XDG_CONFIG_HOME=config xmd run ./effects.x.md work --mode credential
+exit 0
+--- stdout
+{"ok": true, "value": "k9"}
+
+### 6 read config/xmd/credentials.json
+-- config/xmd/credentials.json
+{
+  "effects api.example.com": "k9"
+}
+
+### 7 cli run ./effects.x.md work --mode credential-unscoped
+$ XDG_CONFIG_HOME=config xmd run ./effects.x.md work --mode credential-unscoped
+exit 0
+--- stdout
+{"error": "credential needs a scope", "ok": false}
+
+### 8 cli run ./effects.x.md work --mode repeat
+$ xmd run ./effects.x.md work --mode repeat
+exit 0
+--- stdout
+first run; again soon
+second run saw first
+
+### 9 write
+-- remove work/runs.txt
+
+### 10 cli run ./effects.x.md work --mode repeat --every 0.01
+$ xmd run ./effects.x.md work --mode repeat --every 0.01
+exit 0
+--- stdout
+first run; again soon
+second run saw first
+
+### 11 write
+-- remove work/runs.txt
+
+### 12 cli run ./effects.x.md work --mode repeat --every soon
+$ xmd run ./effects.x.md work --mode repeat --every soon
+exit 1
+--- stdout
+first run; again soon
+--- stderr
+xmd: effects: repeat_after must be a number of seconds
+
+### 13 read work/runs.txt
+-- work/runs.txt
+first
+
+### 14 cli run ./effects.x.md work --mode unknown
+$ xmd run ./effects.x.md work --mode unknown
+exit 1
+--- stderr
+xmd: effects: unknown request kind 'teleport'
+
+### 15 cli run ./effects.x.md work --mode malformed
+$ xmd run ./effects.x.md work --mode malformed
+exit 1
+--- stderr
+xmd: effects: requests must be a list
+
+### 16 cli run ./effects.x.md work --mode fails
+$ xmd run ./effects.x.md work --mode fails
+exit 1
+--- stdout
+giving up
+--- stderr
+xmd: the command failed on purpose
+
+### 17 cli run ./effects.x.md work
+$ xmd run ./effects.x.md work
+exit 1
+--- stderr
+xmd: effects: step must return a record
+

@@ -4,19 +4,18 @@
 //!
 //! - `common` is the shared kernel (`Span`, `Resource`, value kinds); every
 //!   layer below depends on it, none of them on each other out of order.
-//! - `syntax` -> `model` -> `eval` -> `services` is the pipeline: grammar,
-//!   then parsing, then evaluation, then editor behavior. Each stage only
-//!   calls downwards.
-//! - `runtime` holds what every host shares: `services` (language
-//!   services) and `host` (native I/O). `lsp` (the language server), this
+//! - `syntax` -> `model` -> `eval` -> `analysis` -> `catalog` -> `editor` is
+//!   the pipeline: grammar, parsing, evaluation, then language facts, records
+//!   and editor behavior. Each stage only calls downwards.
+//! - `runtime` holds what every host shares: those three service crates,
+//!   published as `runtime::services`, and `host` (native I/O). `lsp` (the language server), this
 //!   crate's `xmd` binary (the command line) and `browser` (the wasm host) are
 //!   built on it; the binary is the only crate that assembles hosts.
 //!
 //! What this crate exposes is only what a host binary or the test harness
-//! needs by name: [`byte_at`] and [`actions`] from the pipeline, [`is_note`]
+//! needs by name: [`byte_at`] and [`apply_edits`] from the pipeline, [`is_note`]
 //! from the kernel, and the browser host as `browser`.
 #[cfg(feature = "browser")]
 pub use browser;
 pub use lang::common::is_note;
-pub use lang::model::byte_at;
-pub use runtime::services::actions;
+pub use lang::model::{apply_edits, byte_at};

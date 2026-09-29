@@ -4,6 +4,7 @@
 //! workspace and editing session are runtime state, so both live one layer
 //! up in `evaluate`. Exposes its interface from the root.
 mod document;
+mod edits;
 mod imports;
 #[path = "itinerary.rs"]
 mod itinerary_impl;
@@ -17,10 +18,11 @@ pub use document::{
     Attribute, Document, HighlightKind, Named, Reference, byte_at, expression_regions, identifier,
     utf16,
 };
+pub use edits::{LineIndex, apply_edits, end_position};
 pub use imports::{ExprImports, is_note_path, note_path};
 
-// Table, plan and itinerary parsing each define their own `parse`, so these
-// stay namespaced; `eval` (their only consumer) already names them this way.
+// Table, plan and itinerary items stay namespaced: `eval` and the `lang`
+// facade name them `model::tables::…` and so on.
 // Each file module below is private; the inline `pub mod` here is the
 // published namespace, listing exactly the items other layers name.
 pub mod itinerary {

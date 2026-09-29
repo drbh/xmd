@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "publisher": "drbh",
   "license": "UNLICENSED",
-  "repository": { "type": "git", "url": "https://github.com/drbh/jot" },
+  "repository": { "type": "git", "url": "https://github.com/drbh/xmd" },
   "engines": { "vscode": "^1.91.0" },
   "categories": ["Programming Languages"],
   "main": "./extension.js",

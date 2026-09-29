@@ -1,0 +1,60 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "lookups.x.md",
+        "diagnostics | select {line, severity, message}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "lookups.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        "lookups.x.md": null,
+        ".xmd/lookups.json": null,
+        "fetch.x.md": "# Fetched\npounds := rate(GBP, USD)\nparis := forecast(\"Paris\", 2026-09-20)\ntick := quote(\"TICK\")\nbig := quote(\"BIG\")\ndated := quote(\"DATED\")\nrequest := quote(\"REQUEST\")\n",
+        ".xmd/providers.json": "{\"rate\": \"fake-rate {from} {to}\", \"forecast\": \"fake-forecast {place} {date}\"}\n",
+        ".xmd/modules.json": "[\"./modules/quotes.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".xmd/lookups.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "fetch.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        "fetch.x.md": "# Rates\npounds := rate(CHF, USD)\n",
+        ".xmd/providers.json": null,
+        ".xmd/modules.json": "[\"./modules/frankfurter.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    }
+  ]
+}

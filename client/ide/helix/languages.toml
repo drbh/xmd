@@ -1,6 +1,6 @@
 # Merge into ~/.config/helix/languages.toml, or a project's .helix/languages.toml.
 # `xmd` comes from PATH; install it with
-#   curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
+#   mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
 # or use an absolute path below if it lives elsewhere.
 [language-server.xmd]
 command = "xmd"

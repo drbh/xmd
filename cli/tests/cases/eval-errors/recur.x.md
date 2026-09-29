@@ -1,0 +1,2 @@
+- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)
+- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)

@@ -1,18 +1,18 @@
 //! Itinerary resolution: parsed days and stops become module values, and the
 //! `itinerary_core` module decides their dates, labels and canonical text.
-use crate::error::EvalResult;
-use crate::{
-    engine_impl::Value,
-    modules_impl::{ModuleRegistry, from_json},
-    records::{DayParts, DayRecord, DetailRecord, KindRecord, LineRecord, StopRecord, ToValue},
-};
+use crate::engine::Value;
 use chrono::{NaiveDate, Timelike};
 use common::Span;
-use model::Document;
+use model::{
+    Document,
+    itinerary::{Day, Stop},
+};
+use modules::ModuleRegistry;
+use values::EvalResult;
+use values::{ToValue, geometry, record, words};
 
 // An itinerary's shape is parsed in `model`; this module resolves it, and
 // both halves answer to `eval::itinerary`.
-pub use model::itinerary::*;
 
 /// Calendar dates for each day. Years carry forward from the previous day or
 /// an explicit year, and a first day without one is the next occurrence.
@@ -26,7 +26,7 @@ pub fn try_dates(
 ) -> EvalResult<Vec<Option<NaiveDate>>> {
     let input = Value::List(days.iter().map(|d| day_parts(d).to_value()).collect());
     let result = call(modules, "dates", vec![input, Value::Date(today)])?;
-    Ok(crate::modules_impl::list(&result)?
+    Ok(values::list(&result)?
         .iter()
         .map(|v| match v {
             Value::Date(d) => Some(*d),
@@ -35,25 +35,24 @@ pub fn try_dates(
         .collect())
 }
 pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> String {
-    call(modules, "time_text", vec![stop_record(stop, None)])
-        .map(|v| v.display())
-        .unwrap_or_else(|e| e.to_string())
+    stop_words(modules, "time_text", stop)
 }
 pub fn label(modules: &ModuleRegistry, stop: &Stop) -> String {
-    call(modules, "label", vec![stop_record(stop, None)])
-        .map(|v| v.display())
-        .unwrap_or_else(|e| e.to_string())
+    stop_words(modules, "label", stop)
 }
-fn epoch() -> chrono::DateTime<chrono::FixedOffset> {
-    chrono::DateTime::from_timestamp(0, 0)
-        .unwrap()
-        .fixed_offset()
+fn stop_words(modules: &ModuleRegistry, hook: &str, stop: &Stop) -> String {
+    words(call(modules, hook, vec![stop_record(stop, None)]))
 }
 pub(crate) fn call(modules: &ModuleRegistry, name: &str, args: Vec<Value>) -> EvalResult<Value> {
-    modules.call("itinerary_core", name, args, epoch())
+    modules.call(
+        "itinerary_core",
+        name,
+        args,
+        chrono::DateTime::UNIX_EPOCH.fixed_offset(),
+    )
 }
 fn range(doc: Option<&Document>, span: Span) -> Value {
-    doc.map(|d| from_json(&serde_json::json!(span.range(&d.text))))
+    doc.map(|d| geometry(span.range(&d.text)))
         .unwrap_or(Value::Null)
 }
 fn line_record(doc: Option<&Document>, row: usize) -> LineRecord {
@@ -61,14 +60,10 @@ fn line_record(doc: Option<&Document>, row: usize) -> LineRecord {
         line: row,
         raw: doc.map(|d| d.line(row)).unwrap_or("").into(),
         line_range: doc
-            .map(|d| {
-                from_json(&serde_json::json!(
-                    Span::new(row, 0, d.line(row).len()).range(&d.text)
-                ))
-            })
+            .map(|d| geometry(Span::new(row, 0, d.line(row).len()).range(&d.text)))
             .unwrap_or(Value::Null),
         anchor: doc
-            .map(|d| from_json(&serde_json::json!(d.line_end(row))))
+            .map(|d| geometry(d.line_end(row)))
             .unwrap_or(Value::Null),
     }
 }
@@ -129,4 +124,70 @@ fn stop(stop: &Stop, doc: Option<&Document>) -> StopRecord {
 }
 pub(crate) fn stop_record(value: &Stop, doc: Option<&Document>) -> Value {
     stop(value, doc).to_value()
+}
+record! {
+    /// Where a line of an itinerary sits, for every record that names one.
+    pub(crate) struct LineRecord {
+        pub line: usize,
+        pub raw: String,
+        pub line_range: Value,
+        pub anchor: Value,
+    }
+}
+
+record! {
+    /// The calendar parts a day line spells out, before any year is carried
+    /// forward.
+    pub(crate) struct DayParts {
+        pub month: usize,
+        pub day: usize,
+        pub year: Option<f64>,
+    }
+}
+
+record! {
+    /// What kind of stop a marker names.
+    pub(crate) struct KindRecord {
+        pub marker: String,
+        pub name: String,
+    }
+}
+
+record! {
+    /// One `key: value` line hanging off a stop.
+    pub(crate) struct DetailRecord {
+        ..line: LineRecord,
+        pub key: String,
+        pub value: String,
+    }
+}
+
+record! {
+    /// One stop of an itinerary day, with every span the editor draws on.
+    pub(crate) struct StopRecord {
+        ..line: LineRecord,
+        pub kind: Option<KindRecord>,
+        pub time: i64,
+        pub twelve_hour: bool,
+        pub title: String,
+        pub time_range: Value,
+        pub title_range: Value,
+        pub range: Value,
+        pub details: Vec<DetailRecord>,
+        pub notes: Vec<LineRecord>,
+    }
+}
+
+record! {
+    /// One day of an itinerary: its calendar parts, its line, and its stops.
+    pub(crate) struct DayRecord {
+        ..parts: DayParts,
+        ..line: LineRecord,
+        pub weekday: Option<usize>,
+        pub weekday_range: Value,
+        pub date_range: Value,
+        pub places: Option<String>,
+        pub forecast: Value,
+        pub stops: Vec<StopRecord>,
+    }
 }

@@ -1,0 +1,11 @@
+#!/bin/sh
+# A stand-in for `curl`: the address is always the last argument.
+for url in "$@"; do :; done
+case "$url" in
+  *example.com/down/feed.xml)
+    echo "curl: (6) Could not resolve host: example.com" >&2; exit 6 ;;
+  *geocoding*)
+    printf '%s' '<html>rate limited</html>' ;;
+  *)
+    echo "curl: (22) The requested URL returned error: 503" >&2; exit 22 ;;
+esac

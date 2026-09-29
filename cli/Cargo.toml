@@ -22,7 +22,7 @@ lang = { path = "../lang" }
 lsp = { path = "../lsp" }
 runtime = { path = "../runtime" }
 serde_json = { workspace = true }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "process", "time"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 lsp-types = { workspace = true }

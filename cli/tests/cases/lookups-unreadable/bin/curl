@@ -1,0 +1,8 @@
+#!/bin/sh
+# The provider runs: curl -sS --fail -L --max-time 15 -A AGENT URL
+url="$8"
+case "$url" in
+  https://quotes.example/big) awk 'BEGIN { printf "["; for (i = 1; i <= 9000; i++) printf "%s%d", (i > 1 ? "," : ""), i; printf "]" }' ;;
+  https://quotes.example/tick) echo '{"price": 12}' ;;
+  *) echo "curl: (6) Could not resolve host for $url" >&2; exit 6 ;;
+esac

@@ -1,0 +1,4 @@
+#!/bin/sh
+url="$8"
+echo "curl: (22) The requested URL returned error: 503 for $url" >&2
+exit 22

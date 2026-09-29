@@ -1,0 +1,352 @@
+### 0 cli render names.x.md --format text
+$ xmd render names.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Names and tables
+
+[1]:dup
+[2]:dup
+Use [dup].
+[3]:scalar
+[not_table] := sum(scalar, 1)
+[t] := u
+[u] := t
+[aliased] := sum(t, qty)
+[menu] := table
+| dish  | qty | qty |
+| ----- | --- | --- |
+| beans | 2   | 3   |
+[twice] := sum(menu, qty)
+[bakery] := maximize($3 * bagels) = $30 · bagels 10
+| constraint | expression   |
+| ---------- | ------------ |
+| oven       | bagels <= 10 | ████████ 10 ≤ 10 · ● binding
+Bake [bakery.bagels] 10, not [bakery.croissants].
+--- stderr
+<root>/names.x.md:3:5: error: Ambiguous name 'dup'; use a unique name within this note
+<root>/names.x.md:4:5: error: Ambiguous name 'dup'; use a unique name within this note
+<root>/names.x.md:5:6: error: Ambiguous name 'dup'; use a unique name within this note
+<root>/names.x.md:7:16: error: 'scalar' is not a table
+<root>/names.x.md:8:2: error: Dependency cycle: t → u → t
+<root>/names.x.md:10:21: error: Table alias chain is cyclic or too deep
+<root>/names.x.md:12:17: error: Duplicate column 'qty'
+<root>/names.x.md:15:22: error: Ambiguous column 'qty' in table 'menu'
+<root>/names.x.md:20:35: error: Unknown plan property 'croissants'
+xmd: 9 error(s) while rendering
+
+### 1 cli query names.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query names.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "ambiguous-name",
+    "line": 2,
+    "message": "Ambiguous name 'dup'; use a unique name within this note",
+    "severity": "error"
+  },
+  {
+    "code": "ambiguous-name",
+    "line": 3,
+    "message": "Ambiguous name 'dup'; use a unique name within this note",
+    "severity": "error"
+  },
+  {
+    "code": "ambiguous-name",
+    "line": 4,
+    "message": "Ambiguous name 'dup'; use a unique name within this note",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 6,
+    "message": "'scalar' is not a table",
+    "severity": "error"
+  },
+  {
+    "code": "cycle",
+    "line": 7,
+    "message": "Dependency cycle: t → u → t",
+    "severity": "error"
+  },
+  {
+    "code": "unknown-name",
+    "line": 9,
+    "message": "Table alias chain is cyclic or too deep",
+    "severity": "error"
+  },
+  {
+    "code": "syntax",
+    "line": 11,
+    "message": "Duplicate column 'qty'",
+    "severity": "error"
+  },
+  {
+    "code": "unknown-name",
+    "line": 14,
+    "message": "Ambiguous column 'qty' in table 'menu'",
+    "severity": "error"
+  },
+  {
+    "code": "property",
+    "line": 19,
+    "message": "Unknown plan property 'croissants'",
+    "severity": "error"
+  }
+]
+
+### 2 cli render chain.x.md --format text
+$ xmd render chain.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# A long chain
+
+[d0] := d1 + 1
+[d1] := d2 + 1
+[d2] := d3 + 1
+[d3] := d4 + 1
+[d4] := d5 + 1
+[d5] := d6 + 1
+[d6] := d7 + 1
+[d7] := d8 + 1
+[d8] := d9 + 1
+[d9] := d10 + 1
+[d10] := d11 + 1
+[d11] := d12 + 1
+[d12] := d13 + 1
+[d13] := d14 + 1
+[d14] := d15 + 1
+[d15] := d16 + 1
+[d16] := d17 + 1
+[d17] := d18 + 1
+[d18] := d19 + 1
+[d19] := d20 + 1
+[d20] := d21 + 1
+[d21] := d22 + 1
+[d22] := d23 + 1
+[d23] := d24 + 1
+[d24] := d25 + 1
+[d25] := d26 + 1
+[d26] := d27 + 1
+[d27] := d28 + 1
+[d28] := d29 + 1
+[d29] := d30 + 1
+[d30] := d31 + 1
+[d31] := d32 + 1
+[d32] := d33 + 1
+[d33] := d34 + 1
+[d34] := d35 + 1
+[d35] := d36 + 1
+[d36] := d37 + 1
+[d37] := d38 + 1
+[d38] := d39 + 1
+[d39] := d40 + 1
+[d40] := d41 + 1
+[d41] := d42 + 1
+[d42] := d43 + 1
+[d43] := d44 + 1
+[d44] := d45 + 1
+[d45] := d46 + 1
+[d46] := d47 + 1
+[d47] := d48 + 1
+[d48] := d49 + 1
+[d49] := d50 + 1
+[d50] := d51 + 1
+[d51] := d52 + 1
+[d52] := d53 + 1
+[d53] := d54 + 1
+[d54] := d55 + 1
+[d55] := d56 + 1
+[d56] := d57 + 1
+[d57] := d58 + 1
+[d58] := d59 + 1
+[d59] := d60 + 1
+[d60] := d61 + 1
+[d61] := d62 + 1
+[d62] := d63 + 1
+[d63] := d64 + 1
+[d64] := d65 + 1 = 2
+[d65] := d66 + 1 = 1
+[d66] := 0 = 0
+--- stderr
+<root>/chain.x.md:66:10: error: Dependency chain exceeds 64 levels
+xmd: 1 error(s) while rendering
+
+### 3 cli render calls.x.md --format text
+$ xmd render calls.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Calls
+
+[total_bare] := total()
+[today_extra] := today(1, 2)
+[if_short] := if(true, 1)
+[import_none] := import()
+[import_number] := import(1)
+[predicate] := filter([1, 2], fn(x) => x)
+[sum_three] := sum(menu, qty, qty)
+[sum_scalar] := sum(3)
+[sum_expression] := sum(1 + 1, 2)
+[sum_text] := sum(menu, dish)
+[sum_empty] := sum(empty, qty)
+[menu] := table = 1 rows · 2 columns
+| dish  | qty |
+| ----- | --- |
+| beans | 2   |
+[empty] := table = 0 rows · 2 columns
+| dish | qty# |
+| ---- | ---- |
+[evaluated] := import("probe").evaluate(1)
+[evaluated_none] := import("probe").none()
+[evaluated_ok] := import("probe").evaluate("1 + 2") = 3
+--- stderr
+<root>/calls.x.md:3:17: error: total expects one argument
+<root>/calls.x.md:4:18: error: today expects one argument
+<root>/calls.x.md:5:15: error: if expects a condition and two branches
+<root>/calls.x.md:6:18: error: import expects a module ID or a literal note path
+<root>/calls.x.md:7:20: error: import expects text
+<root>/calls.x.md:8:16: error: filter predicate must return a Boolean
+<root>/calls.x.md:9:16: error: sum expects a table and a row expression: sum(groceries, quantity * price)
+<root>/calls.x.md:10:17: error: sum expects a list, or a table and row expression
+<root>/calls.x.md:11:21: error: The first argument to sum must be a table name
+<root>/calls.x.md:12:15: error: sum requires numeric, money, ratio, or duration results, found Text
+<root>/calls.x.md:13:16: error: Cannot sum an empty table: add a row to establish its value type
+<root>/calls.x.md:21:16: error: eval expects expression text
+<root>/calls.x.md:22:21: error: eval expects one argument
+xmd: 13 error(s) while rendering
+
+### 4 cli render arithmetic.x.md --format text
+$ xmd render arithmetic.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Arithmetic
+
+[money_product] := $2 * $3
+[scalar_by_money] := 2 / $4
+[money_by_money] := $6 / $3 = 200%
+[fractional] := 1s * 1.5
+[fractional_divide] := 7s / 2
+[negate_text] := -"text"
+[not_number] := !3
+[plus_text] := +"text"
+[span] := 106751991167300d = 153722867280912008m 32s
+[duration_sum] := span + span
+[duration_min] := 0s - span - 55296s = -153722867280912930m 8s
+[duration_negated] := -duration_min
+[date_far] := 2026-09-16 + 100000000d
+[date_huge] := 2026-09-16 + 200000000000d
+[stamp_huge] := 2026-09-16T14:00:00-04:00 + 200000000000d
+[stamp_far] := 2026-09-16T14:00:00-04:00 + 100000000d
+[big] := 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 = 999999999999999946594872951565228338993526868219488856544571440313594706493755982886960025179093529324993666087115356131035228239552737388526279268078143523691759154905886843985723392
+[number_over] := big * big
+[number_under] := 0 - big * big
+--- stderr
+<root>/arithmetic.x.md:3:25: error: Cannot multiply two money values (Money * Money)
+<root>/arithmetic.x.md:4:26: error: Cannot divide a scalar by money (Number / Money)
+<root>/arithmetic.x.md:6:22: error: Duration must fit in whole seconds (Duration * Number)
+<root>/arithmetic.x.md:7:29: error: Duration must fit in whole seconds (Duration / Number)
+<root>/arithmetic.x.md:8:18: error: Invalid unary operation
+<root>/arithmetic.x.md:9:17: error: Invalid unary operation
+<root>/arithmetic.x.md:10:16: error: Invalid unary operation
+<root>/arithmetic.x.md:12:26: error: Duration overflow (Duration + Duration)
+<root>/arithmetic.x.md:14:23: error: Duration overflow
+<root>/arithmetic.x.md:15:28: error: Date overflow (Date + Duration)
+<root>/arithmetic.x.md:16:29: error: Duration overflow (Date + Duration)
+<root>/arithmetic.x.md:17:45: error: Duration overflow (DateTime + Duration)
+<root>/arithmetic.x.md:18:44: error: Date/time overflow (DateTime + Duration)
+<root>/arithmetic.x.md:20:24: error: Number overflow (Number * Number)
+<root>/arithmetic.x.md:21:29: error: Number overflow (Number * Number)
+xmd: 15 error(s) while rendering
+
+### 5 cli render weather.x.md --format text
+$ xmd render weather.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Weather
+
+[day] := forecast("Oaxaca", 2026-11-20) = 25°C / 14°C · seasonal outlook (estimate) · 40% rain
+High [day.high] 25, wind [day.wind].
+--- stderr
+<root>/weather.x.md:4:28: error: Unknown forecast property 'wind'
+xmd: 1 error(s) while rendering
+
+### 6 cli query tasks.x.md diagnostics | select {line, severity, code, message} --json
+$ xmd query tasks.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "attribute",
+    "line": 4,
+    "message": "@estimate requires a nonnegative duration, e.g. 20m or 2h",
+    "severity": "error"
+  },
+  {
+    "code": "attribute",
+    "line": 5,
+    "message": "@estimate requires a nonnegative duration, e.g. 20m or 2h",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 7,
+    "message": "@estimate requires a duration",
+    "severity": "error"
+  },
+  {
+    "code": "attribute",
+    "line": 11,
+    "message": "@estimate requires a nonnegative duration, e.g. 20m or 2h",
+    "severity": "error"
+  },
+  {
+    "code": "evaluation",
+    "line": 13,
+    "message": "Estimate cannot be negative",
+    "severity": "error"
+  },
+  {
+    "code": "dependency",
+    "line": 17,
+    "message": "@after requires task names, checklists, or boolean expressions",
+    "severity": "error"
+  },
+  {
+    "code": "attribute",
+    "line": 18,
+    "message": "@every supports day, week, month, year, or positive whole-day durations",
+    "severity": "error"
+  },
+  {
+    "code": "attribute",
+    "line": 19,
+    "message": "@every supports day, week, month, year, or positive whole-day durations",
+    "severity": "error"
+  },
+  {
+    "code": "dependency",
+    "line": 88,
+    "message": "Task dependency chain is too deep",
+    "severity": "error"
+  },
+  {
+    "code": "dependency",
+    "line": 89,
+    "message": "Task dependency chain is too deep",
+    "severity": "error"
+  }
+]
+
+### 7 lsp
+-- open recur.x.md
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","expected":"- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)","kind":"toggle_task","row":0}],"command":"xmd.task"}
+error: {
+  "code": -32602,
+  "message": "Recurrence date overflow"
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","expected":"- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)","kind":"toggle_task","row":1}],"command":"xmd.task"}
+error: {
+  "code": -32602,
+  "message": "Recurrence exceeded its search limit"
+}
+

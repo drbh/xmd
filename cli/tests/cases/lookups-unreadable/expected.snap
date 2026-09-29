@@ -1,0 +1,176 @@
+### 0 cli query lookups.x.md diagnostics | select {line, severity, message} --json
+$ xmd query lookups.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "message": "Cached rate EUR→USD is unreadable",
+    "severity": "error"
+  },
+  {
+    "line": 2,
+    "message": "Cached rate EUR→GBP is unreadable",
+    "severity": "error"
+  },
+  {
+    "line": 3,
+    "message": "Rate EUR→JPY: Service down",
+    "severity": "error"
+  },
+  {
+    "line": 4,
+    "message": "Rate EUR→CAD: Upstream is busy; run xmd refresh later",
+    "severity": "warning"
+  },
+  {
+    "line": 5,
+    "message": "No cached rate CHF→USD; run xmd refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  },
+  {
+    "line": 6,
+    "message": "Cached quote for nvda is unreadable",
+    "severity": "error"
+  },
+  {
+    "line": 7,
+    "message": "Quote AAPL: No such ticker",
+    "severity": "error"
+  },
+  {
+    "line": 9,
+    "message": "No cached quote for TSLA; run xmd refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  },
+  {
+    "line": 10,
+    "message": "Forecast for Oaxaca on 2026-09-20: missing high temperature",
+    "severity": "error"
+  },
+  {
+    "line": 11,
+    "message": "Forecast for Lima on 2026-09-20: missing low temperature",
+    "severity": "error"
+  },
+  {
+    "line": 12,
+    "message": "Forecast for Quito on 2026-09-20: no forecast yet for Quito",
+    "severity": "warning"
+  },
+  {
+    "line": 13,
+    "message": "No cached forecast for Cusco on 2026-09-20; run xmd refresh or use the ⟳ lookups lens",
+    "severity": "warning"
+  }
+]
+
+### 1 cli render lookups.x.md --format text
+$ xmd render lookups.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 1
+--- stdout
+# Cached lookups
+unreadable_rate := rate(EUR, USD)
+negative_rate := rate(EUR, GBP)
+failed_rate := rate(EUR, JPY)
+pending_rate := rate(EUR, CAD)
+uncached_rate := rate(CHF, USD)
+unreadable_quote := quote("nvda")
+failed_quote := quote(AAPL)
+odd_currency := quote("msft") = 10 XYZ
+uncached_quote := quote(TSLA)
+hot := forecast("Oaxaca", 2026-09-20)
+no_low := forecast("Lima", 2026-09-20)
+pending_forecast := forecast("Quito", 2026-09-20)
+uncached_forecast := forecast("Cusco", 2026-09-20)
+
+## Monday, September 21, 2026 · Bogota 0 stops · in 3 days · Station offline
+
+## Tuesday, September 22, 2026 · Medellín 0 stops · in 4 days
+--- stderr
+<root>/lookups.x.md:2:20: error: Cached rate EUR→USD is unreadable
+<root>/lookups.x.md:3:18: error: Cached rate EUR→GBP is unreadable
+<root>/lookups.x.md:4:16: error: Rate EUR→JPY: Service down
+<root>/lookups.x.md:5:17: warning: Rate EUR→CAD: Upstream is busy; run xmd refresh later
+<root>/lookups.x.md:6:18: warning: No cached rate CHF→USD; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:7:21: error: Cached quote for nvda is unreadable
+<root>/lookups.x.md:8:17: error: Quote AAPL: No such ticker
+<root>/lookups.x.md:10:19: warning: No cached quote for TSLA; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:11:8: error: Forecast for Oaxaca on 2026-09-20: missing high temperature
+<root>/lookups.x.md:12:11: error: Forecast for Lima on 2026-09-20: missing low temperature
+<root>/lookups.x.md:13:21: warning: Forecast for Quito on 2026-09-20: no forecast yet for Quito
+<root>/lookups.x.md:14:22: warning: No cached forecast for Cusco on 2026-09-20; run xmd refresh or use the ⟳ lookups lens
+xmd: 7 error(s) while rendering
+
+### 2 write
+-- remove .xmd/lookups.json
+-- write .xmd/modules.json (26 bytes)
+-- write .xmd/providers.json (78 bytes)
+-- write fetch.x.md (168 bytes)
+-- remove lookups.x.md
+
+### 3 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: quote BIG: Value exceeds the collection or text size limit
+quote DATED: Cached module data must contain JSON values
+quote REQUEST: Cached module data must contain JSON values
+
+### 4 read .xmd/lookups.json
+-- .xmd/lookups.json
+{
+  "forecast:paris:2026-09-20": {
+    "value": {
+      "high": 18,
+      "low": 9,
+      "summary": "Cloudy in paris on 2026-09-20"
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "fake-forecast"
+  },
+  "quote:TICK": {
+    "value": {
+      "currency": "EUR",
+      "price": 12.0,
+      "seen": 1.0
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "quotes"
+  },
+  "rate:GBP:USD": {
+    "value": {
+      "rate": 1.25
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "fake-rate"
+  }
+}
+
+### 5 cli render fetch.x.md --format text
+$ xmd render fetch.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Fetched
+pounds := rate(GBP, USD) = 1.25
+paris := forecast("Paris", 2026-09-20) = 18°C / 9°C · Cloudy in paris on 2026-09-20
+tick := quote("TICK") = €12
+big := quote("BIG")
+dated := quote("DATED")
+request := quote("REQUEST")
+--- stderr
+<root>/fetch.x.md:5:8: warning: No cached quote for BIG; run xmd refresh or use the ⟳ lookups lens
+<root>/fetch.x.md:6:10: warning: No cached quote for DATED; run xmd refresh or use the ⟳ lookups lens
+<root>/fetch.x.md:7:12: warning: No cached quote for REQUEST; run xmd refresh or use the ⟳ lookups lens
+
+### 6 write
+-- write .xmd/modules.json (31 bytes)
+-- remove .xmd/providers.json
+-- write fetch.x.md (33 bytes)
+
+### 7 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: rate CHF→USD: No provider module answers rate lookups
+

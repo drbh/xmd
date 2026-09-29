@@ -12,6 +12,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "analysis"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "lang",
+ "lsp-types",
+ "serde_json",
+ "strum",
+ "url",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,6 +135,18 @@ name = "bytes"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
+
+[[package]]
+name = "catalog"
+version = "0.1.0"
+dependencies = [
+ "analysis",
+ "chrono",
+ "lang",
+ "lsp-types",
+ "serde_json",
+ "strum",
+]
 
 [[package]]
 name = "cc"
@@ -282,6 +306,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "editor"
+version = "0.1.0"
+dependencies = [
+ "analysis",
+ "catalog",
+ "chrono",
+ "lang",
+ "lsp-types",
+ "serde",
+ "serde_json",
+ "strum",
+ "url",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -311,14 +350,12 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "common",
- "diffy",
- "good_lp",
  "model",
+ "modules",
  "serde",
- "serde_json",
  "strum",
  "syntax",
- "url",
+ "values",
 ]
 
 [[package]]
@@ -500,14 +537,14 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 name = "host"
 version = "0.1.0"
 dependencies = [
+ "catalog",
  "chrono",
  "feed-rs",
  "ignore",
  "lang",
+ "serde",
  "serde_json",
- "services",
  "tokio",
- "url",
 ]
 
 [[package]]
@@ -690,7 +727,9 @@ dependencies = [
  "common",
  "eval",
  "model",
+ "modules",
  "syntax",
+ "values",
 ]
 
 [[package]]
@@ -812,6 +851,21 @@ dependencies = [
  "syntax",
  "unicode-width",
  "url",
+]
+
+[[package]]
+name = "modules"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "model",
+ "serde",
+ "serde_json",
+ "strum",
+ "syntax",
+ "url",
+ "values",
 ]
 
 [[package]]
@@ -1011,19 +1065,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
-name = "renderer"
-version = "0.1.0"
-dependencies = [
- "lsp-types",
- "serde_json",
-]
-
-[[package]]
 name = "runtime"
 version = "0.1.0"
 dependencies = [
+ "analysis",
+ "catalog",
+ "editor",
  "host",
- "services",
 ]
 
 [[package]]
@@ -1112,20 +1160,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
-]
-
-[[package]]
-name = "services"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "lang",
- "lsp-types",
- "renderer",
- "serde",
- "serde_json",
- "strum",
- "url",
 ]
 
 [[package]]
@@ -1449,6 +1483,21 @@ dependencies = [
  "getrandom",
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "values"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "diffy",
+ "good_lp",
+ "serde",
+ "serde_json",
+ "strum",
+ "syntax",
+ "url",
 ]
 
 [[package]]

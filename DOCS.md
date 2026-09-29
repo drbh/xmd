@@ -73,7 +73,7 @@ editors:
 - neovim and helix: install the binary with the one-liner, then the config file
   in `client/ide/neovim` or `client/ide/helix`
 
-from a checkout, `cargo install --path lsp` builds the same binary.
+from a checkout, `cargo install --path cli` builds the same binary.
 `client/web` is the browser app if you dont want to install anything
 
 ## put a note on your own page

@@ -5,7 +5,7 @@ assert(vim.fn.has('nvim-0.11') == 1, 'XMD configuration requires Neovim 0.11+')
 local binary = vim.g.xmd_server_path or 'xmd'
 assert(vim.fn.executable(binary) == 1,
   'xmd is not on PATH: install it with'
-  .. ' `curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh`,'
+  .. ' `mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/jot/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd`,'
   .. ' or set vim.g.xmd_server_path')
 
 -- `.x.md` is a two-part suffix, so match it as a pattern rather than an extension.

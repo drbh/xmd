@@ -57,7 +57,7 @@ the last one exits 1 when any note has an error, so it works as a ci check
 mac and linux:
 
 ```bash
-curl -fsSL https://github.com/drbh/jot/releases/latest/download/install.sh | sh
+mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/jot/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd
 ```
 
 that is the cli and the language server in one binary, `xmd`, in `~/.local/bin`.

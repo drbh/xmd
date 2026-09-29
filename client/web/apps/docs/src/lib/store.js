@@ -145,6 +145,8 @@ export function titleOf(text, fallback) {
 // in the app, on disk, and through the sync plugin.
 const segment = s => encodeURIComponent(s);
 export function uriOf(doc, folders = []) {
+  // An example keeps its file name beside the others, so its imports resolve.
+  if (doc.example) return `file:///workspace/examples/${segment(doc.file)}`;
   const folder = doc.folder ? folders.find(f => f.id === doc.folder) : null;
   const dir = folder ? `${segment(fileNameFor(folder.name))}/` : "";
   return `file:///workspace/docs/${dir}${segment(noteFile(doc.file ?? fileNameFor(doc.name)))}`;

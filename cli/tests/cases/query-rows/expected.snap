@@ -1,0 +1,225 @@
+### 0 cli query tasks.x.md length(tasks) --json
+$ xmd query tasks.x.md length(tasks) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  4
+]
+
+### 1 cli query tasks.x.md slice(sort_by(map(filter(tasks, fn(r) => r.leaf && !r.done && contains(r.tags, "errands")), fn(r) => {title: r.title, due: r.due, estimate: r.estimate, source: r.source, parent: r.parent}), fn(r) => r.due), 0, 1) --json
+$ xmd query tasks.x.md slice(sort_by(map(filter(tasks, fn(r) => r.leaf && !r.done && contains(r.tags, "errands")), fn(r) => {title: r.title, due: r.due, estimate: r.estimate, source: r.source, parent: r.parent}), fn(r) => r.due), 0, 1) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "estimate": {
+      "seconds": 90,
+      "type": "duration"
+    },
+    "parent": {
+      "line": 1,
+      "path": "<root>/tasks.x.md",
+      "range": {
+        "end": {
+          "character": 5,
+          "line": 0
+        },
+        "start": {
+          "character": 2,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/tasks.x.md#L1"
+    },
+    "source": {
+      "line": 2,
+      "path": "<root>/tasks.x.md",
+      "range": {
+        "end": {
+          "character": 54,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/tasks.x.md#L2"
+    },
+    "title": "Child #errands"
+  }
+]
+
+### 2 cli query tasks.x.md length(filter(tasks, fn(r) => r.parent != null)) --json
+$ xmd query tasks.x.md length(filter(tasks, fn(r) => r.parent != null)) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  2
+]
+
+### 3 cli query tasks.x.md map(tasks, fn(r) => {title: r.title, due: r.due})
+$ xmd query tasks.x.md map(tasks, fn(r) => {title: r.title, due: r.due}) --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+due=null	title=Parent
+due=2026-09-17	title=Child #errands
+due=null	title=Done
+due=2026-10-01	title=Later
+
+### 4 cli query pipes.x.md map(filter(tasks, fn(r) => r.title == "a|b" || (false && r.nonexistent)), fn(r) => {label: r.title, separator: ":,|", nested: contains(r.title, "|"), timestamp: 2026-09-16T12:00:00-04:00}) --json
+$ xmd query pipes.x.md map(filter(tasks, fn(r) => r.title == "a|b" || (false && r.nonexistent)), fn(r) => {label: r.title, separator: ":,|", nested: contains(r.title, "|"), timestamp: 2026-09-16T12:00:00-04:00}) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "label": "a|b",
+    "nested": true,
+    "separator": ":,|",
+    "timestamp": {
+      "type": "datetime",
+      "value": "2026-09-16T12:00:00-04:00"
+    }
+  }
+]
+
+### 5 cli query pipes.x.md length(filter(tasks, fn(r) => true || r.nonexistent)) --json
+$ xmd query pipes.x.md length(filter(tasks, fn(r) => true || r.nonexistent)) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  2
+]
+
+### 6 cli query pipes.x.md map(filter(map(tasks, fn(r) => {name: r.title}), fn(r) => contains(r.name, "b")), fn(r) => r.name) --json
+$ xmd query pipes.x.md map(filter(map(tasks, fn(r) => {name: r.title}), fn(r) => contains(r.name, "b")), fn(r) => r.name) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "a|b"
+]
+
+### 7 cli query due.x.md map(sort_by(tasks, fn(r) => r.due), fn(r) => r.title) --json
+$ xmd query due.x.md map(sort_by(tasks, fn(r) => r.due), fn(r) => r.title) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "A",
+  "B",
+  "C",
+  "Missing"
+]
+
+### 8 cli query due.x.md tasks | sort_by([desc(.due), desc(.title)]) | map(.title) --json
+$ xmd query due.x.md tasks | sort_by([desc(.due), desc(.title)]) | map(.title) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "C",
+  "B",
+  "A",
+  "Missing"
+]
+
+### 9 cli query due.x.md length(filter(tasks, fn(r) => r.due < today())) --json
+$ xmd query due.x.md length(filter(tasks, fn(r) => r.due < today())) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  0
+]
+
+### 10 cli query --workspace sum(map(tasks, fn(r) => r.estimate)) --root effort --json
+$ xmd query --workspace sum(map(tasks, fn(r) => r.estimate)) --root effort --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "seconds": 1890,
+    "type": "duration"
+  }
+]
+
+### 11 cli query --workspace sort_by(map(group_by(tasks, fn(r) => r.source.path), fn(r) => {path:r.key, tasks:length(r.rows), effort:sum(r.rows.estimate)}), fn(r) => r.path) --root effort --json
+$ xmd query --workspace sort_by(map(group_by(tasks, fn(r) => r.source.path), fn(r) => {path:r.key, tasks:length(r.rows), effort:sum(r.rows.estimate)}), fn(r) => r.path) --root effort --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "effort": {
+      "seconds": 1890,
+      "type": "duration"
+    },
+    "path": "<root>/effort/a.x.md",
+    "tasks": 2
+  },
+  {
+    "effort": null,
+    "path": "<root>/effort/b.x.md",
+    "tasks": 1
+  }
+]
+
+### 12 cli query --workspace sum(map(tasks, fn(r) => r.estimate)) --root empty --json
+$ xmd query --workspace sum(map(tasks, fn(r) => r.estimate)) --root empty --json --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  null
+]
+
+### 13 cli query time.x.md map(values, fn(r) => {name: r.name, value: r.value}) --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md map(values, fn(r) => {name: r.name, value: r.value}) --json --now 2026-09-16T23:00:00-04:00 --root <root>
+exit 0
+--- stdout
+[
+  {
+    "name": "day",
+    "value": {
+      "type": "date",
+      "value": "2026-09-16"
+    }
+  },
+  {
+    "name": "clock",
+    "value": {
+      "type": "datetime",
+      "value": "2026-09-16T23:00:00-04:00"
+    }
+  }
+]
+
+### 14 cli query time.x.md map(filter(events, fn(r) => r.at_date == today()), fn(r) => r.title) --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md map(filter(events, fn(r) => r.at_date == today()), fn(r) => r.title) --json --now 2026-09-16T23:00:00-04:00 --root <root>
+exit 0
+--- stdout
+[
+  "Late"
+]
+
+### 15 cli query time.x.md map(filter(values, fn(r) => r.name == "day"), fn(r) => {tomorrow: r.value + 1d}) --json --now 2026-09-16T23:00:00-04:00
+$ xmd query time.x.md map(filter(values, fn(r) => r.name == "day"), fn(r) => {tomorrow: r.value + 1d}) --json --now 2026-09-16T23:00:00-04:00 --root <root>
+exit 0
+--- stdout
+[
+  {
+    "tomorrow": {
+      "type": "date",
+      "value": "2026-09-17"
+    }
+  }
+]
+
+### 16 cli query union.x.md map(concat(tasks, events), fn(r) => r.kind) --json
+$ xmd query union.x.md map(concat(tasks, events), fn(r) => r.kind) --json --root <root> --now 2026-09-16T12:00:00-04:00
+exit 0
+--- stdout
+[
+  "task",
+  "event"
+]
+

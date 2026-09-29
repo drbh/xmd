@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "lookups.x.md",
-        "diagnostics | select {line, severity, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message})",
         "--json"
       ]
     },

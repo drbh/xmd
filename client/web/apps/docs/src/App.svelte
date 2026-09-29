@@ -1,6 +1,6 @@
 <script>
   import { onMount, untrack } from "svelte";
-  import { createWorkspace, EXTENSION, noteFile, noteStem } from "@xmd/web";
+  import { createWorkspace, EXTENSION, LIBRARY_EXTENSION, noteFile, noteStem } from "@xmd/web";
   import { titleOf, uriOf as documentUri, createDocument, createFolder, fileNameFor, uniqueFile, loadPrefs, savePrefs, relativeTime, colorFor, TEMPLATES } from "./lib/store.js";
   import { resolveBackend } from "./lib/backend.js";
   import { createCommands, matches, shortcutLabel, isMac } from "./lib/commands.js";
@@ -116,17 +116,19 @@
     return () => { unsubscribe(); unsubscribeBackend(); systemDark.removeEventListener("change", onScheme); clearInterval(tick); clearTimeout(saveTimer); workspace.destroy(); };
   });
 
-  // Routing: the home screen is "#/", a document is "#/d/<id>".
+  // Routing: the home screen is "#/", a document is "#/d/<id>", an example "#/example/<name>".
   function idFromHash() { const m = /^#\/d\/([\w-]+)/.exec(location.hash); return m && documents.some(d => d.id === m[1]) ? m[1] : null; }
   function route() {
     const link = /^#\/s\/([A-Za-z0-9_-]+)/.exec(location.hash);
     if (link) { openShared(link[1]); return; }
+    const example = /^#\/example\/([\w-]+)/.exec(location.hash);
+    if (example) { openExample(example[1]); return; }
     activeId = idFromHash();
     view = activeId ? "doc" : "home";
   }
   $effect(() => {
     if (!ready) return;
-    const hash = active?.role === "link" ? `#/s/${active.token}` : activeId ? `#/d/${activeId}` : "#/";
+    const hash = active?.role === "link" ? `#/s/${active.token}` : active?.example ? `#/example/${active.example}` : activeId ? `#/d/${activeId}` : "#/";
     if (location.hash !== hash) history.pushState(null, "", hash);
   });
   function onHashChange() { route(); }
@@ -158,6 +160,24 @@
       activeId = d.id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
     } catch (e) { view = "home"; activeId = null; notice = e.message || "This link no longer works"; }
   }
+  // An example from lang/examples, fetched when its link is opened: editable
+  // here, never saved, and kept only by saving a copy. The notes it imports
+  // load beside it so their names resolve.
+  async function openExample(name) {
+    try {
+      const base = new URL("../examples/", document.baseURI);
+      const index = await (await fetch(new URL("index.json", base))).json();
+      const example = index.find(e => e.name === name);
+      if (!example) throw new Error(`There is no example called "${name}"`);
+      const text = async file => { const r = await fetch(new URL(file, base)); if (!r.ok) throw new Error(`Could not load ${file}`); return r.text(); };
+      for (const file of example.imports) await workspace.setDocument(`file:///workspace/examples/${encodeURIComponent(file)}`, await text(file));
+      const source = await text(example.file);
+      const d = { id: `example-${name}`, example: name, role: "example", file: example.file, name: titleOf(source, example.title), text: source, folder: null, updated: Date.now() };
+      documents = [d, ...documents.filter(x => x.id !== d.id)];
+      await workspace.setDocument(uriOf(d), d.text);
+      activeId = d.id; view = "doc"; find = null; dialog = null; symbols = []; problems = []; caretLine = -1;
+    } catch (e) { view = "home"; activeId = null; notice = e.message || "This example could not be loaded"; }
+  }
   // A newer build: taken by itself on the document list once nothing is saving,
   // offered as a chip while a document is open.
   function applyUpdate() {
@@ -166,7 +186,10 @@
     update.waiting.postMessage("skip-waiting");
   }
   $effect(() => { if (update && ready && !active && !dirty.size && saved !== "Saving…") applyUpdate(); });
-  function home() { const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving); }
+  function home() {
+    const leaving = active; activeId = null; view = "home"; find = null; dialog = null; settleFile(leaving);
+    if (leaving?.example) documents = documents.filter(d => d.id !== leaving.id);
+  }
 
   // Saving: edits are debounced, then handed to the backend one document at a
   // time. A conflict or unavailable store pauses saving for that document and
@@ -180,8 +203,8 @@
     document.name = titleOf(source, document.name);
     document.updated = Date.now();
     now = document.updated;
-    // A live document is saved by its room, so there is nothing to schedule; a linked one is not ours.
-    if ((live && live.id === document.id) || document.role === "link") return;
+    // A live document is saved by its room, so there is nothing to schedule; a linked one or an example is not ours.
+    if ((live && live.id === document.id) || document.role === "link" || document.example) return;
     schedule(document);
   }
   function schedule(document) {
@@ -416,7 +439,7 @@
 </script>
 
 <svelte:window onkeydown={keydown} onhashchange={onHashChange} ononline={() => (online = true)} onoffline={() => (online = false)} onxmd:update={e => (update = e.detail)} onmousedown={e => { if (accountMenu && !e.target.closest?.(".account-menu")) accountMenu = false; }} />
-<input bind:this={importInput} type="file" accept=".{EXTENSION.split(".").pop()},text/markdown,text/plain" multiple hidden onchange={importFiles}>
+<input bind:this={importInput} type="file" accept=".{EXTENSION.split(".").pop()},.{LIBRARY_EXTENSION},text/markdown,text/plain" multiple hidden onchange={importFiles}>
 
 {#if keysOpen && backend?.keys}
   <Keys keys={backend.keys} site={new URL("../", document.baseURI).href.replace(/\/$/, "")} onClose={() => (keysOpen = false)} />
@@ -438,11 +461,11 @@
             {#if active.folder && folders.some(f => f.id === active.folder)}
               <button type="button" class="crumb" title="Open folder" onclick={() => { const f = active.folder; home(); homeFolder = f; }}><Icon name="folder" size={14} /> {folders.find(f => f.id === active.folder).name}<span class="crumb-sep">›</span></button>
             {/if}
-            <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false" readonly={readOnly}
+            <input bind:this={titleInput} class="title-input" aria-label="Document title" value={active.name} spellcheck="false" readonly={readOnly || !!active.example}
               onchange={e => rename(active, e.target.value)} onkeydown={e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); controller?.select(controller.selection()?.focus ?? 0); } }}>
             <span class="status" role="status" title={saved}>
               <Icon name={saved.startsWith("Saved") ? "cloud" : saved ? "warning" : "cloud"} size={16} />
-              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : active.role === "link" ? `Shared by ${active.owner} · view only` : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
+              <span class="status-text">{liveStatus === "locked" ? "Open this document online once to edit it offline" : active.role === "link" ? `Shared by ${active.owner} · view only` : active.example ? "Example · not saved" : readOnly ? "View only" : saved || (ready ? backend?.label : engine)}</span>
             </span>
             {#if !online}
               <span class="live off" title="Working offline. Changes are kept on this device and sent when the network returns."><span class="dot"></span><span>Offline</span></span>
@@ -461,7 +484,9 @@
               <span class="avatar small you" style={`background:${colorFor(account?.email)}`} title="You">{(account?.email || "?")[0].toUpperCase()}</span>
             </div>
           {/if}
-          {#if backend?.acl && !readOnly}
+          {#if active.example}
+            <button type="button" class="button primary" onclick={() => duplicate()}><Icon name="plus" /> Save a copy</button>
+          {:else if backend?.acl && !readOnly}
             <button type="button" class="button primary share-button" onclick={() => (dialog = "share")}><Icon name="link" /> Share</button>
           {:else}
             <button type="button" class="button" onclick={() => download()}><Icon name="upload" /> Download</button>

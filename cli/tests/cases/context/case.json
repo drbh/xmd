@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "imports.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -21,7 +21,7 @@
       "cli": [
         "query",
         "imports.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },
@@ -70,7 +70,7 @@
         },
         {
           "query": {
-            "query": "values | where name == \"price\" | select {name, display}",
+            "query": "map(filter(values, fn(r) => r.name == \"price\"), fn(r) => {name: r.name, display: r.display})",
             "uri": "lookups.x.md"
           }
         }
@@ -90,7 +90,7 @@
       "cli": [
         "query",
         "calendar.x.md",
-        "tasks | select {title, due}",
+        "map(tasks, fn(r) => {title: r.title, due: r.due})",
         "--json",
         "--now",
         "2026-09-17T00:15:00+14:00"
@@ -110,7 +110,7 @@
       "cli": [
         "query",
         "calendar.x.md",
-        "tasks | select {title, due}",
+        "map(tasks, fn(r) => {title: r.title, due: r.due})",
         "--json",
         "--now",
         "2026-09-15T22:15:00-12:00"
@@ -120,7 +120,7 @@
       "cli": [
         "query",
         "calendar.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json",
         "--now",
         "2026-09-17T00:15:00+14:00"

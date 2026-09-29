@@ -14,8 +14,8 @@ Budget [$3,000]:budget. Spent [$1,410]:spent.
 <!-- [hidden] := 5 -->
 [日本語]:label
 
-### 1 cli query daily.x.md values | select {name, display} --root parse --json
-$ xmd query daily.x.md values | select {name, display} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 1 cli query daily.x.md map(values, fn(r) => {name: r.name, display: r.display}) --root parse --json
+$ xmd query daily.x.md map(values, fn(r) => {name: r.name, display: r.display}) --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -47,8 +47,8 @@ exit 0
   0
 ]
 
-### 3 cli query expressions.x.md values | select {name, display, errors} --root parse --json
-$ xmd query expressions.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query expressions.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --root parse --json
+$ xmd query expressions.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -99,8 +99,8 @@ exit 0
   }
 ]
 
-### 4 cli query places.x.md values | select {name, display, errors} --root parse --json
-$ xmd query places.x.md values | select {name, display, errors} --root parse --json --now 2026-09-16T12:00:00-04:00
+### 4 cli query places.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --root parse --json
+$ xmd query places.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --root parse --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -165,8 +165,8 @@ exit 1
 <root>/parse/lookalike.x.md:2:9: error: Unknown resource property 'merged'
 xmd: 1 error(s) while rendering
 
-### 7 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json
-$ xmd query --workspace tasks | where leaf && !done | sort source.path, source.line | where contains(tags, "errands") | select {title, line: source.line} --root cli --json --now 2026-09-16T12:00:00-04:00
+### 7 cli query --workspace map(filter(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path), fn(r) => contains(r.tags, "errands")), fn(r) => {title: r.title, line: r.source.line}) --root cli --json
+$ xmd query --workspace map(filter(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path), fn(r) => contains(r.tags, "errands")), fn(r) => {title: r.title, line: r.source.line}) --root cli --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -176,16 +176,16 @@ exit 0
   }
 ]
 
-### 8 cli query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
-$ xmd query --workspace import("agenda").between(entries, today(), today() + 6d) | select title --root cli --on 2026-09-16 --json
+### 8 cli query --workspace map(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.title) --root cli --on 2026-09-16 --json
+$ xmd query --workspace map(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.title) --root cli --on 2026-09-16 --json
 exit 0
 --- stdout
 [
   "Call dentist #errands"
 ]
 
-### 9 cli query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json
-$ xmd query --workspace diagnostics | where severity == "error" --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+### 9 cli query --workspace filter(diagnostics, fn(r) => r.severity == "error") --root cli --fail-on-match --json
+$ xmd query --workspace filter(diagnostics, fn(r) => r.severity == "error") --root cli --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 []
@@ -196,14 +196,14 @@ exit 0
 -- cli/.xmd/cache.json
 (missing: entity not found)
 
-### 11 cli query --workspace plans | where name == "bakery" | select solution --root plan
-$ xmd query --workspace plans | where name == "bakery" | select solution --root plan --now 2026-09-16T12:00:00-04:00
+### 11 cli query --workspace map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => r.solution) --root plan
+$ xmd query --workspace map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => r.solution) --root plan --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 columns=[]	constraints=[{"anchor":{"character":56,"line":4},"binding":true,"lhs":400,"name":"flour","op":"<=","range":{"end":{"character":54,"line":4},"start":{"character":10,"line":4}},"rhs":400,"slack":0},{"anchor":{"character":28,"line":5},"binding":false,"lhs":25.75,"name":"bagel_min","op":">=","range":{"end":{"character":26,"line":5},"start":{"character":14,"line":5}},"rhs":12,"slack":13.75},{"anchor":{"character":34,"line":6},"binding":true,"lhs":14,"name":"doughnut_min","op":">=","range":{"end":{"character":32,"line":6},"start":{"character":17,"line":6}},"rhs":14,"slack":0}]	goal=maximize	objective=$94.75	variable_order=["bagels","doughnuts"]	variables={"bagels":25.75,"doughnuts":14}
 
-### 12 cli query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json
-$ xmd query --workspace plans | where name == "bakery" | select {objective: solution.objective, binding: solution.constraints} --root plan --json --now 2026-09-16T12:00:00-04:00
+### 12 cli query --workspace map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => {objective: r.solution.objective, binding: r.solution.constraints}) --root plan --json
+$ xmd query --workspace map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => {objective: r.solution.objective, binding: r.solution.constraints}) --root plan --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [

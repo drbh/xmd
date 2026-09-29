@@ -4,7 +4,7 @@
       "cli": [
         "query",
         "plan.x.md",
-        "tasks | select {title, done, checked, in_progress}",
+        "map(tasks, fn(r) => {title: r.title, done: r.done, checked: r.checked, in_progress: r.in_progress})",
         "--json"
       ]
     },
@@ -13,7 +13,7 @@
         "ast",
         "plan.x.md",
         "-q",
-        "ast | where kind == \"checkbox\" | select {text, state, checked}"
+        "map(filter(ast, fn(r) => r.kind == \"checkbox\"), fn(r) => {text: r.text, state: r.state, checked: r.checked})"
       ]
     },
     {

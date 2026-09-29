@@ -4,7 +4,7 @@
       "cli": [
         "query",
         "types.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -12,7 +12,7 @@
       "cli": [
         "query",
         "syntax.x.md",
-        "diagnostics | select {line, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -20,7 +20,7 @@
       "cli": [
         "query",
         "clock.x.md",
-        "diagnostics | select {line, message}",
+        "map(diagnostics, fn(r) => {line: r.line, message: r.message})",
         "--json"
       ]
     },
@@ -28,7 +28,7 @@
       "cli": [
         "query",
         "clock.x.md",
-        "diagnostics | select {line, message}",
+        "map(diagnostics, fn(r) => {line: r.line, message: r.message})",
         "--json",
         "--now",
         "2026-09-16T14:00:01-04:00"

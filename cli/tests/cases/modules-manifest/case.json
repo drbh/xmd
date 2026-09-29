@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "--workspace",
-        "notes | select source.path",
+        "map(notes, fn(r) => r.source.path)",
         "--json"
       ]
     },
@@ -34,7 +34,7 @@
       "cli": [
         "query",
         "--workspace",
-        "notes | select source.path",
+        "map(notes, fn(r) => r.source.path)",
         "--json"
       ]
     },

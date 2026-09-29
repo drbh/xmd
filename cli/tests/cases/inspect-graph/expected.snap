@@ -402,8 +402,8 @@ exit 0
   }
 ]
 
-### 1 cli graph one.x.md --root notes -q graph.nodes | where external | select name
-$ xmd graph one.x.md --root notes -q graph.nodes | where external | select name --now 2026-09-18T12:00:00Z
+### 1 cli graph one.x.md --root notes -q map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name)
+$ xmd graph one.x.md --root notes -q map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -501,16 +501,16 @@ exit 0
   "t"
 ]
 
-### 7 cli graph ignored.x.md --root notes -q graph.nodes | select name
-$ xmd graph ignored.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+### 7 cli graph ignored.x.md --root notes -q map(graph.nodes, fn(r) => r.name)
+$ xmd graph ignored.x.md --root notes -q map(graph.nodes, fn(r) => r.name) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
   "secret"
 ]
 
-### 8 cli graph ../outside.x.md --root notes -q graph.nodes | select name
-$ xmd graph ../outside.x.md --root notes -q graph.nodes | select name --now 2026-09-18T12:00:00Z
+### 8 cli graph ../outside.x.md --root notes -q map(graph.nodes, fn(r) => r.name)
+$ xmd graph ../outside.x.md --root notes -q map(graph.nodes, fn(r) => r.name) --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

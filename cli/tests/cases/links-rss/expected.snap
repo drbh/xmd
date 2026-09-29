@@ -22,8 +22,8 @@ Dates: [map(blog.items, fn(i) => i.published)]
 <root>/feeds.x.md:8:14: warning: Module rss.property: No cached feed; run xmd refresh
 <root>/feeds.x.md:9:13: warning: Module rss.property: No cached feed; run xmd refresh
 
-### 1 cli query feeds.x.md diagnostics | select {message, code} --json
-$ xmd query feeds.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:00:00Z
+### 1 cli query feeds.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query feeds.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [
@@ -158,8 +158,8 @@ Notes: [notes.latest] Reading a feed — natively updated [notes.updated] 2026-0
 Titles: [map(blog.items, fn(i) => i.title)] ["Typed notes", "Dates & durations", "An older post"]
 Dates: [map(blog.items, fn(i) => i.published)] [2026-09-14T09:30:00+00:00, 2026-09-01T12:00:00+00:00, 2025-08-15T12:00:00+00:00]
 
-### 5 cli query feeds.x.md resources | select {target, metadata} --json
-$ xmd query feeds.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+### 5 cli query feeds.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json
+$ xmd query feeds.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [

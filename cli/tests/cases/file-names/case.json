@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "cli": ["query", "--workspace", "map(diagnostics, fn(r) => {path: r.source.path, line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"]
+    },
+    {
+      "cli": ["query", "trip.x.md", "h.double(fare)", "--json"]
+    },
+    {
+      "lsp": [
+        { "open": "helpers.xmd" },
+        { "await": "textDocument/publishDiagnostics", "file": "helpers.xmd" },
+        { "open": "budget.xmd" },
+        { "await": "textDocument/publishDiagnostics", "file": "budget.xmd" },
+        { "open": "tools.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "tools.x.md" }
+      ]
+    }
+  ]
+}

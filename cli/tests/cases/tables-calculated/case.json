@@ -1,8 +1,8 @@
 {
   "steps": [
     { "cli": ["render", "calc.x.md", "--format", "text"] },
-    { "cli": ["query", "calc.x.md", "cells | select {title, line, value}", "--json"] },
-    { "cli": ["query", "calc.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "calc.x.md", "map(cells, fn(r) => {title: r.title, line: r.line, value: r.value})", "--json"] },
+    { "cli": ["query", "calc.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "calc.x.md" },
@@ -22,14 +22,14 @@
         }
       ]
     },
-    { "cli": ["query", "wrong.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "wrong.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "wrong.x.md" },
         { "await": "textDocument/publishDiagnostics", "file": "wrong.x.md" }
       ]
     },
-    { "cli": ["query", "unknown.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "empty.x.md", "diagnostics | select {line, severity, code, message}", "--json"] }
+    { "cli": ["query", "unknown.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "empty.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] }
   ]
 }

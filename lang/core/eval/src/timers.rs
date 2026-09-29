@@ -157,7 +157,7 @@ pub fn edit_timer(
     Ok((origin.clone(), def.value_span, text))
 }
 record! {
-    /// Where a timer stands, as `timer.x.md` reads and writes it.
+    /// Where a timer stands, as `timer.xmd` reads and writes it.
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub(crate) struct TimerRecord {
         pub limit: Option<i64>,

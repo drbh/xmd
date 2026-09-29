@@ -47,8 +47,8 @@ exit 0
   }
 ]
 
-### 2 cli query trip.x.md values | select {name, display} --json
-$ xmd query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 2 cli query trip.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query trip.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -74,8 +74,8 @@ exit 0
   }
 ]
 
-### 3 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 3 cli query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 []

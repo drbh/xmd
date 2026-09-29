@@ -30,8 +30,8 @@ unknown := u.convert(1, "smoots", "m")
 <root>/bad.x.md:3:12: error: Unknown unit 'smoots'
 xmd: 2 error(s) while rendering
 
-### 2 cli query bad.x.md diagnostics | select {message, code} --json
-$ xmd query bad.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query bad.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query bad.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -2,7 +2,7 @@
   "now": "2026-09-18T12:00:00Z",
   "steps": [
     { "cli": ["render", "main.x.md", "--format", "text"] },
-    { "cli": ["query", "main.x.md", "diagnostics | select {line, message}", "--json"] },
+    { "cli": ["query", "main.x.md", "map(diagnostics, fn(r) => {line: r.line, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "main.x.md" },

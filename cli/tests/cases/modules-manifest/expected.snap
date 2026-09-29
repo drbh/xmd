@@ -4,8 +4,8 @@ exit 0
 --- stdout
 # Note library
 
-### 1 cli query --workspace notes | select source.path --json
-$ xmd query --workspace notes | select source.path --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query --workspace map(notes, fn(r) => r.source.path) --json
+$ xmd query --workspace map(notes, fn(r) => r.source.path) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -22,8 +22,8 @@ exit 0
 --- stdout
 # Note section · Note library
 
-### 4 cli query --workspace notes | select source.path --json
-$ xmd query --workspace notes | select source.path --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query --workspace map(notes, fn(r) => r.source.path) --json
+$ xmd query --workspace map(notes, fn(r) => r.source.path) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

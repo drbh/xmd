@@ -1,5 +1,5 @@
-### 0 cli query weather.x.md diagnostics | select {line, severity, message} --json
-$ xmd query weather.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query weather.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message}) --json
+$ xmd query weather.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -25,8 +25,8 @@ exit 0
   }
 ]
 
-### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

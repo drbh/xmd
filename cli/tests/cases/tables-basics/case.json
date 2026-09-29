@@ -1,11 +1,11 @@
 {
   "steps": [
     { "cli": ["render", "groceries.x.md", "--format", "text"] },
-    { "cli": ["query", "groceries.x.md", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "groceries.x.md", "tables | select {name, display}", "--json"] },
-    { "cli": ["query", "groceries.x.md", "rows | select {table, line, cells}", "--json"] },
-    { "cli": ["query", "groceries.x.md", "cells | select {title, line, value}", "--json"] },
-    { "cli": ["query", "groceries.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "groceries.x.md", "map(values, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "groceries.x.md", "map(tables, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "groceries.x.md", "map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells})", "--json"] },
+    { "cli": ["query", "groceries.x.md", "map(cells, fn(r) => {title: r.title, line: r.line, value: r.value})", "--json"] },
+    { "cli": ["query", "groceries.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "groceries.x.md" },
@@ -24,8 +24,8 @@
       ]
     },
     { "cli": ["render", "scoped.x.md", "--format", "text"] },
-    { "cli": ["query", "scoped.x.md", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "scoped.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "scoped.x.md", "map(values, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "scoped.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "scoped.x.md" },
@@ -57,7 +57,7 @@
       ]
     },
     { "cli": ["render", "alias.x.md", "--format", "text"] },
-    { "cli": ["query", "alias.x.md", "values | select {name, display}", "--json"] },
+    { "cli": ["query", "alias.x.md", "map(values, fn(r) => {name: r.name, display: r.display})", "--json"] },
     {
       "lsp": [
         { "open": "alias.x.md" },

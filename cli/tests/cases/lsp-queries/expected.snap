@@ -9,7 +9,7 @@ $9:price
   "uri": "file://<root>/n.x.md",
   "version": 1
 }
--- query values | select {name, value, day:today(), clock:now()}
+-- query map(values, fn(r) => {name: r.name, value: r.value, day:today(), clock:now()})
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -71,7 +71,7 @@ $9:price
     "file://<root>/n.x.md": 2
   }
 }
--- query tasks | where leaf && !done | sort source.path, source.line | select title
+-- query map(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path), fn(r) => r.title)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -92,7 +92,7 @@ $12:price
   "uri": "file://<root>/n.x.md",
   "version": 2
 }
--- query tasks | where leaf && !done | sort source.path, source.line
+-- query sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -145,10 +145,10 @@ $12:price
     "file://<root>/n.x.md": 3
   }
 }
--- request xmd/query {"query":"tasks | where ("}
+-- request xmd/query {"query":"filter(tasks, fn(r) => ()"}
 error: {
   "code": -32602,
-  "message": "Unclosed delimiter in query"
+  "message": "Expected a value, name, or function"
 }
 
 ### 1 read n.x.md
@@ -178,7 +178,7 @@ answer := import("./two.x.md").rate * 2
     "file://<root>/one.x.md": 2
   }
 }
--- query tasks | select title
+-- query map(tasks, fn(r) => r.title)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -200,7 +200,7 @@ answer := import("./two.x.md").rate * 2
     "file://<root>/one.x.md": 2
   }
 }
--- query graph.nodes | where external | select name
+-- query map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [

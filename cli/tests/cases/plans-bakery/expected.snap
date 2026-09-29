@@ -12,8 +12,8 @@ exit 0
 | doughnut_min | doughnuts >= 14                              | 14 ≥ 14 · ● binding
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
 
-### 1 cli query bakery.x.md plans | select {name, expression, display, solution} --json
-$ xmd query bakery.x.md plans | select {name, expression, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query bakery.x.md map(plans, fn(r) => {name: r.name, expression: r.expression, display: r.display, solution: r.solution}) --json
+$ xmd query bakery.x.md map(plans, fn(r) => {name: r.name, expression: r.expression, display: r.display, solution: r.solution}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -131,8 +131,8 @@ exit 0
   }
 ]
 
-### 2 cli query bakery.x.md values | select {name, display} --json
-$ xmd query bakery.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query bakery.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query bakery.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -146,8 +146,8 @@ exit 0
   }
 ]
 
-### 3 cli query bakery.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query bakery.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query bakery.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query bakery.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -1033,8 +1033,8 @@ Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.
   }
 }
 
-### 8 cli query multiline.x.md plans | select {name, display, solution} --json
-$ xmd query multiline.x.md plans | select {name, display, solution} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query multiline.x.md map(plans, fn(r) => {name: r.name, display: r.display, solution: r.solution}) --json
+$ xmd query multiline.x.md map(plans, fn(r) => {name: r.name, display: r.display, solution: r.solution}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1151,8 +1151,8 @@ exit 0
   }
 ]
 
-### 9 cli query multiline.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query multiline.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query multiline.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query multiline.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -1175,8 +1175,8 @@ exit 0
 | doughnut_min | doughnuts >= 14                              | 14 ≥ 14 · ● binding␍
 Bake [bakery.bagels] 25.75 bagels for [bakery] $94.75.␍
 
-### 11 cli query crlf.x.md plans | select {name, display} --json
-$ xmd query crlf.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli query crlf.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query crlf.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -1186,8 +1186,8 @@ exit 0
   }
 ]
 
-### 12 cli query crlf.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query crlf.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query crlf.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query crlf.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []

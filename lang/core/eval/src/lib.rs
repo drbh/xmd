@@ -5,7 +5,7 @@
 //! live in the stdlib's `format` module.
 //!
 //! `context` holds the one workspace snapshot, clock and memo a request
-//! evaluates against. The .x.md modules, their registry and the link-module
+//! evaluates against. The .xmd modules, their registry and the link-module
 //! contract are described in `modules`; `module_runtime` is how the
 //! evaluator compiles and calls them. `itinerary` resolves the days and
 //! stops `model::itinerary` parsed by calling the `itinerary_core` module.
@@ -43,7 +43,7 @@ pub use host::HostPresenting;
 // The objects only the evaluator builds, as a `Value::Host` holds them.
 pub use plans::PlanValue;
 pub use tables_impl::TableValue;
-// How a registry of .x.md modules compiles, which only the evaluator can do.
+// How a registry of .xmd modules compiles, which only the evaluator can do.
 pub use module_runtime::CompileModules;
 // A resource value and how a hover presents it.
 pub use resources::{Resource, ResourcePresenting};

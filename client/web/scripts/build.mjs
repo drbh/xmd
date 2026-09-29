@@ -24,6 +24,9 @@ await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-
 // The embedding example: a plain page that loads the library like any other site would.
 await mkdir(new URL("embed/", dist), { recursive: true });
 await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
+// The examples, fetched one at a time when a #/example/<name> link opens them.
+const { writeExamples } = await import("./lib/examples.mjs");
+await writeExamples(new URL("../../lang/examples/", root), new URL("examples/", dist));
 execFileSync("npm", ["run", "build", "--workspace", "xmd-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
 const docsIndex = new URL("docs/index.html", dist);
 await writeFile(docsIndex, (await readFile(docsIndex, "utf8")).replace("<head>", '<head><link rel="stylesheet" href="../lib/theme/style.css"><link rel="stylesheet" href="../lib/theme/fonts.css">'));

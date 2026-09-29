@@ -9,8 +9,8 @@
         "--json"
       ]
     },
-    { "cli": ["query", "markers.x.md", "stops | select {title, line, at_date}", "--json"] },
-    { "cli": ["query", "markers.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "markers.x.md", "map(stops, fn(r) => {title: r.title, line: r.line, at_date: r.at_date})", "--json"] },
+    { "cli": ["query", "markers.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "markers.x.md" },
@@ -23,10 +23,10 @@
         }
       ]
     },
-    { "cli": ["query", "carry.x.md", "stops | select {title, at_date}", "--json"] },
-    { "cli": ["query", "past.x.md", "stops | select {title, at_date}", "--json"] },
-    { "cli": ["query", "prose.x.md", "days | select {title, line}", "--json"] },
-    { "cli": ["query", "bad.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "carry.x.md", "map(stops, fn(r) => {title: r.title, at_date: r.at_date})", "--json"] },
+    { "cli": ["query", "past.x.md", "map(stops, fn(r) => {title: r.title, at_date: r.at_date})", "--json"] },
+    { "cli": ["query", "prose.x.md", "map(days, fn(r) => {title: r.title, line: r.line})", "--json"] },
+    { "cli": ["query", "bad.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "complete.x.md" },

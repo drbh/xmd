@@ -672,7 +672,7 @@
     }
   ]
 }
--- query {"query":"values | where name == \"total\" | select {name, value, source}"}
+-- query {"query":"map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, source: r.source})"}
 {
   "ok": true,
   "result": {
@@ -710,7 +710,7 @@
     }
   }
 }
--- query {"query":"tasks | where leaf && !done | sort source.path, source.line | count"}
+-- query {"query":"length(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path))"}
 {
   "ok": true,
   "result": {
@@ -745,7 +745,7 @@
     }
   }
 }
--- query {"query":"tasks | select title","uri":"file:///workspace/trip.x.md"}
+-- query {"query":"map(tasks, fn(r) => r.title)","uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {
@@ -766,7 +766,7 @@
   "ok": true,
   "result": null
 }
--- query {"query":"values | where name == \"total\" | select {name, value, source}"}
+-- query {"query":"map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, source: r.source})"}
 {
   "ok": true,
   "result": {
@@ -805,8 +805,8 @@
   }
 }
 
-### 1 cli query --workspace values | where name == "total" | select {name, value, source} --json
-$ xmd query --workspace values | where name == "total" | select {name, value, source} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query --workspace map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, value: r.value, source: r.source}) --json
+$ xmd query --workspace map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, value: r.value, source: r.source}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -835,8 +835,8 @@ exit 0
   }
 ]
 
-### 2 cli query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json
-$ xmd query --workspace tasks | where leaf && !done | sort source.path, source.line | count --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query --workspace length(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path)) --json
+$ xmd query --workspace length(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path)) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

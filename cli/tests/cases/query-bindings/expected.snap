@@ -1,5 +1,5 @@
-### 0 cli query --workspace values | select {name, value, type, display, errors} --root money --json
-$ xmd query --workspace values | select {name, value, type, display, errors} --root money --json --now 2026-09-16T12:00:00-04:00
+### 0 cli query --workspace map(values, fn(r) => {name: r.name, value: r.value, type: r.type, display: r.display, errors: r.errors}) --root money --json
+$ xmd query --workspace map(values, fn(r) => {name: r.name, value: r.value, type: r.type, display: r.display, errors: r.errors}) --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -49,20 +49,20 @@ exit 0
   }
 ]
 
-### 1 cli query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json
-$ xmd query --workspace values | where name == "total" | select {value, amount:value.amount, currency:value.currency, local:eval("price")} --root money --json --now 2026-09-16T12:00:00-04:00
+### 1 cli query --workspace map(filter(values, fn(r) => r.name == "total"), fn(r) => {value: r.value, amount:r.value.amount, currency:r.value.currency, local:eval("price")}) --root money --json
+$ xmd query --workspace map(filter(values, fn(r) => r.name == "total"), fn(r) => {value: r.value, amount:r.value.amount, currency:r.value.currency, local:eval("price")}) --root money --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 2: Unknown function 'eval'
+xmd: Unknown function 'eval'
 
-### 2 cli query --workspace values | where name == "price" | sum value --root money --json
-$ xmd query --workspace values | where name == "price" | sum value --root money --json --now 2026-09-16T12:00:00-04:00
+### 2 cli query --workspace sum(map(filter(values, fn(r) => r.name == "price"), fn(r) => r.value)) --root money --json
+$ xmd query --workspace sum(map(filter(values, fn(r) => r.name == "price"), fn(r) => r.value)) --root money --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 2: Cannot combine EUR and USD; convert with to(value, USD)
+xmd: Cannot combine EUR and USD; convert with to(value, USD)
 
-### 3 cli query usd.x.md values | where name == "total" | select {name, hover} --root money --json
-$ xmd query usd.x.md values | where name == "total" | select {name, hover} --root money --json --now 2026-09-16T12:00:00-04:00
+### 3 cli query usd.x.md map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, hover: r.hover}) --root money --json
+$ xmd query usd.x.md map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, hover: r.hover}) --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -72,8 +72,8 @@ exit 0
   }
 ]
 
-### 4 cli query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json
-$ xmd query --workspace notes | select {title, kind, path: source.path, size: length(text)} --root money --json --now 2026-09-16T12:00:00-04:00
+### 4 cli query --workspace map(notes, fn(r) => {title: r.title, kind: r.kind, path: r.source.path, size: length(r.text)}) --root money --json
+$ xmd query --workspace map(notes, fn(r) => {title: r.title, kind: r.kind, path: r.source.path, size: length(r.text)}) --root money --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -91,8 +91,8 @@ exit 0
   }
 ]
 
-### 5 cli query tables.x.md tables | select {name} --json
-$ xmd query tables.x.md tables | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 5 cli query tables.x.md map(tables, fn(r) => {name: r.name}) --json
+$ xmd query tables.x.md map(tables, fn(r) => {name: r.name}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -101,8 +101,8 @@ exit 0
   }
 ]
 
-### 6 cli query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json
-$ xmd query tables.x.md rows | where table == "groceries" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 6 cli query tables.x.md map(filter(rows, fn(r) => r.table == "groceries" && r.cells.quantity > 2), fn(r) => {item:r.cells.item, cost:r.cells.price * r.cells.quantity}) --json
+$ xmd query tables.x.md map(filter(rows, fn(r) => r.table == "groceries" && r.cells.quantity > 2), fn(r) => {item:r.cells.item, cost:r.cells.price * r.cells.quantity}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -116,8 +116,8 @@ exit 0
   }
 ]
 
-### 7 cli query tables.x.md values | where name == "total" | select {name, value, display} --json
-$ xmd query tables.x.md values | where name == "total" | select {name, value, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 7 cli query tables.x.md map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, value: r.value, display: r.display}) --json
+$ xmd query tables.x.md map(filter(values, fn(r) => r.name == "total"), fn(r) => {name: r.name, value: r.value, display: r.display}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -132,8 +132,8 @@ exit 0
   }
 ]
 
-### 8 cli query plans.x.md plans | select {name} --json
-$ xmd query plans.x.md plans | select {name} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 8 cli query plans.x.md map(plans, fn(r) => {name: r.name}) --json
+$ xmd query plans.x.md map(plans, fn(r) => {name: r.name}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -142,8 +142,8 @@ exit 0
   }
 ]
 
-### 9 cli query plans.x.md plans | where name == "bakery" | select solution --json
-$ xmd query plans.x.md plans | where name == "bakery" | select solution --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 9 cli query plans.x.md map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => r.solution) --json
+$ xmd query plans.x.md map(filter(plans, fn(r) => r.name == "bakery"), fn(r) => r.solution) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -256,8 +256,8 @@ exit 0
   }
 ]
 
-### 10 cli query links.x.md resources | select {target, metadata} --json
-$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 10 cli query links.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json
+$ xmd query links.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -281,16 +281,16 @@ exit 0
   }
 ]
 
-### 11 cli query links.x.md resources | where metadata != null | select metadata.title --json
-$ xmd query links.x.md resources | where metadata != null | select metadata.title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 11 cli query links.x.md map(filter(resources, fn(r) => r.metadata != null), fn(r) => r.metadata.title) --json
+$ xmd query links.x.md map(filter(resources, fn(r) => r.metadata != null), fn(r) => r.metadata.title) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   "Cached"
 ]
 
-### 12 cli query bad.x.md values | select {name, value, errors} --json
-$ xmd query bad.x.md values | select {name, value, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 12 cli query bad.x.md map(values, fn(r) => {name: r.name, value: r.value, errors: r.errors}) --json
+$ xmd query bad.x.md map(values, fn(r) => {name: r.name, value: r.value, errors: r.errors}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -303,8 +303,8 @@ exit 0
   }
 ]
 
-### 13 cli query bad.x.md tasks | select {title, due, errors} --json
-$ xmd query bad.x.md tasks | select {title, due, errors} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 13 cli query bad.x.md map(tasks, fn(r) => {title: r.title, due: r.due, errors: r.errors}) --json
+$ xmd query bad.x.md map(tasks, fn(r) => {title: r.title, due: r.due, errors: r.errors}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -322,8 +322,8 @@ exit 0
   }
 ]
 
-### 14 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 14 cli query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -343,7 +343,7 @@ exit 0
 
 ### 15 lsp
 -- open bad.x.md
--- query tasks | select {title, errors}
+-- query map(tasks, fn(r) => {title: r.title, errors: r.errors})
 {
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
@@ -366,7 +366,7 @@ exit 0
 -- change bad.x.md (version 2)
 good := 41 + 1
 - [ ] Fixed @due(2026-09-17)
--- query values | select {name, display}
+-- query map(values, fn(r) => {name: r.name, display: r.display})
 {
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [

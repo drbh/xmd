@@ -3,6 +3,6 @@
   "steps": [
     { "cli": ["render", "units.x.md", "--format", "text"] },
     { "cli": ["render", "bad.x.md", "--format", "text"] },
-    { "cli": ["query", "bad.x.md", "diagnostics | select {message, code}", "--json"] }
+    { "cli": ["query", "bad.x.md", "map(diagnostics, fn(r) => {message: r.message, code: r.code})", "--json"] }
   ]
 }

@@ -119,8 +119,8 @@ called := scores.resolve(112, 108) = home
 spread := scores.margin(112, 108) = 4
 drawn := scores.resolve(2, 2) = draw
 
-### 6 cli query games.x.md diagnostics | select {message, code} --json
-$ xmd query games.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli query games.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query games.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []

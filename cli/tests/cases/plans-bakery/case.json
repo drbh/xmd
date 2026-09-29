@@ -1,9 +1,9 @@
 {
   "steps": [
     { "cli": ["render", "bakery.x.md", "--format", "text"] },
-    { "cli": ["query", "bakery.x.md", "plans | select {name, expression, display, solution}", "--json"] },
-    { "cli": ["query", "bakery.x.md", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "bakery.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "bakery.x.md", "map(plans, fn(r) => {name: r.name, expression: r.expression, display: r.display, solution: r.solution})", "--json"] },
+    { "cli": ["query", "bakery.x.md", "map(values, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "bakery.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "bakery.x.md" },
@@ -43,11 +43,11 @@
         { "request": "textDocument/hover", "file": "multiline.x.md", "line": 3, "character": 8 }
       ]
     },
-    { "cli": ["query", "multiline.x.md", "plans | select {name, display, solution}", "--json"] },
-    { "cli": ["query", "multiline.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "multiline.x.md", "map(plans, fn(r) => {name: r.name, display: r.display, solution: r.solution})", "--json"] },
+    { "cli": ["query", "multiline.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["render", "crlf.x.md", "--format", "text"] },
-    { "cli": ["query", "crlf.x.md", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "crlf.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "crlf.x.md", "map(plans, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "crlf.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "read": ["crlf.x.md"] }
   ]
 }

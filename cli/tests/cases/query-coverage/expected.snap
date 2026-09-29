@@ -1,5 +1,5 @@
-### 0 cli query trip.x.md union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)} --json
-$ xmd query trip.x.md union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query trip.x.md map(sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key), fn(r) => {key: r.key, titles: map(r.rows, fn(r) => r.title)}) --json
+$ xmd query trip.x.md map(sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key), fn(r) => {key: r.key, titles: map(r.rows, fn(r) => r.title)}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -19,8 +19,8 @@ exit 0
   }
 ]
 
-### 1 cli query trip.x.md union(events, stops) | group kind | sort key --json
-$ xmd query trip.x.md union(events, stops) | group kind | sort key --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query trip.x.md sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key) --json
+$ xmd query trip.x.md sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -200,8 +200,8 @@ exit 0
   }
 ]
 
-### 2 cli query trip.x.md sections | select {title, level, line, end_line} --json
-$ xmd query trip.x.md sections | select {title, level, line, end_line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query trip.x.md map(sections, fn(r) => {title: r.title, level: r.level, line: r.line, end_line: r.end_line}) --json
+$ xmd query trip.x.md map(sections, fn(r) => {title: r.title, level: r.level, line: r.line, end_line: r.end_line}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -809,8 +809,8 @@ exit 0
   }
 ]
 
-### 6 cli query trip.x.md values | select {name, display, hover} --json
-$ xmd query trip.x.md values | select {name, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query trip.x.md map(values, fn(r) => {name: r.name, display: r.display, hover: r.hover}) --json
+$ xmd query trip.x.md map(values, fn(r) => {name: r.name, display: r.display, hover: r.hover}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -831,8 +831,8 @@ exit 0
   }
 ]
 
-### 7 cli query trip.x.md references | select {kind, expression, display, hover} --json
-$ xmd query trip.x.md references | select {kind, expression, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query trip.x.md map(references, fn(r) => {kind: r.kind, expression: r.expression, display: r.display, hover: r.hover}) --json
+$ xmd query trip.x.md map(references, fn(r) => {kind: r.kind, expression: r.expression, display: r.display, hover: r.hover}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -844,17 +844,17 @@ exit 0
   }
 ]
 
-### 8 cli query trip.x.md calculations | select {expression, display, hover} --json
-$ xmd query trip.x.md calculations | select {expression, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query trip.x.md map(calculations, fn(r) => {expression: r.expression, display: r.display, hover: r.hover}) --json
+$ xmd query trip.x.md map(calculations, fn(r) => {expression: r.expression, display: r.display, hover: r.hover}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 1: Unknown name 'hover'
+xmd: Unknown field 'hover'
 
-### 9 cli query trip.x.md values | select {name, presentation} --json
-$ xmd query trip.x.md values | select {name, presentation} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query trip.x.md map(values, fn(r) => {name: r.name, presentation: r.presentation}) --json
+$ xmd query trip.x.md map(values, fn(r) => {name: r.name, presentation: r.presentation}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 1: Unknown name 'presentation'
+xmd: Unknown field 'presentation'
 
 ### 10 cli query trip.x.md map(sections, fn(s) => s.title + " " + text(length(days))) --json
 $ xmd query trip.x.md map(sections, fn(s) => s.title + " " + text(length(days))) --json --root <root> --now 2026-09-16T14:00:00-04:00
@@ -867,8 +867,8 @@ exit 0
   "Saturday 2"
 ]
 
-### 11 cli query --workspace sections | select {title, file: source.path} | sort file, title --json
-$ xmd query --workspace sections | select {title, file: source.path} | sort file, title --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli query --workspace sort_by(sort_by(map(sections, fn(r) => {title: r.title, file: r.source.path}), fn(r) => r.title), fn(r) => r.file) --json
+$ xmd query --workspace sort_by(sort_by(map(sections, fn(r) => {title: r.title, file: r.source.path}), fn(r) => r.title), fn(r) => r.file) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -890,32 +890,32 @@ exit 0
   }
 ]
 
-### 12 cli query trip.x.md values | sort value | select name --json
-$ xmd query trip.x.md values | sort value | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query trip.x.md map(sort_by(values, fn(r) => r.value), fn(r) => r.name) --json
+$ xmd query trip.x.md map(sort_by(values, fn(r) => r.value), fn(r) => r.name) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 1: Cannot compare these value types
+xmd: Cannot compare these value types
 
-### 13 cli query trip.x.md sections | limit 1 | sort source --json
-$ xmd query trip.x.md sections | limit 1 | sort source --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 13 cli query trip.x.md sort_by(slice(sections, 0, 1), fn(r) => r.source) --json
+$ xmd query trip.x.md sort_by(slice(sections, 0, 1), fn(r) => r.source) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: Stage 2: Cannot compare these value types
+xmd: Cannot compare these value types
 
-### 14 cli query empty/prose.x.md tasks | group title --json
-$ xmd query empty/prose.x.md tasks | group title --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 14 cli query empty/prose.x.md group_by(tasks, fn(r) => r.title) --json
+$ xmd query empty/prose.x.md group_by(tasks, fn(r) => r.title) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 15 cli query --workspace tasks | group source.path | sort key --root empty --json
-$ xmd query --workspace tasks | group source.path | sort key --root empty --json --now 2026-09-16T14:00:00-04:00
+### 15 cli query --workspace sort_by(group_by(tasks, fn(r) => r.source.path), fn(r) => r.key) --root empty --json
+$ xmd query --workspace sort_by(group_by(tasks, fn(r) => r.source.path), fn(r) => r.key) --root empty --json --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 16 cli query empty/prose.x.md sections | sort title | count --json
-$ xmd query empty/prose.x.md sections | sort title | count --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 16 cli query empty/prose.x.md length(sort_by(sections, fn(r) => r.title)) --json
+$ xmd query empty/prose.x.md length(sort_by(sections, fn(r) => r.title)) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -930,7 +930,7 @@ exit 0
   "uri": "file://<root>/trip.x.md",
   "version": 1
 }
--- query sections | select {title, level}
+-- query map(sections, fn(r) => {title: r.title, level: r.level})
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -956,7 +956,7 @@ exit 0
     "file://<root>/trip.x.md": 1
   }
 }
--- query union(sections, days) | group kind | select {key, count: length(rows)} | sort key
+-- query sort_by(map(group_by(concat(sections, days), fn(r) => r.kind), fn(r) => {key: r.key, count: length(r.rows)}), fn(r) => r.key)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
@@ -974,7 +974,7 @@ exit 0
     "file://<root>/trip.x.md": 1
   }
 }
--- query stops | select title
+-- query map(stops, fn(r) => r.title)
 {
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [],
@@ -991,6 +991,6 @@ error: {
 -- request xmd/query {"query":"stops | nope"}
 error: {
   "code": -32602,
-  "message": "Stage 1: Unknown stage 'nope'; use where, select, sort, limit, count, sum or group"
+  "message": "Unknown name 'nope'"
 }
 

@@ -1,12 +1,12 @@
 {
   "now": "2026-09-16T14:00:00-04:00",
   "steps": [
-    { "cli": ["query", "prose.x.md", "links | select {url, line}", "--json"] },
+    { "cli": ["query", "prose.x.md", "map(links, fn(r) => {url: r.url, line: r.line})", "--json"] },
     { "cli": ["query", "prose.x.md", "references", "--json"] },
     { "cli": ["query", "prose.x.md", "diagnostics", "--json"] },
-    { "cli": ["query", "prose.x.md", "tasks | select attributes", "--json"] },
-    { "cli": ["query", "code.x.md", "links | select {url, line}", "--json"] },
-    { "cli": ["query", "code.x.md", "values | select name", "--json"] },
+    { "cli": ["query", "prose.x.md", "map(tasks, fn(r) => r.attributes)", "--json"] },
+    { "cli": ["query", "code.x.md", "map(links, fn(r) => {url: r.url, line: r.line})", "--json"] },
+    { "cli": ["query", "code.x.md", "map(values, fn(r) => r.name)", "--json"] },
     { "cli": ["query", "malicious.x.md", "links", "--json"] },
     {
       "lsp": [

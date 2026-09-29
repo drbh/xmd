@@ -12,7 +12,7 @@
       ]
     },
     { "cli": ["query", "durations.x.md", "2026-09-16 + 1s", "--json"] },
-    { "cli": ["query", "durations.x.md", "tasks | where leaf | select {title, estimate, due}", "--json"] },
+    { "cli": ["query", "durations.x.md", "map(filter(tasks, fn(r) => r.leaf), fn(r) => {title: r.title, estimate: r.estimate, due: r.due})", "--json"] },
     {
       "lsp": [
         { "open": "durations.x.md" },

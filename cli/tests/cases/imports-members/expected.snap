@@ -1,5 +1,5 @@
-### 0 cli query main.x.md values | select {name, display, errors} --json
-$ xmd query main.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 0 cli query main.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query main.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -20,8 +20,8 @@ exit 0
   }
 ]
 
-### 1 cli query grouped.x.md values | select {name, display} --json
-$ xmd query grouped.x.md values | select {name, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli query grouped.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query grouped.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

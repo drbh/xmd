@@ -1,4 +1,4 @@
-//! The .x.md modules as data: what a feature, link, library, command or
+//! The .xmd modules as data: what a feature, link, library, command or
 //! provider module declares, how its source compiles and links into a
 //! registry, and the contract a link module fulfils. Running a module's code
 //! is the evaluator's job, reached through `ModuleEnvironment`, so this crate

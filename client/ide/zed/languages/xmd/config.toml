@@ -1,6 +1,6 @@
 name = "XMD"
 grammar = "markdown"
-path_suffixes = ["x.md"]
+path_suffixes = ["x.md", "xmd"]
 block_comment = ["<!-- ", " -->"]
 tab_size = 2
 unordered_list = ["- ", "* ", "+ "]

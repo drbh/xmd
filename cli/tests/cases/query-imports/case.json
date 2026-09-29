@@ -15,7 +15,7 @@
       "cli": [
         "query",
         "main.x.md",
-        "tasks | select import(\"./.hidden/values.x.md\").price",
+        "map(tasks, fn(r) => import(\"./.hidden/values.x.md\").price)",
         "--root",
         "flat",
         "--json"
@@ -35,7 +35,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | select import(\"./.hidden/value.x.md\").amount",
+        "map(tasks, fn(r) => import(\"./one/.hidden/value.x.md\").amount)",
         "--root",
         "rows",
         "--json"
@@ -65,7 +65,7 @@
       "cli": [
         "query",
         "one/main.x.md",
-        "tasks | count | select import(\"./.hidden/value.x.md\").amount",
+        "import(\"./.hidden/value.x.md\").amount",
         "--root",
         "rows",
         "--json"

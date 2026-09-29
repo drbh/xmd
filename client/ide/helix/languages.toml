@@ -9,7 +9,7 @@ args = ["lsp"]
 [[language]]
 name = "xmd"
 scope = "text.xmd"
-file-types = [{ glob = "*.x.md" }]
+file-types = [{ glob = "*.x.md" }, "xmd"]
 roots = [".xmd", ".git"]
 language-servers = ["xmd"]
 indent = { tab-width = 2, unit = "  " }

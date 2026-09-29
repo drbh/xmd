@@ -1,0 +1,2 @@
+// Shared by trip.x.md.
+double := fn(x) => x * 2

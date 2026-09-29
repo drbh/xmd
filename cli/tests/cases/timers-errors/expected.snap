@@ -1,5 +1,5 @@
-### 0 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -89,8 +89,8 @@ exit 0
   }
 ]
 
-### 1 cli query attributes.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query attributes.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query attributes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query attributes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

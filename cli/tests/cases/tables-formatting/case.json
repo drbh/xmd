@@ -44,8 +44,8 @@
       ]
     },
     { "cli": ["query", "crlf.x.md", "sum(t, n)", "--json"] },
-    { "cli": ["query", "crlf.x.md", "tables | select {name, display}", "--json"] },
-    { "cli": ["query", "inert.x.md", "tables | select {name, display}", "--json"] },
+    { "cli": ["query", "crlf.x.md", "map(tables, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "inert.x.md", "map(tables, fn(r) => {name: r.name, display: r.display})", "--json"] },
     { "cli": ["render", "inert.x.md", "--format", "text"] }
   ]
 }

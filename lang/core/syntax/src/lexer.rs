@@ -1,5 +1,6 @@
 //! Syntax: the lexer, the expression tree, and the tolerant source scans the
 //! editor features read without evaluating anything.
+use super::operators::{PIPE_PRECEDENCE, UNARY_PRECEDENCE};
 use super::{BinaryOp, Builtin, Literal, Operator, UnaryOp, date_value, literal};
 use common::{Code, Currency, is_code};
 use std::collections::BTreeSet;
@@ -558,8 +559,13 @@ impl Parser {
                 v
             }
             Lexeme::Op(op) if op.unary().is_some() => {
-                Expr::Unary(op.unary().unwrap(), Box::new(self.expression(7)?))
+                let operand = self.expression(UNARY_PRECEDENCE)?;
+                if is_row_function(&operand) {
+                    return Err(ROW_OPERAND.into());
+                }
+                Expr::Unary(op.unary().unwrap(), Box::new(operand))
             }
+            Lexeme::Dot => self.row_function()?,
             _ => return Err("Expected a value, name, or function".into()),
         };
         lhs = Expr::Spanned(start, self.tokens[self.at - 1].end, Box::new(lhs));
@@ -601,6 +607,14 @@ impl Parser {
             else {
                 break;
             };
+            if *op == Operator::Pipe {
+                if PIPE_PRECEDENCE < min {
+                    break;
+                }
+                self.at += 1;
+                lhs = self.pipe(start, lhs)?;
+                continue;
+            }
             let Some(op) = op.binary() else {
                 return Err(format!("Unknown operator {op}"));
             };
@@ -610,6 +624,9 @@ impl Parser {
             }
             self.at += 1;
             let rhs = self.expression(bp + 1)?;
+            if is_row_function(&lhs) || is_row_function(&rhs) {
+                return Err(ROW_OPERAND.into());
+            }
             lhs = Expr::Spanned(
                 start,
                 rhs.bounds().1,
@@ -618,6 +635,155 @@ impl Parser {
         }
         self.depth -= 1;
         Ok(lhs)
+    }
+    /// After a `|`: the function on the right, called with `input` as its
+    /// first argument. `xs | f(a)` is `f(xs, a)` and `xs | f` is `f(xs)`, so
+    /// a pipe leaves nothing behind for evaluation to know about.
+    fn pipe(&mut self, start: usize, input: Expr) -> Result<Expr, String> {
+        let token = self
+            .tokens
+            .get(self.at)
+            .ok_or("Expected a function after '|'")?;
+        let next = self.tokens.get(self.at + 1).map(|t| &t.kind);
+        if let Lexeme::Name(name) = &token.kind {
+            if name == "let" {
+                return Err("A value cannot be piped into let".into());
+            }
+            // `tasks | where !done` was the query pipeline's; say what replaced it.
+            if let Some(instead) = retired_stage(name)
+                && next.is_some_and(begins_expression)
+            {
+                return Err(format!(
+                    "Pipeline stages are gone: write | {instead} instead of | {name} …"
+                ));
+            }
+        }
+        let callee = self.expression(PIPE_PRECEDENCE + 1)?;
+        let call = |builtin: Builtin, args: Vec<Expr>| match builtin {
+            Builtin::Stopwatch | Builtin::Countdown => Err(format!(
+                "{builtin} takes its arguments in parentheses, not from '|'",
+                builtin = builtin.as_str()
+            )),
+            _ => Ok(Expr::Builtin(builtin, args)),
+        };
+        let piped = match callee.bare().clone() {
+            Expr::Builtin(builtin, args) => {
+                call(builtin, [input].into_iter().chain(args).collect())?
+            }
+            Expr::Call(name, args) => Expr::Call(name, [input].into_iter().chain(args).collect()),
+            Expr::Apply(function, args) => {
+                Expr::Apply(function, [input].into_iter().chain(args).collect())
+            }
+            Expr::Name(name) => match name.parse::<Builtin>() {
+                Ok(builtin) => call(builtin, vec![input])?,
+                Err(()) => Expr::Call(name, vec![input]),
+            },
+            Expr::Param { .. } | Expr::Property(..) | Expr::Lambda(..) => {
+                Expr::Apply(Box::new(callee.clone()), vec![input])
+            }
+            _ => return Err("Expected a function or a call after '|'".into()),
+        };
+        Ok(Expr::Spanned(start, callee.bounds().1, Box::new(piped)))
+    }
+    /// After a leading `.`: `.a.b` is `fn(x) => x.a.b`, and `.{a, b: .c}` is
+    /// `fn(x) => {a: x.a, b: x.c}`. The parameter cannot be written in source,
+    /// so it never shadows a name.
+    fn row_function(&mut self) -> Result<Expr, String> {
+        let enclosing = std::mem::replace(&mut self.parameters, vec![ROW.into()]);
+        let body = self.row_body();
+        self.parameters = enclosing;
+        Ok(Expr::Lambda(vec![ROW.into()], Box::new(body?)))
+    }
+    fn row_body(&mut self) -> Result<Expr, String> {
+        let row = || Expr::Param {
+            name: ROW.into(),
+            index: 0,
+        };
+        match self.tokens.get(self.at).map(|t| &t.kind) {
+            Some(Lexeme::Name(_)) => {
+                let mut path = row();
+                loop {
+                    let Some(Token {
+                        kind: Lexeme::Name(field),
+                        start,
+                        end,
+                    }) = self.tokens.get(self.at)
+                    else {
+                        return Err("Expected property name".into());
+                    };
+                    path = Expr::Spanned(
+                        *start,
+                        *end,
+                        Box::new(Expr::Property(Box::new(path), field.clone())),
+                    );
+                    self.at += 1;
+                    if !matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Dot)) {
+                        return Ok(path);
+                    }
+                    self.at += 1;
+                }
+            }
+            Some(Lexeme::OpenRecord) => {
+                self.at += 1;
+                let mut fields: Vec<(String, Expr)> = Vec::new();
+                while !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::CloseRecord)
+                ) {
+                    let token = &self.tokens.get(self.at).ok_or("Expected '}'")?;
+                    let (key, start, end) = match &token.kind {
+                        Lexeme::Name(key) | Lexeme::Value(Literal::Text(key)) => {
+                            (key.clone(), token.start, token.end)
+                        }
+                        _ => return Err("Expected a record field name".into()),
+                    };
+                    if fields.iter().any(|(k, _)| *k == key) {
+                        return Err(format!("Duplicate field '{key}'"));
+                    }
+                    self.at += 1;
+                    let value = if matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Colon)
+                    ) {
+                        self.at += 1;
+                        // A function of the row, `.c` or `fn(r) => …`, is applied
+                        // to it; anything else is the field's value as written.
+                        let value = self.expression(0)?;
+                        if matches!(value.bare(), Expr::Lambda(params, _) if params.len() == 1) {
+                            let (s, e) = value.bounds();
+                            Expr::Spanned(s, e, Box::new(Expr::Apply(Box::new(value), vec![row()])))
+                        } else {
+                            value
+                        }
+                    } else if identifier(&key) {
+                        Expr::Spanned(
+                            start,
+                            end,
+                            Box::new(Expr::Property(Box::new(row()), key.clone())),
+                        )
+                    } else {
+                        return Err("Expected ':'".into());
+                    };
+                    fields.push((key, value));
+                    if !matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Comma)
+                    ) {
+                        break;
+                    }
+                    self.at += 1;
+                }
+                if !matches!(
+                    self.tokens.get(self.at).map(|t| &t.kind),
+                    Some(Lexeme::CloseRecord)
+                ) {
+                    return Err("Expected '}'".into());
+                }
+                self.at += 1;
+                Ok(Expr::Record(fields))
+            }
+            _ => Err("Expected a field name or {…} after '.'".into()),
+        }
     }
     /// A bare name: an uppercase code is a literal, and a name that spells a
     /// parameter of the enclosing lambda is resolved to its slot.
@@ -766,6 +932,41 @@ impl Parser {
         self.at += 1;
         Ok(args)
     }
+}
+
+/// The parameter of `.a` and `.{…}`: not an identifier, so no note can name it.
+const ROW: &str = ".";
+const ROW_OPERAND: &str = "`.field` is a function of a row, not a value: write fn(x) => x.field to use it in an expression";
+
+/// Whether `expr` is `.a` or `.{…}`, which an operator cannot take.
+fn is_row_function(expr: &Expr) -> bool {
+    matches!(expr.bare(), Expr::Lambda(params, _) if params.len() == 1 && params[0] == ROW)
+}
+
+/// The function that replaced a stage of the retired query pipeline.
+fn retired_stage(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "where" => "filter(fn(x) => …)",
+        "select" => "map(.{…})",
+        "sort" => "sort_by(.field)",
+        "limit" => "slice(0, n)",
+        "group" => "group_by(.field)",
+        _ => return None,
+    })
+}
+
+/// Whether a token can start an operand, as a stage's argument did.
+fn begins_expression(kind: &Lexeme) -> bool {
+    matches!(
+        kind,
+        Lexeme::Name(_)
+            | Lexeme::Value(_)
+            | Lexeme::Left
+            | Lexeme::OpenList
+            | Lexeme::OpenRecord
+            | Lexeme::Dot
+            | Lexeme::Op(Operator::Not)
+    )
 }
 
 /// Arguments of a direct timer declaration, retaining the original duration expression.

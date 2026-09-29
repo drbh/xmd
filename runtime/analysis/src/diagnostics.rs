@@ -25,6 +25,9 @@ pub(crate) enum DiagnosticCode {
     Attribute,
     /// A feature module's own hook failed; the module id is in the message.
     Module,
+    /// The file's extension does not match what it holds: a file of
+    /// definitions is a `.xmd` library, anything else an `.x.md` note.
+    FileName,
 }
 impl DiagnosticCode {
     pub(crate) fn as_str(self) -> &'static str {
@@ -65,6 +68,9 @@ struct Issue {
     /// Reported as a warning: data that has not been fetched yet is a state of
     /// the world, not a mistake in the note.
     pending: bool,
+    /// Reported as information: a convention the note does not follow, which
+    /// changes nothing about what it computes.
+    advice: bool,
 }
 impl Issue {
     fn new(span: Span, code: DiagnosticCode, message: String) -> Self {
@@ -74,6 +80,7 @@ impl Issue {
             message,
             related: vec![],
             pending: false,
+            advice: false,
         }
     }
     fn failed(span: Span, code: DiagnosticCode, error: &EvalError) -> Self {
@@ -89,7 +96,9 @@ impl Issue {
         let related = self.related;
         Diagnostic {
             range: self.span.range(&ws.documents()[path].text),
-            severity: Some(if self.pending {
+            severity: Some(if self.advice {
+                DiagnosticSeverity::INFORMATION
+            } else if self.pending {
                 DiagnosticSeverity::WARNING
             } else {
                 DiagnosticSeverity::ERROR
@@ -112,6 +121,68 @@ impl Issue {
             ..Default::default()
         }
     }
+}
+/// The naming convention: a file that only defines names, at least one of
+/// them a function, is a library for other files to import and is named
+/// `.xmd`; anything with note content (prose, headings, tasks, tables) is a
+/// working note, named `.x.md`. Both are read the same way, so this is
+/// advice about the name, never an error.
+fn file_name(doc: &lang::model::Document, path: &Path) -> Option<Issue> {
+    let stem = lang::common::note_stem(path)?;
+    let lines: Vec<&str> = doc.text.lines().collect();
+    // Rows that belong to a definition written as its own line, `name := …`;
+    // a table or plan laid out under a name is note content.
+    let mut defined = vec![false; lines.len()];
+    for (index, d) in doc.definitions.iter().enumerate() {
+        let line = lines.get(d.named.span.line).copied().unwrap_or("");
+        let own_line = d.expression && d.named.span.start == line.len() - line.trim_start().len();
+        if own_line && doc.table_of(index).is_none() && doc.plan_of(index).is_none() {
+            let (first, last) = doc.definition_rows(index);
+            defined[first..=last.min(lines.len().saturating_sub(1))].fill(true);
+        }
+    }
+    let mut comment = false;
+    let content = lines.iter().enumerate().find(|&(row, line)| {
+        let trimmed = line.trim();
+        let in_comment = comment || trimmed.starts_with("<!--");
+        comment = in_comment && !trimmed.contains("-->");
+        !(trimmed.is_empty() || in_comment || trimmed.starts_with("//") || defined[row])
+    });
+    if lang::common::is_library(path) {
+        let (row, line) = content?;
+        let start = line.len() - line.trim_start().len();
+        return Some(Issue {
+            advice: true,
+            ..Issue::new(
+                Span::new(row, start, line.trim_end().len()),
+                DiagnosticCode::FileName,
+                format!(
+                    "This line is note content, but .{} files only define names for other files to import; a working note is named {}",
+                    lang::common::LIBRARY_EXTENSION,
+                    lang::common::note_file(stem),
+                ),
+            )
+        });
+    }
+    if content.is_some() {
+        return None;
+    }
+    let first = doc
+        .definitions
+        .iter()
+        .find(|d| d.expression && d.source.starts_with("fn"))?;
+    Some(Issue {
+        advice: true,
+        ..Issue::new(
+            first.named.span,
+            DiagnosticCode::FileName,
+            format!(
+                "This file only defines names, including functions, so it is a library: name it {} and keep .{} for working notes",
+                lang::common::library_file(stem),
+                lang::common::EXTENSION,
+            ),
+        )
+    })
 }
 pub(crate) fn incomplete(source: &str) -> bool {
     if lang::syntax::valid_expression(source) {
@@ -146,7 +217,7 @@ pub fn collect_native(
             })
     };
     let symbols = ws.symbols();
-    let mut issues = vec![];
+    let mut issues: Vec<Issue> = file_name(doc, path).into_iter().collect();
     for problem in &doc.problems {
         if editing && problem.message.starts_with("Unclosed") {
             continue;

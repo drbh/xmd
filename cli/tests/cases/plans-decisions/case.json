@@ -1,9 +1,9 @@
 {
   "steps": [
     { "cli": ["render", "gear.x.md", "--format", "text"] },
-    { "cli": ["query", "gear.x.md", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "gear.x.md", "decisions | select {title, plan, line, value}", "--json"] },
-    { "cli": ["query", "gear.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "gear.x.md", "map(plans, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "gear.x.md", "map(decisions, fn(r) => {title: r.title, plan: r.plan, line: r.line, value: r.value})", "--json"] },
+    { "cli": ["query", "gear.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "gear.x.md" },
@@ -20,8 +20,8 @@
       ]
     },
     { "cli": ["render", "packed.x.md", "--format", "text"] },
-    { "cli": ["query", "packed.x.md", "plans | select {name, display}", "--json"] },
-    { "cli": ["query", "packed.x.md", "rows | select {table, line, cells}", "--json"] },
+    { "cli": ["query", "packed.x.md", "map(plans, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "packed.x.md", "map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells})", "--json"] },
     {
       "lsp": [
         { "open": "packed.x.md" },

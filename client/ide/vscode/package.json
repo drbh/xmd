@@ -29,7 +29,7 @@
     "languages": [{
       "id": "xmd",
       "aliases": ["XMD", "xmd"],
-      "filenamePatterns": ["*.x.md"],
+      "filenamePatterns": ["*.x.md", "*.xmd"],
       "configuration": "./language-configuration.json"
     }],
     "commands": [{ "command": "xmd.restartServer", "title": "XMD: Restart Language Server" }],

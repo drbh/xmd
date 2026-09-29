@@ -1,0 +1,90 @@
+### 0 cli query --workspace map(diagnostics, fn(r) => {path: r.source.path, line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query --workspace map(diagnostics, fn(r) => {path: r.source.path, line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "file-name",
+    "line": 3,
+    "message": "This line is note content, but .xmd files only define names for other files to import; a working note is named budget.x.md",
+    "path": "<root>/budget.xmd",
+    "severity": "information"
+  },
+  {
+    "code": "file-name",
+    "line": 0,
+    "message": "This file only defines names, including functions, so it is a library: name it tools.xmd and keep .x.md for working notes",
+    "path": "<root>/tools.x.md",
+    "severity": "information"
+  }
+]
+
+### 1 cli query trip.x.md h.double(fare) --json
+$ xmd query trip.x.md h.double(fare) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "amount": 80,
+    "currency": "USD",
+    "type": "money"
+  }
+]
+
+### 2 lsp
+-- open helpers.xmd
+-- await textDocument/publishDiagnostics helpers.xmd
+{
+  "diagnostics": [],
+  "uri": "file://<root>/helpers.xmd",
+  "version": 1
+}
+-- open budget.xmd
+-- await textDocument/publishDiagnostics budget.xmd
+{
+  "diagnostics": [
+    {
+      "code": "file-name",
+      "message": "This line is note content, but .xmd files only define names for other files to import; a working note is named budget.x.md",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/budget.xmd",
+  "version": 1
+}
+-- open tools.x.md
+-- await textDocument/publishDiagnostics tools.x.md
+{
+  "diagnostics": [
+    {
+      "code": "file-name",
+      "message": "This file only defines names, including functions, so it is a library: name it tools.xmd and keep .x.md for working notes",
+      "range": {
+        "end": {
+          "character": 6,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 3,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/tools.x.md",
+  "version": 1
+}
+

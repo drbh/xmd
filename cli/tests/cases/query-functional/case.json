@@ -15,7 +15,7 @@
       "cli": [
         "query",
         "a.x.md",
-        "tasks | where !done | select title",
+        "map(filter(tasks, fn(r) => !r.done), fn(r) => r.title)",
         "--root",
         "notes",
         "--json"
@@ -75,7 +75,7 @@
       "cli": [
         "query",
         "scope.x.md",
-        "tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()}",
+        "map(map(tasks, fn(r) => {value: 100, title: r.title}), fn(r) => {local: map([1], fn(x) => x + r.value), named: read()})",
         "--json"
       ]
     },
@@ -83,7 +83,7 @@
       "cli": [
         "query",
         "scope.x.md",
-        "tasks | select map([1], fn(title) => title + 1)",
+        "map(tasks, fn(r) => map([1], fn(title) => title + 1))",
         "--json"
       ]
     },
@@ -91,7 +91,7 @@
       "cli": [
         "query",
         "scope.x.md",
-        "tasks | select if(false, nonexistent, title)",
+        "map(tasks, fn(r) => if(false, r.nonexistent, r.title))",
         "--json"
       ]
     },
@@ -107,7 +107,7 @@
       "cli": [
         "query",
         "scope.x.md",
-        "tasks | select { // | , } inside a comment\n title, nested: {title}}",
+        "map(tasks, fn(r) => { // | , } inside a comment\n title: r.title, nested: {title: r.title}})",
         "--json"
       ]
     },
@@ -115,7 +115,7 @@
       "cli": [
         "query",
         "scope.x.md",
-        "[{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x))",
+        "map([{f:fn(x) => x + 1}], fn(r) => map([1], fn(x) => r.f(x)))",
         "--json"
       ]
     },
@@ -131,7 +131,7 @@
       "cli": [
         "query",
         "lib.x.md",
-        "values | select {name, type, display}",
+        "map(values, fn(r) => {name: r.name, type: r.type, display: r.display})",
         "--json"
       ]
     },
@@ -155,7 +155,7 @@
       "cli": [
         "query",
         "lib.x.md",
-        "values | where name == \"result\" | select {value, display}",
+        "map(filter(values, fn(r) => r.name == \"result\"), fn(r) => {value: r.value, display: r.display})",
         "--json"
       ]
     },
@@ -163,7 +163,7 @@
       "cli": [
         "query",
         "lib.x.md",
-        "values | where name == \"result\" | select map([1, 2], fn(x) => x + value)",
+        "map(filter(values, fn(r) => r.name == \"result\"), fn(r) => map([1, 2], fn(x) => x + r.value))",
         "--json"
       ]
     },
@@ -243,7 +243,7 @@
       "cli": [
         "query",
         "shadow.x.md",
-        "values | where name == \"now\" | select value",
+        "map(filter(values, fn(r) => r.name == \"now\"), fn(r) => r.value)",
         "--json"
       ]
     },

@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | select {name, value, type, display, errors}",
+        "map(values, fn(r) => {name: r.name, value: r.value, type: r.type, display: r.display, errors: r.errors})",
         "--root",
         "money",
         "--json"
@@ -15,7 +15,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | where name == \"total\" | select {value, amount:value.amount, currency:value.currency, local:eval(\"price\")}",
+        "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {value: r.value, amount:r.value.amount, currency:r.value.currency, local:eval(\"price\")})",
         "--root",
         "money",
         "--json"
@@ -25,7 +25,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | where name == \"price\" | sum value",
+        "sum(map(filter(values, fn(r) => r.name == \"price\"), fn(r) => r.value))",
         "--root",
         "money",
         "--json"
@@ -35,7 +35,7 @@
       "cli": [
         "query",
         "usd.x.md",
-        "values | where name == \"total\" | select {name, hover}",
+        "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, hover: r.hover})",
         "--root",
         "money",
         "--json"
@@ -45,7 +45,7 @@
       "cli": [
         "query",
         "--workspace",
-        "notes | select {title, kind, path: source.path, size: length(text)}",
+        "map(notes, fn(r) => {title: r.title, kind: r.kind, path: r.source.path, size: length(r.text)})",
         "--root",
         "money",
         "--json"
@@ -55,7 +55,7 @@
       "cli": [
         "query",
         "tables.x.md",
-        "tables | select {name}",
+        "map(tables, fn(r) => {name: r.name})",
         "--json"
       ]
     },
@@ -63,7 +63,7 @@
       "cli": [
         "query",
         "tables.x.md",
-        "rows | where table == \"groceries\" && cells.quantity > 2 | select {item:cells.item, cost:cells.price * cells.quantity}",
+        "map(filter(rows, fn(r) => r.table == \"groceries\" && r.cells.quantity > 2), fn(r) => {item:r.cells.item, cost:r.cells.price * r.cells.quantity})",
         "--json"
       ]
     },
@@ -71,7 +71,7 @@
       "cli": [
         "query",
         "tables.x.md",
-        "values | where name == \"total\" | select {name, value, display}",
+        "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, display: r.display})",
         "--json"
       ]
     },
@@ -79,7 +79,7 @@
       "cli": [
         "query",
         "plans.x.md",
-        "plans | select {name}",
+        "map(plans, fn(r) => {name: r.name})",
         "--json"
       ]
     },
@@ -87,7 +87,7 @@
       "cli": [
         "query",
         "plans.x.md",
-        "plans | where name == \"bakery\" | select solution",
+        "map(filter(plans, fn(r) => r.name == \"bakery\"), fn(r) => r.solution)",
         "--json"
       ]
     },
@@ -95,7 +95,7 @@
       "cli": [
         "query",
         "links.x.md",
-        "resources | select {target, metadata}",
+        "map(resources, fn(r) => {target: r.target, metadata: r.metadata})",
         "--json"
       ]
     },
@@ -103,7 +103,7 @@
       "cli": [
         "query",
         "links.x.md",
-        "resources | where metadata != null | select metadata.title",
+        "map(filter(resources, fn(r) => r.metadata != null), fn(r) => r.metadata.title)",
         "--json"
       ]
     },
@@ -111,7 +111,7 @@
       "cli": [
         "query",
         "bad.x.md",
-        "values | select {name, value, errors}",
+        "map(values, fn(r) => {name: r.name, value: r.value, errors: r.errors})",
         "--json"
       ]
     },
@@ -119,7 +119,7 @@
       "cli": [
         "query",
         "bad.x.md",
-        "tasks | select {title, due, errors}",
+        "map(tasks, fn(r) => {title: r.title, due: r.due, errors: r.errors})",
         "--json"
       ]
     },
@@ -127,7 +127,7 @@
       "cli": [
         "query",
         "bad.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -138,7 +138,7 @@
         },
         {
           "query": {
-            "query": "tasks | select {title, errors}",
+            "query": "map(tasks, fn(r) => {title: r.title, errors: r.errors})",
             "uri": "bad.x.md"
           }
         },
@@ -150,7 +150,7 @@
         },
         {
           "query": {
-            "query": "values | select {name, display}",
+            "query": "map(values, fn(r) => {name: r.name, display: r.display})",
             "uri": "bad.x.md"
           }
         },

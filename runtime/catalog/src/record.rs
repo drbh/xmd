@@ -156,11 +156,6 @@ impl Record {
             resource: None,
         }
     }
-    /// Whether a name binds on this record, counting the lazily produced hover.
-    pub(crate) fn has(&self, name: &str) -> bool {
-        self.fields.contains_key(name)
-            || matches!(name.parse(), Ok(LazyField::Hover)) && self.fields.contains_key(NAME)
-    }
     pub fn field(&mut self, key: &str, engine: &mut Engine<'_>) -> Result<Value, String> {
         match key.parse::<LazyField>() {
             Ok(LazyField::Presentation) => return Ok(self.presentation(engine)),
@@ -250,5 +245,12 @@ impl Record {
     pub fn materialize(mut self, engine: &mut Engine<'_>) -> Value {
         self.evaluate(engine);
         Value::Record(self.fields)
+    }
+    /// The record a query reads: every field, and a named record's hover.
+    pub(crate) fn queried(mut self, engine: &mut Engine<'_>) -> Value {
+        if let Some(hover) = self.hover(engine) {
+            self.fields.insert(LazyField::Hover.as_str().into(), hover);
+        }
+        self.materialize(engine)
     }
 }

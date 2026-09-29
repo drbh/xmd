@@ -1,7 +1,5 @@
 # Types
 
-Every literal has a type, and arithmetic respects it.
-
 42:count
 $19.99:price
 47%:share
@@ -10,10 +8,7 @@ $19.99:price
 true:flag
 "Oaxaca":city
 
-Money times a number is money: [price * 3].
-A ratio scales anything: [price * share].
-Durations add and scale: [duration * 2 + 15m].
-Dates take durations: [date + 7d]; dates subtract to a duration: [date - 2026-11-01].
-Comparisons give booleans: [price > $10 && flag].
-
-<!-- Try: multiply two money values to see a type error. -->
+Three at [price * 3], a share of [price * share].
+Twice as long: [duration * 2 + 15m].
+A week later: [date + 7d], or [date - 2026-11-01] after November 1.
+Worth it: [price > $10 && flag].

@@ -23,12 +23,12 @@
         { "method": "documentSymbols", "params": { "uri": "file:///workspace/bakery.x.md" } },
         {
           "method": "query",
-          "params": { "query": "values | where name == \"total\" | select {name, value, source}" }
+          "params": { "query": "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, source: r.source})" }
         },
         {
           "method": "query",
           "params": {
-            "query": "tasks | where leaf && !done | sort source.path, source.line | count"
+            "query": "length(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path))"
           }
         },
         {
@@ -40,7 +40,7 @@
         },
         {
           "method": "query",
-          "params": { "uri": "file:///workspace/trip.x.md", "query": "tasks | select title" }
+          "params": { "uri": "file:///workspace/trip.x.md", "query": "map(tasks, fn(r) => r.title)" }
         },
         {
           "method": "setDocument",
@@ -52,7 +52,7 @@
         },
         {
           "method": "query",
-          "params": { "query": "values | where name == \"total\" | select {name, value, source}" }
+          "params": { "query": "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, source: r.source})" }
         }
       ]
     },
@@ -60,7 +60,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | where name == \"total\" | select {name, value, source}",
+        "map(filter(values, fn(r) => r.name == \"total\"), fn(r) => {name: r.name, value: r.value, source: r.source})",
         "--json"
       ]
     },
@@ -68,7 +68,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | where leaf && !done | sort source.path, source.line | count",
+        "length(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path))",
         "--json"
       ]
     },

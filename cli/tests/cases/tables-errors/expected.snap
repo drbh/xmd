@@ -14,8 +14,8 @@ exit 1
 <root>/badcells.x.md:7:38: error: Unknown column 'prcie' in table 'groceries'
 xmd: 2 error(s) while rendering
 
-### 1 cli query badcells.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query badcells.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query badcells.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query badcells.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -75,8 +75,8 @@ exit 0
   "version": 1
 }
 
-### 3 cli query malformed-empty.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query malformed-empty.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query malformed-empty.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query malformed-empty.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -94,8 +94,8 @@ exit 1
 --- stderr
 xmd: Missing cell value
 
-### 5 cli query malformed-short.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query malformed-short.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query malformed-short.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query malformed-short.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -113,8 +113,8 @@ exit 1
 --- stderr
 xmd: Expected 3 cells, found 2
 
-### 7 cli query malformed-extra.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query malformed-extra.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query malformed-extra.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query malformed-extra.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -132,8 +132,8 @@ exit 1
 --- stderr
 xmd: Expected 3 cells, found 4
 
-### 9 cli query malformed-money.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query malformed-money.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query malformed-money.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query malformed-money.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -171,8 +171,8 @@ exit 1
 --- stderr
 xmd: A table needs a pipe-delimited header on the next line
 
-### 13 cli query shape-empty.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query shape-empty.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 13 cli query shape-empty.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query shape-empty.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -190,8 +190,8 @@ exit 1
 --- stderr
 xmd: Duplicate column 'a'
 
-### 15 cli query shape-dupe.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query shape-dupe.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 15 cli query shape-dupe.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query shape-dupe.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -209,8 +209,8 @@ exit 1
 --- stderr
 xmd: Column names must be identifiers (not true or false)
 
-### 17 cli query shape-keyword.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query shape-keyword.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 17 cli query shape-keyword.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query shape-keyword.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -228,8 +228,8 @@ exit 1
 --- stderr
 xmd: Table separator must have one --- cell per column
 
-### 19 cli query shape-separator.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query shape-separator.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 19 cli query shape-separator.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query shape-separator.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

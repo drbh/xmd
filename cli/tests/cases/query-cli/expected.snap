@@ -1,5 +1,5 @@
-### 0 cli query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
-$ xmd query --workspace import("agenda").between(entries, today(), today()) | select {title, estimate, source} --root agenda --on 2026-09-16 --json
+### 0 cli query --workspace map(import("agenda").between(entries, today(), today()), fn(r) => {title: r.title, estimate: r.estimate, source: r.source}) --root agenda --on 2026-09-16 --json
+$ xmd query --workspace map(import("agenda").between(entries, today(), today()), fn(r) => {title: r.title, estimate: r.estimate, source: r.source}) --root agenda --on 2026-09-16 --json
 exit 0
 --- stdout
 [
@@ -35,15 +35,15 @@ exit 0
   "Open #work"
 ]
 
-### 2 cli query --workspace tasks | select {title} --root agenda --jsonl
-$ xmd query --workspace tasks | select {title} --root agenda --jsonl --now 2026-09-16T12:00:00-04:00
+### 2 cli query --workspace map(tasks, fn(r) => {title: r.title}) --root agenda --jsonl
+$ xmd query --workspace map(tasks, fn(r) => {title: r.title}) --root agenda --jsonl --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 {"title":"Open #work"}
 {"title":"Closed"}
 
-### 3 cli query --workspace tasks | select {title} --root agenda
-$ xmd query --workspace tasks | select {title} --root agenda --now 2026-09-16T12:00:00-04:00
+### 3 cli query --workspace map(tasks, fn(r) => {title: r.title}) --root agenda
+$ xmd query --workspace map(tasks, fn(r) => {title: r.title}) --root agenda --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 title=Open #work
@@ -52,7 +52,7 @@ title=Closed
 ### 4 cli query --workspace - --root agenda --json
 $ xmd query --workspace - --root agenda --json --now 2026-09-16T12:00:00-04:00
 --- stdin
-tasks | count
+length(tasks)
 exit 0
 --- stdout
 [
@@ -92,14 +92,14 @@ exit 0
 -- agenda/.xmd/cache.json
 (missing: entity not found)
 
-### 8 cli query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json
-$ xmd query --workspace diagnostics | where severity == "error" --root clean --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+### 8 cli query --workspace filter(diagnostics, fn(r) => r.severity == "error") --root clean --fail-on-match --json
+$ xmd query --workspace filter(diagnostics, fn(r) => r.severity == "error") --root clean --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 9 cli query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json
-$ xmd query --workspace diagnostics | where severity == "error" | select {line, message} --root broken --fail-on-match --json --now 2026-09-16T12:00:00-04:00
+### 9 cli query --workspace map(filter(diagnostics, fn(r) => r.severity == "error"), fn(r) => {line: r.line, message: r.message}) --root broken --fail-on-match --json
+$ xmd query --workspace map(filter(diagnostics, fn(r) => r.severity == "error"), fn(r) => {line: r.line, message: r.message}) --root broken --fail-on-match --json --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stdout
 [
@@ -111,11 +111,11 @@ exit 1
 --- stderr
 xmd: 1 matching result(s)
 
-### 10 cli query --workspace tasks | where ( --root broken
-$ xmd query --workspace tasks | where ( --root broken --now 2026-09-16T12:00:00-04:00
+### 10 cli query --workspace filter(tasks, fn(r) => () --root broken
+$ xmd query --workspace filter(tasks, fn(r) => () --root broken --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-xmd: Unclosed delimiter in query
+xmd: Expected a value, name, or function
 
 ### 11 cli query --workspace tasks --root broken --json --jsonl
 $ xmd query --workspace tasks --root broken --json --jsonl --now 2026-09-16T12:00:00-04:00
@@ -129,8 +129,8 @@ Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
 
 For more information, try '--help'.
 
-### 12 cli query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
-$ xmd query --workspace values | select value --root clock --now 2026-09-16T23:30:00-04:00 --json
+### 12 cli query --workspace map(values, fn(r) => r.value) --root clock --now 2026-09-16T23:30:00-04:00 --json
+$ xmd query --workspace map(values, fn(r) => r.value) --root clock --now 2026-09-16T23:30:00-04:00 --json
 exit 0
 --- stdout
 [
@@ -144,8 +144,8 @@ exit 0
   }
 ]
 
-### 13 cli query --workspace values | select value --root clock --on 2026-09-16 --json
-$ xmd query --workspace values | select value --root clock --on 2026-09-16 --json
+### 13 cli query --workspace map(values, fn(r) => r.value) --root clock --on 2026-09-16 --json
+$ xmd query --workspace map(values, fn(r) => r.value) --root clock --on 2026-09-16 --json
 exit 0
 --- stdout
 [
@@ -379,7 +379,7 @@ Usage: xmd query [OPTIONS] <QUERY>                (note on stdin)
 
 Arguments:
   [FILE_OR_QUERY]  A note relative to --root, or the query itself when the note is piped in or --workspace is set
-  [QUERY]          A functional expression or collection pipeline; use - for stdin
+  [QUERY]          An expression over the workspace's collections; use - for stdin
 
 Options:
       --workspace      Query all indexed notes instead of supplying a positional note file
@@ -391,12 +391,12 @@ Options:
       --fail-on-match  Return exit status 1 if the query returns any rows (useful for diagnostics)
   -h, --help           Print help
 
-Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes
-Functions: map, filter, fold, get, sort_by, group_by, sum, length
-Stages: where, select, sort, limit, count, sum, group
+Bindings: ast, graph, days, timers, links, tasks, events, stops, entries, values, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells
+Functions: map, filter, fold, get, sort_by, desc, group_by, slice, concat, sum, length
+xs | f(a) is f(xs, a); .due is fn(x) => x.due; .{title, due} picks fields.
 Use - as QUERY to read an expression from stdin; the note then has to be a file.
-Examples: xmd query note.x.md 'map(tasks, fn(t) => t.title)' --json
-          cat note.x.md | xmd query 'length(tasks)'
+Examples: xmd query note.x.md 'tasks | sort_by(desc(.due)) | map(.title)' --json
+          cat note.x.md | xmd query 'tasks | length'
           xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json
           printf 'length(tasks)' | xmd query note.x.md -
 

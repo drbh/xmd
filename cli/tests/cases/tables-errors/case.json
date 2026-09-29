@@ -1,20 +1,20 @@
 {
   "steps": [
     { "cli": ["render", "badcells.x.md", "--format", "text"] },
-    { "cli": ["query", "badcells.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "badcells.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "badcells.x.md" },
         { "await": "textDocument/publishDiagnostics", "file": "badcells.x.md" }
       ]
     },
-    { "cli": ["query", "malformed-empty.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-empty.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "malformed-empty.x.md", "total", "--json"] },
-    { "cli": ["query", "malformed-short.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-short.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "malformed-short.x.md", "total", "--json"] },
-    { "cli": ["query", "malformed-extra.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-extra.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "malformed-extra.x.md", "total", "--json"] },
-    { "cli": ["query", "malformed-money.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "malformed-money.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "malformed-money.x.md", "total", "--json"] },
     {
       "lsp": [
@@ -29,13 +29,13 @@
       ]
     },
     { "cli": ["query", "shape-empty.x.md", "t", "--json"] },
-    { "cli": ["query", "shape-empty.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-empty.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "shape-dupe.x.md", "t", "--json"] },
-    { "cli": ["query", "shape-dupe.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-dupe.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "shape-keyword.x.md", "t", "--json"] },
-    { "cli": ["query", "shape-keyword.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-keyword.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "shape-separator.x.md", "t", "--json"] },
-    { "cli": ["query", "shape-separator.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "shape-separator.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["query", "empty.x.md", "sum(t, value)", "--json"] },
     { "cli": ["query", "empty.x.md", "sum(12, value)", "--json"] },
     { "cli": ["query", "empty.x.md", "sum(t)", "--json"] },

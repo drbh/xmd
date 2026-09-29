@@ -393,23 +393,54 @@ impl Engine<'_> {
                     Err(e) => return Err(e),
                 }
             }
-            (Builtin::SortBy, [List(items), function @ Function(_)]) => {
-                let mut keyed = Vec::new();
-                let mut first = None;
-                for item in items {
-                    let key = self.call(function.clone(), vec![item.clone()])?;
-                    values::compare(&key, &key)?;
-                    if key != Null {
-                        if let Some(first) = &first {
-                            values::compare(first, &key)?;
-                        } else {
-                            first = Some(key.clone());
-                        }
-                    }
-                    keyed.push((key, item.clone()));
+            (Builtin::Desc, [function @ Function(_)]) => {
+                Record([(DESCENDING.into(), function.clone())].into())
+            }
+            (Builtin::SortBy, [List(items), keys]) => {
+                // One key, desc(key), or a list of them, compared in order.
+                let keys = match keys {
+                    List(keys) => keys.iter().map(sort_key).collect::<Option<Vec<_>>>(),
+                    key => sort_key(key).map(|key| vec![key]),
                 }
-                // Every key has been checked against the common scalar type.
-                keyed.sort_by(|(a, _), (b, _)| values::compare(a, b).unwrap());
+                .filter(|keys| !keys.is_empty())
+                .ok_or(EvalError::Message(
+                    "sort_by expects a key function, desc(key), or a list of them".into(),
+                ))?;
+                let mut keyed = Vec::new();
+                let mut first = vec![None; keys.len()];
+                for item in items {
+                    let mut values = Vec::new();
+                    for ((function, _), first) in keys.iter().zip(&mut first) {
+                        let key = self.call(function.clone(), vec![item.clone()])?;
+                        values::compare(&key, &key)?;
+                        if key != Null {
+                            if let Some(first) = first {
+                                values::compare(first, &key)?;
+                            } else {
+                                *first = Some(key.clone());
+                            }
+                        }
+                        values.push(key);
+                    }
+                    keyed.push((values, item.clone()));
+                }
+                // Every key has been checked against its column's scalar type.
+                // A descending key reverses values, but nulls still come last.
+                keyed.sort_by(|(a, _), (b, _)| {
+                    a.iter()
+                        .zip(b)
+                        .zip(&keys)
+                        .map(|((a, b), (_, descending))| {
+                            let order = values::compare(a, b).unwrap();
+                            if *descending && *a != Null && *b != Null {
+                                order.reverse()
+                            } else {
+                                order
+                            }
+                        })
+                        .find(|order| order.is_ne())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
                 List(keyed.into_iter().map(|(_, item)| item).collect())
             }
             (Builtin::GroupBy, [List(items), function @ Function(_)]) => {
@@ -671,5 +702,20 @@ impl Engine<'_> {
             self.wanted.push(values::LookupKey::rate(from, to));
         }
         values::rate(&self.request.workspace.lookups, from, to)
+    }
+}
+
+/// The field `desc(key)` wraps its key in, which `sort_by` reads back.
+const DESCENDING: &str = "desc";
+
+/// A `sort_by` key: a function, ascending, or `desc(key)`.
+fn sort_key(key: &Value) -> Option<(Value, bool)> {
+    match key {
+        Value::Function(_) => Some((key.clone(), false)),
+        Value::Record(fields) if fields.len() == 1 => match fields.get(DESCENDING)? {
+            function @ Value::Function(_) => Some((function.clone(), true)),
+            _ => None,
+        },
+        _ => None,
     }
 }

@@ -13,10 +13,13 @@ mkdir -p ~/.local/bin && \
   tar -xzC ~/.local/bin xmd
 ```
 
+from a checkout, `cargo install --path cli` builds the same binary; with
+nix, `nix run github:drbh/xmd` or `nix build`.
 editors: [vs code](client/ide/vscode), [zed](client/ide/zed),
 [neovim](client/ide/neovim), [helix](client/ide/helix)
 
-now just update your `.md` files to `.x.md` and they will be recognized by xmd - and automatically fallback to markdown rendering by unsupported editors.
+rename a `.md` file to `.x.md` and xmd picks it up; editors without xmd
+still show it as markdown
 
 ## Features
 
@@ -24,6 +27,17 @@ now just update your `.md` files to `.x.md` and they will be recognized by xmd -
 - cli tool; query docs via command line
 - web-based document editor; edit anywhere anytime - local first (offline capable)
 - mutable; written in its own language so you can extend and customize it easily
+
+## docs
+
+short, and in order. each page links to the next
+
+1. [the language](docs/01-language.md)
+2. [ask a note a question](docs/02-queries.md)
+3. [notes and libraries](docs/03-files.md)
+4. [modules](docs/04-modules.md)
+5. [put a note on your own page](docs/05-embed.md)
+6. [when not to use it](docs/06-limits.md)
 
 ## license
 

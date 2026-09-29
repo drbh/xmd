@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "calc.x.md",
-        "calculations | select anchor",
+        "map(calculations, fn(r) => r.anchor)",
         "--json"
       ]
     },

@@ -1,7 +1,6 @@
-# Linear plans
+# Plans
 
-maximize or minimize an expression subject to a constraint table. Names no
-note defines are decision variables; everything else is a constant.
+Names no note defines, like bagels, are what the plan decides.
 
 400:flour_stock
 
@@ -14,7 +13,3 @@ bakery := maximize($3 * bagels + $1.25 * doughnuts)
 | doughnut_min | doughnuts >= 14                              |
 
 Bake [bakery.bagels] bagels and [bakery.doughnuts] doughnuts for [bakery].
-Flour to spare: [bakery.flour].
-
-<!-- Constraint rows show usage and binding or slack. Try: change flour_stock
-to 300, or xmd query --workspace 'plans | where name == "bakery" | select solution' on the command line. -->

@@ -11,8 +11,8 @@ exit 0
 --- stderr
 <root>/money.x.md:6:14: warning: No cached rate GBP→USD; run xmd refresh or use the ⟳ lookups lens
 
-### 1 cli query money.x.md values | select {name, display} --json
-$ xmd query money.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query money.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query money.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -42,8 +42,8 @@ exit 0
   }
 ]
 
-### 2 cli query money.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query money.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 2 cli query money.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query money.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

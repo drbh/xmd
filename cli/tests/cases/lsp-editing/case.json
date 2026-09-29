@@ -136,7 +136,7 @@
       "cli": [
         "query",
         "--workspace",
-        "notes | select {title} | sort title",
+        "sort_by(map(notes, fn(r) => {title: r.title}), fn(r) => r.title)",
         "--json"
       ]
     },

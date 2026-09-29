@@ -26,7 +26,7 @@ pub struct PlanValue {
     pub rows: Vec<(crate::engine::RowVariable, Value)>,
 }
 impl PlanValue {
-    /// Typed result plus source geometry; presentation policy lives in plan.x.md.
+    /// Typed result plus source geometry; presentation policy lives in plan.xmd.
     pub fn record(&self, ws: &Workspace) -> Value {
         let columns = self
             .columns()
@@ -272,7 +272,7 @@ pub(crate) fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Ev
     })))
 }
 record! {
-    /// One side of a linear constraint, as `plan.x.md` receives it: a constant,
+    /// One side of a linear constraint, as `plan.xmd` receives it: a constant,
     /// the coefficients by variable name, and one value carrying the form's unit.
     pub(crate) struct FormRecord {
         pub constant: f64,
@@ -408,7 +408,7 @@ record! {
     }
 }
 
-/// A solved constraint on its way to `plan.x.md`, with the source geometry when
+/// A solved constraint on its way to `plan.xmd`, with the source geometry when
 /// the plan it came from is still in the workspace.
 pub(crate) struct ConstraintRecord<'a> {
     pub result: &'a ConstraintResult,
@@ -430,7 +430,7 @@ impl ToValue for ConstraintRecord<'_> {
     }
 }
 
-/// A whole solved plan, as `plan.x.md` renders it. Presentation policy is the
+/// A whole solved plan, as `plan.xmd` renders it. Presentation policy is the
 /// module's; this is the typed result plus where it came from.
 pub(crate) struct PlanRecord<'a> {
     pub goal: String,

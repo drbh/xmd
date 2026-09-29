@@ -1,5 +1,5 @@
-### 0 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -86,8 +86,8 @@ exit 0
 
 ## Saturday, December 5, 2026 · Oaxaca 0 stops · in 79 days · no forecast yet; seasonal outlooks cover about 7 months
 
-### 4 cli query trip.x.md values | select {name, display} --json
-$ xmd query trip.x.md values | select {name, display} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 4 cli query trip.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query trip.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -105,7 +105,7 @@ exit 0
   }
 ]
 
-### 5 cli query --workspace diagnostics | where severity == "error" --fail-on-match
-$ xmd query --workspace diagnostics | where severity == "error" --fail-on-match --root <root> --now 2026-09-17T14:00:00+00:00
+### 5 cli query --workspace filter(diagnostics, fn(r) => r.severity == "error") --fail-on-match
+$ xmd query --workspace filter(diagnostics, fn(r) => r.severity == "error") --fail-on-match --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 

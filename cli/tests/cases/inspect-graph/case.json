@@ -16,7 +16,7 @@
         "--root",
         "notes",
         "-q",
-        "graph.nodes | where external | select name"
+        "map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name)"
       ]
     },
     {
@@ -76,7 +76,7 @@
         "--root",
         "notes",
         "-q",
-        "graph.nodes | select name"
+        "map(graph.nodes, fn(r) => r.name)"
       ]
     },
     {
@@ -86,7 +86,7 @@
         "--root",
         "notes",
         "-q",
-        "graph.nodes | select name"
+        "map(graph.nodes, fn(r) => r.name)"
       ]
     },
     {

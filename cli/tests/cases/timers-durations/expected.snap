@@ -65,8 +65,8 @@ exit 1
 --- stderr
 xmd: A date requires whole-day durations; use a date/time for hours (Date + Duration)
 
-### 3 cli query durations.x.md tasks | where leaf | select {title, estimate, due} --json
-$ xmd query durations.x.md tasks | where leaf | select {title, estimate, due} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query durations.x.md map(filter(tasks, fn(r) => r.leaf), fn(r) => {title: r.title, estimate: r.estimate, due: r.due}) --json
+$ xmd query durations.x.md map(filter(tasks, fn(r) => r.leaf), fn(r) => {title: r.title, estimate: r.estimate, due: r.due}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

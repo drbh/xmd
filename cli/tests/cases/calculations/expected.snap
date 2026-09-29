@@ -8,8 +8,8 @@ exit 0
 We have [remaining] $556 left, which is [remaining / budget] 18.5333% of the budget, or [budget * 2] $6,000 doubled.
 Lunch is $25 and [$25] stays prose; [today()] 2026-09-16 is a call.
 
-### 1 cli query calc.x.md calculations | select {line, expression, bracketed, display} --json
-$ xmd query calc.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query calc.x.md map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display}) --json
+$ xmd query calc.x.md map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -33,8 +33,8 @@ exit 0
   }
 ]
 
-### 2 cli query calc.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query calc.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query calc.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query calc.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -61,8 +61,8 @@ exit 0
 [budget] $3,000
 $25
 
-### 5 cli query math.x.md calculations | select {line, expression, bracketed, display} --json
-$ xmd query math.x.md calculations | select {line, expression, bracketed, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query math.x.md map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display}) --json
+$ xmd query math.x.md map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -86,8 +86,8 @@ exit 0
   }
 ]
 
-### 6 cli query math.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query math.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query math.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query math.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -104,8 +104,8 @@ Oops [budget + slot] and [budgett * 2].
 <root>/errors.x.md:3:27: error: Unknown name 'budgett'
 xmd: 2 error(s) while rendering
 
-### 8 cli query errors.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query errors.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query errors.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query errors.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -123,8 +123,8 @@ exit 0
   }
 ]
 
-### 9 cli query unknown.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query unknown.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query unknown.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query unknown.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -16,7 +16,7 @@
   async function purge(d) { if (!confirm(`Delete “${d.name}” forever?`)) return; await trash.purge(d.id); await loadTrash(); }
   const folder = $derived(folders.find(f => f.id === current) ?? null);
   const matches = d => !query || d.name.toLowerCase().includes(query.toLowerCase()) || d.text.toLowerCase().includes(query.toLowerCase());
-  const sorted = $derived([...documents].sort((a, b) => b.updated - a.updated).filter(matches));
+  const sorted = $derived([...documents].filter(d => !d.example).sort((a, b) => b.updated - a.updated).filter(matches));
   const isShared = x => x.role === "editor" || x.role === "viewer";
   const ownFolders = $derived(folders.filter(f => !isShared(f)));
   const sharedFolders = $derived(folders.filter(isShared));

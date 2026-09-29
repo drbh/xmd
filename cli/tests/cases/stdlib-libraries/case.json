@@ -72,7 +72,7 @@
       "cli": [
         "query",
         "watch.x.md",
-        "diagnostics | select {message, code}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code})",
         "--json"
       ]
     },
@@ -93,7 +93,7 @@
       "cli": [
         "query",
         "watch.x.md",
-        "diagnostics | select {message, code}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code})",
         "--json"
       ]
     },
@@ -140,7 +140,7 @@
       "cli": [
         "query",
         "bakery.x.md",
-        "diagnostics | select {message, code}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code})",
         "--json"
       ]
     }

@@ -6,7 +6,7 @@
         "ast",
         "one.x.md",
         "-q",
-        "ast | where kind == \"document\" | select {kind, name, parent, text}"
+        "map(filter(ast, fn(r) => r.kind == \"document\"), fn(r) => {kind: r.kind, name: r.name, parent: r.parent, text: r.text})"
       ]
     },
     {
@@ -46,7 +46,7 @@
         "ast",
         "one.x.md",
         "-q",
-        "ast | where kind == \"lambda\" | select parameters"
+        "map(filter(ast, fn(r) => r.kind == \"lambda\"), fn(r) => r.parameters)"
       ]
     },
     {
@@ -54,7 +54,7 @@
         "ast",
         "one.x.md",
         "-q",
-        "ast | where kind == \"name\" && name == \"missing\" | select text"
+        "map(filter(ast, fn(r) => r.kind == \"name\" && r.name == \"missing\"), fn(r) => r.text)"
       ]
     },
     {
@@ -62,7 +62,7 @@
         "ast",
         "one.x.md",
         "-q",
-        "ast | where kind == \"checkbox\" | select text"
+        "map(filter(ast, fn(r) => r.kind == \"checkbox\"), fn(r) => r.text)"
       ]
     },
     {
@@ -70,14 +70,14 @@
         "ast",
         "one.x.md",
         "-q",
-        "ast | count"
+        "length(ast)"
       ]
     },
     {
       "cli": [
         "query",
         "one.x.md",
-        "ast | count",
+        "length(ast)",
         "--json"
       ]
     },
@@ -110,7 +110,7 @@
         "ast",
         "other.x.md",
         "-q",
-        "filter(ast, fn(n) => n.kind == \"parse_error\") | select {text, path: source.path}"
+        "map(filter(ast, fn(n) => n.kind == \"parse_error\"), fn(r) => {text: r.text, path: r.source.path})"
       ]
     },
     {
@@ -118,7 +118,7 @@
         "ast",
         "empty.x.md",
         "-q",
-        "ast | select {kind, text}"
+        "map(ast, fn(r) => {kind: r.kind, text: r.text})"
       ]
     },
     {

@@ -674,8 +674,8 @@ We have [trip_left] remaining.
   }
 ]
 
-### 3 cli query --workspace notes | select {title} | sort title --json
-$ xmd query --workspace notes | select {title} | sort title --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query --workspace sort_by(map(notes, fn(r) => {title: r.title}), fn(r) => r.title) --json
+$ xmd query --workspace sort_by(map(notes, fn(r) => {title: r.title}), fn(r) => r.title) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

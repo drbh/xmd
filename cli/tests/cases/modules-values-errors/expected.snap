@@ -57,8 +57,8 @@ exit 1
 --- stderr
 xmd: Module 'off' is disabled
 
-### 8 cli query imports.x.md diagnostics | select {line, message} --json
-$ xmd query imports.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli query imports.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query imports.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -240,8 +240,8 @@ error: {
 ### 11 write
 -- write .xmd/modules.json (25 bytes)
 
-### 12 cli query timers.x.md diagnostics | select {line, message} --json
-$ xmd query timers.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 12 cli query timers.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query timers.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

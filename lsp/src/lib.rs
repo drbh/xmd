@@ -333,8 +333,10 @@ impl LanguageServer for Backend {
             )
             .await;
         if self.state.read().await.watch {
-            // Notes, and the workspace's own settings.
-            let watchers = std::iter::once(format!("**/*.{}", lang::common::EXTENSION))
+            // Notes and libraries, and the workspace's own settings.
+            let watchers = [lang::common::EXTENSION, lang::common::LIBRARY_EXTENSION]
+                .map(|extension| format!("**/*.{extension}"))
+                .into_iter()
                 .chain(
                     ["cache.json", "lookups.json", "modules.json"]
                         .map(|file| format!("**/.xmd/{file}")),

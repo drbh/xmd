@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "--workspace",
-        "import(\"agenda\").between(entries, today(), today()) | select {title, estimate, source}",
+        "map(import(\"agenda\").between(entries, today(), today()), fn(r) => {title: r.title, estimate: r.estimate, source: r.source})",
         "--root",
         "agenda",
         "--on",
@@ -27,7 +27,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | select {title}",
+        "map(tasks, fn(r) => {title: r.title})",
         "--root",
         "agenda",
         "--jsonl"
@@ -37,7 +37,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | select {title}",
+        "map(tasks, fn(r) => {title: r.title})",
         "--root",
         "agenda"
       ]
@@ -51,7 +51,7 @@
         "agenda",
         "--json"
       ],
-      "stdin": "tasks | count"
+      "stdin": "length(tasks)"
     },
     {
       "cli": [
@@ -85,7 +85,7 @@
       "cli": [
         "query",
         "--workspace",
-        "diagnostics | where severity == \"error\"",
+        "filter(diagnostics, fn(r) => r.severity == \"error\")",
         "--root",
         "clean",
         "--fail-on-match",
@@ -96,7 +96,7 @@
       "cli": [
         "query",
         "--workspace",
-        "diagnostics | where severity == \"error\" | select {line, message}",
+        "map(filter(diagnostics, fn(r) => r.severity == \"error\"), fn(r) => {line: r.line, message: r.message})",
         "--root",
         "broken",
         "--fail-on-match",
@@ -107,7 +107,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | where (",
+        "filter(tasks, fn(r) => ()",
         "--root",
         "broken"
       ]
@@ -127,7 +127,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | select value",
+        "map(values, fn(r) => r.value)",
         "--root",
         "clock",
         "--now",
@@ -139,7 +139,7 @@
       "cli": [
         "query",
         "--workspace",
-        "values | select value",
+        "map(values, fn(r) => r.value)",
         "--root",
         "clock",
         "--on",

@@ -15,8 +15,8 @@ https://github.com/o/r/pull/no
 https://github.com/o/r/tree/main
 https://github.com/o/r/pull/
 
-### 1 cli query links.x.md resources | select {target, metadata} --json
-$ xmd query links.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:00:00Z
+### 1 cli query links.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json
+$ xmd query links.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json --root <root> --now 2026-09-16T18:00:00Z
 exit 0
 --- stdout
 [

@@ -17,12 +17,12 @@
         },
         {
           "query": {
-            "query": "values | select {name, value, day:today(), clock:now()}"
+            "query": "map(values, fn(r) => {name: r.name, value: r.value, day:today(), clock:now()})"
           }
         },
         {
           "query": {
-            "query": "tasks | where leaf && !done | sort source.path, source.line | select title"
+            "query": "map(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path), fn(r) => r.title)"
           }
         },
         {
@@ -37,13 +37,13 @@
         },
         {
           "query": {
-            "query": "tasks | where leaf && !done | sort source.path, source.line"
+            "query": "sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path)"
           }
         },
         {
           "request": "xmd/query",
           "params": {
-            "query": "tasks | where ("
+            "query": "filter(tasks, fn(r) => ()"
           }
         }
       ]
@@ -76,7 +76,7 @@
         },
         {
           "query": {
-            "query": "tasks | select title",
+            "query": "map(tasks, fn(r) => r.title)",
             "uri": "one.x.md"
           }
         },
@@ -87,7 +87,7 @@
         },
         {
           "query": {
-            "query": "graph.nodes | where external | select name",
+            "query": "map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name)",
             "uri": "one.x.md"
           }
         },

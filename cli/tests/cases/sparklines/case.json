@@ -12,7 +12,7 @@
       "cli": [
         "query",
         "errors.x.md",
-        "diagnostics | select {line, message}",
+        "map(diagnostics, fn(r) => {line: r.line, message: r.message})",
         "--json"
       ]
     },

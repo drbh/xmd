@@ -101,8 +101,8 @@ Elapsed [watch.elapsed].
 <root>/watch.x.md:1:10: error: Module 'timer' is unavailable or disabled
 xmd: 1 error(s) while rendering
 
-### 4 cli query watch.x.md diagnostics | select {message, code} --json
-$ xmd query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query watch.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query watch.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -125,8 +125,8 @@ Elapsed [watch.elapsed].
 <root>/watch.x.md:1:10: error: CUSTOM FAILURE
 xmd: 1 error(s) while rendering
 
-### 7 cli query watch.x.md diagnostics | select {message, code} --json
-$ xmd query watch.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query watch.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query watch.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -169,8 +169,8 @@ best := maximize($2 * count)
 <root>/bakery.x.md:1:18: error: ACTIVE PLAN LIBRARY
 xmd: 1 error(s) while rendering
 
-### 14 cli query bakery.x.md diagnostics | select {message, code} --json
-$ xmd query bakery.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 14 cli query bakery.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query bakery.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

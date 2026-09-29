@@ -1,0 +1,162 @@
+### 0 cli run ./forever.x.md work
+$ xmd run ./forever.x.md work
+exit 1
+--- stderr
+xmd: forever did not finish in 10000 steps
+
+### 1 cli run ./steps.x.md work --mode most
+$ xmd run ./steps.x.md work --mode most
+exit 0
+--- stdout
+256 answers
+256 ok
+
+### 2 cli run ./steps.x.md work --mode too-many
+$ xmd run ./steps.x.md work --mode too-many
+exit 1
+--- stderr
+xmd: steps: a step may request at most 256 effects
+
+### 3 cli run ./steps.x.md work --mode text-requests
+$ xmd run ./steps.x.md work --mode text-requests
+exit 1
+--- stderr
+xmd: steps: requests must be a list
+
+### 4 cli run ./steps.x.md work --mode null-requests
+$ xmd run ./steps.x.md work --mode null-requests
+exit 0
+--- stdout
+nothing asked
+
+### 5 cli run ./steps.x.md work --mode record-report
+$ xmd run ./steps.x.md work --mode record-report
+exit 0
+
+### 6 write
+-- write config/xmd/credentials.json (75 bytes)
+
+### 7 cli run ./steps.x.md work --mode stored
+$ XDG_CONFIG_HOME=config xmd run ./steps.x.md work --mode stored
+exit 0
+--- stdout
+k9
+null
+
+### 8 read config/xmd/credentials.json
+-- config/xmd/credentials.json
+{
+  "steps api.example.com": "k9",
+  "other api.example.com": "not ours"
+}
+
+### 9 cli run ./steps.x.md work --mode repeat-zero
+$ xmd run ./steps.x.md work --mode repeat-zero
+exit 0
+--- stdout
+once
+
+### 10 cli run ./steps.x.md work --mode repeat-flag
+$ xmd run ./steps.x.md work --mode repeat-flag
+exit 0
+--- stdout
+once
+
+### 11 cli run ./steps.x.md work --mode repeat-text
+$ xmd run ./steps.x.md work --mode repeat-text
+exit 1
+--- stdout
+once
+--- stderr
+xmd: steps: repeat_after must be a number of seconds
+
+### 12 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://ci.example/builds/2: Module builds.decode: build /builds/2 is broken
+https://ci.example/builds/3: Module builds.decode: Unknown field 'ok'
+https://ci.example/builds/4: expected ident at line 1 column 2
+https://ci.example/builds/5: <root>/.xmd/modules/./bin/build-status failed: unknown build /builds/5
+quote FAIL: no such symbol
+quote FILE: quotes: a provider can only make http requests
+quote LOOPS: quotes did not finish
+quote NOURL: An http request needs a url
+quote RECORD: quotes: step must return a record
+quote SPIN: quotes did not finish
+
+### 13 read .xmd/lookups.json .xmd/cache.json
+-- .xmd/lookups.json
+{
+  "quote:DOWN": {
+    "value": {
+      "price": 2.0,
+      "reply": {
+        "error": "Request failed: curl: (22) The requested URL returned error: 503 for https://quotes.example/down",
+        "ok": false
+      }
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "quotes"
+  },
+  "quote:NULLERR": {
+    "value": {
+      "price": 3.0
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "quotes"
+  },
+  "quote:TEXT": {
+    "value": {
+      "answers": 0.0,
+      "price": 1.0
+    },
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "source": "quotes"
+  }
+}
+-- .xmd/cache.json
+{
+  "https://ci.example/builds/1": {
+    "title": "green",
+    "state": "",
+    "merged": null,
+    "checks": null,
+    "review": null,
+    "fetched_at": "2026-09-18T12:00:00Z",
+    "provider": "builds:1",
+    "data": {
+      "title": "green"
+    }
+  }
+}
+
+### 14 cli render lookups.x.md --format text
+$ xmd render lookups.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+# Provider loops
+spin := quote("SPIN")
+text_requests := quote("TEXT") = $1
+loops := quote("LOOPS")
+file := quote("FILE")
+no_url := quote("NOURL")
+down := quote("DOWN") = $2
+fail := quote("FAIL")
+null_error := quote("NULLERR") = $3
+not_record := quote("RECORD")
+
+## Builds
+https://ci.example/builds/1 green:green green
+https://ci.example/builds/2 build:broken build
+https://ci.example/builds/3 build:unknown build
+https://ci.example/builds/4 build:garbled build
+https://ci.example/builds/5 build:missing build
+--- stderr
+<root>/lookups.x.md:2:9: warning: No cached quote for SPIN; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:4:10: warning: No cached quote for LOOPS; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:5:9: warning: No cached quote for FILE; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:6:11: warning: No cached quote for NOURL; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:8:9: warning: No cached quote for FAIL; run xmd refresh or use the ⟳ lookups lens
+<root>/lookups.x.md:10:15: warning: No cached quote for RECORD; run xmd refresh or use the ⟳ lookups lens
+

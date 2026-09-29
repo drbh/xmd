@@ -1,0 +1,8 @@
+#!/bin/sh
+case "$1" in
+  /builds/1) echo '{"ok": true, "name": "green"}' ;;
+  /builds/2) echo '{"ok": false, "state": "broken"}' ;;
+  /builds/3) echo '{"name": "no verdict"}' ;;
+  /builds/4) echo 'not json' ;;
+  *) echo "unknown build $1" >&2; exit 3 ;;
+esac

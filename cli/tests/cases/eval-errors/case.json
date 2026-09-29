@@ -1,0 +1,44 @@
+{
+  "steps": [
+    { "cli": ["render", "names.x.md", "--format", "text"] },
+    { "cli": ["query", "names.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["render", "chain.x.md", "--format", "text"] },
+    { "cli": ["render", "calls.x.md", "--format", "text"] },
+    { "cli": ["render", "arithmetic.x.md", "--format", "text"] },
+    { "cli": ["render", "weather.x.md", "--format", "text"] },
+    { "cli": ["query", "tasks.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    {
+      "lsp": [
+        { "open": "recur.x.md" },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:recur.x.md}",
+                "row": 0,
+                "expected": "- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.task",
+            "arguments": [
+              {
+                "kind": "toggle_task",
+                "document": "${uri:recur.x.md}",
+                "row": 1,
+                "expected": "- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

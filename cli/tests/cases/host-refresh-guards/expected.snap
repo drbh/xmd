@@ -1,0 +1,74 @@
+### 0 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://example.com/down/feed.xml: curl failed: curl: (6) Could not resolve host: example.com
+https://issues.example/t/exits: sh failed: tracker is down
+https://issues.example/t/garbled: expected value at line 1 column 1
+https://issues.example/t/missing: Cannot run /nonexistent/tracker: No such file or directory (os error 2)
+https://issues.example/t/undecodable: Module tickets.decode: Unsupported arithmetic types (Text + Number)
+forecast oaxaca 2026-09-20: expected value at line 1 column 1
+quote NVDA: failing-quote failed: quote service unavailable for NVDA
+rate EUR→USD: garbled-rate printed invalid JSON: expected value at line 1 column 1
+
+### 1 read .xmd/cache.json .xmd/lookups.json
+-- .xmd/cache.json
+{}
+-- .xmd/lookups.json
+{}
+
+### 2 cli render trip.x.md --format text
+$ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
+exit 0
+--- stdout
+[€450]:hotel
+[usd] := to(hotel, USD)
+[nvda] := quote(NVDA)
+
+## Sunday, September 20, 2026 · Oaxaca 0 stops · in 3 days
+--- stderr
+<root>/trip.x.md:2:10: warning: No cached rate EUR→USD; run xmd refresh or use the ⟳ lookups lens
+<root>/trip.x.md:3:11: warning: No cached quote for NVDA; run xmd refresh or use the ⟳ lookups lens
+
+### 3 write
+-- write .xmd/providers.json (56 bytes)
+
+### 4 cli refresh
+$ xmd refresh --root <root>
+exit 1
+--- stderr
+xmd: https://example.com/down/feed.xml: curl failed: curl: (6) Could not resolve host: example.com
+https://issues.example/t/exits: sh failed: tracker is down
+https://issues.example/t/garbled: expected value at line 1 column 1
+https://issues.example/t/missing: Cannot run /nonexistent/tracker: No such file or directory (os error 2)
+https://issues.example/t/undecodable: Module tickets.decode: Unsupported arithmetic types (Text + Number)
+forecast oaxaca 2026-09-20: expected value at line 1 column 1
+quote NVDA: Cannot run no-such-quote-tool: No such file or directory (os error 2)
+rate EUR→USD: Empty provider command
+
+### 5 lsp
+-- open links.x.md
+-- await textDocument/publishDiagnostics links.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/links.x.md",
+  "version": 1
+}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:links.x.md}","kind":"refresh"}],"command":"xmd.refresh"}
+null
+-- await window/showMessage
+{
+  "message": "https://example.com/down/feed.xml: curl failed: curl: (6) Could not resolve host: example.com\nhttps://issues.example/t/exits: sh failed: tracker is down\nhttps://issues.example/t/garbled: expected value at line 1 column 1\nhttps://issues.example/t/missing: Cannot run /nonexistent/tracker: No such file or directory (os error 2)\nhttps://issues.example/t/undecodable: Module tickets.decode: Unsupported arithmetic types (Text + Number)",
+  "type": 2
+}
+-- request workspace/executeCommand {"arguments":[{"kind":"refresh_resource","target":{"document":"${uri:links.x.md}","expected":"https://issues.example/t/exits:exits","row":1},"url":"https://issues.example/t/exits"}],"command":"xmd.refreshResource"}
+error: {
+  "code": -32602,
+  "message": "sh failed: tracker is down"
+}
+-- request workspace/executeCommand {"arguments":[{"kind":"refresh_resource","target":{"document":"${uri:links.x.md}","expected":"https://example.com/down/feed.xml:down","row":5},"url":"https://example.com/down/feed.xml"}],"command":"xmd.refreshResource"}
+error: {
+  "code": -32602,
+  "message": "curl failed: curl: (6) Could not resolve host: example.com"
+}
+

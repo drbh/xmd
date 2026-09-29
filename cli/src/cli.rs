@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lang::eval::Workspace;
 use lang::eval::engine::{Value, value_json};
 use runtime::host::WorkspaceFiles;
-use runtime::services::query::{self, display};
+use runtime::services::{Query, Request, display, severity_name};
 use std::{
     ffi::OsString,
     io::{self, IsTerminal, Read, Write},
@@ -144,7 +144,7 @@ pub(crate) enum RenderFormat {
 }
 pub(crate) async fn refresh(workspace: &mut Workspace) -> Vec<String> {
     let mut errors = runtime::host::refresh_workspace(workspace, runtime::host::now(), None).await;
-    if let Err(e) = workspace.save_cache() {
+    if let Err(e) = runtime::host::save_cache(workspace.root(), workspace.cache()) {
         errors.push(e);
     }
     errors
@@ -161,7 +161,9 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
         Command::Render(options) => render_command(options),
         Command::Ast(options) => inspect_command("ast", options),
         Command::Graph(options) => inspect_command("graph", options),
-        Command::Run { module, args, root } => run_module(&module, &args, &root),
+        Command::Run { module, args, root } => {
+            runtime::host::run_command_named(&module, &args, &root, |line| println!("{line}"))
+        }
         Command::Refresh { root } => {
             let mut workspace = load(root)?;
             let errors = refresh(&mut workspace).await;
@@ -244,7 +246,7 @@ fn read_piped_note() -> Result<String, String> {
     Ok(text)
 }
 fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result<(), String> {
-    let compiled = query::Query::parse(&source)?;
+    let compiled = Query::parse(&source)?;
     let now = request_time(options.on, options.now)?;
     let root = std::fs::canonicalize(options.root).map_err(|e| e.to_string())?;
     let (only, mut workspace) = match note {
@@ -263,8 +265,7 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         None => (None, Workspace::load(vec![root])?),
     };
     compiled.load_imports(&mut workspace, only.as_deref(), &runtime::host::DiskFiles);
-    let result =
-        runtime::services::Request::new(&workspace, now).query(&compiled, only.as_deref())?;
+    let result = Request::new(&workspace, now).query(&compiled, only.as_deref())?;
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let write_result = (|| -> io::Result<()> {
@@ -320,7 +321,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     let path = root.join(options.file);
     let path = std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let workspace = Workspace::load_file(vec![root], &path)?;
-    let request = runtime::services::Request::new(&workspace, now);
+    let request = Request::new(&workspace, now);
     let text = match options.format {
         RenderFormat::Html => request.render_html(&path)?,
         RenderFormat::Text => request.render_text(&path)?,
@@ -339,7 +340,7 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
     }
     let mut errors = 0;
     for diagnostic in diagnostics {
-        let severity = runtime::services::diagnostics::severity_name(diagnostic.severity);
+        let severity = severity_name(diagnostic.severity);
         if severity == "error" {
             errors += 1;
         }
@@ -376,47 +377,4 @@ fn render(value: &Value) -> String {
         })
         .collect::<Vec<_>>()
         .join("\t")
-}
-
-/// `xmd run`: find the command module, then let the host perform its effects.
-fn run_module(name: &str, args: &[String], root: &std::path::Path) -> Result<(), String> {
-    let path = std::path::Path::new(name);
-    let registry = if lang::common::is_note(path) {
-        let path = path
-            .canonicalize()
-            .map_err(|e| format!("Cannot open {name}: {e}"))?;
-        let source = std::fs::read_to_string(&path).map_err(|e| format!("{name}: {e}"))?;
-        lang::eval::modules::ModuleRegistry::compile([(path, source)].into())?
-    } else {
-        runtime::host::load_modules(&[root.to_path_buf()])?
-    };
-    let module = registry
-        .modules
-        .iter()
-        .find(|m| {
-            if lang::common::is_note(path) {
-                m.path == path.canonicalize().unwrap_or_default()
-            } else {
-                m.id == name
-            }
-        })
-        .ok_or_else(|| {
-            format!(
-                "No command module '{name}' is activated under {}",
-                root.display()
-            )
-        })?;
-    let dir = args
-        .first()
-        .filter(|first| !first.starts_with("--"))
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| ".".into());
-    let rest = if args.first().is_some_and(|first| !first.starts_with("--")) {
-        &args[1..]
-    } else {
-        args
-    };
-    runtime::host::run_command(module, &dir, rest, runtime::host::now, |line| {
-        println!("{line}")
-    })
 }

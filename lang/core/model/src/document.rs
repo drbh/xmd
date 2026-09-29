@@ -38,6 +38,18 @@ pub struct Definition {
     pub value_span: Span,
     pub end: Span,
 }
+impl Definition {
+    /// The value span without the blanks it starts with: where the
+    /// expression text begins after its `=` or `:=`.
+    pub fn expression_span(&self, text: &str) -> Span {
+        let raw = self.value_span.source(text);
+        Span::new(
+            self.value_span.line,
+            self.value_span.start + raw.len() - raw.trim_start().len(),
+            self.value_span.end,
+        )
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Reference {
     pub name: String,
@@ -54,6 +66,10 @@ impl Reference {
     }
     pub fn end(&self) -> usize {
         self.span.end + self.property.as_ref().map(|p| p.len() + 1).unwrap_or(0)
+    }
+    /// The name and any property, without brackets.
+    pub fn full_span(&self) -> Span {
+        Span::new(self.span.line, self.span.start, self.end())
     }
 }
 #[derive(Clone, Debug)]
@@ -985,6 +1001,15 @@ impl Document {
     }
     pub fn line(&self, row: usize) -> &str {
         self.text.lines().nth(row).unwrap_or("")
+    }
+    /// Just past a bracketed reference's closing `]`.
+    pub fn reference_close(&self, reference: &Reference) -> usize {
+        let end = reference.end();
+        end + self.line(reference.span.line)[end..].find(']').unwrap_or(0) + 1
+    }
+    /// A whole line, without its line break.
+    pub fn line_span(&self, row: usize) -> Span {
+        Span::new(row, 0, self.line(row).len())
     }
     pub fn line_end(&self, row: usize) -> Position {
         Position::new(row as u32, utf16(self.line(row), self.line(row).len()))

@@ -1,0 +1,94 @@
+{
+  "now": "2026-09-17T14:00:00+00:00",
+  "steps": [
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".xmd/cache.json",
+        ".xmd/lookups.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "trip.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/providers.json": "{ \"quote\": \"no-such-quote-tool {symbol}\", \"rate\": \" \" }\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "links.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "links.x.md"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.refresh",
+            "arguments": [
+              {
+                "kind": "refresh",
+                "document": "${uri:links.x.md}"
+              }
+            ]
+          }
+        },
+        {
+          "await": "window/showMessage"
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.refreshResource",
+            "arguments": [
+              {
+                "kind": "refresh_resource",
+                "target": {
+                  "document": "${uri:links.x.md}",
+                  "row": 1,
+                  "expected": "https://issues.example/t/exits:exits"
+                },
+                "url": "https://issues.example/t/exits"
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.refreshResource",
+            "arguments": [
+              {
+                "kind": "refresh_resource",
+                "target": {
+                  "document": "${uri:links.x.md}",
+                  "row": 5,
+                  "expected": "https://example.com/down/feed.xml:down"
+                },
+                "url": "https://example.com/down/feed.xml"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

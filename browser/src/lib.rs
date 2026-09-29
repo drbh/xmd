@@ -3,12 +3,14 @@
 use chrono::{DateTime, FixedOffset};
 use lang::common::{file_path, uri};
 use lang::eval::Workspace;
+use lang::eval::modules::CompileModules;
 use lang::model::identifier;
 use lsp_types::*;
-use runtime::services::Request;
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
-use runtime::services::session::WorkspaceSession;
-use runtime::services::{actions::TaskToggle, intelligence, presentation};
+use runtime::services::{
+    Query, Request, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession, folding_ranges,
+    fragment, line_classes, occurrences, semantic_tokens, signature, symbol_at, typing,
+};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::{
@@ -104,19 +106,16 @@ impl BrowserWorkspace {
         now: DateTime<FixedOffset>,
     ) -> Result<Value, String> {
         if method == "semanticLegend" {
-            return Ok(
-                json!({"tokenTypes": presentation::TOKEN_TYPES, "tokenModifiers": presentation::TOKEN_MODIFIERS}),
-            );
+            return Ok(json!({"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}));
         }
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
             let data: Value = field(&params, "data")?;
-            let metadata = self
-                .session
-                .workspace
-                .link_features()
-                .decode_refresh(&target, &data, now.to_utc())
-                .map_err(|e| e.to_string())?;
+            let metadata = self.session.workspace.link_features().decode_refresh(
+                &target,
+                &data,
+                now.to_utc(),
+            )?;
             self.session.workspace.store_link_status(target, metadata);
             return Ok(Value::Null);
         }
@@ -173,8 +172,7 @@ impl BrowserWorkspace {
             return self.execute(command, now);
         }
         if method == "query" {
-            let compiled =
-                runtime::services::query::Query::parse(&field::<String>(&params, "query")?)?;
+            let compiled = Query::parse(&field::<String>(&params, "query")?)?;
             let only = params
                 .get("uri")
                 .filter(|v| !v.is_null())
@@ -207,8 +205,8 @@ impl BrowserWorkspace {
             "documentLinks" => serialized(request.document_links(&path)),
             "documentSymbols" => serialized(request.document_symbols(&path)),
             "formatting" => serialized(request.formatting(&path)?),
-            "folding" => serialized(runtime::services::symbols::folding_ranges(doc)),
-            "onTypeFormatting" => serialized(runtime::services::typing::on_type(
+            "folding" => serialized(folding_ranges(doc)),
+            "onTypeFormatting" => serialized(typing::on_type(
                 doc,
                 position()?,
                 &field::<String>(&params, "ch")?,
@@ -218,7 +216,7 @@ impl BrowserWorkspace {
                     &path,
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
-                let tokens: Vec<u32> = presentation::semantic_tokens(doc)
+                let tokens: Vec<u32> = semantic_tokens(doc)
                     .into_iter()
                     .flat_map(|t| {
                         [
@@ -237,26 +235,21 @@ impl BrowserWorkspace {
                     .and_then(Value::as_bool)
                     .unwrap_or(method == "analyze");
                 let diagnostics = request.diagnostics(&path, editing);
-                let html = runtime::services::rendering::fragment(
-                    doc,
-                    &inlays.hints,
-                    &diagnostics,
-                    &links,
-                )?;
+                let html = fragment(doc, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":runtime::services::rendering::line_classes(doc),"tokenModifiers":presentation::TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":presentation::TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )
             }
             "completion" => serialized(request.completions(&path, position()?, true)),
-            "signature" => serialized(intelligence::signature(doc, &path, position()?)),
+            "signature" => serialized(signature(doc, &path, position()?)),
             "hover" => match request.hover(&path, position()?) {
                 Some(hover) => serialized(hover),
                 None => Ok(Value::Null),
             },
             "definition" | "references" | "highlights" | "prepareRename" | "rename" => {
-                let Some((symbol, span)) = intelligence::symbol_at(ws, &path, position()?) else {
+                let Some((symbol, span)) = symbol_at(ws, &path, position()?) else {
                     return Ok(Value::Null);
                 };
                 if method == "definition" {
@@ -267,7 +260,7 @@ impl BrowserWorkspace {
                         json!({"range":span.range(&doc.text),"placeholder":ws.named(&symbol).name}),
                     );
                 }
-                let locations: Vec<Location> = intelligence::occurrences(ws, &symbol)
+                let locations: Vec<Location> = occurrences(ws, &symbol)
                     .into_iter()
                     .map(|(p, span)| Location {
                         uri: lang::common::uri_from_url(&uri(&p)),

@@ -1,0 +1,25 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        { "open": "live.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "live.x.md" },
+        { "await": "workspace/inlayHint/refresh" },
+        { "await": "workspace/codeLens/refresh" },
+        { "request": "textDocument/inlayHint", "file": "live.x.md", "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } } },
+        { "request": "textDocument/codeLens", "file": "live.x.md" },
+        { "await": "workspace/inlayHint/refresh" },
+        { "await": "workspace/inlayHint/refresh" },
+        { "request": "textDocument/inlayHint", "file": "live.x.md", "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } } },
+        {
+          "change": {
+            "file": "live.x.md",
+            "text": "[focus] := countdown(2m)\nTime left: [focus.remaining].\n- [ ] Deep work @timer(focus)\n"
+          }
+        },
+        { "await": "textDocument/publishDiagnostics", "file": "live.x.md" },
+        { "request": "textDocument/inlayHint", "file": "live.x.md", "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } } }
+      ]
+    }
+  ]
+}

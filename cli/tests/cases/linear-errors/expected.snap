@@ -1,0 +1,142 @@
+### 0 cli render seek.x.md --format text
+$ xmd render seek.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Goal seek forms
+
+[squared] := solve(squared * squared >= 4)
+[inverse] := solve(1 / inverse >= 2)
+[bare] := solve(bare + 1)
+[lone] := solve(lone)
+[called] := solve(round(called))
+[texty] := solve(texty + "a" >= 1)
+[negated] := solve(!negated >= 1)
+[nested] := solve((nested < 1) + 1 >= 2)
+[zero] := solve(zero / 0 >= 1)
+[mixed] := solve(mixed * $0 + mixed * 2h >= 1h)
+[scaled] := solve(scaled * $2 * 2h >= $1)
+[divided] := solve(divided / 2h >= 1)
+[compared] := solve(compared * $1 >= 2h)
+[euros] := solve(euros * $1 + €2 >= $5)
+[cancels] := solve(cancels - cancels >= 1)
+[budget] := solve(100 - 4 * budget >= 20) = 20
+[hours] := solve(hours * $25 <= $190) = 7.6
+[exact] := solve(3 * exact + 2 == 11) = 3
+--- stderr
+<root>/seek.x.md:3:20: error: Plans must stay linear: multiply variables by constants only
+<root>/seek.x.md:4:20: error: Plans must stay linear: divide by constants only
+<root>/seek.x.md:5:17: error: Constraints use <=, >=, or ==, not +
+<root>/seek.x.md:6:17: error: A constraint compares two sides with <=, >=, or ==, e.g. bagels >= 12
+<root>/seek.x.md:7:19: error: A constraint compares two sides with <=, >=, or ==, e.g. bagels >= 12
+<root>/seek.x.md:8:26: error: Plans work with numbers, money, and durations, not Text
+<root>/seek.x.md:9:20: error: Plans cannot negate booleans
+<root>/seek.x.md:10:20: error: '<' belongs at the top of a constraint, not inside an expression
+<root>/seek.x.md:11:17: error: Division by zero
+<root>/seek.x.md:12:18: error: Cannot add terms scaled by Money and Duration
+<root>/seek.x.md:13:19: error: Cannot multiply Money by Duration
+<root>/seek.x.md:14:20: error: Cannot divide Any by Duration
+<root>/seek.x.md:15:21: error: Cannot compare Money with Duration
+<root>/seek.x.md:16:18: error: Cannot add USD and EUR; convert with to(value, EUR)
+<root>/seek.x.md:17:20: error: The constraint does not depend on cancels
+xmd: 15 error(s) while rendering
+
+### 1 cli render plans.x.md --format text
+$ xmd render plans.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Plans
+
+[fixed] := maximize(3)
+| constraint | expression |
+| ---------- | ---------- |
+| trivial    | 3 <= 4     |
+[s] := table = 1 rows · 1 columns
+| a   |
+| --- |
+| [now()] 2026-09-16 14:00:00 -04:00 |
+[timer] := stopwatch() = ◴ 00:00 elapsed · ○ idle
+[u] := table
+| a   |
+| --- |
+| [timer] ◴ 00:00 elapsed · ○ idle |
+[v] := table
+| a   |
+| --- |
+| [s] 1 rows · 1 columns |
+--- stderr
+<root>/plans.x.md:3:21: error: A plan needs at least one unknown name to solve for
+<root>/plans.x.md:15:4: error: A cell cannot hold a Stopwatch; use a scalar value
+<root>/plans.x.md:19:4: error: A cell cannot hold a Table; use a scalar value
+xmd: 3 error(s) while rendering
+
+### 2 cli render solver.x.md --format text
+$ xmd render solver.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Solver boundary
+
+missing_field := import("probe").solve({goal: "maximize"})
+extra_field := import("probe").solve({goal: "maximize", variables: {}, objective: {constant: 0, terms: {}}, constraints: [], extra: 1})
+wrong_type := import("probe").solve({goal: "maximize", variables: {x: {kind: 1}}, objective: {constant: 0, terms: {}}, constraints: []})
+no_variables := import("probe").solve({goal: "maximize", variables: {}, objective: {constant: 0, terms: {}}, constraints: []})
+bad_op := import("probe").solve({goal: "maximize", variables: {x: {kind: "continuous", lower: 0, upper: 1}}, objective: {constant: 0, terms: {x: 1}}, constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: "<", rhs: {constant: 1, terms: {}}}]})
+order_missing := import("probe").solve({goal: "maximize", variables: {x: {kind: "continuous", lower: 0, upper: 1}}, order: ["y"], objective: {constant: 0, terms: {x: 1}}, constraints: []})
+--- stderr
+<root>/solver.x.md:3:18: error: Invalid linear model: missing field `variables`
+<root>/solver.x.md:4:16: error: Invalid linear model: unknown field `extra`, expected one of `goal`, `variables`, `order`, `objective`, `constraints`
+<root>/solver.x.md:5:15: error: Invalid linear model: invalid type: integer `1`, expected a string
+<root>/solver.x.md:6:17: error: Linear models require 1..512 variables and at most 2048 constraints
+<root>/solver.x.md:7:11: error: Linear comparison must be <=, >=, or ==
+<root>/solver.x.md:8:18: error: Variable order must name every variable exactly once
+xmd: 6 error(s) while rendering
+
+### 3 write
+-- write .xmd/modules.json (50 bytes)
+
+### 4 cli render records.x.md --format text
+$ xmd render records.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Solution records
+
+[gear] := table = 1 rows · 3 columns
+| item | value | take? |
+| ---- | ----- | ----- |
+| tent | 9     |       |
+[scalar] := maximize(p + 1)
+| constraint | expression |
+| ---------- | ---------- |
+| c          | p <= 1     |
+[unsolved] := maximize(q + 2)
+| constraint | expression |
+| ---------- | ---------- |
+| c          | q <= 1     |
+[strict] := maximize(r + 3)
+| constraint | expression |
+| ---------- | ---------- |
+| c          | r <= 1     |
+[unnamed] := maximize(w + 4)
+| constraint | expression |
+| ---------- | ---------- |
+| c          | w <= 1     |
+[packed] := maximize(sum(gear, value * take) + 5)
+| constraint | expression           |
+| ---------- | -------------------- |
+| c          | sum(gear, take) <= 1 |
+[chosen] := maximize(sum(gear, value * take) + 6)
+| constraint | expression           |
+| ---------- | -------------------- |
+| c          | sum(gear, take) <= 1 |
+--- stderr
+<root>/records.x.md:7:2: error: Expected a record
+<root>/records.x.md:7:22: error: Expected a record
+<root>/records.x.md:11:2: error: Missing field 'objective'
+<root>/records.x.md:11:24: error: Missing field 'objective'
+<root>/records.x.md:15:2: error: Linear comparison must be <=, >=, or ==
+<root>/records.x.md:15:22: error: Linear comparison must be <=, >=, or ==
+<root>/records.x.md:19:2: error: Missing field 'value'
+<root>/records.x.md:19:23: error: Missing field 'value'
+<root>/records.x.md:23:2: error: Missing field 'gear.take[1]'
+<root>/records.x.md:27:2: error: Expected a record
+xmd: 10 error(s) while rendering
+

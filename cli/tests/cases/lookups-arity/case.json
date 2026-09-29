@@ -1,0 +1,7 @@
+{
+  "steps": [
+    { "cli": ["render", "rates.x.md", "--format", "text"] },
+    { "cli": ["render", "weather.x.md", "--format", "text"] },
+    { "cli": ["render", "tail.x.md", "--format", "text"] }
+  ]
+}

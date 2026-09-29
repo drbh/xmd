@@ -525,7 +525,7 @@ impl World {
                     let text = texts.get(&name).cloned().expect("apply needs an open file");
                     let edits: Vec<lsp_types::TextEdit> =
                         serde_json::from_value(response["result"].clone()).unwrap_or_default();
-                    let updated = xmd::actions::apply_edits(&text, &edits).expect("edits apply");
+                    let updated = xmd::apply_edits(&text, &edits).expect("edits apply");
                     let version = versions.entry(name.clone()).or_insert(1);
                     *version += 1;
                     texts.insert(name.clone(), updated.clone());

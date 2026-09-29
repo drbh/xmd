@@ -29,7 +29,9 @@
 //! so the command decides what a failure means.
 use chrono::{DateTime, FixedOffset};
 use lang::eval::engine::Value;
-use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
+use lang::eval::modules::{
+    CompileModules, Hook, Module, ModuleKind, ModuleRegistry, from_json, json,
+};
 use std::{
     collections::BTreeMap,
     io::Write as _,
@@ -42,13 +44,56 @@ const MAX_STEPS: usize = 10_000;
 /// How many effects one step may request.
 const MAX_REQUESTS: usize = 256;
 
+/// `xmd run`: find the command module `name` names, a module note's path or
+/// the id of one activated under `root`, and run it in the directory its first
+/// word names, printing its report lines through `report`.
+pub fn run_command_named(
+    name: &str,
+    args: &[String],
+    root: &Path,
+    report: impl FnMut(&str),
+) -> Result<(), String> {
+    let path = Path::new(name);
+    let file = if lang::common::is_note(path) {
+        Some(
+            path.canonicalize()
+                .map_err(|e| format!("Cannot open {name}: {e}"))?,
+        )
+    } else {
+        None
+    };
+    let registry = match &file {
+        Some(path) => {
+            let source = std::fs::read_to_string(path).map_err(|e| format!("{name}: {e}"))?;
+            ModuleRegistry::compile([(path.clone(), source)].into())?
+        }
+        None => crate::files::load_modules(&[root.to_path_buf()])?,
+    };
+    let module = registry
+        .iter()
+        .find(|m| match &file {
+            Some(path) => m.path == *path,
+            None => m.id == name,
+        })
+        .ok_or_else(|| {
+            format!(
+                "No command module '{name}' is activated under {}",
+                root.display()
+            )
+        })?;
+    let (dir, rest) = match args.split_first() {
+        Some((first, rest)) if !first.starts_with("--") => (Path::new(first), rest),
+        _ => (Path::new("."), args),
+    };
+    run_command(module, dir, rest, report)
+}
+
 /// Run `module` in `dir` with the words after its name, printing its report
-/// lines through `report`. `now` is the clock each run starts at.
-pub fn run_command(
+/// lines through `report`. Each run starts at the process clock.
+fn run_command(
     module: &Module,
     dir: &Path,
     args: &[String],
-    now: impl Fn() -> DateTime<FixedOffset>,
     mut report: impl FnMut(&str),
 ) -> Result<(), String> {
     if module.kind != ModuleKind::Command {
@@ -66,41 +111,33 @@ pub fn run_command(
     };
     let args = parse_args(args);
     loop {
-        let clock = now();
+        let clock = crate::now();
         let mut state = Value::Null;
         let mut results = Vec::new();
         let mut finished = None;
         for _ in 0..MAX_STEPS {
             let input = lang::eval::modules::record([
-                ("args".into(), args.clone()),
+                ("args", args.clone()),
                 (
-                    "dir".into(),
+                    "dir",
                     Value::Text(
                         dir.file_name()
                             .map(|n| n.to_string_lossy().into_owned())
                             .unwrap_or_default(),
                     ),
                 ),
-                ("state".into(), state),
-                ("results".into(), Value::List(results)),
+                ("state", state),
+                ("results", Value::List(results)),
             ]);
-            let output = module
-                .call(Hook::Step, vec![input], clock)
-                .map_err(|e| e.to_string())?;
-            let Value::Record(mut fields) = output else {
-                return Err(format!("{}: step must return a record", module.id));
-            };
-            if let Some(Value::List(lines)) = fields.get("report") {
-                for line in lines {
+            let mut step = Step::call(module, input, clock)?;
+            if let Some(Value::List(lines)) = step.take("report") {
+                for line in &lines {
                     report(&line.display());
                 }
             }
-            match fields.remove("error") {
-                None | Some(Value::Null) => {}
-                Some(error) => return Err(error.display()),
-            }
-            state = fields.remove("state").unwrap_or(Value::Null);
-            let requests = match fields.remove("requests") {
+            step.failed()?;
+            state = step.state();
+            let requests = match step.take("requests") {
                 None | Some(Value::Null) => vec![],
                 Some(Value::List(requests)) => requests,
                 Some(_) => return Err(format!("{}: requests must be a list", module.id)),
@@ -115,8 +152,8 @@ pub fn run_command(
                 .iter()
                 .map(|request| context.perform(request))
                 .collect::<Result<_, _>>()?;
-            if matches!(fields.get("done"), Some(Value::Bool(true))) {
-                finished = Some(fields.remove("repeat_after"));
+            if step.done() {
+                finished = Some(step.take("repeat_after"));
                 break;
             }
         }
@@ -142,6 +179,39 @@ pub fn run_command(
     }
 }
 
+/// One reply of a command's or a provider's `step` hook. Both loops read
+/// `error`, `state` and `done` alike; what each does with `requests` differs.
+pub(crate) struct Step(BTreeMap<String, Value>);
+impl Step {
+    pub(crate) fn call(
+        module: &Module,
+        input: Value,
+        now: DateTime<FixedOffset>,
+    ) -> Result<Self, String> {
+        match module.call(Hook::Step, vec![input], now)? {
+            Value::Record(fields) => Ok(Self(fields)),
+            _ => Err(format!("{}: step must return a record", module.id)),
+        }
+    }
+    /// The error the step reports, which ends the run.
+    pub(crate) fn failed(&mut self) -> Result<(), String> {
+        match self.0.remove("error") {
+            None | Some(Value::Null) => Ok(()),
+            Some(error) => Err(error.display()),
+        }
+    }
+    /// The state the next step starts from.
+    pub(crate) fn state(&mut self) -> Value {
+        self.0.remove("state").unwrap_or(Value::Null)
+    }
+    pub(crate) fn done(&self) -> bool {
+        matches!(self.0.get("done"), Some(Value::Bool(true)))
+    }
+    pub(crate) fn take(&mut self, field: &str) -> Option<Value> {
+        self.0.remove(field)
+    }
+}
+
 /// `--name value`, `--name=value` and bare `--flag` become `flags`; the rest,
 /// in order, `positional`.
 fn parse_args(args: &[String]) -> Value {
@@ -164,8 +234,8 @@ fn parse_args(args: &[String]) -> Value {
         }
     }
     lang::eval::modules::record([
-        ("flags".into(), Value::Record(flags)),
-        ("positional".into(), Value::List(positional)),
+        ("flags", Value::Record(flags)),
+        ("positional", Value::List(positional)),
     ])
 }
 
@@ -178,15 +248,15 @@ impl Context<'_> {
     /// One effect. An effect that fails answers `{ok: false, error}`; only a
     /// malformed request stops the run, since that is a bug in the command.
     fn perform(&self, request: &Value) -> Result<Value, String> {
-        let request = json(request).map_err(|e| e.to_string())?;
+        let request = json(request)?;
         let kind = request["kind"].as_str().unwrap_or_default();
         let outcome = match kind {
             "http" => self.http(&request),
             "read" => self.path(&request["path"]).and_then(|path| {
                 let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
                 if request["json"].as_bool() == Some(true) {
-                    let json: serde_json::Value = serde_json::from_str(&text)
-                        .map_err(|e| format!("{}: {e}", path.display()))?;
+                    let json: serde_json::Value =
+                        serde_json::from_str(&text).map_err(crate::io::at(&path))?;
                     return Ok(serde_json::json!({ "json": json }));
                 }
                 Ok(serde_json::json!({ "text": text }))
@@ -350,10 +420,7 @@ impl Context<'_> {
             .ok_or("credential needs a scope")?;
         let key = format!("{} {scope}", self.module);
         let path = credentials_path().ok_or("No config directory for credentials")?;
-        let mut saved: BTreeMap<String, String> = std::fs::read_to_string(&path)
-            .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
-            .unwrap_or_default();
+        let mut saved: BTreeMap<String, String> = crate::io::read_json_or_default(&path);
         if let Some(value) = request["set"].as_str() {
             saved.insert(key.clone(), value.to_string());
             if let Some(parent) = path.parent() {

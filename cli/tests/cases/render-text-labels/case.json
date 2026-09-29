@@ -1,0 +1,15 @@
+{
+  "steps": [
+    { "cli": ["render", "note.x.md", "--format", "text"] },
+    { "cli": ["render", "crlf.x.md", "--format", "text"] },
+    { "cli": ["render", "note.x.md", "--format", "html"] },
+    { "cli": ["render", "plain.txt", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "note.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "note.x.md" },
+        { "request": "textDocument/inlayHint", "file": "note.x.md", "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,311 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        {
+          "open": "review.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "review.x.md",
+          "line": 3,
+          "character": 4
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "review.x.md",
+          "line": 0,
+          "character": 2
+        },
+        {
+          "request": "textDocument/codeLens",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "review.x.md",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          },
+          "apply": true
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 2,
+              "character": 0
+            },
+            "end": {
+              "line": 2,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.invoke",
+            "arguments": [
+              {
+                "kind": "invoke",
+                "document": "${uri:review.x.md}",
+                "expected": "stale\n",
+                "module": "review",
+                "revision": "0",
+                "event": {
+                  "line": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.invoke",
+            "arguments": [
+              {
+                "kind": "invoke",
+                "document": "${uri:review.x.md}",
+                "expected": "# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+                "module": "gone",
+                "revision": "0",
+                "event": {
+                  "line": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 1,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "${last:/0/command}",
+            "arguments": "${last:/0/arguments}"
+          }
+        },
+        {
+          "await": "workspace/applyEdit"
+        }
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => \"nope\"\nhovers := fn(ctx) => [{range: {start: {line: 99, character: 0}, end: {line: 99, character: 1}}, contents: \"far away\"}]\ndiagnostics := fn(ctx) => {not: \"a list\"}\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 1}}, newText: 5}]\nactions := fn(ctx) => [{title: \"Loop\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: event}\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "review.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 9,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "review.x.md",
+          "line": 0,
+          "character": 2
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "review.x.md",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "${last:/0/command}",
+            "arguments": "${last:/0/arguments}"
+          }
+        }
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => []\nhovers := fn(ctx) => \"not a list\"\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 99}}, message: \"past the end\"}]\nactions := fn(ctx) => if(ctx.row == 0, [{title: ctx.module.revision, action: {kind: \"refresh\", document: null}}], [{title: \"Fine\", action: {kind: \"refresh\", document: null}}, {title: \"Nowhere\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 42, character: 0}, end: {line: 42, character: 0}}, newText: \"x\"}]}}])\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "review.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "review.x.md",
+          "line": 0,
+          "character": 2
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "textDocument/codeAction",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 0
+            }
+          },
+          "extra": {
+            "context": {
+              "diagnostics": []
+            }
+          }
+        },
+        {
+          "request": "workspace/executeCommand",
+          "params": {
+            "command": "xmd.invoke",
+            "arguments": [
+              {
+                "kind": "invoke",
+                "document": "${uri:review.x.md}",
+                "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
+                "module": "review",
+                "revision": "${last:/0/title}",
+                "event": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

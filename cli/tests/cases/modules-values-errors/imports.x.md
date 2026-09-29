@@ -1,0 +1,10 @@
+# Imports
+ok := import("lib").double(2)
+missing := import("nope")
+disabled := import("off")
+engine_only := import("engine")
+link := import("tickets")
+through_off := import("chain").via_off(1)
+through_engine := import("chain").via_engine(1)
+through_undeclared := import("chain").via_undeclared(1)
+through_link := import("chain").via_link(1)

@@ -10,7 +10,9 @@ publish = false
 common = { path = "core/common" }
 eval = { path = "core/eval" }
 model = { path = "core/model" }
+modules = { path = "core/modules" }
 syntax = { path = "core/syntax" }
+values = { path = "core/values" }
 
 [lints]
 workspace = true

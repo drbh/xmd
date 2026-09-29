@@ -1,0 +1,125 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "run",
+        "./forever.x.md",
+        "work"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "most"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "too-many"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "text-requests"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "null-requests"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "record-report"
+      ]
+    },
+    {
+      "write": {
+        "config/xmd/credentials.json": "{\n  \"steps api.example.com\": \"k9\",\n  \"other api.example.com\": \"not ours\"\n}\n"
+      }
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "stored"
+      ],
+      "env": {
+        "XDG_CONFIG_HOME": "config"
+      }
+    },
+    {
+      "read": [
+        "config/xmd/credentials.json"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "repeat-zero"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "repeat-flag"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./steps.x.md",
+        "work",
+        "--mode",
+        "repeat-text"
+      ]
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".xmd/lookups.json",
+        ".xmd/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "lookups.x.md",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

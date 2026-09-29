@@ -1,0 +1,131 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "numbers"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "date"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "money"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "ratio"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "duration"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./values.x.md",
+        "work",
+        "--mode",
+        "function"
+      ]
+    },
+    {
+      "read": [
+        "work/out.json"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        "./disabled.x.md"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "imports.x.md",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inlay-record.x.md\", \"./modules/inlay-position.x.md\", \"./modules/inlay-negative.x.md\", \"./modules/inlay-fraction.x.md\", \"./modules/inlay-at.x.md\", \"./modules/inlay-at-date.x.md\", \"./modules/inlay-label.x.md\", \"./modules/inlay-tooltip.x.md\", \"./modules/inlay-clock.x.md\", \"./modules/diagnostics-date.x.md\", \"./modules/format-text.x.md\"]\n"
+      }
+    },
+    {
+      "lsp": [
+        {
+          "open": "review.x.md"
+        },
+        {
+          "await": "textDocument/publishDiagnostics",
+          "file": "review.x.md"
+        },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "review.x.md",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 2,
+              "character": 0
+            }
+          }
+        },
+        {
+          "request": "textDocument/formatting",
+          "file": "review.x.md",
+          "extra": {
+            "options": {
+              "tabSize": 2,
+              "insertSpaces": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/timer.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "query",
+        "timers.x.md",
+        "diagnostics | select {line, message}",
+        "--json"
+      ]
+    }
+  ]
+}

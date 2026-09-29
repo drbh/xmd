@@ -1,0 +1,315 @@
+### 0 lsp
+-- open live.x.md
+-- await textDocument/publishDiagnostics live.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/live.x.md",
+  "version": 1
+}
+-- await workspace/inlayHint/refresh
+null
+-- await workspace/codeLens/refresh
+null
+-- request textDocument/inlayHint live.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◷ ████░░░░ 01:00 remaining · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 55,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 01:00 remaining · ▸ running\n\n```text\ncountdown(2m, 0s, 2026-09-16T13:59:00-04:00)\n= ◷ 01:00 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1m. State: running. Current segment started: 2026-09-16T13:59:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/live.x.md#L1>) · <root>/live.x.md:1"
+    }
+  },
+  {
+    "label": "1m",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "focus.remaining"
+    }
+  },
+  {
+    "label": "◷ ████░░░░ 01:00 remaining · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 29,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  }
+]
+-- request textDocument/codeLens live.x.md
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "pause",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "‖ pause focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "reset",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "↺ reset focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "pause",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "‖ pause focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "reset",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "↺ reset focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/live.x.md",
+          "expected": "- [ ] Deep work @timer(focus)",
+          "kind": "toggle_task",
+          "row": 2
+        }
+      ],
+      "command": "xmd.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "pause",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "‖ pause focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "action": "reset",
+          "document": "file://<root>/live.x.md",
+          "kind": "timer",
+          "name": "focus"
+        }
+      ],
+      "command": "xmd.timer",
+      "title": "↺ reset focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  }
+]
+-- await workspace/inlayHint/refresh
+null
+-- await workspace/inlayHint/refresh
+null
+-- request textDocument/inlayHint live.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◷ ████░░░░ 01:00 remaining · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 55,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 01:00 remaining · ▸ running\n\n```text\ncountdown(2m, 0s, 2026-09-16T13:59:00-04:00)\n= ◷ 01:00 remaining · ▸ running\n```\n\n`█████░░░░░ 50%`\n\nElapsed: 1m. State: running. Current segment started: 2026-09-16T13:59:00-04:00.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/live.x.md#L1>) · <root>/live.x.md:1"
+    }
+  },
+  {
+    "label": "1m",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "focus.remaining"
+    }
+  },
+  {
+    "label": "◷ ████░░░░ 01:00 remaining · ▸ running",
+    "paddingLeft": true,
+    "position": {
+      "character": 29,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  }
+]
+-- change live.x.md (version 2)
+[focus] := countdown(2m)
+Time left: [focus.remaining].
+- [ ] Deep work @timer(focus)
+-- await textDocument/publishDiagnostics live.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/live.x.md",
+  "version": 2
+}
+-- request textDocument/inlayHint live.x.md {"end":{"character":0,"line":9},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "= ◷ ░░░░░░░░ 02:00 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 24,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "**focus · Countdown**\n\n◷ 02:00 remaining · ○ idle\n\n```text\ncountdown(2m)\n= ◷ 02:00 remaining · ○ idle\n```\n\n`░░░░░░░░░░ 0%`\n\nElapsed: 0s. State: idle.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [focus](<file://<root>/live.x.md#L1>) · <root>/live.x.md:1"
+    }
+  },
+  {
+    "label": "2m",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 1
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "focus.remaining"
+    }
+  },
+  {
+    "label": "◷ ░░░░░░░░ 02:00 remaining · ○ idle",
+    "paddingLeft": true,
+    "position": {
+      "character": 29,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
+    }
+  }
+]
+

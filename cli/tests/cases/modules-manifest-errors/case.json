@@ -1,0 +1,735 @@
+{
+  "now": "2026-09-18T12:00:00Z",
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/literal-definition.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/not-a-record.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/id-missing.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/id-not-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/id-empty.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/id-invalid.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/kind-missing.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/enabled-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inputs-record.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inputs-list.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inputs-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hosts-uppercase.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hosts-path.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hosts-disabled.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hosts-empty.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hosts-any.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/prefix-not-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/property-reserved.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/property-invalid.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inlay-missing.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/collect-missing.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/collect-optional.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/step-missing-command.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/step-missing-provider.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/inlay-not-function.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/hook-arity.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/library-hooks.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/property-function.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/provides-missing.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/provides-empty.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/provides-unknown.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/provides-command.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/cache-version-zero.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/cache-version-fraction.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/cache-version-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/cache-namespace-text.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/cache-namespace-null.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-id-kind.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-enabled-inputs.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-inputs-hosts.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-hosts-properties.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-properties-inlay.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-inlay-hover.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-hover-refresh.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-refresh-property.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-property-provides.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-provides-exports.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-exports-cache.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-cache-version-namespace.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/then-duplicate-assignment.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/oversized.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "cli": [
+        "run",
+        ".xmd/modules/oversized.x.md"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/decode-number.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/decode-function.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/decode-date.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/decode-numbers.x.md\"]\n"
+      }
+    },
+    {
+      "cli": [
+        "refresh"
+      ]
+    },
+    {
+      "read": [
+        ".xmd/cache.json"
+      ]
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

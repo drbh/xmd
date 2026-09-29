@@ -2,14 +2,16 @@ name: Release
 
 # Pushing a tag `vX.Y.Z` builds `xmd` for every supported platform, packages
 # the VS Code and Zed extensions, and publishes all of it as a GitHub Release
-# together with the install scripts. `workflow_dispatch` re-runs the same
+# together with the editor configs. `workflow_dispatch` re-runs the same
 # pipeline for an existing tag, so a release can be repaired or the pipeline
 # exercised without cutting a new version.
 #
 # Every asset is uploaded twice: under its versioned name (what the release
 # page shows) and under a stable, version-free name that
-# `releases/latest/download/<name>` can serve, which is what install.sh,
-# the Zed extension fetch.
+# `releases/latest/download/<name>` can serve, which is what the editor
+# extensions fetch. The binary archive gets a third name spelled the way
+# `uname -s` and `uname -m` print the platform, so the one-line install in
+# the README can build its URL without an install script.
 
 on:
   push:
@@ -79,10 +81,10 @@ jobs:
       matrix:
         include:
           # Older Ubuntu for an older glibc, so the binary runs on more distributions.
-          - { target: x86_64-unknown-linux-gnu,  os: ubuntu-22.04 }
-          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm }
-          - { target: aarch64-apple-darwin,      os: macos-14 }
-          - { target: x86_64-apple-darwin,       os: macos-14 }
+          - { target: x86_64-unknown-linux-gnu,  os: ubuntu-22.04,     uname: Linux-x86_64 }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm, uname: Linux-aarch64 }
+          - { target: aarch64-apple-darwin,      os: macos-14,         uname: Darwin-arm64 }
+          - { target: x86_64-apple-darwin,       os: macos-14,         uname: Darwin-x86_64 }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,22 +104,25 @@ jobs:
         env:
           VERSION: ${{ needs.version.outputs.version }}
           TARGET: ${{ matrix.target }}
+          UNAME: ${{ matrix.uname }}
         run: |
           set -euo pipefail
           exe=xmd
           "target/$TARGET/release/$exe" --version
           rm -rf dist stage && mkdir -p dist stage
-          # The binary sits at the archive root, next to the README (and the
+          # The binary sits at the archive root, next to the README and DOCS (and the
           # LICENSE once the repository has one).
-          cp "target/$TARGET/release/$exe" README.md stage/
-          files="$exe README.md"
+          cp "target/$TARGET/release/$exe" README.md DOCS.md stage/
+          files="$exe README.md DOCS.md"
           if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
           name="xmd-$VERSION-$TARGET.tar.gz"
           stable="xmd-$TARGET.tar.gz"
+          native="xmd-$UNAME.tar.gz"
           tar -C stage -czf "dist/$name" $files
           cp "dist/$name" "dist/$stable"
+          cp "dist/$name" "dist/$native"
           cd dist
-          for f in "$name" "$stable"; do
+          for f in "$name" "$stable" "$native"; do
             if command -v sha256sum > /dev/null; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
           done
           cat ./*.sha256
@@ -226,9 +231,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp install.sh assets/
           cd assets
-          # One checksums file for install.sh and the editors;
+          # One checksums file for the editors;
           # the per-file sidecars stay for anyone checking a single download.
           cat ./*.sha256 | sort -k2 > checksums.txt
           ls -l

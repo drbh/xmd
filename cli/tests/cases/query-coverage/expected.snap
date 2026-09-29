@@ -1,0 +1,996 @@
+### 0 cli query trip.x.md union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)} --json
+$ xmd query trip.x.md union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "key": "event",
+    "titles": [
+      "Call home"
+    ]
+  },
+  {
+    "key": "stop",
+    "titles": [
+      "> JFK to MEX",
+      "* Lunch",
+      "+ Museum"
+    ]
+  }
+]
+
+### 1 cli query trip.x.md union(events, stops) | group kind | sort key --json
+$ xmd query trip.x.md union(events, stops) | group kind | sort key --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "key": "event",
+    "rows": [
+      {
+        "anchor": {
+          "character": 42,
+          "line": 10
+        },
+        "at": {
+          "type": "datetime",
+          "value": "2026-11-20T15:00:00-05:00"
+        },
+        "at_date": {
+          "type": "date",
+          "value": "2026-11-20"
+        },
+        "blocked_by": [],
+        "done": false,
+        "due": null,
+        "errors": [],
+        "estimate": null,
+        "kind": "event",
+        "leaf": true,
+        "line": 10,
+        "parent": null,
+        "scheduled": null,
+        "source": {
+          "line": 11,
+          "path": "<root>/trip.x.md",
+          "range": {
+            "end": {
+              "character": 42,
+              "line": 10
+            },
+            "start": {
+              "character": 0,
+              "line": 10
+            }
+          },
+          "uri": "file://<root>/trip.x.md#L11"
+        },
+        "tags": [],
+        "title": "Call home"
+      }
+    ]
+  },
+  {
+    "key": "stop",
+    "rows": [
+      {
+        "anchor": {
+          "character": 22,
+          "line": 8
+        },
+        "at": {
+          "type": "datetime",
+          "value": "2026-11-20T09:00:00-04:00"
+        },
+        "at_date": {
+          "type": "date",
+          "value": "2026-11-20"
+        },
+        "blocked_by": [],
+        "done": false,
+        "due": null,
+        "errors": [],
+        "estimate": null,
+        "kind": "stop",
+        "leaf": true,
+        "line": 8,
+        "parent": null,
+        "scheduled": null,
+        "source": {
+          "line": 9,
+          "path": "<root>/trip.x.md",
+          "range": {
+            "end": {
+              "character": 22,
+              "line": 8
+            },
+            "start": {
+              "character": 0,
+              "line": 8
+            }
+          },
+          "uri": "file://<root>/trip.x.md#L9"
+        },
+        "tags": [],
+        "title": "> JFK to MEX"
+      },
+      {
+        "anchor": {
+          "character": 15,
+          "line": 9
+        },
+        "at": {
+          "type": "datetime",
+          "value": "2026-11-20T11:00:00-04:00"
+        },
+        "at_date": {
+          "type": "date",
+          "value": "2026-11-20"
+        },
+        "blocked_by": [],
+        "done": false,
+        "due": null,
+        "errors": [],
+        "estimate": null,
+        "kind": "stop",
+        "leaf": true,
+        "line": 9,
+        "parent": null,
+        "scheduled": null,
+        "source": {
+          "line": 10,
+          "path": "<root>/trip.x.md",
+          "range": {
+            "end": {
+              "character": 15,
+              "line": 9
+            },
+            "start": {
+              "character": 0,
+              "line": 9
+            }
+          },
+          "uri": "file://<root>/trip.x.md#L10"
+        },
+        "tags": [],
+        "title": "* Lunch"
+      },
+      {
+        "anchor": {
+          "character": 16,
+          "line": 16
+        },
+        "at": {
+          "type": "datetime",
+          "value": "2026-11-21T10:00:00-04:00"
+        },
+        "at_date": {
+          "type": "date",
+          "value": "2026-11-21"
+        },
+        "blocked_by": [],
+        "done": false,
+        "due": null,
+        "errors": [],
+        "estimate": null,
+        "kind": "stop",
+        "leaf": true,
+        "line": 16,
+        "parent": null,
+        "scheduled": null,
+        "source": {
+          "line": 17,
+          "path": "<root>/trip.x.md",
+          "range": {
+            "end": {
+              "character": 16,
+              "line": 16
+            },
+            "start": {
+              "character": 0,
+              "line": 16
+            }
+          },
+          "uri": "file://<root>/trip.x.md#L17"
+        },
+        "tags": [],
+        "title": "+ Museum"
+      }
+    ]
+  }
+]
+
+### 2 cli query trip.x.md sections | select {title, level, line, end_line} --json
+$ xmd query trip.x.md sections | select {title, level, line, end_line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "end_line": 17,
+    "level": 1,
+    "line": 0,
+    "title": "Trip"
+  },
+  {
+    "end_line": 13,
+    "level": 2,
+    "line": 5,
+    "title": "Friday"
+  },
+  {
+    "end_line": 13,
+    "level": 3,
+    "line": 11,
+    "title": "Notes"
+  },
+  {
+    "end_line": 17,
+    "level": 2,
+    "line": 13,
+    "title": "Saturday"
+  }
+]
+
+### 3 cli query trip.x.md sections --json
+$ xmd query trip.x.md sections --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 6,
+      "line": 0
+    },
+    "end_line": 17,
+    "errors": [],
+    "kind": "section",
+    "level": 1,
+    "line": 0,
+    "source": {
+      "line": 1,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 6,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L1"
+    },
+    "title": "Trip"
+  },
+  {
+    "anchor": {
+      "character": 9,
+      "line": 5
+    },
+    "end_line": 13,
+    "errors": [],
+    "kind": "section",
+    "level": 2,
+    "line": 5,
+    "source": {
+      "line": 6,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 9,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 5
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L6"
+    },
+    "title": "Friday"
+  },
+  {
+    "anchor": {
+      "character": 9,
+      "line": 11
+    },
+    "end_line": 13,
+    "errors": [],
+    "kind": "section",
+    "level": 3,
+    "line": 11,
+    "source": {
+      "line": 12,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 9,
+          "line": 11
+        },
+        "start": {
+          "character": 0,
+          "line": 11
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L12"
+    },
+    "title": "Notes"
+  },
+  {
+    "anchor": {
+      "character": 11,
+      "line": 13
+    },
+    "end_line": 17,
+    "errors": [],
+    "kind": "section",
+    "level": 2,
+    "line": 13,
+    "source": {
+      "line": 14,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 11,
+          "line": 13
+        },
+        "start": {
+          "character": 0,
+          "line": 13
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L14"
+    },
+    "title": "Saturday"
+  }
+]
+
+### 4 cli query trip.x.md days --json
+$ xmd query trip.x.md days --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 25,
+      "line": 6
+    },
+    "errors": [],
+    "kind": "day",
+    "line": 6,
+    "source": {
+      "line": 7,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 25,
+          "line": 6
+        },
+        "start": {
+          "character": 0,
+          "line": 6
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L7"
+    },
+    "title": "Friday, November 20, 2026",
+    "value": {
+      "anchor": {
+        "character": 25,
+        "line": 6
+      },
+      "date_range": {
+        "end": {
+          "character": 25,
+          "line": 6
+        },
+        "start": {
+          "character": 8,
+          "line": 6
+        }
+      },
+      "day": 20,
+      "forecast": null,
+      "line": 6,
+      "line_range": {
+        "end": {
+          "character": 25,
+          "line": 6
+        },
+        "start": {
+          "character": 0,
+          "line": 6
+        }
+      },
+      "month": 11,
+      "places": null,
+      "raw": "Friday, November 20, 2026",
+      "stops": [
+        {
+          "anchor": {
+            "character": 22,
+            "line": 8
+          },
+          "details": [],
+          "kind": {
+            "marker": ">",
+            "name": "Depart"
+          },
+          "line": 8,
+          "line_range": {
+            "end": {
+              "character": 22,
+              "line": 8
+            },
+            "start": {
+              "character": 0,
+              "line": 8
+            }
+          },
+          "notes": [],
+          "range": {
+            "end": {
+              "character": 22,
+              "line": 8
+            },
+            "start": {
+              "character": 0,
+              "line": 8
+            }
+          },
+          "raw": "09:00 AM  > JFK to MEX",
+          "time": {
+            "seconds": 32400,
+            "type": "duration"
+          },
+          "time_range": {
+            "end": {
+              "character": 8,
+              "line": 8
+            },
+            "start": {
+              "character": 0,
+              "line": 8
+            }
+          },
+          "title": "JFK to MEX",
+          "title_range": {
+            "end": {
+              "character": 22,
+              "line": 8
+            },
+            "start": {
+              "character": 12,
+              "line": 8
+            }
+          },
+          "twelve_hour": true
+        },
+        {
+          "anchor": {
+            "character": 15,
+            "line": 9
+          },
+          "details": [],
+          "kind": {
+            "marker": "*",
+            "name": "Meal"
+          },
+          "line": 9,
+          "line_range": {
+            "end": {
+              "character": 15,
+              "line": 9
+            },
+            "start": {
+              "character": 0,
+              "line": 9
+            }
+          },
+          "notes": [
+            {
+              "anchor": {
+                "character": 42,
+                "line": 10
+              },
+              "line": 10,
+              "line_range": {
+                "end": {
+                  "character": 42,
+                  "line": 10
+                },
+                "start": {
+                  "character": 0,
+                  "line": 10
+                }
+              },
+              "raw": "- Call home @at(2026-11-20T15:00:00-05:00)"
+            }
+          ],
+          "range": {
+            "end": {
+              "character": 15,
+              "line": 9
+            },
+            "start": {
+              "character": 0,
+              "line": 9
+            }
+          },
+          "raw": "11:00 AM  Lunch",
+          "time": {
+            "seconds": 39600,
+            "type": "duration"
+          },
+          "time_range": {
+            "end": {
+              "character": 8,
+              "line": 9
+            },
+            "start": {
+              "character": 0,
+              "line": 9
+            }
+          },
+          "title": "Lunch",
+          "title_range": {
+            "end": {
+              "character": 15,
+              "line": 9
+            },
+            "start": {
+              "character": 10,
+              "line": 9
+            }
+          },
+          "twelve_hour": true
+        }
+      ],
+      "weekday": 4,
+      "weekday_range": {
+        "end": {
+          "character": 6,
+          "line": 6
+        },
+        "start": {
+          "character": 0,
+          "line": 6
+        }
+      },
+      "year": 2026
+    }
+  },
+  {
+    "anchor": {
+      "character": 27,
+      "line": 14
+    },
+    "errors": [],
+    "kind": "day",
+    "line": 14,
+    "source": {
+      "line": 15,
+      "path": "<root>/trip.x.md",
+      "range": {
+        "end": {
+          "character": 27,
+          "line": 14
+        },
+        "start": {
+          "character": 0,
+          "line": 14
+        }
+      },
+      "uri": "file://<root>/trip.x.md#L15"
+    },
+    "title": "Saturday, November 21, 2026",
+    "value": {
+      "anchor": {
+        "character": 27,
+        "line": 14
+      },
+      "date_range": {
+        "end": {
+          "character": 27,
+          "line": 14
+        },
+        "start": {
+          "character": 10,
+          "line": 14
+        }
+      },
+      "day": 21,
+      "forecast": null,
+      "line": 14,
+      "line_range": {
+        "end": {
+          "character": 27,
+          "line": 14
+        },
+        "start": {
+          "character": 0,
+          "line": 14
+        }
+      },
+      "month": 11,
+      "places": null,
+      "raw": "Saturday, November 21, 2026",
+      "stops": [
+        {
+          "anchor": {
+            "character": 16,
+            "line": 16
+          },
+          "details": [],
+          "kind": {
+            "marker": "+",
+            "name": "Visit"
+          },
+          "line": 16,
+          "line_range": {
+            "end": {
+              "character": 16,
+              "line": 16
+            },
+            "start": {
+              "character": 0,
+              "line": 16
+            }
+          },
+          "notes": [],
+          "range": {
+            "end": {
+              "character": 16,
+              "line": 16
+            },
+            "start": {
+              "character": 0,
+              "line": 16
+            }
+          },
+          "raw": "10:00 AM  Museum",
+          "time": {
+            "seconds": 36000,
+            "type": "duration"
+          },
+          "time_range": {
+            "end": {
+              "character": 8,
+              "line": 16
+            },
+            "start": {
+              "character": 0,
+              "line": 16
+            }
+          },
+          "title": "Museum",
+          "title_range": {
+            "end": {
+              "character": 16,
+              "line": 16
+            },
+            "start": {
+              "character": 10,
+              "line": 16
+            }
+          },
+          "twelve_hour": true
+        }
+      ],
+      "weekday": 5,
+      "weekday_range": {
+        "end": {
+          "character": 8,
+          "line": 14
+        },
+        "start": {
+          "character": 0,
+          "line": 14
+        }
+      },
+      "year": 2026
+    }
+  }
+]
+
+### 5 cli query packed.x.md decisions --json
+$ xmd query packed.x.md decisions --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 31,
+      "line": 3
+    },
+    "errors": [],
+    "kind": "decision",
+    "line": 3,
+    "plan": "pack",
+    "source": {
+      "line": 4,
+      "path": "<root>/packed.x.md",
+      "range": {
+        "end": {
+          "character": 35,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "uri": "file://<root>/packed.x.md#L4"
+    },
+    "title": "pack",
+    "value": true
+  },
+  {
+    "anchor": {
+      "character": 31,
+      "line": 4
+    },
+    "errors": [],
+    "kind": "decision",
+    "line": 4,
+    "plan": "pack",
+    "source": {
+      "line": 5,
+      "path": "<root>/packed.x.md",
+      "range": {
+        "end": {
+          "character": 35,
+          "line": 4
+        },
+        "start": {
+          "character": 0,
+          "line": 4
+        }
+      },
+      "uri": "file://<root>/packed.x.md#L5"
+    },
+    "title": "pack",
+    "value": true
+  },
+  {
+    "anchor": {
+      "character": 31,
+      "line": 5
+    },
+    "errors": [],
+    "kind": "decision",
+    "line": 5,
+    "plan": "pack",
+    "source": {
+      "line": 6,
+      "path": "<root>/packed.x.md",
+      "range": {
+        "end": {
+          "character": 35,
+          "line": 5
+        },
+        "start": {
+          "character": 0,
+          "line": 5
+        }
+      },
+      "uri": "file://<root>/packed.x.md#L6"
+    },
+    "title": "pack",
+    "value": true
+  },
+  {
+    "anchor": {
+      "character": 30,
+      "line": 6
+    },
+    "errors": [],
+    "kind": "decision",
+    "line": 6,
+    "plan": "pack",
+    "source": {
+      "line": 7,
+      "path": "<root>/packed.x.md",
+      "range": {
+        "end": {
+          "character": 35,
+          "line": 6
+        },
+        "start": {
+          "character": 0,
+          "line": 6
+        }
+      },
+      "uri": "file://<root>/packed.x.md#L7"
+    },
+    "title": "pack",
+    "value": false
+  }
+]
+
+### 6 cli query trip.x.md values | select {name, display, hover} --json
+$ xmd query trip.x.md values | select {name, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "./receipt.png",
+    "hover": "**receipt · Resource**\n\n./receipt.png\n\n[Open resource](<file://<root>/receipt.png>)\n\n![Preview](<file://<root>/receipt.png>)\n\nDefinition: [receipt](<file://<root>/trip.x.md#L2>) · <root>/trip.x.md:2",
+    "name": "receipt"
+  },
+  {
+    "display": "$9",
+    "hover": "**price · Money**\n\n$9\n\n```text\n$9\n= $9\n```\n\nDefinition: [price](<file://<root>/trip.x.md#L3>) · <root>/trip.x.md:3",
+    "name": "price"
+  },
+  {
+    "display": "nine",
+    "hover": "**label · Text**\n\nnine\n\n```text\n\"nine\"\n= nine\n```\n\nDefinition: [label](<file://<root>/trip.x.md#L4>) · <root>/trip.x.md:4",
+    "name": "label"
+  }
+]
+
+### 7 cli query trip.x.md references | select {kind, expression, display, hover} --json
+$ xmd query trip.x.md references | select {kind, expression, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "display": "$9",
+    "expression": "price",
+    "hover": "**price · Money**\n\n$9\n\n```text\n$9\n= $9\n```\n\nDefinition: [price](<file://<root>/trip.x.md#L3>) · <root>/trip.x.md:3",
+    "kind": "reference"
+  }
+]
+
+### 8 cli query trip.x.md calculations | select {expression, display, hover} --json
+$ xmd query trip.x.md calculations | select {expression, display, hover} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Stage 1: Unknown name 'hover'
+
+### 9 cli query trip.x.md values | select {name, presentation} --json
+$ xmd query trip.x.md values | select {name, presentation} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Stage 1: Unknown name 'presentation'
+
+### 10 cli query trip.x.md map(sections, fn(s) => s.title + " " + text(length(days))) --json
+$ xmd query trip.x.md map(sections, fn(s) => s.title + " " + text(length(days))) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "Trip 2",
+  "Friday 2",
+  "Notes 2",
+  "Saturday 2"
+]
+
+### 11 cli query --workspace sections | select {title, file: source.path} | sort file, title --json
+$ xmd query --workspace sections | select {title, file: source.path} | sort file, title --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "file": "<root>/trip.x.md",
+    "title": "Friday"
+  },
+  {
+    "file": "<root>/trip.x.md",
+    "title": "Notes"
+  },
+  {
+    "file": "<root>/trip.x.md",
+    "title": "Saturday"
+  },
+  {
+    "file": "<root>/trip.x.md",
+    "title": "Trip"
+  }
+]
+
+### 12 cli query trip.x.md values | sort value | select name --json
+$ xmd query trip.x.md values | sort value | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Stage 1: Cannot compare these value types
+
+### 13 cli query trip.x.md sections | limit 1 | sort source --json
+$ xmd query trip.x.md sections | limit 1 | sort source --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Stage 2: Cannot compare these value types
+
+### 14 cli query empty/prose.x.md tasks | group title --json
+$ xmd query empty/prose.x.md tasks | group title --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 15 cli query --workspace tasks | group source.path | sort key --root empty --json
+$ xmd query --workspace tasks | group source.path | sort key --root empty --json --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[]
+
+### 16 cli query empty/prose.x.md sections | sort title | count --json
+$ xmd query empty/prose.x.md sections | sort title | count --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  0
+]
+
+### 17 lsp
+-- open trip.x.md
+-- await textDocument/publishDiagnostics trip.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/trip.x.md",
+  "version": 1
+}
+-- query sections | select {title, level}
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    {
+      "level": 1,
+      "title": "Trip"
+    },
+    {
+      "level": 2,
+      "title": "Friday"
+    },
+    {
+      "level": 3,
+      "title": "Notes"
+    },
+    {
+      "level": 2,
+      "title": "Saturday"
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/trip.x.md": 1
+  }
+}
+-- query union(sections, days) | group kind | select {key, count: length(rows)} | sort key
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [
+    {
+      "count": 2,
+      "key": "day"
+    },
+    {
+      "count": 4,
+      "key": "section"
+    }
+  ],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/trip.x.md": 1
+  }
+}
+-- query stops | select title
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "rows": [],
+  "schemaVersion": 1,
+  "versions": {
+    "file://<root>/trip.x.md": 1
+  }
+}
+-- request xmd/query {"query":"stops","uri":"https://example.com/trip.x.md"}
+error: {
+  "code": -32602,
+  "message": "Query uri must be a local file URI"
+}
+-- request xmd/query {"query":"stops | nope"}
+error: {
+  "code": -32602,
+  "message": "Stage 1: Unknown stage 'nope'; use where, select, sort, limit, count, sum or group"
+}
+

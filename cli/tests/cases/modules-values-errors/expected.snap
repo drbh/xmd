@@ -1,0 +1,253 @@
+### 0 cli run ./values.x.md work --mode numbers
+$ xmd run ./values.x.md work --mode numbers
+exit 0
+--- stdout
+{"ok": true}
+
+### 1 cli run ./values.x.md work --mode date
+$ xmd run ./values.x.md work --mode date
+exit 1
+--- stderr
+xmd: Cached module data must contain JSON values
+
+### 2 cli run ./values.x.md work --mode money
+$ xmd run ./values.x.md work --mode money
+exit 1
+--- stderr
+xmd: Cached module data must contain JSON values
+
+### 3 cli run ./values.x.md work --mode ratio
+$ xmd run ./values.x.md work --mode ratio
+exit 1
+--- stderr
+xmd: Cached module data must contain JSON values
+
+### 4 cli run ./values.x.md work --mode duration
+$ xmd run ./values.x.md work --mode duration
+exit 1
+--- stderr
+xmd: Cached module data must contain JSON values
+
+### 5 cli run ./values.x.md work --mode function
+$ xmd run ./values.x.md work --mode function
+exit 1
+--- stderr
+xmd: Cached module data must contain JSON values
+
+### 6 read work/out.json
+-- work/out.json
+{
+  "count": 2,
+  "flag": true,
+  "fraction": 0.5,
+  "huge": 1.8446744073709552e+19,
+  "list": [
+    1,
+    "a"
+  ],
+  "negative": -3.0,
+  "negative_whole": -4.0,
+  "nothing": null,
+  "whole": 8
+}
+
+### 7 cli run ./disabled.x.md
+$ xmd run ./disabled.x.md
+exit 1
+--- stderr
+xmd: Module 'off' is disabled
+
+### 8 cli query imports.x.md diagnostics | select {line, message} --json
+$ xmd query imports.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "line": 2,
+    "message": "Unknown or undeclared import 'nope'"
+  },
+  {
+    "line": 3,
+    "message": "Unknown or undeclared import 'off'"
+  },
+  {
+    "line": 4,
+    "message": "Module 'engine' exports nothing; the engine calls it by name"
+  },
+  {
+    "line": 5,
+    "message": "Module 'tickets' is a link module and cannot be imported; only libraries can"
+  },
+  {
+    "line": 6,
+    "message": "Unknown or undeclared import 'off'"
+  },
+  {
+    "line": 8,
+    "message": "Unknown or undeclared import 'lib'"
+  },
+  {
+    "line": 9,
+    "message": "Unknown or undeclared import 'tickets'"
+  }
+]
+
+### 9 write
+-- write .xmd/modules.json (347 bytes)
+
+### 10 lsp
+-- open review.x.md
+-- await textDocument/publishDiagnostics review.x.md
+{
+  "diagnostics": [
+    {
+      "code": "module",
+      "message": "diagnostics-date: Cached module data must contain JSON values",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/review.x.md",
+  "version": 1
+}
+-- request textDocument/inlayHint review.x.md {"end":{"character":0,"line":2},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "module error · inlay-at-date",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Cached module data must contain JSON values"
+    }
+  },
+  {
+    "label": "module error · inlay-at",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "invalid type: string \"zero\", expected u32"
+    }
+  },
+  {
+    "label": "module error · inlay-clock",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Module inlay-clock.time_dependent: the clock broke"
+    }
+  },
+  {
+    "label": "module error · inlay-fraction",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay line must be a nonnegative integer"
+    }
+  },
+  {
+    "label": "module error · inlay-label",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay label must be text"
+    }
+  },
+  {
+    "label": "module error · inlay-negative",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay line must be a nonnegative integer"
+    }
+  },
+  {
+    "label": "module error · inlay-position",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay needs at or line"
+    }
+  },
+  {
+    "label": "module error · inlay-record",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Each inlay must be a record"
+    }
+  },
+  {
+    "label": "module error · inlay-tooltip",
+    "paddingLeft": true,
+    "position": {
+      "character": 8,
+      "line": 0
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "Inlay tooltip must be text"
+    }
+  }
+]
+-- request textDocument/formatting review.x.md
+error: {
+  "code": -32602,
+  "message": "format must return a list"
+}
+
+### 11 write
+-- write .xmd/modules.json (25 bytes)
+
+### 12 cli query timers.x.md diagnostics | select {line, message} --json
+$ xmd query timers.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+exit 0
+--- stdout
+[
+  {
+    "line": 1,
+    "message": "timer.time_dependent must return a boolean"
+  }
+]
+

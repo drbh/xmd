@@ -1,5 +1,5 @@
-### 0 cli query plan.x.md tasks | select {title, done, checked, in_progress} --json
-$ xmd query plan.x.md tasks | select {title, done, checked, in_progress} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query plan.x.md map(tasks, fn(r) => {title: r.title, done: r.done, checked: r.checked, in_progress: r.in_progress}) --json
+$ xmd query plan.x.md map(tasks, fn(r) => {title: r.title, done: r.done, checked: r.checked, in_progress: r.in_progress}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -41,8 +41,8 @@ exit 0
   }
 ]
 
-### 1 cli ast plan.x.md -q ast | where kind == "checkbox" | select {text, state, checked}
-$ xmd ast plan.x.md -q ast | where kind == "checkbox" | select {text, state, checked} --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli ast plan.x.md -q map(filter(ast, fn(r) => r.kind == "checkbox"), fn(r) => {text: r.text, state: r.state, checked: r.checked})
+$ xmd ast plan.x.md -q map(filter(ast, fn(r) => r.kind == "checkbox"), fn(r) => {text: r.text, state: r.state, checked: r.checked}) --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

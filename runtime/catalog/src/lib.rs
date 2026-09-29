@@ -39,7 +39,7 @@ pub use value::display;
 /// language's.
 pub type DiagnosticSource = fn(&RequestContext<'_>, &Path) -> Vec<Diagnostic>;
 
-/// The `kind` field every catalog record carries. Queries and .x.md modules
+/// The `kind` field every catalog record carries. Queries and .xmd modules
 /// match on these names, so they are part of the workspace's data contract.
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, strum::Display, strum::IntoStaticStr,

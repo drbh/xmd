@@ -24,7 +24,7 @@
           "method": "query",
           "params": {
             "uri": "file:///workspace/trip.x.md",
-            "query": "values | select {name, display}"
+            "query": "map(values, fn(r) => {name: r.name, display: r.display})"
           }
         }
       ]

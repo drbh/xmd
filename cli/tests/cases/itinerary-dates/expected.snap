@@ -36,8 +36,8 @@ exit 0
   }
 ]
 
-### 2 cli query markers.x.md stops | select {title, line, at_date} --json
-$ xmd query markers.x.md stops | select {title, line, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query markers.x.md map(stops, fn(r) => {title: r.title, line: r.line, at_date: r.at_date}) --json
+$ xmd query markers.x.md map(stops, fn(r) => {title: r.title, line: r.line, at_date: r.at_date}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -67,8 +67,8 @@ exit 0
   }
 ]
 
-### 3 cli query markers.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query markers.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query markers.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query markers.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -136,8 +136,8 @@ Friday, November 20, 2026
 10:00 AM  Something vague
 11:00 AM  *Lunch
 
-### 5 cli query carry.x.md stops | select {title, at_date} --json
-$ xmd query carry.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query carry.x.md map(stops, fn(r) => {title: r.title, at_date: r.at_date}) --json
+$ xmd query carry.x.md map(stops, fn(r) => {title: r.title, at_date: r.at_date}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -157,8 +157,8 @@ exit 0
   }
 ]
 
-### 6 cli query past.x.md stops | select {title, at_date} --json
-$ xmd query past.x.md stops | select {title, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query past.x.md map(stops, fn(r) => {title: r.title, at_date: r.at_date}) --json
+$ xmd query past.x.md map(stops, fn(r) => {title: r.title, at_date: r.at_date}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -171,14 +171,14 @@ exit 0
   }
 ]
 
-### 7 cli query prose.x.md days | select {title, line} --json
-$ xmd query prose.x.md days | select {title, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query prose.x.md map(days, fn(r) => {title: r.title, line: r.line}) --json
+$ xmd query prose.x.md map(days, fn(r) => {title: r.title, line: r.line}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 8 cli query bad.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query bad.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query bad.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

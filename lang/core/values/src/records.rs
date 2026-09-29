@@ -1,4 +1,4 @@
-//! The typed boundary between Rust and the .x.md modules.
+//! The typed boundary between Rust and the .xmd modules.
 //!
 //! Timers, plans, itinerary days, link contexts and solver models all cross into
 //! module functions as records. Rather than assembling a `BTreeMap` field by

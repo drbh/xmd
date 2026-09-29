@@ -27,8 +27,8 @@ exit 1
 <root>/gear.x.md:21:31: error: 'take' is a decision column; a plan chooses it, so sum over it inside maximize or minimize
 xmd: 1 error(s) while rendering
 
-### 1 cli query gear.x.md plans | select {name, display} --json
-$ xmd query gear.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query gear.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query gear.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -42,8 +42,8 @@ exit 0
   }
 ]
 
-### 2 cli query gear.x.md decisions | select {title, plan, line, value} --json
-$ xmd query gear.x.md decisions | select {title, plan, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query gear.x.md map(decisions, fn(r) => {title: r.title, plan: r.plan, line: r.line, value: r.value}) --json
+$ xmd query gear.x.md map(decisions, fn(r) => {title: r.title, plan: r.plan, line: r.line, value: r.value}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -85,8 +85,8 @@ exit 0
   }
 ]
 
-### 3 cli query gear.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query gear.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query gear.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query gear.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -262,8 +262,8 @@ exit 0
 | ---------- | ----------------------------- |
 | weight     | sum(gear, weight * take) <= 6 | ████████ 6 ≤ 6 · ● binding
 
-### 6 cli query packed.x.md plans | select {name, display} --json
-$ xmd query packed.x.md plans | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query packed.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query packed.x.md map(plans, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -273,8 +273,8 @@ exit 0
   }
 ]
 
-### 7 cli query packed.x.md rows | select {table, line, cells} --json
-$ xmd query packed.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query packed.x.md map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells}) --json
+$ xmd query packed.x.md map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

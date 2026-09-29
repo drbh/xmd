@@ -90,6 +90,8 @@ export interface View {
 export const defaultUri: string;
 /** The note extension, without its dot. */
 export const EXTENSION: string;
+/** The extension of a file that only defines names for others to import: "xmd". */
+export const LIBRARY_EXTENSION: string;
 /** A note's file name from its stem: `noteFile("trip")` is "trip.x.md". */
 export function noteFile(stem: string): string;
 /** A name without a trailing note extension, in any case. */

@@ -2,8 +2,8 @@
   "now": "2026-09-16T18:05:00+00:00",
   "steps": [
     { "cli": ["render", "work.x.md", "--format", "text"] },
-    { "cli": ["query", "work.x.md", "diagnostics | select {message, code}", "--json"] },
-    { "cli": ["query", "work.x.md", "resources | select {target, metadata}", "--json"] },
+    { "cli": ["query", "work.x.md", "map(diagnostics, fn(r) => {message: r.message, code: r.code})", "--json"] },
+    { "cli": ["query", "work.x.md", "map(resources, fn(r) => {target: r.target, metadata: r.metadata})", "--json"] },
     {
       "lsp": [
         { "open": "work.x.md" },

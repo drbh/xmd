@@ -1,6 +1,6 @@
 # vs code
 
-the vs code extension: runs the xmd language server for `.x.md` files,
+the vs code extension: runs the xmd language server for `.x.md` notes and `.xmd` libraries,
 downloading it if `xmd` is not on your PATH
 
 ```bash

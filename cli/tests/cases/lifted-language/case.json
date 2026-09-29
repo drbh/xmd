@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "solver.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },
@@ -53,7 +53,7 @@
       "cli": [
         "query",
         "--workspace",
-        "notes | select import(\"format\").human(125m) | limit 1",
+        "slice(map(notes, fn(r) => import(\"format\").human(125m)), 0, 1)",
         "--json"
       ]
     },

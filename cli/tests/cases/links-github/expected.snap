@@ -13,8 +13,8 @@ Not a PR: https://github.com/drbh/kawaii
 <root>/work.x.md:4:13: error: Unknown resource property 'nope'
 xmd: 1 error(s) while rendering
 
-### 1 cli query work.x.md diagnostics | select {message, code} --json
-$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T18:05:00+00:00
+### 1 cli query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [
@@ -24,8 +24,8 @@ exit 0
   }
 ]
 
-### 2 cli query work.x.md resources | select {target, metadata} --json
-$ xmd query work.x.md resources | select {target, metadata} --json --root <root> --now 2026-09-16T18:05:00+00:00
+### 2 cli query work.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json
+$ xmd query work.x.md map(resources, fn(r) => {target: r.target, metadata: r.metadata}) --json --root <root> --now 2026-09-16T18:05:00+00:00
 exit 0
 --- stdout
 [

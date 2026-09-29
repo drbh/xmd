@@ -8,8 +8,9 @@ assert(vim.fn.executable(binary) == 1,
   .. ' `mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd`,'
   .. ' or set vim.g.xmd_server_path')
 
--- `.x.md` is a two-part suffix, so match it as a pattern rather than an extension.
-vim.filetype.add({ pattern = { ['.*%.x%.md'] = 'xmd' } })
+-- `.x.md` (notes) is a two-part suffix, so match it as a pattern rather than
+-- an extension; `.xmd` (libraries) is a plain one.
+vim.filetype.add({ extension = { xmd = 'xmd' }, pattern = { ['.*%.x%.md'] = 'xmd' } })
 
 local function highlights()
   -- Link semantic tokens to the user's theme; all tokenization stays in Rust.

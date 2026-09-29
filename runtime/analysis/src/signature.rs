@@ -116,7 +116,8 @@ signatures! {
         Coalesce("values: Value...") -> "Value", "Return the first non-null value.", "null, 1";
         Map("items: List", "function: Function") -> List, "Apply a pure function to every item.", "[1, 2], fn(x) => x * 2";
         Filter("items: List", "predicate: Function") -> List, "Keep items whose predicate returns true.", "[1, 2], fn(x) => x > 1";
-        SortBy("items: List", "key: Function") -> List, "Stable ascending sort by a compatible scalar key; nulls come last.", "[3, 1], fn(x) => x";
+        SortBy("items: List", "key: Function, desc(key), or a list of them") -> List, "Stable sort by one key, or by several in order; desc(key) sorts that key descending. Nulls come last either way.", "tasks, [desc(.due), .title]";
+        Desc("key: Function") -> Record, "Sort by a key descending, as a sort_by key.", ".due";
         GroupBy("items: List", "key: Function") -> List, "Group by a scalar key into {key, rows} records, in first-seen order.", "[1, 2, 1], fn(x) => x";
         Eval("expression: Text") -> "Value", "Evaluate expression text in the current document's scope.", "\"price * 2\"";
         Fold("items: List", "initial: Value", "function: Function") -> "Value", "Combine items left to right with an accumulator.", "[1, 2], 0, fn(a, x) => a + x";
@@ -249,7 +250,10 @@ pub fn call_context(prefix: &str) -> Option<(&str, u32)> {
                     .rsplit(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '@')
                     .next()
                     .unwrap_or("");
-                stack.push((name, 0));
+                // After `xs |` the piped value is the first argument.
+                let callee = before[..before.len() - name.len()].trim_end();
+                let piped = callee.ends_with('|') && !callee.ends_with("||");
+                stack.push((name, u32::from(piped)));
             }
             ')' => {
                 stack.pop();

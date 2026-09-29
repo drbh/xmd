@@ -21,7 +21,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | where (true",
+        "filter(tasks, fn(r) => (true)",
         "--json"
       ]
     },
@@ -29,7 +29,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select {a:1,a:2}",
+        "map(tasks, fn(r) => {a:1,a:2})",
         "--json"
       ]
     },
@@ -37,23 +37,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | limit -1",
-        "--json"
-      ]
-    },
-    {
-      "cli": [
-        "query",
-        "n.x.md",
-        "tasks | explode",
-        "--json"
-      ]
-    },
-    {
-      "cli": [
-        "query",
-        "n.x.md",
-        "tasks | select {x:}",
+        "map(tasks, fn(r) => {x:})",
         "--json"
       ]
     },
@@ -101,7 +85,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | where (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+        "filter(tasks, fn(r) => (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((true))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
         "--json"
       ]
     },
@@ -109,7 +93,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
+        "map(tasks, fn(r) => 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)",
         "--json"
       ]
     },
@@ -117,7 +101,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+",
+        "map(tasks, fn(r) => 1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+)",
         "--json"
       ]
     },
@@ -125,7 +109,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | where title",
+        "filter(tasks, fn(r) => r.title)",
         "--json"
       ]
     },
@@ -133,7 +117,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | where dne",
+        "filter(tasks, fn(r) => r.dne)",
         "--json"
       ]
     },
@@ -141,7 +125,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select title.dne",
+        "map(tasks, fn(r) => r.title.dne)",
         "--json"
       ]
     },
@@ -149,7 +133,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select bogus()",
+        "map(tasks, fn(r) => bogus())",
         "--json"
       ]
     },
@@ -157,7 +141,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | sort tags",
+        "sort_by(tasks, fn(r) => r.tags)",
         "--json"
       ]
     },
@@ -165,7 +149,7 @@
       "cli": [
         "query",
         "n.x.md",
-        "tasks | select {x: 1 + 2d}",
+        "map(tasks, fn(r) => {x: 1 + 2d})",
         "--json"
       ]
     },
@@ -317,7 +301,7 @@
       "cli": [
         "query",
         "mixed.x.md",
-        "values | sort value | select name",
+        "map(sort_by(values, fn(r) => r.value), fn(r) => r.name)",
         "--json"
       ]
     },
@@ -349,7 +333,7 @@
       "cli": [
         "query",
         "broken.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },

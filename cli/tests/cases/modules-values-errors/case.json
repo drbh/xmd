@@ -70,7 +70,7 @@
       "cli": [
         "query",
         "imports.x.md",
-        "diagnostics | select {line, message}",
+        "map(diagnostics, fn(r) => {line: r.line, message: r.message})",
         "--json"
       ]
     },
@@ -123,7 +123,7 @@
       "cli": [
         "query",
         "timers.x.md",
-        "diagnostics | select {line, message}",
+        "map(diagnostics, fn(r) => {line: r.line, message: r.message})",
         "--json"
       ]
     }

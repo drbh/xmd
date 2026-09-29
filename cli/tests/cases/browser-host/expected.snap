@@ -105,7 +105,7 @@
     }
   ]
 }
--- query {"query":"values | select {name, display}","uri":"file:///workspace/trip.x.md"}
+-- query {"query":"map(values, fn(r) => {name: r.name, display: r.display})","uri":"file:///workspace/trip.x.md"}
 {
   "ok": true,
   "result": {

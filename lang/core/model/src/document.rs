@@ -1334,7 +1334,12 @@ fn expression_end(lines: &[&str], row: usize, start: usize) -> usize {
                 Lexeme::Op(_) | Lexeme::Comma | Lexeme::Dot | Lexeme::Colon
             )
         });
-        if depth <= 0 && !unfinished {
+        // `open := tasks` then an indented `| filter(…)` is one pipeline.
+        let piped = lines.get(index + 1).is_some_and(|next| {
+            let stage = next.trim_start();
+            next.len() - stage.len() > indent && stage.starts_with('|') && !stage.starts_with("||")
+        });
+        if depth <= 0 && !unfinished && !piped {
             break;
         }
     }

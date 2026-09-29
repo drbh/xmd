@@ -445,9 +445,9 @@
     "open": "https://example.com/page"
   }
 }
--- query {"query":"tasks | where ("}
+-- query {"query":"filter(tasks, fn(r) => ()"}
 {
-  "error": "Unclosed delimiter in query",
+  "error": "Expected a value, name, or function",
   "ok": false
 }
 -- query {"query":"ast","uri":"file:///workspace/missing.x.md"}

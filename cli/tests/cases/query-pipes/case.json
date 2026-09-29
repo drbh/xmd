@@ -1,0 +1,162 @@
+{
+  "now": "2026-09-16T14:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | filter(fn(t) => !t.done) | map(.{title, due})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | map(.title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | map(.{title, line: .source.line, phone: fn(t) => contains(t.tags, \"phone\"), note: \"errand\"})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | sort_by(.due) | map(.title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | sort_by(desc(.due)) | map(.{title, due})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | sort_by([.done, desc(.title)]) | map(.{done, title})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | filter(fn(t) => !t.done) | length > 2",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "entries | import(\"agenda\").between(today(), today() + 6d) | map(.title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "{open: open, sizes: rows | filter(fn(r) => r.table == \"sizes\") | map(.cells.count)}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "1 + 2 | text",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | where !done",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | select {title}",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | filter(!.done)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | 1 + 1",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | let",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "25m | countdown",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "tasks | sort_by(1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "broken.x.md",
+        "map(diagnostics, .{line, message})",
+        "--json"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "sig.x.md"
+        },
+        {
+          "request": "textDocument/signatureHelp",
+          "file": "sig.x.md",
+          "line": 0,
+          "character": 18
+        }
+      ]
+    }
+  ]
+}

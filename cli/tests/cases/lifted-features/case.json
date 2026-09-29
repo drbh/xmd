@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "bakery.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -21,7 +21,7 @@
       "cli": [
         "query",
         "bakery.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -37,7 +37,7 @@
       "cli": [
         "query",
         "choice.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -45,7 +45,7 @@
       "cli": [
         "query",
         "choice.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -61,7 +61,7 @@
       "cli": [
         "query",
         "timers.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -69,7 +69,7 @@
       "cli": [
         "query",
         "timers.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -85,7 +85,7 @@
       "cli": [
         "query",
         "oaxaca.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -93,7 +93,7 @@
       "cli": [
         "query",
         "oaxaca.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -109,7 +109,7 @@
       "cli": [
         "query",
         "baddates.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -117,7 +117,7 @@
       "cli": [
         "query",
         "baddates.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -133,7 +133,7 @@
       "cli": [
         "query",
         "yearless.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -141,7 +141,7 @@
       "cli": [
         "query",
         "yearless.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },
@@ -157,7 +157,7 @@
       "cli": [
         "query",
         "work.x.md",
-        "values | select {name, display, type}",
+        "map(values, fn(r) => {name: r.name, display: r.display, type: r.type})",
         "--json"
       ]
     },
@@ -165,7 +165,7 @@
       "cli": [
         "query",
         "work.x.md",
-        "diagnostics | select {message, code, severity}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity})",
         "--json"
       ]
     },

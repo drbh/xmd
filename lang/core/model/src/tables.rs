@@ -168,12 +168,21 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table 
             continue;
         };
         if parts.len() != table.columns.len() {
+            // A calculation cell split in two was most likely a pipe.
+            let split = parts.iter().any(|(cell, _)| {
+                cell.starts_with('[') && cell.matches('[').count() > cell.matches(']').count()
+            });
             problem(
                 Span::new(row, 0, line.len()),
                 format!(
-                    "Expected {} cells, found {}",
+                    "Expected {} cells, found {}{}",
                     table.columns.len(),
-                    parts.len()
+                    parts.len(),
+                    if split {
+                        "; a | inside [ ] is written \\| in a table"
+                    } else {
+                        ""
+                    }
                 ),
             );
         }

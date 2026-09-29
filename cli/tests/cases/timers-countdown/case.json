@@ -2,12 +2,12 @@
   "steps": [
     { "cli": ["render", "focus.x.md", "--format", "text"] },
     { "cli": ["render", "focus.x.md", "--now", "2026-09-17T14:00:00-04:00", "--format", "text"] },
-    { "cli": ["query", "focus.x.md", "timers | select {name, line, value}", "--json"] },
+    { "cli": ["query", "focus.x.md", "map(timers, fn(r) => {name: r.name, line: r.line, value: r.value})", "--json"] },
     { "cli": ["render", "running.x.md", "--format", "text"] },
     { "cli": ["render", "running.x.md", "--now", "2026-09-16T14:01:59-04:00", "--format", "text"] },
     { "cli": ["render", "running.x.md", "--now", "2026-09-16T14:02:00-04:00", "--format", "text"] },
     { "cli": ["render", "running.x.md", "--now", "2026-09-16T16:30:00-04:00", "--format", "text"] },
-    { "cli": ["query", "running.x.md", "timers | select {name, value}", "--json", "--now", "2026-09-16T16:30:00-04:00"] },
+    { "cli": ["query", "running.x.md", "map(timers, fn(r) => {name: r.name, value: r.value})", "--json", "--now", "2026-09-16T16:30:00-04:00"] },
     {
       "lsp": [
         { "open": "multiline.x.md" },
@@ -37,6 +37,6 @@
       ]
     },
     { "cli": ["render", "cycle.x.md", "--format", "text"] },
-    { "cli": ["query", "cycle.x.md", "diagnostics | select {line, severity, code, message}", "--json"] }
+    { "cli": ["query", "cycle.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] }
   ]
 }

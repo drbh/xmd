@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "work.x.md",
-        "diagnostics | select {message, code}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code})",
         "--json"
       ]
     },
@@ -60,7 +60,7 @@
       "cli": [
         "query",
         "work.x.md",
-        "diagnostics | select {message, code}",
+        "map(diagnostics, fn(r) => {message: r.message, code: r.code})",
         "--json"
       ]
     },

@@ -1,5 +1,5 @@
-### 0 cli query debug.x.md values | select {name, display, errors} --json
-$ xmd query debug.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 0 cli query debug.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query debug.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [
@@ -55,8 +55,8 @@ exit 0
   }
 ]
 
-### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-17T14:00:00+00:00
+### 1 cli query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-17T14:00:00+00:00
 exit 0
 --- stdout
 [

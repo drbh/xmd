@@ -25,10 +25,10 @@
         "--json"
       ]
     },
-    { "cli": ["query", "trip.x.md", "stops | sort at | select {title, line, at, at_date}", "--json"] },
-    { "cli": ["query", "trip.x.md", "entries | sort at | select {kind, title, at}", "--json"] },
-    { "cli": ["query", "trip.x.md", "links | select {line, url}", "--json"] },
-    { "cli": ["query", "trip.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(sort_by(stops, fn(r) => r.at), fn(r) => {title: r.title, line: r.line, at: r.at, at_date: r.at_date})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(sort_by(entries, fn(r) => r.at), fn(r) => {kind: r.kind, title: r.title, at: r.at})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(links, fn(r) => {line: r.line, url: r.url})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "trip.x.md" },
@@ -53,7 +53,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\" | select {title, at}",
+        "map(filter(import(\"agenda\").between(entries, today(), today() + 6d), fn(r) => r.kind == \"stop\"), fn(r) => {title: r.title, at: r.at})",
         "--json"
       ]
     },
@@ -61,7 +61,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "import(\"agenda\").between(entries, today(), today() + 6d) | where kind == \"stop\" | select {title, at}",
+        "map(filter(import(\"agenda\").between(entries, today(), today() + 6d), fn(r) => r.kind == \"stop\"), fn(r) => {title: r.title, at: r.at})",
         "--json",
         "--now",
         "2026-11-20T12:00:00-05:00"

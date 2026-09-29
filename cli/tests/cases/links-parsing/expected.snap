@@ -1,5 +1,5 @@
-### 0 cli query prose.x.md links | select {url, line} --json
-$ xmd query prose.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query prose.x.md map(links, fn(r) => {url: r.url, line: r.line}) --json
+$ xmd query prose.x.md map(links, fn(r) => {url: r.url, line: r.line}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -61,8 +61,8 @@ exit 0
 --- stdout
 []
 
-### 3 cli query prose.x.md tasks | select attributes --json
-$ xmd query prose.x.md tasks | select attributes --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query prose.x.md map(tasks, fn(r) => r.attributes) --json
+$ xmd query prose.x.md map(tasks, fn(r) => r.attributes) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -71,8 +71,8 @@ exit 0
   }
 ]
 
-### 4 cli query code.x.md links | select {url, line} --json
-$ xmd query code.x.md links | select {url, line} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query code.x.md map(links, fn(r) => {url: r.url, line: r.line}) --json
+$ xmd query code.x.md map(links, fn(r) => {url: r.url, line: r.line}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -82,8 +82,8 @@ exit 0
   }
 ]
 
-### 5 cli query code.x.md values | select name --json
-$ xmd query code.x.md values | select name --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query code.x.md map(values, fn(r) => r.name) --json
+$ xmd query code.x.md map(values, fn(r) => r.name) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

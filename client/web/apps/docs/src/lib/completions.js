@@ -2,9 +2,8 @@
 // language; record fields are learned from the workspace and from results.
 import { noteFile } from "@xmd/web";
 export const COLLECTIONS = ["ast", "days", "timers", "links", "tasks", "events", "stops", "entries", "values", "plans", "decisions", "tables", "rows", "resources", "diagnostics", "notes", "sections", "calculations", "references", "cells", "graph"];
-export const STAGES = ["where", "select", "sort", "limit", "count", "sum", "group"];
 export const FUNCTIONS = {
-  map: "map(list, fn(x) => …)", filter: "filter(list, fn(x) => bool)", sort_by: "sort_by(list, fn(x) => key)", group_by: "group_by(list, fn(x) => key)",
+  map: "map(list, fn(x) => …)", filter: "filter(list, fn(x) => bool)", sort_by: "sort_by(list, key | desc(key) | [keys])", desc: "desc(fn(x) => key)", group_by: "group_by(list, fn(x) => key)",
   fold: "fold(list, initial, fn(acc, x) => …)", get: "get(record | list, key | index)", length: "length(list | text)", slice: "slice(list, start, end)",
   sum: "sum(list)", concat: "concat(list, list)", entries: "entries(record)", object: "object(entries)", contains: "contains(text | list, needle)",
   starts_with: "starts_with(text, prefix)", ends_with: "ends_with(text, suffix)", split: "split(text, separator)", join: "join(list, separator)",
@@ -51,13 +50,9 @@ export function complete(text, caret, { fields = {}, names = [] } = {}) {
     }
     return stem(add(scope, "field"));
   }
-  // After a pipe: pipeline stages.
-  if (/\|\s*$/.test(head)) return stem(add(STAGES, "stage"));
   if (!partial) return null;
   const items = [];
-  const pipeline = /^\s*([a-z_]+)\s*\|/.exec(text);
-  if (pipeline && fields[pipeline[1]]) items.push(...add(fields[pipeline[1]], "field"));
-  items.push(...add(COLLECTIONS, "collection"), ...add(names, "name"), ...add(Object.keys(FUNCTIONS), "function", l => FUNCTIONS[l]), ...add(STAGES, "stage"), ...add(KEYWORDS, "keyword"));
+  items.push(...add(COLLECTIONS, "collection"), ...add(names, "name"), ...add(Object.keys(FUNCTIONS), "function", l => FUNCTIONS[l]), ...add(KEYWORDS, "keyword"));
   const seen = new Set();
   return stem(items.filter(i => !seen.has(i.label) && seen.add(i.label)).slice(0, 12));
 }

@@ -110,7 +110,7 @@ macro_rules! bundle {
                 "/",
                 stringify!($id),
                 ".",
-                common::note_extension!()
+                common::library_extension!()
             )),
         )),*]
     };
@@ -147,7 +147,7 @@ fn bundled(environment: NewEnvironment) -> &'static [Module] {
         .chain(bundle!["plugins": github, rss, frankfurter, yahoo_finance, open_meteo, sync])
         .map(|(dir, id, source)| {
             Module::compile(
-                common::note_file(&format!("/__xmd_stdlib__/{dir}/{id}")).into(),
+                common::library_file(&format!("/__xmd_stdlib__/{dir}/{id}")).into(),
                 source.into(),
                 environment,
             )

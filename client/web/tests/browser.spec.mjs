@@ -115,20 +115,17 @@ test("the document app writes like a document editor: typing, formatting, find, 
   await query.fill("lease * 2");
   await page.keyboard.press("Enter");
   await expect(page.locator(".console .entry").last()).toContainText("$1,800");
-  // Typeahead knows collections, pipeline stages, learned record fields, and functions.
+  // Typeahead knows collections, learned record fields, and functions.
   await query.fill("");
   await query.pressSequentially("val");
   await expect(page.locator(".typeahead li .label")).toHaveText(["values"]);
   await page.keyboard.press("Tab");
   await expect(query).toHaveValue("values");
-  await query.pressSequentially(" | ");
-  await expect(page.locator(".typeahead li .label").first()).toHaveText("where");
-  await page.keyboard.press("Escape");
   await query.fill("");
   await query.pressSequentially("map(values, fn(v) => v.");
   await expect(page.locator(".typeahead li .label", { hasText: /^name$/ })).toBeVisible();
   await page.keyboard.press("Escape");
-  await query.fill("values | select {name, type}");
+  await query.fill("map(values, fn(v) => {name: v.name, type: v.type})");
   await page.keyboard.press("Enter");
   await expect(page.locator(".console .entry").last().locator("table")).toContainText("lease");
   await query.fill("oops(");

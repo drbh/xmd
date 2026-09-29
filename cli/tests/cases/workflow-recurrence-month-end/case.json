@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "bill.x.md",
-        "tasks | select {title, due, done}",
+        "map(tasks, fn(r) => {title: r.title, due: r.due, done: r.done})",
         "--json"
       ]
     },
@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "bill.x.md",
-        "diagnostics | select {line, severity, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message})",
         "--json"
       ]
     },

@@ -16,8 +16,8 @@ exit 0
 Time left: [focus.remaining] 3m.
 - [ ] Deep work @timer(focus) ◷ ░░░░░░░░ 03:00 remaining · ○ idle
 
-### 2 cli query focus.x.md timers | select {name, line, value} --json
-$ xmd query focus.x.md timers | select {name, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query focus.x.md map(timers, fn(r) => {name: r.name, line: r.line, value: r.value}) --json
+$ xmd query focus.x.md map(timers, fn(r) => {name: r.name, line: r.line, value: r.value}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -103,8 +103,8 @@ exit 0
 [focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00) = ◷ ████████ 00:00 remaining · ✓ done
 Time left: [focus.remaining] 0s.
 
-### 7 cli query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00
-$ xmd query running.x.md timers | select {name, value} --json --now 2026-09-16T16:30:00-04:00 --root <root>
+### 7 cli query running.x.md map(timers, fn(r) => {name: r.name, value: r.value}) --json --now 2026-09-16T16:30:00-04:00
+$ xmd query running.x.md map(timers, fn(r) => {name: r.name, value: r.value}) --json --now 2026-09-16T16:30:00-04:00 --root <root>
 exit 0
 --- stdout
 [
@@ -296,8 +296,8 @@ exit 1
 <root>/cycle.x.md:1:2: error: Dependency cycle: a → b → a
 xmd: 1 error(s) while rendering
 
-### 10 cli query cycle.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query cycle.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli query cycle.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query cycle.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

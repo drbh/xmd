@@ -10,8 +10,8 @@ Unsupported https://builds.example/status and https://builds.example.evil/runs/4
 <root>/work.x.md:2:33: error: Module builds.property: Refresh build first
 xmd: 2 error(s) while rendering
 
-### 1 cli query work.x.md diagnostics | select {message, code} --json
-$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -89,8 +89,8 @@ https://builds.example/runs/fail build · refresh for status
 https://builds.example/runs/invalid build · refresh for status
 https://builds.example/runs/empty build · refresh for status
 
-### 8 cli query work.x.md diagnostics | select {message, code} --json
-$ xmd query work.x.md diagnostics | select {message, code} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
+$ xmd query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []

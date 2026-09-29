@@ -1,7 +1,6 @@
 # Decision columns
 
-A column named take? is a yes/no choice per row; servings# is a whole number.
-A plan that sums over the column decides every row.
+A take? column is a yes or no the plan decides for each row.
 
 gear := table
 | item   | weight | value | take? |
@@ -17,6 +16,3 @@ pack := maximize(sum(gear, value * take))
 | weight     | sum(gear, weight * take) <= 6 |
 
 Packing scores [pack].
-
-<!-- Each cell shows its choice; the code action on the plan line writes them
-into the table. Try: raise the weight limit to 8. -->

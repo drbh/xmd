@@ -2,8 +2,8 @@
   "now": "2026-09-17T14:00:00+00:00",
   "steps": [
     { "cli": ["render", "money.x.md", "--format", "text"] },
-    { "cli": ["query", "money.x.md", "values | select {name, display}", "--json"] },
-    { "cli": ["query", "money.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "money.x.md", "map(values, fn(r) => {name: r.name, display: r.display})", "--json"] },
+    { "cli": ["query", "money.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "cli": [
         "query",

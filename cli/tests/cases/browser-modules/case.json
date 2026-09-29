@@ -27,7 +27,7 @@
         {
           "method": "query",
           "params": {
-            "query": "values | where name == \"ticket\" | select eval(\"ticket.points\")"
+            "query": "map(filter(values, fn(r) => r.name == \"ticket\"), fn(r) => eval(\"ticket.points\"))"
           }
         },
         {
@@ -43,7 +43,7 @@
         {
           "method": "query",
           "params": {
-            "query": "values | where name == \"ticket\" | select eval(\"ticket.points\")"
+            "query": "map(filter(values, fn(r) => r.name == \"ticket\"), fn(r) => eval(\"ticket.points\"))"
           }
         },
         {
@@ -73,7 +73,7 @@
         {
           "method": "query",
           "params": {
-            "query": "values | where name == \"ticket\" | select eval(\"ticket.points\")"
+            "query": "map(filter(values, fn(r) => r.name == \"ticket\"), fn(r) => eval(\"ticket.points\"))"
           }
         },
         {

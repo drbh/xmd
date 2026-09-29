@@ -6,8 +6,8 @@ exit 0
   "First"
 ]
 
-### 1 cli query a.x.md tasks | where !done | select title --root notes --json
-$ xmd query a.x.md tasks | where !done | select title --root notes --json --now 2026-09-18T12:00:00Z
+### 1 cli query a.x.md map(filter(tasks, fn(r) => !r.done), fn(r) => r.title) --root notes --json
+$ xmd query a.x.md map(filter(tasks, fn(r) => !r.done), fn(r) => r.title) --root notes --json --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -68,8 +68,8 @@ exit 0
   }
 ]
 
-### 7 cli query scope.x.md tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json
-$ xmd query scope.x.md tasks | select {value: 100, title} | select {local: map([1], fn(x) => x + value), named: read()} --json --root <root> --now 2026-09-18T12:00:00Z
+### 7 cli query scope.x.md map(map(tasks, fn(r) => {value: 100, title: r.title}), fn(r) => {local: map([1], fn(x) => x + r.value), named: read()}) --json
+$ xmd query scope.x.md map(map(tasks, fn(r) => {value: 100, title: r.title}), fn(r) => {local: map([1], fn(x) => x + r.value), named: read()}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -81,8 +81,8 @@ exit 0
   }
 ]
 
-### 8 cli query scope.x.md tasks | select map([1], fn(title) => title + 1) --json
-$ xmd query scope.x.md tasks | select map([1], fn(title) => title + 1) --json --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli query scope.x.md map(tasks, fn(r) => map([1], fn(title) => title + 1)) --json
+$ xmd query scope.x.md map(tasks, fn(r) => map([1], fn(title) => title + 1)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -91,8 +91,8 @@ exit 0
   ]
 ]
 
-### 9 cli query scope.x.md tasks | select if(false, nonexistent, title) --json
-$ xmd query scope.x.md tasks | select if(false, nonexistent, title) --json --root <root> --now 2026-09-18T12:00:00Z
+### 9 cli query scope.x.md map(tasks, fn(r) => if(false, r.nonexistent, r.title)) --json
+$ xmd query scope.x.md map(tasks, fn(r) => if(false, r.nonexistent, r.title)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -107,10 +107,10 @@ exit 0
   1
 ]
 
-### 11 cli query scope.x.md tasks | select { // | , } inside a comment
- title, nested: {title}} --json
-$ xmd query scope.x.md tasks | select { // | , } inside a comment
- title, nested: {title}} --json --root <root> --now 2026-09-18T12:00:00Z
+### 11 cli query scope.x.md map(tasks, fn(r) => { // | , } inside a comment
+ title: r.title, nested: {title: r.title}}) --json
+$ xmd query scope.x.md map(tasks, fn(r) => { // | , } inside a comment
+ title: r.title, nested: {title: r.title}}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -122,8 +122,8 @@ exit 0
   }
 ]
 
-### 12 cli query scope.x.md [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json
-$ xmd query scope.x.md [{f:fn(x) => x + 1}] | select map([1], fn(x) => f(x)) --json --root <root> --now 2026-09-18T12:00:00Z
+### 12 cli query scope.x.md map([{f:fn(x) => x + 1}], fn(r) => map([1], fn(x) => r.f(x))) --json
+$ xmd query scope.x.md map([{f:fn(x) => x + 1}], fn(r) => map([1], fn(x) => r.f(x))) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -140,8 +140,8 @@ exit 0
   5
 ]
 
-### 14 cli query lib.x.md values | select {name, type, display} --json
-$ xmd query lib.x.md values | select {name, type, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 14 cli query lib.x.md map(values, fn(r) => {name: r.name, type: r.type, display: r.display}) --json
+$ xmd query lib.x.md map(values, fn(r) => {name: r.name, type: r.type, display: r.display}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -201,8 +201,8 @@ exit 0
   }
 ]
 
-### 17 cli query lib.x.md values | where name == "result" | select {value, display} --json
-$ xmd query lib.x.md values | where name == "result" | select {value, display} --json --root <root> --now 2026-09-18T12:00:00Z
+### 17 cli query lib.x.md map(filter(values, fn(r) => r.name == "result"), fn(r) => {value: r.value, display: r.display}) --json
+$ xmd query lib.x.md map(filter(values, fn(r) => r.name == "result"), fn(r) => {value: r.value, display: r.display}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -212,8 +212,8 @@ exit 0
   }
 ]
 
-### 18 cli query lib.x.md values | where name == "result" | select map([1, 2], fn(x) => x + value) --json
-$ xmd query lib.x.md values | where name == "result" | select map([1, 2], fn(x) => x + value) --json --root <root> --now 2026-09-18T12:00:00Z
+### 18 cli query lib.x.md map(filter(values, fn(r) => r.name == "result"), fn(r) => map([1, 2], fn(x) => x + r.value)) --json
+$ xmd query lib.x.md map(filter(values, fn(r) => r.name == "result"), fn(r) => map([1, 2], fn(x) => x + r.value)) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -307,8 +307,8 @@ exit 0
   }
 ]
 
-### 28 cli query shadow.x.md values | where name == "now" | select value --json
-$ xmd query shadow.x.md values | where name == "now" | select value --json --root <root> --now 2026-09-18T12:00:00Z
+### 28 cli query shadow.x.md map(filter(values, fn(r) => r.name == "now"), fn(r) => r.value) --json
+$ xmd query shadow.x.md map(filter(values, fn(r) => r.name == "now"), fn(r) => r.value) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

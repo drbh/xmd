@@ -107,10 +107,10 @@ test("file queries share functional syntax, graph data and current workspace ver
     const local = await ws.query(uri, "query", {query: "map(tasks, fn(t) => t.title)"});
     const agenda = await ws.query(uri, "query", {query: 'map(import("agenda").between(entries, today(), today()), fn(e) => e.title)'});
     const all = await ws.request("query", {query: "length(tasks)"});
-    const graph = await ws.query(uri, "query", {query: "graph.nodes | where external | select name"});
-    const ast = await ws.query(uri, "query", {query: 'ast | where kind == "definition" | select name'});
+    const graph = await ws.query(uri, "query", {query: "map(filter(graph.nodes, fn(n) => n.external), fn(n) => n.name)"});
+    const ast = await ws.query(uri, "query", {query: 'map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)'});
     await ws.setDocument(uri, 'answer := import("./other.x.md").rate * 3\n');
-    const changed = await ws.query(uri, "query", {query: 'ast | where kind == "document" | select text'});
+    const changed = await ws.query(uri, "query", {query: 'map(filter(ast, fn(n) => n.kind == "document"), fn(n) => n.text)'});
     ws.destroy();
     return {local, agenda, all, graph, ast, changed, uri};
   });
@@ -125,7 +125,7 @@ test("file queries share functional syntax, graph data and current workspace ver
 
 
 test("library replacement updates bundled features, typed values, and static HTML together", async ({ page }) => {
-  const timer = readFileSync(new URL("../../../lang/stdlib/timer.x.md", import.meta.url), "utf8")
+  const timer = readFileSync(new URL("../../../lang/stdlib/timer.xmd", import.meta.url), "utf8")
     .replace("display := fn(t) =>", "_display := fn(t) =>")
     .replace("inlay := fn(t) =>", "_inlay := fn(t) =>")
     + '\ndisplay := fn(t) => "MODULE VALUE"\ninlay := fn(t) => "MODULE INLAY"\n';
@@ -134,10 +134,10 @@ test("library replacement updates bundled features, typed values, and static HTM
     const uri = "file:///workspace/timer.x.md";
     await ws.setDocument(uri, "watch := stopwatch()\nUse [watch].\n");
     const before = await ws.analyze(uri);
-    await ws.setModules({ "timer.x.md": timer });
+    await ws.setModules({ "timer.xmd": timer });
     const after = await ws.analyze(uri);
     const html = await lib.render(ws.getDocument(uri).source, { workspace: ws, uri });
-    const values = await ws.request("query", { uri, query: "values | select display" });
+    const values = await ws.request("query", { uri, query: "map(values, fn(v) => v.display)" });
     await ws.setModules({});
     const restored = await ws.analyze(uri);
     ws.destroy();

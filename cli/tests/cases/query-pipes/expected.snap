@@ -1,0 +1,254 @@
+### 0 cli query tasks.x.md tasks | filter(fn(t) => !t.done) | map(.{title, due}) --json
+$ xmd query tasks.x.md tasks | filter(fn(t) => !t.done) | map(.{title, due}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-20"
+    },
+    "title": "Call the bank"
+  },
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-18"
+    },
+    "title": "Book the dentist"
+  },
+  {
+    "due": null,
+    "title": "Water the plants"
+  }
+]
+
+### 1 cli query tasks.x.md tasks | map(.title) --json
+$ xmd query tasks.x.md tasks | map(.title) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "Call the bank",
+  "Return the parcel",
+  "Book the dentist",
+  "Water the plants"
+]
+
+### 2 cli query tasks.x.md tasks | map(.{title, line: .source.line, phone: fn(t) => contains(t.tags, "phone"), note: "errand"}) --json
+$ xmd query tasks.x.md tasks | map(.{title, line: .source.line, phone: fn(t) => contains(t.tags, "phone"), note: "errand"}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 3,
+    "note": "errand",
+    "phone": true,
+    "title": "Call the bank"
+  },
+  {
+    "line": 4,
+    "note": "errand",
+    "phone": false,
+    "title": "Return the parcel"
+  },
+  {
+    "line": 5,
+    "note": "errand",
+    "phone": true,
+    "title": "Book the dentist"
+  },
+  {
+    "line": 6,
+    "note": "errand",
+    "phone": false,
+    "title": "Water the plants"
+  }
+]
+
+### 3 cli query tasks.x.md tasks | sort_by(.due) | map(.title) --json
+$ xmd query tasks.x.md tasks | sort_by(.due) | map(.title) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "Return the parcel",
+  "Book the dentist",
+  "Call the bank",
+  "Water the plants"
+]
+
+### 4 cli query tasks.x.md tasks | sort_by(desc(.due)) | map(.{title, due}) --json
+$ xmd query tasks.x.md tasks | sort_by(desc(.due)) | map(.{title, due}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-20"
+    },
+    "title": "Call the bank"
+  },
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-18"
+    },
+    "title": "Book the dentist"
+  },
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "title": "Return the parcel"
+  },
+  {
+    "due": null,
+    "title": "Water the plants"
+  }
+]
+
+### 5 cli query tasks.x.md tasks | sort_by([.done, desc(.title)]) | map(.{done, title}) --json
+$ xmd query tasks.x.md tasks | sort_by([.done, desc(.title)]) | map(.{done, title}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "done": false,
+    "title": "Water the plants"
+  },
+  {
+    "done": false,
+    "title": "Call the bank"
+  },
+  {
+    "done": false,
+    "title": "Book the dentist"
+  },
+  {
+    "done": true,
+    "title": "Return the parcel"
+  }
+]
+
+### 6 cli query tasks.x.md tasks | filter(fn(t) => !t.done) | length > 2 --json
+$ xmd query tasks.x.md tasks | filter(fn(t) => !t.done) | length > 2 --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  true
+]
+
+### 7 cli query tasks.x.md entries | import("agenda").between(today(), today() + 6d) | map(.title) --json
+$ xmd query tasks.x.md entries | import("agenda").between(today(), today() + 6d) | map(.title) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "Water the plants",
+  "Book the dentist",
+  "Call the bank"
+]
+
+### 8 cli query tasks.x.md {open: open, sizes: rows | filter(fn(r) => r.table == "sizes") | map(.cells.count)} --json
+$ xmd query tasks.x.md {open: open, sizes: rows | filter(fn(r) => r.table == "sizes") | map(.cells.count)} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "open": 2,
+    "sizes": [
+      3
+    ]
+  }
+]
+
+### 9 cli query tasks.x.md 1 + 2 | text --json
+$ xmd query tasks.x.md 1 + 2 | text --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "3"
+]
+
+### 10 cli query tasks.x.md tasks | where !done --json
+$ xmd query tasks.x.md tasks | where !done --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Pipeline stages are gone: write | filter(fn(x) => …) instead of | where …
+
+### 11 cli query tasks.x.md tasks | select {title} --json
+$ xmd query tasks.x.md tasks | select {title} --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Pipeline stages are gone: write | map(.{…}) instead of | select …
+
+### 12 cli query tasks.x.md tasks | filter(!.done) --json
+$ xmd query tasks.x.md tasks | filter(!.done) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: `.field` is a function of a row, not a value: write fn(x) => x.field to use it in an expression
+
+### 13 cli query tasks.x.md tasks | 1 + 1 --json
+$ xmd query tasks.x.md tasks | 1 + 1 --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: Expected a function or a call after '|'
+
+### 14 cli query tasks.x.md tasks | let --json
+$ xmd query tasks.x.md tasks | let --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: A value cannot be piped into let
+
+### 15 cli query tasks.x.md 25m | countdown --json
+$ xmd query tasks.x.md 25m | countdown --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: countdown takes its arguments in parentheses, not from '|'
+
+### 16 cli query tasks.x.md tasks | sort_by(1) --json
+$ xmd query tasks.x.md tasks | sort_by(1) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: sort_by expects a key function, desc(key), or a list of them
+
+### 17 cli query broken.x.md map(diagnostics, .{line, message}) --json
+$ xmd query broken.x.md map(diagnostics, .{line, message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 3,
+    "message": "Expected 2 cells, found 3; a | inside [ ] is written \\| in a table"
+  },
+  {
+    "line": 3,
+    "message": "Invalid calculation '[1, 2'"
+  }
+]
+
+### 18 lsp
+-- open sig.x.md
+-- request textDocument/signatureHelp sig.x.md 0:18
+{
+  "activeParameter": 1,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Apply a pure function to every item."
+      },
+      "label": "map(items: List, function: Function) → List",
+      "parameters": [
+        {
+          "label": "items: List"
+        },
+        {
+          "label": "function: Function"
+        }
+      ]
+    }
+  ]
+}
+

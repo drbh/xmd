@@ -4,7 +4,7 @@
       "cli": [
         "query",
         "defs.x.md",
-        "values | select {name, type, display}",
+        "map(values, fn(r) => {name: r.name, type: r.type, display: r.display})",
         "--json"
       ]
     },
@@ -20,7 +20,7 @@
       "cli": [
         "query",
         "defs.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -55,7 +55,7 @@
       "cli": [
         "query",
         "calc.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },
@@ -83,7 +83,7 @@
       "cli": [
         "query",
         "prose.x.md",
-        "values | select {name}",
+        "map(values, fn(r) => {name: r.name})",
         "--json"
       ]
     },

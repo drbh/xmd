@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "main.x.md",
-        "values | select {name, display, errors}",
+        "map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors})",
         "--json"
       ]
     },
@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "grouped.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },

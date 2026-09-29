@@ -9,7 +9,7 @@
     },
     {
       "cli": [
-        "tasks | where !done | select {title}",
+        "map(filter(tasks, fn(r) => !r.done), fn(r) => {title: r.title})",
         "--json"
       ],
       "stdin": "- [x] book flights\n- [ ] pack\n- [ ] print tickets\n"
@@ -23,13 +23,13 @@
     {
       "cli": [
         "trip.x.md",
-        "tasks | where !done | count"
+        "length(filter(tasks, fn(r) => !r.done))"
       ]
     },
     {
       "cli": [
         "--workspace",
-        "tasks | where !done | count"
+        "length(filter(tasks, fn(r) => !r.done))"
       ]
     },
     {
@@ -57,7 +57,7 @@
     {
       "cli": [
         "q",
-        "tasks | count",
+        "length(tasks)",
         "--json"
       ],
       "stdin": "- [ ] pack\n"
@@ -67,7 +67,7 @@
         "trip.x.md",
         "-"
       ],
-      "stdin": "tasks | count"
+      "stdin": "length(tasks)"
     }
   ]
 }

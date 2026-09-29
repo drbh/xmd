@@ -1,4 +1,4 @@
-//! A .x.md feature module as a provider: it consumes the same semantic records
+//! A .xmd feature module as a provider: it consumes the same semantic records
 //! as queries and returns data only, and this adapter validates every
 //! position and edit it proposes.
 use crate::{

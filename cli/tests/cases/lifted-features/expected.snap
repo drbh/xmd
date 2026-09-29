@@ -11,8 +11,8 @@ exit 0
 | doughnuts_min | doughnuts >= 14 | 14 ≥ 14 · ● binding
 Bake [bakery.bagels] 25.75 for [bakery] $94.75.
 
-### 1 cli query bakery.x.md values | select {name, display, type} --json
-$ xmd query bakery.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query bakery.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query bakery.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -28,8 +28,8 @@ exit 0
   }
 ]
 
-### 2 cli query bakery.x.md diagnostics | select {message, code, severity} --json
-$ xmd query bakery.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query bakery.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query bakery.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -48,8 +48,8 @@ choice := maximize(sum(items, take * cost)) = $5 · take 1 of 2
 | --- | --- |
 | budget | sum(items, take * cost) <= $5 | ████████ $5 ≤ $5 · ● binding
 
-### 4 cli query choice.x.md values | select {name, display, type} --json
-$ xmd query choice.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query choice.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query choice.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -65,8 +65,8 @@ exit 0
   }
 ]
 
-### 5 cli query choice.x.md diagnostics | select {message, code, severity} --json
-$ xmd query choice.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query choice.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query choice.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -82,8 +82,8 @@ done := countdown(1s, 1s) = ◷ ████████ 00:00 remaining · ✓ 
 - [ ] Work @timer(focus) ◷ ████░░░░ 01:00 remaining · ▸ running
 Spent [watch.elapsed] 0s, use [focus] ◷ ████░░░░ 01:00 remaining · ▸ running and [paused] ◴ 01:05 elapsed · ‖ paused.
 
-### 7 cli query timers.x.md values | select {name, display, type} --json
-$ xmd query timers.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query timers.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query timers.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -109,8 +109,8 @@ exit 0
   }
 ]
 
-### 8 cli query timers.x.md diagnostics | select {message, code, severity} --json
-$ xmd query timers.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query timers.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query timers.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -131,14 +131,14 @@ A note
 13:00 * Lunch cancel by Wed Sep 16, 12:00 PM
 Cancel by: 2026-09-16 12:00
 
-### 10 cli query oaxaca.x.md values | select {name, display, type} --json
-$ xmd query oaxaca.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 10 cli query oaxaca.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query oaxaca.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 11 cli query oaxaca.x.md diagnostics | select {message, code, severity} --json
-$ xmd query oaxaca.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 11 cli query oaxaca.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query oaxaca.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -160,14 +160,14 @@ exit 1
 <root>/baddates.x.md:6:4: error: 2026-01-01 comes before the previous day, 2026-09-15
 xmd: 4 error(s) while rendering
 
-### 13 cli query baddates.x.md values | select {name, display, type} --json
-$ xmd query baddates.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 13 cli query baddates.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query baddates.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 14 cli query baddates.x.md diagnostics | select {message, code, severity} --json
-$ xmd query baddates.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 14 cli query baddates.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query baddates.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -202,14 +202,14 @@ exit 0
 ## January 1 1 stops · 01:00 – 01:00 · in 107 days
 01:00 < Arrive
 
-### 16 cli query yearless.x.md values | select {name, display, type} --json
-$ xmd query yearless.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 16 cli query yearless.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query yearless.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 17 cli query yearless.x.md diagnostics | select {message, code, severity} --json
-$ xmd query yearless.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 17 cli query yearless.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query yearless.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -233,8 +233,8 @@ https://github.com/openai/example/pull/42 ◌ PR #42 · refresh for status
 <root>/work.x.md:7:63: error: Put recurrence on individual tasks, not parent checklists
 xmd: 1 error(s) while rendering
 
-### 19 cli query work.x.md values | select {name, display, type} --json
-$ xmd query work.x.md values | select {name, display, type} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 19 cli query work.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json
+$ xmd query work.x.md map(values, fn(r) => {name: r.name, display: r.display, type: r.type}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -250,8 +250,8 @@ exit 0
   }
 ]
 
-### 20 cli query work.x.md diagnostics | select {message, code, severity} --json
-$ xmd query work.x.md diagnostics | select {message, code, severity} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 20 cli query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json
+$ xmd query work.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code, severity: r.severity}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

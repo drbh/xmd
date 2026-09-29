@@ -23,8 +23,9 @@ pub fn note_path(from: &Path, id: &str) -> Result<PathBuf, String> {
         || id.contains(['\0', '\\'])
     {
         return Err(format!(
-            "Use an explicit .{} path, e.g. import(\"./{}\")",
+            "Use an explicit .{} or .{} path, e.g. import(\"./{}\")",
             common::EXTENSION,
+            common::LIBRARY_EXTENSION,
             common::note_file("values")
         ));
     }

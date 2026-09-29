@@ -131,7 +131,7 @@
             "versions": { "file:///workspace/refresh.x.md": 1 }
           }
         },
-        { "method": "query", "params": { "query": "tasks | where (" } },
+        { "method": "query", "params": { "query": "filter(tasks, fn(r) => ()" } },
         { "method": "query", "params": { "uri": "file:///workspace/missing.x.md", "query": "ast" } },
         { "method": "query", "params": { "uri": "file:///outside/private.x.md", "query": "ast" } },
         { "method": "query", "params": { "uri": "https://example.com/n.x.md", "query": "ast" } },

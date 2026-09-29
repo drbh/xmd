@@ -4,7 +4,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "union(events, stops) | group kind | sort key | select {key, titles: map(rows, fn(r) => r.title)}",
+        "map(sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key), fn(r) => {key: r.key, titles: map(r.rows, fn(r) => r.title)})",
         "--json"
       ]
     },
@@ -12,7 +12,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "union(events, stops) | group kind | sort key",
+        "sort_by(group_by(concat(events, stops), fn(r) => r.kind), fn(r) => r.key)",
         "--json"
       ]
     },
@@ -20,7 +20,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "sections | select {title, level, line, end_line}",
+        "map(sections, fn(r) => {title: r.title, level: r.level, line: r.line, end_line: r.end_line})",
         "--json"
       ]
     },
@@ -52,7 +52,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "values | select {name, display, hover}",
+        "map(values, fn(r) => {name: r.name, display: r.display, hover: r.hover})",
         "--json"
       ]
     },
@@ -60,7 +60,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "references | select {kind, expression, display, hover}",
+        "map(references, fn(r) => {kind: r.kind, expression: r.expression, display: r.display, hover: r.hover})",
         "--json"
       ]
     },
@@ -68,7 +68,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "calculations | select {expression, display, hover}",
+        "map(calculations, fn(r) => {expression: r.expression, display: r.display, hover: r.hover})",
         "--json"
       ]
     },
@@ -76,7 +76,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "values | select {name, presentation}",
+        "map(values, fn(r) => {name: r.name, presentation: r.presentation})",
         "--json"
       ]
     },
@@ -92,7 +92,7 @@
       "cli": [
         "query",
         "--workspace",
-        "sections | select {title, file: source.path} | sort file, title",
+        "sort_by(sort_by(map(sections, fn(r) => {title: r.title, file: r.source.path}), fn(r) => r.title), fn(r) => r.file)",
         "--json"
       ]
     },
@@ -100,7 +100,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "values | sort value | select name",
+        "map(sort_by(values, fn(r) => r.value), fn(r) => r.name)",
         "--json"
       ]
     },
@@ -108,7 +108,7 @@
       "cli": [
         "query",
         "trip.x.md",
-        "sections | limit 1 | sort source",
+        "sort_by(slice(sections, 0, 1), fn(r) => r.source)",
         "--json"
       ]
     },
@@ -116,7 +116,7 @@
       "cli": [
         "query",
         "empty/prose.x.md",
-        "tasks | group title",
+        "group_by(tasks, fn(r) => r.title)",
         "--json"
       ]
     },
@@ -124,7 +124,7 @@
       "cli": [
         "query",
         "--workspace",
-        "tasks | group source.path | sort key",
+        "sort_by(group_by(tasks, fn(r) => r.source.path), fn(r) => r.key)",
         "--root",
         "empty",
         "--json"
@@ -134,7 +134,7 @@
       "cli": [
         "query",
         "empty/prose.x.md",
-        "sections | sort title | count",
+        "length(sort_by(sections, fn(r) => r.title))",
         "--json"
       ]
     },
@@ -149,19 +149,19 @@
         },
         {
           "query": {
-            "query": "sections | select {title, level}",
+            "query": "map(sections, fn(r) => {title: r.title, level: r.level})",
             "uri": "trip.x.md"
           }
         },
         {
           "query": {
-            "query": "union(sections, days) | group kind | select {key, count: length(rows)} | sort key",
+            "query": "sort_by(map(group_by(concat(sections, days), fn(r) => r.kind), fn(r) => {key: r.key, count: length(r.rows)}), fn(r) => r.key)",
             "uri": "trip.x.md"
           }
         },
         {
           "query": {
-            "query": "stops | select title",
+            "query": "map(stops, fn(r) => r.title)",
             "uri": "packed.x.md"
           }
         },

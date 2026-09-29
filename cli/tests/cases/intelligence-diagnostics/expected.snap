@@ -1,5 +1,5 @@
-### 0 cli query types.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query types.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query types.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query types.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -11,8 +11,8 @@ exit 0
   }
 ]
 
-### 1 cli query syntax.x.md diagnostics | select {line, code, message} --json
-$ xmd query syntax.x.md diagnostics | select {line, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query syntax.x.md map(diagnostics, fn(r) => {line: r.line, code: r.code, message: r.message}) --json
+$ xmd query syntax.x.md map(diagnostics, fn(r) => {line: r.line, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -28,8 +28,8 @@ exit 0
   }
 ]
 
-### 2 cli query clock.x.md diagnostics | select {line, message} --json
-$ xmd query clock.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query clock.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query clock.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -39,8 +39,8 @@ exit 0
   }
 ]
 
-### 3 cli query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00
-$ xmd query clock.x.md diagnostics | select {line, message} --json --now 2026-09-16T14:00:01-04:00 --root <root>
+### 3 cli query clock.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --now 2026-09-16T14:00:01-04:00
+$ xmd query clock.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --now 2026-09-16T14:00:01-04:00 --root <root>
 exit 0
 --- stdout
 []

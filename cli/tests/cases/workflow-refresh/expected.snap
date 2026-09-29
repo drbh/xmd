@@ -71,8 +71,8 @@ exit 0
 --- stdout
 [price] := quote(ACME) = $12.50
 
-### 7 cli query links.x.md values | select {name, display} --json
-$ xmd query links.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query links.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query links.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -14,8 +14,8 @@ duration := sparkline([1h, 3h, 2h]) = ▁█▅
 [trend] ▂▅▁█ [sparkline([3, 2, 1])] █▅▁
 [debug({label: "bracket ] and \"quote\"", values: [1, 2]})] {"label":"bracket ] and \"quote\"","values":[1,2]} then [sparkline([2, 1])] █▁
 
-### 1 cli query errors.x.md diagnostics | select {line, message} --json
-$ xmd query errors.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query errors.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

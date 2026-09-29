@@ -241,7 +241,7 @@ pub fn is_module_path(path: &Path) -> bool {
 impl Module {
     /// Parse a module's source and validate its contract.
     ///
-    /// A module is a `.x.md` file whose `module :=` record says what it is:
+    /// A module is a `.xmd` file whose `module :=` record says what it is:
     /// `{api: 1, id, kind, inputs?, imports?, hosts?, path_prefix?, properties?,
     /// enabled?, cache_version?, cache_namespace?, exports?}`.
     ///

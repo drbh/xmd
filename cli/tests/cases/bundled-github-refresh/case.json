@@ -23,7 +23,7 @@
       "cli": [
         "query",
         "links.x.md",
-        "resources | select {target, metadata}",
+        "map(resources, fn(r) => {target: r.target, metadata: r.metadata})",
         "--json"
       ]
     }

@@ -13,8 +13,8 @@ exit 0
 [average] := total / units = $3.97
 Cost [total] $23.80.
 
-### 1 cli query groceries.x.md values | select {name, display} --json
-$ xmd query groceries.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query groceries.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query groceries.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -36,8 +36,8 @@ exit 0
   }
 ]
 
-### 2 cli query groceries.x.md tables | select {name, display} --json
-$ xmd query groceries.x.md tables | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query groceries.x.md map(tables, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query groceries.x.md map(tables, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -47,8 +47,8 @@ exit 0
   }
 ]
 
-### 3 cli query groceries.x.md rows | select {table, line, cells} --json
-$ xmd query groceries.x.md rows | select {table, line, cells} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 3 cli query groceries.x.md map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells}) --json
+$ xmd query groceries.x.md map(rows, fn(r) => {table: r.table, line: r.line, cells: r.cells}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -80,8 +80,8 @@ exit 0
   }
 ]
 
-### 4 cli query groceries.x.md cells | select {title, line, value} --json
-$ xmd query groceries.x.md cells | select {title, line, value} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query groceries.x.md map(cells, fn(r) => {title: r.title, line: r.line, value: r.value}) --json
+$ xmd query groceries.x.md map(cells, fn(r) => {title: r.title, line: r.line, value: r.value}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -125,8 +125,8 @@ exit 0
   }
 ]
 
-### 5 cli query groceries.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query groceries.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query groceries.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query groceries.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -424,8 +424,8 @@ exit 0
 | 1 | 2 |
 [future] := sum(dates, today + tomorrow) = 3
 
-### 8 cli query scoped.x.md values | select {name, display} --json
-$ xmd query scoped.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query scoped.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query scoped.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -463,8 +463,8 @@ exit 0
   }
 ]
 
-### 9 cli query scoped.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query scoped.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query scoped.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query scoped.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -585,8 +585,8 @@ exit 0
 [alias] := import("./groceries.x.md").groceries = 2 rows · 3 columns
 [cost] := sum(alias, quantity * price) = $23.80
 
-### 12 cli query alias.x.md values | select {name, display} --json
-$ xmd query alias.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 12 cli query alias.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query alias.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

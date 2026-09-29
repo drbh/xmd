@@ -20,10 +20,10 @@ import { finalNote, now } from "./lib/story.mjs";
 // Pauses let the answer be read.
 const session = [
   { comment: "read one value", args: ["total"], stdin: finalNote(), shown: "cat trip.x.md | xmd 'total'" },
-  { comment: "filter and project, like SQL", args: ["query", "trip.x.md", "tasks | where !done | select {title, due}"] },
+  { comment: "filter and project, like SQL", args: ["query", "trip.x.md", "tasks | filter(fn(t) => !t.done) | map(.{title, due})"] },
   { comment: "typed JSON for scripts", args: ["query", "trip.x.md", "car + groceries", "--json"] },
-  { comment: "every value in the note, with its type", args: ["query", "trip.x.md", "values | select {name, type, display}"] },
-  { comment: "fail a build when a note is broken", args: ["query", "--workspace", 'diagnostics | where severity == "error"', "--fail-on-match"] },
+  { comment: "every value in the note, with its type", args: ["query", "trip.x.md", "values | map(.{name, type, display})"] },
+  { comment: "fail a build when a note is broken", args: ["query", "--workspace", 'diagnostics | filter(fn(d) => d.severity == "error")', "--fail-on-match"] },
   { comment: "the note with every value written in", args: ["render", "trip.x.md", "--format", "text"] },
 ];
 

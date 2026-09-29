@@ -13,7 +13,7 @@
 //!   `code_actions` (offered over a range), `rows` (lenses and row controls).
 //!
 //! `providers` is the one extension point through which the editor's own
-//! features and .x.md feature modules (adapted by `modules`) contribute
+//! features and .xmd feature modules (adapted by `modules`) contribute
 //! inlays, hovers, diagnostics, controls and edits.
 mod agenda;
 mod code_actions;

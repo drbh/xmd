@@ -15,8 +15,8 @@ missing := import("lib").d
 <root>/main.x.md:7:12: error: 'd' is not exported by module 'lib'
 xmd: 3 error(s) while rendering
 
-### 1 cli query main.x.md diagnostics | select {line, message} --json
-$ xmd query main.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli query main.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query main.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [

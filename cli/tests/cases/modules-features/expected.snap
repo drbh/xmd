@@ -4,8 +4,8 @@ exit 0
 --- stdout
 🦀 [round(2.6)] custom 3
 
-### 1 cli query calc.x.md calculations | select anchor --json
-$ xmd query calc.x.md calculations | select anchor --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query calc.x.md map(calculations, fn(r) => r.anchor) --json
+$ xmd query calc.x.md map(calculations, fn(r) => r.anchor) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -1,0 +1,152 @@
+{
+  "now": "2026-09-16T12:00:00-04:00",
+  "steps": [
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "length(tasks)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "slice(sort_by(map(filter(tasks, fn(r) => r.leaf && !r.done && contains(r.tags, \"errands\")), fn(r) => {title: r.title, due: r.due, estimate: r.estimate, source: r.source, parent: r.parent}), fn(r) => r.due), 0, 1)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "length(filter(tasks, fn(r) => r.parent != null))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "tasks.x.md",
+        "map(tasks, fn(r) => {title: r.title, due: r.due})"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.x.md",
+        "map(filter(tasks, fn(r) => r.title == \"a|b\" || (false && r.nonexistent)), fn(r) => {label: r.title, separator: \":,|\", nested: contains(r.title, \"|\"), timestamp: 2026-09-16T12:00:00-04:00})",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.x.md",
+        "length(filter(tasks, fn(r) => true || r.nonexistent))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "pipes.x.md",
+        "map(filter(map(tasks, fn(r) => {name: r.title}), fn(r) => contains(r.name, \"b\")), fn(r) => r.name)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.x.md",
+        "map(sort_by(tasks, fn(r) => r.due), fn(r) => r.title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.x.md",
+        "tasks | sort_by([desc(.due), desc(.title)]) | map(.title)",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "due.x.md",
+        "length(filter(tasks, fn(r) => r.due < today()))",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "sum(map(tasks, fn(r) => r.estimate))",
+        "--root",
+        "effort",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "sort_by(map(group_by(tasks, fn(r) => r.source.path), fn(r) => {path:r.key, tasks:length(r.rows), effort:sum(r.rows.estimate)}), fn(r) => r.path)",
+        "--root",
+        "effort",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "--workspace",
+        "sum(map(tasks, fn(r) => r.estimate))",
+        "--root",
+        "empty",
+        "--json"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.x.md",
+        "map(values, fn(r) => {name: r.name, value: r.value})",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.x.md",
+        "map(filter(events, fn(r) => r.at_date == today()), fn(r) => r.title)",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "time.x.md",
+        "map(filter(values, fn(r) => r.name == \"day\"), fn(r) => {tomorrow: r.value + 1d})",
+        "--json",
+        "--now",
+        "2026-09-16T23:00:00-04:00"
+      ]
+    },
+    {
+      "cli": [
+        "query",
+        "union.x.md",
+        "map(concat(tasks, events), fn(r) => r.kind)",
+        "--json"
+      ]
+    }
+  ]
+}

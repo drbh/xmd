@@ -1,5 +1,5 @@
-### 0 cli query release.x.md values | select {name, display} --json
-$ xmd query release.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 0 cli query release.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query release.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -13,8 +13,8 @@ exit 0
   }
 ]
 
-### 1 cli query released.x.md values | select {name, display} --json
-$ xmd query released.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 1 cli query released.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query released.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -37,16 +37,16 @@ exit 0
   0
 ]
 
-### 3 cli query relative.x.md import("agenda").between(entries, today(), today()) | select title --json
-$ xmd query relative.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 3 cli query relative.x.md map(import("agenda").between(entries, today(), today()), fn(r) => r.title) --json
+$ xmd query relative.x.md map(import("agenda").between(entries, today(), today()), fn(r) => r.title) --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
   "Coffee"
 ]
 
-### 4 cli query cycle.x.md diagnostics | select {line, severity, message} --json
-$ xmd query cycle.x.md diagnostics | select {line, severity, message} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 4 cli query cycle.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message}) --json
+$ xmd query cycle.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message}) --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [
@@ -62,8 +62,8 @@ exit 0
   }
 ]
 
-### 5 cli query unicode.x.md values | select {name, display} --json
-$ xmd query unicode.x.md values | select {name, display} --json --root <root> --now 2026-09-16T00:00:00-04:00
+### 5 cli query unicode.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query unicode.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T00:00:00-04:00
 exit 0
 --- stdout
 [

@@ -6,8 +6,8 @@ optimal := import("lifted").solve({goal: "maximize", variables: {x: {kind: "inte
 unbounded := import("lifted").solve({goal: "maximize", variables: {x: {kind: "continuous", lower: 0}}, objective: {constant: 0, terms: {x: 1}}, constraints: []}) = {"status": "unbounded"}
 infeasible := import("lifted").solve({goal: "maximize", variables: {x: {kind: "integer", lower: 0, upper: 2.8}}, objective: {constant: 0, terms: {x: 1}}, constraints: [{lhs: {constant: 0, terms: {x: 1}}, op: ">=", rhs: {constant: 5, terms: {}}}]}) = {"status": "infeasible"}
 
-### 1 cli query solver.x.md values | select {name, display} --json
-$ xmd query solver.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query solver.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query solver.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -72,8 +72,8 @@ exit 0
 x := import("consumer").run(3) = 12
 human := import("format").human(125m) = 2h 5m
 
-### 6 cli query --workspace notes | select import("format").human(125m) | limit 1 --json
-$ xmd query --workspace notes | select import("format").human(125m) | limit 1 --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query --workspace slice(map(notes, fn(r) => import("format").human(125m)), 0, 1) --json
+$ xmd query --workspace slice(map(notes, fn(r) => import("format").human(125m)), 0, 1) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

@@ -25,7 +25,7 @@ macro_rules! note {
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
     override_usage = "xmd [OPTIONS] <QUERY>                (note on stdin)\n       xmd [OPTIONS] <FILE> <QUERY>\n       xmd [OPTIONS] --workspace <QUERY>\n       xmd <COMMAND> ...",
-    after_help = concat!("Examples: cat ", note!("note"), " | xmd 'total'\n          xmd ", note!("note"), " 'tasks | where !done' --json\n          xmd --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          xmd lsp   # the language server, for editors\nRun `xmd query --help` for the query bindings, functions and stages.")
+    after_help = concat!("Examples: cat ", note!("note"), " | xmd 'total'\n          xmd ", note!("note"), " 'tasks | filter(fn(t) => !t.done) | map(.{title, due})' --json\n          xmd --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          xmd lsp   # the language server, for editors\nRun `xmd query --help` for the query bindings and functions.")
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -41,7 +41,7 @@ pub(crate) enum Command {
     #[command(
         alias = "q",
         override_usage = "xmd query [OPTIONS] <QUERY>                (note on stdin)\n       xmd query [OPTIONS] <FILE> <QUERY>\n       xmd query [OPTIONS] --workspace <QUERY>",
-        after_help = concat!("Bindings: ast, graph, tasks, events, stops, entries, values, plans, tables, rows, resources, diagnostics, notes\nFunctions: map, filter, fold, get, sort_by, group_by, sum, length\nStages: where, select, sort, limit, count, sum, group\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: xmd query ", note!("note"), " 'map(tasks, fn(t) => t.title)' --json\n          cat ", note!("note"), " | xmd query 'length(tasks)'\n          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | xmd query ", note!("note"), " -")
+        after_help = concat!("Bindings: ast, graph, days, timers, links, tasks, events, stops, entries, values, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells\nFunctions: map, filter, fold, get, sort_by, desc, group_by, slice, concat, sum, length\nxs | f(a) is f(xs, a); .due is fn(x) => x.due; .{title, due} picks fields.\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: xmd query ", note!("note"), " 'tasks | sort_by(desc(.due)) | map(.title)' --json\n          cat ", note!("note"), " | xmd query 'tasks | length'\n          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | xmd query ", note!("note"), " -")
     )]
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
@@ -79,7 +79,7 @@ pub(crate) struct QueryOptions {
     /// A note relative to --root, or the query itself when the note is piped in or --workspace is set.
     #[arg(value_name = "FILE_OR_QUERY")]
     pub input: Option<OsString>,
-    /// A functional expression or collection pipeline; use - for stdin.
+    /// An expression over the workspace's collections; use - for stdin.
     #[arg(value_name = "QUERY", conflicts_with = "workspace")]
     pub source: Option<String>,
     /// Query all indexed notes instead of supplying a positional note file.

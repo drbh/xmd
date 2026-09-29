@@ -10,8 +10,8 @@ exit 1
 <root>/imports.x.md:2:16: error: Division by zero (Number / Number)
 xmd: 2 error(s) while rendering
 
-### 1 cli query imports.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query imports.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 1 cli query imports.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query imports.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -29,8 +29,8 @@ exit 0
   }
 ]
 
-### 2 cli query imports.x.md values | select {name, display} --json
-$ xmd query imports.x.md values | select {name, display} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 2 cli query imports.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query imports.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -137,7 +137,7 @@ exit 0
     }
   }
 ]
--- query values | where name == "price" | select {name, display}
+-- query map(filter(values, fn(r) => r.name == "price"), fn(r) => {name: r.name, display: r.display})
 {
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
@@ -159,8 +159,8 @@ exit 0
 [day] := today() = 2026-09-17
 - [ ] Call @due(2026-09-16T10:30:00Z) → due today
 
-### 6 cli query calendar.x.md tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00
-$ xmd query calendar.x.md tasks | select {title, due} --json --now 2026-09-17T00:15:00+14:00 --root <root>
+### 6 cli query calendar.x.md map(tasks, fn(r) => {title: r.title, due: r.due}) --json --now 2026-09-17T00:15:00+14:00
+$ xmd query calendar.x.md map(tasks, fn(r) => {title: r.title, due: r.due}) --json --now 2026-09-17T00:15:00+14:00 --root <root>
 exit 0
 --- stdout
 [
@@ -180,8 +180,8 @@ exit 0
 [day] := today() = 2026-09-15
 - [ ] Call @due(2026-09-16T10:30:00Z) → due today
 
-### 8 cli query calendar.x.md tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00
-$ xmd query calendar.x.md tasks | select {title, due} --json --now 2026-09-15T22:15:00-12:00 --root <root>
+### 8 cli query calendar.x.md map(tasks, fn(r) => {title: r.title, due: r.due}) --json --now 2026-09-15T22:15:00-12:00
+$ xmd query calendar.x.md map(tasks, fn(r) => {title: r.title, due: r.due}) --json --now 2026-09-15T22:15:00-12:00 --root <root>
 exit 0
 --- stdout
 [
@@ -194,8 +194,8 @@ exit 0
   }
 ]
 
-### 9 cli query calendar.x.md diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00
-$ xmd query calendar.x.md diagnostics | select {line, severity, code, message} --json --now 2026-09-17T00:15:00+14:00 --root <root>
+### 9 cli query calendar.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --now 2026-09-17T00:15:00+14:00
+$ xmd query calendar.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --now 2026-09-17T00:15:00+14:00 --root <root>
 exit 0
 --- stdout
 []

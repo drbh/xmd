@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "release.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },
@@ -13,7 +13,7 @@
       "cli": [
         "query",
         "released.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },
@@ -29,7 +29,7 @@
       "cli": [
         "query",
         "relative.x.md",
-        "import(\"agenda\").between(entries, today(), today()) | select title",
+        "map(import(\"agenda\").between(entries, today(), today()), fn(r) => r.title)",
         "--json"
       ]
     },
@@ -37,7 +37,7 @@
       "cli": [
         "query",
         "cycle.x.md",
-        "diagnostics | select {line, severity, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message})",
         "--json"
       ]
     },
@@ -45,7 +45,7 @@
       "cli": [
         "query",
         "unicode.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },

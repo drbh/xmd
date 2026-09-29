@@ -8,7 +8,7 @@
   let entries = $state.raw([]), input = $state(""), scope = $state("document"), busy = $state(false);
   let menu = $state(null), selected = $state(0), fields = $state.raw({});
   let history = [], cursor = -1, field, log;
-  const EXAMPLES = ["values", "tasks | where !done | select {title, due}", "sum(tasks.estimate)", "{open: length(filter(tasks, fn(t) => !t.done)), problems: length(diagnostics)}", "graph.edges"];
+  const EXAMPLES = ["values", "tasks | filter(fn(t) => !t.done) | map(.{title, due})", "sum(tasks.estimate)", "{open: length(filter(tasks, fn(t) => !t.done)), problems: length(diagnostics)}", "graph.edges"];
   $effect(() => { field?.focus(); });
   $effect(() => { entries; const el = log; if (el) requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; }); });
   // Field names come from the current document; relearn when it changes.
@@ -40,7 +40,7 @@
     }
     return { kind: "text", text: pretty(rows) };
   }
-  // Results teach field names too: `tasks | select {title}` learns nothing new,
+  // Results teach field names too: `tasks | map(.title)` learns nothing new,
   // but `get(tasks, 0)` or a custom record reveals keys for the next query.
   function learn(query, rows) {
     const owner = /^\s*([a-z_]+)\b/.exec(query)?.[1];

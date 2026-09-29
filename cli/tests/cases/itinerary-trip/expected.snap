@@ -230,8 +230,8 @@ exit 0
   }
 ]
 
-### 4 cli query trip.x.md stops | sort at | select {title, line, at, at_date} --json
-$ xmd query trip.x.md stops | sort at | select {title, line, at, at_date} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 4 cli query trip.x.md map(sort_by(stops, fn(r) => r.at), fn(r) => {title: r.title, line: r.line, at: r.at, at_date: r.at_date}) --json
+$ xmd query trip.x.md map(sort_by(stops, fn(r) => r.at), fn(r) => {title: r.title, line: r.line, at: r.at, at_date: r.at_date}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -321,8 +321,8 @@ exit 0
   }
 ]
 
-### 5 cli query trip.x.md entries | sort at | select {kind, title, at} --json
-$ xmd query trip.x.md entries | sort at | select {kind, title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query trip.x.md map(sort_by(entries, fn(r) => r.at), fn(r) => {kind: r.kind, title: r.title, at: r.at}) --json
+$ xmd query trip.x.md map(sort_by(entries, fn(r) => r.at), fn(r) => {kind: r.kind, title: r.title, at: r.at}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -384,8 +384,8 @@ exit 0
   }
 ]
 
-### 6 cli query trip.x.md links | select {line, url} --json
-$ xmd query trip.x.md links | select {line, url} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query trip.x.md map(links, fn(r) => {line: r.line, url: r.url}) --json
+$ xmd query trip.x.md map(links, fn(r) => {line: r.line, url: r.url}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -395,8 +395,8 @@ exit 0
   }
 ]
 
-### 7 cli query trip.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query trip.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -990,14 +990,14 @@ SATURDAY, NOVEMBER 21  OAXACA
 -- request textDocument/formatting trip.x.md
 []
 
-### 9 cli query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json
-$ xmd query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 9 cli query trip.x.md map(filter(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.kind == "stop"), fn(r) => {title: r.title, at: r.at}) --json
+$ xmd query trip.x.md map(filter(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.kind == "stop"), fn(r) => {title: r.title, at: r.at}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
 
-### 10 cli query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00
-$ xmd query trip.x.md import("agenda").between(entries, today(), today() + 6d) | where kind == "stop" | select {title, at} --json --now 2026-11-20T12:00:00-05:00 --root <root>
+### 10 cli query trip.x.md map(filter(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.kind == "stop"), fn(r) => {title: r.title, at: r.at}) --json --now 2026-11-20T12:00:00-05:00
+$ xmd query trip.x.md map(filter(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.kind == "stop"), fn(r) => {title: r.title, at: r.at}) --json --now 2026-11-20T12:00:00-05:00 --root <root>
 exit 0
 --- stdout
 [

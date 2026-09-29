@@ -5,7 +5,7 @@
       "cli": [
         "query",
         "main.x.md",
-        "values | select {name, display, errors}",
+        "map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors})",
         "--root",
         "pair",
         "--json"
@@ -35,7 +35,7 @@
       "cli": [
         "query",
         "daily.x.md",
-        "values | select {name, display, errors}",
+        "map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors})",
         "--root",
         "self",
         "--json"
@@ -55,7 +55,7 @@
       "cli": [
         "query",
         "daily.x.md",
-        "diagnostics | select {line, severity, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, message: r.message})",
         "--root",
         "ambiguous",
         "--json"

@@ -34,8 +34,8 @@ Bake [bakery.bagels] 10, not [bakery.croissants].
 <root>/names.x.md:20:35: error: Unknown plan property 'croissants'
 xmd: 9 error(s) while rendering
 
-### 1 cli query names.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query names.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query names.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query names.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -270,8 +270,8 @@ High [day.high] 25, wind [day.wind].
 <root>/weather.x.md:4:28: error: Unknown forecast property 'wind'
 xmd: 1 error(s) while rendering
 
-### 6 cli query tasks.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query tasks.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query tasks.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query tasks.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

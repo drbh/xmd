@@ -1,7 +1,7 @@
 # The language, split into layered crates. lang/core is the language itself:
 # common (the shared kernel), syntax, model (a parsed note), values (what a
-# value is, apart from the engine), modules (the .x.md modules as data) and
-# eval (the evaluator); lang/stdlib is the .x.md library on top.
+# value is, apart from the engine), modules (the .xmd modules as data) and
+# eval (the evaluator); lang/stdlib is the .xmd library on top.
 # runtime is what every host shares and the source of truth for runtime
 # behavior: analysis (language facts: hover, symbols, diagnostics, ...),
 # catalog (typed records over notes and the query language), editor (what an

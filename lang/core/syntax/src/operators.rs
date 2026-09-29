@@ -21,7 +21,8 @@ pub enum Operator {
     Not,
     /// `=>`, between a lambda's parameters and its body.
     Arrow,
-    /// `|`, the query pipeline separator; expressions have no use for it.
+    /// `|`, which calls the function on its right with the value on its left
+    /// as the first argument.
     Pipe,
     /// Lexed, but not part of the language: the parser rejects it where it stands.
     Unsupported(&'static str),
@@ -110,6 +111,11 @@ impl std::fmt::Display for Operator {
         f.write_str(self.as_str())
     }
 }
+/// How tightly `|` binds: `xs | length > 0` compares the length, and
+/// `a + b | f` pipes the sum.
+pub(crate) const PIPE_PRECEDENCE: u8 = 5;
+/// How tightly a prefix operator binds, above every binary operator.
+pub(crate) const UNARY_PRECEDENCE: u8 = 8;
 /// An operation between two values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -146,15 +152,16 @@ impl BinaryOp {
             Self::Or => Operator::Or,
         }
     }
-    /// Binding power: a higher number binds tighter.
+    /// Binding power: a higher number binds tighter. A pipe sits between
+    /// comparisons and arithmetic, at [`PIPE_PRECEDENCE`].
     pub fn precedence(self) -> u8 {
         match self {
             Self::Or => 1,
             Self::And => 2,
             Self::Equal | Self::NotEqual => 3,
             Self::Less | Self::LessEqual | Self::Greater | Self::GreaterEqual => 4,
-            Self::Add | Self::Subtract => 5,
-            Self::Multiply | Self::Divide => 6,
+            Self::Add | Self::Subtract => 6,
+            Self::Multiply | Self::Divide => 7,
         }
     }
 }

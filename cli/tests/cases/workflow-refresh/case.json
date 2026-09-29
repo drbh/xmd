@@ -54,7 +54,7 @@
       "cli": [
         "query",
         "links.x.md",
-        "values | select {name, display}",
+        "map(values, fn(r) => {name: r.name, display: r.display})",
         "--json"
       ]
     },

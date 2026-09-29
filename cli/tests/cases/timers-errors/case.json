@@ -1,7 +1,7 @@
 {
   "steps": [
-    { "cli": ["query", "bad.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "attributes.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "bad.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "attributes.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["render", "attributes.x.md", "--format", "text"] },
     {
       "lsp": [

@@ -1,16 +1,16 @@
 {
   "steps": [
     { "cli": ["render", "units.x.md", "--format", "text"] },
-    { "cli": ["query", "units.x.md", "plans | select {name, display, solution}", "--json"] },
-    { "cli": ["query", "units.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "mixed.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "quadratic.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "strict.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
-    { "cli": ["query", "shape.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "units.x.md", "map(plans, fn(r) => {name: r.name, display: r.display, solution: r.solution})", "--json"] },
+    { "cli": ["query", "units.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "mixed.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "quadratic.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "strict.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "shape.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["render", "unbounded.x.md", "--format", "text"] },
-    { "cli": ["query", "unbounded.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "unbounded.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     { "cli": ["render", "infeasible.x.md", "--format", "text"] },
-    { "cli": ["query", "infeasible.x.md", "diagnostics | select {line, severity, code, message}", "--json"] },
+    { "cli": ["query", "infeasible.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
     {
       "lsp": [
         { "open": "unbounded.x.md" },

@@ -12,7 +12,7 @@
       "cli": [
         "query",
         "calc.x.md",
-        "calculations | select {line, expression, bracketed, display}",
+        "map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display})",
         "--json"
       ]
     },
@@ -20,7 +20,7 @@
       "cli": [
         "query",
         "calc.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -44,7 +44,7 @@
       "cli": [
         "query",
         "math.x.md",
-        "calculations | select {line, expression, bracketed, display}",
+        "map(calculations, fn(r) => {line: r.line, expression: r.expression, bracketed: r.bracketed, display: r.display})",
         "--json"
       ]
     },
@@ -52,7 +52,7 @@
       "cli": [
         "query",
         "math.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -68,7 +68,7 @@
       "cli": [
         "query",
         "errors.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },
@@ -76,7 +76,7 @@
       "cli": [
         "query",
         "unknown.x.md",
-        "diagnostics | select {line, severity, code, message}",
+        "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})",
         "--json"
       ]
     },

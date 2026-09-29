@@ -2,11 +2,11 @@
   "now": "2026-09-16T18:00:00Z",
   "steps": [
     { "cli": ["render", "feeds.x.md", "--format", "text"] },
-    { "cli": ["query", "feeds.x.md", "diagnostics | select {message, code}", "--json"] },
+    { "cli": ["query", "feeds.x.md", "map(diagnostics, fn(r) => {message: r.message, code: r.code})", "--json"] },
     { "cli": ["refresh"] },
     { "read": [".xmd/cache.json"] },
     { "cli": ["render", "feeds.x.md", "--format", "text"] },
-    { "cli": ["query", "feeds.x.md", "resources | select {target, metadata}", "--json"] },
+    { "cli": ["query", "feeds.x.md", "map(resources, fn(r) => {target: r.target, metadata: r.metadata})", "--json"] },
     { "cli": ["render", "feeds.x.md", "--format", "text", "--on", "2026-10-01"] },
     {
       "lsp": [

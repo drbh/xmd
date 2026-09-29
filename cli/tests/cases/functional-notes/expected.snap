@@ -28,9 +28,11 @@ config := {
 } = {"title": "https://example.com/)", "values": [1, 2]}
 add := fn(x) =>
   fn(y) => x + y = <function>
+--- stderr
+<root>/multiline.x.md:3:1: information: This file only defines names, including functions, so it is a library: name it multiline.xmd and keep .x.md for working notes
 
-### 1 cli query multiline.x.md values | select {name, display, errors} --json
-$ xmd query multiline.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 1 cli query multiline.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query multiline.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -77,8 +79,8 @@ exit 0
   "https://example.com/)"
 ]
 
-### 4 cli query multiline.x.md references | select {name, line: source.line} --json
-$ xmd query multiline.x.md references | select {name, line: source.line} --json --root <root> --now 2026-09-18T12:00:00Z
+### 4 cli query multiline.x.md map(references, fn(r) => {name: r.name, line: r.source.line}) --json
+$ xmd query multiline.x.md map(references, fn(r) => {name: r.name, line: r.source.line}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 []
@@ -93,8 +95,8 @@ exit 0
   0
 ]
 
-### 6 cli query multiline_crlf.x.md values | select {name, display, errors} --json
-$ xmd query multiline_crlf.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 6 cli query multiline_crlf.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query multiline_crlf.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -125,14 +127,19 @@ exit 0
   }
 ]
 
-### 7 cli query multiline_crlf.x.md diagnostics | select {line, message} --json
-$ xmd query multiline_crlf.x.md diagnostics | select {line, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 7 cli query multiline_crlf.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json
+$ xmd query multiline_crlf.x.md map(diagnostics, fn(r) => {line: r.line, message: r.message}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
-[]
+[
+  {
+    "line": 2,
+    "message": "This file only defines names, including functions, so it is a library: name it multiline_crlf.xmd and keep .x.md for working notes"
+  }
+]
 
-### 8 cli query unfinished_prose.x.md values | select {name, display, errors} --json
-$ xmd query unfinished_prose.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 8 cli query unfinished_prose.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query unfinished_prose.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -150,8 +157,8 @@ exit 0
   }
 ]
 
-### 9 cli query unfinished_indent.x.md values | select {name, display, errors} --json
-$ xmd query unfinished_indent.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 9 cli query unfinished_indent.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query unfinished_indent.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -169,8 +176,8 @@ exit 0
   }
 ]
 
-### 10 cli query unfinished_comment.x.md values | select {name, display, errors} --json
-$ xmd query unfinished_comment.x.md values | select {name, display, errors} --json --root <root> --now 2026-09-18T12:00:00Z
+### 10 cli query unfinished_comment.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json
+$ xmd query unfinished_comment.x.md map(values, fn(r) => {name: r.name, display: r.display, errors: r.errors}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
@@ -188,11 +195,17 @@ exit 0
   }
 ]
 
-### 11 cli query errors.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query errors.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-18T12:00:00Z
+### 11 cli query errors.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query errors.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-18T12:00:00Z
 exit 0
 --- stdout
 [
+  {
+    "code": "file-name",
+    "line": 1,
+    "message": "This file only defines names, including functions, so it is a library: name it errors.xmd and keep .x.md for working notes",
+    "severity": "information"
+  },
   {
     "code": "evaluation",
     "line": 3,
@@ -214,6 +227,7 @@ result := (
   rate + bad(1)
 )
 --- stderr
+<root>/errors.x.md:2:1: information: This file only defines names, including functions, so it is a library: name it errors.xmd and keep .x.md for working notes
 <root>/errors.x.md:4:22: error: Division by zero (Number / Number)
 xmd: 1 error(s) while rendering
 

@@ -8,8 +8,8 @@ exit 0
 [monthly] := solve(saved_by_june >= $5,000) = $422.22
 Save [monthly] $422.22 a month.
 
-### 1 cli query savings.x.md values | select {name, display} --json
-$ xmd query savings.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 1 cli query savings.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query savings.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -31,8 +31,8 @@ exit 0
   }
 ]
 
-### 2 cli query savings.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query savings.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query savings.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query savings.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -71,8 +71,8 @@ exit 0
 [calls] := solve(calls * per_call <= 4h) = 8
 [price] := solve(price * 40 == $1,000) = $25
 
-### 5 cli query units.x.md values | select {name, display} --json
-$ xmd query units.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query units.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query units.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -90,8 +90,8 @@ exit 0
   }
 ]
 
-### 6 cli query unknowns.x.md values | select {name, display} --json
-$ xmd query unknowns.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 6 cli query unknowns.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query unknowns.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -121,8 +121,8 @@ exit 1
 <root>/broken.x.md:4:8: error: Dependency cycle through a
 xmd: 4 error(s) while rendering
 
-### 8 cli query broken.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query broken.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 8 cli query broken.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query broken.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [

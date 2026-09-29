@@ -1,5 +1,5 @@
-### 0 cli query n.x.md import("agenda").between(entries, today(), today()) | select title --json
-$ xmd query n.x.md import("agenda").between(entries, today(), today()) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 0 cli query n.x.md map(import("agenda").between(entries, today(), today()), fn(r) => r.title) --json
+$ xmd query n.x.md map(import("agenda").between(entries, today(), today()), fn(r) => r.title) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -14,16 +14,16 @@ exit 0
   "Afternoon"
 ]
 
-### 1 cli query n.x.md import("agenda").between(entries, today(), today()) | count --json
-$ xmd query n.x.md import("agenda").between(entries, today(), today()) | count --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 1 cli query n.x.md length(import("agenda").between(entries, today(), today())) --json
+$ xmd query n.x.md length(import("agenda").between(entries, today(), today())) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
   9
 ]
 
-### 2 cli query n.x.md import("agenda").between(entries, today(), today() + 6d) | select title --json
-$ xmd query n.x.md import("agenda").between(entries, today(), today() + 6d) | select title --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 2 cli query n.x.md map(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.title) --json
+$ xmd query n.x.md map(import("agenda").between(entries, today(), today() + 6d), fn(r) => r.title) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [
@@ -40,8 +40,8 @@ exit 0
   "Next"
 ]
 
-### 3 cli query n.x.md entries | select {kind, title} --json
-$ xmd query n.x.md entries | select {kind, title} --json --root <root> --now 2026-09-16T12:00:00-04:00
+### 3 cli query n.x.md map(entries, fn(r) => {kind: r.kind, title: r.title}) --json
+$ xmd query n.x.md map(entries, fn(r) => {kind: r.kind, title: r.title}) --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 0
 --- stdout
 [

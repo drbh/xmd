@@ -1,5 +1,5 @@
-### 0 cli query defs.x.md values | select {name, type, display} --json
-$ xmd query defs.x.md values | select {name, type, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 0 cli query defs.x.md map(values, fn(r) => {name: r.name, type: r.type, display: r.display}) --json
+$ xmd query defs.x.md map(values, fn(r) => {name: r.name, type: r.type, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -68,8 +68,8 @@ Our budget is $3,000:budget and we've spent $2,444:spent.
 Departure 2026-11-20:departure, "Oaxaca City":city, 47%:share, 2h:slot, true:flag, 12:count.
 PR https://github.com/zed-industries/zed/pull/1 ◌ PR #1 · refresh for status:zed_pr ◌ PR #1 · refresh for status and geo:17.06,-96.72:zocalo place · open map (€450:hotel).
 
-### 2 cli query defs.x.md diagnostics | select {line, severity, code, message} --json
-$ xmd query defs.x.md diagnostics | select {line, severity, code, message} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 2 cli query defs.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query defs.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []
@@ -158,8 +158,8 @@ remaining := budget - spent = $556
 share := remaining / budget = 18.5333%
 We have [remaining] $556 left ([share] 18.5333%).
 
-### 5 cli query calc.x.md values | select {name, display} --json
-$ xmd query calc.x.md values | select {name, display} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 5 cli query calc.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json
+$ xmd query calc.x.md map(values, fn(r) => {name: r.name, display: r.display}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 [
@@ -255,8 +255,8 @@ exit 0
   }
 ]
 
-### 7 cli query prose.x.md values | select {name} --json
-$ xmd query prose.x.md values | select {name} --json --root <root> --now 2026-09-16T14:00:00-04:00
+### 7 cli query prose.x.md map(values, fn(r) => {name: r.name}) --json
+$ xmd query prose.x.md map(values, fn(r) => {name: r.name}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
 []

@@ -8,8 +8,8 @@ exit 0
 --- stdout
 $600.50
 
-### 1 cli tasks | where !done | select {title} --json
-$ xmd tasks | where !done | select {title} --json
+### 1 cli map(filter(tasks, fn(r) => !r.done), fn(r) => {title: r.title}) --json
+$ xmd map(filter(tasks, fn(r) => !r.done), fn(r) => {title: r.title}) --json
 --- stdin
 - [x] book flights
 - [ ] pack
@@ -31,14 +31,14 @@ exit 0
 --- stdout
 $600.50
 
-### 3 cli trip.x.md tasks | where !done | count
-$ xmd trip.x.md tasks | where !done | count
+### 3 cli trip.x.md length(filter(tasks, fn(r) => !r.done))
+$ xmd trip.x.md length(filter(tasks, fn(r) => !r.done))
 exit 0
 --- stdout
 2
 
-### 4 cli --workspace tasks | where !done | count
-$ xmd --workspace tasks | where !done | count
+### 4 cli --workspace length(filter(tasks, fn(r) => !r.done))
+$ xmd --workspace length(filter(tasks, fn(r) => !r.done))
 exit 0
 --- stdout
 2
@@ -74,7 +74,7 @@ Commands:
 
 Arguments:
   [FILE_OR_QUERY]  A note relative to --root, or the query itself when the note is piped in or --workspace is set
-  [QUERY]          A functional expression or collection pipeline; use - for stdin
+  [QUERY]          An expression over the workspace's collections; use - for stdin
 
 Options:
       --workspace      Query all indexed notes instead of supplying a positional note file
@@ -88,10 +88,10 @@ Options:
   -V, --version        Print version
 
 Examples: cat note.x.md | xmd 'total'
-          xmd note.x.md 'tasks | where !done' --json
+          xmd note.x.md 'tasks | filter(fn(t) => !t.done) | map(.{title, due})' --json
           xmd --workspace 'filter(tasks, fn(t) => !t.done)' --json
           xmd lsp   # the language server, for editors
-Run `xmd query --help` for the query bindings, functions and stages.
+Run `xmd query --help` for the query bindings and functions.
 
 
 ### 7 cli left
@@ -110,8 +110,8 @@ exit 0
 --- stdout
 $600.50
 
-### 9 cli q tasks | count --json
-$ xmd q tasks | count --json
+### 9 cli q length(tasks) --json
+$ xmd q length(tasks) --json
 --- stdin
 - [ ] pack
 exit 0
@@ -123,7 +123,7 @@ exit 0
 ### 10 cli trip.x.md -
 $ xmd trip.x.md -
 --- stdin
-tasks | count
+length(tasks)
 exit 0
 --- stdout
 3

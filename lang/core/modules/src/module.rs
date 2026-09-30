@@ -137,7 +137,490 @@ impl Hook {
             .iter()
             .any(|kind| kind.required_hook() == Some(self))
     }
+    /// What the host hands this hook and what it must return.
+    pub fn contract(self) -> &'static HookContract {
+        HOOKS
+            .iter()
+            .find(|contract| contract.hook == self)
+            .expect("every hook is declared in HOOKS")
+    }
 }
+
+/// One hook as the host calls it: which kinds of module it belongs to, what
+/// goes in, and what has to come back. The other half of the stdlib contract:
+/// there native code calls the library, here it calls a module's hooks.
+#[derive(Clone, Copy, Debug)]
+pub struct HookContract {
+    pub hook: Hook,
+    /// The kinds of module the host calls it on.
+    pub kinds: &'static [ModuleKind],
+    /// Each parameter as `name: shape`, one per [`Hook::arity`]. A lowercase
+    /// shape names a record in [`HOOK_RECORDS`] or a side of a [`StepProtocol`].
+    pub params: &'static [&'static str],
+    pub returns: &'static str,
+    pub doc: &'static str,
+}
+
+/// A record the host builds for more than one hook, declared once.
+#[derive(Clone, Copy, Debug)]
+pub struct HookRecord {
+    pub name: &'static str,
+    pub doc: &'static str,
+    /// Each field as `(name, shape and meaning)`; a `?` after the name marks
+    /// one that may be absent.
+    pub fields: &'static [(&'static str, &'static str)],
+}
+
+/// The records hooks are handed and the actions they return, by name.
+pub static HOOK_RECORDS: &[HookRecord] = &[
+    HookRecord {
+        name: "url",
+        doc: "A link's address, split. Only http and https links reach a link module.",
+        fields: &[
+            ("raw", "Text: the whole URL"),
+            ("host", "Text"),
+            ("path", "Text"),
+            ("scheme", "Text: `http` or `https`"),
+        ],
+    },
+    HookRecord {
+        name: "link context",
+        doc: "What a link module sees of one link it matched.",
+        fields: &[
+            ("url", "url"),
+            (
+                "native",
+                "Boolean: false in the browser, where a refresh cannot run a program",
+            ),
+            (
+                "cached",
+                "what `decode` last returned for this link, or null before any refresh. \
+                 A cache entry older than link modules gives `title`, `state`, `merged`, \
+                 `checks`, `review` and `fetched_at` instead",
+            ),
+            ("fetched_at", "DateTime of the cached data, or null"),
+        ],
+    },
+    HookRecord {
+        name: "feature context",
+        doc: "What a feature module sees of the note a request is about. `range` and \
+              `capabilities` are absent, not null, when a hook has no use for them.",
+        fields: &[
+            ("today", "Date: the request's day"),
+            (
+                "document",
+                "Record: `path`, `uri` and `text` as text, `lines` as a list of text, and \
+                 one list per collection the module's `inputs` names, under the \
+                 collection's name. `inputs` defaults to sections, tasks, values and \
+                 links; `inputs: {tasks: [\"text\", \"line\"]}` keeps only those fields. \
+                 With `values`, the same list is also `definitions`, each record with \
+                 its first error as `error`",
+            ),
+            (
+                "module",
+                "Record: `id` and `revision` of the module being called",
+            ),
+            (
+                "range?",
+                "the LSP range being drawn, `{start, end}` of `{line, character}`",
+            ),
+            (
+                "capabilities?",
+                "Record: `refresh` and `views`, booleans for whether the host can \
+                 refresh data and show views",
+            ),
+        ],
+    },
+    HookRecord {
+        name: "action",
+        doc: "What a control does, a record with a `kind`. A `document` is a note's URI, \
+              and `expected` is its whole text when the action was offered: the action \
+              is refused if the note changed since.",
+        fields: &[
+            (
+                "invoke",
+                "`{document, expected, module, revision, event}`: call this module's \
+                 `reduce` with `event` when the person runs it",
+            ),
+            (
+                "edit",
+                "`{document, expected, edits}`: apply LSP text edits",
+            ),
+            (
+                "toggle_task",
+                "`{document, row, expected}`: check or uncheck a task",
+            ),
+            (
+                "timer",
+                "`{document, name, action}`: `start`, `pause`, `resume` or `reset` a timer",
+            ),
+            (
+                "open_resource",
+                "`{target: {document, row, expected}, url}`: open a link",
+            ),
+            (
+                "refresh_resource",
+                "`{target: {document, row, expected}, url}`: refresh a link's data; \
+                 needs the `refresh` capability",
+            ),
+            (
+                "refresh",
+                "`{document?}`: refresh lookups; needs the `refresh` capability",
+            ),
+            (
+                "show_today",
+                "`{}`: show the today view; needs the `views` capability",
+            ),
+        ],
+    },
+];
+
+use ModuleKind::{Command, Feature, Link, Provider};
+
+/// Every hook, in [`Hook`] order.
+pub static HOOKS: &[HookContract] = &[
+    HookContract {
+        hook: Hook::Collect,
+        kinds: &[Feature],
+        params: &["ctx: feature context"],
+        returns: "List of inlays: `{at: position, label: Text, tooltip?: Text}` or \
+                  `{line: Number, label, tooltip?}`",
+        doc: "The inline labels for the note, with `ctx.range` set. `at` is an LSP \
+              position; `line` puts the label at that line's end. Every position is \
+              checked against the text. A failure shows one `module error` label on the \
+              first line. Required unless the module defines `actions`, `hovers`, \
+              `diagnostics` or `format`.",
+    },
+    HookContract {
+        hook: Hook::Inlay,
+        kinds: &[Link],
+        params: &["ctx: link context"],
+        returns: "Text",
+        doc: "The label shown after a link the module matched. A failure shows \
+              `module error · ...` as the label. Required.",
+    },
+    HookContract {
+        hook: Hook::Hover,
+        kinds: &[Link],
+        params: &["ctx: link context"],
+        returns: "Text",
+        doc: "Markdown added to the link's hover. A failure shows its message instead.",
+    },
+    HookContract {
+        hook: Hook::Property,
+        kinds: &[Link],
+        params: &["ctx: link context", "name: Text"],
+        returns: "any value",
+        doc: "What `link.name` reads. Called only for a name the module declares in \
+              `properties` and `property_names` allows for this URL. Required when \
+              `properties` is declared.",
+    },
+    HookContract {
+        hook: Hook::Refresh,
+        kinds: &[Link],
+        params: &["url: url"],
+        returns: "`{program: Text, args: List of Text, title?: Text, env?: Record of \
+                  Text, format?: \"json\" or \"feed\"}`",
+        doc: "The program a refresh of this URL runs. It is data: only a native host \
+              runs it, when a person asks for a refresh. A `./` or `../` program is \
+              relative to the module's file. A reply that does not fit, or a failure, \
+              means the link has no refresh. It sees a fixed clock, not the request's. \
+              Defined together with `decode` or not at all.",
+    },
+    HookContract {
+        hook: Hook::Decode,
+        kinds: &[Link],
+        params: &["url: url", "data: JSON value"],
+        returns: "Record",
+        doc: "Turns the program's output into what is cached for the link, which later \
+              hooks see as `ctx.cached`. With `format: \"feed\"` the host parses the \
+              RSS or Atom document into JSON first. Anything but a record fails the \
+              refresh.",
+    },
+    HookContract {
+        hook: Hook::Matches,
+        kinds: &[Link],
+        params: &["url: url"],
+        returns: "Boolean",
+        doc: "Whether the module takes a URL its `hosts` and `path_prefix` already \
+              admit. Anything but true, a failure included, is no. Required when the \
+              module declares no hosts. It sees a fixed clock, not the request's.",
+    },
+    HookContract {
+        hook: Hook::PropertyNames,
+        kinds: &[Link],
+        params: &["url: url"],
+        returns: "List of Text",
+        doc: "Which declared properties this URL has. Names not in `properties` are \
+              dropped, and a failure means none. Without it every declared property \
+              applies. It sees a fixed clock, not the request's.",
+    },
+    HookContract {
+        hook: Hook::TimeDependent,
+        kinds: &[Link, Feature],
+        params: &["ctx: link context or feature context"],
+        returns: "Boolean",
+        doc: "Whether the output depends on the clock, so it is redrawn as time \
+              passes. A feature module gets `ctx.range`, and only true counts; for a \
+              link module anything but false counts, a failure included. Without it, a \
+              module is time dependent when it or a library it imports reads `now` or \
+              `today`.",
+    },
+    HookContract {
+        hook: Hook::Actions,
+        kinds: &[Feature],
+        params: &["ctx: feature context"],
+        returns: "List of `{line: Number, title: Text, action: action}`",
+        doc: "The controls the note's lines offer, called once for the whole note with \
+              `ctx.capabilities` set; `line` is the zero-based line a control shows on. \
+              An action the host cannot perform is dropped, and the rest are checked \
+              before they show: one that fails hides the other controls on its line. A \
+              failure, or a line outside the note, shows none.",
+    },
+    HookContract {
+        hook: Hook::Reduce,
+        kinds: &[Feature],
+        params: &["ctx: feature context", "event: any value"],
+        returns: "action, not `invoke`",
+        doc: "The action an `invoke` control performs, decided when the person runs \
+              it, from the `event` the control carried. `ctx.capabilities` is set. The \
+              note and the module must still be at the text and revision the control \
+              was offered with.",
+    },
+    HookContract {
+        hook: Hook::Hovers,
+        kinds: &[Feature],
+        params: &["ctx: feature context"],
+        returns: "List of `{range, contents: Text}`",
+        doc: "Markdown hovers over LSP ranges of the note. The first module with one \
+              covering the cursor wins over the editor's own hover. A failure shows \
+              none.",
+    },
+    HookContract {
+        hook: Hook::Diagnostics,
+        kinds: &[Feature],
+        params: &["ctx: feature context"],
+        returns: "List of LSP diagnostics: `{range, message, severity?, code?, source?}`",
+        doc: "Problems shown with the editor's own. `source` defaults to `xmd`. A \
+              failure becomes one error diagnostic naming the module.",
+    },
+    HookContract {
+        hook: Hook::Format,
+        kinds: &[Feature],
+        params: &["ctx: feature context"],
+        returns: "List of LSP text edits: `{range, newText}`",
+        doc: "Edits made when the note is formatted, after table formatting. All of \
+              them have to apply together, or formatting fails.",
+    },
+    HookContract {
+        hook: Hook::Step,
+        kinds: &[Command, Provider],
+        params: &["ctx: step input"],
+        returns: "step output",
+        doc: "One step of the loop a command or provider runs. Required. Its input, \
+              output and effects are the step protocol of the module's kind.",
+    },
+];
+
+/// One effect a `step` may request, and what the next step reads back.
+#[derive(Clone, Copy, Debug)]
+pub struct Effect {
+    /// The request's `kind`.
+    pub kind: &'static str,
+    /// The request record's fields.
+    pub request: &'static str,
+    /// The result's fields besides `ok`.
+    pub answer: &'static str,
+    pub doc: &'static str,
+}
+
+/// The `step` loop of one kind of module: what each step is handed, what it
+/// returns, and the effects it may ask for. Every result has `ok`; a failed
+/// effect answers `{ok: false, error}` instead of stopping the loop.
+#[derive(Clone, Copy, Debug)]
+pub struct StepProtocol {
+    pub kind: ModuleKind,
+    pub doc: &'static str,
+    /// Each field of the step's input, as `(name, shape and meaning)`.
+    pub input: &'static [(&'static str, &'static str)],
+    /// Each field of the record a step returns; `?` marks an optional one.
+    pub output: &'static [(&'static str, &'static str)],
+    pub effects: &'static [Effect],
+}
+
+/// The `step` loops of commands and providers.
+pub static STEPS: &[StepProtocol] = &[
+    StepProtocol {
+        kind: Command,
+        doc: "`xmd run` calls `step` until it says `done`, performing the requests of \
+              each step in order between calls. Paths are relative to the directory the \
+              command runs in and cannot leave it. The clock stays where the run, or a \
+              repeat, started. A malformed request or an unknown kind stops the run.",
+        input: &[
+            (
+                "args",
+                "Record: `flags`, from `--name value`, `--name=value` and bare `--flag` \
+                 (true), with `-` in names read as `_`; `positional`, the other words \
+                 as a list of text",
+            ),
+            ("dir", "Text: the name of the directory the command runs in"),
+            (
+                "state",
+                "what the previous step returned as `state`; null at first",
+            ),
+            (
+                "results",
+                "List: `results[i]` answers the previous step's `requests[i]`; empty at \
+                 first",
+            ),
+        ],
+        output: &[
+            (
+                "state?",
+                "any value, handed to the next step; null when absent",
+            ),
+            (
+                "requests?",
+                "List of effects to perform before the next step",
+            ),
+            ("report?", "List: each item is printed as a line"),
+            (
+                "done?",
+                "Boolean: true ends the run once `requests` are performed",
+            ),
+            (
+                "error?",
+                "any value but null: the run stops with it as the message, after \
+                 `report` is printed",
+            ),
+            (
+                "repeat_after?",
+                "seconds, a number or text, read when `done`: wait (a day at most), \
+                 then start over with null state",
+            ),
+        ],
+        effects: &[
+            Effect {
+                kind: "http",
+                request: "`{method?, url, headers?, json?, pick?}`",
+                answer: "`{status, json, text}`",
+                doc: "An http or https request, GET unless `method` says PUT, POST, PATCH or \
+                      DELETE. `json` is sent as the body. `json` in the answer is the parsed reply \
+                      (null when it is not JSON, and then `text` has it). `pick` keeps only the \
+                      named fields of each record in a JSON list reply.",
+            },
+            Effect {
+                kind: "read",
+                request: "`{path, json?}`",
+                answer: "`{text}`, or `{json}` when `json` is true",
+                doc: "Read a file, parsed when `json` is true.",
+            },
+            Effect {
+                kind: "list",
+                request: "`{path}`",
+                answer: "`{files}`",
+                doc: "The names of the files in a directory, sorted.",
+            },
+            Effect {
+                kind: "write",
+                request: "`{path, text}` or `{path, json}`",
+                answer: "`{}`",
+                doc: "Write a file, `json` as pretty JSON, making its directory.",
+            },
+            Effect {
+                kind: "move",
+                request: "`{from, to}`",
+                answer: "`{}`",
+                doc: "Rename a file, making the directory it moves into.",
+            },
+            Effect {
+                kind: "remove",
+                request: "`{path}`",
+                answer: "`{}`",
+                doc: "Delete a file.",
+            },
+            Effect {
+                kind: "credential",
+                request: "`{scope, set?}`",
+                answer: "`{value}`",
+                doc: "A secret saved for this command and scope in the user's config \
+                      directory, stored first when `set` is given. `value` is null when \
+                      nothing is saved.",
+            },
+            Effect {
+                kind: "env",
+                request: "`{name}`",
+                answer: "`{value}`",
+                doc: "An environment variable, null when unset or empty. Only `XMD_*` \
+                      names; any other stops the run.",
+            },
+            Effect {
+                kind: "uuid",
+                request: "`{}`",
+                answer: "`{value}`",
+                doc: "A random identifier.",
+            },
+        ],
+    },
+    StepProtocol {
+        kind: Provider,
+        doc: "A refresh calls `step` for each lookup the notes want that no command in \
+              `.xmd/providers.json` answers, using the first provider that `provides` \
+              its kind. The loop is the command's, with a lookup instead of arguments \
+              and a value instead of a report.",
+        input: &[
+            (
+                "key",
+                "Record: `kind` (`rate`, `quote` or `forecast`) and the lookup's fields \
+                 as text: `from` and `to`, `symbol`, or `place` and `date` (a Date)",
+            ),
+            ("today", "Date: the refresh's day"),
+            (
+                "state",
+                "what the previous step returned as `state`; null at first",
+            ),
+            (
+                "results",
+                "List: `results[i]` answers the previous step's `requests[i]`; empty at \
+                 first",
+            ),
+        ],
+        output: &[
+            (
+                "state?",
+                "any value, handed to the next step; null when absent",
+            ),
+            (
+                "requests?",
+                "List of effects to perform before the next step; only `http`",
+            ),
+            (
+                "done?",
+                "Boolean: true ends the loop, without performing `requests`",
+            ),
+            (
+                "value?",
+                "read when `done`: the lookup's value as JSON, every number stored as a \
+                 decimal",
+            ),
+            (
+                "source?",
+                "Text: where the value came from; the module id by default",
+            ),
+            (
+                "error?",
+                "any value but null: this lookup fails with it as the message",
+            ),
+        ],
+        effects: &[Effect {
+            kind: "http",
+            request: "`{url}`",
+            answer: "`{json}`",
+            doc: "A GET request. A reply that is not JSON is a failed request. Any \
+                  other kind of request fails the lookup.",
+        }],
+    },
+];
 
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -480,5 +963,45 @@ fn strings(value: &Value) -> EvalResult<Vec<String>> {
         items.iter().map(String::from_value).collect()
     } else {
         Err(EvalError::Expected("a list of text"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use strum::VariantArray;
+
+    /// Every hook is declared once, with a parameter per argument the host
+    /// passes, on the kinds of module that have hooks.
+    #[test]
+    fn every_hook_is_declared_once() {
+        for hook in Hook::VARIANTS {
+            let declared: Vec<_> = HOOKS.iter().filter(|c| c.hook == *hook).collect();
+            assert_eq!(
+                declared.len(),
+                1,
+                "{hook} is declared {} times",
+                declared.len()
+            );
+            let contract = declared[0];
+            assert_eq!(contract.params.len(), hook.arity(), "{hook}'s params");
+            assert!(!contract.kinds.is_empty() && !contract.kinds.contains(&ModuleKind::Library));
+        }
+        assert_eq!(HOOKS.len(), Hook::VARIANTS.len());
+        for kind in ModuleKind::VARIANTS {
+            if let Some(hook) = kind.required_hook() {
+                assert!(hook.contract().kinds.contains(kind), "{hook} on {kind}");
+            }
+        }
+    }
+
+    /// Commands and providers each have one step protocol, and nothing else does.
+    #[test]
+    fn every_step_kind_has_a_protocol() {
+        for kind in ModuleKind::VARIANTS {
+            let protocols = STEPS.iter().filter(|p| p.kind == *kind).count();
+            let steps = Hook::Step.contract().kinds.contains(kind);
+            assert_eq!(protocols, usize::from(steps), "{kind}");
+        }
     }
 }

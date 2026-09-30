@@ -106,6 +106,7 @@ $12:price
       "attributes": {},
       "blocked_by": [],
       "blocked_error": null,
+      "blockers": [],
       "checked": false,
       "children": [],
       "done": false,

@@ -27,7 +27,7 @@ pub use arithmetic::binary;
 pub use functional::{builtin, check_size, compare, sum};
 pub use solver::LINEAR_COMPARISON;
 // Values crossing into and out of modules as records.
-pub use records::{Fields, FromValue, RecordFields, ToValue, geometry, list, record, words};
+pub use records::{Fields, FromValue, RecordFields, ToValue, geometry, list, record};
 // Fetched lookup values, and how a note reads them.
 pub use lookups::{
     Lookup, LookupKey, LookupKind, Store, day_place, forecast, forecast_from, quote, rate,

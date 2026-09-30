@@ -307,12 +307,10 @@ fn literal_kind(value: &Literal) -> ValueType {
 
 /// Find the innermost sum row scope, including incomplete formulas while typing.
 pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
-    crate::document::expression_regions(doc)
-        .into_iter()
-        .find_map(|region| {
-            let offset = region.offset_of(doc, span)?;
-            syntax::sum_scope_at(region.source(doc), offset)
-        })
+    doc.sum_regions().iter().find_map(|region| {
+        let offset = region.offset_of(doc, span)?;
+        syntax::sum_scope_at(region.source(doc), offset)
+    })
 }
 /// Align parsed tables; document feature formatting runs through services::modules.
 pub fn formatting(doc: &Document) -> Vec<TextEdit> {

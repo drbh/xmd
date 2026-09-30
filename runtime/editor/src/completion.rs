@@ -5,28 +5,41 @@ use lang::eval::engine::{HostPresenting, Tier, Value};
 use lang::eval::tables::TableValue;
 use lang::eval::timers::Timer;
 use lang::model::{Document, byte_at};
+use lang::syntax::{AttributeKey, AttributeValue};
 use lsp_types::*;
 use std::path::Path;
 
+/// What the value of an attribute holds, when a call context names one.
+fn attribute_value(name: &str) -> Option<AttributeValue> {
+    name.strip_prefix('@')?
+        .parse::<AttributeKey>()
+        .ok()
+        .map(AttributeKey::value)
+}
 fn accepts(context: Option<(&str, u32)>, value: &Value) -> bool {
+    // Inside an attribute, what its value holds decides what fits.
+    if let Some(holds) = context.and_then(|(name, _)| attribute_value(name)) {
+        return match holds {
+            AttributeValue::When => matches!(value, Value::Date(_) | Value::DateTime(_)),
+            AttributeValue::Duration => matches!(value, Value::Duration(_)),
+            AttributeValue::Dependencies => matches!(value, Value::Bool(_) | Value::Tasks(_)),
+            AttributeValue::Timer => value
+                .downcast::<Timer>()
+                .is_some_and(|t| t.origin.is_some()),
+            // Literal text or a stamped date: no name fits.
+            AttributeValue::Stamp | AttributeValue::Recurrence | AttributeValue::Tags => false,
+        };
+    }
     match context {
         Some(("sum", 0)) => value.downcast::<TableValue>().is_some(),
-        Some(("@timer", _)) => value
-            .downcast::<Timer>()
-            .is_some_and(|t| t.origin.is_some()),
-        Some(("@due" | "@scheduled" | "@at", _)) => {
-            matches!(value, Value::Date(_) | Value::DateTime(_))
-        }
-        Some(("@estimate" | "countdown", 0)) | Some(("stopwatch", 0)) | Some(("countdown", 1)) => {
+        Some(("countdown", 0)) | Some(("stopwatch", 0)) | Some(("countdown", 1)) => {
             matches!(value, Value::Duration(_))
         }
         Some(("stopwatch", 1)) | Some(("countdown", 2)) => matches!(value, Value::DateTime(_)),
         Some(("effort" | "total" | "remaining" | "completed", _)) => {
             matches!(value, Value::Tasks(_))
         }
-        Some(("@after", _)) => matches!(value, Value::Bool(_) | Value::Tasks(_)),
         Some(("date", _)) => matches!(value, Value::Text(_)),
-        Some(("@every" | "@tag", _)) => false,
         _ => true,
     }
 }
@@ -132,23 +145,27 @@ pub(crate) fn completions(
     for function in BUILTINS {
         if (!module && function.tier == Tier::Module)
             || attribute != function.name.starts_with('@')
-            || (!attribute && (prose || context.is_some_and(|(n, _)| n == "@timer")))
+            || (!attribute
+                && (prose
+                    || context
+                        .is_some_and(|(n, _)| attribute_value(n) == Some(AttributeValue::Timer))))
         {
             continue;
         }
         if let Some((name, _)) = context {
-            let allowed = match name {
-                "@due" | "@scheduled" | "@at" => matches!(function.name, "date" | "today" | "now"),
-                "@estimate" | "countdown" | "stopwatch" => match function.name {
-                    "effort" => accepts(context, &Value::Duration(0)),
-                    "now" => accepts(context, &Value::DateTime(now)),
-                    _ => false,
+            let allowed = match attribute_value(name) {
+                Some(AttributeValue::When) => matches!(function.name, "date" | "today" | "now"),
+                Some(AttributeValue::Duration) => function.name == "effort",
+                Some(_) => false,
+                None => match name {
+                    "countdown" | "stopwatch" => match function.name {
+                        "effort" => accepts(context, &Value::Duration(0)),
+                        "now" => accepts(context, &Value::DateTime(now)),
+                        _ => false,
+                    },
+                    "effort" | "total" | "remaining" | "completed" | "date" => false,
+                    _ => true,
                 },
-                "@after" => false,
-                "effort" | "total" | "remaining" | "completed" | "date" | "@every" | "@tag" => {
-                    false
-                }
-                _ => true,
             };
             if !allowed {
                 continue;
@@ -184,22 +201,26 @@ pub(crate) fn completions(
             ..Default::default()
         });
     }
-    let literals: &[&str] = match context.map(|(name, _)| name) {
-        Some("@due" | "@scheduled" | "@at") => &["today", "tomorrow", "next Friday"],
-        Some("@estimate" | "countdown" | "stopwatch") if accepts(context, &Value::Duration(0)) => {
-            &["0s", "30s", "5m", "25m", "1h"]
+    let durations = || ["0s", "30s", "5m", "25m", "1h"].map(String::from).to_vec();
+    let literals: Vec<String> = match context.map(|(name, _)| (name, attribute_value(name))) {
+        Some((_, Some(AttributeValue::When))) => ["today", "tomorrow", "next Friday"]
+            .map(String::from)
+            .to_vec(),
+        Some((_, Some(AttributeValue::Duration))) => durations(),
+        Some(("countdown" | "stopwatch", None)) if accepts(context, &Value::Duration(0)) => {
+            durations()
         }
-        Some("@every") => &["day", "week", "month", "year", "2w"],
-        _ => &[],
+        Some((_, Some(AttributeValue::Recurrence))) => ["day", "week", "month", "year", "2w"]
+            .map(String::from)
+            .to_vec(),
+        Some((_, Some(AttributeValue::Stamp))) => vec![request.today().to_string()],
+        _ => Vec::new(),
     };
     for name in literals {
         result.push(CompletionItem {
-            label: (*name).into(),
+            label: name.clone(),
             kind: Some(CompletionItemKind::VALUE),
-            text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
-                replacement,
-                (*name).into(),
-            ))),
+            text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, name))),
             ..Default::default()
         });
     }

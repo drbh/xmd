@@ -1,0 +1,21 @@
+{
+  "steps": [
+    { "cli": ["render", "notes.x.md", "--format", "text"] },
+    { "cli": ["query", "notes.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    {
+      "lsp": [
+        { "open": "notes.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "notes.x.md" },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "notes.x.md",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 5, "character": 0 } }
+        },
+        { "request": "textDocument/codeLens", "file": "notes.x.md" }
+      ]
+    },
+    { "write": { ".xmd/modules.json": "[\"../variants/itinerary_clockless.x.md\"]\n" } },
+    { "cli": ["query", "trip.x.md", "map(stops, fn(r) => {line: r.line, title: r.title})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] }
+  ]
+}

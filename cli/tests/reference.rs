@@ -7,6 +7,10 @@
 //!   library, with each export's parameters and `//` comment from its source
 //! - `queries.md` from the collections a query binds, with the fields and
 //!   value kinds their records have across `lang/examples`
+//! - `contract.md` from what native code calls in the stdlib
+//!   (`lang::stdlib::CONTRACT`), the hooks it calls on modules
+//!   (`lang::eval::modules::HOOKS`) and the `step` loops of commands and
+//!   providers (`STEPS`, with the host's limits)
 //!
 //! A page that differs from what the code generates fails the test; rewrite
 //! the pages with `UPDATE_SNAPSHOTS=1`.
@@ -33,6 +37,7 @@ fn reference_pages_are_current() {
         ("functions.md", functions()),
         ("libraries.md", libraries()),
         ("queries.md", queries()),
+        ("contract.md", contract()),
     ];
     let update = std::env::var("UPDATE_SNAPSHOTS").is_ok_and(|v| !v.is_empty() && v != "0");
     let directory = repo().join("book/reference");
@@ -260,6 +265,193 @@ fn queries() -> String {
     page
 }
 
+fn contract() -> String {
+    use lang::eval::modules::{HOOK_RECORDS, HOOKS, Hook, ModuleKind, STEPS};
+    use lang::stdlib::{CONTRACT, Role};
+
+    let mut page = header(
+        "contract",
+        "`lang/core/eval/src/contract.rs` for what native code calls in the \
+         stdlib, and the hook and `step` declarations in \
+         `lang/core/modules/src/module.rs` for what it calls on a module",
+    );
+    page.push_str(
+        "\nnative code and the .xmd modules meet in three directions. native code \
+         calls stdlib functions by name, the host calls the hooks of feature, link, \
+         command and provider modules, and module code calls built-ins\n",
+    );
+
+    write!(
+        page,
+        "\n## native calls the stdlib\n\n\
+         the functions the engine, the language services and the editors call in a \
+         bundled module. a module that replaces a bundled id is checked against \
+         this list when the registry links: it has to define every required \
+         function. an optional one falls back to native code when it is absent\n\n\
+         **presents** is words or markup for a person, so a failure costs only a \
+         label: the person sees the neutral stand-in under *if it fails* where \
+         the words go, and when the workspace brings its own modules the note \
+         carries a `module` warning naming the function and the error on the \
+         first thing it failed for. **decides** is behavior the engine or an \
+         editor acts on, so a failure reaches the person as a diagnostic, an \
+         error or a disabled control that says why, never as a quiet default\n\n\
+         a call marked **no clock** runs without the request's clock: every \
+         date it needs is an argument, and `now()` or `today()` inside it is an \
+         error rather than a date in 1970\n"
+    )
+    .unwrap();
+    let mut modules: Vec<&str> = Vec::new();
+    for entry in CONTRACT {
+        if !modules.contains(&entry.module) {
+            modules.push(entry.module);
+        }
+    }
+    for module in modules {
+        write!(
+            page,
+            "\n### {module}\n\n| function | returns | role | if it fails | what it is |\n| --- | --- | --- | --- | --- |\n"
+        )
+        .unwrap();
+        for entry in CONTRACT.iter().filter(|e| e.module == module) {
+            let (role, fails) = match entry.role {
+                Role::Presents { fallback } => ("presents", format!("shows {fallback}")),
+                Role::Decides => ("decides", "reported".to_owned()),
+            };
+            let optional = if entry.required { "" } else { ", optional" };
+            let clock = if entry.clock { "" } else { ", no clock" };
+            writeln!(
+                page,
+                "| `{module}.{}({})` | {} | {role}{optional}{clock} | {} | {} |",
+                entry.function,
+                entry.params.join(", "),
+                cell(entry.returns),
+                cell(&fails),
+                cell(entry.doc),
+            )
+            .unwrap();
+        }
+    }
+
+    write!(
+        page,
+        "\n## hooks\n\n\
+         the fixed functions the host calls on a module, by kind. a library has \
+         none: its exports are its own names. a module that defines a hook has to \
+         define it as a function of exactly these parameters. a shape in lowercase \
+         is one of the records below, or a step's input or output under commands \
+         and providers\n\n### records\n"
+    )
+    .unwrap();
+    for record in HOOK_RECORDS {
+        write!(
+            page,
+            "\n#### {}\n\n{}\n\n| field | what it is |\n| --- | --- |\n",
+            record.name, record.doc
+        )
+        .unwrap();
+        for (field, doc) in record.fields {
+            writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
+        }
+    }
+    // Kinds with the same hooks share a section: commands and providers.
+    let kinds: BTreeSet<ModuleKind> = HOOKS.iter().flat_map(|h| h.kinds).copied().collect();
+    let mut groups: Vec<(Vec<ModuleKind>, Vec<Hook>)> = Vec::new();
+    for kind in &kinds {
+        let hooks: Vec<Hook> = HOOKS
+            .iter()
+            .filter(|h| h.kinds.contains(kind))
+            .map(|h| h.hook)
+            .collect();
+        if hooks.is_empty() {
+            continue;
+        }
+        match groups.iter_mut().find(|(_, h)| *h == hooks) {
+            Some((kinds, _)) => kinds.push(*kind),
+            None => groups.push((vec![*kind], hooks)),
+        }
+    }
+    for (kinds, hooks) in groups {
+        let names: Vec<String> = kinds.iter().map(ToString::to_string).collect();
+        write!(page, "\n### {} modules\n", names.join(" and ")).unwrap();
+        for hook in hooks {
+            let contract = hook.contract();
+            write!(
+                page,
+                "\n#### `{hook}({})`\n\nreturns {}\n\n{}\n",
+                contract.params.join(", "),
+                contract.returns,
+                contract.doc
+            )
+            .unwrap();
+        }
+    }
+
+    write!(
+        page,
+        "\n## commands and providers\n\n\
+         a command or provider module is one pure `step` hook in a loop. each step \
+         returns the effects it wants as `requests`, the host performs them, and \
+         the next step reads their results. every result has `ok`: a failed effect \
+         answers `{{ok: false, error}}` rather than stopping the loop, so the module \
+         decides what a failure means\n"
+    )
+    .unwrap();
+    for protocol in STEPS {
+        write!(page, "\n### {}\n\n{}\n", protocol.kind, protocol.doc).unwrap();
+        let limits = match protocol.kind {
+            ModuleKind::Command => format!(
+                "a step may request at most {} effects, and a run that has not \
+                 finished in {} steps stops",
+                runtime::host::MAX_REQUESTS,
+                runtime::host::MAX_STEPS
+            ),
+            _ => format!(
+                "a lookup that has not finished in {} steps fails",
+                runtime::host::PROVIDER_STEPS
+            ),
+        };
+        writeln!(page, "\n{limits}").unwrap();
+        for (title, fields) in [("input", protocol.input), ("output", protocol.output)] {
+            write!(
+                page,
+                "\n#### {title}\n\n| field | what it is |\n| --- | --- |\n"
+            )
+            .unwrap();
+            for (field, doc) in fields {
+                writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
+            }
+        }
+        write!(
+            page,
+            "\n#### effects\n\n| kind | request | answer | what it does |\n| --- | --- | --- | --- |\n"
+        )
+        .unwrap();
+        for effect in protocol.effects {
+            writeln!(
+                page,
+                "| `{}` | {} | {} | {} |",
+                effect.kind,
+                cell(effect.request),
+                cell(effect.answer),
+                cell(effect.doc)
+            )
+            .unwrap();
+        }
+    }
+
+    page.push_str(
+        "\n## the stdlib calls native\n\n\
+         module code calls the module built-ins in [functions](functions.md), and \
+         reads the collections in [queries](queries.md)\n",
+    );
+    page
+}
+
+/// Text in a table cell, its pipes escaped.
+fn cell(text: &str) -> String {
+    text.replace('|', "\\|")
+}
+
 /// The kind of a JSON value as `--json` writes it: typed scalars carry their
 /// `type`, the rest are plain JSON.
 fn kind(value: &Value) -> &str {
@@ -294,4 +486,31 @@ fn xmd(root: &Path, args: &[&str]) -> String {
         output.stderr
     };
     String::from_utf8(text).unwrap()
+}
+
+/// The bundled modules meet the whole stdlib contract: every module id it
+/// names is bundled, and compiling the bundled set alone (which checks each
+/// contract function's presence and arity) reports no problem.
+#[test]
+fn bundled_stdlib_meets_the_contract() {
+    use lang::eval::modules::{CompileModules, ModuleRegistry};
+    let registry = ModuleRegistry::compile(BTreeMap::new())
+        .unwrap_or_else(|problems| panic!("the bundled stdlib breaks its contract:\n{problems}"));
+    for entry in lang::stdlib::CONTRACT {
+        let module = registry.get(entry.module).unwrap_or_else(|| {
+            panic!(
+                "the contract names '{}', which is not bundled",
+                entry.module
+            )
+        });
+        assert!(
+            module
+                .member_names()
+                .iter()
+                .any(|name| name == entry.function),
+            "{}.{} is in the contract but not bundled",
+            entry.module,
+            entry.function
+        );
+    }
 }

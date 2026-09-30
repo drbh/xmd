@@ -2,8 +2,9 @@ use crate::code_actions::{self, TaskToggle};
 use crate::commands::{Action, Capabilities, RowTarget};
 use crate::providers;
 use lang::eval::engine::{Engine, Value};
-use lang::eval::modules::{Hook, ModuleKind};
 use lang::eval::resources::{Resource, ResourcePresenting};
+use lang::model::Document;
+use lang::stdlib;
 use lsp_types::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -55,17 +56,13 @@ pub(crate) fn resources_at(
 pub(crate) fn task_toggle_title(engine: &mut Engine<'_>, path: &Path, index: usize) -> String {
     let recurring = engine.workspace().documents()[path].tasks[index]
         .attributes
-        .contains_key("every");
+        .contains_key(lang::syntax::AttributeKey::Every.as_str());
     let done = engine.task_done(path, index);
-    engine.present(
-        "task",
-        "toggle",
-        vec![Value::Bool(recurring), Value::Bool(done)],
-    )
+    stdlib::shown(stdlib::task::toggle(engine, recurring, done))
 }
 /// A control title: a `format.glyph` and the one word that disambiguates it.
 pub(crate) fn titled(engine: &mut Engine<'_>, glyph: &str, word: &str) -> String {
-    let glyph = engine.present("format", "glyph", vec![Value::Text(glyph.into())]);
+    let glyph = stdlib::shown(stdlib::format::glyph(engine, glyph));
     format!("{glyph} {word}")
 }
 pub(crate) fn builtin_controls(
@@ -101,7 +98,10 @@ pub(crate) fn builtin_controls(
     }
     for resource in resources_at(request, path, row) {
         let url = resource.url(path).unwrap();
-        let title = engine.present("resource", "control", vec![resource.record(path)]);
+        let title = stdlib::shown(stdlib::resource::control(
+            &mut engine,
+            resource.record(path),
+        ));
         push(
             Action::OpenResource {
                 target: target.clone(),
@@ -119,12 +119,7 @@ pub(crate) fn builtin_controls(
             );
         }
     }
-    let line = doc.line(row);
-    let wants_lookup = ["rate(", "to(", "forecast(", "forecast_range(", "quote("]
-        .iter()
-        .any(|call| line.contains(call))
-        || doc.days.iter().any(|d| d.line == row && d.places.is_some());
-    if wants_lookup {
+    if wants_lookup(doc, row) {
         push(
             Action::Refresh {
                 document: Some(uri),
@@ -133,6 +128,14 @@ pub(crate) fn builtin_controls(
         );
     }
     result
+}
+/// Whether a row reads a lookup, and so offers to refresh lookups.
+fn wants_lookup(doc: &Document, row: usize) -> bool {
+    let line = doc.line(row);
+    ["rate(", "to(", "forecast(", "forecast_range(", "quote("]
+        .iter()
+        .any(|call| line.contains(call))
+        || doc.days.iter().any(|d| d.line == row && d.places.is_some())
 }
 pub(crate) fn lenses(
     request: &lang::eval::RequestContext<'_>,
@@ -144,6 +147,7 @@ pub(crate) fn lenses(
     let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
+    // Every row the editor's own controls can be on; the modules add theirs.
     let rows: BTreeSet<_> = doc
         .definitions
         .iter()
@@ -151,30 +155,14 @@ pub(crate) fn lenses(
         .chain(doc.tasks.iter().map(|t| t.line))
         .chain(doc.references.iter().map(|r| r.span.line))
         .chain(doc.links.iter().map(|l| l.span.line))
-        .chain(
-            if ws
-                .modules()
-                .of_kind(ModuleKind::Feature)
-                .any(|m| m.has(Hook::Actions))
-            {
-                0..doc.text.lines().count()
-            } else {
-                0..0
-            },
-        )
+        .chain((0..doc.text.lines().count()).filter(|row| wants_lookup(doc, *row)))
         .collect();
-    providers::row_controls(
-        request,
-        path,
-        rows.into_iter().collect(),
-        TaskToggle::Command,
-        capabilities,
-    )
-    .into_iter()
-    .map(|(row, command)| CodeLens {
-        range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),
-        command: Some(command),
-        data: None,
-    })
-    .collect()
+    providers::row_controls(request, path, rows, TaskToggle::Command, capabilities)
+        .into_iter()
+        .map(|(row, command)| CodeLens {
+            range: Range::new(Position::new(row as u32, 0), Position::new(row as u32, 0)),
+            command: Some(command),
+            data: None,
+        })
+        .collect()
 }

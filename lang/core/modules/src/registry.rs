@@ -8,6 +8,21 @@ use std::{
 };
 use values::{EvalError, EvalResult, Value};
 
+/// The clock a module call runs at when native code has no clock to give
+/// it: the call is handed every date it needs as an argument instead. Module
+/// code evaluated at it answers `now()` and `today()` with an error rather
+/// than with 1970.
+pub fn no_clock() -> DateTime<FixedOffset> {
+    DateTime::UNIX_EPOCH.fixed_offset()
+}
+/// Whether `now` is a real clock rather than [`no_clock`].
+pub fn has_clock(now: DateTime<FixedOffset>) -> bool {
+    now != no_clock()
+}
+
+/// Where the bundled modules live: no file on disk is under this root.
+const BUNDLED_ROOT: &str = "/__xmd_stdlib__";
+
 #[derive(Clone, Debug, Default)]
 pub struct ModuleRegistry {
     pub(crate) modules: Vec<Module>,
@@ -25,6 +40,13 @@ impl ModuleRegistry {
     }
     pub fn active(&self) -> impl Iterator<Item = &Module> {
         self.modules.iter().filter(|m| m.enabled)
+    }
+    /// Whether every module is a bundled one: the workspace brings none of
+    /// its own, so none replaces a bundled id.
+    pub fn only_bundled(&self) -> bool {
+        self.modules
+            .iter()
+            .all(|m| m.path.starts_with(BUNDLED_ROOT))
     }
     /// The active module with this id.
     pub fn get(&self, id: &str) -> Option<&Module> {
@@ -147,7 +169,7 @@ fn bundled(environment: NewEnvironment) -> &'static [Module] {
         .chain(bundle!["plugins": github, rss, frankfurter, yahoo_finance, open_meteo, sync])
         .map(|(dir, id, source)| {
             Module::compile(
-                common::library_file(&format!("/__xmd_stdlib__/{dir}/{id}")).into(),
+                common::library_file(&format!("{BUNDLED_ROOT}/{dir}/{id}")).into(),
                 source.into(),
                 environment,
             )

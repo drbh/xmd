@@ -17,7 +17,9 @@ mod refresh;
 // Loading a workspace, its modules and caches from disk.
 pub use files::{DiskFiles, WorkspaceFiles, save_cache};
 // Running a command module and the effects it asks for.
-pub use command::run_command_named;
+pub use command::{MAX_REQUESTS, MAX_STEPS, run_command_named};
+// How long a provider may take for one lookup.
+pub use lookups::PROVIDER_STEPS;
 // The process clock, which `XMD_NOW` can freeze.
 pub use clock::now;
 // Refreshing what a workspace reads from outside: link statuses and lookups.

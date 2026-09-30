@@ -49,6 +49,17 @@ impl Engine<'_> {
             }
             Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
             Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
+            Builtin::Now | Builtin::Today if args.is_empty() && !self.has_clock() => {
+                Err(EvalError::Message(format!(
+                    "{}() is unavailable here: native code calls this without a clock, \
+                     so the dates it needs are its arguments",
+                    if builtin == Builtin::Now {
+                        "now"
+                    } else {
+                        "today"
+                    }
+                )))
+            }
             Builtin::Now if args.is_empty() => {
                 self.time_dependent = true;
                 Ok(Value::DateTime(self.request.clock.now))
@@ -119,7 +130,13 @@ impl Engine<'_> {
         result
     }
     /// Typed adapters use the same module snapshot, clock and execution budget as imports.
-    pub fn call_module(&mut self, id: &str, name: &str, args: Vec<Value>) -> EvalResult<Value> {
+    /// Only the stdlib contract (`contract.rs`) calls a module function by name.
+    pub(crate) fn call_module(
+        &mut self,
+        id: &str,
+        name: &str,
+        args: Vec<Value>,
+    ) -> EvalResult<Value> {
         let module = self
             .workspace()
             .modules
@@ -129,11 +146,6 @@ impl Engine<'_> {
             let function = engine.named(&module.path, name)?;
             engine.call(function, args)
         })
-    }
-    /// A library's words for something, or why it has none: what a hover or
-    /// label shows in place of text the module could not produce.
-    pub fn present(&mut self, id: &str, name: &str, args: Vec<Value>) -> String {
-        values::words(self.call_module(id, name, args))
     }
     /// `import(id)` reaches libraries and nothing else: a link or feature
     /// module is the host's to call, so naming one from a note is an error
@@ -355,7 +367,9 @@ impl Engine<'_> {
                 for (p, i) in tasks {
                     if !self.task_done(&p, i) {
                         let task = &self.request.workspace.documents[&p].tasks[i];
-                        if let Some(attr) = task.attributes.get("estimate") {
+                        if let Some(attr) =
+                            task.attributes.get(syntax::AttributeKey::Estimate.as_str())
+                        {
                             let Value::Duration(m) = self.eval(&p, &attr.value)? else {
                                 return Err(EvalError::Message(
                                     "@estimate requires a duration".into(),

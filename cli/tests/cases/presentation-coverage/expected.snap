@@ -1928,7 +1928,7 @@ exit 0
 {
   "contents": {
     "kind": "markdown",
-    "value": "**odd**\n\nIncomplete\n\nEstimate: 2\n\nTimer: 3\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
+    "value": "**odd**\n\nIncomplete\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."
   },
   "range": {
     "end": {

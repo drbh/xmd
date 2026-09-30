@@ -14,7 +14,10 @@ mod registry;
 pub use module::{
     Evaluator, Hook, Module, ModuleEnvironment, ModuleKind, NewEnvironment, is_module_path,
 };
+// What the host hands each hook and each `step` loop and what must come back,
+// declared as data.
+pub use module::{Effect, HOOK_RECORDS, HOOKS, HookContract, HookRecord, STEPS, StepProtocol};
 // The compiled set of modules, linked and ready to call.
-pub use registry::ModuleRegistry;
+pub use registry::{ModuleRegistry, has_clock, no_clock};
 // The link modules a request consults, and the refresh formats they name.
 pub use link_features::{Cache, LinkFeatures, Metadata, RefreshFormat, RefreshRequest};

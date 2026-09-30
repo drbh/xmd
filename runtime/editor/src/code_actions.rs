@@ -5,8 +5,15 @@ use chrono::NaiveDate;
 use lang::common::Span;
 use lang::eval::engine::{Engine, next_occurrence};
 use lang::model::{Document, TaskState, end_position};
+use lang::syntax::{AttributeKey, AttributeValue};
 use lsp_types::{CodeActionKind, Range, TextEdit};
 use std::path::Path;
+
+// The attributes completing a task reads and writes, spelled by the table.
+const EVERY: &str = AttributeKey::Every.as_str();
+const DUE: &str = AttributeKey::Due.as_str();
+const REPEAT_FROM: &str = AttributeKey::RepeatFrom.as_str();
+const COMPLETED: &str = AttributeKey::Completed.as_str();
 
 /// How a host prefers to offer completing or reopening a task.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,13 +105,13 @@ pub(crate) fn toggle_task(
     if indices.len() > 1
         && indices
             .iter()
-            .any(|i| doc.tasks[*i].attributes.contains_key("every"))
+            .any(|i| doc.tasks[*i].attributes.contains_key(EVERY))
     {
         return Err(
             "Complete recurring tasks individually; recurring parent tasks are unsupported".into(),
         );
     }
-    match task.attributes.get("every") {
+    match task.attributes.get(EVERY) {
         Some(recurrence) => recur(&mut engine, path, index, &recurrence.value, today),
         None => Ok(check(doc, &indices, done, today)),
     }
@@ -125,27 +132,32 @@ fn recur(
     }
     let due = task
         .attributes
-        .get("due")
+        .get(DUE)
         .map(|a| engine.when(path, &a.value).and_then(|v| engine.date(&v)))
         .transpose()?
         .unwrap_or(today);
     let anchor = task
         .attributes
-        .get("repeat_from")
-        .map(|a| NaiveDate::parse_from_str(&a.value, "%Y-%m-%d").map_err(|e| e.to_string()))
+        .get(REPEAT_FROM)
+        .map(|a| {
+            lang::syntax::stamp(&a.value).ok_or_else(|| {
+                let example = AttributeKey::RepeatFrom.example();
+                format!("@{REPEAT_FROM} requires a calendar date, e.g. @{REPEAT_FROM}({example})")
+            })
+        })
         .transpose()?
         .unwrap_or(due);
     let next = next_occurrence(recurrence, anchor, today.max(due))?;
     let mut edits = Vec::new();
-    if let Some(attr) = task.attributes.get("due") {
+    if let Some(attr) = task.attributes.get(DUE) {
         edits.push(TextEdit::new(attr.value_span.range(doc), next.to_string()));
     }
     let mut suffix = String::new();
-    if !task.attributes.contains_key("due") {
-        suffix.push_str(&format!(" @due({next})"));
+    if !task.attributes.contains_key(DUE) {
+        suffix.push_str(&format!(" @{DUE}({next})"));
     }
-    if !task.attributes.contains_key("repeat_from") {
-        suffix.push_str(&format!(" @repeat_from({anchor})"));
+    if !task.attributes.contains_key(REPEAT_FROM) {
+        suffix.push_str(&format!(" @{REPEAT_FROM}({anchor})"));
     }
     if !suffix.is_empty() {
         edits.push(TextEdit::new(
@@ -185,19 +197,19 @@ fn check(doc: &Document, indices: &[usize], done: bool, today: NaiveDate) -> Vec
             span.range(doc),
             if done { " ".into() } else { "x".into() },
         ));
-        if let Some(attr) = task.attributes.get("completed") {
+        if let Some(attr) = task.attributes.get(COMPLETED) {
             edits.push(TextEdit::new(
                 attr.span.range(doc),
                 if done {
                     String::new()
                 } else {
-                    format!("@completed({today})")
+                    format!("@{COMPLETED}({today})")
                 },
             ));
         } else if !done {
             edits.push(TextEdit::new(
                 Range::new(doc.line_end(task.line), doc.line_end(task.line)),
-                format!(" @completed({today})"),
+                format!(" @{COMPLETED}({today})"),
             ));
         }
     }
@@ -213,11 +225,65 @@ pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path
         .iter()
         .flat_map(|t| t.attributes.iter())
         .chain(doc.events.iter().flat_map(|e| e.attributes.iter()))
-        .filter(|(key, _)| matches!(key.as_str(), "due" | "scheduled" | "at"))
+        .filter(|(key, _)| {
+            key.parse::<AttributeKey>()
+                .is_ok_and(|k| k.value() == AttributeValue::When)
+        })
         .filter_map(|(_, a)| {
             lang::eval::engine::relative_date(&a.value, today)
                 .and_then(|_| engine.when(path, &a.value).ok())
                 .map(|v| TextEdit::new(a.value_span.range(doc), v.display()))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lang::eval::{RequestContext, Workspace};
+    use lang::model::apply_edits;
+
+    /// Completing a task writes attributes; each one it writes must be in the
+    /// attribute table, so the parser knows it and highlighting, diagnostics
+    /// and completion describe it.
+    #[test]
+    fn completing_a_task_writes_only_attributes_in_the_table() {
+        let text = "- [ ] Plain :plain\n  - [ ] Child\n- [ ] Rent :rent @every(month)\n";
+        let path = Path::new("/notes/tasks.x.md");
+        let mut workspace = Workspace::new(vec!["/notes".into()]);
+        workspace.insert_document(path.into(), Document::parse(text.into()));
+        let now = chrono::DateTime::parse_from_rfc3339("2026-09-18T09:00:00-04:00").unwrap();
+        let request = RequestContext::new(&workspace, now);
+        let mut written = std::collections::BTreeSet::new();
+        for index in [0, 2] {
+            let edits = toggle_task(&request, path, index).unwrap();
+            let after = Document::parse(apply_edits(text, &edits).unwrap());
+            assert!(
+                after.problems.is_empty(),
+                "completing task {index} left problems: {:?}",
+                after
+                    .problems
+                    .iter()
+                    .map(|p| &p.message)
+                    .collect::<Vec<_>>()
+            );
+            let before = &workspace.documents()[path].tasks;
+            for (task, old) in after.tasks.iter().zip(before) {
+                for key in task.attributes.keys() {
+                    assert!(
+                        key.parse::<AttributeKey>().is_ok(),
+                        "completing a task wrote @{key}, which is not in the attribute table"
+                    );
+                    if !old.attributes.contains_key(key) {
+                        written.insert(key.clone());
+                    }
+                }
+            }
+        }
+        // Both actions ran: the plain task was stamped, the recurring one moved.
+        assert_eq!(
+            written.into_iter().collect::<Vec<_>>(),
+            [COMPLETED, DUE, REPEAT_FROM]
+        );
+    }
 }

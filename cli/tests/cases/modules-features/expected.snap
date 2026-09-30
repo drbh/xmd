@@ -89,7 +89,7 @@ exit 0
 HELLO
 
 ### 6 write
--- write .xmd/modules/custom.x.md (317 bytes)
+-- write .xmd/modules/custom.x.md (304 bytes)
 
 ### 7 lsp
 -- open hello.x.md
@@ -173,7 +173,7 @@ error: {
 }
 
 ### 8 write
--- write .xmd/modules/custom.x.md (456 bytes)
+-- write .xmd/modules/custom.x.md (465 bytes)
 
 ### 9 lsp
 -- open hello.x.md
@@ -193,7 +193,7 @@ error: {
         "expected": "Hello\n",
         "kind": "invoke",
         "module": "stamp",
-        "revision": "24ac349b2d658cf7"
+        "revision": "907406b808ea2c29"
       }
     ],
     "command": "xmd.invoke",
@@ -230,7 +230,7 @@ null
     ]
   }
 }
--- write .xmd/modules/custom.x.md (460 bytes)
+-- write .xmd/modules/custom.x.md (469 bytes)
 -- watched .xmd/modules/custom.x.md
 -- await textDocument/publishDiagnostics hello.x.md
 {
@@ -248,7 +248,7 @@ null
         "expected": "Hello\n",
         "kind": "invoke",
         "module": "stamp",
-        "revision": "e7b49df83ee85799"
+        "revision": "05b2b6e35a1ee7ee"
       }
     ],
     "command": "xmd.invoke",

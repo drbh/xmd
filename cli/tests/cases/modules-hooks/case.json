@@ -161,7 +161,7 @@
     },
     {
       "write": {
-        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => \"nope\"\nhovers := fn(ctx) => [{range: {start: {line: 99, character: 0}, end: {line: 99, character: 1}}, contents: \"far away\"}]\ndiagnostics := fn(ctx) => {not: \"a list\"}\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 1}}, newText: 5}]\nactions := fn(ctx) => [{title: \"Loop\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: event}\n"
+        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => \"nope\"\nhovers := fn(ctx) => [{range: {start: {line: 99, character: 0}, end: {line: 99, character: 1}}, contents: \"far away\"}]\ndiagnostics := fn(ctx) => {not: \"a list\"}\nformat := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 1}}, newText: 5}]\nactions := fn(ctx) => [{line: 0, title: \"Loop\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: event}\n"
       }
     },
     {
@@ -233,7 +233,7 @@
     },
     {
       "write": {
-        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => []\nhovers := fn(ctx) => \"not a list\"\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 99}}, message: \"past the end\"}]\nactions := fn(ctx) => if(ctx.row == 0, [{title: ctx.module.revision, action: {kind: \"refresh\", document: null}}], [{title: \"Fine\", action: {kind: \"refresh\", document: null}}, {title: \"Nowhere\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 42, character: 0}, end: {line: 42, character: 0}}, newText: \"x\"}]}}])\n"
+        ".xmd/modules/review.x.md": "module := {api: 1, id: \"review\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => []\nhovers := fn(ctx) => \"not a list\"\ndiagnostics := fn(ctx) => [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 99}}, message: \"past the end\"}]\nactions := fn(ctx) => [{line: 0, title: ctx.module.revision, action: {kind: \"refresh\", document: null}}, {line: 1, title: \"Fine\", action: {kind: \"refresh\", document: null}}, {line: 1, title: \"Nowhere\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 42, character: 0}, end: {line: 42, character: 0}}, newText: \"x\"}]}}]\n"
       }
     },
     {

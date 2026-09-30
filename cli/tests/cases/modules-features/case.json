@@ -65,7 +65,7 @@
     },
     {
       "write": {
-        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"insert\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => if(ctx.row == 0, [{title: \"Insert greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: \"Hello \"}]}}], [])\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"insert\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{line: 0, title: \"Insert greeting\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: \"Hello \"}]}}]\n"
       }
     },
     {
@@ -148,7 +148,7 @@
     },
     {
       "write": {
-        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"Stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+        ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{line: 0, title: \"Stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
       }
     },
     {
@@ -191,7 +191,7 @@
         },
         {
           "write": {
-            ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{title: \"New stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
+            ".xmd/modules/custom.x.md": "module := {api: 1, id: \"stamp\", kind: \"feature\", inputs: []}\nactions := fn(ctx) => [{line: 0, title: \"New stamp\", action: {kind: \"invoke\", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {}}}]\nreduce := fn(ctx, event) => {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}}, newText: source(now())}]}\n"
           }
         },
         {

@@ -125,6 +125,7 @@ generated from the collections a query binds by name. the fields are every field
 | `attributes` | record |
 | `blocked_by` | list |
 | `blocked_error` | always null |
+| `blockers` | list |
 | `checked` | boolean |
 | `children` | list |
 | `done` | boolean |
@@ -323,6 +324,7 @@ generated from the collections a query binds by name. the fields are every field
 | `attributes` | record |
 | `blocked_by` | list |
 | `blocked_error` | always null |
+| `blockers` | list |
 | `checked` | boolean |
 | `children` | list |
 | `done` | boolean |

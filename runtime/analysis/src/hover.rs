@@ -5,8 +5,8 @@ use lang::common::Span;
 use lang::eval::engine::{Engine, HostPresenting, Value};
 use lang::eval::plans::PlanValue;
 use lang::eval::resources::{self, ResourcePresenting};
-use lang::eval::timers::Timer;
 use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::stdlib;
 use lsp_types::*;
 use std::path::Path;
 
@@ -17,6 +17,10 @@ pub fn markup(value: String) -> MarkupContent {
     }
 }
 
+/// How the task on a row hovers, supplied by the caller: a task's hover reads
+/// its catalog record, which this crate cannot build.
+pub type TaskHover = fn(&lang::eval::RequestContext<'_>, &Path, usize) -> Option<Hover>;
+
 /// The editor's own hover, for whatever `locate` finds at the position:
 /// a link, a table cell, a symbol (with a property preview when a reference
 /// reads one), a bracketed calculation, or the task on this row.
@@ -24,6 +28,7 @@ pub fn hover_at(
     request: &lang::eval::RequestContext<'_>,
     path: &Path,
     position: Position,
+    task_hover: TaskHover,
 ) -> Option<Hover> {
     let ws = request.workspace();
     match locate::target(ws, path, position)? {
@@ -64,88 +69,10 @@ fn reference_hover(
     }
 }
 
-/// A task's state, blockers, estimate, timer and subtask progress, worded by
-/// the stdlib's `task` module.
-fn task_hover(
-    request: &lang::eval::RequestContext<'_>,
-    path: &Path,
-    index: usize,
-) -> Option<Hover> {
-    let ws = request.workspace();
-    let doc = ws.documents().get(path)?;
-    let task = &doc.tasks[index];
-    let mut engine = request.engine();
-    let (blocked, blocked_error) = match engine.blocked(path, index) {
-        Ok(names) => (
-            names
-                .into_iter()
-                .map(|name| {
-                    Value::Text(
-                        ws.resolve(path, &name)
-                            .map(|s| source_link(ws, &s))
-                            .unwrap_or(name),
-                    )
-                })
-                .collect(),
-            Value::Null,
-        ),
-        Err(e) => (vec![], Value::Text(e.to_string())),
-    };
-    let done = engine.task_done(path, index);
-    let mut attribute = |key: &str| {
-        task.attributes
-            .get(key)
-            .and_then(|attr| engine.eval(path, &attr.value).ok())
-    };
-    let estimate = attribute("estimate");
-    let timer = attribute("timer");
-    let children: Vec<_> = doc
-        .tasks
-        .iter()
-        .enumerate()
-        .filter(|(_, t)| t.parent == Some(index))
-        .map(|(j, _)| j)
-        .collect();
-    let children_done = children
-        .iter()
-        .filter(|j| engine.task_done(path, **j))
-        .count();
-    let text = |value: Option<&Value>| value.map_or(Value::Null, |v| Value::Text(v.display()));
-    let record = lang::eval::modules::record([
-        ("title", Value::Text(task.title.clone())),
-        ("done", Value::Bool(done)),
-        (
-            "in_progress",
-            Value::Bool(engine.task_in_progress(path, index)),
-        ),
-        ("blocked", Value::List(blocked)),
-        ("blocked_error", blocked_error),
-        ("estimate", text(estimate.as_ref())),
-        ("timer", text(timer.as_ref())),
-        (
-            "countdown",
-            match timer.as_ref().and_then(Value::downcast::<Timer>) {
-                Some(timer) => timer.record(),
-                None => Value::Null,
-            },
-        ),
-        ("children", Value::Count(children.len())),
-        ("children_done", Value::Count(children_done)),
-    ]);
-    Some(Hover {
-        contents: HoverContents::Markup(markup(engine.present("task", "hover", vec![record]))),
-        range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(doc)),
-    })
-}
-
 /// `format.series` over a column or a sum's rows: a sparkline and its range,
 /// or nothing when fewer than two values can be charted.
 fn series(engine: &mut Engine<'_>, values: Vec<Value>) -> Option<String> {
-    match engine.call_module("format", "series", vec![Value::List(values)]) {
-        Ok(Value::Null) => None,
-        Ok(chart) => Some(chart.display()),
-        Err(e) => Some(e.to_string()),
-    }
+    stdlib::shown(stdlib::format::series(engine, values))
 }
 
 fn link_hover(
@@ -298,11 +225,14 @@ fn expression_detail(
     out.push_str(&goal_seek(ws, engine, symbol, definition).unwrap_or_default());
     if let Ok(value) = value
         && let Some(plan) = value.downcast::<PlanValue>()
-        && let Ok(text) = ws
-            .modules()
-            .call("plan", "hover", vec![plan.record(ws)], request.now())
     {
-        out.push_str(&text.display());
+        out.push_str(&stdlib::shown(stdlib::plan::hover(
+            &mut stdlib::Snapshot {
+                modules: ws.modules(),
+                now: request.now(),
+            },
+            plan.record(ws),
+        )));
     }
     out.push_str(&contributions(engine, &symbol.path, &def.source).unwrap_or_default());
     let inputs: std::collections::BTreeSet<_> =
@@ -340,6 +270,20 @@ fn goal_seek(
 ) -> Option<String> {
     let def = &ws.documents()[&symbol.path].definitions[definition];
     let body = lang::eval::plans::seek_body(&def.source)?;
+    let summary = stdlib::shown(seek_summary(ws, engine, symbol, definition)?);
+    Some(format!("\n\nGoal seek: {summary} `{body}`."))
+}
+
+/// The words for which way a goal-seeking definition moves its own name, or
+/// nothing when the definition is not a goal seek its hover can explain.
+pub fn seek_summary(
+    ws: &Workspace,
+    engine: &mut Engine<'_>,
+    symbol: &Symbol,
+    definition: usize,
+) -> Option<stdlib::Presented> {
+    let def = &ws.documents()[&symbol.path].definitions[definition];
+    let body = lang::eval::plans::seek_body(&def.source)?;
     let name = &def.named.name;
     let vars = [name.clone()].into_iter().collect();
     let (lhs, op, rhs) = engine
@@ -347,15 +291,11 @@ fn goal_seek(
         .ok()?;
     let difference = lhs.minus(&rhs).ok()?;
     let coefficient = difference.terms.get(name).copied().unwrap_or(0.0);
-    let summary = engine.present(
-        "plan",
-        "seek_summary",
-        vec![
-            Value::Text(op.as_str().into()),
-            Value::Bool(coefficient > 0.0),
-        ],
-    );
-    Some(format!("\n\nGoal seek: {summary} `{body}`."))
+    Some(stdlib::plan::seek_summary(
+        engine,
+        op.as_str(),
+        coefficient > 0.0,
+    ))
 }
 
 /// What each row adds to a sum over a table, charted, the first 30 listed.
@@ -391,11 +331,10 @@ fn lookups(
     for key in keys {
         match key.lookup(ws.lookups()) {
             Some(lookup) => {
-                let age = engine.present(
-                    "format",
-                    "age",
-                    vec![Value::Duration((now - lookup.fetched_at).num_seconds())],
-                );
+                let age = stdlib::shown(stdlib::format::age(
+                    engine,
+                    (now - lookup.fetched_at).num_seconds(),
+                ));
                 out.push_str(&format!(
                     "\n- {} · {age} · {}",
                     key.describe(),

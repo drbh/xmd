@@ -15,6 +15,7 @@ mod expressions;
 mod inspection;
 mod links;
 mod notes;
+mod presentations;
 mod query;
 mod record;
 mod sections;
@@ -28,9 +29,11 @@ use lsp_types::Diagnostic;
 use std::path::Path;
 
 use lang::eval::modules::Collection;
+pub use presentations::presentations;
 pub use query::{NoteFiles, Query, QueryResult, execute};
 pub use record::Record;
 use record::SourceRef;
+pub use tasks::hover as task_hover;
 pub use value::display;
 
 /// Where the `diagnostics` collection comes from, chosen by the caller.
@@ -105,7 +108,7 @@ pub fn collect(
         }
         match collection {
             Collection::Ast | Collection::Decisions => unreachable!("handled above"),
-            Collection::Days => days::days(ws, path, doc, engine, &mut records)?,
+            Collection::Days => days::days(ws, path, doc, engine, &mut records),
             Collection::Timers => timers::timers(ws, path, doc, engine, &mut records),
             Collection::Links => links::links(ws, path, doc, &mut records),
             Collection::Sections => sections::sections(ws, path, doc, &mut records),

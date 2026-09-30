@@ -3,6 +3,8 @@ use crate::describe_impl as describe;
 use lang::common::Span;
 use lang::eval::{Symbol, SymbolKind};
 use lang::model::Document;
+use lang::stdlib;
+use lang::syntax::AttributeKey;
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation};
 use std::path::Path;
 use url::Url;
@@ -60,7 +62,10 @@ pub fn document_symbols(
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, now.date_naive());
+    // A day's date is only detail here; when `itinerary_core.dates` fails, the
+    // note's diagnostics say why and the outline lists the days undated.
+    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, now.date_naive())
+        .unwrap_or_else(|_| vec![None; doc.days.len()]);
     let day_detail = |day: &lang::eval::itinerary::Day, date: &Option<chrono::NaiveDate>| {
         format!(
             "{} stops{}",
@@ -161,11 +166,11 @@ pub fn document_symbols(
                     Some(kind) => {
                         format!(
                             "{} · {}",
-                            lang::eval::itinerary::display_time(ws.modules(), stop),
+                            stdlib::shown(lang::eval::itinerary::display_time(ws.modules(), stop)),
                             kind.name
                         )
                     }
-                    None => lang::eval::itinerary::display_time(ws.modules(), stop),
+                    None => stdlib::shown(lang::eval::itinerary::display_time(ws.modules(), stop)),
                 },
                 lsp_types::SymbolKind::EVENT,
                 Range::new(
@@ -186,8 +191,8 @@ pub fn document_symbols(
             },
             event
                 .attributes
-                .get("at")
-                .map(|a| format!("@at({})", a.value))
+                .get(AttributeKey::At.as_str())
+                .map(|a| format!("{}({})", AttributeKey::At.spelling(), a.value))
                 .unwrap_or_default(),
             lsp_types::SymbolKind::EVENT,
             range,

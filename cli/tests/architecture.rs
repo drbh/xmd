@@ -3,8 +3,9 @@
 //! other crate publishes a curated interface from its root (no public file
 //! modules, no glob re-exports, workspace lints on); the facades (`xmd`,
 //! `lang`, `runtime`) only re-export, and the crates behind `lang` and
-//! `runtime` are private to them; and the portable crates (the
-//! language, the services and the browser host) do no I/O.
+//! `runtime` are private to them; the portable crates (the language, the
+//! services and the browser host) do no I/O; and native code reaches a stdlib
+//! module only through the contract.
 use serde_json::Value;
 use std::process::Command;
 
@@ -282,6 +283,53 @@ fn portable_crates_do_no_io() {
     assert!(
         checked >= 11,
         "expected the portable crates, found {checked}"
+    );
+}
+
+/// Every stdlib function native code calls is declared in the contract and
+/// called through its typed functions: no other source names one by string.
+#[test]
+fn stdlib_is_called_only_through_the_contract() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let contract = root.join("lang/core/eval/src/contract.rs");
+    let mut forbidden: Vec<String> = lang::stdlib::modules()
+        .iter()
+        .map(|id| format!("call(\"{id}\","))
+        .collect();
+    forbidden.extend(["call_module(".into(), "call_stdlib(".into()]);
+    let mut pending: Vec<_> = ["lang", "runtime", "lsp", "browser", "cli/src"]
+        .iter()
+        .map(|dir| root.join(dir))
+        .collect();
+    let mut checked = 0;
+    while let Some(path) = pending.pop() {
+        if path.is_dir() {
+            for entry in std::fs::read_dir(&path).expect("read source directory") {
+                pending.push(entry.expect("directory entry").path());
+            }
+        } else if path.extension().is_some_and(|e| e == "rs") && path != contract {
+            checked += 1;
+            let source: String = std::fs::read_to_string(&path)
+                .expect("read source")
+                .split_whitespace()
+                .collect::<String>()
+                // Declaring the calls is fine; only making them is not.
+                .replace("fncall_module(", "")
+                .replace("fncall_stdlib(", "");
+            for pattern in &forbidden {
+                assert!(
+                    !source.contains(pattern.as_str()),
+                    "{path:?} calls `{pattern}`; native code reaches the stdlib only through \
+                     lang::stdlib (lang/core/eval/src/contract.rs)"
+                );
+            }
+        }
+    }
+    assert!(
+        checked > 50,
+        "expected the workspace sources, found {checked}"
     );
 }
 

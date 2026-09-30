@@ -4,6 +4,7 @@ use lang::eval::EvalError;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::timers::Timer;
 use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::syntax::{AttributeKey, AttributeValue};
 use lsp_types::*;
 use std::path::Path;
 
@@ -23,7 +24,8 @@ pub(crate) enum DiagnosticCode {
     Dependency,
     Property,
     Attribute,
-    /// A feature module's own hook failed; the module id is in the message.
+    /// A module's own code failed: a feature module's hook, or a stdlib
+    /// function native code decides with. The module is in the message.
     Module,
     /// The file's extension does not match what it holds: a file of
     /// definitions is a `.xmd` library, anything else an `.x.md` note.
@@ -95,7 +97,7 @@ impl Issue {
     fn into_diagnostic(self, ws: &Workspace, path: &Path) -> Diagnostic {
         let related = self.related;
         Diagnostic {
-            range: self.span.range(&ws.documents()[path].text),
+            range: self.span.range(&ws.documents()[path]),
             severity: Some(if self.advice {
                 DiagnosticSeverity::INFORMATION
             } else if self.pending {
@@ -112,7 +114,7 @@ impl Issue {
                     .map(|s| DiagnosticRelatedInformation {
                         location: Location {
                             uri: lang::common::uri_from_url(&lang::common::uri(&s.path)),
-                            range: ws.named(s).span.range(&ws.documents()[&s.path].text),
+                            range: ws.named(s).span.range(&ws.documents()[&s.path]),
                         },
                         message: format!("{} defined here", ws.named(s).name),
                     })
@@ -208,13 +210,16 @@ pub fn collect_native(
     let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
+    // The definitions still being typed, found once rather than per name.
+    let typing: Vec<_> = doc
+        .definitions
+        .iter()
+        .filter(|d| editing && d.expression && incomplete(&d.source))
+        .collect();
     let unfinished = |span: Span| {
-        editing
-            && doc.definitions.iter().any(|d| {
-                d.expression
-                    && (d.named.span.line == span.line || d.value_span.contains(doc, span))
-                    && incomplete(&d.source)
-            })
+        typing
+            .iter()
+            .any(|d| d.named.span.line == span.line || d.value_span.contains(doc, span))
     };
     let symbols = ws.symbols();
     let mut issues: Vec<Issue> = file_name(doc, path).into_iter().collect();
@@ -351,7 +356,7 @@ pub fn collect_native(
         if let Err(message) = engine.blocked(path, index) {
             let span = task
                 .attributes
-                .get("after")
+                .get(AttributeKey::After.as_str())
                 .map(|a| a.value_span)
                 .unwrap_or(task.checkbox);
             let related = engine
@@ -372,7 +377,7 @@ pub fn collect_native(
         }
     }
     for event in &doc.events {
-        let attr = &event.attributes["at"];
+        let attr = &event.attributes[AttributeKey::At.as_str()];
         if let Err(message) = engine.when(path, &attr.value) {
             issues.push(Issue::failed(
                 attr.value_span,
@@ -380,6 +385,16 @@ pub fn collect_native(
                 &message,
             ));
         }
+    }
+    // The stdlib decides every day's date; when it cannot, every day, stop
+    // and agenda entry goes undated, so the itinerary says why on its first day.
+    if let Some(first) = doc.days.first()
+        && let Err(message) = lang::eval::itinerary::dates(ws.modules(), &doc.days, today)
+    {
+        issues.push(Issue {
+            message: format!("itinerary_core.dates: {message}"),
+            ..Issue::failed(first.date_span, DiagnosticCode::Module, &message)
+        });
     }
     let mut issues: Vec<Diagnostic> = issues
         .into_iter()
@@ -411,7 +426,9 @@ pub fn collect_native(
     issues
 }
 
-/// What is wrong with one task attribute, if anything.
+/// What is wrong with one task attribute, if anything. What the value holds
+/// (`AttributeValue`) decides how it is checked; an unknown key is the
+/// parser's problem, not this one's.
 fn attribute_error(
     engine: &mut Engine<'_>,
     doc: &lang::model::Document,
@@ -422,31 +439,43 @@ fn attribute_error(
     attr: &lang::model::Attribute,
 ) -> Option<EvalError> {
     let requires = |satisfied: bool, message: &str| (!satisfied).then(|| message.into());
-    match key {
-        "due" | "scheduled" | "at" | "repeat_from" => engine.when(path, &attr.value).err(),
-        "estimate" => {
+    let key = key.parse::<AttributeKey>().ok()?;
+    match key.value() {
+        AttributeValue::When => engine.when(path, &attr.value).err(),
+        AttributeValue::Stamp => requires(
+            lang::syntax::stamp(&attr.value).is_some(),
+            &format!(
+                "@{key} requires a calendar date, e.g. @{key}({})",
+                key.example()
+            ),
+        ),
+        AttributeValue::Duration => {
             let value = engine.eval_at(path, &attr.value, attr.value_span);
             requires(
                 matches!(value, Ok(Value::Duration(s)) if s >= 0),
-                "@estimate requires a nonnegative duration, e.g. 20m or 2h",
+                &format!("@{key} requires a nonnegative duration, e.g. 20m or 2h"),
             )
         }
-        "timer" => {
+        AttributeValue::Timer => {
             let value = engine.eval_at(path, &attr.value, attr.value_span);
             requires(
                 matches!(&value, Ok(v) if v.downcast::<Timer>().is_some_and(|t| t.origin.is_some()))
                     && lang::model::identifier(&attr.value),
-                "@timer requires a named stopwatch or countdown, e.g. @timer(focus)",
+                &format!("@{key} requires a named stopwatch or countdown, e.g. @{key}(focus)"),
             )
         }
-        "every" => lang::eval::engine::next_occurrence(&attr.value, today, today)
-            .err()
-            .or_else(|| {
-                doc.tasks
-                    .iter()
-                    .any(|t| t.parent == Some(task))
-                    .then(|| "Put recurrence on individual tasks, not parent checklists".into())
-            }),
-        _ => None,
+        AttributeValue::Recurrence => {
+            lang::eval::engine::next_occurrence(&attr.value, today, today)
+                .err()
+                .or_else(|| {
+                    doc.tasks
+                        .iter()
+                        .any(|t| t.parent == Some(task))
+                        .then(|| "Put recurrence on individual tasks, not parent checklists".into())
+                })
+        }
+        // `engine.blocked` checks a task's dependencies as a whole, above;
+        // tags are free text.
+        AttributeValue::Dependencies | AttributeValue::Tags => None,
     }
 }

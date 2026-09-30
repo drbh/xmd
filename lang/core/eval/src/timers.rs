@@ -1,5 +1,6 @@
 //! Timers are timestamp-based values. Reading/evaluating them never mutates state.
 use crate::{
+    contract::{Held, Presented, Snapshot, shown, timer},
     engine::{Value, timer_arguments},
     workspace::{Symbol, SymbolKind},
 };
@@ -35,6 +36,9 @@ pub enum TimerState {
 pub struct Timer {
     /// What the timer module stores and reads back.
     pub(crate) state: TimerRecord,
+    /// Where the module says the timer stands, read once when it is created:
+    /// a timer whose state cannot be read fails to evaluate instead.
+    status: TimerState,
     pub origin: Option<Symbol>,
     implementation: std::sync::Arc<modules::Module>,
     now: DateTime<FixedOffset>,
@@ -61,56 +65,58 @@ impl Timer {
             .get("timer")
             .ok_or_else(|| EvalError::ModuleUnavailable("timer".into()))?
             .clone();
-        let created = engine.call_module(
-            "timer",
-            "create",
-            vec![Value::Text(name.into()), Value::List(args.to_vec())],
-        )?;
-        Ok(Self {
-            state: TimerRecord::from_value(&created)?,
+        let record = timer::create(engine, name, args.to_vec())?;
+        let mut created = Self {
+            state: TimerRecord::from_value(&record)?,
+            status: TimerState::Idle,
             origin: None,
             implementation: std::sync::Arc::new(implementation),
             now: engine.now(),
-        })
+        };
+        // The state is decided once, at the clock the timer was read at, so
+        // a module that cannot say where it stands fails here, where the
+        // definition's diagnostic reports it.
+        let status = timer::state(&mut created.held(), created.record())?;
+        created.status = status.parse().map_err(|_| {
+            EvalError::Message(format!(
+                "timer.state returned '{status}'; expected idle, running, paused or done"
+            ))
+        })?;
+        Ok(created)
     }
-    fn call(&self, name: &str) -> EvalResult<Value> {
-        self.implementation
-            .call(name, vec![self.record()], self.now)
+    /// The module this timer was created with, at the moment it was read.
+    fn held(&self) -> Held<'_> {
+        Held {
+            module: &self.implementation,
+            now: self.now,
+        }
     }
     pub fn time_dependent(&self) -> EvalResult<bool> {
         if !self.implementation.has("time_dependent") {
             return Ok(self.implementation.live);
         }
-        match self.call("time_dependent")? {
-            Value::Bool(live) => Ok(live),
-            _ => Err(EvalError::Message(
-                "timer.time_dependent must return a boolean".into(),
-            )),
-        }
+        timer::time_dependent(&mut self.held(), self.record())
     }
-    /// An unreadable state reads as idle: the glyphs and labels stay drawable.
+    /// Where the timer stands, as the module decided when it was created.
     pub fn state(&self) -> TimerState {
-        self.call("state")
-            .ok()
-            .and_then(|v| v.display().parse().ok())
-            .unwrap_or(TimerState::Idle)
-    }
-    /// The timer module's words for this timer, or why it has none.
-    fn words(&self, name: &str) -> String {
-        values::words(self.call(name))
+        self.status
     }
     pub fn display(&self) -> String {
-        self.words("display")
+        shown(self.presentations().0)
     }
     pub fn hover(&self) -> String {
-        self.words("hover")
+        shown(self.presentations().1)
+    }
+    /// The timer's display and hover as the module presents them, for a
+    /// caller that reports a failure as well as showing the fallback.
+    pub fn presentations(&self) -> (Presented, Presented) {
+        (
+            timer::display(&mut self.held(), self.record()),
+            timer::hover(&mut self.held(), self.record()),
+        )
     }
     pub fn property(&self, name: &str) -> EvalResult<Value> {
-        self.implementation.call(
-            "property",
-            vec![self.record(), Value::Text(name.into())],
-            self.now,
-        )
+        timer::property(&mut self.held(), self.record(), name)
     }
 }
 
@@ -137,19 +143,15 @@ pub fn edit_timer(
     let doc = &workspace.documents[&origin.path];
     let def = &doc.definitions[index];
     let original = timer_arguments(&def.source).ok_or("Expected timer declaration")?;
-    let expression = workspace
-        .modules
-        .call(
-            "timer",
-            "transition",
-            vec![
-                timer.record(),
-                Value::Text(<&str>::from(action).into()),
-                Value::Text(original.first().copied().unwrap_or_default().into()),
-            ],
+    let expression = timer::transition(
+        &mut Snapshot {
+            modules: &workspace.modules,
             now,
-        )?
-        .display();
+        },
+        timer.record(),
+        action.into(),
+        original.first().copied().unwrap_or_default(),
+    )?;
     let raw = def.value_span.source(doc);
     let leading = &raw[..raw.len() - raw.trim_start().len()];
     let trailing = &raw[raw.trim_end().len()..];

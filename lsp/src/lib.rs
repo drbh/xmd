@@ -461,7 +461,7 @@ impl LanguageServer for Backend {
                         .workspace
                         .named(&s)
                         .span
-                        .range(&state.session.workspace.documents()[&s.path].text),
+                        .range(&state.session.workspace.documents()[&s.path]),
                 })
             }),
         )
@@ -479,7 +479,7 @@ impl LanguageServer for Backend {
             .skip(usize::from(!params.context.include_declaration))
             .map(|(p, span)| Location {
                 uri: uri_from_url(&uri(&p)),
-                range: span.range(&ws.documents()[&p].text),
+                range: span.range(&ws.documents()[&p]),
             })
             .collect();
         Ok(Some(result))
@@ -502,7 +502,7 @@ impl LanguageServer for Backend {
         let mut changes: BTreeMap<PathBuf, Vec<TextEdit>> = BTreeMap::new();
         for (p, span) in occurrences(ws, &symbol) {
             changes.entry(p.clone()).or_default().push(TextEdit::new(
-                span.range(&ws.documents()[&p].text),
+                span.range(&ws.documents()[&p]),
                 params.new_name.clone(),
             ));
         }
@@ -585,7 +585,7 @@ impl LanguageServer for Backend {
         Ok(
             symbol_at(&state.session.workspace, &path, params.position).map(|(s, span)| {
                 PrepareRenameResponse::RangeWithPlaceholder {
-                    range: span.range(&state.session.workspace.documents()[&path].text),
+                    range: span.range(&state.session.workspace.documents()[&path]),
                     placeholder: state.session.workspace.named(&s).name.clone(),
                 }
             }),
@@ -809,7 +809,7 @@ impl LanguageServer for Backend {
                 deprecated: None,
                 location: Location {
                     uri: uri_from_url(&uri(&s.path)),
-                    range: ws.named(&s).span.range(&ws.documents()[&s.path].text),
+                    range: ws.named(&s).span.range(&ws.documents()[&s.path]),
                 },
                 container_name: Some(s.path.display().to_string()),
             })

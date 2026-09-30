@@ -1,0 +1,33 @@
+{
+  "requires": "browser",
+  "steps": [
+    {
+      "browser": [
+        {
+          "method": "setModules",
+          "params": {
+            "sources": {
+              "plan.x.md": "module := {api: 1, id: \"plan\", kind: \"library\"}\n// A fixed solution for bakery.x.md, so the plan solves and only writing fails.\nsolve_model := fn(model) => {\n  objective: $6,\n  variables: [{name: \"count\", value: 3}],\n  constraints: [{name: \"limit\", op: \"<=\", lhs: 3, rhs: 3, slack: 0, binding: true}],\n  rows: {}\n}\nwrite_edits := fn(p, document) => error(\"PLAN WRITE FAILURE\")\n\n// The rest of the stdlib contract.\nwrite_title := fn() => \"Write decisions\"\nhover := fn(p) => \"plan hover\"\nseek_boundary := fn(name, form, unit) => error(\"not in this stand-in\")\nseek_summary := fn(op, positive) => error(\"not in this stand-in\")\n"
+            }
+          }
+        },
+        {
+          "method": "actions",
+          "params": {
+            "uri": "file:///workspace/bakery.x.md",
+            "range": {
+              "start": {
+                "line": 0,
+                "character": 0
+              },
+              "end": {
+                "line": 0,
+                "character": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

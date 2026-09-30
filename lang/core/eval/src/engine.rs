@@ -53,6 +53,9 @@ pub trait Bindings: Send + Sync {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<EvalResult<Value>>;
 }
 
+/// The expression nodes one evaluation may visit.
+const STEP_LIMIT: usize = 200_000;
+
 /// How much work one evaluation may still do. A module evaluates on an engine
 /// of its own, which inherits the budget rather than being given a fresh one.
 #[derive(Default)]
@@ -164,6 +167,11 @@ impl<'a> Engine<'a> {
     pub fn today(&self) -> NaiveDate {
         self.request.clock.today()
     }
+    /// Whether this evaluation has a clock to read: module code that native
+    /// code calls at [`modules::no_clock`] has none.
+    pub(crate) fn has_clock(&self) -> bool {
+        !self.module || modules::has_clock(self.request.clock.now)
+    }
     /// Where the last evaluation failed, when it did: the note and span to
     /// report it at, and the definitions it involved.
     pub fn failure(&self) -> Option<&EvalFailure> {
@@ -234,6 +242,9 @@ impl<'a> Engine<'a> {
     }
     /// A call's locals: its parameters first, then what it captured.
     pub(crate) fn local(&self, name: &str) -> Option<Value> {
+        self.local_ref(name).cloned()
+    }
+    fn local_ref(&self, name: &str) -> Option<&Value> {
         let Some(Frame::Function {
             function,
             arguments,
@@ -245,8 +256,28 @@ impl<'a> Engine<'a> {
             .params
             .iter()
             .position(|p| p == name)
-            .and_then(|i| arguments.get(i).cloned())
-            .or_else(|| function.captured.get(name).cloned())
+            .and_then(|i| arguments.get(i))
+            .or_else(|| function.captured.get(name))
+    }
+    /// `a.b.c` where `a` is a local record: the value it ends at, read in
+    /// place, with how many expression nodes evaluating it would take. Walking
+    /// by reference clones only that value, where evaluating each step clones
+    /// the whole record first — a hook's `ctx` holds the entire note. `None`
+    /// for anything else, which [`Self::expr`] evaluates as usual.
+    fn local_path(&self, expr: &Expr) -> Option<(&Value, usize)> {
+        match expr {
+            Expr::Spanned(_, _, inner) => self.local_path(inner).map(|(v, n)| (v, n + 1)),
+            Expr::Param { index, .. } => match self.scope().function.map(|at| &self.frames[at]) {
+                Some(Frame::Function { arguments, .. }) => Some((arguments.get(*index)?, 1)),
+                _ => None,
+            },
+            Expr::Name(name) if keyword(name).is_none() => Some((self.local_ref(name)?, 1)),
+            Expr::Property(record, key) => match self.local_path(record)? {
+                (Value::Record(fields), n) => Some((fields.get(key)?, n + 1)),
+                _ => None,
+            },
+            _ => None,
+        }
     }
     /// Those locals as the name-to-value map a closure captures.
     fn captured(&self) -> Option<BTreeMap<String, Value>> {
@@ -585,7 +616,7 @@ impl<'a> Engine<'a> {
     /// answers it.
     pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
         self.budget.steps += 1;
-        if self.budget.steps > 200_000 {
+        if self.budget.steps > STEP_LIMIT {
             return self.refuse(expr.bounds(), EvalError::StepLimit);
         }
         match expr {
@@ -616,6 +647,13 @@ impl<'a> Engine<'a> {
             }
             Expr::Binary(op, a, b) => self.binary_expr(path, *op, a, b),
             Expr::Property(v, key) => {
+                if let Some((value, nodes)) = self.local_path(expr)
+                    && self.budget.steps + nodes - 1 <= STEP_LIMIT
+                {
+                    let value = value.clone();
+                    self.budget.steps += nodes - 1;
+                    return Ok(value);
+                }
                 let value = self.expr(path, v)?;
                 let result = self.access(path, value, key);
                 // `import("id").name` names a member the library keeps
@@ -829,6 +867,11 @@ impl<'a> Engine<'a> {
         self.expressions = Some(expressions);
         self
     }
+    /// Share `memo` rather than the request's own.
+    pub(crate) fn with_memo(mut self, memo: crate::context::Memo) -> Self {
+        self.request.memo = memo;
+        self
+    }
     pub(crate) fn with_environment(mut self, environment: std::sync::Arc<Workspace>) -> Self {
         self.environment = Some(environment);
         self
@@ -902,7 +945,7 @@ impl<'a> Engine<'a> {
                 path: path.into(),
                 span: task
                     .attributes
-                    .get("after")
+                    .get(syntax::AttributeKey::After.as_str())
                     .map(|a| a.value_span)
                     .unwrap_or(task.checkbox),
                 message: message.clone(),
@@ -916,7 +959,7 @@ impl<'a> Engine<'a> {
         stack.push(key);
         let task = &self.request.workspace.documents[path].tasks[i];
         let mut blocked = Vec::new();
-        if let Some(attr) = task.attributes.get("after") {
+        if let Some(attr) = task.attributes.get(syntax::AttributeKey::After.as_str()) {
             for name in attr.value.split(',').map(str::trim) {
                 if let Ok(s) = self.request.workspace.resolve(path, name)
                     && let SymbolKind::Task(j) = s.kind

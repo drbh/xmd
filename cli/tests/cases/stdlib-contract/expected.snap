@@ -1,0 +1,26 @@
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/format.x.md: format.age is part of the stdlib contract (age(elapsed: Duration) -> Text) and takes 1 argument; this module's takes 2
+<root>/.xmd/modules/format.x.md: format.glyph is part of the stdlib contract (glyph(name: Text) -> Text) but this module does not define it
+
+### 1 lsp
+-- open main.x.md
+-- await window/logMessage
+{
+  "message": "<root>/.xmd/modules/format.x.md: format.age is part of the stdlib contract (age(elapsed: Duration) -> Text) and takes 1 argument; this module's takes 2\n<root>/.xmd/modules/format.x.md: format.glyph is part of the stdlib contract (glyph(name: Text) -> Text) but this module does not define it",
+  "type": 1
+}
+
+### 2 write
+-- write .xmd/modules.json (3 bytes)
+
+### 3 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+- [ ] water the plants
+
+answer := 42 = 42
+

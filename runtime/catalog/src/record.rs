@@ -24,7 +24,7 @@ record! {
 }
 impl SourceRef {
     pub(crate) fn new(ws: &Workspace, path: &Path, span: Span) -> Self {
-        Self::spanning(path, span.line, span.range(&ws.documents()[path].text))
+        Self::spanning(path, span.line, span.range(&ws.documents()[path]))
     }
     fn spanning(path: &Path, line: usize, range: Range) -> Self {
         let mut uri = lang::common::file_url(path)
@@ -63,7 +63,7 @@ impl Base {
         span: Span,
         anchor: Option<Position>,
     ) -> Self {
-        let range = span.range(&ws.documents()[path].text);
+        let range = span.range(&ws.documents()[path]);
         Self::spanning(ws, path, kind, title, span.line, range, anchor)
     }
     /// A record that is its whole line, with its inlay at the line's end.

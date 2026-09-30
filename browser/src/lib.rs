@@ -196,10 +196,7 @@ impl BrowserWorkspace {
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &lang::eval::Symbol| Location {
             uri: lang::common::uri_from_url(&uri(&symbol.path)),
-            range: ws
-                .named(symbol)
-                .span
-                .range(&ws.documents()[&symbol.path].text),
+            range: ws.named(symbol).span.range(&ws.documents()[&symbol.path]),
         };
         match method {
             "documentLinks" => serialized(request.document_links(&path)),
@@ -264,7 +261,7 @@ impl BrowserWorkspace {
                     .into_iter()
                     .map(|(p, span)| Location {
                         uri: lang::common::uri_from_url(&uri(&p)),
-                        range: span.range(&ws.documents()[&p].text),
+                        range: span.range(&ws.documents()[&p]),
                     })
                     .collect();
                 if method == "references" {
@@ -302,11 +299,19 @@ impl BrowserWorkspace {
                     .into_iter()
                     .map(|item| match item.command {
                         Some(command) => json!({"title":item.title,"command":command}),
-                        None => json!({
-                            "title": item.title,
-                            "kind": item.kind,
-                            "edit": self.single_edit(&path, item.edits),
-                        }),
+                        // A blocked action is listed with why, and no edit.
+                        None => match item.disabled {
+                            Some(reason) => json!({
+                                "title": item.title,
+                                "kind": item.kind,
+                                "disabled": {"reason": reason},
+                            }),
+                            None => json!({
+                                "title": item.title,
+                                "kind": item.kind,
+                                "edit": self.single_edit(&path, item.edits),
+                            }),
+                        },
                     })
                     .collect();
                 Ok(json!({"actions":choices,"versions":self.session.versions_json()}))

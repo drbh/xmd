@@ -1,7 +1,8 @@
-// Task presentation the editor asks for by name. Rust gathers what a task is
-// (its state, blockers, estimate, timer and subtasks); this decides the words.
-module := {api: 1, id: "task", kind: "library", imports: ["format"], inputs: [], exports: []}
+// Task presentation the editor asks for by name. A hover reads the task's
+// `tasks` record, as queries and feature modules see it; this decides the words.
+module := {api: 1, id: "task", kind: "library", imports: ["format", "timer"], inputs: [], exports: []}
 fmt := import("format")
+tm := import("timer")
 
 // Engine contract: the editor calls toggle, hover and checklist by name.
 
@@ -19,28 +20,37 @@ _tally := fn(done, total) => (
   "`" + fmt.progress(done, total) + "` " + source(number(done)) + "/" + source(number(total))
 )
 
+// A prerequisite, linked to where it is declared when it resolves.
+_blocker := fn(b) => (
+  if(b.source == null, b.name, "[" + b.name + "](<" + b.source.uri + ">)")
+)
+
 // Name incomplete prerequisites, or say why they could not be resolved.
 _blocked := fn(t) => (
   if(
     t.blocked_error != null,
     "\n\n" + t.blocked_error,
-    if(length(t.blocked) == 0, "", "\n\nBlocked by: " + join(t.blocked, ", "))
+    if(length(t.blockers) == 0, "", "\n\nBlocked by: " + join(map(t.blockers, _blocker), ", "))
   )
 )
 
 // Show a countdown's progress under its state; stopwatches have no limit.
 _countdown := fn(timer) => (
-  if(timer == null, "", if(timer.limit == null, "", "\n\n`" + fmt.bar(timer.elapsed / timer.limit) + "`"))
+  if(timer.limit == null, "", "\n\n`" + fmt.bar(timer.elapsed / timer.limit) + "`")
 )
 
 // The task's timer and, for a countdown, how far it has run.
 _timer := fn(t) => (
-  if(t.timer == null, "", "\n\nTimer: " + t.timer + _countdown(t.countdown))
+  if(t.timer == null, "", "\n\nTimer: " + tm.display(t.timer) + _countdown(t.timer))
 )
 
 // Direct subtask completion, omitted for a task without children.
 _subtasks := fn(t) => (
-  if(t.children == 0, "", "\n\nSubtasks: " + _tally(t.children_done, t.children))
+  if(
+    length(t.children) == 0,
+    "",
+    "\n\nSubtasks: " + _tally(length(filter(t.children, fn(c) => c.done)), length(t.children))
+  )
 )
 
 // Explain a task's state, blockers, estimate, timer and subtask progress.
@@ -48,7 +58,7 @@ hover := fn(t) => (
   "**" + t.title + "**\n\n"
   + if(t.done, "Complete", if(t.in_progress, "In progress", "Incomplete"))
   + _blocked(t)
-  + if(t.estimate == null, "", "\n\nEstimate: " + t.estimate)
+  + if(t.estimate == null, "", "\n\nEstimate: " + text(t.estimate))
   + _timer(t)
   + _subtasks(t)
   + "\n\nUse code actions or the clickable labels to complete/reopen tasks or control timers."

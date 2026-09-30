@@ -4,12 +4,12 @@ use crate::prose;
 use lang::common::Span;
 use lang::eval::engine;
 use lang::model::{Attribute, Document, HighlightKind, Named, TaskState};
-use lang::syntax::{Lexeme, Literal};
+use lang::syntax::{AttributeKey, AttributeValue, Lexeme, Literal};
 use lsp_types::SemanticToken;
 
 /// A semantic token type. Declaration order is the legend's order, so a
 /// token's discriminant is its index there.
-#[derive(Clone, Copy, PartialEq, Eq, strum::VariantNames)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::VariantNames, strum::EnumString)]
 #[strum(serialize_all = "camelCase")]
 pub(crate) enum Token {
     Comment,
@@ -35,7 +35,8 @@ pub(crate) enum Token {
     XmdCheckboxChecked,
     XmdCheckboxInProgress,
     XmdTime,
-    // Itineraries: one hue per stop kind, so a day reads at a glance.
+    // Itineraries: one hue per stop kind, so a day reads at a glance. Each
+    // kind's token is `xmd` and its name in `KINDS`.
     XmdDay,
     XmdPlace,
     XmdDetailKey,
@@ -48,17 +49,12 @@ pub(crate) enum Token {
     XmdExplore,
 }
 pub const TOKEN_TYPES: &[&str] = <Token as strum::VariantNames>::VARIANTS;
-/// The semantic token type for a stop kind.
+/// The semantic token type for a stop kind, named after it: `xmdDepart` for
+/// Depart. A kind without a token of its own reads as a heading.
 fn kind_token(kind: &lang::eval::itinerary::Kind) -> Token {
-    match kind.marker {
-        '>' => Token::XmdDepart,
-        '<' => Token::XmdArrive,
-        '~' => Token::XmdTransit,
-        '@' => Token::XmdStay,
-        '*' => Token::XmdMeal,
-        '+' => Token::XmdVisit,
-        _ => Token::XmdExplore,
-    }
+    format!("xmd{}", kind.name)
+        .parse()
+        .unwrap_or(Token::Heading)
 }
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
 const DECLARATION: u32 = 1;
@@ -194,20 +190,17 @@ impl<'a> Painter<'a> {
             Span::new(attr.span.line, attr.span.start, attr.value_span.start - 1),
             Token::Decorator,
         );
-        if matches!(
-            name,
-            "due" | "scheduled" | "at" | "completed" | "repeat_from"
-        ) && engine::relative_date(
-            &attr.value,
-            chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
-        )
-        .is_some()
-        {
-            self.mark(attr.value_span, Token::XmdDate);
-        } else if matches!(name, "tag" | "every") {
-            self.mark(attr.value_span, Token::String);
-        } else {
-            self.expression(attr.value_span);
+        // What the value holds decides its paint, as in the parser: a date
+        // that reads as one without evaluating, an expression, or plain text.
+        match name.parse::<AttributeKey>().ok().map(AttributeKey::value) {
+            Some(AttributeValue::When) if lang::syntax::is_relative_date(&attr.value) => {
+                self.mark(attr.value_span, Token::XmdDate);
+            }
+            Some(AttributeValue::Stamp) if lang::syntax::stamp(&attr.value).is_some() => {
+                self.mark(attr.value_span, Token::XmdDate);
+            }
+            Some(value) if value.is_expression() => self.expression(attr.value_span),
+            _ => self.mark(attr.value_span, Token::String),
         }
     }
     /// A pipe grid's cell separators and its `---` rule, when it has one.
@@ -525,4 +518,25 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     p.links();
     p.comments();
     p.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every stop kind has a hue of its own, so a kind added to `KINDS`
+    /// needs its token in the legend too.
+    #[test]
+    fn every_stop_kind_has_its_own_token() {
+        let tokens: Vec<Token> = lang::eval::itinerary::KINDS
+            .iter()
+            .map(kind_token)
+            .collect();
+        for (kind, token) in lang::eval::itinerary::KINDS.iter().zip(&tokens) {
+            assert_ne!(*token, Token::Heading, "{} has no token", kind.name);
+        }
+        for (i, token) in tokens.iter().enumerate() {
+            assert!(!tokens[..i].contains(token), "{token:?} is shared");
+        }
+    }
 }

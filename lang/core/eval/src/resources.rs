@@ -1,4 +1,5 @@
 use crate::engine::{Engine, Value};
+use crate::stdlib;
 use std::path::Path;
 use values::record;
 // What a resource target is and where it points is `common::Resource`, since
@@ -34,12 +35,11 @@ impl ResourcePresenting for Resource {
             &engine.workspace().cache,
             engine.now().to_utc(),
         );
-        let mut word = |name: &str| engine.present("resource", name, vec![self.record(document)]);
         let label = match &known {
             Some(p) => p.label.clone(),
-            None => word("label"),
+            None => stdlib::shown(stdlib::resource::label(engine, self.record(document))),
         };
-        let mut hover = word("hover");
+        let mut hover = stdlib::shown(stdlib::resource::hover(engine, self.record(document)));
         if let Some(details) = known.as_ref().and_then(|p| p.hover.as_ref()) {
             hover.push_str("\n\n");
             hover.push_str(details);

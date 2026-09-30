@@ -191,6 +191,10 @@ pub struct Document {
     pub problems: Vec<Problem>,
     /// Where each line of `text` starts, so spans find their line at once.
     lines: LineIndex,
+    /// The expression regions that call `sum`: the only ones a sum row scope
+    /// can be found in, kept so a lookup per reference need not gather every
+    /// region of the note.
+    sums: Vec<Span>,
 }
 /// A document is its text with every line start known: pass it where a span
 /// reads text (`span.range(doc)`) instead of `&doc.text`, which rescans.
@@ -349,7 +353,7 @@ impl Document {
                 }
                 Line::Prose { start } => {
                     let attrs = doc.attributes(line, row, start);
-                    if attrs.contains_key("at") {
+                    if attrs.contains_key(syntax::AttributeKey::At.as_str()) {
                         doc.event(line, row, start, &attrs);
                     }
                     doc.prose(line, row, start, &attrs);
@@ -426,7 +430,7 @@ impl Document {
             .map(str::to_owned)
             .chain(
                 attrs
-                    .get("tag")
+                    .get(syntax::AttributeKey::Tag.as_str())
                     .into_iter()
                     .flat_map(|a| a.value.split(',').map(|s| s.trim().to_string())),
             )
@@ -680,6 +684,14 @@ impl Document {
         self.highlights
             .sort_by_key(|h| (h.span.line, h.span.start, h.span.end));
         self.highlights.dedup_by_key(|h| h.span);
+        self.sums = expression_regions(self)
+            .into_iter()
+            .filter(|region| region.source(self).contains("sum"))
+            .collect();
+    }
+    /// The expression regions that call `sum`, in note order.
+    pub(crate) fn sum_regions(&self) -> &[Span] {
+        &self.sums
     }
     fn mark(&mut self, line: usize, start: usize, end: usize, kind: HighlightKind) {
         if end > start {
@@ -764,15 +776,20 @@ impl Document {
             };
             self.mark(row, i, open + 1, HighlightKind::Keyword);
             self.mark(row, end - 1, end, HighlightKind::Operator);
-            if matches!(key, "due" | "scheduled" | "at") && syntax::is_relative_date(&attr.value) {
-                self.mark(row, open + 1, end - 1, HighlightKind::Number);
-            } else if matches!(
-                key,
-                "due" | "scheduled" | "at" | "estimate" | "after" | "timer"
-            ) {
-                self.expression(line, row, open + 1, end - 1);
-            } else {
-                self.mark(row, open + 1, end - 1, HighlightKind::String);
+            // What the value holds decides how it is painted: a date that
+            // reads as one without evaluating, an expression, or plain text.
+            let known = key.parse::<syntax::AttributeKey>().ok();
+            match known.map(syntax::AttributeKey::value) {
+                Some(syntax::AttributeValue::When) if syntax::is_relative_date(&attr.value) => {
+                    self.mark(row, open + 1, end - 1, HighlightKind::Number);
+                }
+                Some(syntax::AttributeValue::Stamp) if syntax::stamp(&attr.value).is_some() => {
+                    self.mark(row, open + 1, end - 1, HighlightKind::Number);
+                }
+                Some(value) if value.is_expression() => {
+                    self.expression(line, row, open + 1, end - 1);
+                }
+                _ => self.mark(row, open + 1, end - 1, HighlightKind::String),
             }
             if attrs.insert(key.into(), attr).is_some() {
                 self.problems.push(Problem {
@@ -780,19 +797,7 @@ impl Document {
                     message: format!("Duplicate @{key} attribute"),
                 });
             }
-            if !matches!(
-                key,
-                "due"
-                    | "scheduled"
-                    | "at"
-                    | "estimate"
-                    | "after"
-                    | "every"
-                    | "tag"
-                    | "completed"
-                    | "repeat_from"
-                    | "timer"
-            ) {
+            if known.is_none() {
                 self.problems.push(Problem {
                     span: Span::new(row, i, end),
                     message: format!("Unknown attribute @{key}"),
@@ -1083,9 +1088,10 @@ impl Document {
 }
 
 /// Every byte range in a note that holds an expression: named definitions, an
-/// in-place calculation, a plan's constraints, and the timing/duration
-/// attributes on a task. Shared by rename/refactor scans and by a table's
-/// `sum` scope lookup, so both agree on what counts as an expression.
+/// in-place calculation, a plan's constraints, and the task attributes whose
+/// value is an expression (`AttributeValue::is_expression`). Shared by
+/// rename/refactor scans and by a table's `sum` scope lookup, so both agree on
+/// what counts as an expression.
 pub fn expression_regions(doc: &Document) -> Vec<Span> {
     doc.definitions
         .iter()
@@ -1101,10 +1107,8 @@ pub fn expression_regions(doc: &Document) -> Vec<Span> {
             t.attributes
                 .iter()
                 .filter(|(k, _)| {
-                    matches!(
-                        k.as_str(),
-                        "due" | "scheduled" | "at" | "after" | "estimate"
-                    )
+                    k.parse::<syntax::AttributeKey>()
+                        .is_ok_and(|k| k.value().is_expression())
                 })
                 .map(|(_, a)| a.value_span)
         }))

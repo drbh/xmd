@@ -1,0 +1,35 @@
+{
+  "steps": [
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    },
+    {
+      "lsp": [
+        {
+          "open": "main.x.md"
+        },
+        {
+          "await": "window/logMessage"
+        }
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[]\n"
+      }
+    },
+    {
+      "cli": [
+        "render",
+        "main.x.md",
+        "--format",
+        "text"
+      ]
+    }
+  ]
+}

@@ -3,7 +3,6 @@
 use crate::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 use crate::inlays::{self, FULL_RANGE};
 use crate::links::document_links;
-use crate::providers;
 use lang::eval::RequestContext;
 use lang::model::{Document, LineIndex};
 use lsp_types::{
@@ -36,7 +35,7 @@ pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<Stri
     let body = fragment(
         doc,
         &hints,
-        &providers::diagnostics(request, path, false),
+        &crate::providers::diagnostics(request, path, false),
         &document_links(request, path),
     )?;
     Ok(document(

@@ -1,0 +1,170 @@
+### 0 cli render notes.x.md --format text
+$ xmd render notes.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Notes
+
+[./plan.pdf]:brief ./plan.pdf
+
+- [ ] Write it up
+--- stderr
+<root>/notes.x.md:3:2: warning: resource.label: RESOURCE LABEL FAILURE
+<root>/notes.x.md:5:1: warning: task.toggle: TASK TOGGLE FAILURE
+
+### 1 cli query notes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query notes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "module",
+    "line": 2,
+    "message": "resource.label: RESOURCE LABEL FAILURE",
+    "severity": "warning"
+  },
+  {
+    "code": "module",
+    "line": 4,
+    "message": "task.toggle: TASK TOGGLE FAILURE",
+    "severity": "warning"
+  }
+]
+
+### 2 lsp
+-- open notes.x.md
+-- await textDocument/publishDiagnostics notes.x.md
+{
+  "diagnostics": [
+    {
+      "code": "module",
+      "message": "resource.label: RESOURCE LABEL FAILURE",
+      "range": {
+        "end": {
+          "character": 11,
+          "line": 2
+        },
+        "start": {
+          "character": 1,
+          "line": 2
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    },
+    {
+      "code": "module",
+      "message": "task.toggle: TASK TOGGLE FAILURE",
+      "range": {
+        "end": {
+          "character": 17,
+          "line": 4
+        },
+        "start": {
+          "character": 0,
+          "line": 4
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/notes.x.md",
+  "version": 1
+}
+-- request textDocument/inlayHint notes.x.md {"end":{"character":0,"line":5},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "./plan.pdf",
+    "paddingLeft": true,
+    "position": {
+      "character": 18,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": "resource hover"
+    }
+  }
+]
+-- request textDocument/codeLens notes.x.md
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "kind": "open_resource",
+          "target": {
+            "document": "file://<root>/notes.x.md",
+            "expected": "[./plan.pdf]:brief",
+            "row": 2
+          },
+          "url": "file://<root>/plan.pdf"
+        }
+      ],
+      "command": "xmd.openResource",
+      "title": "open resource"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/notes.x.md",
+          "expected": "- [ ] Write it up",
+          "kind": "toggle_task",
+          "row": 4
+        }
+      ],
+      "command": "xmd.task",
+      "title": "toggle"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  }
+]
+
+### 3 write
+-- write .xmd/modules.json (41 bytes)
+
+### 4 cli query trip.x.md map(stops, fn(r) => {line: r.line, title: r.title}) --json
+$ xmd query trip.x.md map(stops, fn(r) => {line: r.line, title: r.title}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 4,
+    "title": "Coffee"
+  }
+]
+
+### 5 cli query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
+$ xmd query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "module",
+    "line": 4,
+    "message": "itinerary_core.label: today() is unavailable here: native code calls this without a clock, so the dates it needs are its arguments",
+    "severity": "warning"
+  }
+]
+

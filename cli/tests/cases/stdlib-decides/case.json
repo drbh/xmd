@@ -1,0 +1,30 @@
+{
+  "steps": [
+    { "cli": ["query", "trip.x.md", "map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(stops, fn(r) => {line: r.line, at_date: r.at_date, errors: r.errors})", "--json"] },
+    { "cli": ["query", "trip.x.md", "map(days, fn(r) => {line: r.line, errors: r.errors})", "--json"] },
+    {
+      "lsp": [
+        { "open": "trip.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "trip.x.md" }
+      ]
+    },
+    { "write": { ".xmd/modules.json": "[\"../variants/timer_state_failing.x.md\"]\n" } },
+    { "cli": ["render", "watch.x.md", "--format", "text"] },
+    { "cli": ["query", "watch.x.md", "map(diagnostics, fn(r) => {line: r.line, code: r.code, message: r.message})", "--json"] },
+    { "write": { ".xmd/modules.json": "[\"../variants/plan_write_failing.x.md\"]\n" } },
+    { "cli": ["render", "bakery.x.md", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "bakery.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "bakery.x.md" },
+        {
+          "request": "textDocument/codeAction",
+          "file": "bakery.x.md",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+          "extra": { "context": { "diagnostics": [] } }
+        }
+      ]
+    }
+  ]
+}

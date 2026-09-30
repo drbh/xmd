@@ -247,7 +247,7 @@ impl Action {
             } => {
                 let (origin, span, text) =
                     lang::eval::timers::edit_in(request, &document_path(document)?, name, *action)?;
-                let range = span.range(&request.workspace().documents()[&origin.path].text);
+                let range = span.range(&request.workspace().documents()[&origin.path]);
                 Ok(PreparedAction::Edit {
                     path: origin.path,
                     edits: vec![TextEdit::new(range, text)],

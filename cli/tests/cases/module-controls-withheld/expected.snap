@@ -1,0 +1,131 @@
+### 0 cli query main.x.md diagnostics | map(.{line, severity, message}) --json
+$ xmd query main.x.md diagnostics | map(.{line, severity, message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "line": 0,
+    "message": "Module broken.actions: ACTIONS FAILURE",
+    "severity": "warning"
+  },
+  {
+    "line": 2,
+    "message": "stale controls on this line are withheld: Module changed; request fresh controls",
+    "severity": "warning"
+  },
+  {
+    "line": 3,
+    "message": "stale controls on this line are withheld: Module changed; request fresh controls",
+    "severity": "warning"
+  }
+]
+
+### 1 lsp
+-- open main.x.md
+-- await textDocument/publishDiagnostics main.x.md
+{
+  "diagnostics": [
+    {
+      "code": "module",
+      "message": "Module broken.actions: ACTIONS FAILURE",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    },
+    {
+      "code": "module",
+      "message": "stale controls on this line are withheld: Module changed; request fresh controls",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 2
+        },
+        "start": {
+          "character": 0,
+          "line": 2
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    },
+    {
+      "code": "module",
+      "message": "stale controls on this line are withheld: Module changed; request fresh controls",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 3
+        },
+        "start": {
+          "character": 0,
+          "line": 3
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/main.x.md",
+  "version": 1
+}
+-- request textDocument/codeLens main.x.md
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/main.x.md",
+          "expected": "- [ ] Sweep the porch",
+          "kind": "toggle_task",
+          "row": 2
+        }
+      ],
+      "command": "xmd.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/main.x.md",
+          "expected": "- [ ] Water the plants",
+          "kind": "toggle_task",
+          "row": 3
+        }
+      ],
+      "command": "xmd.task",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]
+

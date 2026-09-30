@@ -1,7 +1,7 @@
 //! How the evaluator runs the modules the `modules` crate describes: a module's
 //! environment is a `Workspace` over its own note, and compiling or calling
 //! one evaluates that note with a module engine.
-use crate::{engine::Engine, workspace::Workspace};
+use crate::{context::Memo, engine::Engine, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use model::Document;
 use modules::{Evaluator, Module, ModuleEnvironment, ModuleRegistry};
@@ -9,7 +9,7 @@ use std::{
     any::Any,
     collections::BTreeMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 use values::{EvalResult, Value};
 
@@ -29,7 +29,7 @@ impl ModuleEnvironment for Workspace {
         Arc::new(workspace)
     }
     fn evaluator<'s>(&'s self, path: &'s Path) -> Box<Evaluator<'s>> {
-        let mut engine = Engine::for_module(self, DateTime::UNIX_EPOCH.fixed_offset());
+        let mut engine = Engine::for_module(self, modules::no_clock());
         Box::new(move |name| engine.named(path, name))
     }
     fn call(
@@ -40,6 +40,7 @@ impl ModuleEnvironment for Workspace {
         now: DateTime<FixedOffset>,
     ) -> EvalResult<Value> {
         let mut engine = Engine::for_module(&self, now)
+            .with_memo(self.calls.at(now))
             .with_environment(self.clone())
             .with_expressions(module.expressions().clone());
         let function = engine.named(&module.path, name)?;
@@ -49,17 +50,43 @@ impl ModuleEnvironment for Workspace {
     }
 }
 
+/// The memo a module's calls share while the clock stands still, so its
+/// top-level definitions — `fmt := import("format")`, its helpers — evaluate
+/// once per clock rather than once per call. Module code is pure but for the
+/// clock, and a different clock starts a fresh memo. A clone starts empty: a
+/// cloned environment may see other modules.
+#[derive(Default)]
+pub(crate) struct CallMemo(Mutex<Option<(DateTime<FixedOffset>, Memo)>>);
+impl CallMemo {
+    fn at(&self, now: DateTime<FixedOffset>) -> Memo {
+        let mut slot = self.0.lock().expect("module memo poisoned");
+        match &*slot {
+            // The offset decides what day it is, so it is part of the clock.
+            Some((at, memo)) if *at == now && at.offset() == now.offset() => memo.clone(),
+            _ => slot.insert((now, Memo::default())).1.clone(),
+        }
+    }
+}
+impl Clone for CallMemo {
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+impl std::fmt::Debug for CallMemo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CallMemo")
+    }
+}
+
 /// A module's own note, alone. Its registry is explicitly empty rather than
 /// the bundled set: the bundled modules compile through here while the one
 /// copy of that set is still being built.
 fn environment(path: &Path, document: Document) -> Arc<dyn ModuleEnvironment> {
-    Arc::new(Workspace {
-        roots: vec![path.parent().unwrap_or(Path::new(".")).into()],
-        documents: [(path.to_path_buf(), document)].into(),
-        cache: Default::default(),
-        lookups: Default::default(),
-        modules: Arc::new(ModuleRegistry::default()),
-    })
+    Arc::new(Workspace::with(
+        vec![path.parent().unwrap_or(Path::new(".")).into()],
+        [(path.to_path_buf(), document)].into(),
+        ModuleRegistry::default(),
+    ))
 }
 
 /// The workspace a module's code evaluates in.
@@ -83,7 +110,19 @@ pub trait CompileModules: Sized {
     fn compile(sources: BTreeMap<PathBuf, String>) -> Result<Self, String>;
 }
 impl CompileModules for ModuleRegistry {
+    /// A module that takes a stdlib id is also checked against the stdlib
+    /// contract, so a replacement missing a function the engine calls fails
+    /// here, with the other module problems, rather than at the call.
     fn compile(sources: BTreeMap<PathBuf, String>) -> Result<Self, String> {
-        Self::compile_with(sources, environment)
+        let registry = Self::compile_with(sources, environment)?;
+        let problems = crate::contract::check(&registry);
+        if problems.is_empty() {
+            return Ok(registry);
+        }
+        Err(problems
+            .iter()
+            .map(|(path, message)| format!("{}: {message}", path.display()))
+            .collect::<Vec<_>>()
+            .join("\n"))
     }
 }

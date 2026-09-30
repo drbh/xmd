@@ -65,3 +65,51 @@ age := fn(elapsed) => (
     )
   )
 )
+
+// The stdlib's sparkline and glyphs, unchanged.
+_chartable := fn(value) => (
+  contains(["Number", "Count", "Money", "Ratio", "Duration", "Boolean"], type(value))
+)
+
+// The first value whose magnitude beats every earlier one by `better`.
+_extreme := fn(values, better) => (
+  fold(values, get(values, 0), fn(best, v) => if(better(number(v), number(best)), v, best))
+)
+
+// Describe a chartable series as a sparkline and its smallest and largest values.
+_series := fn(values) => (
+  if(
+    length(values) < 2,
+    null,
+    "`" + sparkline(map(values, fn(v) => number(v))) + "` "
+    + text(_extreme(values, fn(a, b) => a < b)) + " → "
+    + text(_extreme(values, fn(a, b) => a > b))
+  )
+)
+
+// A sparkline plus range such as `▁▃█` 2 → 6, or null below two chartable values.
+series := fn(values) => (
+  _series(filter(values, _chartable))
+)
+
+// The one symbol vocabulary every label draws from. Only glyphs that every
+// monospace font covers and that have no emoji form, so every editor, the
+// terminal and the browser show them at the same width. A control leads with
+// its glyph, and at most one lowercase word follows when the glyph alone
+// would be ambiguous: "✓ done", "○ reopen", "↻ next", "↗ open".
+_glyphs := {
+  done: "✓",
+  off: "○",
+  flag: "⚑",
+  repeat: "↻",
+  open: "↗",
+  refresh: "⟳",
+  start: "▸",
+  pause: "‖",
+  reset: "↺"
+}
+
+// Look up one glyph by name.
+glyph := fn(name) => (
+  get(_glyphs, name)
+)

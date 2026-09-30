@@ -16,6 +16,7 @@
 //! crates.
 mod calls;
 mod context;
+mod contract;
 mod engine;
 mod host;
 mod imports;
@@ -54,10 +55,19 @@ pub use timers::{Timer, TimerAction, edit_timer};
 // `table`, `dates`, `label`) stay under a namespace. A namespace cannot share
 // its name with a file module, so those two files sit under `_impl`.
 pub mod itinerary {
-    pub use crate::itinerary_impl::{dates, day_record, display_time, label, try_dates};
+    pub use crate::itinerary_impl::{dates, day_record, display_time, label};
 }
 pub mod tables {
     pub use crate::tables_impl::{
         literal_value, origin, resolve_reference, table, validate_rename,
+    };
+}
+/// The contract with the standard library: every stdlib function native code
+/// calls, declared in `CONTRACT` and called only through the typed functions
+/// in each module's namespace.
+pub mod stdlib {
+    pub use crate::contract::{
+        CONTRACT, Caller, Contract, Held, Presented, Role, Snapshot, contract, format,
+        itinerary_core, modules, plan, resource, shown, task, timer, today,
     };
 }

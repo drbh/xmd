@@ -4,6 +4,7 @@ use super::{
     RecordKind,
     record::{Base, Record},
 };
+use lang::common::Span;
 use lang::eval::Workspace;
 use lang::eval::engine::Value;
 use lang::eval::record;
@@ -52,16 +53,21 @@ pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut V
     }
 }
 
-pub(super) fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
-    let targets = doc.links.iter().map(|l| (l.span, l.target.as_str())).chain(
+/// Every resource a note writes, as a link or as a definition's literal, and
+/// where.
+pub(super) fn targets(doc: &Document) -> impl Iterator<Item = (Span, &str)> {
+    doc.links.iter().map(|l| (l.span, l.target.as_str())).chain(
         doc.definitions
             .iter()
             .filter(|d| {
                 !d.expression && lang::eval::resources::Resource::parse(&d.source).is_some()
             })
             .map(|d| (d.value_span, d.source.as_str())),
-    );
-    for (span, target) in targets {
+    )
+}
+
+pub(super) fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
+    for (span, target) in targets(doc) {
         records.push(Record::typed(
             path,
             ResourceRecord {

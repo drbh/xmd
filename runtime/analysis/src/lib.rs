@@ -22,7 +22,7 @@ mod signature;
 mod symbols;
 
 pub use diagnostics::{collect_native, severity_name};
-pub use hover::{hover_at, markup, source_link, symbol_hover};
+pub use hover::{TaskHover, hover_at, markup, seek_summary, source_link, symbol_hover};
 pub use locate::{inert, symbol_at};
 pub use navigation::occurrences;
 pub use refactor::{CodeActionItem, refactors};

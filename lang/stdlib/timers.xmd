@@ -30,13 +30,13 @@ collect := fn(ctx) => (
   )
 )
 
-// Collapse aliases that refer to the same original timer declaration.
+// Collapse aliases on one line that refer to the same original timer declaration.
 unique := fn(timers) => (
   fold(
     timers,
     [],
     fn(out, t) => if(
-      length(filter(out, fn(old) => old.origin == t.origin)) > 0,
+      length(filter(out, fn(old) => old.line == t.line && old.origin == t.origin)) > 0,
       out,
       concat(out, [t])
     )
@@ -48,16 +48,17 @@ glyph := fn(action) => (
   fmt.glyph(if(action == "pause" || action == "reset", action, "start"))
 )
 
-// Offer each timer's valid controls once on the requested line.
+// Offer each timer's valid controls once on each line it appears on.
 actions := fn(ctx) => (
   fold(
-    unique(filter(ctx.document.timers, fn(t) => t.line == ctx.row && t.origin != null)),
+    unique(filter(ctx.document.timers, fn(t) => t.origin != null)),
     [],
     fn(out, t) => concat(
       out,
       map(
         timer.actions(t.value),
         fn(action) => {
+          line: t.line,
           title: glyph(action) + " " + action + " " + t.origin.name,
           action: {
             kind: "timer",

@@ -31,6 +31,10 @@ impl Clock {
     }
 }
 
+/// Evaluated results by what they are the value of, shared by every engine
+/// of one request.
+pub(crate) type Memo = Arc<Mutex<BTreeMap<MemoKey, MemoEntry>>>;
+
 /// One workspace snapshot, clock, provider registry and memo for a host request.
 /// Engines share cached results and their dependencies, while keeping transient
 /// errors, recursion stacks and row scopes separate. Drop this context after the
@@ -40,7 +44,7 @@ pub struct RequestContext<'a> {
     pub(crate) workspace: &'a Workspace,
     pub(crate) clock: Clock,
     pub(crate) links: LinkFeatures<'a>,
-    pub(crate) memo: Arc<Mutex<BTreeMap<MemoKey, MemoEntry>>>,
+    pub(crate) memo: Memo,
 }
 impl<'a> RequestContext<'a> {
     pub fn new(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {

@@ -1,8 +1,10 @@
 //! Signature help, over the one table of built-in calls and task attributes
-//! that also feeds completion.
+//! that also feeds completion. The attributes' rows come from `AttributeKey`,
+//! the table of attributes the parser and the diagnostics read too.
 use crate::{hover::markup, locate::inert};
 use lang::eval::engine::{Builtin, ValueType};
 use lang::model::{Document, byte_at};
+use lang::syntax::AttributeKey;
 use lsp_types::*;
 
 /// What a call answers with: one value kind wherever the answer has one, so
@@ -28,7 +30,8 @@ use lang::eval::engine::Tier;
 
 /// One built-in call or task attribute, as signature help and completion show
 /// it: `documentation` explains it and `example` is what signature help fills
-/// in. The table below is the only description of them the editor has.
+/// in. The table below is the only description of them the editor has; an
+/// attribute's row is built from its `AttributeKey`.
 #[derive(Clone, Copy)]
 pub struct Signature {
     pub name: &'static str,
@@ -56,7 +59,6 @@ macro_rules! signatures {
     };
     (
         builtins { $($variant:ident($($param:literal),*) -> $result:tt, $documentation:expr, $example:literal;)* }
-        attributes { $($attribute:literal($($attribute_param:literal),*) -> $attribute_result:tt, $attribute_documentation:expr, $attribute_example:literal;)* }
     ) => {
         /// Every built-in has exactly one description, and the compiler checks
         /// it: a new `Builtin` variant does not compile until this match
@@ -66,12 +68,6 @@ macro_rules! signatures {
                 $(Builtin::$variant => signatures!(@row builtin.as_str(), ($($param),*), $result, $documentation, $example, builtin.tier()),)*
             }
         }
-
-        /// Task and appointment attributes, which are written like calls but
-        /// name no built-in function.
-        const ATTRIBUTES: &[Signature] = &[
-            $(signatures!(@row $attribute, ($($attribute_param),*), $attribute_result, $attribute_documentation, $attribute_example, Tier::Note),)*
-        ];
     };
 }
 
@@ -153,19 +149,23 @@ signatures! {
         Completed("checklist: Checklist") -> Count, "Count completed leaf tasks beneath a named heading.", "checklist";
         Remaining("checklist: Checklist") -> Count, "Count unfinished leaf tasks beneath a named heading.", "checklist";
     }
-    attributes {
-        "@timer"("timer: Timer") -> "task attribute", "Associate a named timer with this task. Completion does not stop the timer.", "focus";
-        "@due"("date: Date or DateTime") -> "task attribute", "Deadline. Accepts a named date, an expression, or relative input such as tomorrow. Use Freeze relative date to capture it.", "tomorrow";
-        "@scheduled"("date: Date or DateTime") -> "task attribute", "Planned work date; separate from the deadline.", "tomorrow";
-        "@at"("time: Date or DateTime") -> "appointment attribute", "Appointment time. Include an explicit UTC offset for ambiguous local times.", "2026-09-18T14:00-04:00";
-        "@estimate"("effort: Duration") -> "task attribute", "A nonnegative estimate. Examples: 30s, 20m, 2h.", "20m";
-        "@after"("dependency: Boolean or Checklist", "more dependencies...") -> "task attribute", "Block this task until all dependencies are satisfied. Cycles are reported with source locations.", "task_name";
-        "@every"("interval: recurrence") -> "task attribute", "Repeat a leaf task: day, week, month, year, or a positive whole-day duration such as 2w.", "week";
-        "@tag"("tag: name") -> "task attribute", "Tag a task for filtering. Multiple tags may be comma-separated.", "errands";
+}
+
+/// Task and appointment attributes, which are written like calls but name no
+/// built-in function. Everything about them comes from the one attribute table
+/// in `syntax`.
+const fn attribute(key: AttributeKey) -> Signature {
+    Signature {
+        name: key.spelling(),
+        params: key.params(),
+        result: Outcome::Words(key.applies().as_str()),
+        documentation: key.documentation(),
+        example: key.example(),
+        tier: Tier::Note,
     }
 }
 
-const COUNT: usize = Builtin::ALL.len() + ATTRIBUTES.len();
+const COUNT: usize = Builtin::ALL.len() + AttributeKey::ALL.len();
 /// The built-ins first, in `Builtin::ALL` order, then the attributes; both
 /// signature help and completion read the table in this order.
 const fn table() -> [Signature; COUNT] {
@@ -176,7 +176,7 @@ const fn table() -> [Signature; COUNT] {
         i += 1;
     }
     while i < COUNT {
-        table[i] = ATTRIBUTES[i - Builtin::ALL.len()];
+        table[i] = attribute(AttributeKey::ALL[i - Builtin::ALL.len()]);
         i += 1;
     }
     table

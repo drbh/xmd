@@ -1,8 +1,8 @@
 # 1. the language
 
 a note is markdown where numbers, dates and tasks have names. change one
-and everything that uses it follows. the whole language is seven things,
-and this note uses all of them
+and everything that uses it follows. these seven are the basics, and this
+note uses all of them
 
 ```xmd trip.x.md
 # Trip
@@ -34,10 +34,17 @@ your editor shows each result inline, after the calculation, the heading,
 the task and the timer. [snapshots/01-language.txt](snapshots/01-language.txt)
 is this page's notes with every inline value, as the tests see them
 
-the rest is functions: completion and signature help describe each one as
-you type, and [the function reference](reference/functions.md) lists them
-all. [the examples](../lang/examples) are one short note per feature, each
-one opens in the browser with nothing to install
+the same ideas go further: more task attributes (`@estimate`, `@after`,
+`@every`, `@tag`), appointments with `@at`, tables with calculated cells,
+plans and goal seek, itineraries, links and files, and values from other
+notes. [the examples](../lang/examples) are one short note per feature,
+each one opens in the browser with nothing to install, and
+[the reference](README.md#reference) lists every function and attribute,
+generated from the code. completion and signature help describe each one
+as you type
+
+what your editor draws inline comes from the standard library: `.xmd`
+modules you can read, and replace, as [chapter 4](04-modules.md) shows
 
 two shorthands chain functions together. `xs | f(a)` is `f(xs, a)`, and
 `.day` is `fn(s) => s.day`. `.{city, day}` picks fields the same way,

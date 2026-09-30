@@ -1,6 +1,7 @@
 //! Itinerary resolution: parsed days and stops become module values, and the
 //! `itinerary_core` module decides their dates, labels and canonical text.
 use crate::engine::Value;
+use crate::stdlib;
 use chrono::{NaiveDate, Timelike};
 use common::Span;
 use model::{
@@ -9,47 +10,36 @@ use model::{
 };
 use modules::ModuleRegistry;
 use values::EvalResult;
-use values::{ToValue, geometry, record, words};
+use values::{ToValue, geometry, record};
 
 // An itinerary's shape is parsed in `model`; this module resolves it, and
 // both halves answer to `eval::itinerary`.
 
 /// Calendar dates for each day. Years carry forward from the previous day or
 /// an explicit year, and a first day without one is the next occurrence.
-pub fn dates(modules: &ModuleRegistry, days: &[Day], today: NaiveDate) -> Vec<Option<NaiveDate>> {
-    try_dates(modules, days, today).unwrap_or_else(|_| vec![None; days.len()])
-}
-pub fn try_dates(
+///
+/// `itinerary_core.dates` decides these, so a failure is the caller's to
+/// report: the note's diagnostics carry it on its first day.
+pub fn dates(
     modules: &ModuleRegistry,
     days: &[Day],
     today: NaiveDate,
 ) -> EvalResult<Vec<Option<NaiveDate>>> {
-    let input = Value::List(days.iter().map(|d| day_parts(d).to_value()).collect());
-    let result = call(modules, "dates", vec![input, Value::Date(today)])?;
-    Ok(values::list(&result)?
-        .iter()
-        .map(|v| match v {
-            Value::Date(d) => Some(*d),
-            _ => None,
-        })
-        .collect())
+    let days = days.iter().map(|d| day_parts(d).to_value()).collect();
+    stdlib::itinerary_core::dates(&mut snapshot(modules), days, today)
 }
-pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> String {
-    stop_words(modules, "time_text", stop)
+/// A stop's time as its label writes it.
+pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> stdlib::Presented {
+    stdlib::itinerary_core::time_text(&mut snapshot(modules), stop_record(stop, None))
 }
-pub fn label(modules: &ModuleRegistry, stop: &Stop) -> String {
-    stop_words(modules, "label", stop)
+/// A stop's inline label.
+pub fn label(modules: &ModuleRegistry, stop: &Stop) -> stdlib::Presented {
+    stdlib::itinerary_core::label(&mut snapshot(modules), stop_record(stop, None))
 }
-fn stop_words(modules: &ModuleRegistry, hook: &str, stop: &Stop) -> String {
-    words(call(modules, hook, vec![stop_record(stop, None)]))
-}
-pub(crate) fn call(modules: &ModuleRegistry, name: &str, args: Vec<Value>) -> EvalResult<Value> {
-    modules.call(
-        "itinerary_core",
-        name,
-        args,
-        chrono::DateTime::UNIX_EPOCH.fixed_offset(),
-    )
+/// The registry as `itinerary_core` sees it: without a clock, since the
+/// contract calls it with every date it needs (`today` for `dates`).
+fn snapshot(modules: &ModuleRegistry) -> stdlib::Snapshot<'_> {
+    stdlib::Snapshot::clockless(modules)
 }
 fn range(doc: Option<&Document>, span: Span) -> Value {
     doc.map(|d| geometry(span.range(d))).unwrap_or(Value::Null)
@@ -188,5 +178,27 @@ record! {
         pub places: Option<String>,
         pub forecast: Value,
         pub stops: Vec<StopRecord>,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// `itinerary_core` words the warning for a stop without a kind itself, so
+    /// it names the kinds again: exactly those in `KINDS`, in their order.
+    #[test]
+    fn the_missing_kind_warning_names_every_kind() {
+        let source = include_str!("../../../stdlib/itinerary_core.xmd");
+        let kinds = model::itinerary::KINDS;
+        let markers: Vec<String> = kinds.iter().map(|k| k.marker.to_string()).collect();
+        let names: Vec<String> = kinds.iter().map(|k| k.name.to_lowercase()).collect();
+        let expected = format!(
+            "start the title with one of {} ({})",
+            markers.join(" "),
+            names.join(", ")
+        );
+        assert!(
+            source.contains(&expected),
+            "itinerary_core.xmd should say: {expected}"
+        );
     }
 }

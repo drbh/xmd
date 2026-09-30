@@ -12,7 +12,10 @@ use crate::rows;
 use lang::eval::RequestContext;
 use lang::eval::modules::{Module, ModuleKind};
 use lsp_types::{Command, Diagnostic, Hover, Position, TextEdit};
-use std::path::Path;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+};
 
 /// Every active feature module, in manifest order.
 fn modules<'a>(request: &RequestContext<'a>) -> impl Iterator<Item = &'a Module> {
@@ -35,7 +38,7 @@ pub(crate) fn hover(request: &RequestContext<'_>, path: &Path, at: Position) -> 
     request.workspace().documents().get(path)?;
     modules(request)
         .find_map(|m| module::hover(m, request, path, at))
-        .or_else(|| analysis::hover_at(request, path, at))
+        .or_else(|| analysis::hover_at(request, path, at, catalog::task_hover))
 }
 /// The editor's own diagnostics, then the feature modules', in source order.
 pub(crate) fn diagnostics(
@@ -45,6 +48,10 @@ pub(crate) fn diagnostics(
 ) -> Vec<Diagnostic> {
     let mut result = analysis::collect_native(request, path, editing);
     result.extend(modules(request).flat_map(|m| module::diagnostics(m, request, path)));
+    result.extend(modules(request).flat_map(|m| module::control_problems(m, request, path)));
+    // A stdlib presentation that fails on the note's own records shows its
+    // fallback where it is drawn; the reason is a warning here.
+    result.extend(catalog::presentations(request, path));
     result.sort_by_key(|d| (d.range.start, d.range.end, d.message.clone()));
     result.dedup_by(|a, b| a.range == b.range && a.message == b.message);
     result
@@ -58,40 +65,56 @@ pub(crate) fn controls(
     toggle: TaskToggle,
     capabilities: Capabilities,
 ) -> Vec<Command> {
-    row_controls(request, path, vec![row], toggle, capabilities)
-        .into_iter()
-        .map(|(_, command)| command)
-        .collect()
+    let mut proposed = proposals(request, path, capabilities);
+    row_commands(request, path, row, &mut proposed, toggle, capabilities)
 }
-/// Each row's commands, rows in the order given. A module's input is the same
-/// for every row but the row itself, so it is gathered once per note.
+/// Each row's commands, in row order: every row in `rows` and every row a
+/// module proposes an action for.
 pub(crate) fn row_controls(
     request: &RequestContext<'_>,
     path: &Path,
-    rows: Vec<usize>,
+    mut rows: BTreeSet<usize>,
     toggle: TaskToggle,
     capabilities: Capabilities,
 ) -> Vec<(usize, Command)> {
-    if rows.is_empty() {
-        return vec![];
-    }
-    let inputs: Vec<_> = modules(request)
-        .filter_map(|m| Some((m, module::actions_input(m, request, path, capabilities)?)))
-        .collect();
-    let mut result = vec![];
-    for row in rows {
-        let builtin = rows::builtin_controls(request, path, row, toggle, capabilities);
-        let proposed = inputs
-            .iter()
-            .flat_map(|(m, input)| module::controls(m, input, request, row, capabilities));
-        result.extend(
-            builtin
+    let mut proposed = proposals(request, path, capabilities);
+    rows.extend(proposed.iter().flat_map(|lines| lines.keys()));
+    rows.into_iter()
+        .flat_map(|row| {
+            row_commands(request, path, row, &mut proposed, toggle, capabilities)
                 .into_iter()
-                .chain(proposed)
-                .map(|command| (row, command)),
-        );
-    }
-    result
+                .map(move |command| (row, command))
+        })
+        .collect()
+}
+/// Every feature module's proposed commands by row, one call per module for
+/// the whole note.
+fn proposals(
+    request: &RequestContext<'_>,
+    path: &Path,
+    capabilities: Capabilities,
+) -> Vec<BTreeMap<usize, Vec<Command>>> {
+    modules(request)
+        .map(|m| module::controls(m, request, path, capabilities))
+        .collect()
+}
+/// One row's own controls, then what each module proposed for it, taken out
+/// of `proposed`.
+fn row_commands(
+    request: &RequestContext<'_>,
+    path: &Path,
+    row: usize,
+    proposed: &mut [BTreeMap<usize, Vec<Command>>],
+    toggle: TaskToggle,
+    capabilities: Capabilities,
+) -> Vec<Command> {
+    let mut commands = rows::builtin_controls(request, path, row, toggle, capabilities);
+    commands.extend(
+        proposed
+            .iter_mut()
+            .flat_map(|lines| lines.remove(&row).unwrap_or_default()),
+    );
+    commands
 }
 /// Table formatting, then every feature module's edits, checked to apply
 /// cleanly together.

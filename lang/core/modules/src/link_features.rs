@@ -197,7 +197,7 @@ impl Module {
             && url.path().starts_with(&self.prefix)
             && (!self.has(Hook::Matches)
                 || matches!(
-                    self.call(Hook::Matches, vec![url_value(url)], DateTime::UNIX_EPOCH.fixed_offset()),
+                    self.call(Hook::Matches, vec![url_value(url)], crate::registry::no_clock()),
                     Ok(Value::Bool(true))
                 ))
     }
@@ -233,7 +233,7 @@ impl Module {
                 .call(
                     Hook::PropertyNames,
                     vec![url_value(url)],
-                    DateTime::UNIX_EPOCH.fixed_offset(),
+                    crate::registry::no_clock(),
                 )
                 .and_then(|v| Vec::<String>::from_value(&v))
                 .unwrap_or_default()
@@ -267,7 +267,7 @@ impl Module {
                 .call(
                     Hook::Refresh,
                     vec![url_value(url)],
-                    DateTime::UNIX_EPOCH.fixed_offset(),
+                    crate::registry::no_clock(),
                 )
                 .ok()?,
         )

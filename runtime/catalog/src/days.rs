@@ -24,8 +24,15 @@ pub(super) fn days(
     doc: &Document,
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
-) -> Result<(), String> {
-    let dates = lang::eval::itinerary::try_dates(ws.modules(), &doc.days, engine.today())?;
+) {
+    // A date only finds a day's forecast, so a day that cannot be dated keeps
+    // its record and carries the reason, like its stops; the note's
+    // diagnostics report it once, on the itinerary.
+    let (dates, error) = match lang::eval::itinerary::dates(ws.modules(), &doc.days, engine.today())
+    {
+        Ok(dates) => (dates, None),
+        Err(e) => (vec![None; doc.days.len()], Some(e.to_string())),
+    };
     for (day, date) in doc.days.iter().zip(dates) {
         let mut value = lang::eval::itinerary::day_record(day, doc);
         if let Some(date) = date
@@ -55,13 +62,14 @@ pub(super) fn days(
                 ]),
             );
         }
+        let mut base = Base::line(ws, path, RecordKind::Day, doc.line(day.line), day.line);
+        base.errors.extend(error.clone());
         records.push(Record::typed(
             path,
             DayRecord {
-                base: Base::line(ws, path, RecordKind::Day, doc.line(day.line), day.line),
+                base,
                 value: q::query_value(value),
             },
         ));
     }
-    Ok(())
 }

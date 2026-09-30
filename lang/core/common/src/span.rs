@@ -44,7 +44,24 @@ impl Span {
         Self::new(line, column, column + end.saturating_sub(start))
     }
     pub fn contains(self, text: &(impl Lines + ?Sized), other: Self) -> bool {
-        let outer = self.range(text);
+        Self::encloses(self.range(text), text, other)
+    }
+    /// Whether `other` lies within `outer`, a span's range already found: what
+    /// a caller testing many spans against one uses to find that range once.
+    pub fn encloses(outer: Range, text: &(impl Lines + ?Sized), other: Self) -> bool {
+        // A span never starts before its own line, so one on a later line than
+        // `outer` ends is outside it without finding where; nor is one that
+        // starts on a character of a line before `outer` starts.
+        if other.line > outer.end.line as usize {
+            return false;
+        }
+        let line = text.line_start(other.line);
+        if other.line < outer.start.line as usize
+            && other.start < text.line_start(other.line + 1) - line
+            && text.text().is_char_boundary(line + other.start)
+        {
+            return false;
+        }
         let inner = other.range(text);
         outer.start <= inner.start && inner.end <= outer.end
     }
@@ -161,6 +178,24 @@ mod tests {
                     index.line(text, line),
                     text.lines().nth(line).unwrap_or(""),
                     "{text:?} {line}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn enclosing_agrees_with_comparing_ranges() {
+        let text = "ab\r\ncd := x\n  + y\né\n\nlast";
+        let spans: Vec<_> = (0..7)
+            .flat_map(|line| (0..9).flat_map(move |a| (a..11).map(move |b| Span::new(line, a, b))))
+            .collect();
+        for outer in &spans {
+            for inner in &spans {
+                let (o, i) = (outer.range(text), inner.range(text));
+                assert_eq!(
+                    outer.contains(text, *inner),
+                    o.start <= i.start && i.end <= o.end,
+                    "{outer:?} {inner:?}"
                 );
             }
         }

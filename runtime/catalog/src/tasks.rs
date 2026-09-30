@@ -7,12 +7,16 @@ use super::{
 use chrono::TimeZone;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::timers::Timer;
-use lang::eval::{Clock, Workspace};
+use lang::eval::{Clock, RequestContext, Workspace};
 use lang::eval::{ToValue, record};
 use lang::model::{Document, TaskState};
+use lang::stdlib;
+use lang::syntax::{AttributeKey, AttributeValue};
+use lsp_types::{Hover, HoverContents};
 use std::{collections::BTreeMap, path::Path};
 
-/// The scheduling attributes a task reads, and the fields they land in.
+/// The scheduling attributes a task reads, and the fields they land in; what
+/// each holds comes from the attribute table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum When {
     Due,
@@ -22,13 +26,21 @@ enum When {
 }
 impl When {
     const ALL: [When; 4] = [Self::Due, Self::Scheduled, Self::At, Self::Estimate];
-    const fn as_str(self) -> &'static str {
+    /// The attribute the field is read from.
+    const fn key(self) -> AttributeKey {
         match self {
-            Self::Due => "due",
-            Self::Scheduled => "scheduled",
-            Self::At => "at",
-            Self::Estimate => "estimate",
+            Self::Due => AttributeKey::Due,
+            Self::Scheduled => AttributeKey::Scheduled,
+            Self::At => AttributeKey::At,
+            Self::Estimate => AttributeKey::Estimate,
         }
+    }
+    const fn as_str(self) -> &'static str {
+        self.key().as_str()
+    }
+    /// Whether the attribute holds a date, rather than a duration.
+    fn is_date(self) -> bool {
+        self.key().value() == AttributeValue::When
     }
 }
 impl ToValue for When {
@@ -99,6 +111,33 @@ record! {
 }
 
 record! {
+    /// One incomplete prerequisite: its name and, when it resolves, where it
+    /// is declared.
+    #[derive(Clone, Debug)]
+    struct Blocker {
+        name: String,
+        source: Option<SourceRef>,
+    }
+}
+impl Blocker {
+    fn new(ws: &Workspace, path: &Path, name: &str) -> Self {
+        match ws.resolve(path, name).ok() {
+            Some(symbol) => {
+                let named = ws.named(&symbol);
+                Self {
+                    name: named.name.clone(),
+                    source: Some(SourceRef::new(ws, &symbol.path, named.span)),
+                }
+            }
+            None => Self {
+                name: name.into(),
+                source: None,
+            },
+        }
+    }
+}
+
+record! {
     #[derive(Clone, Debug)]
     pub(super) struct TaskRecord {
         ..base: Base,
@@ -108,6 +147,7 @@ record! {
         name: Value,
         attributes: BTreeMap<String, Value>,
         blocked_error: Value,
+        blockers: Vec<Blocker>,
         schedule: Vec<ScheduleEntry>,
         children: Vec<ChildTask>,
         timer: Value,
@@ -138,132 +178,175 @@ pub(super) fn tasks(
     leaves_only: bool,
     records: &mut Vec<Record>,
 ) {
-    let clock = Clock::new(engine.now());
     let parents: std::collections::BTreeSet<_> =
         doc.tasks.iter().filter_map(|t| t.parent).collect();
-    for (i, task) in doc.tasks.iter().enumerate() {
+    for i in 0..doc.tasks.len() {
         let leaf = !parents.contains(&i);
         if leaves_only && !leaf {
             continue;
         }
-        let mut record = TaskRecord {
-            base: Base::line(ws, path, RecordKind::Task, &task.title, task.line),
-            scheduling: Scheduling {
-                leaf,
-                done: engine.task_done(path, i),
-                parent: task
-                    .parent
-                    .map(|i| SourceRef::new(ws, path, doc.tasks[i].checkbox)),
-                tags: task.tags.clone(),
-                ..Scheduling::default()
-            },
-            checked: task.state == TaskState::Done,
-            in_progress: engine.task_in_progress(path, i),
-            name: task
-                .named
-                .as_ref()
-                .map(|n| q::text(&n.name))
-                .unwrap_or(Value::Null),
-            attributes: task
-                .attributes
-                .iter()
-                .map(|(k, a)| (k.clone(), q::text(&a.value)))
-                .collect(),
-            blocked_error: Value::Null,
-            schedule: Vec::new(),
-            children: doc
-                .tasks
-                .iter()
-                .enumerate()
-                .filter(|(_, child)| child.parent == Some(i))
-                .map(|(index, child)| ChildTask {
-                    line: child.line,
-                    done: engine.task_done(path, index),
-                })
-                .collect(),
-            timer: Value::Null,
-        };
-        let mut errors = Vec::new();
-        for when in When::ALL {
-            let Some(attribute) = task.attributes.get(when.as_str()) else {
-                continue;
-            };
-            let value = if when == When::Estimate {
-                engine.eval(path, &attribute.value)
-            } else {
-                engine.when(path, &attribute.value)
-            };
-            if when != When::Estimate {
-                record.schedule.push(ScheduleEntry {
-                    key: when,
-                    value: value
-                        .as_ref()
-                        .ok()
-                        .and_then(|v| clock.date(v))
-                        .map(Value::Date)
-                        .unwrap_or(Value::Null),
-                    error: value
-                        .as_ref()
-                        .err()
-                        .map(|e| q::text(e.to_string()))
-                        .unwrap_or(Value::Null),
-                });
-            }
-            match value {
-                Ok(Value::Duration(s)) if when == When::Estimate && s >= 0 => {
-                    record.scheduling.set(when, Value::Duration(s));
-                }
-                Ok(v) if when != When::Estimate && clock.date(&v).is_some() => {
-                    let date = clock.date(&v);
-                    let at = when == When::At;
-                    record.scheduling.set(
-                        when,
-                        if at {
-                            q::query_value(v)
-                        } else {
-                            date.to_value()
-                        },
-                    );
-                    if at {
-                        record.scheduling.at_date = date.to_value();
-                    }
-                }
-                Ok(_) => errors.push(format!(
-                    "@{}: expected {}",
-                    when.as_str(),
-                    if when == When::Estimate {
-                        "a nonnegative duration"
-                    } else {
-                        "a date or timestamp"
-                    }
-                )),
-                Err(e) => errors.push(format!("@{}: {e}", when.as_str())),
-            }
-        }
-        // A repeating task with no explicit due date is due today.
-        if record.scheduling.due == Value::Null && task.attributes.contains_key("every") {
-            record.scheduling.due = clock.today().to_value();
-        }
-        match engine.blocked(path, i) {
-            Ok(v) => record.scheduling.blocked_by = v,
-            Err(e) => {
-                record.blocked_error = q::text(e.to_string());
-                errors.push(e.to_string());
-            }
-        }
-        record.timer = match task
-            .attributes
-            .get("timer")
-            .and_then(|a| engine.eval(path, &a.value).ok())
-            .as_ref()
-            .and_then(Value::downcast::<Timer>)
-        {
-            Some(timer) => q::query_value(timer.record()),
-            None => Value::Null,
-        };
-        record.base.errors = errors;
-        records.push(Record::typed(path, record));
+        records.push(Record::typed(path, task(ws, path, doc, engine, i, leaf)));
     }
+}
+
+/// A task's hover: its record, as queries and feature modules read it, worded
+/// by the stdlib's `task` module.
+pub fn hover(request: &RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
+    let doc = request.workspace().documents().get(path)?;
+    let line = doc.tasks.get(index)?.line;
+    let text = stdlib::shown(hover_text(&mut request.engine(), path, index));
+    Some(Hover {
+        contents: HoverContents::Markup(analysis::markup(text)),
+        range: Some(doc.line_span(line).range(doc)),
+    })
+}
+
+/// Task `index`'s hover text as `task.hover` words it from its record.
+pub(super) fn hover_text(engine: &mut Engine<'_>, path: &Path, index: usize) -> stdlib::Presented {
+    let ws = engine.workspace();
+    let doc = &ws.documents()[path];
+    let leaf = !doc.tasks.iter().any(|t| t.parent == Some(index));
+    let record = Record::typed(path, task(ws, path, doc, engine, index, leaf)).materialize(engine);
+    stdlib::task::hover(engine, record)
+}
+
+/// Task `i`'s record; `leaf` says whether no task nests under it.
+fn task(
+    ws: &Workspace,
+    path: &Path,
+    doc: &Document,
+    engine: &mut Engine<'_>,
+    i: usize,
+    leaf: bool,
+) -> TaskRecord {
+    let clock = Clock::new(engine.now());
+    let task = &doc.tasks[i];
+    let mut record = TaskRecord {
+        base: Base::line(ws, path, RecordKind::Task, &task.title, task.line),
+        scheduling: Scheduling {
+            leaf,
+            done: engine.task_done(path, i),
+            parent: task
+                .parent
+                .map(|i| SourceRef::new(ws, path, doc.tasks[i].checkbox)),
+            tags: task.tags.clone(),
+            ..Scheduling::default()
+        },
+        checked: task.state == TaskState::Done,
+        in_progress: engine.task_in_progress(path, i),
+        name: task
+            .named
+            .as_ref()
+            .map(|n| q::text(&n.name))
+            .unwrap_or(Value::Null),
+        attributes: task
+            .attributes
+            .iter()
+            .map(|(k, a)| (k.clone(), q::text(&a.value)))
+            .collect(),
+        blocked_error: Value::Null,
+        blockers: Vec::new(),
+        schedule: Vec::new(),
+        children: doc
+            .tasks
+            .iter()
+            .enumerate()
+            .filter(|(_, child)| child.parent == Some(i))
+            .map(|(index, child)| ChildTask {
+                line: child.line,
+                done: engine.task_done(path, index),
+            })
+            .collect(),
+        timer: Value::Null,
+    };
+    let mut errors = Vec::new();
+    for when in When::ALL {
+        let Some(attribute) = task.attributes.get(when.as_str()) else {
+            continue;
+        };
+        let value = if when.is_date() {
+            engine.when(path, &attribute.value)
+        } else {
+            engine.eval(path, &attribute.value)
+        };
+        if when.is_date() {
+            record.schedule.push(ScheduleEntry {
+                key: when,
+                value: value
+                    .as_ref()
+                    .ok()
+                    .and_then(|v| clock.date(v))
+                    .map(Value::Date)
+                    .unwrap_or(Value::Null),
+                error: value
+                    .as_ref()
+                    .err()
+                    .map(|e| q::text(e.to_string()))
+                    .unwrap_or(Value::Null),
+            });
+        }
+        match value {
+            Ok(Value::Duration(s)) if !when.is_date() && s >= 0 => {
+                record.scheduling.set(when, Value::Duration(s));
+            }
+            Ok(v) if when.is_date() && clock.date(&v).is_some() => {
+                let date = clock.date(&v);
+                let at = when == When::At;
+                record.scheduling.set(
+                    when,
+                    if at {
+                        q::query_value(v)
+                    } else {
+                        date.to_value()
+                    },
+                );
+                if at {
+                    record.scheduling.at_date = date.to_value();
+                }
+            }
+            Ok(_) => errors.push(format!(
+                "@{}: expected {}",
+                when.as_str(),
+                if when.is_date() {
+                    "a date or timestamp"
+                } else {
+                    "a nonnegative duration"
+                }
+            )),
+            Err(e) => errors.push(format!("@{}: {e}", when.as_str())),
+        }
+    }
+    // A repeating task with no explicit due date is due today.
+    if record.scheduling.due == Value::Null
+        && task.attributes.contains_key(AttributeKey::Every.as_str())
+    {
+        record.scheduling.due = clock.today().to_value();
+    }
+    match engine.blocked(path, i) {
+        Ok(names) => {
+            record.blockers = names
+                .iter()
+                .map(|name| Blocker::new(ws, path, name))
+                .collect();
+            record.scheduling.blocked_by = names;
+        }
+        Err(e) => {
+            record.blocked_error = q::text(e.to_string());
+            errors.push(e.to_string());
+        }
+    }
+    record.timer = match task
+        .attributes
+        .get(AttributeKey::Timer.as_str())
+        .and_then(|a| engine.eval(path, &a.value).ok())
+        .as_ref()
+        .and_then(Value::downcast::<Timer>)
+    {
+        Some(timer) => q::query_value(timer.record()),
+        None => Value::Null,
+    };
+    record.base.errors = errors;
+    record
 }
 
 pub(super) fn events(
@@ -303,9 +386,22 @@ pub(super) fn stops(
     records: &mut Vec<Record>,
 ) {
     let clock = Clock::new(engine.now());
-    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, clock.today());
+    // A stop whose day cannot be dated carries the reason as its error.
+    let (dates, error) = match lang::eval::itinerary::dates(ws.modules(), &doc.days, clock.today())
+    {
+        Ok(dates) => (dates, None),
+        Err(e) => (vec![None; doc.days.len()], Some(e.to_string())),
+    };
     for (day, date) in doc.days.iter().zip(dates) {
         for stop in &day.stops {
+            let mut base = Base::line(
+                ws,
+                path,
+                RecordKind::Stop,
+                stdlib::shown(lang::eval::itinerary::label(ws.modules(), stop)),
+                stop.line,
+            );
+            base.errors.extend(error.clone());
             let at = date.and_then(|d| {
                 clock
                     .now
@@ -316,13 +412,7 @@ pub(super) fn stops(
             records.push(Record::typed(
                 path,
                 StopRecord {
-                    base: Base::line(
-                        ws,
-                        path,
-                        RecordKind::Stop,
-                        lang::eval::itinerary::label(ws.modules(), stop),
-                        stop.line,
-                    ),
+                    base,
                     scheduling: Scheduling {
                         at_date: date.to_value(),
                         at: at

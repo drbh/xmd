@@ -22,8 +22,8 @@ format := fn(ctx) => map(
 
 // An open task row offers to finish it through the reducer.
 actions := fn(ctx) => map(
-  filter(_open(ctx), fn(t) => t.line == ctx.row),
-  fn(t) => {title: "Finish " + t.title, action: {kind: "invoke", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {line: t.line, refresh: ctx.capabilities.refresh}}}
+  _open(ctx),
+  fn(t) => {line: t.line, title: "Finish " + t.title, action: {kind: "invoke", document: ctx.document.uri, expected: ctx.document.text, module: ctx.module.id, revision: ctx.module.revision, event: {line: t.line, refresh: ctx.capabilities.refresh}}}
 )
 
 reduce := fn(ctx, event) => {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: event.line, character: 3}, end: {line: event.line, character: 4}}, newText: "x"}]}

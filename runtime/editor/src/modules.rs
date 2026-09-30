@@ -10,7 +10,7 @@ use lang::eval::RequestContext;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::modules::{Collection, Hook, Module, ModuleKind, from_json, json};
 use lang::eval::{ToValue, record};
-use lang::model::Document;
+use lang::model::{Document, LineIndex};
 use lsp_types::{
     Command, Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
     NumberOrString, Position, Range, TextEdit,
@@ -56,7 +56,6 @@ pub(crate) struct HookInput {
     document: DocumentInput,
     module: ModuleInput,
     range: Option<Range>,
-    row: Option<usize>,
     capabilities: Option<Capabilities>,
 }
 impl HookInput {
@@ -64,14 +63,9 @@ impl HookInput {
     const DOCUMENT: &'static str = "document";
     const MODULE: &'static str = "module";
     const RANGE: &'static str = "range";
-    const ROW: &'static str = "row";
     const CAPABILITIES: &'static str = "capabilities";
     fn with_range(mut self, range: Range) -> Self {
         self.range = Some(range);
-        self
-    }
-    fn with_row(mut self, row: usize) -> Self {
-        self.row = Some(row);
         self
     }
     fn with_capabilities(mut self, capabilities: Capabilities) -> Self {
@@ -86,13 +80,10 @@ impl ToValue for HookInput {
             (Self::DOCUMENT.into(), self.document.to_value()),
             (Self::MODULE.into(), self.module.to_value()),
         ]);
-        // The optional three are absent, not null, when the call has no use
+        // The optional two are absent, not null, when the call has no use
         // for them: a hook tells them apart with `has`.
         if let Some(range) = self.range {
             fields.insert(Self::RANGE.into(), from_json(&serde_json::json!(range)));
-        }
-        if let Some(row) = self.row {
-            fields.insert(Self::ROW.into(), row.to_value());
         }
         if let Some(capabilities) = self.capabilities {
             fields.insert(
@@ -115,9 +106,9 @@ struct InlayHint {
     label: String,
     tooltip: String,
 }
-impl TryFrom<(&Document, Value)> for InlayHint {
+impl TryFrom<(&Bounds<'_>, Value)> for InlayHint {
     type Error = String;
-    fn try_from((document, value): (&Document, Value)) -> Result<Self, String> {
+    fn try_from((bounds, value): (&Bounds<'_>, Value)) -> Result<Self, String> {
         let Value::Record(fields) = value else {
             return Err("Each inlay must be a record".into());
         };
@@ -129,12 +120,12 @@ impl TryFrom<(&Document, Value)> for InlayHint {
                 .as_u64()
                 .and_then(|n| usize::try_from(n).ok())
                 .ok_or("Inlay line must be a nonnegative integer")?;
-            if line >= document.text.lines().count() {
+            if line >= bounds.lines {
                 return Err("Inlay line is outside the document".into());
             }
-            document.line_end(line)
+            bounds.document.line_end(line)
         };
-        validate(&document.text, Range::new(position, position))?;
+        bounds.validate(Range::new(position, position))?;
         let Some(Value::Text(label)) = fields.get("label") else {
             return Err("Inlay label must be text".into());
         };
@@ -151,17 +142,26 @@ impl TryFrom<(&Document, Value)> for InlayHint {
     }
 }
 
-/// One action a module proposed, before its capabilities and source are checked.
+/// One action a module proposed for a line, before its capabilities and
+/// source are checked.
 struct ActionProposal {
+    line: usize,
     title: String,
     action: Action,
 }
-impl TryFrom<Value> for ActionProposal {
+impl TryFrom<(&Bounds<'_>, Value)> for ActionProposal {
     type Error = String;
-    fn try_from(value: Value) -> Result<Self, String> {
+    fn try_from((bounds, value): (&Bounds<'_>, Value)) -> Result<Self, String> {
         let Value::Record(fields) = value else {
             return Err("Each action must be a record".into());
         };
+        let line = json(fields.get("line").ok_or("Action needs a line")?)?
+            .as_u64()
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or("Action line must be a nonnegative integer")?;
+        if line >= bounds.lines {
+            return Err("Action line is outside the document".into());
+        }
         let Some(Value::Text(title)) = fields.get("title") else {
             return Err("Action title must be text".into());
         };
@@ -169,6 +169,7 @@ impl TryFrom<Value> for ActionProposal {
             serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
                 .map_err(|e| e.to_string())?;
         Ok(Self {
+            line,
             title: title.clone(),
             action,
         })
@@ -264,18 +265,38 @@ pub(crate) fn input(
             revision: module.revision(),
         },
         range: None,
-        row: None,
         capabilities: None,
     })
 }
 
-/// Whether `range` lies within `text` on UTF-16 boundaries.
-fn validate(text: &str, range: Range) -> Result<(), String> {
-    lang::model::apply_edits(text, &[TextEdit::new(range, String::new())]).map(|_| ())
+/// The note a hook's items are checked against, measured once per call
+/// rather than once per item.
+struct Bounds<'a> {
+    document: &'a Document,
+    index: LineIndex<'a>,
+    lines: usize,
 }
-
-fn document_text<'a>(request: &RequestContext<'a>, path: &Path) -> &'a str {
-    &request.workspace().documents()[path].text
+impl<'a> Bounds<'a> {
+    fn new(document: &'a Document) -> Self {
+        Self {
+            document,
+            index: LineIndex::new(&document.text),
+            lines: document.text.lines().count(),
+        }
+    }
+    fn of(request: &RequestContext<'a>, path: &Path) -> Self {
+        Self::new(&request.workspace().documents()[path])
+    }
+    /// Whether `range` lies within the note on UTF-16 boundaries: what
+    /// applying an edit over it would check.
+    fn validate(&self, range: Range) -> Result<(), String> {
+        if range.start > range.end {
+            return Err("Reversed edit range".into());
+        }
+        self.index.offset(range.start)?;
+        self.index.offset(range.end)?;
+        Ok(())
+    }
 }
 
 /// Call one hook with `input` and decode each item of the list it returns.
@@ -327,8 +348,14 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
         } else if module.live {
             context.mark_time_dependent();
         }
+        // Whether labels move with the clock is decided above; the labels
+        // themselves never change that.
+        if !context.labels {
+            return Ok(vec![]);
+        }
+        let bounds = Bounds::new(document);
         hook_items(module, Hook::Collect, &input, now, |hint| {
-            InlayHint::try_from((document, hint))
+            InlayHint::try_from((&bounds, hint))
         })
     });
     match result {
@@ -344,46 +371,102 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
         ),
     }
 }
-/// What a module's `actions` hook is handed for every row but the row itself,
-/// or nothing when it has no such hook.
-pub(crate) fn actions_input(
+/// Actions are proposals, each for one line of the note, gathered in one call.
+/// Preparation validates capabilities and source before exposing controls,
+/// and a line's controls stand or fall together; the host repeats validation
+/// against the execution snapshot. What is withheld is reported by
+/// [`control_problems`].
+pub(crate) fn controls(
     module: &Module,
     request: &RequestContext<'_>,
     path: &Path,
     capabilities: Capabilities,
-) -> Option<Result<HookInput, String>> {
-    module
-        .has(Hook::Actions)
-        .then(|| Ok(input(module, &mut request.engine(), path)?.with_capabilities(capabilities)))
+) -> BTreeMap<usize, Vec<Command>> {
+    checked_controls(module, request, path, capabilities)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|(line, commands)| Some((line, commands.ok()?)))
+        .collect()
 }
-/// Actions are proposals. Preparation validates capabilities and source
-/// before exposing controls; the host repeats validation against the
-/// execution snapshot.
-pub(crate) fn controls(
+/// Each line's controls, or why that line's are withheld; `Err` when the
+/// hook itself fails.
+fn checked_controls(
     module: &Module,
-    input: &Result<HookInput, String>,
     request: &RequestContext<'_>,
-    row: usize,
+    path: &Path,
     capabilities: Capabilities,
-) -> Vec<Command> {
-    let Ok(input) = input else {
-        return vec![];
-    };
-    let input = input.clone().with_row(row);
-    hook_items(module, Hook::Actions, &input, request.now(), |proposal| {
-        let ActionProposal { title, action } = ActionProposal::try_from(proposal)?;
+) -> Result<BTreeMap<usize, Result<Vec<Command>, String>>, String> {
+    if !module.has(Hook::Actions) {
+        return Ok(BTreeMap::new());
+    }
+    let bounds = Bounds::of(request, path);
+    let proposals = input(module, &mut request.engine(), path).and_then(|input| {
+        let input = input.with_capabilities(capabilities);
+        hook_items(module, Hook::Actions, &input, request.now(), |proposal| {
+            ActionProposal::try_from((&bounds, proposal))
+        })
+    })?;
+    let mut lines: BTreeMap<usize, Result<Vec<Command>, String>> = BTreeMap::new();
+    for ActionProposal {
+        line,
+        title,
+        action,
+    } in proposals
+    {
+        let entry = lines.entry(line).or_insert_with(|| Ok(vec![]));
+        let Ok(commands) = entry else {
+            continue;
+        };
         if !capabilities.supports(&action) {
-            return Ok(None);
+            continue;
         }
-        if matches!(action, Action::Invoke { .. }) {
-            action.validate_invocation(request)?;
+        let checked = if matches!(action, Action::Invoke { .. }) {
+            action.validate_invocation(request).map(drop)
         } else {
-            action.prepare(request, capabilities)?;
+            action.prepare(request, capabilities).map(drop)
+        };
+        match checked {
+            Ok(()) => commands.push(action.command(title)),
+            Err(error) => *entry = Err(error),
         }
-        Ok(Some(action.command(title)))
-    })
-    .map(|commands| commands.into_iter().flatten().collect())
-    .unwrap_or_default()
+    }
+    Ok(lines)
+}
+/// Why a module's controls are missing: a failing `actions` hook, or a line
+/// whose controls did not prepare. A lens has no disabled state, so the
+/// reason is a warning where the controls would be. Like the stdlib
+/// presentation checks, it runs only for a workspace with modules of its own.
+pub(crate) fn control_problems(
+    module: &Module,
+    request: &RequestContext<'_>,
+    path: &Path,
+) -> Vec<Diagnostic> {
+    if request.workspace().modules().only_bundled() {
+        return vec![];
+    }
+    let warning = |range: Range, message: String| Diagnostic {
+        range,
+        severity: Some(DiagnosticSeverity::WARNING),
+        source: Some("xmd".into()),
+        code: Some(NumberOrString::String("module".into())),
+        message,
+        ..Default::default()
+    };
+    match checked_controls(module, request, path, Capabilities::NATIVE) {
+        // The error already names the module and hook.
+        Err(error) => vec![warning(Range::default(), error)],
+        Ok(lines) => lines
+            .into_iter()
+            .filter_map(|(line, commands)| {
+                let error = commands.err()?;
+                let at = Position::new(line as u32, 0);
+                Some(warning(
+                    Range::new(at, at),
+                    format!("{} controls on this line are withheld: {error}", module.id),
+                ))
+            })
+            .collect(),
+    }
 }
 /// A hook that fails is itself a diagnostic, naming the module.
 pub(crate) fn diagnostics(
@@ -391,9 +474,12 @@ pub(crate) fn diagnostics(
     request: &RequestContext<'_>,
     path: &Path,
 ) -> Vec<Diagnostic> {
+    let mut bounds = None;
     json_items(module, request, path, Hook::Diagnostics, |item| {
         let mut diagnostic: Diagnostic = serde_json::from_value(item).map_err(|e| e.to_string())?;
-        validate(document_text(request, path), diagnostic.range)?;
+        bounds
+            .get_or_insert_with(|| Bounds::of(request, path))
+            .validate(diagnostic.range)?;
         diagnostic.source.get_or_insert("xmd".into());
         Ok(diagnostic)
     })
@@ -414,9 +500,12 @@ pub(crate) fn hover(
     path: &Path,
     at: Position,
 ) -> Option<Hover> {
+    let mut bounds = None;
     json_items(module, request, path, Hook::Hovers, |item| {
         let hover = HoverItem::try_from(item)?;
-        validate(document_text(request, path), hover.range)?;
+        bounds
+            .get_or_insert_with(|| Bounds::of(request, path))
+            .validate(hover.range)?;
         Ok(hover)
     })
     .ok()?

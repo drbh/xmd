@@ -3,6 +3,7 @@
 //! re-solve as notes change. The plan's shape — the goal, its constraint
 //! table and the pure text scans over them — is parsed in `model::plans`.
 use crate::{
+    contract,
     engine::{Engine, Linear, Unit, Value},
     workspace::{Symbol, SymbolKind, Workspace},
 };
@@ -171,12 +172,7 @@ pub(crate) fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> EvalResult<Value
         .unknown_kind()
         .map(|k| unit_value(k, difference.currency))
         .unwrap_or(Value::Null);
-    engine
-        .call_module(
-            "plan",
-            "seek_boundary",
-            vec![Value::Text(name), form_record(&difference).to_value(), unit],
-        )
+    contract::plan::seek_boundary(engine, &name, form_record(&difference).to_value(), unit)
         .map_err(|message| engine.fail_at(&symbol.path, span, message))
 }
 
@@ -248,8 +244,7 @@ pub(crate) fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> Ev
             })
             .collect(),
     };
-    let result = engine
-        .call_module("plan", "solve_model", vec![input.to_value()])
+    let result = contract::plan::solve_model(engine, input.to_value())
         .map_err(|message| engine.fail_at(&path, plan.objective_span, message))?;
     let solution = SolutionRecord::from_value(&result)?;
     let constraints = solution

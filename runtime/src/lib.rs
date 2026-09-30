@@ -34,7 +34,7 @@ pub mod services {
 #[cfg(not(target_arch = "wasm32"))]
 pub mod host {
     pub use ::host::{
-        DiskFiles, WorkspaceFiles, fetch_link, now, refresh_workspace, run_command_named,
-        save_cache,
+        DiskFiles, MAX_REQUESTS, MAX_STEPS, PROVIDER_STEPS, WorkspaceFiles, fetch_link, now,
+        refresh_workspace, run_command_named, save_cache,
     };
 }

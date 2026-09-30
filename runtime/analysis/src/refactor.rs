@@ -4,6 +4,7 @@ use lang::eval::engine::{Engine, Value, literal};
 use lang::eval::plans::PlanValue;
 use lang::eval::{Symbol, SymbolKind, Workspace};
 use lang::model::{byte_at, expression_regions, identifier};
+use lang::stdlib;
 use lsp_types::*;
 use std::path::Path;
 
@@ -104,31 +105,33 @@ pub fn refactors(
         if let Ok(value) = request.engine().symbol(&symbol)
             && let Some(solved) = value.downcast::<PlanValue>()
         {
-            let edits: Vec<TextEdit> = ws
-                .modules()
-                .call(
-                    "plan",
-                    "write_edits",
-                    vec![
-                        solved.record(ws),
-                        Value::Text(lang::common::uri(path).to_string()),
-                    ],
-                    request.now(),
-                )
-                .and_then(|v| lang::eval::modules::json(&v))
-                .map_err(|e| e.to_string())
-                .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()))
-                .unwrap_or_default();
-            if !edits.is_empty() {
-                result.push(CodeActionItem::edit(
-                    ws.modules()
-                        .call("plan", "write_title", vec![], request.now())
-                        .map(|v| v.display())
-                        .unwrap_or_default(),
-                    CodeActionKind::REFACTOR_REWRITE,
-                    edits,
-                ));
+            let mut snapshot = stdlib::Snapshot {
+                modules: ws.modules(),
+                now: request.now(),
+            };
+            let edits: Result<Vec<TextEdit>, String> = stdlib::plan::write_edits(
+                &mut snapshot,
+                solved.record(ws),
+                lang::common::uri(path).as_str(),
+            )
+            .and_then(|v| lang::eval::modules::json(&v))
+            .map_err(|e| e.to_string())
+            .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()));
+            // No edits means the note already holds the decisions; edits the
+            // module cannot write still offer the action, disabled with why.
+            if edits.as_ref().is_ok_and(Vec::is_empty) {
+                continue;
             }
+            let mut item = CodeActionItem::edit(
+                stdlib::shown(stdlib::plan::write_title(&mut snapshot)),
+                CodeActionKind::REFACTOR_REWRITE,
+                vec![],
+            );
+            match edits {
+                Ok(edits) => item.edits = edits,
+                Err(reason) => item.disabled = Some(format!("plan.write_edits: {reason}")),
+            }
+            result.push(item);
         }
     }
     // Moving row-local expressions out of their sum, or treating literal table

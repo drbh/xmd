@@ -26,6 +26,9 @@ pub(crate) struct InlayContext<'request, 'workspace> {
     pub path: &'request Path,
     pub document: &'workspace Document,
     pub range: Range,
+    /// Whether the labels are wanted, or only whether any of them moves with
+    /// the clock.
+    pub labels: bool,
 }
 impl InlayContext<'_, '_> {
     /// Call when a label/tooltip reads the clock without going through the evaluator.
@@ -68,6 +71,22 @@ pub struct InlayOutput {
 /// Run every provider in order, then stably order their output by position.
 /// This same path supplies native LSP hints, browser hints, and clock refresh checks.
 pub(crate) fn collect(request: &RequestContext<'_>, path: &Path, range: Range) -> InlayOutput {
+    run(request, path, range, true)
+}
+
+/// Whether any label in the note reads the clock, so a host knows to refresh.
+/// The providers run as for [`collect`], but no label is drawn.
+pub(crate) fn live(request: &RequestContext<'_>, path: &Path) -> bool {
+    run(
+        request,
+        path,
+        Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
+        false,
+    )
+    .time_dependent
+}
+
+fn run(request: &RequestContext<'_>, path: &Path, range: Range, labels: bool) -> InlayOutput {
     let mut engine = request.engine();
     let Some(document) = request.workspace().documents().get(path) else {
         return InlayOutput::default();
@@ -77,6 +96,7 @@ pub(crate) fn collect(request: &RequestContext<'_>, path: &Path, range: Range) -
         path,
         document,
         range,
+        labels,
     };
     let mut output = InlaySink {
         range,
@@ -88,14 +108,4 @@ pub(crate) fn collect(request: &RequestContext<'_>, path: &Path, range: Range) -
         hints: output.hints,
         time_dependent: engine.time_dependent(),
     }
-}
-
-/// Whether any label in the note reads the clock, so a host knows to refresh.
-pub(crate) fn live(request: &RequestContext<'_>, path: &Path) -> bool {
-    collect(
-        request,
-        path,
-        Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
-    )
-    .time_dependent
 }

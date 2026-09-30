@@ -12,6 +12,7 @@ exit 1
 [live] := stopwatch("live")
 [fine] := stopwatch()
 --- stderr
+<root>/records.x.md:1:1: warning: Module timers.actions: Unknown field 'actions'
 <root>/records.x.md:3:13: error: Timer constructor must return a record
 <root>/records.x.md:4:12: error: Invalid timer limit
 <root>/records.x.md:5:14: error: Invalid timer elapsed time

@@ -883,7 +883,7 @@
   "error": "Unknown function 'eval'",
   "ok": false
 }
--- setModules {"sources":{"custom.x.md":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
+-- setModules {"sources":{"custom.x.md":"module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{line: 2, title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"}}
 {
   "ok": true,
   "result": null
@@ -971,44 +971,6 @@
         "command": {
           "arguments": [
             {
-              "document": "file:///workspace/main.x.md",
-              "edits": [
-                {
-                  "newText": "Goodbye",
-                  "range": {
-                    "end": {
-                      "character": 5,
-                      "line": 2
-                    },
-                    "start": {
-                      "character": 0,
-                      "line": 2
-                    }
-                  }
-                }
-              ],
-              "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
-              "kind": "edit"
-            }
-          ],
-          "command": "xmd.applyEdits",
-          "title": "Replace"
-        },
-        "range": {
-          "end": {
-            "character": 0,
-            "line": 0
-          },
-          "start": {
-            "character": 0,
-            "line": 0
-          }
-        }
-      },
-      {
-        "command": {
-          "arguments": [
-            {
               "kind": "open_resource",
               "target": {
                 "document": "file:///workspace/main.x.md",
@@ -1020,44 +982,6 @@
           ],
           "command": "xmd.openResource",
           "title": "↗ open"
-        },
-        "range": {
-          "end": {
-            "character": 0,
-            "line": 1
-          },
-          "start": {
-            "character": 0,
-            "line": 1
-          }
-        }
-      },
-      {
-        "command": {
-          "arguments": [
-            {
-              "document": "file:///workspace/main.x.md",
-              "edits": [
-                {
-                  "newText": "Goodbye",
-                  "range": {
-                    "end": {
-                      "character": 5,
-                      "line": 2
-                    },
-                    "start": {
-                      "character": 0,
-                      "line": 2
-                    }
-                  }
-                }
-              ],
-              "expected": "https://issues.example/tickets/42:ticket\nPoints [ticket.points].\nHello [round(2.6)]\n",
-              "kind": "edit"
-            }
-          ],
-          "command": "xmd.applyEdits",
-          "title": "Replace"
         },
         "range": {
           "end": {

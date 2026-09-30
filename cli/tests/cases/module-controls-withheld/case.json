@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {"cli": ["query", "main.x.md", "diagnostics | map(.{line, severity, message})", "--json"]},
+    {
+      "lsp": [
+        {"open": "main.x.md"},
+        {"await": "textDocument/publishDiagnostics", "file": "main.x.md"},
+        {"request": "textDocument/codeLens", "file": "main.x.md"}
+      ]
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 //! Each forwards to the object's own inherent methods.
 use crate::engine::{Engine, Value, ValueType};
 use crate::{
-    plans::PlanValue, resources::ResourcePresenting, tables_impl::TableValue, timers::Timer,
+    plans::PlanValue, resources::ResourcePresenting, stdlib, tables_impl::TableValue, timers::Timer,
 };
 use modules::LinkFeatures;
 use std::path::Path;
@@ -50,11 +50,7 @@ impl HostPresenting for Value {
                     .iter()
                     .filter(|(path, index)| engine.task_done(path, *index))
                     .count();
-                let summary = engine.present(
-                    "task",
-                    "checklist",
-                    vec![Value::Count(done), Value::Count(tasks.len())],
-                );
+                let summary = stdlib::shown(stdlib::task::checklist(engine, done, tasks.len()));
                 Some(format!("\n\n{summary}"))
             }
             other => other.host()?.hover(),

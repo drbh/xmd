@@ -40,9 +40,9 @@ use std::{
 };
 
 /// How many steps one run may take before the runner assumes a loop.
-const MAX_STEPS: usize = 10_000;
+pub const MAX_STEPS: usize = 10_000;
 /// How many effects one step may request.
-const MAX_REQUESTS: usize = 256;
+pub const MAX_REQUESTS: usize = 256;
 
 /// `xmd run`: find the command module `name` names, a module note's path or
 /// the id of one activated under `root`, and run it in the directory its first
@@ -465,4 +465,37 @@ fn uuid() -> String {
         &out[17..20],
         &out[20..32]
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lang::eval::modules::STEPS;
+
+    /// The effects the command protocol declares are the ones a run performs.
+    #[test]
+    fn declared_effects_are_performed() {
+        let context = Context {
+            module: "probe",
+            dir: Path::new("."),
+        };
+        let unknown = |kind: &str| {
+            let request = lang::eval::modules::record([("kind", Value::Text(kind.into()))]);
+            context
+                .perform(&request)
+                .is_err_and(|e| e.contains("unknown request kind"))
+        };
+        let command = STEPS
+            .iter()
+            .find(|p| p.kind == ModuleKind::Command)
+            .unwrap();
+        for effect in command.effects {
+            assert!(
+                !unknown(effect.kind),
+                "{} is declared but not performed",
+                effect.kind
+            );
+        }
+        assert!(unknown("launch"));
+    }
 }

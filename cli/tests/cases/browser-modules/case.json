@@ -80,7 +80,7 @@
           "method": "setModules",
           "params": {
             "sources": {
-              "custom.x.md": "module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"
+              "custom.x.md": "module := {api: 1, id: \"calculations\", kind: \"feature\", inputs: []}\ncollect := fn(ctx) => [{line: 2, label: \"custom\"}]\nactions := fn(ctx) => [{line: 2, title: \"Replace\", action: {kind: \"edit\", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 2, character: 0}, end: {line: 2, character: 5}}, newText: \"Goodbye\"}]}}]\n"
             }
           }
         },
@@ -93,7 +93,7 @@
         {
           "method": "execute",
           "params": {
-            "command": "${last:/result/lenses/1/command}",
+            "command": "${last:/result/lenses/2/command}",
             "versions": {
               "file:///workspace/main.x.md": 1
             }

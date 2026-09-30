@@ -464,9 +464,15 @@ Block this task until all dependencies are satisfied. Cycles are reported with s
 
 ### `@at(time: Date or DateTime)`
 
-Appointment time. Include an explicit UTC offset for ambiguous local times.
+Appointment time; a line with @at and no checkbox is an appointment. Include an explicit UTC offset for ambiguous local times.
 
 `@at(2026-09-18T14:00-04:00)`
+
+### `@completed(date: Date)`
+
+The day the task was checked off, as YYYY-MM-DD. Checking a task stamps today's date on it and its subtasks; unchecking removes the stamp. The checkbox, not the stamp, decides whether the task is done.
+
+`@completed(2026-09-18)`
 
 ### `@due(date: Date or DateTime)`
 
@@ -485,6 +491,12 @@ A nonnegative estimate. Examples: 30s, 20m, 2h.
 Repeat a leaf task: day, week, month, year, or a positive whole-day duration such as 2w.
 
 `@every(week)`
+
+### `@repeat_from(anchor: Date)`
+
+The date a recurring task's @every counts from, as YYYY-MM-DD. Completing the task writes it once, from @due or today, so each later @due stays on the same cycle (a monthly bill anchored on the 31st comes back on the last day of every month) however early or late it is checked off.
+
+`@repeat_from(2026-01-31)`
 
 ### `@scheduled(date: Date or DateTime)`
 

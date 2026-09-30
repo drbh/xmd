@@ -121,14 +121,6 @@ pub fn geometry(value: impl serde::Serialize) -> Value {
     crate::value::from_json(&serde_json::json!(value))
 }
 
-/// A module's answer as the words it displays, or the failure's own words
-/// when it has none.
-pub fn words(answer: EvalResult<Value>) -> String {
-    answer
-        .map(|v| v.display())
-        .unwrap_or_else(|e| e.to_string())
-}
-
 /// A Rust struct a module or a query reads as a record.
 pub trait RecordFields {
     /// Every field by name, flattened ones included.

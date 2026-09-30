@@ -260,7 +260,7 @@ null
 ### 3 lsp
 -- write .xmd/modules/edit.x.md
 module := {api: 1, id: "edit", kind: "feature", inputs: []}
-actions := fn(ctx) => if(ctx.row == 0, [{title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}], [])
+actions := fn(ctx) => [{line: 0, title: "Greeting", action: {kind: "edit", document: ctx.document.uri, expected: ctx.document.text, edits: [{range: {start: {line: 0, character: 0}, end: {line: 0, character: 5}}, newText: "Goodbye"}]}}]
 -- write .xmd/modules.json
 ["./modules/edit.x.md"]
 -- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/.xmd/modules.json"}]}

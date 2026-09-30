@@ -112,16 +112,17 @@ pub(crate) fn reads_within<'a>(
     within: Span,
 ) -> impl Iterator<Item = (Symbol, Span)> + 'a {
     let doc = &ws.documents()[path];
+    let within = within.range(doc);
     let members = doc
         .members
         .iter()
-        .filter(move |m| within.contains(doc, m.span))
+        .filter(move |m| Span::encloses(within, doc, m.span))
         .filter_map(move |m| Some((lang::eval::member_symbol(ws, path, &m.source)?, m.span)));
     let references = doc
         .references
         .iter()
         .map(|r| (r, Span::new(r.span.line, r.span.start, r.end())))
-        .filter(move |(_, span)| within.contains(doc, *span))
+        .filter(move |(_, span)| Span::encloses(within, doc, *span))
         .filter_map(move |(r, span)| {
             let symbol = lang::eval::tables::resolve_reference(ws, path, r).ok()?;
             Some((symbol, span))

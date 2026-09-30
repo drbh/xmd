@@ -10,6 +10,7 @@ use lang::eval::Workspace;
 use lang::eval::engine::Value;
 use lang::eval::lookups::{Lookup, LookupKey, Store, day_place};
 use lang::eval::modules::{Module, ModuleKind, ModuleRegistry, from_json, json, record};
+use lang::syntax::AttributeKey;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -36,11 +37,20 @@ fn wanted(
             let _ = engine.eval_at(path, &calculation.source, calculation.span);
         }
         for task in &doc.tasks {
-            for attr in task.attributes.values() {
-                let _ = engine.eval(path, &attr.value);
+            // Only an expression can ask for a lookup.
+            for (key, attr) in &task.attributes {
+                if key
+                    .parse::<AttributeKey>()
+                    .is_ok_and(|k| k.value().is_expression())
+                {
+                    let _ = engine.eval(path, &attr.value);
+                }
             }
         }
-        let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, today);
+        // Like the evaluations above, a failure is the note's diagnostic to
+        // report; days without dates want no forecast.
+        let dates =
+            lang::eval::itinerary::dates(ws.modules(), &doc.days, today).unwrap_or_default();
         for (day, date) in doc.days.iter().zip(&dates) {
             if let (Some((places, _)), Some(date)) = (&day.places, date)
                 && let Some(place) = day_place(places)
@@ -145,6 +155,9 @@ fn decimals(value: &mut serde_json::Value) {
     }
 }
 
+/// How many steps a provider may take for one lookup.
+pub const PROVIDER_STEPS: usize = 16;
+
 /// Run a provider module's `step` loop, performing only its HTTP requests.
 async fn run_provider(
     module: &Module,
@@ -154,7 +167,7 @@ async fn run_provider(
 ) -> Result<(serde_json::Value, String), String> {
     let mut state = Value::Null;
     let mut results = Vec::new();
-    for _ in 0..16 {
+    for _ in 0..PROVIDER_STEPS {
         let input = record([
             ("key", key.clone()),
             ("today", Value::Date(today)),

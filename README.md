@@ -28,16 +28,12 @@ still show it as markdown
 - web-based document editor; edit anywhere anytime - local first (offline capable)
 - mutable; written in its own language so you can extend and customize it easily
 
-## docs
+## book
 
-short, and in order. each page links to the next
-
-1. [the language](docs/01-language.md)
-2. [ask a note a question](docs/02-queries.md)
-3. [notes and libraries](docs/03-files.md)
-4. [modules](docs/04-modules.md)
-5. [put a note on your own page](docs/05-embed.md)
-6. [when not to use it](docs/06-limits.md)
+six short chapters, then a reference generated from the code. read it at
+[xmd.dholtz.com/book](https://xmd.dholtz.com/book/), where every example is
+a live note you can edit, or [here on github](book/README.md). start with
+[the language](book/01-language.md)
 
 ## license
 

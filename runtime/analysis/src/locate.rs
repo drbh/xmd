@@ -115,13 +115,13 @@ pub(crate) fn reads_within<'a>(
     let members = doc
         .members
         .iter()
-        .filter(move |m| within.contains(&doc.text, m.span))
+        .filter(move |m| within.contains(doc, m.span))
         .filter_map(move |m| Some((lang::eval::member_symbol(ws, path, &m.source)?, m.span)));
     let references = doc
         .references
         .iter()
         .map(|r| (r, Span::new(r.span.line, r.span.start, r.end())))
-        .filter(move |(_, span)| within.contains(&doc.text, *span))
+        .filter(move |(_, span)| within.contains(doc, *span))
         .filter_map(move |(r, span)| {
             let symbol = lang::eval::tables::resolve_reference(ws, path, r).ok()?;
             Some((symbol, span))
@@ -147,7 +147,7 @@ pub fn inert(doc: &Document, position: Position) -> bool {
                         .chain(doc.events.iter().flat_map(|e| e.attributes.values()))
                         .any(|a| touches(a.span, row, byte))
                     && !doc.definitions.iter().any(|d| {
-                        d.expression && d.value_span.contains(&doc.text, Span::new(row, byte, byte))
+                        d.expression && d.value_span.contains(doc, Span::new(row, byte, byte))
                     }))
     })
 }

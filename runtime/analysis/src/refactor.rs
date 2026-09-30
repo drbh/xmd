@@ -167,9 +167,9 @@ pub fn refactors(
     if start != end {
         let selected = &line[start..end];
         let selection = Span::new(row, start, end);
-        if let Some(region) = regions.iter().find(|s| s.contains(&doc.text, selection)) {
-            let offset = region.offset_of(&doc.text, selection).unwrap();
-            if Engine::is_subexpression(region.source(&doc.text), offset, offset + end - start)
+        if let Some(region) = regions.iter().find(|s| s.contains(doc, selection)) {
+            let offset = region.offset_of(doc, selection).unwrap();
+            if Engine::is_subexpression(region.source(doc), offset, offset + end - start)
                 && !identifier(selected)
             {
                 let name = unique(ws, path, "calculation");
@@ -269,7 +269,7 @@ pub fn refactors(
                 result.push(CodeActionItem::edit(
                     format!("Change '{}' to '{name}'", reference.name),
                     CodeActionKind::QUICKFIX,
-                    vec![TextEdit::new(reference.span.range(&doc.text), name)],
+                    vec![TextEdit::new(reference.span.range(doc), name)],
                 ));
             }
             result.push(CodeActionItem::edit(
@@ -283,7 +283,7 @@ pub fn refactors(
             continue;
         }
         let symbol = ws.resolve(path, &reference.name).unwrap();
-        let replace = Span::new(row, begin, finish).range(&doc.text);
+        let replace = Span::new(row, begin, finish).range(doc);
         let mut engine = request.engine();
         let expression = if reference.bracket {
             reference.expression()
@@ -332,14 +332,14 @@ pub fn refactors(
             let safe = original
                 .references
                 .iter()
-                .filter(|r| def.value_span.contains(&original.text, r.span))
+                .filter(|r| def.value_span.contains(original, r.span))
                 .all(|r| ws.resolve(&symbol.path, &r.name).ok() == ws.resolve(path, &r.name).ok());
             if safe {
                 result.push(CodeActionItem::edit(
                     "Inline expression".into(),
                     CodeActionKind::REFACTOR_INLINE,
                     vec![TextEdit::new(
-                        reference.span.range(&doc.text),
+                        reference.span.range(doc),
                         format!("({})", def.source),
                     )],
                 ));

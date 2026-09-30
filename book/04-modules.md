@@ -4,7 +4,7 @@ a module is a `.xmd` library that adds to xmd: inlays, hovers,
 diagnostics, functions, commands. no build step, the language server
 loads it
 
-```xmd
+```xmd wordcount.xmd
 module := {api: 1, id: "wordcount", kind: "feature", inputs: {notes: ["anchor", "text"]}}
 collect := fn(ctx) => map(ctx.document.notes, fn(n) => {at: n.anchor, label: "hi"})
 ```

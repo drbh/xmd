@@ -1,4 +1,4 @@
-use common::{Resource, Span};
+use common::{LineIndex, Lines, Resource, Span};
 use lsp_types::Position;
 use std::collections::BTreeMap;
 
@@ -189,6 +189,18 @@ pub struct Document {
     pub calculations: Vec<Calculation>,
     pub highlights: Vec<Highlight>,
     pub problems: Vec<Problem>,
+    /// Where each line of `text` starts, so spans find their line at once.
+    lines: LineIndex,
+}
+/// A document is its text with every line start known: pass it where a span
+/// reads text (`span.range(doc)`) instead of `&doc.text`, which rescans.
+impl Lines for Document {
+    fn text(&self) -> &str {
+        &self.text
+    }
+    fn line_start(&self, line: usize) -> usize {
+        self.lines.start(line)
+    }
 }
 
 /// What a heading line carries: its indentation, level, title and trailing `:name`.
@@ -304,6 +316,7 @@ fn classify<'a>(line: &'a str, row: usize, state: &BlockState) -> Line<'a> {
 impl Document {
     pub fn parse(text: String) -> Self {
         let mut doc = Self {
+            lines: LineIndex::new(&text),
             text: text.clone(),
             ..Self::default()
         };
@@ -490,12 +503,8 @@ impl Document {
         if end_row <= row {
             return None;
         }
-        let prefix: usize = text.split_inclusive('\n').take(row).map(str::len).sum();
-        let length: usize = text[prefix..]
-            .split_inclusive('\n')
-            .take(end_row - row)
-            .map(str::len)
-            .sum();
+        let prefix = self.lines.start(row);
+        let length = self.lines.start(end_row) - prefix;
         let end = length + lines[end_row].len();
         let block = &text[prefix..prefix + end];
         self.references
@@ -551,10 +560,10 @@ impl Document {
         for reference in &self.references {
             // Column names inside sum(table, ...) belong to the table.
             let in_sum = crate::plans::regions(&plan).any(|region| {
-                region.contains(&self.text, reference.span)
+                region.contains(self, reference.span)
                     && syntax::sum_scope_at(
-                        region.source(&self.text),
-                        region.offset_of(&self.text, reference.span).unwrap_or(0),
+                        region.source(self),
+                        region.offset_of(self, reference.span).unwrap_or(0),
                     )
                     .is_some()
             });
@@ -981,8 +990,7 @@ impl Document {
             Ok(tokens) => {
                 let free_names = syntax::expression_names(&line[start..end]);
                 for token in tokens {
-                    let span =
-                        Span::new(row, start, end).relative(&self.text, token.start, token.end);
+                    let span = Span::new(row, start, end).relative(self, token.start, token.end);
                     let kind = match &token.kind {
                         syntax::Lexeme::Name(name) => {
                             let builtin_call = syntax::is_builtin_function(name)
@@ -1012,20 +1020,20 @@ impl Document {
                         syntax::Lexeme::Comment => HighlightKind::Comment,
                         _ => HighlightKind::Operator,
                     };
-                    for part in span.fragments(&self.text) {
+                    for part in span.fragments(self) {
                         self.mark(part.line, part.start, part.end, kind);
                     }
                 }
             }
             Err(_) => {
-                for part in Span::new(row, start, end).fragments(&self.text) {
+                for part in Span::new(row, start, end).fragments(self) {
                     self.mark(part.line, part.start, part.end, HighlightKind::String);
                 }
             }
         }
     }
     pub fn line(&self, row: usize) -> &str {
-        self.text.lines().nth(row).unwrap_or("")
+        self.lines.line(&self.text, row)
     }
     /// Just past a bracketed reference's closing `]`.
     pub fn reference_close(&self, reference: &Reference) -> usize {

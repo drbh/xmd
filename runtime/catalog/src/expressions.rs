@@ -59,9 +59,7 @@ pub(super) fn calculations(
             RecordKind::Calculation,
             &calculation.source,
             calculation.span,
-            Span::new(calculation.span.line, end, end)
-                .range(&doc.text)
-                .end,
+            Span::new(calculation.span.line, end, end).range(doc).end,
             engine.eval_at(path, &calculation.source, calculation.span),
         );
         records.push(
@@ -90,9 +88,7 @@ pub(super) fn references(
             RecordKind::Reference,
             &source,
             reference.span,
-            Span::new(reference.span.line, end, end)
-                .range(&doc.text)
-                .end,
+            Span::new(reference.span.line, end, end).range(doc).end,
             engine.eval(path, &source),
         );
         records.push(evaluated.record(path, |base, expression| ReferenceRecord {
@@ -129,7 +125,7 @@ pub(super) fn cells(
                     RecordKind::Cell,
                     source,
                     cell.span,
-                    cell.span.range(&doc.text).end,
+                    cell.span.range(doc).end,
                     value,
                 );
                 records.push(evaluated.record(path, |base, expression| CellRecord {

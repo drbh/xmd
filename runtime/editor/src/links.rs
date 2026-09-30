@@ -19,7 +19,7 @@ pub(crate) fn document_links(
     let mut add = |span: Span, resource: Resource| {
         if let Ok(url) = resource.url(path) {
             links.push(DocumentLink {
-                range: span.range(&doc.text),
+                range: span.range(doc),
                 tooltip: Some(format!("Open {url}")),
                 target: Some(lang::common::uri_from_url(&url)),
                 data: None,

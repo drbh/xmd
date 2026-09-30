@@ -1,0 +1,11 @@
+=== budget.x.md
+# Budget
+
+total := $1,200 = $1,200
+=== fees.xmd
+card := fn(amount) => amount * 3% = <function>
+=== 03-files-3.x.md
+budget := import("./budget.x.md") = import("<root>/budget.x.md")
+fees := import("./fees.xmd") = import("<root>/fees.xmd")
+
+Left [budget.total - fees.card(budget.total)] $1,164

@@ -75,7 +75,7 @@ pub(crate) fn completions(
             .bytes()
             .take_while(|b| b.is_ascii_alphanumeric() || *b == b'_')
             .count();
-    let replacement = Span::new(position.line as usize, start, end).range(&doc.text);
+    let replacement = Span::new(position.line as usize, start, end).range(doc);
     if let Some(items) =
         column_completions(request, path, position.line as usize, byte, replacement)
     {

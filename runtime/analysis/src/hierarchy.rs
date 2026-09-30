@@ -99,7 +99,7 @@ pub fn item(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> CallHi
         detail: Some(detail),
         uri: lang::common::uri_from_url(&lang::common::uri(&symbol.path)),
         range: extent(doc, symbol),
-        selection_range: selection(doc, symbol).range(&doc.text),
+        selection_range: selection(doc, symbol).range(doc),
         data: Some(encode(symbol)),
     }
 }

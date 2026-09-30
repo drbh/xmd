@@ -27,6 +27,9 @@ await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
 // The examples, fetched one at a time when a #/example/<name> link opens them.
 const { writeExamples } = await import("./lib/examples.mjs");
 await writeExamples(new URL("../../lang/examples/", root), new URL("examples/", dist));
+// The book: static pages from /book, each ```xmd block a live editor.
+const { writeBook } = await import("./lib/book.mjs");
+await writeBook(new URL("../../book/", root), new URL("book/", dist), new URL("book/", root), new URL("../../", root));
 execFileSync("npm", ["run", "build", "--workspace", "xmd-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
 const docsIndex = new URL("docs/index.html", dist);
 await writeFile(docsIndex, (await readFile(docsIndex, "utf8")).replace("<head>", '<head><link rel="stylesheet" href="../lib/theme/style.css"><link rel="stylesheet" href="../lib/theme/fonts.css">'));

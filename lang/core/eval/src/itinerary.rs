@@ -52,15 +52,14 @@ pub(crate) fn call(modules: &ModuleRegistry, name: &str, args: Vec<Value>) -> Ev
     )
 }
 fn range(doc: Option<&Document>, span: Span) -> Value {
-    doc.map(|d| geometry(span.range(&d.text)))
-        .unwrap_or(Value::Null)
+    doc.map(|d| geometry(span.range(d))).unwrap_or(Value::Null)
 }
 fn line_record(doc: Option<&Document>, row: usize) -> LineRecord {
     LineRecord {
         line: row,
         raw: doc.map(|d| d.line(row)).unwrap_or("").into(),
         line_range: doc
-            .map(|d| geometry(Span::new(row, 0, d.line(row).len()).range(&d.text)))
+            .map(|d| geometry(Span::new(row, 0, d.line(row).len()).range(d)))
             .unwrap_or(Value::Null),
         anchor: doc
             .map(|d| geometry(d.line_end(row)))

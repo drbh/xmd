@@ -8,8 +8,9 @@
 /// The shared kernel: spans, file names and URIs.
 pub mod common {
     pub use ::common::{
-        EXTENSION, LIBRARY_EXTENSION, Span, file_path, file_url, is_library, is_note, library_file,
-        note_extension, note_file, note_stem, uri, uri_from_url, url_from_uri,
+        EXTENSION, LIBRARY_EXTENSION, LineIndex, Lines, Span, file_path, file_url, is_library,
+        is_note, library_file, note_extension, note_file, note_stem, uri, uri_from_url,
+        url_from_uri,
     };
 }
 

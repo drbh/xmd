@@ -45,7 +45,7 @@ fn line_range(doc: &Document, row: usize) -> Range {
             .len()
             .max(line.len() - line.trim_start().len()),
     )
-    .range(&doc.text)
+    .range(doc)
 }
 
 pub fn document_symbols(
@@ -114,7 +114,7 @@ pub fn document_symbols(
         let selection = task
             .named
             .as_ref()
-            .map(|n| n.span.range(&doc.text))
+            .map(|n| n.span.range(doc))
             .unwrap_or_else(|| line_range(doc, task.line));
         let task_symbol = Symbol::new(path, SymbolKind::Task(i));
         entries.push(symbol(
@@ -133,7 +133,7 @@ pub fn document_symbols(
         ));
     }
     for (day, date) in doc.days.iter().zip(&dates) {
-        let selection = day.date_span.range(&doc.text);
+        let selection = day.date_span.range(doc);
         let end = last_filled(doc, day.line, day.end_line.saturating_sub(1).max(day.line));
         // A day written as a heading is already a section symbol.
         if !doc.sections.iter().any(|s| s.line == day.line) {
@@ -154,7 +154,7 @@ pub fn document_symbols(
             ));
         }
         for stop in &day.stops {
-            let selection = stop.title_span.range(&doc.text);
+            let selection = stop.title_span.range(doc);
             entries.push(symbol(
                 stop.title.clone(),
                 match stop.kind {
@@ -204,12 +204,12 @@ pub fn document_symbols(
         let plan = doc.plan_of(i);
         let full_range = if table.is_some() || plan.is_some() {
             Range::new(
-                Span::new(row, start, start).range(&doc.text).start,
+                Span::new(row, start, start).range(doc).start,
                 line_range(doc, doc.definition_rows(i).1).end,
             )
         } else {
             Range::new(
-                Span::new(row, start, start).range(&doc.text).start,
+                Span::new(row, start, start).range(doc).start,
                 Span::new(
                     definition.end.line,
                     0,
@@ -218,7 +218,7 @@ pub fn document_symbols(
                         .end
                         .min(doc.line(definition.end.line).trim_end().len()),
                 )
-                .range(&doc.text)
+                .range(doc)
                 .end,
             )
         };
@@ -227,12 +227,12 @@ pub fn document_symbols(
             detail,
             describe::kind(doc, &definition_symbol),
             full_range,
-            definition.named.span.range(&doc.text),
+            definition.named.span.range(doc),
         ));
         if let Some(plan) = plan {
             let p = doc.plans.iter().position(|p| p.definition == i).unwrap();
             for (n, named) in ws.plan_variables(path, plan) {
-                let range = named.span.range(&doc.text);
+                let range = named.span.range(doc);
                 let variable = Symbol::new(path, SymbolKind::Variable(p, n));
                 entries.push(symbol(
                     named.name.clone(),
@@ -243,7 +243,7 @@ pub fn document_symbols(
                 ));
             }
             for constraint in &plan.constraints {
-                let range = constraint.named.span.range(&doc.text);
+                let range = constraint.named.span.range(doc);
                 entries.push(symbol(
                     constraint.named.name.clone(),
                     constraint.source.clone(),
@@ -256,7 +256,7 @@ pub fn document_symbols(
         if let Some(table) = table {
             let t = doc.tables.iter().position(|t| t.definition == i).unwrap();
             for (c, named) in table.columns.iter().enumerate() {
-                let range = named.span.range(&doc.text);
+                let range = named.span.range(doc);
                 let column = Symbol::new(path, SymbolKind::Column(t, c));
                 entries.push(symbol(
                     named.name.clone(),

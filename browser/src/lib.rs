@@ -257,7 +257,7 @@ impl BrowserWorkspace {
                 }
                 if method == "prepareRename" {
                     return Ok(
-                        json!({"range":span.range(&doc.text),"placeholder":ws.named(&symbol).name}),
+                        json!({"range":span.range(doc),"placeholder":ws.named(&symbol).name}),
                     );
                 }
                 let locations: Vec<Location> = occurrences(ws, &symbol)

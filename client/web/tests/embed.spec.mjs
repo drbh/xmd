@@ -26,3 +26,39 @@ test("another origin can mount a live editor with a few lines", async ({ page })
     expect(await page.evaluate(() => document.fonts.check('14px "Ioskeley Mono"'))).toBe(true);
   } finally { other.close(); }
 });
+
+// A page may mount into an element before putting it in the document; the
+// chips still have to land on their lines once it is there.
+test("code lens chips find their lines when the editor was mounted before it was attached", async ({ page }) => {
+  await page.goto("/embed/");
+  await page.evaluate(async () => {
+    document.body.innerHTML = "<div style='height: 300px'></div>";
+    const { mountEditor } = await import("/lib/adapters/contenteditable.js");
+    const host = document.createElement("div");
+    await mountEditor(host, { source: "- [ ] Pack\nfocus := countdown(25m)\n" });
+    document.body.append(host);
+  });
+  await expect(page.locator(".xmd-lenses")).toHaveCount(2);
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll(".xmd-lenses")].map(group => {
+    const line = group.parentElement.parentElement.querySelector(`.line[data-line="${group.dataset.line}"]`);
+    const boxes = line.getClientRects();
+    return Math.abs(Math.round(group.getBoundingClientRect().top - boxes[boxes.length - 1].top));
+  }))).toEqual([0, 0]);
+});
+
+// An edit repaints after a round trip to the engine; focus someone moved to
+// another control in the meantime stays there.
+test("an edit's repaint does not take focus back from another control", async ({ page }) => {
+  await page.goto("/embed/");
+  const typed = await page.evaluate(async () => {
+    document.body.innerHTML = "<input id='title'><div id='note'></div>";
+    const { mountEditor } = await import("/lib/adapters/contenteditable.js");
+    const view = await mountEditor(document.querySelector("#note"), { source: "rent := $900\n" });
+    view.select(0);
+    const edit = view.replaceRange(0, 4, "lease");
+    document.querySelector("#title").focus();
+    await edit;
+    return document.activeElement.id;
+  });
+  expect(typed).toBe("title");
+});

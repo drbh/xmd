@@ -8,6 +8,8 @@
 - notes that are mostly prose with no numbers are fine as plain markdown
 
 that's the tour. `lang/examples` has a note per feature, `lang/stdlib` is
-the standard library, and `xmd --help` lists every command
+the standard library, [the reference](README.md#reference) lists every
+function, library and query collection, and `xmd --help` lists every
+command
 
 back to the [readme](../README.md)

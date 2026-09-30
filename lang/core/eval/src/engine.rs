@@ -390,7 +390,7 @@ impl<'a> Engine<'a> {
                     .workspace
                     .documents
                     .get(path)
-                    .map(|doc| base.relative(&doc.text, bounds.0, bounds.1))
+                    .map(|doc| base.relative(doc, bounds.0, bounds.1))
                     .unwrap_or_else(|| {
                         Span::new(base.line, base.start + bounds.0, base.start + bounds.1)
                     }),

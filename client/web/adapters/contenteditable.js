@@ -83,9 +83,15 @@ export async function mountEditor(element, options = {}) {
     const source = view.getSource();
     if (!(start >= 0 && start <= end && end <= source.length)) throw new Error("Invalid range");
     lastSelection = selectionOf(target);
+    const focused = target.ownerDocument.activeElement;
     await localSet(source.slice(0, start) + text + source.slice(end));
     await view.refresh();
-    if (!view.destroyed) select(after.anchor, after.focus ?? after.anchor);
+    if (view.destroyed) return;
+    // The repaint takes a round trip to the engine; if the person has moved
+    // on to another control meanwhile, leave their focus where it is.
+    const now = target.ownerDocument.activeElement;
+    if (now !== focused && now !== target && now !== target.ownerDocument.body) return;
+    select(after.anchor, after.focus ?? after.anchor);
   }
   /** Apply edits made elsewhere (old-source coordinates, ascending, non-overlapping), keeping the local selection in place. */
   function applyEdits(edits) {

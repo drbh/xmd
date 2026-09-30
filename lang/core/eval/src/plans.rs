@@ -55,8 +55,8 @@ impl PlanValue {
                                 document: common::file_url(&symbol.path).ok()?.to_string(),
                                 source: cell.source.clone(),
                                 line: cell.span.line,
-                                anchor: geometry(cell.span.range(&doc.text).end),
-                                range: geometry(Span::new(cell.span.line, a, b).range(&doc.text)),
+                                anchor: geometry(cell.span.range(doc).end),
+                                range: geometry(Span::new(cell.span.line, a, b).range(doc)),
                                 width: (b - a).saturating_sub(2),
                             })
                         })
@@ -83,7 +83,7 @@ impl PlanValue {
                         let doc = &ws.documents[&self.origin.path];
                         (
                             geometry(doc.line_end(constraint.span.line)),
-                            geometry(constraint.span.range(&doc.text)),
+                            geometry(constraint.span.range(doc)),
                         )
                     });
                 ConstraintRecord {
@@ -156,7 +156,7 @@ pub(crate) fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> EvalResult<Value
     let body = model::plans::seek_body(&def.source).ok_or(EvalError::Message(
         "solve() needs a constraint, e.g. solve(total >= $500)".into(),
     ))?;
-    let raw = def.value_span.source(&doc.text);
+    let raw = def.value_span.source(doc);
     let offset = def.value_span.start + raw.len() - raw.trim_start().len();
     let start = offset + def.source.find(body).unwrap_or(0);
     let span = Span::new(def.value_span.line, start, start + body.len()).relative(

@@ -44,7 +44,7 @@ fn reference_hover(
 ) -> Hover {
     let doc = &request.workspace().documents()[path];
     let mut value = symbol_hover(request, symbol);
-    let mut range = span.range(&doc.text);
+    let mut range = span.range(doc);
     if let Some(reference) = doc
         .references
         .iter()
@@ -56,7 +56,7 @@ fn reference_hover(
             .map(|v| v.display())
             .unwrap_or_else(|e| e.to_string());
         value = format!("{} = {preview}\n\n{value}", reference.expression());
-        range = Span::new(span.line, span.start, reference.end()).range(&doc.text);
+        range = Span::new(span.line, span.start, reference.end()).range(doc);
     }
     Hover {
         contents: HoverContents::Markup(markup(value)),
@@ -134,7 +134,7 @@ fn task_hover(
     ]);
     Some(Hover {
         contents: HoverContents::Markup(markup(engine.present("task", "hover", vec![record]))),
-        range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(&doc.text)),
+        range: Some(Span::new(task.line, 0, doc.line(task.line).len()).range(doc)),
     })
 }
 
@@ -164,7 +164,7 @@ fn link_hover(
         contents: HoverContents::Markup(markup(
             resource.presentation(&mut request.engine(), path).hover,
         )),
-        range: Some(link.span.range(&doc.text)),
+        range: Some(link.span.range(doc)),
     })
 }
 
@@ -443,7 +443,7 @@ fn calculation_hover(
                 calculation.span.start - usize::from(calculation.bracketed),
                 calculation.span.end + usize::from(calculation.bracketed),
             )
-            .range(&doc.text),
+            .range(doc),
         ),
     })
 }
@@ -480,6 +480,6 @@ fn cell_hover(
     };
     Some(Hover {
         contents: HoverContents::Markup(markup(text)),
-        range: Some(cell.span.range(&doc.text)),
+        range: Some(cell.span.range(doc)),
     })
 }

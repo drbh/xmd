@@ -566,7 +566,7 @@ impl LanguageServer for Backend {
             .enumerate()
             .filter(|(_, (p, _))| *p == path)
             .map(|(i, (_, span))| DocumentHighlight {
-                range: span.range(&doc.text),
+                range: span.range(doc),
                 kind: Some(if i == 0 {
                     DocumentHighlightKind::WRITE
                 } else {

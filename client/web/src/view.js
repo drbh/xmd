@@ -19,8 +19,6 @@ export async function mount(element, options = {}) {
   if (controls) {
     controls.className = "xmd-controls";
     view.after(controls);
-    const host = view.parentElement;
-    if (host && getComputedStyle(host).position === "static") host.style.position = "relative";
   }
   let placer = null;
   const error = e => { if (!dead) options.onError?.(e); };
@@ -62,7 +60,10 @@ export async function mount(element, options = {}) {
   function placeLenses() {
     if (!controls) return;
     const host = view.parentElement;
-    if (!host) return;
+    if (!host?.isConnected) return;
+    // The host is the chips' positioning box. Checked here, not at mount: an
+    // element not yet in the page has no computed position to read.
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
     const origin = host.getBoundingClientRect();
     for (const group of controls.children) {
       const line = view.querySelector(`.line[data-line="${group.dataset.line}"]`);

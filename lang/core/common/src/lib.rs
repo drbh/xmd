@@ -15,5 +15,5 @@ pub use notes::{
 };
 pub use paths::{file_path, file_url, uri, uri_from_url, url_from_uri};
 pub use resource::Resource;
-pub use span::Span;
+pub use span::{LineIndex, Lines, Span};
 pub use values::{Code, Currency, ValueType, is_code};

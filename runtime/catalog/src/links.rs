@@ -39,7 +39,7 @@ pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut V
                     RecordKind::Link,
                     &link.target,
                     link.span,
-                    Some(link.span.range(&doc.text).end),
+                    Some(link.span.range(doc).end),
                 ),
                 url: link.target.clone(),
             },

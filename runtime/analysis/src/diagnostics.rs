@@ -212,7 +212,7 @@ pub fn collect_native(
         editing
             && doc.definitions.iter().any(|d| {
                 d.expression
-                    && (d.named.span.line == span.line || d.value_span.contains(&doc.text, span))
+                    && (d.named.span.line == span.line || d.value_span.contains(doc, span))
                     && incomplete(&d.source)
             })
     };
@@ -275,7 +275,7 @@ pub fn collect_native(
             && ws.documents().get(&failure.path).is_some_and(|dependency| {
                 dependency.definitions.iter().any(|d| {
                     d.expression
-                        && d.value_span.contains(&dependency.text, failure.span)
+                        && d.value_span.contains(dependency, failure.span)
                         && incomplete(&d.source)
                 })
             });

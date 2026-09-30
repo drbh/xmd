@@ -138,10 +138,7 @@ fn recur(
     let next = next_occurrence(recurrence, anchor, today.max(due))?;
     let mut edits = Vec::new();
     if let Some(attr) = task.attributes.get("due") {
-        edits.push(TextEdit::new(
-            attr.value_span.range(&doc.text),
-            next.to_string(),
-        ));
+        edits.push(TextEdit::new(attr.value_span.range(doc), next.to_string()));
     }
     let mut suffix = String::new();
     if !task.attributes.contains_key("due") {
@@ -185,12 +182,12 @@ fn check(doc: &Document, indices: &[usize], done: bool, today: NaiveDate) -> Vec
         let task = &doc.tasks[i];
         let span = Span::new(task.line, task.checkbox.start + 1, task.checkbox.start + 2);
         edits.push(TextEdit::new(
-            span.range(&doc.text),
+            span.range(doc),
             if done { " ".into() } else { "x".into() },
         ));
         if let Some(attr) = task.attributes.get("completed") {
             edits.push(TextEdit::new(
-                attr.span.range(&doc.text),
+                attr.span.range(doc),
                 if done {
                     String::new()
                 } else {
@@ -220,7 +217,7 @@ pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path
         .filter_map(|(_, a)| {
             lang::eval::engine::relative_date(&a.value, today)
                 .and_then(|_| engine.when(path, &a.value).ok())
-                .map(|v| TextEdit::new(a.value_span.range(&doc.text), v.display()))
+                .map(|v| TextEdit::new(a.value_span.range(doc), v.display()))
         })
         .collect()
 }

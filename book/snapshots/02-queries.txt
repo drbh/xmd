@@ -1,0 +1,13 @@
+=== $ cat trip.x.md | xmd 'total'                                     #=> $1,301
+$1,301
+=== $ xmd trip.x.md 'tasks | filter(fn(t) => !t.done) | map(.{title, due})' --json
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-11-06"
+    },
+    "title": "Pack"
+  }
+]
+=== $ xmd --workspace 'diagnostics' --fail-on-match

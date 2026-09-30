@@ -10,7 +10,8 @@
 /// and the editing features and session (`editor`).
 pub mod services {
     pub use ::analysis::{
-        flat_symbols, folding_ranges, occurrences, severity_name, signature, symbol_at,
+        BUILTINS, Outcome, Signature, flat_symbols, folding_ranges, occurrences, severity_name,
+        signature, symbol_at,
     };
     pub use ::catalog::{Query, display};
     pub use ::editor::{

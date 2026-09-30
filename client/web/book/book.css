@@ -1,0 +1,37 @@
+/* The book's pages. The notes use lib/theme/style.css; this is the prose
+   around them. Dark by default like the theme; .xmd-light on <html> when the
+   system prefers light. */
+:root {
+  --ink: #e6e6e6; --muted: #a0a6ad; --paper: #1b1d21; --rule: #33373e;
+  --code: #24272c; --link: #8ab4f8;
+  color-scheme: dark;
+}
+:root.xmd-light {
+  --ink: #1f1f1f; --muted: #5f6368; --paper: #ffffff; --rule: #e3e6ea;
+  --code: #f6f8fa; --link: #185abc;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.65 system-ui, -apple-system, sans-serif; }
+header, main, .pager { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+header { display: flex; justify-content: space-between; padding-top: 20px; padding-bottom: 20px; font-size: 15px; }
+header a:first-child { font-weight: 600; color: var(--ink); }
+a { color: var(--link); }
+h1 { font-size: 2em; line-height: 1.2; margin: 0.6em 0 0.5em; }
+h2 { margin-top: 1.8em; border-bottom: 1px solid var(--rule); padding-bottom: 0.2em; }
+h3 { margin-top: 1.6em; font-size: 1.05em; }
+h3 code { font-size: 1em; }
+code { font: 0.88em/1.5 "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 0.1em 0.3em; border-radius: 4px; }
+pre.code { background: var(--code); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow-x: auto; }
+pre.code code { background: none; padding: 0; }
+.xmd-block { display: flex; flex-direction: column; margin: 1.2em 0; }
+.xmd-block .xmd-live { border: 1px solid var(--rule); border-radius: 8px; }
+.xmd-block .xmd-live .xmd { margin: 0; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.xmd-block .xmd-live .xmd .inlay { white-space: pre-wrap; }
+.xmd-block .reset { align-self: flex-end; margin-top: 6px; height: 26px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 13px; background: var(--paper); color: var(--muted); font: 500 12px system-ui, sans-serif; cursor: pointer; }
+.xmd-block .reset:hover { color: var(--ink); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+img { max-width: 100%; height: auto; }
+.pager { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 20px; padding-bottom: 48px; border-top: 1px solid var(--rule); }
+.pager a[rel="next"] { margin-left: auto; text-align: right; }

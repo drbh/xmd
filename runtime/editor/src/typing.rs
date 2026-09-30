@@ -65,7 +65,7 @@ fn padding_edits(doc: &Document, row: usize, formatted: &str) -> Vec<TextEdit> {
         .filter(|(a, b)| a.2 && line[a.0..a.1] != formatted[b.0..b.1])
         .map(|(a, b)| {
             TextEdit::new(
-                Span::new(row, a.0, a.1).range(&doc.text),
+                Span::new(row, a.0, a.1).range(doc),
                 formatted[b.0..b.1].into(),
             )
         })

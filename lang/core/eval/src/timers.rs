@@ -150,7 +150,7 @@ pub fn edit_timer(
             now,
         )?
         .display();
-    let raw = def.value_span.source(&doc.text);
+    let raw = def.value_span.source(doc);
     let leading = &raw[..raw.len() - raw.trim_start().len()];
     let trailing = &raw[raw.trim_end().len()..];
     let text = format!("{leading}{expression}{trailing}");

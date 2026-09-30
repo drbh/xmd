@@ -307,7 +307,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             json!({"year":day.year,"month":day.month,"day":day.day}),
         );
         for stop in &day.stops {
-            let child = syntax.add("stop", syntax.block(stop.line, stop.end_line), Some(node), json!({"title":stop.title,"time":stop.time.to_string(),"marker":stop.marker_span.map(|s| s.source(&doc.text))}));
+            let child = syntax.add("stop", syntax.block(stop.line, stop.end_line), Some(node), json!({"title":stop.title,"time":stop.time.to_string(),"marker":stop.marker_span.map(|s| s.source(doc))}));
             for detail in &stop.details {
                 syntax.add(
                     "detail",

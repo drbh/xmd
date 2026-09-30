@@ -1,0 +1,3 @@
+=== wordcount.xmd
+module := {api: 1, id: "wordcount", kind: "feature", inputs: {notes: ["anchor", "text"]}} = {"api": 1, "id": "wordcount", "inputs": {"notes": ["anchor", "text"]}, "kind": "feature"}
+collect := fn(ctx) => map(ctx.document.notes, fn(n) => {at: n.anchor, label: "hi"}) = <function>

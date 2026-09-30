@@ -47,7 +47,7 @@ pub(super) fn timers(
             (
                 d.named.name.as_str(),
                 d.named.span.line,
-                d.end.range(&doc.text).start,
+                d.end.range(doc).start,
                 true,
                 d.expression,
             )
@@ -61,7 +61,7 @@ pub(super) fn timers(
             (
                 &*r.name,
                 r.span.line,
-                Span::new(r.span.line, end, end).range(&doc.text).end,
+                Span::new(r.span.line, end, end).range(doc).end,
                 false,
                 r.bracket && r.property.is_none(),
             )

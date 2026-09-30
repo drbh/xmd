@@ -16,12 +16,16 @@ env:
   CARGO_TERM_COLOR: always
   # The snapshot suite freezes the clock and records transcripts assuming UTC.
   TZ: UTC
+  # The end-to-end tests start the xmd binary hundreds of times, and an
+  # unoptimized engine makes each start about 5x slower: a light
+  # optimization level cuts the suite from ~9 minutes to ~2 on a runner.
+  CARGO_PROFILE_DEV_OPT_LEVEL: 1
 
 jobs:
   rust:
     name: Rust (fmt, clippy, tests)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       # The action needs the version spelled out; keep it equal to rust-toolchain.toml.
@@ -34,12 +38,12 @@ jobs:
         run: cargo fmt --all --check
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Build
-        run: cargo build
+      # One run covers every case: the browser feature only adds the cases
+      # that drive the browser host. The wasm job builds without it.
+      # --workspace also runs the crates' own unit tests, which the default
+      # member (cli) alone would skip.
       - name: Test
-        run: cargo test
-      - name: Test (browser feature)
-        run: cargo test -p xmd --features browser
+        run: cargo test --workspace --features xmd/browser
 
   wasm:
     name: WASM and web

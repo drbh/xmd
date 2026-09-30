@@ -78,7 +78,7 @@ pub(super) fn decisions(
                     RecordKind::Decision,
                     name,
                     table_doc.line_span(cell.span.line),
-                    Some(cell.span.range(&table_doc.text).end),
+                    Some(cell.span.range(table_doc).end),
                 );
                 records.push(Record::typed(
                     &row.table.path,
@@ -159,7 +159,7 @@ pub(super) fn definitions(
             },
             &def.named.name,
             doc.line_span(def.named.span.line),
-            Some(def.end.range(&doc.text).end),
+            Some(def.end.range(doc).end),
         );
         let mut r = Record::typed(
             path,

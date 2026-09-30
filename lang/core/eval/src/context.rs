@@ -64,16 +64,13 @@ impl<'a> RequestContext<'a> {
     pub fn today(&self) -> NaiveDate {
         self.clock.today()
     }
-    pub fn clock(&self) -> Clock {
-        self.clock
-    }
     pub fn link_features(&self) -> LinkFeatures<'a> {
         self.links
     }
     pub fn engine(&self) -> Engine<'a> {
         Engine::in_request(self)
     }
-    pub fn with_link_features(mut self, links: LinkFeatures<'a>) -> Self {
+    pub(crate) fn with_link_features(mut self, links: LinkFeatures<'a>) -> Self {
         self.links = links;
         self.memo = Default::default();
         self

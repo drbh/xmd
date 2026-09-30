@@ -1,10 +1,10 @@
 //! Linear plans: `[name] := maximize(expr)` followed by a constraint table.
-//! Parsing only: solving one, and the `PlanValue` a note computes, is
-//! `evaluate::plans`, one layer up.
-use crate::{
-    document::{Document, Named, Problem, identifier},
-    tables::{Cell, Table},
-};
+//! Recognizing one is reading the table rows under a goal definition.
+//! Solving one, and the `PlanValue` a note computes, is `evaluate::plans`,
+//! one layer up.
+use crate::blocks::{Definition, HighlightKind, Named, Problem, Tree, cells, identifier};
+use crate::document::Document;
+use crate::tables::{Cell, Table};
 use common::Span;
 use syntax::Literal;
 
@@ -74,10 +74,70 @@ pub fn goal(source: &str) -> Option<(Goal, usize, usize)> {
     None
 }
 
-pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
-    let def = &doc.definitions[definition];
+/// A goal definition on `row` and the constraint table under it. Returns
+/// how many rows below `row` the plan took.
+pub(crate) fn recognize(
+    tree: &mut Tree,
+    doc: &mut Document,
+    lines: &[&str],
+    row: usize,
+) -> Option<usize> {
+    let index = tree.opened(row)?;
+    goal(&tree.definitions[index].source)?;
+    let mut plan = parse(&tree.text, &tree.definitions[index], index, lines);
+    let end_line = plan.end_line;
+    for column in &plan.columns {
+        tree.mark(
+            column.span.line,
+            column.span.start,
+            column.span.end,
+            HighlightKind::Keyword,
+        );
+    }
+    for constraint in &plan.constraints {
+        let n = &constraint.named;
+        tree.mark(
+            n.span.line,
+            n.span.start,
+            n.span.end,
+            HighlightKind::Variable,
+        );
+        tree.expression(
+            lines[constraint.span.line],
+            constraint.span.line,
+            constraint.span.start,
+            constraint.span.end,
+        );
+    }
+    for reference in &tree.references {
+        // Column names inside sum(table, ...) belong to the table.
+        let in_sum = regions(&plan).any(|region| {
+            region.contains(tree, reference.span)
+                && syntax::sum_scope_at(
+                    region.source(tree),
+                    region.offset_of(tree, reference.span).unwrap_or(0),
+                )
+                .is_some()
+        });
+        if contains(&plan, reference.span, &tree.text)
+            && reference.property.is_none()
+            && !in_sum
+            && !plan.names.iter().any(|n| n.name == reference.name)
+        {
+            plan.names.push(Named {
+                name: reference.name.clone(),
+                span: reference.span,
+            });
+        }
+    }
+    tree.problems.extend(plan.problems.clone());
+    doc.plans.push(plan);
+    Some(end_line.saturating_sub(row + 1))
+}
+
+fn parse(text: &str, def: &Definition, definition: usize, lines: &[&str]) -> Plan {
     let (goal, inner_start, inner_end) = goal(&def.source).unwrap();
-    let offset = def.expression_span(&doc.text).start;
+    let offset = def.expression_span(text).start;
     let header = def.end.line + 1;
     let objective = &def.source[inner_start..inner_end];
     let objective_start = inner_start + objective.len() - objective.trim_start().len();
@@ -87,7 +147,7 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
         goal,
         objective: objective.into(),
         objective_span: Span::new(def.value_span.line, offset, offset).relative(
-            &doc.text,
+            text,
             objective_start,
             objective_start + objective.len(),
         ),
@@ -106,10 +166,7 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
             format!("{}() needs an objective expression", goal.keyword()),
         );
     }
-    let Some(headers) = lines
-        .get(header)
-        .and_then(|l| crate::tables::cells(l, header))
-    else {
+    let Some(headers) = lines.get(header).and_then(|l| cells(l, header)) else {
         problem(
             def.value_span,
             "A plan needs a | constraint | expression | table on the next line".into(),
@@ -127,10 +184,7 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
         .map(|(name, span)| Named { name, span })
         .collect();
     plan.end_line = header + 1;
-    if let Some(parts) = lines
-        .get(header + 1)
-        .and_then(|l| crate::tables::cells(l, header + 1))
-    {
+    if let Some(parts) = lines.get(header + 1).and_then(|l| cells(l, header + 1)) {
         plan.end_line = header + 2;
         plan.separators = parts.iter().map(|(s, _)| s.clone()).collect();
         if parts.len() != plan.columns.len()
@@ -156,7 +210,7 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
     {
         let row = plan.end_line;
         plan.end_line += 1;
-        let Some(parts) = crate::tables::cells(line, row) else {
+        let Some(parts) = cells(line, row) else {
             problem(
                 Span::new(row, 0, line.len()),
                 "Unclosed table row; use outer | delimiters".into(),
@@ -203,7 +257,7 @@ pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Plan {
 pub fn regions(plan: &Plan) -> impl Iterator<Item = Span> + '_ {
     std::iter::once(plan.objective_span).chain(plan.constraints.iter().map(|c| c.span))
 }
-pub(crate) fn contains(plan: &Plan, span: Span, text: &str) -> bool {
+fn contains(plan: &Plan, span: Span, text: &str) -> bool {
     regions(plan).any(|r| r.contains(text, span))
 }
 /// The plan's rows as a table, so formatting and format-on-type align them.

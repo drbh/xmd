@@ -97,7 +97,7 @@ impl HostObject for TableValue {
         format!("{} rows · {} columns", self.rows.len(), self.columns.len())
     }
     fn query(&self) -> Option<Value> {
-        Some(Value::List(self.named_rows().map(Value::Record).collect()))
+        Some(Value::list(self.named_rows().map(Value::record).collect()))
     }
 }
 impl HostObject for PlanValue {
@@ -119,11 +119,11 @@ impl HostObject for PlanValue {
             ("objective", self.objective.clone()),
             (
                 "variables",
-                Value::Record(self.variables.iter().cloned().collect()),
+                Value::record(self.variables.iter().cloned().collect()),
             ),
             (
                 "constraints",
-                Value::List(self.constraints.iter().map(ToValue::to_value).collect()),
+                Value::list(self.constraints.iter().map(ToValue::to_value).collect()),
             ),
         ]))
     }

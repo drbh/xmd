@@ -2,11 +2,14 @@
 //! as queries and returns data only, and this adapter validates every
 //! position and edit it proposes.
 use crate::{
-    commands::{Action, Capabilities},
+    commands::{
+        self, Action, ActionProvider, Capabilities, CommandId, NOT_MINE, Prepared, Proposal,
+        SOURCE_CHANGED,
+    },
     inlays::{InlayContext, InlaySink},
 };
+use catalog::View;
 use chrono::{DateTime, FixedOffset, NaiveDate};
-use lang::eval::RequestContext;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::modules::{Collection, Hook, Module, ModuleKind, from_json, json};
 use lang::eval::{ToValue, record};
@@ -15,7 +18,11 @@ use lsp_types::{
     Command, Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
     NumberOrString, Position, Range, TextEdit,
 };
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 record! {
     /// The note a hook is looking at, with the record collections it declared
@@ -95,7 +102,7 @@ impl ToValue for HookInput {
                 .to_value(),
             );
         }
-        Value::Record(fields)
+        Value::record(fields)
     }
 }
 
@@ -142,16 +149,10 @@ impl TryFrom<(&Bounds<'_>, Value)> for InlayHint {
     }
 }
 
-/// One action a module proposed for a line, before its capabilities and
-/// source are checked.
-struct ActionProposal {
-    line: usize,
-    title: String,
-    action: Action,
-}
-impl TryFrom<(&Bounds<'_>, Value)> for ActionProposal {
-    type Error = String;
-    fn try_from((bounds, value): (&Bounds<'_>, Value)) -> Result<Self, String> {
+/// Decode one action a module proposed for a line, before its capabilities
+/// and source are checked.
+fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Proposal, String> {
+    {
         let Value::Record(fields) = value else {
             return Err("Each action must be a record".into());
         };
@@ -168,7 +169,7 @@ impl TryFrom<(&Bounds<'_>, Value)> for ActionProposal {
         let action: Action =
             serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
                 .map_err(|e| e.to_string())?;
-        Ok(Self {
+        Ok(Proposal {
             line,
             title: title.clone(),
             action,
@@ -196,8 +197,13 @@ impl TryFrom<serde_json::Value> for HoverItem {
     }
 }
 
+/// What `module`'s hooks are handed for the note at `path`. Each declared
+/// collection comes from the request's shared records, narrowed to the fields
+/// the module asked for, and `engine` is marked with whatever clock reading
+/// they took.
 pub(crate) fn input(
     module: &Module,
+    request: &crate::Request<'_>,
     engine: &mut Engine<'_>,
     path: &Path,
 ) -> Result<HookInput, String> {
@@ -210,34 +216,30 @@ pub(crate) fn input(
         collections: BTreeMap::new(),
     };
     for collection in &module.inputs {
-        let records = catalog::collect(
-            engine.workspace(),
-            *collection,
-            engine,
-            Some(path),
-            |request, path| analysis::collect_native(request, path, false),
-        )?;
-        let values = Value::List(
-            records
-                .into_iter()
-                .map(|mut r| {
-                    if let Some(fields) = module.fields.get(collection) {
-                        fields
-                            .iter()
-                            .map(|key| Ok((key.clone(), r.field(key, engine)?)))
-                            .collect::<Result<_, String>>()
-                            .map(Value::Record)
-                    } else {
-                        Ok(r.materialize(engine))
-                    }
+        let view = match module.fields.get(collection) {
+            Some(fields) => View::Fields(fields),
+            None => View::Full,
+        };
+        let read = |engine: &mut Engine<'_>, view| {
+            request
+                .records
+                .view(engine, Some(path), *collection, view, |request, path| {
+                    analysis::collect_native(request, path, false)
                 })
-                .collect::<Result<_, String>>()?,
-        );
+        };
+        let mut values = read(engine, view)?;
+        if *collection == Collection::Recognized {
+            // A module sees only its own recognizers' matches. Which module
+            // made a match is read off the full records, which a narrowed
+            // view may leave out.
+            let full = read(engine, View::Full)?;
+            values = own(&values, &full, &module.id);
+        }
         if *collection == Collection::Values {
             // Preserve the original API's alias; all new fields come from the catalog.
             let mut definitions = values.clone();
             if let Value::List(items) = &mut definitions {
-                for item in items {
+                for item in Arc::make_mut(items) {
                     if let Value::Record(fields) = item {
                         let error = match fields.get("errors") {
                             Some(Value::List(errors)) => {
@@ -245,7 +247,7 @@ pub(crate) fn input(
                             }
                             _ => Value::Null,
                         };
-                        fields.insert("error".into(), error);
+                        Arc::make_mut(fields).insert("error".into(), error);
                     }
                 }
             }
@@ -269,6 +271,26 @@ pub(crate) fn input(
     })
 }
 
+/// The items of `values` whose record in `full`, the same list unnarrowed,
+/// was made by module `id`.
+fn own(values: &Value, full: &Value, id: &str) -> Value {
+    let (Value::List(values), Value::List(full)) = (values, full) else {
+        return values.clone();
+    };
+    let mine = |record: &Value| {
+        matches!(record, Value::Record(fields)
+            if matches!(fields.get("module"), Some(Value::Text(module)) if module == id))
+    };
+    Value::list(
+        values
+            .iter()
+            .zip(full.iter())
+            .filter(|(_, record)| mine(record))
+            .map(|(value, _)| value.clone())
+            .collect(),
+    )
+}
+
 /// The note a hook's items are checked against, measured once per call
 /// rather than once per item.
 struct Bounds<'a> {
@@ -284,7 +306,7 @@ impl<'a> Bounds<'a> {
             lines: document.text.lines().count(),
         }
     }
-    fn of(request: &RequestContext<'a>, path: &Path) -> Self {
+    fn of(request: &crate::Request<'a>, path: &Path) -> Self {
         Self::new(&request.workspace().documents()[path])
     }
     /// Whether `range` lies within the note on UTF-16 boundaries: what
@@ -310,13 +332,16 @@ fn hook_items<T>(
     let Value::List(items) = module.call(hook, vec![input.to_value()], now)? else {
         return Err(format!("{hook} must return a list"));
     };
-    items.into_iter().map(decode).collect()
+    Arc::unwrap_or_clone(items)
+        .into_iter()
+        .map(decode)
+        .collect()
 }
 /// Call one data-only hook, when the module defines it, and decode its items
 /// once every one of them has converted to JSON.
 fn json_items<T>(
     module: &Module,
-    request: &RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     hook: Hook,
     decode: impl FnMut(serde_json::Value) -> Result<T, String>,
@@ -324,7 +349,7 @@ fn json_items<T>(
     if !module.has(hook) {
         return Ok(vec![]);
     }
-    let input = input(module, &mut request.engine(), path)?;
+    let input = input(module, request, &mut request.engine(), path)?;
     hook_items(module, hook, &input, request.now(), |item| Ok(json(&item)?))?
         .into_iter()
         .map(decode)
@@ -338,7 +363,7 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
         return;
     }
     let document = context.document;
-    let result = input(module, context.engine, context.path).and_then(|input| {
+    let result = input(module, context.request, context.engine, context.path).and_then(|input| {
         let input = input.with_range(context.range);
         let now = context.engine.now();
         if module.has(Hook::TimeDependent) {
@@ -372,42 +397,29 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
     }
 }
 /// Actions are proposals, each for one line of the note, gathered in one call.
-/// Preparation validates capabilities and source before exposing controls,
-/// and a line's controls stand or fall together; the host repeats validation
-/// against the execution snapshot. What is withheld is reported by
-/// [`control_problems`].
+/// Each is checked with `check` (its owner's preparation) before it is
+/// exposed, and a line's controls stand or fall together; the host repeats
+/// validation against the execution snapshot. Gives each line's controls, or
+/// why that line's are withheld; `Err` when the hook itself fails.
 pub(crate) fn controls(
     module: &Module,
-    request: &RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     capabilities: Capabilities,
-) -> BTreeMap<usize, Vec<Command>> {
-    checked_controls(module, request, path, capabilities)
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|(line, commands)| Some((line, commands.ok()?)))
-        .collect()
-}
-/// Each line's controls, or why that line's are withheld; `Err` when the
-/// hook itself fails.
-fn checked_controls(
-    module: &Module,
-    request: &RequestContext<'_>,
-    path: &Path,
-    capabilities: Capabilities,
+    check: &dyn Fn(&Action) -> Result<(), String>,
 ) -> Result<BTreeMap<usize, Result<Vec<Command>, String>>, String> {
     if !module.has(Hook::Actions) {
         return Ok(BTreeMap::new());
     }
     let bounds = Bounds::of(request, path);
-    let proposals = input(module, &mut request.engine(), path).and_then(|input| {
+    let proposals = input(module, request, &mut request.engine(), path).and_then(|input| {
         let input = input.with_capabilities(capabilities);
-        hook_items(module, Hook::Actions, &input, request.now(), |proposal| {
-            ActionProposal::try_from((&bounds, proposal))
+        hook_items(module, Hook::Actions, &input, request.now(), |item| {
+            proposal(&bounds, item)
         })
     })?;
     let mut lines: BTreeMap<usize, Result<Vec<Command>, String>> = BTreeMap::new();
-    for ActionProposal {
+    for Proposal {
         line,
         title,
         action,
@@ -420,30 +432,21 @@ fn checked_controls(
         if !capabilities.supports(&action) {
             continue;
         }
-        let checked = if matches!(action, Action::Invoke { .. }) {
-            action.validate_invocation(request).map(drop)
-        } else {
-            action.prepare(request, capabilities).map(drop)
-        };
-        match checked {
+        match check(&action) {
             Ok(()) => commands.push(action.command(title)),
             Err(error) => *entry = Err(error),
         }
     }
     Ok(lines)
 }
-/// Why a module's controls are missing: a failing `actions` hook, or a line
-/// whose controls did not prepare. A lens has no disabled state, so the
-/// reason is a warning where the controls would be. Like the stdlib
-/// presentation checks, it runs only for a workspace with modules of its own.
+/// Why a module's controls are missing, from what [`controls`] gave with a
+/// native host's capabilities: a failing `actions` hook, or a line whose
+/// controls did not prepare. A lens has no disabled state, so the reason is
+/// a warning where the controls would be.
 pub(crate) fn control_problems(
     module: &Module,
-    request: &RequestContext<'_>,
-    path: &Path,
+    controls: Result<BTreeMap<usize, Result<Vec<Command>, String>>, String>,
 ) -> Vec<Diagnostic> {
-    if request.workspace().modules().only_bundled() {
-        return vec![];
-    }
     let warning = |range: Range, message: String| Diagnostic {
         range,
         severity: Some(DiagnosticSeverity::WARNING),
@@ -452,7 +455,7 @@ pub(crate) fn control_problems(
         message,
         ..Default::default()
     };
-    match checked_controls(module, request, path, Capabilities::NATIVE) {
+    match controls {
         // The error already names the module and hook.
         Err(error) => vec![warning(Range::default(), error)],
         Ok(lines) => lines
@@ -471,7 +474,7 @@ pub(crate) fn control_problems(
 /// A hook that fails is itself a diagnostic, naming the module.
 pub(crate) fn diagnostics(
     module: &Module,
-    request: &RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
 ) -> Vec<Diagnostic> {
     let mut bounds = None;
@@ -496,7 +499,7 @@ pub(crate) fn diagnostics(
 }
 pub(crate) fn hover(
     module: &Module,
-    request: &RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     at: Position,
 ) -> Option<Hover> {
@@ -521,7 +524,7 @@ pub(crate) fn hover(
 }
 pub(crate) fn edits(
     module: &Module,
-    request: &RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
 ) -> Result<Vec<TextEdit>, String> {
     json_items(module, request, path, Hook::Format, |item| {
@@ -529,14 +532,77 @@ pub(crate) fn edits(
     })
 }
 
-pub(crate) fn reduce(
-    request: &RequestContext<'_>,
+/// Feature modules own the invocation kind: a control a module proposed that
+/// runs its reducer when executed. The reducer answers with the concrete
+/// action the invocation stands for, which its own owner then prepares.
+pub(crate) struct Invocations;
+impl ActionProvider for Invocations {
+    fn kinds(&self) -> &'static [CommandId] {
+        &[CommandId::Invoke]
+    }
+    fn prepare(
+        &self,
+        request: &crate::Request<'_>,
+        action: &Action,
+        capabilities: Capabilities,
+    ) -> Result<Prepared, String> {
+        let Action::Invoke { event, .. } = action else {
+            return Err(NOT_MINE.into());
+        };
+        let (path, module) = invocation(request, action)?;
+        reduce(request, &path, module, event, capabilities).map(Prepared::Reduced)
+    }
+    /// A proposed invocation is checked without running its reducer.
+    fn check(
+        &self,
+        request: &crate::Request<'_>,
+        action: &Action,
+        _: Capabilities,
+    ) -> Result<(), String> {
+        invocation(request, action).map(drop)
+    }
+}
+/// The module an invocation still reaches, with the document it acts on.
+fn invocation<'a>(
+    request: &crate::Request<'a>,
+    action: &Action,
+) -> Result<(PathBuf, &'a Module), String> {
+    let Action::Invoke {
+        document,
+        expected,
+        module,
+        revision,
+        ..
+    } = action
+    else {
+        return Err("Expected a module invocation".into());
+    };
+    let (path, doc) = commands::document(request, document)?;
+    if doc.text != *expected {
+        return Err(SOURCE_CHANGED.into());
+    }
+    let module = request
+        .workspace()
+        .modules()
+        .get(module)
+        .ok_or("Module is no longer available")?;
+    if module.revision() != *revision {
+        return Err("Module changed; request fresh controls".into());
+    }
+    if !module.has(Hook::Reduce) {
+        return Err("Module has no reducer".into());
+    }
+    Ok((path, module))
+}
+fn reduce(
+    request: &crate::Request<'_>,
     path: &Path,
     module: &Module,
     event: &serde_json::Value,
     capabilities: Capabilities,
 ) -> Result<Action, String> {
-    let context = input(module, &mut request.engine(), path)?.with_capabilities(capabilities);
+    let context =
+        input(module, request, &mut request.engine(), path)?.with_capabilities(capabilities);
     let result = module.call(
         Hook::Reduce,
         vec![context.to_value(), from_json(event)],

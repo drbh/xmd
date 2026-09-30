@@ -4,6 +4,12 @@
 //! `values`. The text charts and the glyph vocabulary every label draws from
 //! live in the stdlib's `format` module.
 //!
+//! The engine (`engine`, `calls`, `linear`) evaluates expressions and the
+//! core special forms, and reaches every feature through `features`, the
+//! registry of feature evaluators: `plans`, `tables`, `timers`, `lookups` and
+//! `checklists` each register the definitions and built-ins they answer, and
+//! depend on the engine rather than the engine on them.
+//!
 //! `context` holds the one workspace snapshot, clock and memo a request
 //! evaluates against. The .xmd modules, their registry and the link-module
 //! contract are described in `modules`; `module_runtime` is how the
@@ -15,14 +21,17 @@
 //! `common` is not re-exported: the `lang` facade takes those from their own
 //! crates.
 mod calls;
+mod checklists;
 mod context;
 mod contract;
 mod engine;
+mod features;
 mod host;
 mod imports;
 #[path = "itinerary.rs"]
 mod itinerary_impl;
 mod linear;
+mod lookups;
 mod module_runtime;
 mod plans;
 mod resources;
@@ -67,7 +76,7 @@ pub mod tables {
 /// in each module's namespace.
 pub mod stdlib {
     pub use crate::contract::{
-        CONTRACT, Caller, Contract, Held, Presented, Role, Snapshot, contract, format,
-        itinerary_core, modules, plan, resource, shown, task, timer, today,
+        CONTRACT, Caller, Contract, Presented, Role, Snapshot, format, modules, plan, resource,
+        shown, task, today,
     };
 }

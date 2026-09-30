@@ -1,9 +1,8 @@
 //! Standalone HTML from the editor's semantic tokens, inlays, diagnostics and
 //! links: the one serializer the CLI's export and the browser share.
 use crate::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
-use crate::inlays::{self, FULL_RANGE};
+use crate::inlays::FULL_RANGE;
 use crate::links::document_links;
-use lang::eval::RequestContext;
 use lang::model::{Document, LineIndex};
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, DocumentLink, InlayHint, InlayHintLabel, InlayHintTooltip,
@@ -18,7 +17,7 @@ use std::{
 /// The note at `path` and every inline label the editor shows for it, at one
 /// clock snapshot.
 fn labelled<'a>(
-    request: &RequestContext<'a>,
+    request: &crate::Request<'a>,
     path: &Path,
 ) -> Result<(&'a Document, Vec<InlayHint>), String> {
     let doc = request.workspace().documents().get(path).ok_or_else(|| {
@@ -27,10 +26,13 @@ fn labelled<'a>(
             lang::common::EXTENSION
         )
     })?;
-    Ok((doc, inlays::collect(request, path, FULL_RANGE).hints))
+    Ok((
+        doc,
+        crate::providers::hints(request, path, FULL_RANGE).hints,
+    ))
 }
 
-pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<String, String> {
+pub(crate) fn html_for(request: &crate::Request<'_>, path: &Path) -> Result<String, String> {
     let (doc, hints) = labelled(request, path)?;
     let body = fragment(
         doc,
@@ -45,7 +47,7 @@ pub(crate) fn html_for(request: &RequestContext<'_>, path: &Path) -> Result<Stri
 }
 
 /// The source with the editor's inline labels written into it.
-pub(crate) fn rendered_text(request: &RequestContext<'_>, path: &Path) -> Result<String, String> {
+pub(crate) fn rendered_text(request: &crate::Request<'_>, path: &Path) -> Result<String, String> {
     let (doc, hints) = labelled(request, path)?;
     render_text(&doc.text, &hints)
 }

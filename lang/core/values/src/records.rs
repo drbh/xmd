@@ -14,7 +14,7 @@
 //! `DateTime<FixedOffset>` a `DateTime`, `NaiveDate` a `Date`, and `Value`
 //! itself passes through untouched. `Option<T>` is `Null`-or-`T`.
 use crate::error::{EvalError, EvalResult};
-use crate::value::Value;
+use crate::value::{Value, record};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use std::collections::BTreeMap;
 
@@ -83,7 +83,7 @@ impl<T: FromValue> FromValue for Option<T> {
 }
 impl<T: ToValue> ToValue for Vec<T> {
     fn to_value(&self) -> Value {
-        Value::List(self.iter().map(ToValue::to_value).collect())
+        Value::list(self.iter().map(ToValue::to_value).collect())
     }
 }
 impl<T: FromValue> FromValue for Vec<T> {
@@ -93,7 +93,7 @@ impl<T: FromValue> FromValue for Vec<T> {
 }
 impl<T: ToValue> ToValue for BTreeMap<String, T> {
     fn to_value(&self) -> Value {
-        Value::Record(
+        Value::record(
             self.iter()
                 .map(|(k, v)| (k.clone(), v.to_value()))
                 .collect(),
@@ -116,9 +116,25 @@ pub fn list(value: &Value) -> EvalResult<&[Value]> {
     }
 }
 
+/// JSON a module or a cache hands back, as module values. Every JSON number
+/// reads as a `Number`, whole or not, because module code does arithmetic on
+/// it; the catalog's own reading of query JSON keeps whole numbers as `Count`
+/// instead. [`json()`](crate::json) goes the other way and writes a whole, non-negative
+/// `Number` as an integer, so a round trip does not grow a `.0`.
+pub fn from_json(value: &serde_json::Value) -> Value {
+    match value {
+        serde_json::Value::Null => Value::Null,
+        serde_json::Value::Bool(v) => Value::Bool(*v),
+        serde_json::Value::Number(v) => Value::Number(v.as_f64().unwrap_or_default()),
+        serde_json::Value::String(v) => Value::Text(v.clone()),
+        serde_json::Value::Array(v) => Value::list(v.iter().map(from_json).collect()),
+        serde_json::Value::Object(v) => record(v.iter().map(|(k, v)| (k.as_str(), from_json(v)))),
+    }
+}
+
 /// A source range or position as a module reads it: a record of `Number`s.
 pub fn geometry(value: impl serde::Serialize) -> Value {
-    crate::value::from_json(&serde_json::json!(value))
+    from_json(&serde_json::json!(value))
 }
 
 /// A Rust struct a module or a query reads as a record.
@@ -170,7 +186,7 @@ macro_rules! record {
         }
         impl $crate::ToValue for $name {
             fn to_value(&self) -> $crate::Value {
-                $crate::Value::Record($crate::RecordFields::fields(self))
+                $crate::Value::record($crate::RecordFields::fields(self))
             }
         }
     };
@@ -226,9 +242,4 @@ impl FromValue for (String, Value) {
             fields.required("value")?,
         ))
     }
-}
-
-/// A record built from `(key, value)` pairs, keys written as `&str` or `String`.
-pub fn record<K: Into<String>>(fields: impl IntoIterator<Item = (K, Value)>) -> Value {
-    Value::Record(fields.into_iter().map(|(k, v)| (k.into(), v)).collect())
 }

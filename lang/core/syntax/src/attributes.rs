@@ -48,13 +48,13 @@ impl AttributeValue {
 /// Which lines take an attribute. A line with `@at` and no checkbox is an
 /// appointment; every other attribute belongs on a task.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Applies {
+pub(crate) enum Applies {
     Task,
     TaskOrAppointment,
 }
 impl Applies {
     /// How signature help and the reference name what the attribute is.
-    pub const fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::Task => "task attribute",
             Self::TaskOrAppointment => "task or appointment attribute",
@@ -98,10 +98,11 @@ macro_rules! attributes {
                     $(AttributeKey::$variant => AttributeValue::$value,)*
                 }
             }
-            /// Which lines take it.
-            pub const fn applies(self) -> Applies {
+            /// Which lines take it, as signature help and the reference
+            /// word it: a task attribute, or a task or appointment one.
+            pub const fn applies_to(self) -> &'static str {
                 match self {
-                    $(AttributeKey::$variant => Applies::$applies,)*
+                    $(AttributeKey::$variant => Applies::$applies.as_str(),)*
                 }
             }
             /// Its parameters, as signature help shows them.

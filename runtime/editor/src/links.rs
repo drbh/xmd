@@ -6,10 +6,7 @@ use lang::eval::{Symbol, SymbolKind};
 use lsp_types::DocumentLink;
 use std::path::Path;
 
-pub(crate) fn document_links(
-    request: &lang::eval::RequestContext<'_>,
-    path: &Path,
-) -> Vec<DocumentLink> {
+pub(crate) fn document_links(request: &crate::Request<'_>, path: &Path) -> Vec<DocumentLink> {
     let workspace = request.workspace();
 
     let Some(doc) = workspace.documents().get(path) else {

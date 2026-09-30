@@ -1,32 +1,16 @@
-use crate::commands::{Action, Capabilities};
-use crate::{providers, rows};
+//! Code actions: what a host offers over a range. The row's controls come
+//! from every provider; the task toggle as an edit, refactors, freezing
+//! relative dates and showing today are offered here.
+use crate::commands::{Action, Capabilities, TaskToggle, titled};
+use crate::{providers, tasks};
 use analysis::{CodeActionItem, refactors};
-use chrono::NaiveDate;
-use lang::common::Span;
-use lang::eval::engine::{Engine, next_occurrence};
-use lang::model::{Document, TaskState, end_position};
 use lang::syntax::{AttributeKey, AttributeValue};
 use lsp_types::{CodeActionKind, Range, TextEdit};
 use std::path::Path;
 
-// The attributes completing a task reads and writes, spelled by the table.
-const EVERY: &str = AttributeKey::Every.as_str();
-const DUE: &str = AttributeKey::Due.as_str();
-const REPEAT_FROM: &str = AttributeKey::RepeatFrom.as_str();
-const COMPLETED: &str = AttributeKey::Completed.as_str();
-
-/// How a host prefers to offer completing or reopening a task.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TaskToggle {
-    /// A command the host executes, listed with the row's other controls.
-    Command,
-    /// An edit the host applies itself, shown disabled when it is blocked.
-    Action,
-}
-
 /// Every action offered for one range, in the order a host should show them.
 pub(crate) fn code_actions(
-    request: &lang::eval::RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     range: Range,
     capabilities: Capabilities,
@@ -37,16 +21,16 @@ pub(crate) fn code_actions(
         return vec![];
     };
     let row = range.start.line as usize;
-    let mut result: Vec<_> = providers::controls(request, path, row, toggle, capabilities)
+    let mut result: Vec<_> = providers::row_controls(request, path, row, toggle, capabilities)
         .into_iter()
         .map(CodeActionItem::command)
         .collect();
     if toggle == TaskToggle::Action
         && let Some(i) = doc.tasks.iter().position(|t| t.line == row)
     {
-        let title = rows::task_toggle_title(&mut request.engine(), path, i);
+        let title = tasks::title(&mut request.engine(), path, i);
         let mut item = CodeActionItem::edit(title, CodeActionKind::REFACTOR_REWRITE, vec![]);
-        match toggle_task(request, path, i) {
+        match tasks::toggle(request, path, i) {
             Ok(edits) => item.edits = edits,
             Err(reason) => item.disabled = Some(reason),
         }
@@ -68,154 +52,16 @@ pub(crate) fn code_actions(
         && doc.line(0).trim_start().starts_with('#')
         && capabilities.supports(&Action::ShowToday)
     {
-        result.push(CodeActionItem::command(
-            Action::ShowToday.command(rows::titled(&mut request.engine(), "flag", "today")),
-        ));
+        result.push(CodeActionItem::command(Action::ShowToday.command(titled(
+            &mut request.engine(),
+            "flag",
+            "today",
+        ))));
     }
     result
 }
 
-pub(crate) fn toggle_task(
-    request: &lang::eval::RequestContext<'_>,
-    path: &Path,
-    index: usize,
-) -> Result<Vec<TextEdit>, String> {
-    let workspace = request.workspace();
-    let today = request.today();
-
-    let doc = &workspace.documents()[path];
-    let task = doc.tasks.get(index).ok_or("No task at this line")?;
-    let mut engine = request.engine();
-    let done = engine.task_done(path, index);
-    let mut indices = vec![index];
-    for i in index + 1..doc.tasks.len() {
-        if doc.tasks[i].indent <= task.indent {
-            break;
-        }
-        indices.push(i);
-    }
-    if !done {
-        for i in &indices {
-            let blocked = engine.blocked(path, *i)?;
-            if !blocked.is_empty() {
-                return Err(format!("Blocked by {}", blocked.join(", ")));
-            }
-        }
-    }
-    if indices.len() > 1
-        && indices
-            .iter()
-            .any(|i| doc.tasks[*i].attributes.contains_key(EVERY))
-    {
-        return Err(
-            "Complete recurring tasks individually; recurring parent tasks are unsupported".into(),
-        );
-    }
-    match task.attributes.get(EVERY) {
-        Some(recurrence) => recur(&mut engine, path, index, &recurrence.value, today),
-        None => Ok(check(doc, &indices, done, today)),
-    }
-}
-/// Completing a recurring task moves it to its next occurrence and records the
-/// completion as history, leaving its checkbox alone.
-fn recur(
-    engine: &mut Engine<'_>,
-    path: &Path,
-    index: usize,
-    recurrence: &str,
-    today: NaiveDate,
-) -> Result<Vec<TextEdit>, String> {
-    let doc = &engine.workspace().documents()[path];
-    let task = &doc.tasks[index];
-    if task.state == TaskState::Done {
-        return Err("A recurring task should remain unchecked; remove [x] to resume it".into());
-    }
-    let due = task
-        .attributes
-        .get(DUE)
-        .map(|a| engine.when(path, &a.value).and_then(|v| engine.date(&v)))
-        .transpose()?
-        .unwrap_or(today);
-    let anchor = task
-        .attributes
-        .get(REPEAT_FROM)
-        .map(|a| {
-            lang::syntax::stamp(&a.value).ok_or_else(|| {
-                let example = AttributeKey::RepeatFrom.example();
-                format!("@{REPEAT_FROM} requires a calendar date, e.g. @{REPEAT_FROM}({example})")
-            })
-        })
-        .transpose()?
-        .unwrap_or(due);
-    let next = next_occurrence(recurrence, anchor, today.max(due))?;
-    let mut edits = Vec::new();
-    if let Some(attr) = task.attributes.get(DUE) {
-        edits.push(TextEdit::new(attr.value_span.range(doc), next.to_string()));
-    }
-    let mut suffix = String::new();
-    if !task.attributes.contains_key(DUE) {
-        suffix.push_str(&format!(" @{DUE}({next})"));
-    }
-    if !task.attributes.contains_key(REPEAT_FROM) {
-        suffix.push_str(&format!(" @{REPEAT_FROM}({anchor})"));
-    }
-    if !suffix.is_empty() {
-        edits.push(TextEdit::new(
-            Range::new(doc.line_end(task.line), doc.line_end(task.line)),
-            suffix,
-        ));
-    }
-    let history = serde_json::json!({"task":task.named.as_ref().map(|n|n.name.as_str()),"title":task.title,"completed":today,"due":due,"next":next});
-    let end = end_position(&doc.text);
-    let newline = if doc.text.contains("\r\n") {
-        "\r\n"
-    } else {
-        "\n"
-    };
-    let prefix = if doc.text.ends_with('\n') {
-        ""
-    } else {
-        newline
-    };
-    edits.push(TextEdit::new(
-        Range::new(end, end),
-        format!(
-            "{prefix}<!-- xmd-history {} -->{newline}",
-            history.to_string().replace("-->", "--\\u003e")
-        ),
-    ));
-    Ok(edits)
-}
-/// Checking or unchecking a plain task and its subtasks, stamping or clearing
-/// when each was completed.
-fn check(doc: &Document, indices: &[usize], done: bool, today: NaiveDate) -> Vec<TextEdit> {
-    let mut edits = Vec::new();
-    for &i in indices {
-        let task = &doc.tasks[i];
-        let span = Span::new(task.line, task.checkbox.start + 1, task.checkbox.start + 2);
-        edits.push(TextEdit::new(
-            span.range(doc),
-            if done { " ".into() } else { "x".into() },
-        ));
-        if let Some(attr) = task.attributes.get(COMPLETED) {
-            edits.push(TextEdit::new(
-                attr.span.range(doc),
-                if done {
-                    String::new()
-                } else {
-                    format!("@{COMPLETED}({today})")
-                },
-            ));
-        } else if !done {
-            edits.push(TextEdit::new(
-                Range::new(doc.line_end(task.line), doc.line_end(task.line)),
-                format!(" @{COMPLETED}({today})"),
-            ));
-        }
-    }
-    edits
-}
-pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path) -> Vec<TextEdit> {
+pub(crate) fn freeze_dates(request: &crate::Request<'_>, path: &Path) -> Vec<TextEdit> {
     let today = request.today();
     let workspace = request.workspace();
 
@@ -235,55 +81,4 @@ pub(crate) fn freeze_dates(request: &lang::eval::RequestContext<'_>, path: &Path
                 .map(|v| TextEdit::new(a.value_span.range(doc), v.display()))
         })
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use lang::eval::{RequestContext, Workspace};
-    use lang::model::apply_edits;
-
-    /// Completing a task writes attributes; each one it writes must be in the
-    /// attribute table, so the parser knows it and highlighting, diagnostics
-    /// and completion describe it.
-    #[test]
-    fn completing_a_task_writes_only_attributes_in_the_table() {
-        let text = "- [ ] Plain :plain\n  - [ ] Child\n- [ ] Rent :rent @every(month)\n";
-        let path = Path::new("/notes/tasks.x.md");
-        let mut workspace = Workspace::new(vec!["/notes".into()]);
-        workspace.insert_document(path.into(), Document::parse(text.into()));
-        let now = chrono::DateTime::parse_from_rfc3339("2026-09-18T09:00:00-04:00").unwrap();
-        let request = RequestContext::new(&workspace, now);
-        let mut written = std::collections::BTreeSet::new();
-        for index in [0, 2] {
-            let edits = toggle_task(&request, path, index).unwrap();
-            let after = Document::parse(apply_edits(text, &edits).unwrap());
-            assert!(
-                after.problems.is_empty(),
-                "completing task {index} left problems: {:?}",
-                after
-                    .problems
-                    .iter()
-                    .map(|p| &p.message)
-                    .collect::<Vec<_>>()
-            );
-            let before = &workspace.documents()[path].tasks;
-            for (task, old) in after.tasks.iter().zip(before) {
-                for key in task.attributes.keys() {
-                    assert!(
-                        key.parse::<AttributeKey>().is_ok(),
-                        "completing a task wrote @{key}, which is not in the attribute table"
-                    );
-                    if !old.attributes.contains_key(key) {
-                        written.insert(key.clone());
-                    }
-                }
-            }
-        }
-        // Both actions ran: the plain task was stamped, the recurring one moved.
-        assert_eq!(
-            written.into_iter().collect::<Vec<_>>(),
-            [COMPLETED, DUE, REPEAT_FROM]
-        );
-    }
 }

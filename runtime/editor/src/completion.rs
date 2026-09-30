@@ -61,7 +61,7 @@ fn property_names_with_links(
     }
 }
 pub(crate) fn completions(
-    request: &lang::eval::RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     position: Position,
     snippets: bool,
@@ -229,7 +229,7 @@ pub(crate) fn completions(
 
 /// Inside a row expression, the columns of the table it walks.
 fn column_completions(
-    request: &lang::eval::RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     row: usize,
     byte: usize,
@@ -265,7 +265,7 @@ fn column_completions(
 /// After `receiver.`, the receiver's fields: a note's names, a record's keys
 /// or a value's properties.
 fn property_completions(
-    request: &lang::eval::RequestContext<'_>,
+    request: &crate::Request<'_>,
     path: &Path,
     before: &str,
     replacement: Range,

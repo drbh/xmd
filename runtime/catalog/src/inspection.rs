@@ -358,7 +358,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             let Value::Record(fields) = q::from_json(node) else {
                 unreachable!()
             };
-            Record::typed(path, fields)
+            Record::typed(path, std::sync::Arc::unwrap_or_clone(fields))
         })
         .collect()
 }

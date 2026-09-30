@@ -1,19 +1,22 @@
-//! Calling: the built-in dispatch table, note functions, modules, and the
-//! lookups and row sums that decide for themselves what to evaluate.
+//! Calling: the built-in dispatch, the core special forms (`import`, `if`,
+//! `match`, `coalesce`, `eval`, `date`, the clock), note functions and
+//! modules. A special built-in a feature owns — a row `sum`, a timer, a
+//! lookup, a checklist count — is answered by what `features` registers
+//! for it.
 use crate::engine::{
-    BinaryOp, Builtin, Currency, Engine, Expr, RowScope, Tier, Value, binary, date_value,
-    relative_date, sized,
+    BinaryOp, Builtin, Engine, Expr, Tier, Value, binary, date_value, relative_date, sized,
 };
-use crate::{timers::Timer, workspace::Workspace};
+use crate::{features, workspace::Workspace};
 use modules::Module;
 use std::{collections::BTreeMap, path::Path};
 use syntax::Literal;
-use values::{Depth, EvalError, EvalResult, Limit, Overflow};
+use values::{Depth, EvalError, EvalResult, Limit};
 
 impl Engine<'_> {
     /// Dispatch a built-in by variant. A special form decides for itself
     /// whether and how to evaluate its arguments; everything else is answered
-    /// by the functional table over already-evaluated values.
+    /// by the functional table over already-evaluated values, and a special
+    /// form the engine does not answer by the feature registered for it.
     pub(crate) fn builtin(
         &mut self,
         path: &Path,
@@ -45,10 +48,9 @@ impl Engine<'_> {
                         "sum expects a list, or a table and row expression".into(),
                     ));
                 };
-                values::sum(values)
+                values::sum(values.iter().cloned())
             }
             Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
-            Builtin::Sum => self.sum(path, args).map(|(value, _)| value),
             Builtin::Now | Builtin::Today if args.is_empty() && !self.has_clock() => {
                 Err(EvalError::Message(format!(
                     "{}() is unavailable here: native code calls this without a clock, \
@@ -64,18 +66,12 @@ impl Engine<'_> {
                 self.time_dependent = true;
                 Ok(Value::DateTime(self.request.clock.now))
             }
-            Builtin::Stopwatch | Builtin::Countdown => self.call_timer(path, builtin, args),
             Builtin::Today if args.is_empty() => Ok(Value::Date(self.request.clock.today())),
-            Builtin::Rate
-            | Builtin::To
-            | Builtin::Forecast
-            | Builtin::ForecastRange
-            | Builtin::Quote => self.lookup(path, builtin, args),
             Builtin::Date => self.call_date(path, args),
-            // The checklist counts. `today(x)`, `now(x)`, a wrong-arity
-            // `eval` and the names only a plan or goal seek answers end here
-            // too, and fail the way a checklist question would.
-            builtin => self.call_checklist(path, builtin, args),
+            // A row `sum`, the timers, the lookups and the checklist counts,
+            // and whatever the registry says answers a special form no
+            // feature claims.
+            builtin => features::call(builtin)(self, path, builtin, args),
         }
     }
     /// A call to a note function: the callee is resolved like any other name,
@@ -185,7 +181,7 @@ impl Engine<'_> {
                     Ok((name, value))
                 })
                 .collect::<EvalResult<BTreeMap<_, _>>>()
-                .map(Value::Record)
+                .map(Value::record)
         })
     }
     pub fn call(&mut self, function: Value, args: Vec<Value>) -> EvalResult<Value> {
@@ -321,15 +317,6 @@ impl Engine<'_> {
         self.unwind(height);
         result
     }
-    /// `stopwatch(…)` and `countdown(…)`: the timer module resolves the state.
-    fn call_timer(&mut self, path: &Path, builtin: Builtin, args: &[Expr]) -> EvalResult<Value> {
-        let values = self.values(path, args)?;
-        let time_dependent = self.time_dependent;
-        let timer = Timer::new(self, builtin.as_str(), &values)?;
-        // The module declares whether this resolved state still needs a clock.
-        self.time_dependent = time_dependent || timer.time_dependent()?;
-        Ok(Value::Host(std::sync::Arc::new(timer)))
-    }
     /// `date` over text or a timestamp.
     fn call_date(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         let [arg] = args else {
@@ -340,55 +327,6 @@ impl Engine<'_> {
                 .or_else(|| relative_date(&s, self.request.clock.today()).map(Value::Date))
                 .ok_or(EvalError::Message("Unrecognized date".into())),
             other => self.date(&other).map(Value::Date),
-        }
-    }
-    /// The counts a named checklist heading answers.
-    fn call_checklist(
-        &mut self,
-        path: &Path,
-        builtin: Builtin,
-        args: &[Expr],
-    ) -> EvalResult<Value> {
-        let [arg] = args else {
-            return Err(EvalError::Arity(builtin));
-        };
-        let Value::Tasks(tasks) = self.expr(path, arg)?.plain() else {
-            return Err(EvalError::Message(format!(
-                "{builtin} expects a named checklist heading"
-            )));
-        };
-        let done = tasks.iter().filter(|(p, i)| self.task_done(p, *i)).count();
-        match builtin {
-            Builtin::Total => Ok(Value::Count(tasks.len())),
-            Builtin::Completed => Ok(Value::Count(done)),
-            Builtin::Remaining => Ok(Value::Count(tasks.len() - done)),
-            Builtin::Effort => {
-                let mut seconds = 0i64;
-                for (p, i) in tasks {
-                    if !self.task_done(&p, i) {
-                        let task = &self.request.workspace.documents[&p].tasks[i];
-                        if let Some(attr) =
-                            task.attributes.get(syntax::AttributeKey::Estimate.as_str())
-                        {
-                            let Value::Duration(m) = self.eval(&p, &attr.value)? else {
-                                return Err(EvalError::Message(
-                                    "@estimate requires a duration".into(),
-                                ));
-                            };
-                            if m < 0 {
-                                return Err(EvalError::Message(
-                                    "Estimate cannot be negative".into(),
-                                ));
-                            }
-                            seconds = seconds
-                                .checked_add(m)
-                                .ok_or(EvalError::Overflowed(Overflow::Duration))?;
-                        }
-                    }
-                }
-                Ok(Value::Duration(seconds))
-            }
-            _ => Err(EvalError::UnknownFunction(builtin.to_string())),
         }
     }
     pub(crate) fn functional(&mut self, name: Builtin, args: Vec<Value>) -> EvalResult<Value> {
@@ -408,7 +346,7 @@ impl Engine<'_> {
                 }
             }
             (Builtin::Desc, [function @ Function(_)]) => {
-                Record([(DESCENDING.into(), function.clone())].into())
+                Value::record([(DESCENDING.into(), function.clone())].into())
             }
             (Builtin::SortBy, [List(items), keys]) => {
                 // One key, desc(key), or a list of them, compared in order.
@@ -422,7 +360,7 @@ impl Engine<'_> {
                 ))?;
                 let mut keyed = Vec::new();
                 let mut first = vec![None; keys.len()];
-                for item in items {
+                for item in items.iter() {
                     let mut values = Vec::new();
                     for ((function, _), first) in keys.iter().zip(&mut first) {
                         let key = self.call(function.clone(), vec![item.clone()])?;
@@ -455,11 +393,11 @@ impl Engine<'_> {
                         .find(|order| order.is_ne())
                         .unwrap_or(std::cmp::Ordering::Equal)
                 });
-                List(keyed.into_iter().map(|(_, item)| item).collect())
+                Value::list(keyed.into_iter().map(|(_, item)| item).collect())
             }
             (Builtin::GroupBy, [List(items), function @ Function(_)]) => {
                 let mut groups: Vec<(Value, Vec<Value>)> = Vec::new();
-                for item in items {
+                for item in items.iter() {
                     let key = self.call(function.clone(), vec![item.clone()])?;
                     values::compare(&key, &key)?;
                     if let Some((_, rows)) = groups.iter_mut().find(|(k, _)| {
@@ -470,18 +408,20 @@ impl Engine<'_> {
                         groups.push((key, vec![item.clone()]));
                     }
                 }
-                List(
+                Value::list(
                     groups
                         .into_iter()
                         .map(|(key, rows)| {
-                            Record([("key".into(), key), ("rows".into(), List(rows))].into())
+                            Value::record(
+                                [("key".into(), key), ("rows".into(), Value::list(rows))].into(),
+                            )
                         })
                         .collect(),
                 )
             }
             (Builtin::Map | Builtin::Filter, [List(items), function @ Function(_)]) => {
                 let mut output = Vec::new();
-                for item in items {
+                for item in items.iter() {
                     let value = self.call(function.clone(), vec![item.clone()])?;
                     if name == Builtin::Map {
                         output.push(value);
@@ -500,11 +440,11 @@ impl Engine<'_> {
                         return Err(EvalError::LimitExceeded(Limit::ListItems));
                     }
                 }
-                List(output)
+                Value::list(output)
             }
             (Builtin::Fold, [List(items), initial, function @ Function(_)]) => {
                 let mut result = initial.clone();
-                for item in items {
+                for item in items.iter() {
                     result = self.call(function.clone(), vec![result, item.clone()])?;
                 }
                 result
@@ -512,210 +452,6 @@ impl Engine<'_> {
             _ => values::builtin(name, &args)?,
         };
         sized(value)
-    }
-    /// The table a row `sum` walks, named by its first argument.
-    pub(crate) fn summed_table<'e>(
-        &mut self,
-        path: &Path,
-        first: &'e Expr,
-    ) -> EvalResult<(&'e str, std::sync::Arc<crate::tables_impl::TableValue>)> {
-        let Some(name) = first.as_name() else {
-            return Err(EvalError::Message(
-                "The first argument to sum must be a table name".into(),
-            ));
-        };
-        let Some(table) = self
-            .named(path, name)?
-            .downcast_arc::<crate::tables_impl::TableValue>()
-        else {
-            return Err(EvalError::NotATable(name.into()));
-        };
-        Ok((name, table))
-    }
-    pub(crate) fn sum(&mut self, path: &Path, args: &[Expr]) -> EvalResult<(Value, Vec<Value>)> {
-        if args.len() != 2 {
-            return Err(EvalError::Message(
-                "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
-            ));
-        }
-        let (name, table) = self.summed_table(path, &args[0])?;
-        let mut total = None;
-        let mut contributions = Vec::new();
-        let decisions = self.decision_columns(&table);
-        for values in table.named_rows() {
-            self.push_row(RowScope {
-                table: name.into(),
-                values,
-                decisions: decisions
-                    .keys()
-                    .map(|c| (c.clone(), String::new()))
-                    .collect(),
-            });
-            let value = self.expr(path, &args[1]);
-            self.pop_row();
-            let value = value?;
-            if !matches!(
-                value,
-                Value::Number(_) | Value::Money(..) | Value::Ratio(_) | Value::Duration(_)
-            ) {
-                return Err(EvalError::Message(format!(
-                    "sum requires numeric, money, ratio, or duration results, found {}",
-                    value.type_name()
-                )));
-            }
-            total = Some(if let Some(previous) = total {
-                let ratios =
-                    matches!(previous, Value::Ratio(_)) && matches!(value, Value::Ratio(_));
-                let added = binary(BinaryOp::Add, previous, value.clone())?;
-                if ratios && let Value::Number(n) = added {
-                    Value::Ratio(n)
-                } else {
-                    added
-                }
-            } else {
-                value.clone()
-            });
-            contributions.push(value);
-        }
-        total.map(|v| (v, contributions)).ok_or_else(|| {
-            EvalError::Message(
-                "Cannot sum an empty table: add a row to establish its value type".into(),
-            )
-        })
-    }
-
-    /// `rate(EUR, USD)`, `to(money, USD)`, `forecast("Oaxaca", 2026-11-20[, F])`,
-    /// `forecast_range` and `quote(NVDA)`: values from the lookup cache, never
-    /// fetched here.
-    fn lookup(&mut self, path: &Path, name: Builtin, args: &[Expr]) -> EvalResult<Value> {
-        // A code literal is what these calls are written with; text is still
-        // accepted, so a computed name works too.
-        let code = |value: Value, what: &str| match value {
-            Value::Code(code) => Ok(code.to_string()),
-            Value::Text(code) => Ok(code),
-            other => Err(EvalError::Message(format!(
-                "{what} must be a code such as USD, found {}",
-                other.type_name()
-            ))),
-        };
-        let currency = |code: &str| {
-            Currency::parse(code).ok_or_else(|| {
-                EvalError::Message(format!("'{code}' is not a currency code such as USD"))
-            })
-        };
-        match name {
-            Builtin::Rate => {
-                if args.len() != 2 {
-                    return Err(EvalError::Message(
-                        "rate expects two currency codes: rate(EUR, USD)".into(),
-                    ));
-                }
-                let from = currency(&code(self.expr(path, &args[0])?, "The first currency")?)?;
-                let to = currency(&code(self.expr(path, &args[1])?, "The second currency")?)?;
-                self.rate(from, to).map(Value::Number)
-            }
-            Builtin::To => {
-                if args.len() != 2 {
-                    return Err(EvalError::Message(
-                        "to expects a money value and a currency code: to(hotel, USD)".into(),
-                    ));
-                }
-                let Value::Money(amount, from) = self.expr(path, &args[0])? else {
-                    return Err(EvalError::Message(
-                        "to converts money; the first argument is not money".into(),
-                    ));
-                };
-                let to = currency(&code(self.expr(path, &args[1])?, "The currency")?)?;
-                Ok(Value::Money(amount * self.rate(from, to)?, to))
-            }
-            Builtin::Quote => {
-                if args.len() != 1 {
-                    return Err(EvalError::Message(
-                        "quote expects a ticker symbol: quote(NVDA)".into(),
-                    ));
-                }
-                let symbol = code(self.expr(path, &args[0])?, "The ticker")?;
-                self.wanted.push(values::LookupKey::quote(&symbol));
-                values::quote(&self.request.workspace.lookups, &symbol)
-            }
-            _ => {
-                let range = name == Builtin::ForecastRange;
-                if range && !(3..=4).contains(&args.len()) {
-                    return Err(EvalError::Message(
-                        "forecast_range expects a place, start date, end date, and optional unit: forecast_range(\"Oaxaca\", 2026-11-20, 2026-11-26, F)".into(),
-                    ));
-                }
-                if !range && !(2..=3).contains(&args.len()) {
-                    return Err(EvalError::Message(
-                        "forecast expects a place and a date: forecast(\"Oaxaca\", 2026-11-20)"
-                            .into(),
-                    ));
-                }
-                let Value::Text(place) = self.expr(path, &args[0])? else {
-                    return Err(EvalError::Message(
-                        "The place must be text, e.g. forecast(\"Oaxaca\", 2026-11-20)".into(),
-                    ));
-                };
-                let value = self.expr(path, &args[1])?;
-                let date = self.date(&value)?;
-                let end = if range {
-                    let value = self.expr(path, &args[2])?;
-                    self.date(&value)?
-                } else {
-                    date
-                };
-                let days = (end - date).num_days();
-                if days < 0 {
-                    return Err(EvalError::Message(
-                        "forecast_range end date must be on or after the start date".into(),
-                    ));
-                }
-                if days >= 4096 {
-                    return Err(EvalError::LimitExceeded(Limit::ListItems));
-                }
-                let fahrenheit = match args.get(if range { 3 } else { 2 }) {
-                    Some(unit) => match code(self.expr(path, unit)?, "The unit")?.as_str() {
-                        "F" | "FAHRENHEIT" => true,
-                        "C" | "CELSIUS" => false,
-                        other => {
-                            return Err(EvalError::Message(format!(
-                                "Unknown temperature unit '{other}'; use F or C"
-                            )));
-                        }
-                    },
-                    None => false,
-                };
-                let dates: Vec<_> = (0..=days)
-                    .map(|offset| date + chrono::Duration::days(offset))
-                    .collect();
-                // Discover the entire interval before a missing cache entry
-                // can fail evaluation, so one refresh fetches every day.
-                self.wanted.extend(
-                    dates
-                        .iter()
-                        .map(|date| values::LookupKey::forecast(&place, *date)),
-                );
-                let mut forecasts = dates
-                    .into_iter()
-                    .map(|date| {
-                        let lookups = &self.request.workspace.lookups;
-                        values::forecast(lookups, &place, date, fahrenheit).map(Value::Forecast)
-                    })
-                    .collect::<EvalResult<Vec<_>>>()?;
-                Ok(if range {
-                    Value::List(forecasts)
-                } else {
-                    forecasts.remove(0)
-                })
-            }
-        }
-    }
-    /// The cached rate from one currency to another, noting that it was read.
-    fn rate(&mut self, from: Currency, to: Currency) -> EvalResult<f64> {
-        if from != to {
-            self.wanted.push(values::LookupKey::rate(from, to));
-        }
-        values::rate(&self.request.workspace.lookups, from, to)
     }
 }
 

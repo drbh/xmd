@@ -3,6 +3,7 @@
 use crate::prose;
 use lang::common::Span;
 use lang::eval::engine;
+use lang::model::recognized::Paint;
 use lang::model::{Attribute, Document, HighlightKind, Named, TaskState};
 use lang::syntax::{AttributeKey, AttributeValue, Lexeme, Literal};
 use lsp_types::SemanticToken;
@@ -55,6 +56,30 @@ fn kind_token(kind: &lang::eval::itinerary::Kind) -> Token {
     format!("xmd{}", kind.name)
         .parse()
         .unwrap_or(Token::Heading)
+}
+/// The token a recognizer's paint is drawn with: one the legend already has.
+fn paint_token(paint: Paint) -> Token {
+    match paint {
+        Paint::Keyword => Token::Keyword,
+        Paint::Number => Token::Number,
+        Paint::String => Token::String,
+        Paint::Variable => Token::Variable,
+        Paint::Heading => Token::Heading,
+        Paint::Function => Token::Function,
+        Paint::Property => Token::Property,
+        Paint::Decorator => Token::Decorator,
+        Paint::Operator => Token::Operator,
+        Paint::Comment => Token::Comment,
+        Paint::Punctuation => Token::XmdPunctuation,
+        Paint::Money => Token::XmdMoney,
+        Paint::Date => Token::XmdDate,
+        Paint::Time => Token::XmdTime,
+        Paint::Duration => Token::XmdDuration,
+        Paint::Boolean => Token::XmdBoolean,
+        Paint::Link => Token::XmdLink,
+        Paint::Code => Token::XmdCode,
+        Paint::Place => Token::XmdPlace,
+    }
 }
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
 const DECLARATION: u32 = 1;
@@ -247,6 +272,15 @@ impl<'a> Painter<'a> {
                 {
                     self.mark(Span::new(row, start, end), kind);
                 }
+            }
+        }
+    }
+    /// The groups a module's recognizers paint, over prose values and under
+    /// the note's own structure.
+    fn recognized(&mut self) {
+        for group in self.doc.recognized.iter().flat_map(|m| &m.groups) {
+            if let Some(paint) = group.paint {
+                self.mark(group.span, paint_token(paint));
             }
         }
     }
@@ -506,6 +540,7 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
     let mut p = Painter::new(doc);
     p.highlights();
     p.prose_values();
+    p.recognized();
     p.sections();
     p.tasks();
     p.definitions();

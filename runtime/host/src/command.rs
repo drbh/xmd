@@ -37,6 +37,7 @@ use std::{
     io::Write as _,
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
+    sync::Arc,
 };
 
 /// How many steps one run may take before the runner assumes a loop.
@@ -127,11 +128,11 @@ fn run_command(
                     ),
                 ),
                 ("state", state),
-                ("results", Value::List(results)),
+                ("results", Value::list(results)),
             ]);
             let mut step = Step::call(module, input, clock)?;
             if let Some(Value::List(lines)) = step.take("report") {
-                for line in &lines {
+                for line in lines.iter() {
                     report(&line.display());
                 }
             }
@@ -139,7 +140,7 @@ fn run_command(
             state = step.state();
             let requests = match step.take("requests") {
                 None | Some(Value::Null) => vec![],
-                Some(Value::List(requests)) => requests,
+                Some(Value::List(requests)) => Arc::unwrap_or_clone(requests),
                 Some(_) => return Err(format!("{}: requests must be a list", module.id)),
             };
             if requests.len() > MAX_REQUESTS {
@@ -189,7 +190,7 @@ impl Step {
         now: DateTime<FixedOffset>,
     ) -> Result<Self, String> {
         match module.call(Hook::Step, vec![input], now)? {
-            Value::Record(fields) => Ok(Self(fields)),
+            Value::Record(fields) => Ok(Self(Arc::unwrap_or_clone(fields))),
             _ => Err(format!("{}: step must return a record", module.id)),
         }
     }
@@ -234,8 +235,8 @@ fn parse_args(args: &[String]) -> Value {
         }
     }
     lang::eval::modules::record([
-        ("flags", Value::Record(flags)),
-        ("positional", Value::List(positional)),
+        ("flags", Value::record(flags)),
+        ("positional", Value::list(positional)),
     ])
 }
 

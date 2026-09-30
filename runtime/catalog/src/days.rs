@@ -8,7 +8,7 @@ use lang::eval::Workspace;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::record;
 use lang::model::Document;
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 record! {
     #[derive(Clone, Debug)]
@@ -42,7 +42,7 @@ pub(super) fn days(
                 lang::eval::lookups::LookupKey::forecast(&place, date).lookup(ws.lookups())
             && let Value::Record(fields) = &mut value
         {
-            fields.insert(
+            Arc::make_mut(fields).insert(
                 "forecast".into(),
                 lang::eval::modules::record([
                     ("place", Value::Text(place)),

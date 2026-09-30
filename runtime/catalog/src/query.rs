@@ -1,5 +1,5 @@
 //! Queries: one expression over lazy workspace bindings, on the note evaluator.
-use crate::{Collection, DiagnosticSource, inspection, value as q};
+use crate::{Collection, DiagnosticSource, Records, View, inspection, value as q};
 use lang::eval::Workspace;
 use lang::eval::engine::{self, Bindings, Engine, Expr, Parser, Value};
 use lang::model::ExprImports;
@@ -69,6 +69,7 @@ impl Query {
 /// Collections are loaded on demand, so unrelated features and errors are not evaluated.
 struct WorkspaceBindings {
     only: Option<PathBuf>,
+    records: Arc<Records>,
     diagnostics: DiagnosticSource,
     cache: Mutex<BTreeMap<String, Value>>,
 }
@@ -84,14 +85,13 @@ impl Bindings for WorkspaceBindings {
         let result = if name == "graph" {
             Ok(inspection::graph(engine.workspace(), self.only.as_deref()))
         } else {
-            crate::collect(
-                engine.workspace(),
-                collection.expect("checked above"),
+            self.records.view(
                 engine,
                 self.only.as_deref(),
+                collection.expect("checked above"),
+                View::Queried,
                 self.diagnostics,
             )
-            .map(|records| Value::List(records.into_iter().map(|r| r.queried(engine)).collect()))
         };
         if let Ok(value) = &result {
             self.cache
@@ -104,9 +104,11 @@ impl Bindings for WorkspaceBindings {
 }
 
 /// `only` restricts input records to one indexed document while retaining
-/// workspace-wide name resolution.
+/// workspace-wide name resolution. Collections are read from `records`, and
+/// what they build is left there for the next reader.
 pub fn execute(
     request: &lang::eval::RequestContext<'_>,
+    records: Arc<Records>,
     query: &Query,
     only: Option<&Path>,
     diagnostics: DiagnosticSource,
@@ -121,12 +123,13 @@ pub fn execute(
     let context = Query::scope(ws, only);
     let bindings = Arc::new(WorkspaceBindings {
         only: only.map(Path::to_path_buf),
+        records,
         diagnostics,
         cache: Mutex::new(BTreeMap::new()),
     });
     let value = engine.bound_expr(&context, &query.expression, bindings)?;
     let rows = match q::query_value(value) {
-        Value::List(rows) => rows,
+        Value::List(rows) => Arc::unwrap_or_clone(rows),
         value => vec![value],
     };
     Ok(QueryResult { rows })

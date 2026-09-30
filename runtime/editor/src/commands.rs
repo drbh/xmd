@@ -1,15 +1,23 @@
-//! Typed editor actions. The wire codec and validation are shared by every host;
-//! preparation returns effects for the host to deliver without applying them.
-use crate::{code_actions, modules, rows};
+//! Typed editor actions: the wire codec every host shares, and the one shape
+//! every control has. A provider proposes controls for a whole note at once
+//! (each a [`Proposal`]: a line, a title and an action) and owns how the
+//! action kinds it declares are prepared ([`ActionProvider`]). Preparation
+//! validates against the execution-time snapshot and clock, and returns
+//! effects for the host to deliver without applying them. `providers` is
+//! the one place that asks every provider and routes each kind to its owner.
+//!
+//! The kinds whose argument already carries everything they need (edits,
+//! a timer control, showing today) are prepared here, by [`Direct`].
+use crate::Request;
 use lang::common::file_path;
-use lang::eval::RequestContext;
-use lang::eval::modules::Module;
+use lang::eval::engine::Engine;
 use lang::eval::resources::Resource;
 use lang::eval::timers::TimerAction;
 use lang::model::Document;
+use lang::stdlib;
 use lsp_types::{Command, TextEdit};
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -19,9 +27,18 @@ pub struct RowTarget {
     pub expected: String,
 }
 impl RowTarget {
-    fn validate<'a>(
+    /// The row `row` of `doc`, as a control on it expects to find it.
+    pub(crate) fn at(uri: &Url, doc: &Document, row: usize) -> Self {
+        Self {
+            document: uri.clone(),
+            row,
+            expected: doc.line(row).into(),
+        }
+    }
+    /// The note this target names, while its row still reads as expected.
+    pub(crate) fn validate<'a>(
         &self,
-        request: &RequestContext<'a>,
+        request: &Request<'a>,
     ) -> Result<(PathBuf, &'a Document), String> {
         let (path, doc) = document(request, &self.document)?;
         if self.row >= doc.text.lines().count() || doc.line(self.row) != self.expected {
@@ -98,7 +115,7 @@ impl Capabilities {
         refresh: false,
         views: false,
     };
-    pub fn supports(self, action: &Action) -> bool {
+    pub(crate) fn supports(self, action: &Action) -> bool {
         match action {
             Action::Refresh { .. } | Action::RefreshResource { .. } => self.refresh,
             Action::ShowToday => self.views,
@@ -125,7 +142,7 @@ impl Action {
             .map(|command| command.into())
     }
     /// The LSP command ID this action travels under.
-    pub fn id(&self) -> &'static str {
+    pub(crate) fn id(&self) -> &'static str {
         CommandId::from(self).into()
     }
     pub fn document(&self) -> Option<&Url> {
@@ -141,7 +158,7 @@ impl Action {
         }
     }
     /// One command ID per variant, and the action itself as the sole argument.
-    pub fn command(&self, title: impl Into<String>) -> Command {
+    pub(crate) fn command(&self, title: impl Into<String>) -> Command {
         Command {
             title: title.into(),
             command: self.id().into(),
@@ -164,58 +181,126 @@ impl Action {
         }
         Ok(action)
     }
-    /// The module an invocation still reaches, with the document it acts on.
-    pub(crate) fn validate_invocation<'a>(
+    /// What every action must pass before its owner prepares it: the host
+    /// can carry it out, and the note it names is still in the workspace.
+    pub(crate) fn admit(
         &self,
-        request: &RequestContext<'a>,
-    ) -> Result<(PathBuf, &'a Module), String> {
-        let Self::Invoke {
-            document,
-            expected,
-            module,
-            revision,
-            ..
-        } = self
-        else {
-            return Err("Expected a module invocation".into());
-        };
-        let (path, doc) = self::document(request, document)?;
-        if doc.text != *expected {
-            return Err(SOURCE_CHANGED.into());
-        }
-        let module = request
-            .workspace()
-            .modules()
-            .get(module)
-            .ok_or("Module is no longer available")?;
-        if module.revision() != *revision {
-            return Err("Module changed; request fresh controls".into());
-        }
-        if !module.has(lang::eval::modules::Hook::Reduce) {
-            return Err("Module has no reducer".into());
-        }
-        Ok((path, module))
-    }
-    /// Validate against the current workspace and execution-time clock. The host
-    /// still owns version checks, applying edits, opening URLs and refreshing data.
-    pub fn prepare(
-        &self,
-        request: &RequestContext<'_>,
+        request: &Request<'_>,
         capabilities: Capabilities,
-    ) -> Result<PreparedAction, String> {
+    ) -> Result<(), String> {
         if !capabilities.supports(self) {
             return Err("This command is not available in this host".into());
         }
         if let Some(url) = self.document() {
             document(request, url)?;
         }
+        Ok(())
+    }
+}
+
+/// How a host prefers to offer completing or reopening a task.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TaskToggle {
+    /// A command the host executes, listed with the row's other controls.
+    Command,
+    /// An edit the host applies itself, shown disabled when it is blocked.
+    Action,
+}
+
+/// Which rows of a note a caller wants controls for.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum Rows {
+    /// Every row: the note's lenses.
+    All,
+    /// One row: the controls among a range's code actions.
+    One(usize),
+}
+impl Rows {
+    pub(crate) fn has(self, row: usize) -> bool {
         match self {
-            Self::Invoke { event, .. } => {
-                let (path, module) = self.validate_invocation(request)?;
-                modules::reduce(request, &path, module, event, capabilities)?
-                    .prepare(request, capabilities)
-            }
-            Self::Edit {
+            Self::All => true,
+            Self::One(one) => one == row,
+        }
+    }
+}
+
+/// What a caller asks every provider for.
+#[derive(Clone, Copy)]
+pub(crate) struct Ask {
+    pub rows: Rows,
+    pub toggle: TaskToggle,
+    pub capabilities: Capabilities,
+}
+
+/// One control a provider offers: an action on a line of the note, and what
+/// the control is called.
+pub(crate) struct Proposal {
+    pub line: usize,
+    pub title: String,
+    pub action: Action,
+}
+
+/// What preparing an action came to: an effect for the host, or another
+/// action to prepare in its place (a module's reducer answers an invocation
+/// with the concrete action it stands for).
+pub(crate) enum Prepared {
+    Effect(PreparedAction),
+    Reduced(Action),
+}
+impl From<PreparedAction> for Prepared {
+    fn from(effect: PreparedAction) -> Self {
+        Self::Effect(effect)
+    }
+}
+
+/// One source of controls, built in or a feature module. Every provider has
+/// the same shape: it proposes its controls once per note, and owns how the
+/// action kinds it declares prepare, whoever proposed them.
+pub(crate) trait ActionProvider: Sync {
+    /// The action kinds whose preparation this provider owns.
+    fn kinds(&self) -> &'static [CommandId];
+    /// Every control it offers on `ask.rows` of the note at `path`, in row
+    /// order, computed from facts gathered once for the note. What a
+    /// provider proposes it has already validated against those facts.
+    fn propose(&self, _request: &Request<'_>, _path: &Path, _ask: Ask) -> Vec<Proposal> {
+        Vec::new()
+    }
+    /// Validate one of its kinds against the current snapshot and clock.
+    /// [`Action::admit`] has already passed.
+    fn prepare(
+        &self,
+        request: &Request<'_>,
+        action: &Action,
+        capabilities: Capabilities,
+    ) -> Result<Prepared, String>;
+    /// Whether an action someone else proposed would prepare, without
+    /// running what preparation defers to execution.
+    fn check(
+        &self,
+        request: &Request<'_>,
+        action: &Action,
+        capabilities: Capabilities,
+    ) -> Result<(), String> {
+        self.prepare(request, action, capabilities).map(drop)
+    }
+}
+
+/// The kinds whose argument carries everything they need: a module's edits,
+/// a timer control and showing today. None of them is proposed natively
+/// outside a code action; feature modules propose the first two.
+pub(crate) struct Direct;
+impl ActionProvider for Direct {
+    fn kinds(&self) -> &'static [CommandId] {
+        &[CommandId::Edit, CommandId::Timer, CommandId::ShowToday]
+    }
+    fn prepare(
+        &self,
+        request: &Request<'_>,
+        action: &Action,
+        _: Capabilities,
+    ) -> Result<Prepared, String> {
+        match action {
+            Action::Edit {
                 document: url,
                 expected,
                 edits,
@@ -228,19 +313,10 @@ impl Action {
                 Ok(PreparedAction::Edit {
                     path,
                     edits: edits.clone(),
-                })
+                }
+                .into())
             }
-            Self::ToggleTask(target) => {
-                let (path, doc) = target.validate(request)?;
-                let index = doc
-                    .tasks
-                    .iter()
-                    .position(|t| t.line == target.row)
-                    .ok_or("No task at this line")?;
-                let edits = code_actions::toggle_task(request, &path, index)?;
-                Ok(PreparedAction::Edit { path, edits })
-            }
-            Self::Timer {
+            Action::Timer {
                 document,
                 name,
                 action,
@@ -251,38 +327,29 @@ impl Action {
                 Ok(PreparedAction::Edit {
                     path: origin.path,
                     edits: vec![TextEdit::new(range, text)],
-                })
-            }
-            Self::OpenResource { target, url } | Self::RefreshResource { target, url } => {
-                let (path, _) = target.validate(request)?;
-                let resource = rows::resources_at(request, &path, target.row)
-                    .into_iter()
-                    .find(|r| r.url(&path).is_ok_and(|u| u == *url))
-                    .ok_or("Resource changed; request fresh controls")?;
-                if matches!(self, Self::OpenResource { .. }) {
-                    Ok(PreparedAction::Open { url: url.clone() })
-                } else if request
-                    .link_features()
-                    .refresh_request(&resource.target)
-                    .is_some()
-                {
-                    Ok(PreparedAction::RefreshResource { resource })
-                } else {
-                    Err("This resource does not support refresh".into())
                 }
+                .into())
             }
-            Self::Refresh { document } => Ok(PreparedAction::Refresh {
-                path: document.as_ref().map(document_path).transpose()?,
-            }),
-            Self::ShowToday => Ok(PreparedAction::ShowToday),
+            Action::ShowToday => Ok(PreparedAction::ShowToday.into()),
+            _ => Err(NOT_MINE.into()),
         }
     }
 }
-const SOURCE_CHANGED: &str = "Source changed; request fresh controls";
+
+/// What a provider answers for a kind it does not own; routing by
+/// [`ActionProvider::kinds`] never asks it to.
+pub(crate) const NOT_MINE: &str = "This action belongs to another provider";
+pub(crate) const SOURCE_CHANGED: &str = "Source changed; request fresh controls";
+
+/// A control title: a `format.glyph` and the one word that disambiguates it.
+pub(crate) fn titled(engine: &mut Engine<'_>, glyph: &str, word: &str) -> String {
+    let glyph = stdlib::shown(stdlib::format::glyph(engine, glyph));
+    format!("{glyph} {word}")
+}
 
 /// The workspace document a URL names, while it is still there.
-fn document<'a>(
-    request: &RequestContext<'a>,
+pub(crate) fn document<'a>(
+    request: &Request<'a>,
     url: &Url,
 ) -> Result<(PathBuf, &'a Document), String> {
     let path = document_path(url)?;
@@ -293,7 +360,7 @@ fn document<'a>(
         .ok_or("Document is no longer in the workspace")?;
     Ok((path, doc))
 }
-fn document_path(url: &Url) -> Result<PathBuf, String> {
+pub(crate) fn document_path(url: &Url) -> Result<PathBuf, String> {
     if url.query().is_some() || url.fragment().is_some() {
         return Err("Document URIs cannot contain queries or fragments".into());
     }

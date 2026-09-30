@@ -3,7 +3,8 @@
 //! against a live workspace — resolving a column reference, renaming a
 //! symbol, or computing a `TableValue` a note holds — is `evaluate::tables`,
 //! one layer up.
-use crate::document::{Document, Named, Problem, identifier};
+use crate::blocks::{Definition, HighlightKind, Link, Named, Problem, Tree, cells, identifier};
+use crate::document::Document;
 use common::Span;
 use common::ValueType;
 use lsp_types::{Range, TextEdit};
@@ -55,42 +56,74 @@ pub struct Table {
     pub domains: Vec<Option<Domain>>,
 }
 
-/// Pipes in quoted strings and escaped pipes are cell contents, not separators.
-pub fn cells(line: &str, row: usize) -> Option<Vec<(String, Span)>> {
-    let start = line.len() - line.trim_start().len();
-    let end = line.trim_end().len();
-    if !line[start..].starts_with('|') || end <= start + 1 {
+/// `name := table` on `row` and the markdown table under it: its columns,
+/// and every cell's literal, formula or link. Returns how many rows below
+/// `row` the table took.
+pub(crate) fn recognize(
+    tree: &mut Tree,
+    doc: &mut Document,
+    lines: &[&str],
+    row: usize,
+) -> Option<usize> {
+    let index = tree.opened(row)?;
+    if tree.definitions[index].source != "table" {
         return None;
     }
-    let mut quoted = false;
-    let mut escaped = false;
-    let mut last = start + 1;
-    let mut result = Vec::new();
-    for (i, c) in line.char_indices().filter(|(i, _)| *i > start && *i < end) {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        if c == '\\' {
-            escaped = true;
-            continue;
-        }
-        if c == '"' {
-            quoted = !quoted;
-        }
-        if c == '|' && !quoted {
-            let raw = &line[last..i];
-            let from = last + raw.len() - raw.trim_start().len();
-            let to = from + raw.trim().len();
-            result.push((raw.trim().into(), Span::new(row, from, to)));
-            last = i + 1;
+    let table = parse(&tree.definitions[index], index, lines);
+    let end_line = table.end_line;
+    // The declaration keyword isn't a global reference.
+    tree.references
+        .retain(|r| !(r.span.line == row && r.name == "table"));
+    for column in &table.columns {
+        tree.mark(
+            column.span.line,
+            column.span.start,
+            column.span.end,
+            HighlightKind::Variable,
+        );
+    }
+    for cells in &table.rows {
+        for cell in cells {
+            if let Some((_, span)) = &cell.expression {
+                tree.mark(
+                    cell.span.line,
+                    cell.span.start,
+                    cell.span.start + 1,
+                    HighlightKind::Operator,
+                );
+                tree.mark(
+                    cell.span.line,
+                    cell.span.end - 1,
+                    cell.span.end,
+                    HighlightKind::Operator,
+                );
+                tree.expression(lines[span.line], span.line, span.start, span.end);
+                continue;
+            }
+            if let Ok(Literal::Resource(resource)) = &cell.value {
+                tree.links.push(Link {
+                    span: cell.span,
+                    target: resource.target.clone(),
+                });
+            }
+            tree.mark(
+                cell.span.line,
+                cell.span.start,
+                cell.span.end,
+                if matches!(&cell.value, Ok(Literal::Text(_) | Literal::Resource(_))) {
+                    HighlightKind::String
+                } else {
+                    HighlightKind::Number
+                },
+            );
         }
     }
-    (last == end && !quoted).then_some(result)
+    tree.problems.extend(table.problems.clone());
+    doc.tables.push(table);
+    Some(end_line.saturating_sub(row + 1))
 }
 
-pub(crate) fn parse(doc: &Document, definition: usize, lines: &[&str]) -> Table {
-    let def = &doc.definitions[definition];
+fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
     let header = def.end.line + 1;
     let mut table = Table {
         definition,

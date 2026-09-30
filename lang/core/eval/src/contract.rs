@@ -311,7 +311,7 @@ pub fn modules() -> Vec<&'static str> {
 }
 
 /// The contract entry for `module.function`, if there is one.
-pub fn contract(module: &str, function: &str) -> Option<&'static Contract> {
+pub(crate) fn contract(module: &str, function: &str) -> Option<&'static Contract> {
     CONTRACT
         .iter()
         .find(|c| c.module == module && c.function == function)
@@ -342,7 +342,7 @@ pub struct Snapshot<'a> {
 impl<'a> Snapshot<'a> {
     /// The registry with no clock, for the entries [`CONTRACT`] marks as
     /// called without one.
-    pub fn clockless(modules: &'a ModuleRegistry) -> Self {
+    pub(crate) fn clockless(modules: &'a ModuleRegistry) -> Self {
         Self {
             modules,
             now: modules::no_clock(),
@@ -360,9 +360,9 @@ impl Caller for Snapshot<'_> {
 
 /// One module a value holds on to, such as the implementation a timer was
 /// created with.
-pub struct Held<'a> {
-    pub module: &'a Module,
-    pub now: DateTime<FixedOffset>,
+pub(crate) struct Held<'a> {
+    pub(crate) module: &'a Module,
+    pub(crate) now: DateTime<FixedOffset>,
 }
 impl Caller for Held<'_> {
     fn call_stdlib(&mut self, module: &str, function: &str, args: Vec<Value>) -> EvalResult<Value> {
@@ -520,7 +520,7 @@ pub mod format {
         present(
             caller,
             ("format", "series"),
-            vec![Value::List(values)],
+            vec![Value::list(values)],
             |chart| {
                 Ok(match chart {
                     Value::Null => None,
@@ -561,7 +561,7 @@ pub mod today {
             caller,
             "today",
             "page",
-            vec![Value::List(entries), Value::Date(day)],
+            vec![Value::list(entries), Value::Date(day)],
         ))
     }
 }
@@ -632,11 +632,11 @@ pub mod resource {
     }
 }
 
-pub mod itinerary_core {
+pub(crate) mod itinerary_core {
     use super::*;
     /// The calendar date of each day, from its calendar parts; `None` for a
     /// day the module gives no date.
-    pub fn dates(
+    pub(crate) fn dates(
         caller: &mut impl Caller,
         days: Vec<Value>,
         today: chrono::NaiveDate,
@@ -645,7 +645,7 @@ pub mod itinerary_core {
             caller,
             "itinerary_core",
             "dates",
-            vec![Value::List(days), Value::Date(today)],
+            vec![Value::list(days), Value::Date(today)],
         )?;
         Ok(values::list(&result)?
             .iter()
@@ -656,7 +656,7 @@ pub mod itinerary_core {
             .collect())
     }
     /// A stop's time as written in its label, from its stop record.
-    pub fn time_text(caller: &mut impl Caller, stop: Value) -> Presented {
+    pub(crate) fn time_text(caller: &mut impl Caller, stop: Value) -> Presented {
         let fallback = match &stop {
             Value::Record(fields) => match fields.get("time") {
                 Some(Value::Duration(seconds)) => {
@@ -676,7 +676,7 @@ pub mod itinerary_core {
         )
     }
     /// A stop's inline label, from its stop record.
-    pub fn label(caller: &mut impl Caller, stop: Value) -> Presented {
+    pub(crate) fn label(caller: &mut impl Caller, stop: Value) -> Presented {
         let fallback = field(&stop, "title");
         present(
             caller,
@@ -688,21 +688,25 @@ pub mod itinerary_core {
     }
 }
 
-pub mod timer {
+pub(crate) mod timer {
     use super::*;
     /// A new timer record from `countdown(...)` or `stopwatch(...)` and its
     /// arguments.
-    pub fn create(caller: &mut impl Caller, name: &str, args: Vec<Value>) -> EvalResult<Value> {
+    pub(crate) fn create(
+        caller: &mut impl Caller,
+        name: &str,
+        args: Vec<Value>,
+    ) -> EvalResult<Value> {
         call(
             caller,
             "timer",
             "create",
-            vec![Value::Text(name.into()), Value::List(args)],
+            vec![Value::Text(name.into()), Value::list(args)],
         )
     }
     /// Whether the timer's display changes with the clock. Optional: callers
     /// fall back to the module's `live` flag when it is absent.
-    pub fn time_dependent(caller: &mut impl Caller, timer: Value) -> EvalResult<bool> {
+    pub(crate) fn time_dependent(caller: &mut impl Caller, timer: Value) -> EvalResult<bool> {
         match call(caller, "timer", "time_dependent", vec![timer])? {
             Value::Bool(live) => Ok(live),
             _ => Err(values::EvalError::Message(
@@ -711,11 +715,11 @@ pub mod timer {
         }
     }
     /// The timer's state as the module names it: idle, running, paused or done.
-    pub fn state(caller: &mut impl Caller, timer: Value) -> EvalResult<String> {
+    pub(crate) fn state(caller: &mut impl Caller, timer: Value) -> EvalResult<String> {
         text(call(caller, "timer", "state", vec![timer]))
     }
     /// The timer's inline display.
-    pub fn display(caller: &mut impl Caller, timer: Value) -> Presented {
+    pub(crate) fn display(caller: &mut impl Caller, timer: Value) -> Presented {
         present(
             caller,
             ("timer", "display"),
@@ -725,7 +729,7 @@ pub mod timer {
         )
     }
     /// The timer's hover.
-    pub fn hover(caller: &mut impl Caller, timer: Value) -> Presented {
+    pub(crate) fn hover(caller: &mut impl Caller, timer: Value) -> Presented {
         present(
             caller,
             ("timer", "hover"),
@@ -735,7 +739,11 @@ pub mod timer {
         )
     }
     /// A property a note reads from the timer, such as `.remaining`.
-    pub fn property(caller: &mut impl Caller, timer: Value, name: &str) -> EvalResult<Value> {
+    pub(crate) fn property(
+        caller: &mut impl Caller,
+        timer: Value,
+        name: &str,
+    ) -> EvalResult<Value> {
         call(
             caller,
             "timer",
@@ -745,7 +753,7 @@ pub mod timer {
     }
     /// The timer's new source expression after `action`, from the first
     /// argument it was `original`ly declared with.
-    pub fn transition(
+    pub(crate) fn transition(
         caller: &mut impl Caller,
         timer: Value,
         action: &str,
@@ -767,12 +775,12 @@ pub mod timer {
 pub mod plan {
     use super::*;
     /// A plan model's solution record: decisions, constraint slack and status.
-    pub fn solve_model(caller: &mut impl Caller, model: Value) -> EvalResult<Value> {
+    pub(crate) fn solve_model(caller: &mut impl Caller, model: Value) -> EvalResult<Value> {
         call(caller, "plan", "solve_model", vec![model])
     }
     /// The value of the goal-seek unknown `name` at the boundary its
     /// constraint's linear `form` sets, in `unit`.
-    pub fn seek_boundary(
+    pub(crate) fn seek_boundary(
         caller: &mut impl Caller,
         name: &str,
         form: Value,

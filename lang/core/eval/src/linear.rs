@@ -66,7 +66,7 @@ impl Linear {
     }
     /// The unit of a variable in this form, or `None` when it is scaled by
     /// two different units.
-    pub fn unknown_kind(&self) -> Option<Unit> {
+    pub(crate) fn unknown_kind(&self) -> Option<Unit> {
         match (self.kind, self.scale) {
             (Unit::Any, _) => Some(Unit::Number),
             (kind, Unit::Number) => Some(kind),
@@ -200,7 +200,7 @@ pub struct RowVariable {
 }
 impl Engine<'_> {
     /// A linear form over `vars`; every other name is evaluated to a constant.
-    pub fn linear(
+    pub(crate) fn linear(
         &mut self,
         path: &Path,
         source: &str,
@@ -367,21 +367,6 @@ impl Engine<'_> {
             ))),
             other => constant(self.expr(path, other)?),
         }
-    }
-    /// Decision columns of a table value: column name to (index, domain).
-    pub(crate) fn decision_columns(
-        &self,
-        table: &crate::tables_impl::TableValue,
-    ) -> BTreeMap<String, (usize, model::tables::Domain)> {
-        crate::tables_impl::table(self.request.workspace, &table.origin)
-            .map(|t| {
-                t.domains
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, d)| d.map(|d| (t.columns[i].name.clone(), (i, d))))
-                    .collect()
-            })
-            .unwrap_or_default()
     }
     /// `sum(table, row expression)` as a linear form: decision columns become
     /// one variable per row, other columns are constants.

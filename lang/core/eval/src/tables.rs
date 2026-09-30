@@ -3,7 +3,7 @@
 //! `TableValue` a note holds once its cells are evaluated. Parsing, typing and
 //! formatting a table's shape is `model::tables`, one layer down.
 use crate::{
-    engine::Value,
+    engine::{BinaryOp, Builtin, Engine, Expr, Parser, RowScope, Value, binary},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use model::{
@@ -122,14 +122,30 @@ pub fn literal_value(cell: &Cell) -> EvalResult<Value> {
         .map_err(EvalError::Message)
 }
 
-/// Rows of a table, evaluating calculated cells and checking that each column
-/// keeps one type. Failures point at the offending cell. Used by
-/// `Engine::symbol` when a definition's source is a table.
-pub(crate) fn table_value(
-    engine: &mut crate::engine::Engine<'_>,
+/// A table definition's value, as `features` registers it for
+/// [`model::DefinitionKind::Table`]: the first problem parsing found, or its
+/// rows.
+pub(crate) fn evaluate(
+    engine: &mut Engine<'_>,
     symbol: &Symbol,
-    table: &Table,
+    index: usize,
 ) -> EvalResult<Value> {
+    let Some(table) = engine.workspace().documents[&symbol.path].table_of(index) else {
+        return Err(EvalError::NotATable(
+            engine.workspace().named(symbol).name.clone(),
+        ));
+    };
+    if let Some(problem) = table.problems.first() {
+        let message = EvalError::Message(problem.message.clone());
+        Err(engine.fail_at(&symbol.path, problem.span, message))
+    } else {
+        table_value(engine, symbol, table)
+    }
+}
+
+/// Rows of a table, evaluating calculated cells and checking that each column
+/// keeps one type. Failures point at the offending cell.
+fn table_value(engine: &mut Engine<'_>, symbol: &Symbol, table: &Table) -> EvalResult<Value> {
     use crate::engine::ValueType;
     let mut types: Vec<Option<ValueType>> = table.types.clone();
     let mut rows = Vec::with_capacity(table.rows.len());
@@ -171,4 +187,110 @@ pub(crate) fn table_value(
         columns: table.columns.iter().map(|c| c.name.clone()).collect(),
         rows,
     })))
+}
+
+/// `sum(…)` with other than a single list: the row sum over a table, as
+/// `features` registers it for [`Builtin::Sum`].
+pub(crate) fn call_sum(
+    engine: &mut Engine<'_>,
+    path: &Path,
+    _: Builtin,
+    args: &[Expr],
+) -> EvalResult<Value> {
+    engine.sum(path, args).map(|(value, _)| value)
+}
+
+impl Engine<'_> {
+    /// What each row adds to a `sum(table, row expression)`, or `None` when
+    /// `source` is not one or does not evaluate.
+    pub fn sum_contributions(&mut self, path: &Path, source: &str) -> Option<Vec<Value>> {
+        let parsed = Parser::parse(source).ok()?;
+        let Expr::Builtin(Builtin::Sum, args) = parsed.bare() else {
+            return None;
+        };
+        self.sum(path, args).ok().map(|(_, rows)| rows)
+    }
+    /// The table a row `sum` walks, named by its first argument.
+    pub(crate) fn summed_table<'e>(
+        &mut self,
+        path: &Path,
+        first: &'e Expr,
+    ) -> EvalResult<(&'e str, std::sync::Arc<TableValue>)> {
+        let Some(name) = first.as_name() else {
+            return Err(EvalError::Message(
+                "The first argument to sum must be a table name".into(),
+            ));
+        };
+        let Some(table) = self.named(path, name)?.downcast_arc::<TableValue>() else {
+            return Err(EvalError::NotATable(name.into()));
+        };
+        Ok((name, table))
+    }
+    /// Decision columns of a table value: column name to (index, domain).
+    pub(crate) fn decision_columns(
+        &self,
+        table: &TableValue,
+    ) -> BTreeMap<String, (usize, model::tables::Domain)> {
+        self::table(self.workspace(), &table.origin)
+            .map(|t| {
+                t.domains
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, d)| d.map(|d| (t.columns[i].name.clone(), (i, d))))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+    /// `sum(table, row expression)`: the total, and what each row added.
+    fn sum(&mut self, path: &Path, args: &[Expr]) -> EvalResult<(Value, Vec<Value>)> {
+        if args.len() != 2 {
+            return Err(EvalError::Message(
+                "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
+            ));
+        }
+        let (name, table) = self.summed_table(path, &args[0])?;
+        let mut total = None;
+        let mut contributions = Vec::new();
+        let decisions = self.decision_columns(&table);
+        for values in table.named_rows() {
+            self.push_row(RowScope {
+                table: name.into(),
+                values,
+                decisions: decisions
+                    .keys()
+                    .map(|c| (c.clone(), String::new()))
+                    .collect(),
+            });
+            let value = self.expr(path, &args[1]);
+            self.pop_row();
+            let value = value?;
+            if !matches!(
+                value,
+                Value::Number(_) | Value::Money(..) | Value::Ratio(_) | Value::Duration(_)
+            ) {
+                return Err(EvalError::Message(format!(
+                    "sum requires numeric, money, ratio, or duration results, found {}",
+                    value.type_name()
+                )));
+            }
+            total = Some(if let Some(previous) = total {
+                let ratios =
+                    matches!(previous, Value::Ratio(_)) && matches!(value, Value::Ratio(_));
+                let added = binary(BinaryOp::Add, previous, value.clone())?;
+                if ratios && let Value::Number(n) = added {
+                    Value::Ratio(n)
+                } else {
+                    added
+                }
+            } else {
+                value.clone()
+            });
+            contributions.push(value);
+        }
+        total.map(|v| (v, contributions)).ok_or_else(|| {
+            EvalError::Message(
+                "Cannot sum an empty table: add a row to establish its value type".into(),
+            )
+        })
+    }
 }

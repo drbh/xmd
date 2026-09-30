@@ -8,9 +8,8 @@
 /// The shared kernel: spans, file names and URIs.
 pub mod common {
     pub use ::common::{
-        EXTENSION, LIBRARY_EXTENSION, LineIndex, Lines, Span, file_path, file_url, is_library,
-        is_note, library_file, note_extension, note_file, note_stem, uri, uri_from_url,
-        url_from_uri,
+        EXTENSION, LIBRARY_EXTENSION, Span, file_path, file_url, is_library, is_note, library_file,
+        note_extension, note_file, note_stem, uri, uri_from_url, url_from_uri,
     };
 }
 
@@ -18,7 +17,7 @@ pub mod common {
 /// appointment attributes.
 pub mod syntax {
     pub use ::syntax::{
-        Applies, AttributeKey, AttributeValue, Lexeme, Literal, is_relative_date, literal, stamp,
+        AttributeKey, AttributeValue, Lexeme, Literal, is_relative_date, literal, stamp,
         valid_expression,
     };
 }
@@ -28,7 +27,7 @@ pub mod syntax {
 /// `book/reference/contract.md` is generated from it.
 pub mod stdlib {
     pub use ::eval::stdlib::{
-        CONTRACT, Caller, Contract, Held, Presented, Role, Snapshot, contract, modules, shown,
+        CONTRACT, Caller, Contract, Presented, Role, Snapshot, modules, shown,
     };
     pub mod format {
         pub use ::eval::stdlib::format::{age, glyph, series};
@@ -42,18 +41,8 @@ pub mod stdlib {
     pub mod resource {
         pub use ::eval::stdlib::resource::{control, hover, label};
     }
-    pub mod itinerary_core {
-        pub use ::eval::stdlib::itinerary_core::{dates, label, time_text};
-    }
-    pub mod timer {
-        pub use ::eval::stdlib::timer::{
-            create, display, hover, property, state, time_dependent, transition,
-        };
-    }
     pub mod plan {
-        pub use ::eval::stdlib::plan::{
-            hover, seek_boundary, seek_summary, solve_model, write_edits, write_title,
-        };
+        pub use ::eval::stdlib::plan::{hover, seek_summary, write_edits, write_title};
     }
 }
 
@@ -63,6 +52,10 @@ pub mod model {
         Attribute, Document, ExprImports, HighlightKind, LineIndex, Named, TaskState, apply_edits,
         byte_at, end_position, expression_regions, identifier, note_path, utf16,
     };
+    /// What the recognizers modules declare found in a note.
+    pub mod recognized {
+        pub use ::model::recognized::{Group, Match, Paint};
+    }
 }
 
 /// Evaluation: the workspace, the engine, modules and the value kinds they
@@ -82,9 +75,6 @@ pub mod eval {
             lex_with_comments, relative_date, sum_scope_at,
         };
         pub use ::values::{HostObject, Value, literal, next_occurrence, value_json};
-    }
-    pub mod functional {
-        pub use ::values::{compare, sum};
     }
     pub mod itinerary {
         pub use ::eval::itinerary::{dates, day_record, display_time, label};

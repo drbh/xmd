@@ -130,6 +130,7 @@ signatures! {
         Lower("text: Text") -> Text, "Convert text to lowercase.", "\"Hello\"";
         Upper("text: Text") -> Text, "Convert text to uppercase.", "\"Hello\"";
         Replace("text: Text", "from: Text", "to: Text") -> Text, "Replace text occurrences.", "\"hello\", \"h\", \"j\"";
+        MatchPattern("text: Text", "pattern: Text") -> "Record or Null", "The first match of a regular expression, or null: `{text, start, end, groups}`, offsets counting Unicode characters as `slice` does. `groups` has every named group `(?<name>...)` as `{text, start, end}`, or null when it took no part. Matching takes time linear in the text; a pattern is limited to 1024 bytes and compiled once.", "\"Ada: 42\", \"(?<name>\\\\w+): (?<n>\\\\d+)\"";
         Sum("items: List or Table", "expression?: row calculation") -> "Number, Money, Ratio, or Duration", "Add compatible quantities from a list, skipping nulls, or a row expression over each table row, keeping units.", "groceries, quantity * price";
         Countdown("duration: Duration", "elapsed?: Duration", "started?: DateTime") -> Countdown, "An idle countdown. Use Start timer to capture a timestamp; elapsed and started are persisted by timer controls.", "25m";
         Stopwatch("elapsed?: Duration", "started?: DateTime") -> Stopwatch, "An idle stopwatch. Use Start, Pause, Resume, or Reset timer. Elapsed time includes time while the editor is closed.", "";
@@ -158,7 +159,7 @@ const fn attribute(key: AttributeKey) -> Signature {
     Signature {
         name: key.spelling(),
         params: key.params(),
-        result: Outcome::Words(key.applies().as_str()),
+        result: Outcome::Words(key.applies_to()),
         documentation: key.documentation(),
         example: key.example(),
         tier: Tier::Note,

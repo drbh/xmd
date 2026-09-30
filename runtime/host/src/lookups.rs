@@ -13,6 +13,7 @@ use lang::eval::modules::{Module, ModuleKind, ModuleRegistry, from_json, json, r
 use lang::syntax::AttributeKey;
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::sync::Arc;
 
 /// Every lookup the notes ask for, found by evaluating them. Itinerary days
 /// with a place want a forecast even without a `forecast(...)` call.
@@ -63,9 +64,6 @@ fn wanted(
     keys
 }
 
-pub(crate) fn load(root: &Path) -> Store {
-    read_json_or_default(&root.join(".xmd/lookups.json"))
-}
 fn save(root: &Path, store: &Store) -> Result<(), String> {
     write_json_atomic(&root.join(".xmd/lookups.json"), store)
 }
@@ -172,7 +170,7 @@ async fn run_provider(
             ("key", key.clone()),
             ("today", Value::Date(today)),
             ("state", state),
-            ("results", Value::List(results)),
+            ("results", Value::list(results)),
         ]);
         let mut step = Step::call(module, input, now)?;
         step.failed()?;
@@ -187,7 +185,7 @@ async fn run_provider(
         }
         state = step.state();
         let requests = match step.take("requests") {
-            Some(Value::List(requests)) => requests,
+            Some(Value::List(requests)) => Arc::unwrap_or_clone(requests),
             _ => vec![],
         };
         results = Vec::new();

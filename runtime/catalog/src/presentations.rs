@@ -7,7 +7,7 @@
 //! workspace that brings no modules of its own is not checked: a presentation
 //! only starts failing when a module replaces, or is imported by, a bundled
 //! one.
-use crate::{links, tasks};
+use crate::{Records, hovers, links};
 use lang::common::Span;
 use lang::eval::engine::Value;
 use lang::eval::plans::PlanValue;
@@ -22,7 +22,11 @@ use std::path::Path;
 
 /// The first failure of each presentation the note uses, as a warning where
 /// it failed.
-pub fn presentations(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnostic> {
+pub fn presentations(
+    request: &RequestContext<'_>,
+    records: &Records,
+    path: &Path,
+) -> Vec<Diagnostic> {
     let ws = request.workspace();
     let Some(doc) = ws.documents().get(path) else {
         return vec![];
@@ -38,7 +42,9 @@ pub fn presentations(request: &RequestContext<'_>, path: &Path) -> Vec<Diagnosti
         let recurring = task.attributes.contains_key(AttributeKey::Every.as_str());
         let done = engine.task_done(path, index);
         failures.check(span, stdlib::task::toggle(&mut engine, recurring, done));
-        failures.check(span, tasks::hover_text(&mut engine, path, index));
+        if let Some(hover) = hovers::task_text(&mut engine, records, path, index) {
+            failures.check(span, hover);
+        }
     }
     for (i, section) in doc.sections.iter().enumerate() {
         let Some(named) = &section.named else {

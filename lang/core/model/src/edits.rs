@@ -1,7 +1,26 @@
 //! Applying LSP text edits to a note's source, the one check every proposed
 //! edit or position passes before anything reaches a host.
-use crate::document::byte_at;
 use lsp_types::{Position, TextEdit};
+
+/// The UTF-16 column of byte `byte` in `line`: what an LSP position counts.
+pub fn utf16(line: &str, byte: usize) -> u32 {
+    line.get(..byte).unwrap_or(line).encode_utf16().count() as u32
+}
+/// The byte of UTF-16 column `character` in `line`, unless it falls inside
+/// a character.
+pub fn byte_at(line: &str, character: u32) -> Option<usize> {
+    let mut units = 0;
+    for (byte, c) in line.char_indices() {
+        if units == character {
+            return Some(byte);
+        }
+        units += c.len_utf16() as u32;
+        if units > character {
+            return None;
+        }
+    }
+    (units == character).then_some(line.len())
+}
 
 /// The position just past the last character, where an edit may append.
 pub fn end_position(text: &str) -> Position {

@@ -576,6 +576,14 @@ Construct a calendar date; invalid dates return null.
 
 `make_date(2026, 9, 18)`
 
+### `match_pattern(text: Text, pattern: Text)`
+
+returns Record or Null
+
+The first match of a regular expression, or null: `{text, start, end, groups}`, offsets counting Unicode characters as `slice` does. `groups` has every named group `(?<name>...)` as `{text, start, end}`, or null when it took no part. Matching takes time linear in the text; a pattern is limited to 1024 bytes and compiled once.
+
+`match_pattern("Ada: 42", "(?<name>\\w+): (?<n>\\d+)")`
+
 ### `merge3(base: Text, ours: Text, theirs: Text)`
 
 returns Record

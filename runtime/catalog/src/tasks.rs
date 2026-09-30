@@ -7,12 +7,11 @@ use super::{
 use chrono::TimeZone;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::timers::Timer;
-use lang::eval::{Clock, RequestContext, Workspace};
+use lang::eval::{Clock, Workspace};
 use lang::eval::{ToValue, record};
 use lang::model::{Document, TaskState};
 use lang::stdlib;
 use lang::syntax::{AttributeKey, AttributeValue};
-use lsp_types::{Hover, HoverContents};
 use std::{collections::BTreeMap, path::Path};
 
 /// The scheduling attributes a task reads, and the fields they land in; what
@@ -187,27 +186,6 @@ pub(super) fn tasks(
         }
         records.push(Record::typed(path, task(ws, path, doc, engine, i, leaf)));
     }
-}
-
-/// A task's hover: its record, as queries and feature modules read it, worded
-/// by the stdlib's `task` module.
-pub fn hover(request: &RequestContext<'_>, path: &Path, index: usize) -> Option<Hover> {
-    let doc = request.workspace().documents().get(path)?;
-    let line = doc.tasks.get(index)?.line;
-    let text = stdlib::shown(hover_text(&mut request.engine(), path, index));
-    Some(Hover {
-        contents: HoverContents::Markup(analysis::markup(text)),
-        range: Some(doc.line_span(line).range(doc)),
-    })
-}
-
-/// Task `index`'s hover text as `task.hover` words it from its record.
-pub(super) fn hover_text(engine: &mut Engine<'_>, path: &Path, index: usize) -> stdlib::Presented {
-    let ws = engine.workspace();
-    let doc = &ws.documents()[path];
-    let leaf = !doc.tasks.iter().any(|t| t.parent == Some(index));
-    let record = Record::typed(path, task(ws, path, doc, engine, index, leaf)).materialize(engine);
-    stdlib::task::hover(engine, record)
 }
 
 /// Task `i`'s record; `leaf` says whether no task nests under it.

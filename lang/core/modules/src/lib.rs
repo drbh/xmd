@@ -10,14 +10,16 @@ mod link_features;
 mod module;
 mod registry;
 
-// A compiled module, its kind and hooks, and the environment it runs in.
+// A compiled module, its kind and hooks, and the environment and clock it
+// runs in.
 pub use module::{
-    Evaluator, Hook, Module, ModuleEnvironment, ModuleKind, NewEnvironment, is_module_path,
+    Evaluator, Hook, Module, ModuleEnvironment, ModuleKind, NewEnvironment, has_clock,
+    is_module_path, no_clock,
 };
 // What the host hands each hook and each `step` loop and what must come back,
 // declared as data.
 pub use module::{Effect, HOOK_RECORDS, HOOKS, HookContract, HookRecord, STEPS, StepProtocol};
 // The compiled set of modules, linked and ready to call.
-pub use registry::{ModuleRegistry, has_clock, no_clock};
+pub use registry::ModuleRegistry;
 // The link modules a request consults, and the refresh formats they name.
 pub use link_features::{Cache, LinkFeatures, Metadata, RefreshFormat, RefreshRequest};

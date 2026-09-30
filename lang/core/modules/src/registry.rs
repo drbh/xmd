@@ -8,18 +8,6 @@ use std::{
 };
 use values::{EvalError, EvalResult, Value};
 
-/// The clock a module call runs at when native code has no clock to give
-/// it: the call is handed every date it needs as an argument instead. Module
-/// code evaluated at it answers `now()` and `today()` with an error rather
-/// than with 1970.
-pub fn no_clock() -> DateTime<FixedOffset> {
-    DateTime::UNIX_EPOCH.fixed_offset()
-}
-/// Whether `now` is a real clock rather than [`no_clock`].
-pub fn has_clock(now: DateTime<FixedOffset>) -> bool {
-    now != no_clock()
-}
-
 /// Where the bundled modules live: no file on disk is under this root.
 const BUNDLED_ROOT: &str = "/__xmd_stdlib__";
 
@@ -38,7 +26,7 @@ impl ModuleRegistry {
     pub fn iter(&self) -> impl Iterator<Item = &Module> {
         self.modules.iter()
     }
-    pub fn active(&self) -> impl Iterator<Item = &Module> {
+    pub(crate) fn active(&self) -> impl Iterator<Item = &Module> {
         self.modules.iter().filter(|m| m.enabled)
     }
     /// Whether every module is a bundled one: the workspace brings none of
@@ -51,6 +39,13 @@ impl ModuleRegistry {
     /// The active module with this id.
     pub fn get(&self, id: &str) -> Option<&Module> {
         self.active().find(|m| m.id == id)
+    }
+    /// The recognizers the active modules declare, in manifest order: what a
+    /// note is recognized with as it is parsed.
+    pub fn recognizers(&self) -> Vec<std::sync::Arc<model::recognized::Rule>> {
+        self.active()
+            .flat_map(|m| m.recognizes.iter().cloned())
+            .collect()
     }
     /// The active modules of one kind, in manifest order.
     pub fn of_kind(&self, kind: ModuleKind) -> impl Iterator<Item = &Module> {

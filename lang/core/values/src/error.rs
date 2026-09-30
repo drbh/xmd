@@ -251,7 +251,7 @@ impl EvalError {
         }
     }
     /// Attribute a failure to the lookup whose cached value produced it.
-    pub fn in_lookup(self, key: LookupKey) -> Self {
+    pub(crate) fn in_lookup(self, key: LookupKey) -> Self {
         Self::Lookup {
             key,
             source: Box::new(self),

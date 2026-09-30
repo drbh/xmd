@@ -2,6 +2,8 @@
 //! prose that reads naturally on its own. Shared by the native server,
 //! browser adapter and CLI. Parsing only: `evaluate::itinerary` resolves the
 //! dates, labels and canonical text a day or stop displays.
+use crate::blocks::{Link, Tree};
+use crate::document::Document;
 use chrono::{NaiveTime, Weekday};
 use common::Span;
 
@@ -280,7 +282,7 @@ fn day_heading(line: &str, row: usize) -> Option<Day> {
     let mut places_text = stripped.trim_end();
     // A trailing :name on a heading belongs to the section, not the places.
     if let Some(at) = places_text.rfind(" :")
-        && crate::document::identifier(&places_text[at + 2..])
+        && syntax::identifier(&places_text[at + 2..])
     {
         places_text = places_text[..at].trim_end();
     }
@@ -389,7 +391,25 @@ fn detail(line: &str, row: usize) -> Option<Detail> {
     })
 }
 
-pub(crate) fn parse(lines: &[&str]) -> Vec<Day> {
+/// Day and stop blocks, wherever in the note they are, and a map link for
+/// every address they carry.
+pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, lines: &[&str]) {
+    doc.days = parse(lines);
+    for day in &doc.days {
+        for stop in &day.stops {
+            for detail in &stop.details {
+                if detail.key.eq_ignore_ascii_case("address") && !detail.value.is_empty() {
+                    tree.links.push(Link {
+                        span: detail.value_span,
+                        target: map_url(&detail.value),
+                    });
+                }
+            }
+        }
+    }
+}
+
+fn parse(lines: &[&str]) -> Vec<Day> {
     let mut days: Vec<Day> = Vec::new();
     let mut fence = false;
     for (row, line) in lines.iter().enumerate() {
@@ -526,7 +546,7 @@ pub fn month_name(month: u32) -> &'static str {
     }
 }
 /// A Google Maps search for an address; every platform opens it.
-pub(crate) fn map_url(address: &str) -> String {
+fn map_url(address: &str) -> String {
     let encoded: String = url::form_urlencoded::byte_serialize(address.as_bytes()).collect();
     format!("https://www.google.com/maps/search/?api=1&query={encoded}")
 }

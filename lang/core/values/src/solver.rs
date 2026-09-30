@@ -1,8 +1,8 @@
 //! The numerical boundary: a bounded, unit-free linear model in, raw values out.
 use crate::error::{EvalError, EvalResult};
 use crate::{
-    records::FromValue,
-    value::{Value, from_json, json},
+    records::{FromValue, from_json},
+    value::{Value, json},
 };
 use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
 use serde::Deserialize;

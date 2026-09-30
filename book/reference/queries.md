@@ -218,6 +218,10 @@ generated from the collections a query binds by name. the fields are every field
 | `type` | text |
 | `value` | record |
 
+## recognized
+
+no example has one yet
+
 ## references
 
 | field | value |

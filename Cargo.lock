@@ -230,6 +230,7 @@ version = "0.1.0"
 dependencies = [
  "lsp-types",
  "percent-encoding",
+ "regex",
  "strum",
  "url",
 ]

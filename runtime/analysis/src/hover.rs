@@ -19,7 +19,7 @@ pub fn markup(value: String) -> MarkupContent {
 
 /// How the task on a row hovers, supplied by the caller: a task's hover reads
 /// its catalog record, which this crate cannot build.
-pub type TaskHover = fn(&lang::eval::RequestContext<'_>, &Path, usize) -> Option<Hover>;
+pub type TaskHover<'a> = &'a dyn Fn(&lang::eval::RequestContext<'_>, &Path, usize) -> Option<Hover>;
 
 /// The editor's own hover, for whatever `locate` finds at the position:
 /// a link, a table cell, a symbol (with a property preview when a reference
@@ -28,7 +28,7 @@ pub fn hover_at(
     request: &lang::eval::RequestContext<'_>,
     path: &Path,
     position: Position,
-    task_hover: TaskHover,
+    task_hover: TaskHover<'_>,
 ) -> Option<Hover> {
     let ws = request.workspace();
     match locate::target(ws, path, position)? {

@@ -44,6 +44,8 @@ pub enum Collection {
     Calculations,
     References,
     Cells,
+    /// What the recognizers modules declare found.
+    Recognized,
 }
 impl Collection {
     /// Every collection name, in declaration order, for error messages.

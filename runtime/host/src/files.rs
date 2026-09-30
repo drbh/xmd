@@ -179,7 +179,7 @@ fn empty(roots: Vec<PathBuf>) -> Workspace {
     for root in result.roots().to_vec() {
         result.extend_caches(
             read_json_or_default(&root.join(".xmd/cache.json")),
-            crate::lookups::load(&root),
+            read_json_or_default(&root.join(".xmd/lookups.json")),
         );
     }
     result

@@ -97,7 +97,7 @@ impl Operator {
         })
     }
     /// The prefix operation this spelling denotes, if any.
-    pub fn unary(self) -> Option<UnaryOp> {
+    pub(crate) fn unary(self) -> Option<UnaryOp> {
         Some(match self {
             Self::Subtract => UnaryOp::Negate,
             Self::Add => UnaryOp::Plus,
@@ -136,7 +136,7 @@ impl BinaryOp {
     pub fn as_str(self) -> &'static str {
         self.operator().as_str()
     }
-    pub fn operator(self) -> Operator {
+    pub(crate) fn operator(self) -> Operator {
         match self {
             Self::Add => Operator::Add,
             Self::Subtract => Operator::Subtract,
@@ -154,7 +154,7 @@ impl BinaryOp {
     }
     /// Binding power: a higher number binds tighter. A pipe sits between
     /// comparisons and arithmetic, at [`PIPE_PRECEDENCE`].
-    pub fn precedence(self) -> u8 {
+    pub(crate) fn precedence(self) -> u8 {
         match self {
             Self::Or => 1,
             Self::And => 2,

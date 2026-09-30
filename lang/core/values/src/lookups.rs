@@ -4,8 +4,7 @@
 //! (`runtime/host`) stores them and fetches them on an explicit refresh.
 use crate::{
     error::{EvalError, EvalResult, PropertyOwner},
-    records::record,
-    value::{HostObject, Value, decimal, optional},
+    value::{HostObject, Value, decimal, optional, record},
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use common::{Currency, ValueType};

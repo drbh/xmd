@@ -110,10 +110,39 @@ What a feature module sees of the note a request is about. `range` and `capabili
 | field | what it is |
 | --- | --- |
 | `today` | Date: the request's day |
-| `document` | Record: `path`, `uri` and `text` as text, `lines` as a list of text, and one list per collection the module's `inputs` names, under the collection's name. `inputs` defaults to sections, tasks, values and links; `inputs: {tasks: ["text", "line"]}` keeps only those fields. With `values`, the same list is also `definitions`, each record with its first error as `error` |
+| `document` | Record: `path`, `uri` and `text` as text, `lines` as a list of text, and one list per collection the module's `inputs` names, under the collection's name. `inputs` defaults to sections, tasks, values and links; `inputs: {tasks: ["text", "line"]}` keeps only those fields. With `values`, the same list is also `definitions`, each record with its first error as `error`. A module that declares `recognizes` also has `recognized`: its own recognizers' matches |
 | `module` | Record: `id` and `revision` of the module being called |
 | `range?` | the LSP range being drawn, `{start, end}` of `{line, character}` |
 | `capabilities?` | Record: `refresh` and `views`, booleans for whether the host can refresh data and show views |
+
+#### recognizer
+
+One entry of a feature module's `recognizes` list: a pattern the host runs over every line of one kind of block whenever a note is parsed, with no module code evaluated. Each non-empty match becomes a `recognized` record. The pattern is checked when the module compiles: a bad one is a module error. A module declares at most 16.
+
+| field | what it is |
+| --- | --- |
+| `name` | Text: an identifier, once per module; each match's `recognizer` |
+| `on` | `prose`, `item`, `heading` or `row`: which lines it reads, from where their text starts (past a heading's `#`s, past a list marker and any checkbox, at a row's first `\|`, past prose's indentation). `^` anchors there. Fences and comments are never read |
+| `pattern` | Text: a regular expression, at most 1024 bytes, with named groups `(?<name>...)`. Matching is linear in the line |
+| `tokens?` | Record: a named group's paint, one of `keyword`, `number`, `string`, `variable`, `heading`, `function`, `property`, `decorator`, `operator`, `comment`, `punctuation`, `money`, `date`, `time`, `duration`, `boolean`, `link`, `code` or `place`. The note's own structure (links, names, attributes, comments) paints over it |
+
+#### recognized
+
+One match of a recognizer: a record of the `recognized` collection, which queries read for every module and a feature module reads as `ctx.document.recognized` for its own. Built when the note is parsed and kept with its other records. A note keeps at most 4096 matches.
+
+| field | what it is |
+| --- | --- |
+| `kind` | `recognized` |
+| `recognizer` | Text: the recognizer's `name` |
+| `module` | Text: the id of the module that declared it |
+| `title` | Text: the matched text |
+| `text` | Text: the matched text |
+| `line` | Number: the zero-based line |
+| `range` | the match's LSP range |
+| `anchor` | the LSP position just past the match, where an inlay goes |
+| `groups` | Record: each named group that took part, as `{text, range}` |
+| `source` | Record: `path`, `uri`, `line` (one-based) and `range` |
+| `errors` | List: empty |
 
 #### action
 

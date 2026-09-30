@@ -3,42 +3,71 @@
 //! converts the result to its transport. The implementations stay in the
 //! feature module each belongs to; the `impl` below is the list of what exists.
 use crate::{
-    code_actions::{self, TaskToggle},
-    commands::Capabilities,
+    code_actions,
+    commands::{Action, Capabilities, PreparedAction, TaskToggle},
     completion,
-    inlays::{self, InlayOutput},
-    links, providers, render, rows,
+    inlays::InlayOutput,
+    links, providers, render,
 };
 use analysis::{CodeActionItem, document_symbols, hierarchy};
-use catalog::{Query, QueryResult};
+use catalog::{Query, QueryResult, Records};
 use chrono::{DateTime, FixedOffset};
 use lang::eval::{RequestContext, Symbol, Workspace};
 use lsp_types::*;
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 /// One workspace snapshot and clock, with every editor feature as a method.
-/// It derefs to `eval`'s [`RequestContext`], which the features evaluate with.
-pub struct Request<'a>(RequestContext<'a>);
+/// It derefs to `eval`'s [`RequestContext`], which the features evaluate with,
+/// and carries the catalog's derived [`Records`] every feature reads records
+/// from: its own, or a session's, shared by the requests of one workspace
+/// revision.
+pub struct Request<'a> {
+    context: RequestContext<'a>,
+    /// Read directly by the features, the one thing a request adds to its
+    /// context.
+    pub(crate) records: Arc<Records>,
+}
 impl<'a> Request<'a> {
+    /// A request of its own: its records are built for it and dropped with it.
     pub fn new(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
-        Self(RequestContext::new(workspace, now))
+        Self::sharing(workspace, now, Arc::default())
+    }
+    /// A request reading `records`, which its owner keeps only for as long
+    /// as `workspace` is unchanged.
+    pub(crate) fn sharing(
+        workspace: &'a Workspace,
+        now: DateTime<FixedOffset>,
+        records: Arc<Records>,
+    ) -> Self {
+        Self {
+            context: RequestContext::new(workspace, now),
+            records,
+        }
+    }
+    /// A request around an evaluation context the catalog hands back, as it
+    /// does a [`catalog::DiagnosticSource`].
+    pub(crate) fn within(context: &RequestContext<'a>) -> Self {
+        Self {
+            context: context.clone(),
+            records: Arc::default(),
+        }
     }
 }
 impl<'a> std::ops::Deref for Request<'a> {
     type Target = RequestContext<'a>;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.context
     }
 }
 
 impl Request<'_> {
     // Presentation: what the note looks like.
     pub fn hints(&self, path: &Path, range: Range) -> InlayOutput {
-        inlays::collect(self, path, range)
+        providers::hints(self, path, range)
     }
     /// Whether this note's labels change with the clock, so hosts can tick it.
-    pub fn live_hints(&self, path: &Path) -> bool {
-        inlays::live(self, path)
+    pub(crate) fn live_hints(&self, path: &Path) -> bool {
+        providers::live_hints(self, path)
     }
     pub fn document_links(&self, path: &Path) -> Vec<DocumentLink> {
         links::document_links(self, path)
@@ -57,7 +86,7 @@ impl Request<'_> {
 
     // Interaction: the controls a note offers.
     pub fn code_lenses(&self, path: &Path, capabilities: Capabilities) -> Vec<CodeLens> {
-        rows::lenses(self, path, capabilities)
+        providers::lenses(self, path, capabilities)
     }
     pub fn code_actions(
         &self,
@@ -67,6 +96,16 @@ impl Request<'_> {
         toggle: TaskToggle,
     ) -> Vec<CodeActionItem> {
         code_actions::code_actions(self, path, range, capabilities, toggle)
+    }
+    /// Validate `action` against this snapshot and clock, for the host to
+    /// carry out. The host still owns version checks, applying edits,
+    /// opening URLs and refreshing data.
+    pub fn prepare(
+        &self,
+        action: &Action,
+        capabilities: Capabilities,
+    ) -> Result<PreparedAction, String> {
+        providers::prepare(self, action, capabilities)
     }
     pub fn formatting(&self, path: &Path) -> Result<Vec<TextEdit>, String> {
         providers::edits(self, path)
@@ -98,8 +137,8 @@ impl Request<'_> {
 
     // The workspace query API, optionally scoped to one indexed note.
     pub fn query(&self, query: &Query, only: Option<&Path>) -> Result<QueryResult, String> {
-        catalog::execute(self, query, only, |request, path| {
-            providers::diagnostics(request, path, false)
+        catalog::execute(self, self.records.clone(), query, only, |request, path| {
+            providers::diagnostics(&Request::within(request), path, false)
         })
     }
 }

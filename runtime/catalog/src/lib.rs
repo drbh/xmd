@@ -8,15 +8,22 @@
 //! workspace for it; this root names the collections and dispatches to them.
 //! `query` evaluates queries over the collections, and `inspection` adds the
 //! syntax and dependency views that queries and feature modules read.
+//!
+//! Every reader takes records from `cache` ([`Records`]), which builds each
+//! collection once per workspace revision and clock and keeps what its lazy
+//! fields produce; `hovers` words a task's hover from the same records.
+mod cache;
 mod days;
 mod definitions;
 mod diagnostics;
 mod expressions;
+mod hovers;
 mod inspection;
 mod links;
 mod notes;
 mod presentations;
 mod query;
+mod recognized;
 mod record;
 mod sections;
 mod tasks;
@@ -28,12 +35,13 @@ use lang::eval::{RequestContext, Workspace};
 use lsp_types::Diagnostic;
 use std::path::Path;
 
+pub use cache::{Records, View};
+pub use hovers::task as task_hover;
 use lang::eval::modules::Collection;
 pub use presentations::presentations;
 pub use query::{NoteFiles, Query, QueryResult, execute};
-pub use record::Record;
+use record::Record;
 use record::SourceRef;
-pub use tasks::hover as task_hover;
 pub use value::display;
 
 /// Where the `diagnostics` collection comes from, chosen by the caller.
@@ -67,6 +75,7 @@ enum RecordKind {
     Decision,
     Resource,
     Diagnostic,
+    Recognized,
 }
 impl lang::eval::ToValue for RecordKind {
     fn to_value(&self) -> lang::eval::engine::Value {
@@ -76,7 +85,7 @@ impl lang::eval::ToValue for RecordKind {
 
 /// The query API and feature modules read the same semantic records. Each
 /// collection is one record builder below; this match is their index.
-pub fn collect(
+pub(crate) fn collect(
     ws: &Workspace,
     collection: Collection,
     engine: &mut Engine<'_>,
@@ -130,6 +139,7 @@ pub fn collect(
                 definitions::definitions(ws, path, doc, collection, engine, &mut records)?
             }
             Collection::Resources => links::resources(ws, path, doc, &mut records),
+            Collection::Recognized => recognized::recognized(ws, path, doc, &mut records),
             Collection::Diagnostics => {
                 diagnostics::diagnostics(ws, path, engine, diagnostics, &mut records)
             }

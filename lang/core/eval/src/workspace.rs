@@ -45,6 +45,9 @@ pub struct Workspace {
     pub(crate) cache: Cache,
     pub(crate) lookups: values::Store,
     pub(crate) modules: Arc<modules::ModuleRegistry>,
+    /// The recognizers the active modules declare, run over every note as it
+    /// is added.
+    recognizers: Vec<Arc<model::recognized::Rule>>,
     /// What calls into a module with this as its environment share.
     pub(crate) calls: crate::module_runtime::CallMemo,
 }
@@ -65,15 +68,19 @@ impl Workspace {
             .iter()
             .map(|(path, doc)| (path.clone(), Arc::new(names_in(doc))))
             .collect();
-        Self {
+        let recognizers = modules.recognizers();
+        let mut workspace = Self {
             roots,
             documents,
             names,
             cache: BTreeMap::new(),
             lookups: BTreeMap::new(),
             modules: Arc::new(modules),
+            recognizers: Vec::new(),
             calls: Default::default(),
-        }
+        };
+        workspace.recognize_with(recognizers);
+        workspace
     }
     /// The directories this workspace was opened on.
     pub fn roots(&self) -> &[PathBuf] {
@@ -96,7 +103,8 @@ impl Workspace {
         &self.modules
     }
     /// Add or replace a note, returning the one it replaces.
-    pub fn insert_document(&mut self, path: PathBuf, document: Document) -> Option<Document> {
+    pub fn insert_document(&mut self, path: PathBuf, mut document: Document) -> Option<Document> {
+        document.recognize(&self.recognizers);
         self.names
             .insert(path.clone(), Arc::new(names_in(&document)));
         self.documents.insert(path, document)
@@ -133,7 +141,20 @@ impl Workspace {
     }
     /// Activate a freshly compiled module registry.
     pub fn replace_modules(&mut self, modules: Arc<modules::ModuleRegistry>) {
+        let recognizers = modules.recognizers();
         self.modules = modules;
+        self.recognize_with(recognizers);
+    }
+    /// Recognize every note with `recognizers`, unless they are the ones it
+    /// was recognized with already.
+    fn recognize_with(&mut self, recognizers: Vec<Arc<model::recognized::Rule>>) {
+        if recognizers == self.recognizers {
+            return;
+        }
+        for document in self.documents.values_mut() {
+            document.recognize(&recognizers);
+        }
+        self.recognizers = recognizers;
     }
     pub fn link_features(&self) -> modules::LinkFeatures<'_> {
         self.modules.link_features()

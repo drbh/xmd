@@ -9,7 +9,7 @@ mod lexer;
 mod operators;
 mod values;
 
-pub use attributes::{Applies, AttributeKey, AttributeValue, stamp};
+pub use attributes::{AttributeKey, AttributeValue, stamp};
 pub use builtins::{Builtin, Tier};
 pub use lexer::{
     Expr, Lexeme, Parser, expression_names, identifier, is_builtin_function, lex,

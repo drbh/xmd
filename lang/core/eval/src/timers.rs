@@ -1,7 +1,7 @@
 //! Timers are timestamp-based values. Reading/evaluating them never mutates state.
 use crate::{
     contract::{Held, Presented, Snapshot, shown, timer},
-    engine::{Value, timer_arguments},
+    engine::{Builtin, Engine, Expr, Value, timer_arguments},
     workspace::{Symbol, SymbolKind},
 };
 use chrono::{DateTime, FixedOffset};
@@ -54,11 +54,7 @@ impl Timer {
     pub fn record(&self) -> Value {
         self.state.to_value()
     }
-    pub fn new(
-        engine: &mut crate::engine::Engine<'_>,
-        name: &str,
-        args: &[Value],
-    ) -> EvalResult<Self> {
+    pub(crate) fn new(engine: &mut Engine<'_>, name: &str, args: &[Value]) -> EvalResult<Self> {
         let implementation = engine
             .workspace()
             .modules
@@ -98,7 +94,7 @@ impl Timer {
         timer::time_dependent(&mut self.held(), self.record())
     }
     /// Where the timer stands, as the module decided when it was created.
-    pub fn state(&self) -> TimerState {
+    pub(crate) fn state(&self) -> TimerState {
         self.status
     }
     pub fn display(&self) -> String {
@@ -117,6 +113,35 @@ impl Timer {
     }
     pub fn property(&self, name: &str) -> EvalResult<Value> {
         timer::property(&mut self.held(), self.record(), name)
+    }
+}
+
+/// `stopwatch(…)` and `countdown(…)`, as `features` registers them: the timer
+/// module resolves the state.
+pub(crate) fn call(
+    engine: &mut Engine<'_>,
+    path: &Path,
+    builtin: Builtin,
+    args: &[Expr],
+) -> EvalResult<Value> {
+    let values = engine.values(path, args)?;
+    let time_dependent = engine.time_dependent;
+    let timer = Timer::new(engine, builtin.as_str(), &values)?;
+    // The module declares whether this resolved state still needs a clock.
+    engine.time_dependent = time_dependent || timer.time_dependent()?;
+    Ok(Value::Host(std::sync::Arc::new(timer)))
+}
+
+/// A definition written as a direct `countdown(…)` or `stopwatch(…)` names
+/// its timer, which is what lets a control rewrite that definition.
+pub(crate) fn adopt(value: Value, symbol: &Symbol, source: &str) -> Value {
+    match value.downcast::<Timer>() {
+        Some(timer) if timer.origin.is_none() && timer_arguments(source).is_some() => {
+            let mut timer = timer.clone();
+            timer.origin = Some(symbol.clone());
+            Value::Host(std::sync::Arc::new(timer))
+        }
+        _ => value,
     }
 }
 

@@ -9,12 +9,15 @@
 //! - names and values: `completion`, over the language facts in `analysis`;
 //! - how a note looks: `highlighting`, `prose`, `inlays`, `links`, `render`,
 //!   and `typing` (the on-type formatting that keeps tables aligned);
-//! - what a person can do: `commands` (the actions a host executes),
-//!   `code_actions` (offered over a range), `rows` (lenses and row controls).
+//! - what a person can do: `commands` (the actions a host executes, and the
+//!   shape every control provider has), the built-in control providers
+//!   `tasks`, `resources` and `lookups`, and `code_actions` (offered over
+//!   a range).
 //!
 //! `providers` is the one extension point through which the editor's own
 //! features and .xmd feature modules (adapted by `modules`) contribute
-//! inlays, hovers, diagnostics, controls and edits.
+//! inlays, hovers, diagnostics, controls and edits, and the one place an
+//! action is routed to the provider that prepares it.
 mod agenda;
 mod code_actions;
 mod commands;
@@ -22,13 +25,15 @@ mod completion;
 mod highlighting;
 mod inlays;
 mod links;
+mod lookups;
 mod modules;
 mod prose;
 mod providers;
 mod render;
 mod request;
-mod rows;
+mod resources;
 mod session;
+mod tasks;
 mod typing;
 
 // Every feature is a method on a request; the session is what a host keeps
@@ -39,10 +44,9 @@ pub use session::{RefreshReport, WorkspaceSession};
 // What a host calls without a request: semantic tokens, standalone HTML,
 // the day's agenda and on-type formatting.
 pub use agenda::today_markdown;
-pub use code_actions::TaskToggle;
 pub use highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 pub use render::{fragment, line_classes};
 pub use typing::{TRIGGERS, on_type};
 
 // The actions a host executes, and what it can show for them.
-pub use commands::{Action, Capabilities, PreparedAction};
+pub use commands::{Action, Capabilities, PreparedAction, TaskToggle};

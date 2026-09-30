@@ -1,15 +1,15 @@
 //! The engine that turns a definition into a value: name resolution over the
 //! environment frames, the request memo, and where a failure is placed. Calls
 //! are in `calls`, the objects only the evaluator builds in `host`, and the
-//! linear forms plans need in `linear`. The syntax it reads — the lexer, the
-//! expression tree and the built-in vocabulary — lives in `syntax`, and the
-//! value kinds and operators in `values`; both are re-exported here, so the
-//! crate spells them `engine::lex`, `engine::Value` and so on.
+//! linear forms plans need in `linear`. A definition that is a feature (a
+//! plan, a goal seek, a table) is evaluated by the feature `features`
+//! registers for its kind, never named here. The syntax it reads — the lexer,
+//! the expression tree and the built-in vocabulary — lives in `syntax`, and
+//! the value kinds and operators in `values`; both are re-exported here, so
+//! the crate spells them `engine::lex`, `engine::Value` and so on.
 pub(crate) use crate::linear::{Linear, RowVariable};
 use crate::{
-    plans::PlanValue,
-    tables_impl::TableValue,
-    timers::Timer,
+    features,
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
@@ -203,7 +203,7 @@ impl<'a> Engine<'a> {
         self.request.links
     }
     /// Override the registry for an embedded host or test before evaluation begins.
-    pub fn with_link_features(mut self, features: modules::LinkFeatures<'a>) -> Self {
+    pub(crate) fn with_link_features(mut self, features: modules::LinkFeatures<'a>) -> Self {
         self.request = self.request.with_link_features(features);
         self
     }
@@ -464,7 +464,7 @@ impl<'a> Engine<'a> {
                 && sum_scope_at(source, token.start).is_none()
                 && let Ok(value) = self.named(path, name)
             {
-                if value.downcast::<TableValue>().is_some() {
+                if value.kind() == ValueType::Table {
                     continue;
                 }
                 // For properties substitute the complete access, not a timer's display text.
@@ -541,30 +541,12 @@ impl<'a> Engine<'a> {
         let result = match symbol.kind {
             SymbolKind::Definition(i) => {
                 let def = &doc.definitions[i];
-                if let Some(plan) = doc.plan_of(i) {
-                    crate::plans::solve(self, symbol, plan)
-                } else if def.expression && model::plans::seek_body(&def.source).is_some() {
-                    crate::plans::seek(self, symbol)
-                } else if let Some(table) = doc.table_of(i) {
-                    if let Some(problem) = table.problems.first() {
-                        let message = EvalError::Message(problem.message.clone());
-                        Err(self.fail_at(&symbol.path, problem.span, message))
-                    } else {
-                        crate::tables_impl::table_value(self, symbol, table)
-                    }
-                } else if def.expression {
+                let kind = doc.definition_kind(i);
+                if let Some(evaluate) = features::evaluator(kind) {
+                    evaluate(self, symbol, i)
+                } else if kind == model::DefinitionKind::Expression {
                     self.eval_at(&symbol.path, &def.source, def.expression_span(&doc.text))
-                        .map(|v| match v.downcast::<Timer>() {
-                            Some(timer)
-                                if timer.origin.is_none()
-                                    && timer_arguments(&def.source).is_some() =>
-                            {
-                                let mut timer = timer.clone();
-                                timer.origin = Some(symbol.clone());
-                                Value::Host(std::sync::Arc::new(timer))
-                            }
-                            _ => v,
-                        })
+                        .map(|v| features::adopt(v, symbol, &def.source))
                 } else {
                     literal(&def.source).map(|v| match v {
                         Value::Resource(mut r) => {
@@ -584,15 +566,16 @@ impl<'a> Engine<'a> {
             SymbolKind::Column(_, _) => Err(EvalError::Message(
                 "A column needs a row context, e.g. sum(table, column)".into(),
             )),
+            // A plan's unknown: a property of the solved plan, which the
+            // plan's definition evaluates to.
             SymbolKind::Variable(plan, name) => {
                 let name = doc.plans[plan].names[name].name.clone();
                 let definition = symbol.sibling(SymbolKind::Definition(doc.plans[plan].definition));
-                self.symbol(&definition).and_then(|value| {
-                    value
-                        .downcast::<PlanValue>()
-                        .ok_or(EvalError::Expected("a plan"))?
-                        .property(&name)
-                })
+                self.symbol(&definition)
+                    .and_then(|value| match value.host() {
+                        Some(plan) => plan.property(&name),
+                        None => Err(EvalError::Expected("a plan")),
+                    })
             }
         };
         self.unwind(height);
@@ -637,7 +620,7 @@ impl<'a> Engine<'a> {
                 self.call(function, args)
             }
             Expr::List(items) => {
-                let value = Value::List(self.values(path, items)?);
+                let value = Value::list(self.values(path, items)?);
                 sized(value)
             }
             Expr::Record(fields) => self.record(path, fields),
@@ -682,7 +665,7 @@ impl<'a> Engine<'a> {
             .collect()
     }
     fn record(&mut self, path: &Path, fields: &[(String, Expr)]) -> EvalResult<Value> {
-        let value = Value::Record(
+        let value = Value::record(
             fields
                 .iter()
                 .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?.plain())))
@@ -843,7 +826,7 @@ impl<'a> Engine<'a> {
                 .iter()
                 .map(|v| self.property(v, key))
                 .collect::<Result<Vec<_>, _>>()
-                .map(Value::List),
+                .map(Value::list),
             _ => value.property(key),
         }
     }
@@ -902,16 +885,6 @@ impl<'a> Engine<'a> {
             || doc.tasks.iter().enumerate().any(|(j, t)| {
                 t.parent == Some(i) && (self.task_done(path, j) || self.task_in_progress(path, j))
             })
-    }
-
-    /// What each row adds to a `sum(table, row expression)`, or `None` when
-    /// `source` is not one or does not evaluate.
-    pub fn sum_contributions(&mut self, path: &Path, source: &str) -> Option<Vec<Value>> {
-        let parsed = Parser::parse(source).ok()?;
-        let Expr::Builtin(Builtin::Sum, args) = parsed.bare() else {
-            return None;
-        };
-        self.sum(path, args).ok().map(|(_, rows)| rows)
     }
     pub fn blocked(&mut self, path: &Path, i: usize) -> EvalResult<Vec<String>> {
         self.blocked_inner(path, i, &mut Vec::new())

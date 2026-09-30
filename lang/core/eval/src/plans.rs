@@ -119,7 +119,7 @@ impl PlanValue {
         })
     }
     /// Per decision column: (table, column, chosen values in row order).
-    pub fn columns(&self) -> Vec<ColumnChoices> {
+    pub(crate) fn columns(&self) -> Vec<ColumnChoices> {
         let mut result: Vec<ColumnChoices> = Vec::new();
         for (row, value) in &self.rows {
             match result
@@ -146,12 +146,10 @@ impl PlanValue {
 
 /// Goal seek: the definition's own name is the unknown, and the answer is the
 /// boundary value that makes the constraint hold. Linear equations have a
-/// closed form, so no solver runs.
-pub(crate) fn seek(engine: &mut Engine<'_>, symbol: &Symbol) -> EvalResult<Value> {
+/// closed form, so no solver runs. `features` registers it for
+/// [`model::DefinitionKind::GoalSeek`].
+pub(crate) fn seek(engine: &mut Engine<'_>, symbol: &Symbol, index: usize) -> EvalResult<Value> {
     let doc = &engine.workspace().documents[&symbol.path];
-    let SymbolKind::Definition(index) = symbol.kind else {
-        return Err(EvalError::Expected("a definition"));
-    };
     let def = &doc.definitions[index];
     let name = def.named.name.clone();
     let body = model::plans::seek_body(&def.source).ok_or(EvalError::Message(
@@ -191,8 +189,13 @@ fn form_record(form: &Linear) -> FormRecord {
         unit: unit_value(form.kind, form.currency),
     }
 }
-pub(crate) fn solve(engine: &mut Engine<'_>, symbol: &Symbol, plan: &Plan) -> EvalResult<Value> {
+/// Solve the plan definition `index` lays out, as `features` registers it for
+/// [`model::DefinitionKind::Plan`].
+pub(crate) fn solve(engine: &mut Engine<'_>, symbol: &Symbol, index: usize) -> EvalResult<Value> {
     let ws = engine.workspace();
+    let plan: &Plan = ws.documents[&symbol.path]
+        .plan_of(index)
+        .ok_or(EvalError::Expected("a plan"))?;
     let path = symbol.path.clone();
     let names: Vec<String> = ws
         .plan_variables(&path, plan)
@@ -356,7 +359,7 @@ impl RecordFields for ConstraintResult {
 }
 impl ToValue for ConstraintResult {
     fn to_value(&self) -> Value {
-        Value::Record(self.fields())
+        Value::record(self.fields())
     }
 }
 
@@ -421,7 +424,7 @@ impl ToValue for ConstraintRecord<'_> {
         if let Some(range) = &self.range {
             fields.insert("range".into(), range.clone());
         }
-        Value::Record(fields)
+        Value::record(fields)
     }
 }
 
@@ -437,16 +440,16 @@ pub(crate) struct PlanRecord<'a> {
 }
 impl ToValue for PlanRecord<'_> {
     fn to_value(&self) -> Value {
-        Value::Record(BTreeMap::from([
+        Value::record(BTreeMap::from([
             ("goal".into(), self.goal.to_value()),
             ("objective".into(), self.objective.clone()),
             (
                 "variables".into(),
-                Value::Record(self.variables.iter().cloned().collect()),
+                Value::record(self.variables.iter().cloned().collect()),
             ),
             (
                 "variable_order".into(),
-                Value::List(self.variables.iter().map(|(n, _)| n.to_value()).collect()),
+                Value::list(self.variables.iter().map(|(n, _)| n.to_value()).collect()),
             ),
             ("constraints".into(), self.constraints.to_value()),
             ("columns".into(), self.columns.to_value()),

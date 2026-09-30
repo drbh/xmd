@@ -4,7 +4,6 @@
 //! forecasts...) a literal can never be.
 use crate::error::{EvalError, EvalResult, Overflow};
 use crate::lookups::Forecast;
-use crate::records::record;
 use chrono::{DateTime, FixedOffset, Months, NaiveDate};
 use common::{Code, Currency, Resource, ValueType};
 use serde_json::json;
@@ -17,11 +16,16 @@ use std::{
 use syntax::{Expr, Literal};
 pub type TaskKey = (PathBuf, usize);
 
+/// Lists and records are shared: cloning one is a reference count, never a
+/// copy of its items, so a note's derived data can be cached and handed to a
+/// module as-is. Build one with [`Value::list`] or [`Value::record`]; code
+/// that changes one in place goes through `Arc::make_mut`, which copies only
+/// when the value is still shared.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Null,
-    List(Vec<Value>),
-    Record(BTreeMap<String, Value>),
+    List(Arc<Vec<Value>>),
+    Record(Arc<BTreeMap<String, Value>>),
     Function(Arc<Function>),
     /// An explicit note import. Members are evaluated only when read.
     Namespace(Namespace),
@@ -44,6 +48,12 @@ pub enum Value {
     /// or a plan. Its kind, display and fields are the object's own.
     Host(Arc<dyn HostObject>),
 }
+// Values cross threads (the language server evaluates off its I/O thread), so
+// sharing a list or record must stay thread-safe.
+const _: () = {
+    const fn shared<T: Send + Sync>() {}
+    shared::<Value>()
+};
 /// A parsed literal is always one of these values: money, dates, a resource
 /// and the rest all become the value kind of the same name.
 impl From<Literal> for Value {
@@ -131,11 +141,19 @@ impl PartialEq for dyn HostObject {
 }
 impl dyn HostObject {
     /// The object as the concrete type it was built with.
-    pub fn downcast_ref<T: HostObject>(&self) -> Option<&T> {
+    pub(crate) fn downcast_ref<T: HostObject>(&self) -> Option<&T> {
         (self as &dyn Any).downcast_ref()
     }
 }
 impl Value {
+    /// A list value holding these items.
+    pub fn list(items: Vec<Value>) -> Self {
+        Self::List(Arc::new(items))
+    }
+    /// A record value holding these fields.
+    pub fn record(fields: BTreeMap<String, Value>) -> Self {
+        Self::Record(Arc::new(fields))
+    }
     /// The object behind a host value, or `None` for a value the language
     /// computes. This is the one place every variant is sorted into the two
     /// halves, so it is spelled out rather than using a wildcard: a new kind
@@ -195,7 +213,7 @@ impl HostObject for Vec<TaskKey> {
         format!("{} tasks", self.len())
     }
     fn query(&self) -> Option<Value> {
-        Some(Value::List(
+        Some(Value::list(
             self.iter()
                 .map(|(path, index)| {
                     record([
@@ -225,6 +243,10 @@ impl HostObject for Resource {
     fn query(&self) -> Option<Value> {
         Some(record([("target", Value::Text(self.target.clone()))]))
     }
+}
+/// A record built from `(key, value)` pairs, keys written as `&str` or `String`.
+pub fn record<K: Into<String>>(fields: impl IntoIterator<Item = (K, Value)>) -> Value {
+    Value::record(fields.into_iter().map(|(k, v)| (k.into(), v)).collect())
 }
 /// The unit a linear form carries, so money, durations and plain numbers never
 /// mix silently.
@@ -288,7 +310,7 @@ impl Value {
                 .iter()
                 .map(|v| v.property(key))
                 .collect::<Result<Vec<_>, _>>()
-                .map(List),
+                .map(Value::list),
             // Every other kind answers only for the fields its type owns.
             (value, key) if value.kind().fields().contains(&key) => Ok(match (value, key) {
                 (Money(amount, _), "amount") => Number(*amount),
@@ -563,23 +585,6 @@ pub fn value_json(value: &Value) -> serde_json::Value {
     }
 }
 
-/// JSON a module or a cache hands back, as module values. Every JSON number
-/// reads as a `Number`, whole or not, because module code does arithmetic on
-/// it; the catalog's own reading of query JSON keeps whole numbers as `Count`
-/// instead. [`json()`] goes the other way and writes a whole, non-negative
-/// `Number` as an integer, so a round trip does not grow a `.0`.
-pub fn from_json(value: &serde_json::Value) -> Value {
-    match value {
-        serde_json::Value::Null => Value::Null,
-        serde_json::Value::Bool(v) => Value::Bool(*v),
-        serde_json::Value::Number(v) => Value::Number(v.as_f64().unwrap_or_default()),
-        serde_json::Value::String(v) => Value::Text(v.clone()),
-        serde_json::Value::Array(v) => Value::List(v.iter().map(from_json).collect()),
-        serde_json::Value::Object(v) => {
-            crate::records::record(v.iter().map(|(k, v)| (k.as_str(), from_json(v))))
-        }
-    }
-}
 pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
     Ok(match value {
         Value::Null => serde_json::Value::Null,

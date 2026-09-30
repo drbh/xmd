@@ -1,0 +1,34 @@
+{
+  "steps": [
+    { "cli": ["query", "people.x.md", "recognized | map(.{recognizer, module, line, text, range, groups})", "--json"] },
+    { "cli": ["query", "--workspace", "recognized | map(fn(r) => r.groups.name.text + \" \" + r.groups.number.text)", "--json"] },
+    { "cli": ["render", "people.x.md", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "people.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "people.x.md" },
+        { "request": "textDocument/semanticTokens/full", "file": "people.x.md" },
+        {
+          "request": "textDocument/inlayHint",
+          "file": "people.x.md",
+          "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 100, "character": 0 } }
+        },
+        { "request": "textDocument/hover", "file": "people.x.md", "line": 2, "character": 4 },
+        { "request": "textDocument/hover", "file": "people.x.md", "line": 3, "character": 4 },
+        { "request": "textDocument/hover", "file": "people.x.md", "line": 5, "character": 8 },
+        { "change": { "file": "people.x.md", "text": "☎ Ada Lovelace: +44 20 7946 0000\nplain prose\n" } },
+        { "request": "textDocument/semanticTokens/full", "file": "people.x.md" }
+      ]
+    },
+    { "write": { ".xmd/modules/contacts.x.md": "module := {api: 1, id: \"contacts\", kind: \"feature\", recognizes: [{name: \"contact\", on: \"prose\", pattern: \"(?<name>\"}]}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "people.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/contacts.x.md": "module := {api: 1, id: \"contacts\", kind: \"feature\", recognizes: [{name: \"contact\", on: \"prose\", pattern: \"(?<name>\\\\w+)\", tokens: {phone: \"number\"}}]}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "people.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/contacts.x.md": "module := {api: 1, id: \"contacts\", kind: \"feature\", recognizes: [{name: \"contact\", on: \"prose\", pattern: \"(?<name>\\\\w+)\", tokens: {name: \"purple\"}}]}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "people.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/contacts.x.md": "module := {api: 1, id: \"contacts\", kind: \"feature\", recognizes: [{name: \"contact\", on: \"table\", pattern: \"x\"}]}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "people.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/contacts.x.md": "module := {api: 1, id: \"contacts\", kind: \"library\", recognizes: [{name: \"contact\", on: \"prose\", pattern: \"x\"}]}\n" } },
+    { "cli": ["render", "people.x.md", "--format", "text"] }
+  ]
+}

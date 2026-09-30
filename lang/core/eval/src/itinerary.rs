@@ -1,5 +1,6 @@
 //! Itinerary resolution: parsed days and stops become module values, and the
 //! `itinerary_core` module decides their dates, labels and canonical text.
+use crate::contract::itinerary_core;
 use crate::engine::Value;
 use crate::stdlib;
 use chrono::{NaiveDate, Timelike};
@@ -26,15 +27,15 @@ pub fn dates(
     today: NaiveDate,
 ) -> EvalResult<Vec<Option<NaiveDate>>> {
     let days = days.iter().map(|d| day_parts(d).to_value()).collect();
-    stdlib::itinerary_core::dates(&mut snapshot(modules), days, today)
+    itinerary_core::dates(&mut snapshot(modules), days, today)
 }
 /// A stop's time as its label writes it.
 pub fn display_time(modules: &ModuleRegistry, stop: &Stop) -> stdlib::Presented {
-    stdlib::itinerary_core::time_text(&mut snapshot(modules), stop_record(stop, None))
+    itinerary_core::time_text(&mut snapshot(modules), stop_record(stop, None))
 }
 /// A stop's inline label.
 pub fn label(modules: &ModuleRegistry, stop: &Stop) -> stdlib::Presented {
-    stdlib::itinerary_core::label(&mut snapshot(modules), stop_record(stop, None))
+    itinerary_core::label(&mut snapshot(modules), stop_record(stop, None))
 }
 /// The registry as `itinerary_core` sees it: without a clock, since the
 /// contract calls it with every date it needs (`today` for `dates`).

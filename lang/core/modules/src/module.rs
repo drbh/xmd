@@ -2,6 +2,7 @@
 //! engine calls into it.
 use chrono::{DateTime, FixedOffset};
 use model::Document;
+use model::recognized::{On, Paint, Rule};
 use std::{
     any::Any,
     collections::{BTreeMap, BTreeSet},
@@ -15,6 +16,18 @@ use values::{EvalError, EvalResult, FromValue, LookupKind, Value};
 
 use crate::registry::ModuleRegistry;
 use values::Collection;
+
+/// The clock a module call runs at when native code has no clock to give
+/// it: the call is handed every date it needs as an argument instead. Module
+/// code evaluated at it answers `now()` and `today()` with an error rather
+/// than with 1970.
+pub fn no_clock() -> DateTime<FixedOffset> {
+    DateTime::UNIX_EPOCH.fixed_offset()
+}
+/// Whether `now` is a real clock rather than [`no_clock`].
+pub fn has_clock(now: DateTime<FixedOffset>) -> bool {
+    now != no_clock()
+}
 
 /// What a compiled module evaluates against: its own note and the libraries it
 /// imports, as the evaluator holds them. The evaluator implements it, so this
@@ -81,7 +94,7 @@ pub enum ModuleKind {
 }
 impl ModuleKind {
     /// The one hook a module of this kind must supply.
-    pub fn required_hook(self) -> Option<Hook> {
+    pub(crate) fn required_hook(self) -> Option<Hook> {
         match self {
             Self::Link => Some(Hook::Inlay),
             Self::Feature => Some(Hook::Collect),
@@ -124,7 +137,7 @@ pub enum Hook {
     Step,
 }
 impl Hook {
-    pub fn arity(self) -> usize {
+    pub(crate) fn arity(self) -> usize {
         match self {
             Self::Property | Self::Reduce | Self::Decode => 2,
             _ => 1,
@@ -214,7 +227,8 @@ pub static HOOK_RECORDS: &[HookRecord] = &[
                  collection's name. `inputs` defaults to sections, tasks, values and \
                  links; `inputs: {tasks: [\"text\", \"line\"]}` keeps only those fields. \
                  With `values`, the same list is also `definitions`, each record with \
-                 its first error as `error`",
+                 its first error as `error`. A module that declares `recognizes` also \
+                 has `recognized`: its own recognizers' matches",
             ),
             (
                 "module",
@@ -229,6 +243,69 @@ pub static HOOK_RECORDS: &[HookRecord] = &[
                 "Record: `refresh` and `views`, booleans for whether the host can \
                  refresh data and show views",
             ),
+        ],
+    },
+    HookRecord {
+        name: "recognizer",
+        doc: "One entry of a feature module's `recognizes` list: a pattern the host runs \
+              over every line of one kind of block whenever a note is parsed, with no \
+              module code evaluated. Each non-empty match becomes a `recognized` \
+              record. The pattern is checked when the module compiles: a bad one is a \
+              module error. A module declares at most 16.",
+        fields: &[
+            (
+                "name",
+                "Text: an identifier, once per module; each match's `recognizer`",
+            ),
+            (
+                "on",
+                "`prose`, `item`, `heading` or `row`: which lines it reads, from where \
+                 their text starts (past a heading's `#`s, past a list marker and any \
+                 checkbox, at a row's first `|`, past prose's indentation). `^` anchors \
+                 there. Fences and comments are never read",
+            ),
+            (
+                "pattern",
+                "Text: a regular expression, at most 1024 bytes, with named groups \
+                 `(?<name>...)`. Matching is linear in the line",
+            ),
+            (
+                "tokens?",
+                "Record: a named group's paint, one of `keyword`, `number`, `string`, \
+                 `variable`, `heading`, `function`, `property`, `decorator`, `operator`, \
+                 `comment`, `punctuation`, `money`, `date`, `time`, `duration`, \
+                 `boolean`, `link`, `code` or `place`. The note's own structure (links, \
+                 names, attributes, comments) paints over it",
+            ),
+        ],
+    },
+    HookRecord {
+        name: "recognized",
+        doc: "One match of a recognizer: a record of the `recognized` collection, which \
+              queries read for every module and a feature module reads as \
+              `ctx.document.recognized` for its own. Built when the note is parsed \
+              and kept with its other records. A note keeps at most 4096 matches.",
+        fields: &[
+            ("kind", "`recognized`"),
+            ("recognizer", "Text: the recognizer's `name`"),
+            ("module", "Text: the id of the module that declared it"),
+            ("title", "Text: the matched text"),
+            ("text", "Text: the matched text"),
+            ("line", "Number: the zero-based line"),
+            ("range", "the match's LSP range"),
+            (
+                "anchor",
+                "the LSP position just past the match, where an inlay goes",
+            ),
+            (
+                "groups",
+                "Record: each named group that took part, as `{text, range}`",
+            ),
+            (
+                "source",
+                "Record: `path`, `uri`, `line` (one-based) and `range`",
+            ),
+            ("errors", "List: empty"),
         ],
     },
     HookRecord {
@@ -632,6 +709,8 @@ pub struct Module {
     pub enabled: bool,
     pub inputs: Vec<Collection>,
     pub fields: BTreeMap<Collection, Vec<String>>,
+    /// The recognizers a feature module declares in `recognizes`, compiled.
+    pub recognizes: Vec<Arc<Rule>>,
     pub(crate) imports: Vec<String>,
     /// The lookup kinds a provider module answers (`rate`, `quote`, `forecast`).
     pub provides: Vec<LookupKind>,
@@ -726,7 +805,11 @@ impl Module {
     ///
     /// A module is a `.xmd` file whose `module :=` record says what it is:
     /// `{api: 1, id, kind, inputs?, imports?, hosts?, path_prefix?, properties?,
-    /// enabled?, cache_version?, cache_namespace?, exports?}`.
+    /// enabled?, cache_version?, cache_namespace?, exports?, recognizes?}`.
+    ///
+    /// `recognizes` (feature modules only) declares patterns the host runs
+    /// over a note's generic blocks as it parses them, without evaluating
+    /// anything; see the `recognizer` record in [`HOOK_RECORDS`].
     ///
     /// `exports` is an optional list of text naming a library's public API.
     /// `import(id)` from a note returns exactly those members, the reference lists
@@ -738,7 +821,11 @@ impl Module {
     /// exports, so for them the field must be absent or empty. Another module's
     /// `imports:` is not bound by `exports`: module code may reach any non-`_`
     /// name of a library it declares (see `Module::member_names`).
-    pub fn compile(path: PathBuf, source: String, environment: NewEnvironment) -> EvalResult<Self> {
+    pub(crate) fn compile(
+        path: PathBuf,
+        source: String,
+        environment: NewEnvironment,
+    ) -> EvalResult<Self> {
         if source.len() > 65_536 {
             return Err("Modules are limited to 64 KiB".into());
         }
@@ -807,7 +894,7 @@ impl Module {
                 Collection::Links,
             ],
             Some(Value::Record(selections)) => {
-                for (name, selection) in selections {
+                for (name, selection) in selections.iter() {
                     fields.insert(name.parse()?, strings(selection)?);
                 }
                 fields.keys().copied().collect()
@@ -817,6 +904,16 @@ impl Module {
                 .map(|input| input.parse())
                 .collect::<Result<_, String>>()?,
         };
+        let recognizes = match config.get("recognizes") {
+            None => vec![],
+            Some(declared) if kind == ModuleKind::Feature => rules(&id, declared)?,
+            Some(_) => return Err("Only feature modules declare recognizes".into()),
+        };
+        // A module reads its own matches whether or not it names them.
+        let mut inputs = inputs;
+        if !recognizes.is_empty() && !inputs.contains(&Collection::Recognized) {
+            inputs.push(Collection::Recognized);
+        }
         // `hosts: "*"` is the host-agnostic spelling of an empty list: the
         // module recognizes a URL shape on any site, through its own `matches`.
         let hosts = match config.get("hosts") {
@@ -943,6 +1040,7 @@ impl Module {
             own_live: live,
             enabled,
             inputs,
+            recognizes,
             imports: opt_strings("imports")?,
             provides: lookups.unwrap_or_default(),
             fields,
@@ -955,6 +1053,87 @@ impl Module {
             environment,
         })
     }
+}
+
+/// The most recognizers one module declares.
+const MAX_RULES: usize = 16;
+
+/// `recognizes: [{name, on, pattern, tokens?}]`, each pattern compiled and
+/// each token checked against the pattern's named groups.
+fn rules(module: &str, declared: &Value) -> EvalResult<Vec<Arc<Rule>>> {
+    let Value::List(items) = declared else {
+        return Err("recognizes must be a list of records".into());
+    };
+    if items.len() > MAX_RULES {
+        return Err(format!("A module declares at most {MAX_RULES} recognizers").into());
+    }
+    let mut names = BTreeSet::new();
+    let mut rules = Vec::new();
+    for item in items.iter() {
+        let Value::Record(fields) = item else {
+            return Err("recognizes must be a list of records".into());
+        };
+        if let Some(key) = fields
+            .keys()
+            .find(|k| !matches!(k.as_str(), "name" | "on" | "pattern" | "tokens"))
+        {
+            return Err(format!("Unknown recognizer field '{key}'").into());
+        }
+        let text = |key: &str| match fields.get(key) {
+            Some(Value::Text(text)) => Ok(text.clone()),
+            _ => Err(EvalError::from(format!(
+                "Each recognizer needs {key} as text"
+            ))),
+        };
+        let name = text("name")?;
+        if !model::identifier(&name) {
+            return Err(format!("Invalid recognizer name '{name}'").into());
+        }
+        if !names.insert(name.clone()) {
+            return Err(format!("Duplicate recognizer '{name}'").into());
+        }
+        let on: On = text("on")?
+            .parse()
+            .map_err(|_| format!("Recognizer '{name}': on must be prose, item, heading or row"))?;
+        let pattern = common::Pattern::new(&text("pattern")?)
+            .map_err(|e| format!("Recognizer '{name}': {e}"))?;
+        let mut tokens = Vec::new();
+        match fields.get("tokens") {
+            None => {}
+            Some(Value::Record(paints)) => {
+                for (group, paint) in paints.iter() {
+                    if !pattern.group_names().any(|g| g == group) {
+                        return Err(format!(
+                            "Recognizer '{name}' paints '{group}', which its pattern does not name"
+                        )
+                        .into());
+                    }
+                    let paint: Paint = match paint {
+                        Value::Text(paint) => paint.parse().ok(),
+                        _ => None,
+                    }
+                    .ok_or_else(|| {
+                        format!(
+                            "Recognizer '{name}': '{group}' must be painted as one of {}",
+                            <Paint as strum::VariantNames>::VARIANTS.join(", ")
+                        )
+                    })?;
+                    tokens.push((group.clone(), paint));
+                }
+            }
+            Some(_) => {
+                return Err(format!("Recognizer '{name}': tokens must be a record").into());
+            }
+        }
+        rules.push(Arc::new(Rule {
+            module: module.into(),
+            name,
+            on,
+            pattern: Arc::new(pattern),
+            tokens,
+        }));
+    }
+    Ok(rules)
 }
 
 /// A list of text, as a module's manifest fields declare them.

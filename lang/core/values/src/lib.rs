@@ -19,15 +19,15 @@ mod value;
 pub use error::{CurrencyOp, Depth, EvalError, EvalResult, Limit, Overflow, PropertyOwner, UnitOp};
 // The value kinds, the host objects a value may hold, and their JSON forms.
 pub use value::{
-    Function, HostEq, HostObject, Namespace, TaskKey, Unit, Value, date_value, from_json, json,
-    literal, next_occurrence, optional, value_json,
+    Function, HostObject, Namespace, TaskKey, Unit, Value, date_value, json, literal,
+    next_occurrence, optional, record, value_json,
 };
 // What operators and pure built-ins compute over values.
 pub use arithmetic::binary;
 pub use functional::{builtin, check_size, compare, sum};
 pub use solver::LINEAR_COMPARISON;
 // Values crossing into and out of modules as records.
-pub use records::{Fields, FromValue, RecordFields, ToValue, geometry, list, record};
+pub use records::{Fields, FromValue, RecordFields, ToValue, from_json, geometry, list};
 // Fetched lookup values, and how a note reads them.
 pub use lookups::{
     Lookup, LookupKey, LookupKind, Store, day_place, forecast, forecast_from, quote, rate,

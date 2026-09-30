@@ -8,8 +8,8 @@ use lang::model::identifier;
 use lsp_types::*;
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
 use runtime::services::{
-    Query, Request, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession, folding_ranges,
-    fragment, line_classes, occurrences, semantic_tokens, signature, symbol_at, typing,
+    Query, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession, folding_ranges, fragment,
+    line_classes, occurrences, semantic_tokens, signature, symbol_at, typing,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -111,12 +111,14 @@ impl BrowserWorkspace {
         if method == "setResourceData" {
             let target: String = field(&params, "url")?;
             let data: Value = field(&params, "data")?;
-            let metadata = self.session.workspace.link_features().decode_refresh(
+            let metadata = self.session.workspace().link_features().decode_refresh(
                 &target,
                 &data,
                 now.to_utc(),
             )?;
-            self.session.workspace.store_link_status(target, metadata);
+            self.session
+                .workspace_mut()
+                .store_link_status(target, metadata);
             return Ok(Value::Null);
         }
         if method == "setModules" {
@@ -142,7 +144,7 @@ impl BrowserWorkspace {
                 .collect::<Result<BTreeMap<_, _>, _>>()?;
             let modules = lang::eval::modules::ModuleRegistry::compile(sources)?;
             self.session
-                .workspace
+                .workspace_mut()
                 .replace_modules(std::sync::Arc::new(modules));
             return Ok(Value::Null);
         }
@@ -158,7 +160,7 @@ impl BrowserWorkspace {
         }
         if method == "removeDocument" {
             let path = virtual_path(&field::<String>(&params, "uri")?)?;
-            self.session.workspace.remove_document(&path);
+            self.session.workspace_mut().remove_document(&path);
             self.session.close(&path);
             return Ok(Value::Null);
         }
@@ -178,8 +180,10 @@ impl BrowserWorkspace {
                 .filter(|v| !v.is_null())
                 .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
                 .transpose()?;
-            let result =
-                Request::new(&self.session.workspace, now).query(&compiled, only.as_deref())?;
+            let result = self
+                .session
+                .request(now)
+                .query(&compiled, only.as_deref())?;
             return Ok(
                 json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.json(),"versions":self.session.versions_json()}),
             );
@@ -187,12 +191,12 @@ impl BrowserWorkspace {
         let path = virtual_path(&field::<String>(&params, "uri")?)?;
         let doc = self
             .session
-            .workspace
+            .workspace()
             .documents()
             .get(&path)
             .ok_or("Note is not open in this browser workspace")?;
-        let ws = &self.session.workspace;
-        let request = Request::new(ws, now);
+        let ws = self.session.workspace();
+        let request = self.session.request(now);
         let position = || field::<Position>(&params, "position");
         let location = |symbol: &lang::eval::Symbol| Location {
             uri: lang::common::uri_from_url(&uri(&symbol.path)),
@@ -329,8 +333,8 @@ impl BrowserWorkspace {
         if let Some(document) = action.document() {
             virtual_path(document.as_str())?;
         }
-        let request = Request::new(&self.session.workspace, now);
-        match action.prepare(&request, Capabilities::BROWSER)? {
+        let request = self.session.request(now);
+        match request.prepare(&action, Capabilities::BROWSER)? {
             PreparedAction::Edit { path, edits } => {
                 Ok(json!({"edit":self.single_edit(&path, edits)}))
             }

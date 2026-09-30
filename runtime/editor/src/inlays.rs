@@ -1,6 +1,4 @@
 //! Inlays: what providers read and write while contributing inline labels.
-use crate::providers;
-use lang::eval::RequestContext;
 use lang::eval::engine::Engine;
 use lang::model::Document;
 use lsp_types::{
@@ -22,6 +20,7 @@ pub(crate) const FULL_RANGE: Range = Range {
 
 /// All producers in one request share evaluation memoization and a clock snapshot.
 pub(crate) struct InlayContext<'request, 'workspace> {
+    pub request: &'request crate::Request<'workspace>,
     pub engine: &'request mut Engine<'workspace>,
     pub path: &'request Path,
     pub document: &'workspace Document,
@@ -68,30 +67,23 @@ pub struct InlayOutput {
     pub time_dependent: bool,
 }
 
-/// Run every provider in order, then stably order their output by position.
-/// This same path supplies native LSP hints, browser hints, and clock refresh checks.
-pub(crate) fn collect(request: &RequestContext<'_>, path: &Path, range: Range) -> InlayOutput {
-    run(request, path, range, true)
-}
-
-/// Whether any label in the note reads the clock, so a host knows to refresh.
-/// The providers run as for [`collect`], but no label is drawn.
-pub(crate) fn live(request: &RequestContext<'_>, path: &Path) -> bool {
-    run(
-        request,
-        path,
-        Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
-        false,
-    )
-    .time_dependent
-}
-
-fn run(request: &RequestContext<'_>, path: &Path, range: Range, labels: bool) -> InlayOutput {
+/// Run `providers` over one context and sink, then stably order their output
+/// by position. With `labels` off, only whether any label moves with the
+/// clock is wanted. `providers` decides who contributes, so this same path
+/// supplies native LSP hints, browser hints and clock refresh checks.
+pub(crate) fn run(
+    request: &crate::Request<'_>,
+    path: &Path,
+    range: Range,
+    labels: bool,
+    providers: impl FnOnce(&mut InlayContext<'_, '_>, &mut InlaySink),
+) -> InlayOutput {
     let mut engine = request.engine();
     let Some(document) = request.workspace().documents().get(path) else {
         return InlayOutput::default();
     };
     let mut context = InlayContext {
+        request,
         engine: &mut engine,
         path,
         document,
@@ -102,7 +94,7 @@ fn run(request: &RequestContext<'_>, path: &Path, range: Range, labels: bool) ->
         range,
         hints: Vec::new(),
     };
-    providers::inlays(request, &mut context, &mut output);
+    providers(&mut context, &mut output);
     output.hints.sort_by_key(|hint| hint.position);
     InlayOutput {
         hints: output.hints,

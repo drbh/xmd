@@ -1,0 +1,340 @@
+### 0 cli query people.x.md recognized | map(.{recognizer, module, line, text, range, groups}) --json
+$ xmd query people.x.md recognized | map(.{recognizer, module, line, text, range, groups}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "groups": {
+      "name": {
+        "range": {
+          "end": {
+            "character": 14,
+            "line": 2
+          },
+          "start": {
+            "character": 2,
+            "line": 2
+          }
+        },
+        "text": "Ada Lovelace"
+      },
+      "number": {
+        "range": {
+          "end": {
+            "character": 32,
+            "line": 2
+          },
+          "start": {
+            "character": 16,
+            "line": 2
+          }
+        },
+        "text": "+44 20 7946 0000"
+      }
+    },
+    "line": 2,
+    "module": "contacts",
+    "range": {
+      "end": {
+        "character": 32,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "recognizer": "contact",
+    "text": "☎ Ada Lovelace: +44 20 7946 0000"
+  },
+  {
+    "groups": {
+      "name": {
+        "range": {
+          "end": {
+            "character": 13,
+            "line": 3
+          },
+          "start": {
+            "character": 2,
+            "line": 3
+          }
+        },
+        "text": "Alan Turing"
+      },
+      "number": {
+        "range": {
+          "end": {
+            "character": 28,
+            "line": 3
+          },
+          "start": {
+            "character": 15,
+            "line": 3
+          }
+        },
+        "text": "0161 496 0000"
+      }
+    },
+    "line": 3,
+    "module": "contacts",
+    "range": {
+      "end": {
+        "character": 28,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "recognizer": "contact",
+    "text": "☎ Alan Turing: 0161 496 0000"
+  },
+  {
+    "groups": {
+      "name": {
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 5
+          },
+          "start": {
+            "character": 4,
+            "line": 5
+          }
+        },
+        "text": "Grace Hopper"
+      },
+      "number": {
+        "range": {
+          "end": {
+            "character": 33,
+            "line": 5
+          },
+          "start": {
+            "character": 18,
+            "line": 5
+          }
+        },
+        "text": "+1 212-555-0100"
+      }
+    },
+    "line": 5,
+    "module": "contacts",
+    "range": {
+      "end": {
+        "character": 33,
+        "line": 5
+      },
+      "start": {
+        "character": 2,
+        "line": 5
+      }
+    },
+    "recognizer": "listed",
+    "text": "☎ Grace Hopper: +1 212-555-0100"
+  }
+]
+
+### 1 cli query --workspace recognized | map(fn(r) => r.groups.name.text + " " + r.groups.number.text) --json
+$ xmd query --workspace recognized | map(fn(r) => r.groups.name.text + " " + r.groups.number.text) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  "Ada Lovelace +44 20 7946 0000",
+  "Alan Turing 0161 496 0000",
+  "Grace Hopper +1 212-555-0100"
+]
+
+### 2 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# People
+
+☎ Ada Lovelace: +44 20 7946 0000 → +442079460000
+☎ Alan Turing: 0161 496 0000 → 01614960000
+
+- ☎ Grace Hopper: +1 212-555-0100 → +12125550100
+- [ ] call ☎ nobody: not a contact line
+
+## ☎ Heading: 123 is not read by these recognizers
+
+```
+☎ Fenced Person: +33 1 00 00 00 00
+```
+<!-- ☎ Commented Person: +49 30 000000 -->
+
+### 3 lsp
+-- open people.x.md
+-- await textDocument/publishDiagnostics people.x.md
+{
+  "diagnostics": [],
+  "uri": "file://<root>/people.x.md",
+  "version": 1
+}
+-- request textDocument/semanticTokens/full people.x.md
+0:0+1 xmdPunctuation "#"
+0:1+7 heading " People"
+2:2+12 variable "Ada Lovelace"
+2:16+16 number "+44 20 7946 0000"
+3:2+11 variable "Alan Turing"
+3:15+13 number "0161 496 0000"
+5:4+12 variable "Grace Hopper"
+5:18+15 number "+1 212-555-0100"
+6:0+1 xmdPunctuation "-"
+6:2+3 xmdCheckbox "[ ]"
+8:0+2 xmdPunctuation "##"
+8:2+12 heading " ☎ Heading: "
+8:14+3 number "123"
+8:17+33 heading " is not read by these recognizers"
+10:0+3 xmdCode "```"
+11:0+34 xmdCode "☎ Fenced Person: +33 1 00 00 00 00"
+12:0+3 xmdCode "```"
+13:0+42 comment "<!-- ☎ Commented Person: +49 30 000000 -->"
+-- request textDocument/inlayHint people.x.md {"end":{"character":0,"line":100},"start":{"character":0,"line":0}}
+[
+  {
+    "label": "→ +442079460000",
+    "paddingLeft": true,
+    "position": {
+      "character": 32,
+      "line": 2
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  },
+  {
+    "label": "→ 01614960000",
+    "paddingLeft": true,
+    "position": {
+      "character": 28,
+      "line": 3
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  },
+  {
+    "label": "→ +12125550100",
+    "paddingLeft": true,
+    "position": {
+      "character": 33,
+      "line": 5
+    },
+    "tooltip": {
+      "kind": "markdown",
+      "value": ""
+    }
+  }
+]
+-- request textDocument/hover people.x.md 2:4
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Ada Lovelace** · +44 20 7946 0000 · country code +44 (contact)"
+  },
+  "range": {
+    "end": {
+      "character": 14,
+      "line": 2
+    },
+    "start": {
+      "character": 2,
+      "line": 2
+    }
+  }
+}
+-- request textDocument/hover people.x.md 3:4
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Alan Turing** · 0161 496 0000 (contact)"
+  },
+  "range": {
+    "end": {
+      "character": 13,
+      "line": 3
+    },
+    "start": {
+      "character": 2,
+      "line": 3
+    }
+  }
+}
+-- request textDocument/hover people.x.md 5:8
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**Grace Hopper** · +1 212-555-0100 · country code +1 (listed)"
+  },
+  "range": {
+    "end": {
+      "character": 16,
+      "line": 5
+    },
+    "start": {
+      "character": 4,
+      "line": 5
+    }
+  }
+}
+-- change people.x.md (version 2)
+☎ Ada Lovelace: +44 20 7946 0000
+plain prose
+-- request textDocument/semanticTokens/full people.x.md
+0:2+12 variable "Ada Lovelace"
+0:16+16 number "+44 20 7946 0000"
+
+### 4 write
+-- write .xmd/modules/contacts.x.md (144 bytes)
+
+### 5 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': Invalid pattern: regex parse error:
+    (?<name>
+    ^
+error: unclosed group
+
+### 6 write
+-- write .xmd/modules/contacts.x.md (176 bytes)
+
+### 7 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact' paints 'phone', which its pattern does not name
+
+### 8 write
+-- write .xmd/modules/contacts.x.md (175 bytes)
+
+### 9 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': 'name' must be painted as one of keyword, number, string, variable, heading, function, property, decorator, operator, comment, punctuation, money, date, time, duration, boolean, link, code, place
+
+### 10 write
+-- write .xmd/modules/contacts.x.md (137 bytes)
+
+### 11 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': on must be prose, item, heading or row
+
+### 12 write
+-- write .xmd/modules/contacts.x.md (112 bytes)
+
+### 13 cli render people.x.md --format text
+$ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/contacts.x.md: Only feature modules declare recognizes
+

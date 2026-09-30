@@ -18,7 +18,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::SolveLinear, [model]) => crate::solver::solve(model)?,
         (B::Object, [List(entries)]) => {
             let mut fields = BTreeMap::new();
-            for entry in entries {
+            for entry in entries.iter() {
                 let Record(entry) = entry else {
                     return Err(EvalError::Message(
                         "object requires key/value records".into(),
@@ -34,13 +34,13 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     return Err(EvalError::Message(format!("Duplicate object key '{key}'")));
                 }
             }
-            Record(fields)
+            Value::record(fields)
         }
-        (B::Entries, [Record(fields)]) => List(
+        (B::Entries, [Record(fields)]) => Value::list(
             fields
                 .iter()
                 .map(|(key, value)| {
-                    Record(
+                    Value::record(
                         [
                             ("key".into(), Text(key.clone())),
                             ("value".into(), value.clone()),
@@ -111,12 +111,12 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     Err(text) => (false, text),
                 }
             };
-            Record([("clean".into(), Bool(clean)), ("text".into(), Text(text))].into())
+            Value::record([("clean".into(), Bool(clean)), ("text".into(), Text(text))].into())
         }
         (B::UrlEncode, [Text(value)]) => {
             Text(url::form_urlencoded::byte_serialize(value.as_bytes()).collect())
         }
-        (B::DurationParts, [Duration(seconds)]) => Record(
+        (B::DurationParts, [Duration(seconds)]) => Value::record(
             [
                 ("hours".into(), Number((seconds / 3600) as f64)),
                 ("minutes".into(), Number((seconds / 60 % 60) as f64)),
@@ -135,7 +135,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     ));
                 }
             };
-            Record(
+            Value::record(
                 [
                     ("year".into(), Number(date.year() as f64)),
                     ("month".into(), Number(date.month() as f64)),
@@ -207,9 +207,9 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                 if result.len().saturating_add(items.len()) > MAX_ITEMS {
                     return Err(EvalError::LimitExceeded(Limit::Collection));
                 }
-                result.extend(items.clone());
+                result.extend(items.iter().cloned());
             }
-            List(result)
+            Value::list(result)
         }
         (B::Slice, [value, start, end]) => {
             let start = index(start)?;
@@ -219,7 +219,9 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             }
             match value {
                 Text(text) => Text(text.chars().skip(start).take(end - start).collect()),
-                List(items) => List(items[start.min(items.len())..end.min(items.len())].to_vec()),
+                List(items) => {
+                    Value::list(items[start.min(items.len())..end.min(items.len())].to_vec())
+                }
                 _ => return Err(EvalError::Message("slice requires text or a list".into())),
             }
         }
@@ -282,7 +284,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             if parts.len() > MAX_ITEMS {
                 return Err(EvalError::LimitExceeded(Limit::Collection));
             }
-            List(parts.into_iter().map(|s| Text(s.into())).collect())
+            Value::list(parts.into_iter().map(|s| Text(s.into())).collect())
         }
         (B::Join, [List(items), Text(separator)]) => {
             let parts = items
@@ -312,8 +314,47 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             }
             Text(text.replace(from, to))
         }
+        (B::MatchPattern, [Text(text), Text(pattern)]) => match_pattern(text, pattern)?,
         _ => return Err(EvalError::Message(format!("Invalid arguments for {name}"))),
     })
+}
+
+/// `match_pattern(text, pattern)`: the first match of a regular expression,
+/// as `{text, start, end, groups}` with offsets in Unicode characters (what
+/// `slice` and `length` count), or null. Each named group is `{text, start,
+/// end}`, or null when it took no part in the match.
+fn match_pattern(text: &str, pattern: &str) -> EvalResult<Value> {
+    if text.len() > MAX_BYTES {
+        return Err(EvalError::LimitExceeded(Limit::Text));
+    }
+    let compiled = common::Pattern::cached(pattern).map_err(EvalError::Message)?;
+    let Some(found) = compiled.first(text) else {
+        return Ok(Value::Null);
+    };
+    let chars = |byte: usize| Value::Count(text[..byte].chars().count());
+    let span = |range: std::ops::Range<usize>| {
+        [
+            ("text".into(), Value::Text(text[range.clone()].into())),
+            ("start".into(), chars(range.start)),
+            ("end".into(), chars(range.end)),
+        ]
+    };
+    let groups = compiled
+        .group_names()
+        .map(|name| {
+            let group = found
+                .groups
+                .iter()
+                .find(|(n, _)| *n == name)
+                .map_or(Value::Null, |(_, range)| {
+                    Value::record(span(range.clone()).into())
+                });
+            (name.to_owned(), group)
+        })
+        .collect();
+    let mut fields: BTreeMap<String, Value> = span(found.range).into();
+    fields.insert("groups".into(), Value::record(groups));
+    Ok(Value::record(fields))
 }
 
 pub fn check_size(value: &Value) -> EvalResult<()> {
@@ -323,7 +364,7 @@ pub fn check_size(value: &Value) -> EvalResult<()> {
     while let Some(value) = pending.pop() {
         count += 1;
         match value {
-            Value::List(items) => pending.extend(items),
+            Value::List(items) => pending.extend(items.iter()),
             Value::Record(fields) => {
                 pending.extend(fields.values());
                 bytes += fields.keys().map(String::len).sum::<usize>();
@@ -488,5 +529,40 @@ fn magnitude(value: &Value) -> Option<f64> {
         Value::Duration(s) => Some(*s as f64),
         Value::Bool(b) => Some(f64::from(u8::from(*b))),
         other => other.amount(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Offsets count characters, as `slice` does, and a named group that
+    /// took no part is null.
+    #[test]
+    fn match_pattern_counts_characters() {
+        let text = |s: &str| Value::Text(s.into());
+        let found = builtin(
+            Builtin::MatchPattern,
+            &[text("☎ Ada: 42"), text(r"(?<name>\w+): (?<n>\d+)(?<x>!)?")],
+        )
+        .unwrap();
+        let Value::Record(fields) = &found else {
+            panic!("{found:?}")
+        };
+        assert_eq!(fields["start"], Value::Count(2));
+        assert_eq!(fields["end"], Value::Count(9));
+        let Value::Record(groups) = &fields["groups"] else {
+            panic!("{fields:?}")
+        };
+        let Value::Record(name) = &groups["name"] else {
+            panic!("{groups:?}")
+        };
+        assert_eq!(name["text"], text("Ada"));
+        assert_eq!(name["start"], Value::Count(2));
+        assert_eq!(groups["x"], Value::Null);
+        let none = [text("abc"), text(r"\d")];
+        assert_eq!(builtin(Builtin::MatchPattern, &none).unwrap(), Value::Null);
+        let bad = [text("abc"), text("(")];
+        assert!(builtin(Builtin::MatchPattern, &bad).is_err());
     }
 }

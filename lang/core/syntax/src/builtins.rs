@@ -121,6 +121,7 @@ builtins! {
     Lower => "lower", Toolkit;
     Upper => "upper", Toolkit;
     Replace => "replace", Toolkit;
+    MatchPattern => "match_pattern", Module;
     Sum => "sum", Note, special;
     Countdown => "countdown", Note, special;
     Stopwatch => "stopwatch", Note, special;

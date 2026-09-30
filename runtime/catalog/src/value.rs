@@ -4,13 +4,14 @@
 //! as JSON.
 use lang::eval::engine::{HostObject, Value, value_json};
 use lsp_types::{Position, Range};
+use std::sync::Arc;
 
 pub(crate) fn text(value: impl Into<String>) -> Value {
     Value::Text(value.into())
 }
 /// An editor position, the shape `anchor` and every `range` end take.
 pub(crate) fn position(position: Position) -> Value {
-    Value::Record(
+    Value::record(
         [
             ("line".into(), Value::Count(position.line as usize)),
             (
@@ -22,7 +23,7 @@ pub(crate) fn position(position: Position) -> Value {
     )
 }
 pub(crate) fn range(range: Range) -> Value {
-    Value::Record(
+    Value::record(
         [
             ("start".into(), position(range.start)),
             ("end".into(), position(range.end)),
@@ -40,28 +41,43 @@ pub(crate) fn from_json(value: serde_json::Value) -> Value {
             .map(Value::Count)
             .unwrap_or_else(|| Value::Number(v.as_f64().unwrap())),
         serde_json::Value::String(v) => Value::Text(v),
-        serde_json::Value::Array(v) => Value::List(v.into_iter().map(from_json).collect()),
+        serde_json::Value::Array(v) => Value::list(v.into_iter().map(from_json).collect()),
         serde_json::Value::Object(v) => {
-            Value::Record(v.into_iter().map(|(k, v)| (k, from_json(v))).collect())
+            Value::record(v.into_iter().map(|(k, v)| (k, from_json(v))).collect())
         }
     }
 }
 /// Host objects describe themselves as plain language values; a namespace
-/// has no such shape and stays the value it is.
+/// has no such shape and stays the value it is. A list or record with no host
+/// object anywhere inside is already plain, so it is kept, shared, as it is.
 pub(crate) fn query_value(value: Value) -> Value {
     if let Some(record) = value.host().and_then(HostObject::query) {
         return query_value(record);
     }
     match value {
-        Value::List(values) => Value::List(values.into_iter().map(query_value).collect()),
-        Value::Record(fields) => Value::Record(
-            fields
+        Value::List(values) if values.iter().any(holds_host) => Value::list(
+            Arc::unwrap_or_clone(values)
+                .into_iter()
+                .map(query_value)
+                .collect(),
+        ),
+        Value::Record(fields) if fields.values().any(holds_host) => Value::record(
+            Arc::unwrap_or_clone(fields)
                 .into_iter()
                 .map(|(k, v)| (k, query_value(v)))
                 .collect(),
         ),
-        scalar => scalar,
+        plain => plain,
     }
+}
+/// Whether a value is, or holds somewhere inside, a host object.
+fn holds_host(value: &Value) -> bool {
+    value.host().is_some()
+        || match value {
+            Value::List(values) => values.iter().any(holds_host),
+            Value::Record(fields) => fields.values().any(holds_host),
+            _ => false,
+        }
 }
 /// A row as a command line prints it: scalars as a note would show them,
 /// `null` as itself, and lists and records as JSON.

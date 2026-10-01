@@ -184,7 +184,7 @@ exit 0
 5:4+12 variable "Grace Hopper"
 5:18+15 number "+1 212-555-0100"
 6:0+1 xmdPunctuation "-"
-6:2+3 xmdCheckbox "[ ]"
+6:2+3 xmdToggle "[ ]"
 8:0+2 xmdPunctuation "##"
 8:2+12 heading " ☎ Heading: "
 8:14+3 number "123"
@@ -318,7 +318,7 @@ xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact' paints 'phone', whi
 $ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': 'name' must be painted as one of keyword, number, string, variable, heading, function, property, decorator, operator, comment, punctuation, money, date, time, duration, boolean, link, code, place
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': 'name' must be painted as one of keyword, number, string, variable, heading, function, property, decorator, operator, comment, punctuation, money, date, time, duration, boolean, link, code, key, toggle, toggle_on, toggle_mixed, finished, category1, category2, category3, category4, category5, category6, category7, category8, category9, category10
 
 ### 10 write
 -- write .xmd/modules/contacts.x.md (137 bytes)
@@ -327,7 +327,7 @@ xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': 'name' must be pai
 $ xmd render people.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': on must be prose, item, heading or row
+xmd: <root>/.xmd/modules/contacts.x.md: Recognizer 'contact': on must be prose, item, heading, row or line
 
 ### 12 write
 -- write .xmd/modules/contacts.x.md (112 bytes)

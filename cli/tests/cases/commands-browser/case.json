@@ -90,13 +90,15 @@
             },
             "command": {
               "title": "",
-              "command": "xmd.task",
+              "command": "xmd.row",
               "arguments": [
                 {
-                  "kind": "toggle_task",
+                  "kind": "row",
                   "document": "file:///workspace/note.x.md",
                   "row": 1,
-                  "expected": "- [ ] Task"
+                  "expected": "- [ ] Task",
+                  "module": "tasks",
+                  "event": {"line": 1}
                 }
               ]
             }
@@ -110,15 +112,8 @@
             },
             "command": {
               "title": "",
-              "command": "xmd.timer",
-              "arguments": [
-                {
-                  "kind": "timer",
-                  "document": "file:///workspace/note.x.md",
-                  "name": "focus",
-                  "action": "start"
-                }
-              ]
+              "command": "xmd.row",
+              "arguments": [{"kind": "row", "document": "file:///workspace/note.x.md", "row": 0, "expected": "[focus] := stopwatch()", "module": "timers", "event": {"name": "focus", "action": "start"}}]
             }
           }
         },
@@ -188,13 +183,15 @@
             },
             "command": {
               "title": "",
-              "command": "xmd.task",
+              "command": "xmd.row",
               "arguments": [
                 {
-                  "kind": "toggle_task",
+                  "kind": "row",
                   "document": "file:///workspace/note.x.md",
                   "row": 1,
-                  "expected": "- [ ] Task"
+                  "expected": "- [ ] Task",
+                  "module": "tasks",
+                  "event": {"line": 1}
                 }
               ]
             }

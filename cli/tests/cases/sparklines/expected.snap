@@ -222,21 +222,38 @@ exit 0
     {
       "documentation": {
         "kind": "markdown",
-        "value": "Draw one Unicode bar per numeric value, in list order. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units."
+        "value": "Draw one Unicode bar per numeric value, in list order, as Text. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units. `sparkline([12, 18, 9, 24])` is ▂▅▁█."
       },
-      "label": "sparkline(values: List, min?: Number, Money, Ratio, or Duration, max?: Number, Money, Ratio, or Duration) → Text",
+      "label": "sparkline(values, min?, max?)",
       "parameters": [
         {
-          "label": "values: List"
+          "label": "values"
         },
         {
-          "label": "min?: Number, Money, Ratio, or Duration"
+          "label": "min?"
         },
         {
-          "label": "max?: Number, Money, Ratio, or Duration"
+          "label": "max?"
         }
       ]
     }
   ]
+}
+-- request textDocument/hover charts.x.md 0:12
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**sparkline(values, min?, max?)** · prelude\n\nDraw one Unicode bar per numeric value, in list order, as Text. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units. `sparkline([12, 18, 9, 24])` is ▂▅▁█."
+  },
+  "range": {
+    "end": {
+      "character": 18,
+      "line": 0
+    },
+    "start": {
+      "character": 9,
+      "line": 0
+    }
+  }
 }
 

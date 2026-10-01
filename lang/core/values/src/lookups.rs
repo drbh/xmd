@@ -1,84 +1,16 @@
-//! External data behind explicit refreshes: exchange rates, weather forecasts
-//! and stock quotes. Notes read cached values with the time they were fetched,
-//! so they keep working offline and every badge can show its age. A host
-//! (`runtime/host`) stores them and fetches them on an explicit refresh.
-use crate::{
-    error::{EvalError, EvalResult, PropertyOwner},
-    value::{HostObject, Value, decimal, optional, record},
-};
-use chrono::{DateTime, NaiveDate, Utc};
-use common::{Currency, ValueType};
+//! External data behind explicit refreshes. Notes read cached values with the
+//! time they were fetched, so they keep working offline and every badge can
+//! show its age. A host (`runtime/host`) stores them and fetches them on an
+//! explicit refresh, through the provider for each lookup's kind.
+//!
+//! Nothing here knows what any kind of lookup means: a key is a kind and its
+//! parts, in order. What a rate, a quote or a forecast is, and how one reads,
+//! is the prelude's (`lang/stdlib/prelude.xmd`), which asks for keys with
+//! `cached(kind, key)`.
+use crate::value::Value;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-
-/// A day's weather from a cached lookup: an object the store owns and a note
-/// reads from, not a kind the language can build.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Forecast {
-    pub high: f64,
-    pub low: f64,
-    pub summary: String,
-    /// Chance of precipitation, 0 to 1, reported or estimated from an ensemble.
-    pub precipitation: Option<f64>,
-    pub fahrenheit: bool,
-}
-impl Forecast {
-    pub fn display(&self) -> String {
-        let unit = if self.fahrenheit { "°F" } else { "°C" };
-        let mut s = format!(
-            "{}{unit} / {}{unit} · {}",
-            decimal(self.high),
-            decimal(self.low),
-            self.summary
-        );
-        if let Some(p) = self.precipitation
-            && p >= 0.2
-        {
-            s.push_str(&format!(" · {}% rain", (p * 100.0).round()));
-        }
-        s
-    }
-    pub fn property(&self, name: &str) -> EvalResult<Value> {
-        match name {
-            "high" => Ok(Value::Number(self.high)),
-            "low" => Ok(Value::Number(self.low)),
-            "summary" => Ok(Value::Text(self.summary.clone())),
-            "rain" => self
-                .precipitation
-                .map(Value::Ratio)
-                .ok_or(EvalError::Message(
-                    "This forecast has no precipitation chance".into(),
-                )),
-            _ => Err(EvalError::UnknownProperty {
-                owner: PropertyOwner::Forecast,
-                name: name.into(),
-            }),
-        }
-    }
-}
-impl HostObject for Forecast {
-    fn kind(&self) -> ValueType {
-        ValueType::Forecast
-    }
-    fn display(&self) -> String {
-        Forecast::display(self)
-    }
-    fn property(&self, key: &str) -> EvalResult<Value> {
-        Forecast::property(self, key)
-    }
-    fn query(&self) -> Option<Value> {
-        Some(record([
-            ("high", Value::Number(self.high)),
-            ("low", Value::Number(self.low)),
-            ("summary", Value::Text(self.summary.clone())),
-            ("rain", optional(self.precipitation.map(Value::Ratio))),
-            (
-                "unit",
-                Value::Text(if self.fahrenheit { "F" } else { "C" }.into()),
-            ),
-        ]))
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -100,195 +32,145 @@ impl Lookup {
 /// format of `.xmd/lookups.json`.
 pub type Store = BTreeMap<String, Lookup>;
 
-/// The kinds of lookup a provider module may answer, named as `provides`
-/// and a provider's key record spell them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::AsRefStr, strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum LookupKind {
-    Rate,
-    Quote,
-    Forecast,
-}
-
-/// What a note asked the world for. `Display` writes the key `.xmd/lookups.json`
-/// is stored under and `FromStr` reads one back, so the spelling is defined
-/// once instead of being formatted and re-parsed at every use.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum LookupKey {
-    Rate { from: Currency, to: Currency },
-    Quote(String),
-    Forecast { place: String, date: NaiveDate },
+/// What a note asked the world for: a kind (`rate`) and its named parts in
+/// order (`from: EUR`, `to: USD`). `Display` writes the key
+/// `.xmd/lookups.json` stores it under, `kind:part:part` (`rate:EUR:USD`),
+/// and a key is equal to, and ordered like, its spelling. Its label, the
+/// words hovers and refresh errors name it by (`rate EUR→USD`), is the
+/// asker's and no part of what it is.
+#[derive(Clone, Debug)]
+pub struct LookupKey {
+    kind: String,
+    parts: Vec<(String, Value)>,
+    spelled: String,
+    label: Option<String>,
 }
 impl LookupKey {
-    pub fn rate(from: Currency, to: Currency) -> Self {
-        Self::Rate { from, to }
-    }
-    /// Tickers are compared in upper case, so `quote(nvda)` and `quote(NVDA)`
-    /// share one cache entry.
-    pub fn quote(symbol: &str) -> Self {
-        Self::Quote(symbol.to_ascii_uppercase())
-    }
-    /// Place names are compared trimmed and lowercased, for the same reason.
-    pub fn forecast(place: &str, date: NaiveDate) -> Self {
-        Self::Forecast {
-            place: place.trim().to_lowercase(),
-            date,
+    /// The key `cached(kind, key, label)` names: `key` lists the parts in the order
+    /// the cache spells them, each a one-field record, so
+    /// `[{place: "oaxaca"}, {date: 2026-11-20}]` is `forecast:oaxaca:2026-11-20`.
+    /// A part is text, a code, a date or a number.
+    pub fn new(kind: &str, key: &Value, label: Option<&str>) -> Result<Self, String> {
+        if kind.is_empty() || kind.contains(':') {
+            return Err(format!(
+                "A lookup's kind is a name without colons, not '{kind}'"
+            ));
         }
-    }
-    pub fn kind(&self) -> LookupKind {
-        match self {
-            Self::Rate { .. } => LookupKind::Rate,
-            Self::Quote(_) => LookupKind::Quote,
-            Self::Forecast { .. } => LookupKind::Forecast,
-        }
-    }
-    /// The key's parts by name, as a provider command's placeholders and a
-    /// provider module's key record name them.
-    pub fn fields(&self) -> Vec<(&'static str, String)> {
-        match self {
-            Self::Rate { from, to } => vec![("from", from.to_string()), ("to", to.to_string())],
-            Self::Quote(symbol) => vec![("symbol", symbol.clone())],
-            Self::Forecast { place, date } => {
-                vec![("place", place.clone()), ("date", date.to_string())]
+        let Value::List(items) = key else {
+            return Err(
+                "A lookup's key is a list of one-field records, such as [{from: EUR}, {to: USD}]"
+                    .into(),
+            );
+        };
+        let mut parts = Vec::with_capacity(items.len());
+        let mut spelled = kind.to_owned();
+        for item in items.iter() {
+            let (name, value) = match item {
+                Value::Record(fields) if fields.len() == 1 => {
+                    fields.iter().next().expect("one field")
+                }
+                _ => return Err("Each part of a lookup's key is a one-field record".into()),
+            };
+            // A provider reads the parts beside the kind, in one record.
+            if name == "kind" || parts.iter().any(|(seen, _)| seen == name) {
+                return Err(format!(
+                    "A lookup's key cannot name '{name}' twice or as its kind"
+                ));
             }
+            let text = match value {
+                Value::Text(text) => text.clone(),
+                Value::Code(code) => code.as_str().to_owned(),
+                Value::Date(date) => date.to_string(),
+                Value::Number(_) | Value::Count(_) => value.display(),
+                other => {
+                    return Err(format!(
+                        "A lookup's {name} must be text, a date or a number, found {}",
+                        other.type_name()
+                    ));
+                }
+            };
+            spelled.push(':');
+            spelled.push_str(&text);
+            parts.push((name.clone(), value.clone().plain()));
         }
+        Ok(Self {
+            kind: kind.to_owned(),
+            parts,
+            spelled,
+            label: label.map(str::to_owned),
+        })
     }
-    /// A readable form for hovers: `rate EUR→USD`.
-    pub fn describe(&self) -> String {
-        match self {
-            Self::Rate { from, to } => format!("rate {from}→{to}"),
-            Self::Quote(symbol) => format!("quote {symbol}"),
-            Self::Forecast { place, date } => format!("forecast {place} {date}"),
-        }
+    /// The lookup a module's record asks for: `{kind: "forecast", key:
+    /// [{place: …}, {date: …}], label: "forecast …"}`, the arguments `cached`
+    /// takes; the label may be left out.
+    pub fn requested(value: &Value) -> Result<Self, String> {
+        let Value::Record(fields) = value else {
+            return Err("A lookup is a record with a kind and a key".into());
+        };
+        let kind = match fields.get("kind") {
+            Some(Value::Text(kind)) => kind.clone(),
+            Some(Value::Code(code)) => code.as_str().to_owned(),
+            _ => return Err("A lookup's kind must be text".into()),
+        };
+        let label = match fields.get("label") {
+            None | Some(Value::Null) => None,
+            Some(Value::Text(label)) => Some(label.as_str()),
+            Some(_) => return Err("A lookup's label must be text".into()),
+        };
+        Self::new(&kind, fields.get("key").unwrap_or(&Value::Null), label)
+    }
+    /// The kind a provider answers: `rate`, `quote`, `forecast`, …
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+    /// The key's parts by name, in order, as a provider command's
+    /// placeholders and a provider module's key record name them.
+    pub fn parts(&self) -> &[(String, Value)] {
+        &self.parts
+    }
+    /// The parts as `cached` took them, a list of one-field records.
+    pub fn key(&self) -> Value {
+        Value::list(
+            self.parts
+                .iter()
+                .map(|(name, value)| Value::record([(name.clone(), value.clone())].into()))
+                .collect(),
+        )
+    }
+    /// How hovers and refresh errors name the lookup: the label it was asked
+    /// for with, or its kind and parts (`forecast oaxaca 2026-11-20`).
+    pub fn label(&self) -> String {
+        self.label.clone().unwrap_or_else(|| {
+            std::iter::once(self.kind.clone())
+                .chain(self.parts.iter().map(|(_, value)| value.display()))
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
     }
     pub fn lookup<'s>(&self, store: &'s Store) -> Option<&'s Lookup> {
-        store.get(&self.to_string())
+        store.get(&self.spelled)
     }
 }
 impl std::fmt::Display for LookupKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Rate { from, to } => write!(f, "rate:{from}:{to}"),
-            Self::Quote(symbol) => write!(f, "quote:{symbol}"),
-            Self::Forecast { place, date } => write!(f, "forecast:{place}:{date}"),
-        }
+        f.write_str(&self.spelled)
     }
 }
-impl std::str::FromStr for LookupKey {
-    type Err = String;
-    fn from_str(key: &str) -> Result<Self, String> {
-        // A place may contain colons, so a forecast key is read from the right.
-        if let Some(rest) = key.strip_prefix("forecast:") {
-            let (place, date) = rest.rsplit_once(':').ok_or("Malformed forecast key")?;
-            let date = date.parse().map_err(|_| "Malformed forecast date")?;
-            return Ok(Self::forecast(place, date));
-        }
-        let currency =
-            |code: &str| Currency::parse(code).ok_or_else(|| format!("Unknown currency '{code}'"));
-        match key.splitn(3, ':').collect::<Vec<_>>().as_slice() {
-            ["rate", from, to] => Ok(Self::rate(currency(from)?, currency(to)?)),
-            ["quote", symbol] => Ok(Self::quote(symbol)),
-            _ => Err(format!("Unknown lookup '{key}'")),
-        }
+impl PartialEq for LookupKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.spelled == other.spelled
     }
 }
+impl Eq for LookupKey {}
 /// Ordered by the spelling, so a sorted list of keys reads the same way the
 /// store and the file do.
 impl Ord for LookupKey {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.to_string().cmp(&other.to_string())
+        self.spelled.cmp(&other.spelled)
     }
 }
 impl PartialOrd for LookupKey {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
-}
-/// The place a day's forecast is for: the destination when the heading lists
-/// a route such as `New York | Oaxaca`.
-pub fn day_place(places: &str) -> Option<String> {
-    places
-        .rsplit(['|', '→', '>'])
-        .map(str::trim)
-        .find(|p| !p.is_empty())
-        .map(str::to_string)
-}
-
-pub fn rate(store: &Store, from: Currency, to: Currency) -> EvalResult<f64> {
-    if from == to {
-        return Ok(1.0);
-    }
-    let key = LookupKey::rate(from, to);
-    let lookup = key
-        .lookup(store)
-        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
-    lookup.value["rate"]
-        .as_f64()
-        .filter(|r| r.is_finite() && *r > 0.0)
-        .ok_or_else(|| reported(lookup, key))
-}
-pub fn quote(store: &Store, symbol: &str) -> EvalResult<Value> {
-    // The cache is keyed case-insensitively; a message names the ticker as written.
-    let key = LookupKey::Quote(symbol.to_string());
-    let lookup = LookupKey::quote(symbol)
-        .lookup(store)
-        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
-    let price = lookup.value["price"]
-        .as_f64()
-        .filter(|p| p.is_finite())
-        .ok_or_else(|| reported(lookup, key))?;
-    let currency = lookup.value["currency"]
-        .as_str()
-        .and_then(Currency::parse)
-        .unwrap_or(Currency::USD);
-    Ok(Value::Money(price, currency))
-}
-pub fn forecast(
-    store: &Store,
-    place: &str,
-    date: NaiveDate,
-    fahrenheit: bool,
-) -> EvalResult<Forecast> {
-    let key = LookupKey::Forecast {
-        place: place.to_string(),
-        date,
-    };
-    let lookup = LookupKey::forecast(place, date)
-        .lookup(store)
-        .ok_or_else(|| EvalError::NotCached(key.clone()))?;
-    forecast_from(&lookup.value, fahrenheit).map_err(|e| e.in_lookup(key))
-}
-/// What a cached lookup said went wrong, or that it cannot be read at all.
-fn reported(lookup: &Lookup, key: LookupKey) -> EvalError {
-    match lookup.value["error"].as_str() {
-        Some(message) => EvalError::Custom(message.into()).in_lookup(key),
-        None => EvalError::Unreadable(key),
-    }
-}
-pub fn forecast_from(value: &serde_json::Value, fahrenheit: bool) -> EvalResult<Forecast> {
-    if let Some(error) = value["error"].as_str() {
-        return Err(EvalError::Custom(error.to_string()));
-    }
-    let (high, low) = (
-        value["high"]
-            .as_f64()
-            .ok_or(EvalError::Message("missing high temperature".into()))?,
-        value["low"]
-            .as_f64()
-            .ok_or(EvalError::Message("missing low temperature".into()))?,
-    );
-    let convert = |c: f64| {
-        if fahrenheit {
-            (c * 9.0 / 5.0 + 32.0).round()
-        } else {
-            c.round()
-        }
-    };
-    Ok(Forecast {
-        high: convert(high),
-        low: convert(low),
-        summary: value["summary"].as_str().unwrap_or("").to_string(),
-        precipitation: value["precipitation"].as_f64(),
-        fahrenheit,
-    })
 }

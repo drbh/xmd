@@ -78,13 +78,15 @@
           "params": {
             "command": {
               "title": "bad",
-              "command": "xmd.task",
+              "command": "xmd.row",
               "arguments": [
                 {
-                  "kind": "toggle_task",
+                  "kind": "row",
                   "document": "file:///workspace/refresh.x.md",
                   "row": 2,
-                  "expected": "- [ ] Task"
+                  "expected": "- [ ] Task",
+                  "module": "tasks",
+                  "event": {"line": 2}
                 },
                 "extra"
               ]
@@ -97,13 +99,15 @@
           "params": {
             "command": {
               "title": "toggle",
-              "command": "xmd.task",
+              "command": "xmd.row",
               "arguments": [
                 {
-                  "kind": "toggle_task",
+                  "kind": "row",
                   "document": "file:///workspace/refresh.x.md",
                   "row": 2,
-                  "expected": "- [ ] Task"
+                  "expected": "- [ ] Task",
+                  "module": "tasks",
+                  "event": {"line": 2}
                 }
               ]
             },

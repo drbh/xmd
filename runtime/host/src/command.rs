@@ -140,7 +140,7 @@ fn run_command(
             state = step.state();
             let requests = match step.take("requests") {
                 None | Some(Value::Null) => vec![],
-                Some(Value::List(requests)) => Arc::unwrap_or_clone(requests),
+                Some(Value::List(requests)) => Arc::unwrap_or_clone(requests).into_inner(),
                 Some(_) => return Err(format!("{}: requests must be a list", module.id)),
             };
             if requests.len() > MAX_REQUESTS {
@@ -190,7 +190,7 @@ impl Step {
         now: DateTime<FixedOffset>,
     ) -> Result<Self, String> {
         match module.call(Hook::Step, vec![input], now)? {
-            Value::Record(fields) => Ok(Self(Arc::unwrap_or_clone(fields))),
+            Value::Record(fields) => Ok(Self(Arc::unwrap_or_clone(fields).into_inner())),
             _ => Err(format!("{}: step must return a record", module.id)),
         }
     }

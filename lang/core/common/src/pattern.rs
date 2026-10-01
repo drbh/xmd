@@ -10,7 +10,7 @@ use std::{
 };
 
 /// The longest pattern source, in bytes.
-pub const MAX_PATTERN: usize = 1024;
+pub(crate) const MAX_PATTERN: usize = 4096;
 /// The most memory a compiled pattern, or its lazy DFA, may take.
 const MAX_COMPILED: usize = 1 << 20;
 /// The deepest nesting of groups and repetitions.
@@ -73,6 +73,10 @@ impl Pattern {
     /// The names of its named groups, in order.
     pub fn group_names(&self) -> impl Iterator<Item = &str> {
         self.regex.capture_names().flatten()
+    }
+    /// Whether it matches `text` anywhere: cheaper than finding where.
+    pub fn is_match(&self, text: &str) -> bool {
+        self.regex.is_match(text)
     }
     /// The first match in `text`.
     pub fn first(&self, text: &str) -> Option<Found<'_>> {

@@ -4,44 +4,75 @@
 //! feature module each belongs to; the `impl` below is the list of what exists.
 use crate::{
     code_actions,
-    commands::{Action, Capabilities, PreparedAction, TaskToggle},
+    commands::{Action, Capabilities, PreparedAction, RowActions},
     completion,
     inlays::InlayOutput,
-    links, providers, render,
+    links,
+    modules::Answers,
+    providers, render,
 };
-use analysis::{CodeActionItem, document_symbols, hierarchy};
+use analysis::{CodeActionItem, hierarchy};
 use catalog::{Query, QueryResult, Records};
 use chrono::{DateTime, FixedOffset};
-use lang::eval::{RequestContext, Symbol, Workspace};
+use lang::eval::{Evaluations, RequestContext, Symbol, Workspace};
 use lsp_types::*;
 use std::{path::Path, sync::Arc};
 
 /// One workspace snapshot and clock, with every editor feature as a method.
 /// It derefs to `eval`'s [`RequestContext`], which the features evaluate with,
-/// and carries the catalog's derived [`Records`] every feature reads records
-/// from: its own, or a session's, shared by the requests of one workspace
-/// revision.
+/// and carries what the features read instead of deriving it again: the
+/// catalog's [`Records`] and feature modules' [`Answers`]. Each is its own, or
+/// a session's, shared by the requests of one workspace revision
+/// ([`Shared`]).
 pub struct Request<'a> {
     context: RequestContext<'a>,
-    /// Read directly by the features, the one thing a request adds to its
-    /// context.
+    /// Read directly by the features, like `answers`: what a request adds to
+    /// its context.
     pub(crate) records: Arc<Records>,
+    pub(crate) answers: Arc<Answers>,
 }
-impl<'a> Request<'a> {
-    /// A request of its own: its records are built for it and dropped with it.
-    pub fn new(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
-        Self::sharing(workspace, now, Arc::default())
+
+/// What the requests over one workspace revision share, for an owner such as
+/// a session to keep until the revision changes: the catalog's records, the
+/// evaluator's results and feature modules' answers. Each holds only what
+/// answers exactly as deriving it again at the request's clock would.
+#[derive(Default)]
+pub(crate) struct Shared {
+    records: Arc<Records>,
+    evaluations: Evaluations,
+    answers: Arc<Answers>,
+}
+impl Shared {
+    /// Let go of what a revision derived. A large note's records and answers
+    /// take a while to free, so a native host frees them off the thread that
+    /// is about to derive the next revision's.
+    pub(crate) fn retire(self) {
+        // When no thread can be started, the closure, and with it `self`, is
+        // dropped here instead.
+        #[cfg(not(target_arch = "wasm32"))]
+        let _ = std::thread::Builder::new()
+            .name("retire".into())
+            .spawn(move || drop(self));
     }
-    /// A request reading `records`, which its owner keeps only for as long
-    /// as `workspace` is unchanged.
+}
+
+impl<'a> Request<'a> {
+    /// A request of its own: what it derives is built for it and dropped
+    /// with it.
+    pub fn new(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
+        Self::within(&RequestContext::new(workspace, now))
+    }
+    /// A request reading and adding to `shared`, which its owner keeps only
+    /// for as long as `workspace` is unchanged.
     pub(crate) fn sharing(
         workspace: &'a Workspace,
         now: DateTime<FixedOffset>,
-        records: Arc<Records>,
+        shared: &Shared,
     ) -> Self {
         Self {
-            context: RequestContext::new(workspace, now),
-            records,
+            context: RequestContext::sharing(workspace, now, &shared.evaluations),
+            records: shared.records.clone(),
+            answers: shared.answers.clone(),
         }
     }
     /// A request around an evaluation context the catalog hands back, as it
@@ -50,6 +81,7 @@ impl<'a> Request<'a> {
         Self {
             context: context.clone(),
             records: Arc::default(),
+            answers: Arc::default(),
         }
     }
 }
@@ -93,9 +125,9 @@ impl Request<'_> {
         path: &Path,
         range: Range,
         capabilities: Capabilities,
-        toggle: TaskToggle,
+        row_actions: RowActions,
     ) -> Vec<CodeActionItem> {
-        code_actions::code_actions(self, path, range, capabilities, toggle)
+        code_actions::code_actions(self, path, range, capabilities, row_actions)
     }
     /// Validate `action` against this snapshot and clock, for the host to
     /// carry out. The host still owns version checks, applying edits,
@@ -108,7 +140,12 @@ impl Request<'_> {
         providers::prepare(self, action, capabilities)
     }
     pub fn formatting(&self, path: &Path) -> Result<Vec<TextEdit>, String> {
-        providers::edits(self, path)
+        providers::edits(self, path, None)
+    }
+    /// Formatting as the note is typed: `ch` was just inserted, and
+    /// `position` is the cursor after it.
+    pub fn on_type(&self, path: &Path, position: Position, ch: &str) -> Vec<TextEdit> {
+        crate::typing::on_type(self, path, position, ch)
     }
 
     // Intelligence: what the editor explains.
@@ -129,7 +166,7 @@ impl Request<'_> {
 
     // Navigation.
     pub fn document_symbols(&self, path: &Path) -> Vec<DocumentSymbol> {
-        document_symbols(self, path)
+        providers::symbols(self, path)
     }
     pub fn hierarchy_item(&self, symbol: &Symbol) -> CallHierarchyItem {
         hierarchy::item(self, symbol)

@@ -1,14 +1,11 @@
 //! Immutable request inputs and a cache shared by independent evaluator sessions.
 use crate::{
-    engine::{Engine, MemoEntry, MemoKey, Value},
+    engine::{Engine, Value},
+    memo::{Evaluations, Memo},
     workspace::Workspace,
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use modules::LinkFeatures;
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, Mutex},
-};
 
 /// The offset supplied by the host defines calendar dates throughout the request.
 #[derive(Clone, Copy, Debug)]
@@ -31,14 +28,13 @@ impl Clock {
     }
 }
 
-/// Evaluated results by what they are the value of, shared by every engine
-/// of one request.
-pub(crate) type Memo = Arc<Mutex<BTreeMap<MemoKey, MemoEntry>>>;
-
 /// One workspace snapshot, clock, provider registry and memo for a host request.
 /// Engines share cached results and their dependencies, while keeping transient
 /// errors, recursion stacks and row scopes separate. Drop this context after the
-/// request; a new clock or workspace revision always starts with an empty cache.
+/// request. A context of its own starts with an empty cache; one
+/// [`sharing`](Self::sharing) an owner's [`Evaluations`] reads what earlier
+/// requests over the same workspace revision and clock evaluated, answering
+/// exactly as one of its own would.
 #[derive(Clone)]
 pub struct RequestContext<'a> {
     pub(crate) workspace: &'a Workspace,
@@ -55,6 +51,18 @@ impl<'a> RequestContext<'a> {
             memo: Default::default(),
         }
     }
+    /// A context reading and adding to `evaluations`, which its owner keeps
+    /// only for as long as `workspace` is unchanged.
+    pub fn sharing(
+        workspace: &'a Workspace,
+        now: DateTime<FixedOffset>,
+        evaluations: &Evaluations,
+    ) -> Self {
+        Self {
+            memo: evaluations.memo(workspace, now),
+            ..Self::new(workspace, now)
+        }
+    }
     pub fn workspace(&self) -> &'a Workspace {
         self.workspace
     }
@@ -69,10 +77,5 @@ impl<'a> RequestContext<'a> {
     }
     pub fn engine(&self) -> Engine<'a> {
         Engine::in_request(self)
-    }
-    pub(crate) fn with_link_features(mut self, links: LinkFeatures<'a>) -> Self {
-        self.links = links;
-        self.memo = Default::default();
-        self
     }
 }

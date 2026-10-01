@@ -49,11 +49,13 @@ _source := fn(seasonal) => (
   if(seasonal, "open-meteo.com (seasonal ensemble)", "open-meteo.com")
 )
 
-// A stored answer saying there is no forecast for the date yet.
+// A stored answer saying there is no forecast for the date yet: pending, so
+// reading it warns until a later refresh finds one.
 _unavailable := fn(seasonal) => (
   {
     value: {
-      error: if(seasonal, "no forecast yet; seasonal outlooks cover about 7 months", "no forecast yet for this date")
+      error: if(seasonal, "no forecast yet; seasonal outlooks cover about 7 months", "no forecast yet for this date"),
+      pending: true
     },
     source: _source(seasonal),
     done: true

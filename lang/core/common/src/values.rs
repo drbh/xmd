@@ -108,7 +108,6 @@ pub enum ValueType {
     Number,
     Count,
     Money,
-    Forecast,
     Ratio,
     Duration,
     Date,
@@ -117,22 +116,42 @@ pub enum ValueType {
     Text,
     Resource,
     Checklist,
-    Countdown,
-    Stopwatch,
     Table,
     Plan,
     /// No value has this kind: it types a table's yes/no decision column.
     Choice,
+    /// A record a module gave a kind of its own with `tagged`. The kind is
+    /// the text the module chose, which the value names itself
+    /// (`HostObject::type_name`); this only says it is one of those.
+    Tagged,
 }
 impl ValueType {
     pub fn as_str(self) -> &'static str {
         self.into()
     }
+    /// Whether `name` is a kind a module may give a record with `tagged`:
+    /// one that reads as a kind ([`Self::is_name`]) and that no kind of the
+    /// language's own has, so `type` never answers ambiguously.
+    pub fn taggable(name: &str) -> bool {
+        Self::is_name(name)
+            && !<Self as strum::VariantArray>::VARIANTS
+                .iter()
+                .any(|kind| kind.as_str() == name)
+    }
+    /// Whether `name` reads as a kind's name, the language's own or one a
+    /// module chose: an ASCII capital, then ASCII letters, digits or
+    /// underscores, at most 64 bytes.
+    pub fn is_name(name: &str) -> bool {
+        let mut chars = name.chars();
+        chars.next().is_some_and(|c| c.is_ascii_uppercase())
+            && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+            && name.len() <= 64
+    }
     /// The properties every value of this kind has, as `Value::property` reads
     /// them and completion offers them. This is the language's own half:
     /// `Record` and the host kinds are missing on purpose, because their
-    /// fields depend on the value rather than its type (a countdown has
-    /// `remaining`, a record has whatever it was built with), so they answer
+    /// fields depend on the value rather than its type (a tagged record has
+    /// whatever its module built it with), so they answer
     /// for themselves — see `engine::host`.
     pub fn fields(self) -> &'static [&'static str] {
         match self {

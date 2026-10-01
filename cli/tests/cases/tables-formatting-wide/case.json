@@ -1,0 +1,29 @@
+{
+  "steps": [
+    {
+      "lsp": [
+        { "open": "wide.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "wide.x.md" },
+        {
+          "request": "textDocument/formatting",
+          "file": "wide.x.md",
+          "extra": { "options": { "tabSize": 2, "insertSpaces": true } }
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "wide.x.md",
+          "line": 33,
+          "character": 17,
+          "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } }
+        },
+        {
+          "request": "textDocument/onTypeFormatting",
+          "file": "wide.x.md",
+          "line": 6,
+          "character": 22,
+          "extra": { "ch": "|", "options": { "tabSize": 2, "insertSpaces": true } }
+        }
+      ]
+    }
+  ]
+}

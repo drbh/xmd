@@ -291,7 +291,7 @@ hover := fn(ctx) => (
 property := fn(ctx, name) => (
   if(
     ctx.cached == null,
-    error("No cached score for this game; refresh the link first"),
+    pending("No cached score for this game; refresh the link first"),
     if(
       name == "margin",
       if(

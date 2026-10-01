@@ -29,13 +29,18 @@
     "command": {
       "arguments": [
         {
-          "action": "start",
           "document": "file://<root>/note.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "start",
+            "name": "focus"
+          },
+          "expected": "[focus] := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ start focus"
     },
     "range": {
@@ -54,12 +59,16 @@
       "arguments": [
         {
           "document": "file://<root>/note.x.md",
+          "event": {
+            "line": 1
+          },
           "expected": "- [ ] Task",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 1
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -162,13 +171,18 @@
         "command": {
           "arguments": [
             {
-              "action": "start",
               "document": "file:///workspace/note.x.md",
-              "kind": "timer",
-              "name": "focus"
+              "event": {
+                "action": "start",
+                "name": "focus"
+              },
+              "expected": "[focus] := stopwatch()",
+              "kind": "row",
+              "module": "timers",
+              "row": 0
             }
           ],
-          "command": "xmd.timer",
+          "command": "xmd.row",
           "title": "▸ start focus"
         },
         "title": "▸ start focus"
@@ -189,12 +203,16 @@
           "arguments": [
             {
               "document": "file:///workspace/note.x.md",
+              "event": {
+                "line": 1
+              },
               "expected": "- [ ] Task",
-              "kind": "toggle_task",
+              "kind": "row",
+              "module": "tasks",
               "row": 1
             }
           ],
-          "command": "xmd.task",
+          "command": "xmd.row",
           "title": "✓ done"
         },
         "title": "✓ done"
@@ -244,7 +262,7 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/note.x.md","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"xmd.task","title":""},"versions":{"file:///workspace/note.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.x.md","event":{"line":1},"expected":"- [ ] Task","kind":"row","module":"tasks","row":1}],"command":"xmd.row","title":""},"versions":{"file:///workspace/note.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -288,7 +306,7 @@
     }
   }
 }
--- execute {"command":{"arguments":[{"action":"start","document":"file:///workspace/note.x.md","kind":"timer","name":"focus"}],"command":"xmd.timer","title":""},"versions":{"file:///workspace/note.x.md":1}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.x.md","event":{"action":"start","name":"focus"},"expected":"[focus] := stopwatch()","kind":"row","module":"timers","row":0}],"command":"xmd.row","title":""},"versions":{"file:///workspace/note.x.md":1}}
 {
   "ok": true,
   "result": {
@@ -297,14 +315,14 @@
         {
           "edits": [
             {
-              "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+              "newText": "stopwatch(0s, 2026-09-16T14:00:00-04:00)",
               "range": {
                 "end": {
                   "character": 22,
                   "line": 0
                 },
                 "start": {
-                  "character": 10,
+                  "character": 11,
                   "line": 0
                 }
               }
@@ -334,7 +352,7 @@
   "error": "This command is not available in this host",
   "ok": false
 }
--- execute {"command":{"arguments":[{"document":"file:///workspace/note.x.md","expected":"- [ ] Task","kind":"toggle_task","row":1}],"command":"xmd.task","title":""},"versions":{"file:///workspace/note.x.md":2}}
+-- execute {"command":{"arguments":[{"document":"file:///workspace/note.x.md","event":{"line":1},"expected":"- [ ] Task","kind":"row","module":"tasks","row":1}],"command":"xmd.row","title":""},"versions":{"file:///workspace/note.x.md":2}}
 {
   "error": "Notes changed; request fresh controls before applying this action",
   "ok": false

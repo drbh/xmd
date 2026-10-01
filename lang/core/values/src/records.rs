@@ -1,6 +1,6 @@
 //! The typed boundary between Rust and the .xmd modules.
 //!
-//! Timers, plans, itinerary days, link contexts and solver models all cross into
+//! Plans, catalog records, link contexts and solver models all cross into
 //! module functions as records. Rather than assembling a `BTreeMap` field by
 //! field at each call site and picking it apart again with `fields.get(...)`
 //! chains on the way back, each of those shapes is a Rust struct, declared

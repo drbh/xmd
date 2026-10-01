@@ -17,13 +17,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:bill.x.md}",
                 "row": 0,
-                "expected": "- [ ] Pay bill :bill @every(month) @due(2026-01-31)"
+                "expected": "- [ ] Pay bill :bill @every(month) @due(2026-01-31)",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }

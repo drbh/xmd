@@ -12,20 +12,22 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": []
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": 0,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": 0}
               },
               "extra"
             ]
@@ -34,7 +36,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
                 "kind": "show_today"
@@ -45,7 +47,7 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
                 "kind": "explode",
@@ -57,12 +59,14 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
-                "row": 0
+                "row": 0,
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -70,13 +74,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": -1,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": -1}
               }
             ]
           }
@@ -84,13 +90,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": "0",
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": "0"}
               }
             ]
           }
@@ -98,13 +106,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "https://example.com",
                 "row": 0,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -112,13 +122,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "file:///workspace/note.x.md#L1",
                 "row": 0,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -126,29 +138,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:note.x.md}",
-                "name": "focus",
-                "action": "explode"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:note.x.md}", "row": 0, "expected": "- [ ] Task", "module": "timers", "event": {"name": "focus", "action": "explode"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:note.x.md}",
-                "name": 12,
-                "action": "start"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:note.x.md}", "row": 0, "expected": "- [ ] Task", "module": "timers", "event": {"name": 12, "action": "start"}}]
           }
         },
         {
@@ -213,10 +211,12 @@
             "command": "xmd.applyEdits",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": 0,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }

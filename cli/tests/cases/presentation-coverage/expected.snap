@@ -261,13 +261,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "resume",
           "document": "file://<root>/tasks.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "resume",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(10m, 4m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 1
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ resume focus"
     },
     "range": {
@@ -285,13 +290,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/tasks.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "reset",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(10m, 4m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 1
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset focus"
     },
     "range": {
@@ -310,12 +320,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 3
+          },
           "expected": "- [x] a",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 3
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "○ reopen"
     },
     "range": {
@@ -333,13 +347,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "resume",
           "document": "file://<root>/tasks.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "resume",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(10m, 4m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 1
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ resume focus"
     },
     "range": {
@@ -357,13 +376,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/tasks.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "reset",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(10m, 4m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 1
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset focus"
     },
     "range": {
@@ -382,12 +406,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 5
+          },
           "expected": "  - [x] c",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 5
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "○ reopen"
     },
     "range": {
@@ -406,12 +434,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 6
+          },
           "expected": "  - [ ] d",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 6
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -430,12 +462,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 7
+          },
           "expected": "- [ ] later :later @due(today)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 7
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -454,12 +490,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 8
+          },
           "expected": "- [ ] bad @estimate(nope)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 8
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -478,12 +518,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 9
+          },
           "expected": "- [ ] w @every(week)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 9
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "↻ next"
     },
     "range": {
@@ -502,12 +546,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/tasks.x.md",
+          "event": {
+            "line": 10
+          },
           "expected": "- [x] finished",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 10
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "○ reopen"
     },
     "range": {
@@ -2070,13 +2118,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "resume",
           "document": "file://<root>/edge.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "resume",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch(73s)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2094,13 +2147,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/edge.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "reset",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch(73s)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2119,12 +2177,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/edge.x.md",
+          "event": {
+            "line": 1
+          },
           "expected": "- [ ] timed @timer(watch)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 1
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -2142,13 +2204,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "resume",
           "document": "file://<root>/edge.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "resume",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch(73s)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ resume watch"
     },
     "range": {
@@ -2166,13 +2233,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/edge.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "reset",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch(73s)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset watch"
     },
     "range": {
@@ -2191,12 +2263,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/edge.x.md",
+          "event": {
+            "line": 2
+          },
           "expected": "- [ ] odd @timer(hotel) @estimate(2)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 2
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {

@@ -48,6 +48,58 @@ A bar for `done` of `total` items; an empty set reads as no progress.
 
 A sparkline plus range such as `▁▃█` 2 → 6, or null below two chartable values.
 
+## prelude
+
+`prelude := import("prelude")`
+
+### `prelude.completed(checklist)`
+
+Count completed leaf tasks beneath a named heading, as a Count: `completed(trip)`.
+
+### `prelude.countdown(duration, elapsed = _absent, started = _absent)`
+
+An idle countdown. Use Start timer to capture a timestamp; elapsed and started are persisted by timer controls.
+
+### `prelude.effort(checklist)`
+
+Sum estimates of unfinished leaf tasks beneath a named heading, as a Duration: `effort(trip)`.
+
+### `prelude.forecast(place, date, unit = null)`
+
+The cached forecast for a place and day, with .high, .low, .summary and .rain. Beyond 16 days, returns a seasonal outlook for up to about 7 months, labeled as an estimate. Seasonal .rain is the fraction of available ensemble runs with more than 0.1 mm of daily precipitation (including snow); it is null with fewer than two valid runs. Itinerary days with a place get one automatically.
+
+### `prelude.forecast_range(place, start, end, unit = null)`
+
+Cached daily forecasts in chronological order, including both dates. Project .high, .low, or .rain and pass the list to sparkline. One refresh requests the entire interval. Dates beyond 16 days use seasonal estimates; missing days remain lookup warnings until available. Limited to 4096 days.
+
+### `prelude.quote(symbol)`
+
+The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need a provider in .xmd/providers.json.
+
+### `prelude.rate(from, to)`
+
+The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with xmd refresh or the ⟳ lookups lens; hovers show the age.
+
+### `prelude.remaining(checklist)`
+
+Count unfinished leaf tasks beneath a named heading, as a Count: `remaining(trip)`.
+
+### `prelude.sparkline(values, min = null, max = null)`
+
+Draw one Unicode bar per numeric value, in list order, as Text. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units. `sparkline([12, 18, 9, 24])` is ▂▅▁█.
+
+### `prelude.stopwatch(elapsed = _absent, started = _absent)`
+
+An idle stopwatch. Use Start, Pause, Resume, or Reset timer. Elapsed time includes time while the editor is closed.
+
+### `prelude.to(amount, currency)`
+
+Convert money with the cached rate, e.g. to(hotel, USD); without one the note warns until xmd refresh.
+
+### `prelude.total(checklist)`
+
+Count all leaf tasks beneath a named heading, as a Count: `total(trip)`.
+
 ## units
 
 `units := import("units")`

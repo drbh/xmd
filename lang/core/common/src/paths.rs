@@ -19,12 +19,33 @@ pub fn url_from_uri(uri: &Uri) -> Url {
     Url::parse(uri.as_str()).unwrap_or_else(|e| panic!("Invalid URL from {}: {e}", uri.as_str()))
 }
 
+/// The `file:` URL of an absolute path. Every record a note holds carries
+/// its note's URL, so the last one converted is kept: asking again for the
+/// same path is a copy.
 pub fn file_url(path: impl AsRef<Path>) -> Result<Url, String> {
+    thread_local! {
+        static LAST: std::cell::RefCell<Option<(PathBuf, Url)>> =
+            const { std::cell::RefCell::new(None) };
+    }
+    let path = path.as_ref();
+    if let Some(url) = LAST.with_borrow(|last| {
+        last.as_ref()
+            .filter(|(known, _)| known.as_os_str() == path.as_os_str())
+            .map(|(_, url)| url.clone())
+    }) {
+        return Ok(url);
+    }
+    let url = convert(path)?;
+    LAST.set(Some((path.to_path_buf(), url.clone())));
+    Ok(url)
+}
+
+fn convert(path: &Path) -> Result<Url, String> {
     #[cfg(not(target_arch = "wasm32"))]
     return Url::from_file_path(path).map_err(|_| "Expected an absolute file path".into());
     #[cfg(target_arch = "wasm32")]
     {
-        let path = path.as_ref().to_str().ok_or("Expected a UTF-8 path")?;
+        let path = path.to_str().ok_or("Expected a UTF-8 path")?;
         let path = path
             .strip_prefix('/')
             .ok_or("Expected an absolute virtual path")?;

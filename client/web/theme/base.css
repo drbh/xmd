@@ -8,8 +8,8 @@
 .xmd .error { text-decoration-color: #ef8b80; }
 .xmd .warning { text-decoration-color: #eac080; }
 .xmd .info, .xmd .hint { text-decoration-color: #90bed8; }
-.xmd[data-interactive] .t-xmdCheckbox, .xmd[data-interactive] .t-xmdCheckboxChecked,
-.xmd[data-interactive] .t-xmdCheckboxInProgress { cursor: pointer; }
+.xmd[data-interactive] .t-xmdToggle, .xmd[data-interactive] .t-xmdToggleOn,
+.xmd[data-interactive] .t-xmdToggleMixed { cursor: pointer; }
 .xmd[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
 .xmd[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
 .xmd[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }

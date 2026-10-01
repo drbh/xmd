@@ -6,32 +6,32 @@
   "uri": "file://<root>/note.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Different","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":0},"expected":"- [ ] Different","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"","kind":"toggle_task","row":9999}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":9999},"expected":"","kind":"row","module":"tasks","row":9999}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:gone.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:gone.x.md}","event":{"line":0},"expected":"- [ ] Task","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Document is no longer in the workspace"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","expected":"- [ ] Waiting @after(prerequisite)","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","event":{"line":0},"expected":"- [ ] Waiting @after(prerequisite)","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Blocked by prerequisite"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:plain.x.md}","expected":"plain text","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:plain.x.md}","event":{"line":0},"expected":"plain text","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "No task at this line"
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timer.x.md}","event":{"action":"start","name":"focus"},"expected":"[focus] := stopwatch()","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -40,14 +40,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "stopwatch(0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 22,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -64,12 +64,12 @@ null
 -- write timer.x.md
 [focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)
 -- notify workspace/didChangeWatchedFiles {"changes":[{"type":2,"uri":"file://<root>/timer.x.md"}]}
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timer.x.md}","event":{"action":"start","name":"focus"},"expected":"[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Cannot start a running timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timer.x.md}","event":{"action":"pause","name":"focus"},"expected":"[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -78,14 +78,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(75s)",
+            "newText": "stopwatch(75s)",
             "range": {
               "end": {
                 "character": 51,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }

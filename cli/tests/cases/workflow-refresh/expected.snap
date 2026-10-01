@@ -51,7 +51,8 @@ Resource cache updated (1 resources)
   "quote:ACME": {
     "value": {
       "currency": "USD",
-      "price": 12.5
+      "price": 12.5,
+      "symbol": "ACME"
     },
     "fetched_at": "2026-09-16T18:00:00Z",
     "source": "fakequote"

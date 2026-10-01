@@ -10,6 +10,8 @@
 pub(crate) use crate::linear::{Linear, RowVariable};
 use crate::{
     features,
+    lookups::LookupRead,
+    memo::{CALL_LIMIT, DEPTH_LIMIT, Found, MemoEntry, MemoKey, STEP_LIMIT, Start, Walk},
     workspace::{Symbol, SymbolKind, Workspace},
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
@@ -21,7 +23,6 @@ use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
-pub(crate) use syntax::timer_arguments;
 pub(crate) use syntax::{BinaryOp, Comparison, UnaryOp, relative_date};
 pub(crate) use syntax::{Builtin, Expr, Lexeme, Parser, Tier, lex, sum_scope_at};
 pub(crate) use values::binary;
@@ -35,33 +36,47 @@ pub struct EvalFailure {
     pub message: EvalError,
     pub related: Vec<Symbol>,
 }
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum MemoKey {
-    Symbol(Symbol),
-    ResourceProperty(String, String),
-}
-#[derive(Clone)]
-pub(crate) struct MemoEntry {
-    value: EvalResult<Value>,
-    failure: Option<EvalFailure>,
-    pub(crate) wanted: Vec<values::LookupKey>,
-    pub(crate) time_dependent: bool,
-}
 /// Host-provided names are resolved lazily by the same evaluator as note functions.
 /// Resolution runs without the caller's bindings, so definitions cannot capture them.
 pub trait Bindings: Send + Sync {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<EvalResult<Value>>;
 }
 
-/// The expression nodes one evaluation may visit.
-const STEP_LIMIT: usize = 200_000;
-
 /// How much work one evaluation may still do. A module evaluates on an engine
 /// of its own, which inherits the budget rather than being given a fresh one.
-#[derive(Default)]
 pub(crate) struct Budget {
     pub(crate) steps: usize,
     pub(crate) calls: usize,
+    /// The most steps it may take, and how big a value it may build.
+    pub(crate) step_limit: usize,
+    pub(crate) size_limit: values::Size,
+}
+impl Default for Budget {
+    fn default() -> Self {
+        Self {
+            steps: 0,
+            calls: 0,
+            step_limit: STEP_LIMIT,
+            size_limit: values::Size::LIMIT,
+        }
+    }
+}
+impl Budget {
+    /// A hook's budget grows with what the host hands it: a few times as
+    /// big a value as its input, and steps in proportion to it, so a module
+    /// that builds a large note's records is not refused for the note's
+    /// size. Never less than any evaluation's.
+    pub(crate) fn scaled(input: values::Size) -> Self {
+        let default = Self::default();
+        Self {
+            step_limit: default.step_limit.max(input.items.saturating_mul(64)),
+            size_limit: values::Size {
+                items: default.size_limit.items.max(input.items.saturating_mul(4)),
+                bytes: default.size_limit.bytes.max(input.bytes.saturating_mul(4)),
+            },
+            ..default
+        }
+    }
 }
 /// What is being walked right now: enough to name a cycle, and to place a
 /// failure in the note that asked for it.
@@ -73,7 +88,7 @@ pub(crate) struct Trace {
     /// a goal seek is legitimately on both at once.
     pub(crate) linear: Vec<Symbol>,
     /// The note and span each nested evaluation belongs to.
-    pub(crate) contexts: Vec<(PathBuf, Span)>,
+    pub(crate) contexts: Vec<(std::sync::Arc<Path>, Span)>,
 }
 pub struct Engine<'a> {
     /// The workspace, clock snapshot, link registry and memo this evaluation
@@ -84,11 +99,21 @@ pub struct Engine<'a> {
     pub(crate) budget: Budget,
     pub(crate) trace: Trace,
     pub(crate) failure: Option<EvalFailure>,
-    /// Lookup keys read during evaluation, hit or miss, for hovers and refresh.
-    pub(crate) wanted: Vec<values::LookupKey>,
+    /// The lookup cache `cached` reads: the request's workspace's, which a
+    /// module engine running on the request's behalf shares.
+    pub(crate) lookups: std::sync::Arc<values::Store>,
+    /// Lookup keys read during evaluation, hit or miss, for hovers and
+    /// refresh, each with the note text it was read for.
+    pub(crate) wanted: Vec<LookupRead>,
+    /// In a module engine, the note text whose evaluation called into the
+    /// module: what a lookup the module reads is read for.
+    pub(crate) reader: Option<(std::sync::Arc<Path>, Span)>,
     pub(crate) time_dependent: bool,
     /// Decision-column variables met while linearizing a plan.
     pub(crate) row_variables: Vec<RowVariable>,
+    /// The definition being evaluated, and what it has spent and read so far:
+    /// recorded with its result, so a later request can charge itself for it.
+    pub(crate) walk: Option<Walk>,
     /// A module's evaluation: immutable inputs only, its own workspace, and
     /// the expressions its note was parsed into. `module` is the plain answer
     /// to "am I running module code", which decides whether the module-tier
@@ -145,9 +170,12 @@ impl<'a> Engine<'a> {
             budget: Budget::default(),
             trace: Trace::default(),
             failure: None,
+            lookups: request.workspace.lookups.clone(),
             wanted: Vec::new(),
+            reader: None,
             time_dependent: false,
             row_variables: Vec::new(),
+            walk: None,
             module: false,
             environment: None,
             expressions: None,
@@ -182,7 +210,11 @@ impl<'a> Engine<'a> {
         self.failure = None;
     }
     /// The lookups evaluation read so far, cached or not.
-    pub fn wanted(&self) -> &[values::LookupKey] {
+    pub fn wanted(&self) -> impl Iterator<Item = &values::LookupKey> {
+        self.wanted.iter().map(|read| &read.key)
+    }
+    /// The same, each with the note text it was read for.
+    pub fn reads(&self) -> &[LookupRead] {
         &self.wanted
     }
     /// Whether anything evaluated so far reads the clock.
@@ -201,11 +233,6 @@ impl<'a> Engine<'a> {
     }
     pub fn link_features(&self) -> modules::LinkFeatures<'a> {
         self.request.links
-    }
-    /// Override the registry for an embedded host or test before evaluation begins.
-    pub(crate) fn with_link_features(mut self, features: modules::LinkFeatures<'a>) -> Self {
-        self.request = self.request.with_link_features(features);
-        self
     }
     pub fn bound_expr(
         &mut self,
@@ -279,8 +306,9 @@ impl<'a> Engine<'a> {
             _ => None,
         }
     }
-    /// Those locals as the name-to-value map a closure captures.
-    fn captured(&self) -> Option<BTreeMap<String, Value>> {
+    /// Those locals as a closure captures them: the call's parameters in a
+    /// scope inside what the function itself captured.
+    fn captured(&self) -> Option<values::Captured> {
         let Some(Frame::Function {
             function,
             arguments,
@@ -288,15 +316,16 @@ impl<'a> Engine<'a> {
         else {
             return None;
         };
-        let mut locals = function.captured.clone();
-        locals.extend(
-            function
-                .params
-                .iter()
-                .cloned()
-                .zip(arguments.iter().cloned()),
-        );
-        Some(locals)
+        Some(
+            function.captured.with(
+                function
+                    .params
+                    .iter()
+                    .cloned()
+                    .zip(arguments.iter().cloned())
+                    .collect(),
+            ),
+        )
     }
     pub(crate) fn row(&self) -> Option<&RowScope> {
         match self.scope().row.map(|at| &self.frames[at]) {
@@ -319,6 +348,12 @@ impl<'a> Engine<'a> {
     pub(crate) fn unwind(&mut self, height: usize) {
         self.frames.truncate(height);
     }
+    /// Bind the next parameter of the call in progress.
+    pub(crate) fn push_argument(&mut self, value: Value) {
+        if let Some(Frame::Function { arguments, .. }) = self.frames.last_mut() {
+            arguments.push(value);
+        }
+    }
     pub(crate) fn push_call(&mut self, function: std::sync::Arc<Function>, arguments: Vec<Value>) {
         self.frames.push(Frame::Function {
             function,
@@ -339,9 +374,7 @@ impl<'a> Engine<'a> {
         self.eval_at(path, expression, Span::new(0, 0, expression.len()))
     }
     pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> EvalResult<Value> {
-        if self.idle() {
-            self.budget.steps = 0;
-        }
+        self.start();
         let parsed = self
             .expressions
             .as_ref()
@@ -370,7 +403,7 @@ impl<'a> Engine<'a> {
         span: Span,
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        self.trace.contexts.push((path.into(), span));
+        self.trace.contexts.push((std::sync::Arc::from(path), span));
         let result = f(self);
         self.trace.contexts.pop();
         result
@@ -395,9 +428,23 @@ impl<'a> Engine<'a> {
         }
         result
     }
-    /// The memo every engine of this request shares.
-    fn memo(&self) -> std::sync::MutexGuard<'_, BTreeMap<MemoKey, MemoEntry>> {
-        self.request.memo.lock().expect("request cache poisoned")
+    /// The result being made depends on where it is evaluated from: see
+    /// [`crate::memo`].
+    pub(crate) fn contextual(&mut self) {
+        if let Some(walk) = &mut self.walk {
+            walk.contextual = true;
+        }
+    }
+    /// A call is about to check how many calls are in progress.
+    pub(crate) fn call_check(&mut self) -> EvalResult<()> {
+        if let Some(walk) = &mut self.walk {
+            walk.call_check(self.budget.calls);
+        }
+        if self.budget.calls >= CALL_LIMIT {
+            self.contextual();
+            return Err(EvalError::DepthExceeded(Depth::Call));
+        }
+        Ok(())
     }
     /// Pin `error` to `span` unless an earlier failure already claimed the
     /// report, and hand it back for the caller to return.
@@ -411,16 +458,25 @@ impl<'a> Engine<'a> {
         error
     }
     pub(crate) fn fail(&mut self, bounds: (usize, usize), message: &EvalError) {
-        if self.failure.is_none()
-            && let Some((path, base)) = self.trace.contexts.last()
+        if self.failure.is_some() {
+            return;
+        }
+        // Placed at text the definition being evaluated did not push: its
+        // caller's, which another caller would not share.
+        let contexts = self.trace.contexts.len();
+        if let Some(walk) = &mut self.walk
+            && walk.contexts_base.is_some_and(|base| contexts <= base)
         {
+            walk.contextual = true;
+        }
+        if let Some((path, base)) = self.trace.contexts.last() {
             self.failure = Some(EvalFailure {
-                path: path.clone(),
+                path: path.to_path_buf(),
                 span: self
                     .request
                     .workspace
                     .documents
-                    .get(path)
+                    .get(&**path)
                     .map(|doc| base.relative(doc, bounds.0, bounds.1))
                     .unwrap_or_else(|| {
                         Span::new(base.line, base.start + bounds.0, base.start + bounds.1)
@@ -441,7 +497,9 @@ impl<'a> Engine<'a> {
                     args.iter().any(|e| contains(e, start, end))
                 }
                 Expr::Record(fields) => fields.iter().any(|(_, e)| contains(e, start, end)),
-                Expr::Lambda(_, e) => contains(e, start, end),
+                Expr::Lambda(_, defaults, e) => {
+                    contains(e, start, end) || defaults.iter().any(|d| contains(d, start, end))
+                }
                 Expr::Apply(f, args) => {
                     contains(f, start, end) || args.iter().any(|e| contains(e, start, end))
                 }
@@ -467,7 +525,7 @@ impl<'a> Engine<'a> {
                 if value.kind() == ValueType::Table {
                     continue;
                 }
-                // For properties substitute the complete access, not a timer's display text.
+                // For properties substitute the complete access, not an object's display text.
                 let end = if matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Dot)) {
                     tokens.get(i + 2).map(|t| t.end).unwrap_or(token.end)
                 } else {
@@ -487,29 +545,76 @@ impl<'a> Engine<'a> {
         }
         Ok(result)
     }
-    /// Nothing is part-way through: the step budget starts again.
-    fn idle(&self) -> bool {
-        self.trace.contexts.is_empty() && self.trace.symbols.is_empty() && self.frames.is_empty()
-            // A module evaluates on its own engine, which inherits the budget.
-            && self.budget.calls == 0
-    }
-    pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
-        let symbol = self.request.workspace.resolve(path, name)?;
-        self.symbol(&symbol)
-    }
-    pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
-        if self.idle() {
+    /// Nothing is part-way through: the step budget starts again. A module
+    /// evaluates on its own engine, which inherits the budget, so there only
+    /// when no call is in progress either. Where the definition being
+    /// evaluated reaches such a point is part of what it costs.
+    fn start(&mut self) {
+        if !(self.trace.contexts.is_empty()
+            && self.trace.symbols.is_empty()
+            && self.frames.is_empty())
+        {
+            return;
+        }
+        if let Some(walk) = &mut self.walk {
+            walk.quiet(self.budget.steps, self.budget.calls);
+        }
+        if self.budget.calls == 0 {
             self.budget.steps = 0;
         }
+        if let Some(walk) = &mut self.walk {
+            walk.resume(self.budget.steps);
+        }
+    }
+    pub fn named(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
+        let symbol = self.request.workspace.resolve_shared(path, name)?;
+        self.shared_symbol(symbol)
+    }
+    /// A name as code reads it: what the note or module at `path` defines,
+    /// else what the prelude exports under that name.
+    pub(crate) fn resolved(&mut self, path: &Path, name: &str) -> EvalResult<Value> {
+        if self.request.workspace.candidates(path, name).is_empty()
+            && let Some(value) = self.prelude(path, name)
+        {
+            return value;
+        }
+        self.named(path, name)
+    }
+    pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
+        self.shared_symbol(std::sync::Arc::new(symbol.clone()))
+    }
+    fn shared_symbol(&mut self, symbol: std::sync::Arc<Symbol>) -> EvalResult<Value> {
+        self.start();
         let key = MemoKey::Symbol(symbol.clone());
-        let cached = self.memo().get(&key).cloned();
-        if let Some(entry) = cached {
-            if entry.value.is_err() && self.failure.is_none() {
-                self.failure = entry.failure;
+        if let Some(walk) = &mut self.walk {
+            walk.reach(key.clone(), self.budget.steps, self.budget.calls);
+        }
+        let result = self.reached(&symbol, key);
+        if let Some(walk) = &mut self.walk {
+            walk.resume(self.budget.steps);
+        }
+        result
+    }
+    /// A definition's value: from the memo when this request may read it
+    /// there, evaluated otherwise.
+    fn reached(&mut self, symbol: &Symbol, key: MemoKey) -> EvalResult<Value> {
+        match self.request.memo.find(&key) {
+            Some(Found::Reached(entry)) => return self.reuse(&entry),
+            // Symbolic walks see the definitions they are inside, which an
+            // earlier request's result never saw.
+            Some(Found::Earlier(entry)) if self.trace.linear.is_empty() => {
+                let start = Start {
+                    steps: self.budget.steps,
+                    step_limit: self.budget.step_limit,
+                    calls: self.budget.calls,
+                    stack: &self.trace.symbols,
+                };
+                if let Some(steps) = self.request.memo.replay(&key, start) {
+                    self.budget.steps = steps;
+                    return self.reuse(&entry);
+                }
             }
-            self.wanted.extend(entry.wanted);
-            self.time_dependent |= entry.time_dependent;
-            return entry.value;
+            _ => {}
         }
         if let Some(start) = self.trace.symbols.iter().position(|s| s == symbol) {
             let mut related = self.trace.symbols[start..].to_vec();
@@ -526,27 +631,75 @@ impl<'a> Engine<'a> {
                 message: message.clone(),
                 related,
             });
+            self.contextual();
             return Err(message);
         }
-        if self.trace.symbols.len() >= 64 {
+        if self.trace.symbols.len() >= DEPTH_LIMIT {
+            self.contextual();
             return Err(EvalError::DepthExceeded(Depth::Dependency));
         }
         let previous_failure = self.failure.take();
         let previous_time = std::mem::replace(&mut self.time_dependent, false);
         let wanted_start = self.wanted.len();
+        let walk = Walk::new(
+            self.budget.steps,
+            self.budget.calls,
+            self.trace.contexts.len(),
+        );
+        let caller = self.walk.replace(walk);
         self.trace.symbols.push(symbol.clone());
         // Named definitions never capture a caller's frames.
         let height = self.barrier(false);
+        let result = self.evaluate(symbol);
+        self.unwind(height);
+        self.trace.symbols.pop();
+        let walk = std::mem::replace(&mut self.walk, caller).expect("pushed above");
+        let (cost, contextual) = walk.finish(self.budget.steps);
+        if contextual {
+            self.contextual();
+        }
+        let entry = MemoEntry {
+            value: result.clone(),
+            failure: if result.is_err() {
+                self.failure.clone()
+            } else {
+                None
+            },
+            wanted: self.wanted[wanted_start..].to_vec(),
+            time_dependent: self.time_dependent,
+            contextual,
+            cost,
+        };
+        self.request.memo.keep(key, entry);
+        self.failure = previous_failure.or(self.failure.take());
+        self.time_dependent |= previous_time;
+        result
+    }
+    /// Read a result the memo holds as evaluating it would have: its failure,
+    /// lookups, clock reading and context.
+    fn reuse(&mut self, entry: &MemoEntry) -> EvalResult<Value> {
+        if entry.value.is_err() && self.failure.is_none() {
+            self.failure = entry.failure.clone();
+        }
+        self.wanted.extend(entry.wanted.iter().cloned());
+        self.time_dependent |= entry.time_dependent;
+        if entry.contextual {
+            self.contextual();
+        }
+        entry.value.clone()
+    }
+    /// Evaluate a definition afresh.
+    fn evaluate(&mut self, symbol: &Symbol) -> EvalResult<Value> {
         let doc = &self.request.workspace.documents[&symbol.path];
-        let result = match symbol.kind {
+        match symbol.kind {
             SymbolKind::Definition(i) => {
                 let def = &doc.definitions[i];
                 let kind = doc.definition_kind(i);
                 if let Some(evaluate) = features::evaluator(kind) {
                     evaluate(self, symbol, i)
                 } else if kind == model::DefinitionKind::Expression {
-                    self.eval_at(&symbol.path, &def.source, def.expression_span(&doc.text))
-                        .map(|v| features::adopt(v, symbol, &def.source))
+                    self.eval_at(&symbol.path, &def.source, def.expression_span(doc))
+                        .map(|v| features::adopt(v, symbol, doc))
                 } else {
                     literal(&def.source).map(|v| match v {
                         Value::Resource(mut r) => {
@@ -577,43 +730,49 @@ impl<'a> Engine<'a> {
                         None => Err(EvalError::Expected("a plan")),
                     })
             }
-        };
-        self.unwind(height);
-        self.trace.symbols.pop();
-        let entry = MemoEntry {
-            value: result.clone(),
-            failure: if result.is_err() {
-                self.failure.clone()
-            } else {
-                None
-            },
-            wanted: self.wanted[wanted_start..].to_vec(),
-            time_dependent: self.time_dependent,
-        };
-        self.memo().insert(key, entry);
-        self.failure = previous_failure.or(self.failure.take());
-        self.time_dependent |= previous_time;
-        result
+        }
     }
     /// One node, one dispatch: every kind of expression names the method that
     /// answers it.
     pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
         self.budget.steps += 1;
-        if self.budget.steps > STEP_LIMIT {
+        if self.budget.steps > self.budget.step_limit {
+            self.contextual();
             return self.refuse(expr.bounds(), EvalError::StepLimit);
         }
         match expr {
+            // A span is a node of its own, counted and checked as one, but
+            // stepped through here rather than by a call of its own: most
+            // nodes have one.
             Expr::Spanned(start, end, inner) => {
-                let result = self.expr(path, inner);
+                let result = match &**inner {
+                    Expr::Spanned(..) => self.expr(path, inner),
+                    node => {
+                        self.budget.steps += 1;
+                        if self.budget.steps > self.budget.step_limit {
+                            self.contextual();
+                            self.refuse(node.bounds(), EvalError::StepLimit)
+                        } else {
+                            self.node(path, node)
+                        }
+                    }
+                };
                 self.within((*start, *end), result)
             }
+            node => self.node(path, node),
+        }
+    }
+    /// One node that is not a span, its step already counted.
+    fn node(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
+        match expr {
+            Expr::Spanned(..) => unreachable!("expr steps through spans"),
             Expr::Value(v) => Ok(Value::from(v.clone())),
             Expr::Code(c) => Ok(Value::Code(*c)),
             Expr::Name(n) => self.name(path, n),
             Expr::Param { name, index } => self.param(path, name, *index),
             Expr::Builtin(builtin, args) => self.builtin(path, *builtin, args),
             Expr::Call(n, args) => self.call_named(path, n, args),
-            Expr::Lambda(params, body) => self.lambda(path, expr, params, body),
+            Expr::Lambda(params, defaults, body) => self.lambda(path, expr, params, defaults, body),
             Expr::Apply(function, args) => {
                 let function = self.expr(path, function)?;
                 let args = self.values(path, args)?;
@@ -621,7 +780,7 @@ impl<'a> Engine<'a> {
             }
             Expr::List(items) => {
                 let value = Value::list(self.values(path, items)?);
-                sized(value)
+                self.sized(value)
             }
             Expr::Record(fields) => self.record(path, fields),
             Expr::Unary(op, v) => {
@@ -631,7 +790,7 @@ impl<'a> Engine<'a> {
             Expr::Binary(op, a, b) => self.binary_expr(path, *op, a, b),
             Expr::Property(v, key) => {
                 if let Some((value, nodes)) = self.local_path(expr)
-                    && self.budget.steps + nodes - 1 <= STEP_LIMIT
+                    && self.budget.steps + nodes - 1 <= self.budget.step_limit
                 {
                     let value = value.clone();
                     self.budget.steps += nodes - 1;
@@ -671,7 +830,17 @@ impl<'a> Engine<'a> {
                 .map(|(k, e)| Ok((k.clone(), self.expr(path, e)?.plain())))
                 .collect::<EvalResult<BTreeMap<_, _>>>()?,
         );
-        sized(value)
+        self.sized(value)
+    }
+    /// Values are capped wherever one is built, not only where one is
+    /// returned.
+    pub(crate) fn sized(&mut self, value: Value) -> EvalResult<Value> {
+        let limit = self.budget.size_limit;
+        if values::Size::of(&value, limit).within(limit) {
+            Ok(value)
+        } else {
+            Err(EvalError::LimitExceeded(values::Limit::Value))
+        }
     }
     /// A lambda captures the names it reads: the enclosing row scope and
     /// locals, then whatever bindings answer for its remaining free names.
@@ -680,18 +849,32 @@ impl<'a> Engine<'a> {
         path: &Path,
         expr: &Expr,
         params: &[String],
-        body: &Expr,
+        defaults: &[Expr],
+        body: &std::sync::Arc<Expr>,
     ) -> EvalResult<Value> {
-        let mut captured = self.row().map(|s| s.values.clone()).unwrap_or_default();
-        if let Some(locals) = self.captured() {
-            captured.extend(locals);
-        }
-        for (name, _) in expr.free_names() {
-            if !captured.contains_key(&name)
-                && let Some(value) = self.binding(&name)
-            {
-                captured.insert(name, value?);
+        let locals = self.captured().unwrap_or_default();
+        // A row's columns sit below the locals, which win over them.
+        let mut captured = match self.row() {
+            Some(scope) => {
+                let mut names = scope.values.clone();
+                names.extend(locals.names());
+                values::Captured::of(names)
             }
+            None => locals,
+        };
+        // Walking the body for its free names is only worth it when some
+        // bindings are in scope to answer them.
+        if self.scope().bindings.is_some() {
+            let mut bound = Vec::new();
+            for (name, _) in expr.free_names() {
+                if captured.get(&name).is_none()
+                    && !bound.iter().any(|(n, _)| *n == name)
+                    && let Some(value) = self.binding(&name)
+                {
+                    bound.push((name, value?));
+                }
+            }
+            captured = captured.with(bound);
         }
         Ok(Value::Function(std::sync::Arc::new(Function {
             environment: self
@@ -700,8 +883,15 @@ impl<'a> Engine<'a> {
                 .map(|workspace| workspace as std::sync::Arc<dyn std::any::Any + Send + Sync>),
             expressions: self.expressions.clone(),
             params: params.to_vec(),
+            defaults: defaults.to_vec(),
             body: body.clone(),
-            path: path.into(),
+            // The note the enclosing call runs in, shared, when it is this one.
+            path: match self.scope().function.map(|at| &self.frames[at]) {
+                Some(Frame::Function { function, .. }) if *function.path == *path => {
+                    function.path.clone()
+                }
+                _ => std::sync::Arc::from(path),
+            },
             source: self.trace.contexts.last().cloned(),
             captured,
         })))
@@ -719,7 +909,7 @@ impl<'a> Engine<'a> {
             return value;
         }
         let Some(scope) = self.row() else {
-            return self.named(path, n);
+            return self.resolved(path, n);
         };
         if scope.decisions.contains_key(n) {
             return Err(EvalError::DecisionColumnOutsidePlan(n.into()));
@@ -755,9 +945,16 @@ impl<'a> Engine<'a> {
             return Ok(a);
         }
         let right = self.expr(path, b)?;
-        let (left, right_kind) = (a.kind(), right.kind());
+        // The operands' kind names, kept for a failure: a tagged record's is
+        // its own text, every other kind's a static name, so nothing is
+        // copied for the common case.
+        let name = |value: &Value| match value.kind() {
+            ValueType::Tagged => std::borrow::Cow::Owned(value.type_name().to_owned()),
+            kind => std::borrow::Cow::Borrowed(kind.as_str()),
+        };
+        let (left, right_kind) = (name(&a), name(&right));
         binary(op, a, right).map_err(|source| {
-            let message = source.in_binary(op, left, right_kind);
+            let message = source.in_binary(op, &left, &right_kind);
             self.fail(b.bounds(), &message);
             message
         })
@@ -793,14 +990,17 @@ impl<'a> Engine<'a> {
                     .unwrap_or(false),
             ));
         }
-        self.time_dependent |= self.request.links.time_dependent(
+        let time_dependent = self.request.links.time_dependent(
             &resource.target,
             &self.request.workspace.cache,
             self.request.clock.now.to_utc(),
         );
+        self.time_dependent |= time_dependent;
         let memo_key = MemoKey::ResourceProperty(resource.target.clone(), key.into());
-        if let Some(entry) = self.memo().get(&memo_key).cloned() {
-            return entry.value;
+        if let Some(Found::Reached(entry) | Found::Earlier(entry)) =
+            self.request.memo.find(&memo_key)
+        {
+            return entry.value.clone();
         }
         let value = self.request.links.property(
             &resource.target,
@@ -808,13 +1008,15 @@ impl<'a> Engine<'a> {
             self.request.clock.now.to_utc(),
             key,
         );
-        self.memo().insert(
+        self.request.memo.keep(
             memo_key,
             MemoEntry {
                 value: value.clone(),
                 failure: None,
                 wanted: vec![],
-                time_dependent: false,
+                time_dependent,
+                contextual: false,
+                cost: Default::default(),
             },
         );
         value
@@ -822,6 +1024,7 @@ impl<'a> Engine<'a> {
     fn property(&mut self, value: &Value, key: &str) -> EvalResult<Value> {
         match value {
             Value::Namespace(path) => self.named(path.path(), key),
+            Value::Tasks(keys) if key == values::CHECKLIST_TASKS => Ok(self.checklist_tasks(keys)),
             Value::List(items) => items
                 .iter()
                 .map(|v| self.property(v, key))
@@ -833,10 +1036,32 @@ impl<'a> Engine<'a> {
     /// A module's own evaluation: immutable inputs only, including resource
     /// properties, no link features, and the module-tier built-ins answer.
     pub(crate) fn for_module(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
-        let mut engine =
-            Self::at(workspace, now).with_link_features(modules::LinkFeatures::default());
+        Self::for_module_sharing(workspace, now, crate::memo::Memo::default())
+    }
+    /// The same, sharing `memo`.
+    pub(crate) fn for_module_sharing(
+        workspace: &'a Workspace,
+        now: DateTime<FixedOffset>,
+        memo: crate::memo::Memo,
+    ) -> Self {
+        let request = crate::context::RequestContext {
+            workspace,
+            clock: crate::context::Clock::new(now),
+            links: modules::LinkFeatures::default(),
+            memo,
+        };
+        let mut engine = Self::in_request(&request);
         engine.module = true;
         engine
+    }
+    /// The note text being evaluated: a module engine's is its caller's,
+    /// since its own text is the module's.
+    pub(crate) fn reading_for(&self) -> Option<(std::sync::Arc<Path>, Span)> {
+        if self.module {
+            self.reader.clone()
+        } else {
+            self.trace.contexts.last().cloned()
+        }
     }
     /// Whether module code is running: a module engine, or a buffer that lives
     /// where modules live, so an author still sees their own file evaluate.
@@ -850,15 +1075,12 @@ impl<'a> Engine<'a> {
         self.expressions = Some(expressions);
         self
     }
-    /// Share `memo` rather than the request's own.
-    pub(crate) fn with_memo(mut self, memo: crate::context::Memo) -> Self {
-        self.request.memo = memo;
-        self
-    }
     pub(crate) fn with_environment(mut self, environment: std::sync::Arc<Workspace>) -> Self {
         self.environment = Some(environment);
         self
     }
+    /// Whether checklist item `i` is done, which is what its name evaluates
+    /// to: its checkbox is checked, or it has subitems and every one is done.
     pub fn task_done(&self, path: &Path, i: usize) -> bool {
         let doc = &self.request.workspace.documents[path];
         let children: Vec<_> = doc
@@ -874,20 +1096,37 @@ impl<'a> Engine<'a> {
             children.into_iter().all(|j| self.task_done(path, j))
         }
     }
-    /// Started but not finished: marked `[-]`, or a parent with some subtasks
-    /// done or in progress and others still open.
-    pub fn task_in_progress(&self, path: &Path, i: usize) -> bool {
-        if self.task_done(path, i) {
-            return false;
-        }
-        let doc = &self.request.workspace.documents[path];
-        doc.tasks[i].state == TaskState::InProgress
-            || doc.tasks.iter().enumerate().any(|(j, t)| {
-                t.parent == Some(i) && (self.task_done(path, j) || self.task_in_progress(path, j))
-            })
-    }
+    /// The conditions checklist item `i` still waits on: those of its
+    /// attributes that hold dependencies (a declared attribute of the
+    /// `dependencies` kind) not met yet. A condition that names another item
+    /// brings that item's dependencies in, so a cycle is an error naming it.
     pub fn blocked(&mut self, path: &Path, i: usize) -> EvalResult<Vec<String>> {
         self.blocked_inner(path, i, &mut Vec::new())
+    }
+    /// The conditions one dependencies attribute does not meet yet: on
+    /// checklist item `item`, with its cycles checked as [`Self::blocked`]
+    /// checks them.
+    pub fn unmet(
+        &mut self,
+        path: &Path,
+        item: Option<usize>,
+        key: &str,
+        source: &str,
+    ) -> EvalResult<Vec<String>> {
+        let mut stack: Vec<TaskKey> = item.map(|i| (path.to_path_buf(), i)).into_iter().collect();
+        self.conditions(path, key, source, &mut stack)
+    }
+    /// The attributes of item `i` that hold dependencies, by key.
+    fn dependencies(&self, path: &Path, i: usize) -> Vec<(String, model::Attribute)> {
+        let doc = &self.request.workspace.documents[path];
+        doc.tasks[i]
+            .attributes
+            .iter()
+            .filter(|(key, _)| {
+                doc.attribute_value(key) == Some(syntax::AttributeValue::Dependencies)
+            })
+            .map(|(key, attribute)| (key.clone(), attribute.clone()))
+            .collect()
     }
     fn blocked_inner(
         &mut self,
@@ -913,48 +1152,133 @@ impl<'a> Engine<'a> {
                     .map(|s| self.request.workspace.named(s).name.clone())
                     .collect(),
             };
-            let task = &self.request.workspace.documents[path].tasks[i];
+            let span = self
+                .dependencies(path, i)
+                .first()
+                .map(|(_, a)| a.value_span)
+                .unwrap_or(self.request.workspace.documents[path].tasks[i].checkbox);
             self.failure = Some(EvalFailure {
                 path: path.into(),
-                span: task
-                    .attributes
-                    .get(syntax::AttributeKey::After.as_str())
-                    .map(|a| a.value_span)
-                    .unwrap_or(task.checkbox),
+                span,
                 message: message.clone(),
                 related,
             });
+            self.contextual();
             return Err(message);
         }
         if stack.len() > 64 {
+            self.contextual();
             return Err(EvalError::DepthExceeded(Depth::Task));
         }
         stack.push(key);
-        let task = &self.request.workspace.documents[path].tasks[i];
         let mut blocked = Vec::new();
-        if let Some(attr) = task.attributes.get(syntax::AttributeKey::After.as_str()) {
-            for name in attr.value.split(',').map(str::trim) {
-                if let Ok(s) = self.request.workspace.resolve(path, name)
-                    && let SymbolKind::Task(j) = s.kind
-                {
-                    self.blocked_inner(&s.path, j, stack)?;
-                }
-                let ready = match self.eval(path, name)? {
-                    Value::Bool(b) => b,
-                    Value::Tasks(ts) => ts.iter().all(|(p, j)| self.task_done(p, *j)),
-                    _ => {
-                        return Err(EvalError::Message(
-                            "@after requires task names, checklists, or boolean expressions".into(),
-                        ));
-                    }
-                };
-                if !ready {
-                    blocked.push(name.to_string());
-                }
-            }
+        for (name, attribute) in self.dependencies(path, i) {
+            blocked.extend(self.conditions(path, &name, &attribute.value, stack)?);
         }
         stack.pop();
         Ok(blocked)
+    }
+    /// Each comma-separated condition of `source` that is not met: a Boolean
+    /// that is false, or a checklist with an item not done. One that names a
+    /// checklist item brings that item's own dependencies in first.
+    fn conditions(
+        &mut self,
+        path: &Path,
+        key: &str,
+        source: &str,
+        stack: &mut Vec<TaskKey>,
+    ) -> EvalResult<Vec<String>> {
+        let mut blocked = Vec::new();
+        for name in source.split(',').map(str::trim) {
+            if let Ok(s) = self.request.workspace.resolve(path, name)
+                && let SymbolKind::Task(j) = s.kind
+            {
+                self.blocked_inner(&s.path, j, stack)?;
+            }
+            let ready = match self.eval(path, name)? {
+                Value::Bool(b) => b,
+                Value::Tasks(ts) => ts.iter().all(|(p, j)| self.task_done(p, *j)),
+                _ => {
+                    return Err(EvalError::Message(format!(
+                        "@{key} requires task names, checklists, or boolean expressions"
+                    )));
+                }
+            };
+            if !ready {
+                blocked.push(name.to_string());
+            }
+        }
+        Ok(blocked)
+    }
+    /// An attribute's value, evaluated in the note's scope as its declaration
+    /// says: a date or time, a calendar date, a nonnegative duration, a named
+    /// tagged record, the dependencies not met yet (as text, one per condition), any
+    /// value, or its text. `item` is the checklist item the line is, when it
+    /// is one.
+    pub fn attribute(
+        &mut self,
+        path: &Path,
+        declared: &model::Declaration,
+        item: Option<usize>,
+        attribute: &model::Attribute,
+    ) -> EvalResult<Value> {
+        use syntax::AttributeValue as Holds;
+        let key = &declared.key;
+        match declared.value {
+            Holds::Duration => match self.eval_at(path, &attribute.value, attribute.value_span)? {
+                Value::Duration(seconds) if seconds >= 0 => Ok(Value::Duration(seconds)),
+                _ => Err(EvalError::Expected("a nonnegative duration")),
+            },
+            Holds::Tagged => {
+                let value = self.eval_at(path, &attribute.value, attribute.value_span)?;
+                // A tagged record of a declared kind its own definition made.
+                if values::claimed(&value, &declared.kinds) && syntax::identifier(&attribute.value)
+                {
+                    Ok(value)
+                } else {
+                    let kinds: Vec<String> =
+                        declared.kinds.iter().map(|k| k.to_lowercase()).collect();
+                    Err(EvalError::Message(format!(
+                        "@{key} requires a named {}, e.g. @{key}({})",
+                        kinds.join(" or "),
+                        declared.example
+                    )))
+                }
+            }
+            Holds::Date => syntax::stamp(&attribute.value)
+                .map(Value::Date)
+                .ok_or_else(|| {
+                    EvalError::Message(format!(
+                        "@{key} requires a calendar date, e.g. @{key}({})",
+                        declared.example
+                    ))
+                }),
+            Holds::Dependencies => self
+                .unmet(path, item, key, &attribute.value)
+                .map(|names| Value::list(names.into_iter().map(Value::Text).collect())),
+            _ => self.evaluated(path, declared.value, attribute),
+        }
+    }
+    /// An attribute's value read as its kind reads it, unchecked: relative
+    /// or evaluated as a date for a time, the date a calendar date writes,
+    /// the expression's value for any other expression, else its text.
+    pub fn evaluated(
+        &mut self,
+        path: &Path,
+        holds: syntax::AttributeValue,
+        attribute: &model::Attribute,
+    ) -> EvalResult<Value> {
+        use syntax::AttributeValue as Holds;
+        match holds {
+            Holds::When => self.when(path, &attribute.value),
+            Holds::Date => Ok(syntax::stamp(&attribute.value)
+                .map(Value::Date)
+                .unwrap_or_else(|| Value::Text(attribute.value.clone()))),
+            Holds::Duration | Holds::Tagged | Holds::Dependencies | Holds::Expression => {
+                self.eval_at(path, &attribute.value, attribute.value_span)
+            }
+            Holds::Text => Ok(Value::Text(attribute.value.clone())),
+        }
     }
     pub fn when(&mut self, path: &Path, source: &str) -> EvalResult<Value> {
         if let Some(v) = date_value(source) {
@@ -978,11 +1302,7 @@ pub(crate) fn keyword(name: &str) -> Option<Value> {
         _ => None,
     }
 }
-/// Values are capped wherever one is built, not only where one is returned.
-pub(crate) fn sized(value: Value) -> EvalResult<Value> {
-    values::check_size(&value)?;
-    Ok(value)
-}
+
 fn unary(op: UnaryOp, v: Value) -> EvalResult<Value> {
     match (op, v) {
         (UnaryOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),

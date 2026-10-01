@@ -44,7 +44,7 @@ exit 0
   },
   {
     "line": 3,
-    "message": "forecast_range expects a place, start date, end date, and optional unit: forecast_range(\"Oaxaca\", 2026-11-20, 2026-11-26, F)"
+    "message": "forecast_range expects 3 to 4 arguments, got 2"
   },
   {
     "line": 4,

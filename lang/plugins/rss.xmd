@@ -165,7 +165,7 @@ time_dependent := fn(ctx) => (
 property := fn(ctx, name) => (
   if(
     ctx.cached == null,
-    error("No cached feed; run xmd refresh"),
+    pending("No cached feed; run xmd refresh"),
     if(
       name == "updated",
       moment(ctx.cached.updated),

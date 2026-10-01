@@ -202,9 +202,34 @@ xmd: A value cannot be piped into let
 
 ### 15 cli query tasks.x.md 25m | countdown --json
 $ xmd query tasks.x.md 25m | countdown --json --root <root> --now 2026-09-16T14:00:00-04:00
-exit 1
---- stderr
-xmd: countdown takes its arguments in parentheses, not from '|'
+exit 0
+--- stdout
+[
+  {
+    "done": false,
+    "duration": {
+      "seconds": 1500,
+      "type": "duration"
+    },
+    "elapsed": {
+      "seconds": 0,
+      "type": "duration"
+    },
+    "idle": true,
+    "limit": {
+      "seconds": 1500,
+      "type": "duration"
+    },
+    "origin": null,
+    "remaining": {
+      "seconds": 1500,
+      "type": "duration"
+    },
+    "running": false,
+    "started": null,
+    "state": "idle"
+  }
+]
 
 ### 16 cli query tasks.x.md tasks | sort_by(1) --json
 $ xmd query tasks.x.md tasks | sort_by(1) --json --root <root> --now 2026-09-16T14:00:00-04:00

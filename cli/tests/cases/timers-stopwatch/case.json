@@ -9,11 +9,11 @@
         { "await": "textDocument/publishDiagnostics", "file": "idle.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:idle.x.md}", "row": 0, "expected": "🦀 [watch] := stopwatch()", "module": "timers", "event": {"name": "watch", "action": "pause"}}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:idle.x.md}", "name": "watch", "action": "start"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:idle.x.md}", "row": 0, "expected": "🦀 [watch] := stopwatch()", "module": "timers", "event": {"name": "watch", "action": "start"}}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -26,12 +26,12 @@
         { "open": "running.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "pause"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:running.x.md}", "row": 0, "expected": "[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)", "module": "timers", "event": {"name": "watch", "action": "pause"}}] }
         },
         { "await": "workspace/applyEdit" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:running.x.md}", "name": "watch", "action": "reset"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:running.x.md}", "row": 0, "expected": "[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)", "module": "timers", "event": {"name": "watch", "action": "reset"}}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -44,11 +44,11 @@
         { "open": "paused.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "start"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:paused.x.md}", "row": 0, "expected": "[watch] := stopwatch(73s)", "module": "timers", "event": {"name": "watch", "action": "start"}}] }
         },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:paused.x.md}", "name": "watch", "action": "resume"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:paused.x.md}", "row": 0, "expected": "[watch] := stopwatch(73s)", "module": "timers", "event": {"name": "watch", "action": "resume"}}] }
         },
         { "await": "workspace/applyEdit" }
       ]
@@ -58,9 +58,10 @@
       "lsp": [
         { "open": "alias.x.md" },
         { "await": "textDocument/publishDiagnostics", "file": "alias.x.md" },
+        { "request": "textDocument/codeLens", "file": "alias.x.md" },
         {
           "request": "workspace/executeCommand",
-          "params": { "command": "xmd.timer", "arguments": [{"kind": "timer", "document": "${uri:alias.x.md}", "name": "alias", "action": "start"}] }
+          "params": { "command": "xmd.row", "arguments": [{"kind": "row", "document": "${uri:shared.x.md}", "row": 0, "expected": "[focus] := countdown(25m)", "module": "timers", "event": {"name": "focus", "action": "start"}}] }
         },
         { "await": "workspace/applyEdit" }
       ]

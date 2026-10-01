@@ -6,7 +6,6 @@
 //! fetched yet? — match on the variant instead of reading the words, and
 //! consumers that only render it let `?` turn it into its `String` at the
 //! boundary.
-use crate::lookups::LookupKey;
 use crate::value::Unit;
 use common::{Currency, ValueType};
 use syntax::{BinaryOp, Builtin};
@@ -72,15 +71,6 @@ pub enum UnitOp {
     Divide,
     Compare,
 }
-/// The kinds of value that answer for their own property names.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum PropertyOwner {
-    Forecast,
-    Plan,
-    Resource,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvalError {
     // Names.
@@ -122,8 +112,8 @@ pub enum EvalError {
     /// A binary operation's failure, decorated with the operand types.
     Binary {
         op: BinaryOp,
-        left: ValueType,
-        right: ValueType,
+        left: String,
+        right: String,
         source: Box<EvalError>,
     },
     CurrencyMismatch {
@@ -140,8 +130,10 @@ pub enum EvalError {
         key: String,
         on: Option<ValueType>,
     },
+    /// A field an object that answers for its own property names (a plan,
+    /// a resource, a tagged record) does not have.
     UnknownProperty {
-        owner: PropertyOwner,
+        owner: ValueType,
         name: String,
     },
     /// "Expected a function", "Expected text", … The payload is the tail.
@@ -151,14 +143,13 @@ pub enum EvalError {
         expected: usize,
         found: usize,
     },
-
-    // Data that has to be fetched before a note can answer.
-    NotCached(LookupKey),
-    Unreadable(LookupKey),
-    /// A cached lookup that answered with a problem of its own.
-    Lookup {
-        key: LookupKey,
-        source: Box<EvalError>,
+    /// A function called by name with too few or too many arguments: it
+    /// takes `required` to `params` of them.
+    CallArity {
+        name: String,
+        required: usize,
+        params: usize,
+        found: usize,
     },
 
     // Modules.
@@ -185,47 +176,24 @@ pub enum EvalError {
         name: String,
     },
 
-    /// Text from outside the evaluator: `error("…")`, a module hook's own
-    /// message, or the error field of a cached lookup. Opaque, so whether it
-    /// describes unfetched data is still decided by reading it.
+    /// Text from outside the evaluator: `error("…")` or a module hook's own
+    /// message.
     Custom(String),
+    /// `pending("…")`: data the note reads has not been fetched yet, such as
+    /// a lookup nothing has cached. A state of the world rather than a mistake
+    /// in the note, so hosts report it as a warning.
+    Pending(String),
     /// Parser and lexer text, or a one-off message that has only ever been
     /// produced from a single site.
     Message(String),
 }
 
-/// The legacy reading of an opaque message: does it describe data that has not
-/// been fetched yet, rather than a mistake in the note? Only text the evaluator
-/// did not write is still classified this way.
-fn describes_pending_data(message: &str) -> bool {
-    message.starts_with("No cached")
-        || message.contains("; run xmd refresh")
-        || message.contains("no forecast yet")
-}
-
 impl EvalError {
-    /// Text the evaluator did not write, somewhere in this failure.
-    fn carries_opaque_text(&self) -> bool {
-        match self {
-            Self::Custom(_) => true,
-            Self::Binary { source, .. }
-            | Self::Lookup { source, .. }
-            | Self::Module { source, .. } => source.carries_opaque_text(),
-            _ => false,
-        }
-    }
     /// Unfetched data is a state, not a mistake: hosts report these as warnings.
     pub fn is_pending(&self) -> bool {
-        // A message that came from outside can only be read, so the whole
-        // sentence — attribution and all — is what gets classified.
-        if self.carries_opaque_text() {
-            return describes_pending_data(&self.to_string());
-        }
         match self {
-            Self::NotCached(_) => true,
-            Self::Binary { source, .. }
-            | Self::Lookup { source, .. }
-            | Self::Module { source, .. } => source.is_pending(),
+            Self::Pending(_) => true,
+            Self::Binary { source, .. } | Self::Module { source, .. } => source.is_pending(),
             _ => false,
         }
     }
@@ -234,11 +202,11 @@ impl EvalError {
         matches!(self, Self::Cycle { .. } | Self::TaskCycle { .. })
     }
     /// Decorate a binary operation's failure with the operand types.
-    pub fn in_binary(self, op: BinaryOp, left: ValueType, right: ValueType) -> Self {
+    pub fn in_binary(self, op: BinaryOp, left: &str, right: &str) -> Self {
         Self::Binary {
             op,
-            left,
-            right,
+            left: left.into(),
+            right: right.into(),
             source: Box::new(self),
         }
     }
@@ -250,29 +218,10 @@ impl EvalError {
             source: Box::new(self),
         }
     }
-    /// Attribute a failure to the lookup whose cached value produced it.
-    pub(crate) fn in_lookup(self, key: LookupKey) -> Self {
-        Self::Lookup {
-            key,
-            source: Box::new(self),
-        }
-    }
 }
 
 fn names(names: &[String]) -> String {
     names.join(" → ")
-}
-
-/// A lookup named mid-sentence: "rate USD→EUR", "quote for NVDA", …
-struct Phrase<'a>(&'a LookupKey);
-impl std::fmt::Display for Phrase<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            LookupKey::Rate { from, to } => write!(f, "rate {from}→{to}"),
-            LookupKey::Quote(symbol) => write!(f, "quote for {symbol}"),
-            LookupKey::Forecast { place, date } => write!(f, "forecast for {place} on {date}"),
-        }
-    }
 }
 
 impl std::fmt::Display for EvalError {
@@ -342,26 +291,38 @@ impl std::fmt::Display for EvalError {
                 write!(f, "Unknown field '{key}' on {ty}")
             }
             Self::UnknownProperty { owner, name } => {
-                write!(f, "Unknown {owner} property '{name}'")
+                write!(
+                    f,
+                    "Unknown {} property '{name}'",
+                    owner.as_str().to_lowercase()
+                )
             }
             Self::Expected(what) => write!(f, "Expected {what}"),
             Self::Arity(function) => write!(f, "{function} expects one argument"),
             Self::FunctionArity { expected, found } => {
                 write!(f, "Function expects {expected} arguments, got {found}")
             }
-            Self::NotCached(key) => write!(
+            Self::CallArity {
+                name,
+                required: 1,
+                params: 1,
+                ..
+            } => write!(f, "{name} expects one argument"),
+            Self::CallArity {
+                name,
+                required,
+                params,
+                found,
+            } if required == params => write!(f, "{name} expects {params} arguments, got {found}"),
+            Self::CallArity {
+                name,
+                required,
+                params,
+                found,
+            } => write!(
                 f,
-                "No cached {}; run xmd refresh or use the ⟳ lookups lens",
-                Phrase(key)
+                "{name} expects {required} to {params} arguments, got {found}"
             ),
-            Self::Unreadable(key) => write!(f, "Cached {} is unreadable", Phrase(key)),
-            Self::Lookup { key, source } => match key {
-                LookupKey::Rate { from, to } => write!(f, "Rate {from}→{to}: {source}"),
-                LookupKey::Quote(symbol) => write!(f, "Quote {symbol}: {source}"),
-                LookupKey::Forecast { place, date } => {
-                    write!(f, "Forecast for {place} on {date}: {source}")
-                }
-            },
             Self::Module { id, hook, source } => write!(f, "Module {id}.{hook}: {source}"),
             Self::ModuleUnavailable(id) => write!(f, "Module '{id}' is unavailable or disabled"),
             Self::ModuleDisabled(id) => write!(f, "Module '{id}' is disabled"),
@@ -382,7 +343,9 @@ impl std::fmt::Display for EvalError {
             Self::NotExported { id, name } => {
                 write!(f, "'{name}' is not exported by module '{id}'")
             }
-            Self::Custom(message) | Self::Message(message) => f.write_str(message),
+            Self::Custom(message) | Self::Pending(message) | Self::Message(message) => {
+                f.write_str(message)
+            }
         }
     }
 }

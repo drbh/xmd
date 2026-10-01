@@ -8,8 +8,8 @@ use lang::model::identifier;
 use lsp_types::*;
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
 use runtime::services::{
-    Query, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession, folding_ranges, fragment,
-    line_classes, occurrences, semantic_tokens, signature, symbol_at, typing,
+    Query, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, folding_ranges, fragment,
+    line_classes, occurrences, semantic_tokens, signature, symbol_at,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -207,17 +207,16 @@ impl BrowserWorkspace {
             "documentSymbols" => serialized(request.document_symbols(&path)),
             "formatting" => serialized(request.formatting(&path)?),
             "folding" => serialized(folding_ranges(doc)),
-            "onTypeFormatting" => serialized(typing::on_type(
-                doc,
-                position()?,
-                &field::<String>(&params, "ch")?,
-            )),
+            "onTypeFormatting" => {
+                serialized(request.on_type(&path, position()?, &field::<String>(&params, "ch")?))
+            }
             "analyze" | "render" => {
                 let inlays = request.hints(
                     &path,
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
-                let tokens: Vec<u32> = semantic_tokens(doc)
+                let library = request.workspace().prelude_names(&path);
+                let tokens: Vec<u32> = semantic_tokens(doc, &library)
                     .into_iter()
                     .flat_map(|t| {
                         [
@@ -236,7 +235,7 @@ impl BrowserWorkspace {
                     .and_then(Value::as_bool)
                     .unwrap_or(method == "analyze");
                 let diagnostics = request.diagnostics(&path, editing);
-                let html = fragment(doc, &inlays.hints, &diagnostics, &links)?;
+                let html = fragment(doc, &library, &inlays.hints, &diagnostics, &links)?;
                 Ok(
                     json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
@@ -244,7 +243,7 @@ impl BrowserWorkspace {
                 )
             }
             "completion" => serialized(request.completions(&path, position()?, true)),
-            "signature" => serialized(signature(doc, &path, position()?)),
+            "signature" => serialized(signature(request.workspace(), &path, position()?)),
             "hover" => match request.hover(&path, position()?) {
                 Some(hover) => serialized(hover),
                 None => Ok(Value::Null),
@@ -299,7 +298,7 @@ impl BrowserWorkspace {
             "actions" => {
                 let range: Range = field(&params, "range")?;
                 let choices: Vec<Value> = request
-                    .code_actions(&path, range, Capabilities::BROWSER, TaskToggle::Command)
+                    .code_actions(&path, range, Capabilities::BROWSER, RowActions::Command)
                     .into_iter()
                     .map(|item| match item.command {
                         Some(command) => json!({"title":item.title,"command":command}),

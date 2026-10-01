@@ -247,7 +247,7 @@ exit 0
 [
   {
     "line": 1,
-    "message": "timer.time_dependent must return a boolean"
+    "message": "clocked's function must return true or false"
   }
 ]
 

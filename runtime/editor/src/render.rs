@@ -36,6 +36,7 @@ pub(crate) fn html_for(request: &crate::Request<'_>, path: &Path) -> Result<Stri
     let (doc, hints) = labelled(request, path)?;
     let body = fragment(
         doc,
+        &request.workspace().prelude_names(path),
         &hints,
         &crate::providers::diagnostics(request, path, false),
         &document_links(request, path),
@@ -71,13 +72,14 @@ fn render_text(source: &str, hints: &[InlayHint]) -> Result<String, String> {
 
 pub fn fragment(
     doc: &Document,
+    library: &[String],
     hints: &[InlayHint],
     diagnostics: &[Diagnostic],
     links: &[DocumentLink],
 ) -> Result<String, String> {
     serialize(
         &doc.text,
-        &semantic_tokens(doc),
+        &semantic_tokens(doc, library),
         hints,
         diagnostics,
         links,

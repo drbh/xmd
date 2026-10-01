@@ -8,8 +8,8 @@
 .xmd .error { text-decoration-color: #ef8b80; }
 .xmd .warning { text-decoration-color: #eac080; }
 .xmd .info, .xmd .hint { text-decoration-color: #90bed8; }
-.xmd[data-interactive] .t-xmdCheckbox, .xmd[data-interactive] .t-xmdCheckboxChecked,
-.xmd[data-interactive] .t-xmdCheckboxInProgress { cursor: pointer; }
+.xmd[data-interactive] .t-xmdToggle, .xmd[data-interactive] .t-xmdToggleOn,
+.xmd[data-interactive] .t-xmdToggleMixed { cursor: pointer; }
 .xmd[data-layout="document"] { white-space: pre-wrap; overflow-wrap: anywhere; }
 .xmd[data-layout="document"] .h1 { font-size: 1.9em; font-weight: 700; line-height: 1.3; }
 .xmd[data-layout="document"] .h2 { font-size: 1.45em; font-weight: 700; line-height: 1.35; }
@@ -30,13 +30,16 @@
 
 .xmd .t-variable.declaration { color: #A8C7FA; font-weight: bold; }
 .xmd .t-property.declaration { color: #83D6CF; font-weight: bold; }
-.xmd .t-xmdDepart.declaration { color: #FFB070; font-weight: bold; }
-.xmd .t-xmdArrive.declaration { color: #9CE8A0; font-weight: bold; }
-.xmd .t-xmdTransit.declaration { color: #8FCBFF; font-weight: bold; }
-.xmd .t-xmdStay.declaration { color: #C9A4FF; font-weight: bold; }
-.xmd .t-xmdMeal.declaration { color: #FF8FA3; font-weight: bold; }
-.xmd .t-xmdVisit.declaration { color: #F6E38A; font-weight: bold; }
-.xmd .t-xmdExplore.declaration { color: #7FE3D0; font-weight: bold; }
+.xmd .t-xmdCategory1.declaration { color: #FFB070; font-weight: bold; }
+.xmd .t-xmdCategory2.declaration { color: #9CE8A0; font-weight: bold; }
+.xmd .t-xmdCategory3.declaration { color: #8FCBFF; font-weight: bold; }
+.xmd .t-xmdCategory4.declaration { color: #C9A4FF; font-weight: bold; }
+.xmd .t-xmdCategory5.declaration { color: #FF8FA3; font-weight: bold; }
+.xmd .t-xmdCategory6.declaration { color: #F6E38A; font-weight: bold; }
+.xmd .t-xmdCategory7.declaration { color: #7FE3D0; font-weight: bold; }
+.xmd .t-xmdCategory8.declaration { color: #FF9ECF; font-weight: bold; }
+.xmd .t-xmdCategory9.declaration { color: #E2C4FF; font-weight: bold; }
+.xmd .t-xmdCategory10.declaration { color: #B8C0FF; font-weight: bold; }
 .xmd .t-comment { color: #889781; font-style: italic; }
 .xmd .t-keyword { color: #F0A77D; }
 .xmd .t-number { color: #DABD90; }
@@ -56,29 +59,33 @@
 .xmd .t-xmdPunctuation { color: #85938B; }
 .xmd .t-xmdCode { color: #A1AE9B; }
 .xmd .t-xmdLink { color: #90BED8; text-decoration-line: underline; }
-.xmd .t-xmdCheckbox { color: #FFD580; }
-.xmd .t-xmdCheckboxChecked { color: #91E6AC; }
-.xmd .t-xmdCheckboxInProgress { color: #90BED8; }
-.xmd .t-xmdTaskDone { color: #87A788; text-decoration-line: line-through; }
-.xmd .t-xmdDay { color: #FF9ECF; font-weight: bold; }
-.xmd .t-xmdPlace { color: #E2C4FF; }
-.xmd .t-xmdDetailKey { color: #9DB3A6; font-style: italic; }
-.xmd .t-xmdDepart { color: #FFB070; }
-.xmd .t-xmdArrive { color: #9CE8A0; }
-.xmd .t-xmdTransit { color: #8FCBFF; }
-.xmd .t-xmdStay { color: #C9A4FF; }
-.xmd .t-xmdMeal { color: #FF8FA3; }
-.xmd .t-xmdVisit { color: #F6E38A; }
-.xmd .t-xmdExplore { color: #7FE3D0; }
+.xmd .t-xmdToggle { color: #FFD580; }
+.xmd .t-xmdToggleOn { color: #91E6AC; }
+.xmd .t-xmdToggleMixed { color: #90BED8; }
+.xmd .t-xmdFinished { color: #87A788; text-decoration-line: line-through; }
+.xmd .t-xmdKey { color: #9DB3A6; font-style: italic; }
+.xmd .t-xmdCategory1 { color: #FFB070; }
+.xmd .t-xmdCategory2 { color: #9CE8A0; }
+.xmd .t-xmdCategory3 { color: #8FCBFF; }
+.xmd .t-xmdCategory4 { color: #C9A4FF; }
+.xmd .t-xmdCategory5 { color: #FF8FA3; }
+.xmd .t-xmdCategory6 { color: #F6E38A; }
+.xmd .t-xmdCategory7 { color: #7FE3D0; }
+.xmd .t-xmdCategory8 { color: #FF9ECF; font-weight: bold; }
+.xmd .t-xmdCategory9 { color: #E2C4FF; }
+.xmd .t-xmdCategory10 { color: #B8C0FF; }
 .xmd-light .xmd .t-variable.declaration { color: #1a4c9e; }
 .xmd-light .xmd .t-property.declaration { color: #35837c; }
-.xmd-light .xmd .t-xmdDepart.declaration { color: #9e551a; }
-.xmd-light .xmd .t-xmdArrive.declaration { color: #2b8c30; }
-.xmd-light .xmd .t-xmdTransit.declaration { color: #1a619e; }
-.xmd-light .xmd .t-xmdStay.declaration { color: #4f1a9e; }
-.xmd-light .xmd .t-xmdMeal.declaration { color: #9e1a31; }
-.xmd-light .xmd .t-xmdVisit.declaration { color: #9e871a; }
-.xmd-light .xmd .t-xmdExplore.declaration { color: #2a8e7b; }
+.xmd-light .xmd .t-xmdCategory1.declaration { color: #9e551a; }
+.xmd-light .xmd .t-xmdCategory2.declaration { color: #2b8c30; }
+.xmd-light .xmd .t-xmdCategory3.declaration { color: #1a619e; }
+.xmd-light .xmd .t-xmdCategory4.declaration { color: #4f1a9e; }
+.xmd-light .xmd .t-xmdCategory5.declaration { color: #9e1a31; }
+.xmd-light .xmd .t-xmdCategory6.declaration { color: #9e871a; }
+.xmd-light .xmd .t-xmdCategory7.declaration { color: #2a8e7b; }
+.xmd-light .xmd .t-xmdCategory8.declaration { color: #9e1a5c; }
+.xmd-light .xmd .t-xmdCategory9.declaration { color: #5d1a9e; }
+.xmd-light .xmd .t-xmdCategory10.declaration { color: #1a299e; }
 .xmd-light .xmd .t-comment { color: #596354; }
 .xmd-light .xmd .t-keyword { color: #9a4b1e; }
 .xmd-light .xmd .t-number { color: #836435; }
@@ -98,20 +105,21 @@
 .xmd-light .xmd .t-xmdPunctuation { color: #66716a; }
 .xmd-light .xmd .t-xmdCode { color: #687562; }
 .xmd-light .xmd .t-xmdLink { color: #366681; }
-.xmd-light .xmd .t-xmdCheckbox { color: #9e721a; }
-.xmd-light .xmd .t-xmdCheckboxChecked { color: #2b8d4a; }
-.xmd-light .xmd .t-xmdCheckboxInProgress { color: #366681; }
-.xmd-light .xmd .t-xmdTaskDone { color: #506851; }
-.xmd-light .xmd .t-xmdDay { color: #9e1a5c; }
-.xmd-light .xmd .t-xmdPlace { color: #5d1a9e; }
-.xmd-light .xmd .t-xmdDetailKey { color: #52665a; }
-.xmd-light .xmd .t-xmdDepart { color: #9e551a; }
-.xmd-light .xmd .t-xmdArrive { color: #2b8c30; }
-.xmd-light .xmd .t-xmdTransit { color: #1a619e; }
-.xmd-light .xmd .t-xmdStay { color: #4f1a9e; }
-.xmd-light .xmd .t-xmdMeal { color: #9e1a31; }
-.xmd-light .xmd .t-xmdVisit { color: #9e871a; }
-.xmd-light .xmd .t-xmdExplore { color: #2a8e7b; }
+.xmd-light .xmd .t-xmdToggle { color: #9e721a; }
+.xmd-light .xmd .t-xmdToggleOn { color: #2b8d4a; }
+.xmd-light .xmd .t-xmdToggleMixed { color: #366681; }
+.xmd-light .xmd .t-xmdFinished { color: #506851; }
+.xmd-light .xmd .t-xmdKey { color: #52665a; }
+.xmd-light .xmd .t-xmdCategory1 { color: #9e551a; }
+.xmd-light .xmd .t-xmdCategory2 { color: #2b8c30; }
+.xmd-light .xmd .t-xmdCategory3 { color: #1a619e; }
+.xmd-light .xmd .t-xmdCategory4 { color: #4f1a9e; }
+.xmd-light .xmd .t-xmdCategory5 { color: #9e1a31; }
+.xmd-light .xmd .t-xmdCategory6 { color: #9e871a; }
+.xmd-light .xmd .t-xmdCategory7 { color: #2a8e7b; }
+.xmd-light .xmd .t-xmdCategory8 { color: #9e1a5c; }
+.xmd-light .xmd .t-xmdCategory9 { color: #5d1a9e; }
+.xmd-light .xmd .t-xmdCategory10 { color: #1a299e; }
 @media print {
   .xmd { color-scheme: light; background: white; color: #202820; font-size: 10px; }
   .xmd [class] { color: inherit !important; }

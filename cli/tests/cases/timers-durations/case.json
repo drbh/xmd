@@ -20,13 +20,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:durations.x.md}",
                 "row": 3,
-                "expected": "- [ ] Water plants @every(2w) @due(2026-09-16)"
+                "expected": "- [ ] Water plants @every(2w) @due(2026-09-16)",
+                "module": "tasks",
+                "event": {"line": 3}
               }
             ]
           }

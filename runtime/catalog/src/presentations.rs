@@ -7,15 +7,13 @@
 //! workspace that brings no modules of its own is not checked: a presentation
 //! only starts failing when a module replaces, or is imported by, a bundled
 //! one.
-use crate::{Records, hovers, links};
+use crate::{Records, links};
 use lang::common::Span;
 use lang::eval::engine::Value;
 use lang::eval::plans::PlanValue;
 use lang::eval::resources::{Resource, ResourcePresenting};
-use lang::eval::timers::Timer;
 use lang::eval::{RequestContext, Symbol, SymbolKind};
 use lang::stdlib::{self, Presented};
-use lang::syntax::AttributeKey;
 use lsp_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -37,15 +35,6 @@ pub fn presentations(
     let mut failures = Failures::default();
     let mut engine = request.engine();
 
-    for (index, task) in doc.tasks.iter().enumerate() {
-        let span = doc.line_span(task.line);
-        let recurring = task.attributes.contains_key(AttributeKey::Every.as_str());
-        let done = engine.task_done(path, index);
-        failures.check(span, stdlib::task::toggle(&mut engine, recurring, done));
-        if let Some(hover) = hovers::task_text(&mut engine, records, path, index) {
-            failures.check(span, hover);
-        }
-    }
     for (i, section) in doc.sections.iter().enumerate() {
         let Some(named) = &section.named else {
             continue;
@@ -81,20 +70,11 @@ pub fn presentations(
         failures.check(span, stdlib::resource::hover(&mut engine, record.clone()));
         failures.check(span, stdlib::resource::control(&mut engine, record));
     }
-    for day in &doc.days {
-        // A day with places offers to refresh its forecast.
-        if let Some((_, span)) = &day.places {
-            failures.check(*span, stdlib::format::glyph(&mut engine, "refresh"));
-        }
-    }
-    for stop in doc.days.iter().flat_map(|d| &d.stops) {
+    // A record a module built that asks for a lookup offers to refresh it.
+    for (line, _) in crate::built::wanted(records, &mut engine, path) {
         failures.check(
-            stop.time_span,
-            lang::eval::itinerary::display_time(ws.modules(), stop),
-        );
-        failures.check(
-            stop.title_span,
-            lang::eval::itinerary::label(ws.modules(), stop),
+            doc.line_span(line),
+            stdlib::format::glyph(&mut engine, "refresh"),
         );
     }
     for (i, definition) in doc.definitions.iter().enumerate() {
@@ -103,10 +83,11 @@ pub fn presentations(
         // A fresh engine, so what it wanted is this definition's alone.
         let mut own = request.engine();
         let value = own.symbol(&symbol);
-        if !own.wanted().is_empty() {
+        let wanted: Vec<_> = own.wanted().cloned().collect();
+        if !wanted.is_empty() {
             failures.check(span, stdlib::format::glyph(&mut own, "refresh"));
         }
-        for key in own.wanted().to_vec() {
+        for key in wanted {
             if let Some(lookup) = key.lookup(ws.lookups()) {
                 let elapsed = (request.now().to_utc() - lookup.fetched_at).num_seconds();
                 failures.check(span, stdlib::format::age(&mut own, elapsed));
@@ -121,11 +102,6 @@ pub fn presentations(
         let Ok(value) = value else {
             continue;
         };
-        if let Some(timer) = value.downcast::<Timer>() {
-            let (display, hover) = timer.presentations();
-            failures.check(span, display);
-            failures.check(span, hover);
-        }
         if let Some(plan) = value.downcast::<PlanValue>() {
             let mut snapshot = stdlib::Snapshot {
                 modules: ws.modules(),

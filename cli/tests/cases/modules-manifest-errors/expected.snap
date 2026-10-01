@@ -269,7 +269,7 @@ xmd: <root>/.xmd/modules/property-function.x.md: Declared properties need a prop
 $ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/provides-missing.x.md: A provider module provides one or more of rate, quote and forecast
+xmd: <root>/.xmd/modules/provides-missing.x.md: A provider module provides one or more kinds of lookup, such as rate, quote or forecast
 
 ### 59 write
 -- write .xmd/modules.json (34 bytes)
@@ -278,16 +278,18 @@ xmd: <root>/.xmd/modules/provides-missing.x.md: A provider module provides one o
 $ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/provides-empty.x.md: A provider module provides one or more of rate, quote and forecast
+xmd: <root>/.xmd/modules/provides-empty.x.md: A provider module provides one or more kinds of lookup, such as rate, quote or forecast
 
 ### 61 write
 -- write .xmd/modules.json (36 bytes)
 
 ### 62 cli render main.x.md --format text
 $ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
-exit 1
---- stderr
-xmd: <root>/.xmd/modules/provides-unknown.x.md: A provider module provides one or more of rate, quote and forecast
+exit 0
+--- stdout
+# Tickets
+https://issues.example/tickets/42:ticket link
+https://issues.example/wiki/7:page link
 
 ### 63 write
 -- write .xmd/modules.json (36 bytes)
@@ -370,7 +372,7 @@ xmd: <root>/.xmd/modules/then-enabled-inputs.x.md: enabled must be boolean
 $ xmd render main.x.md --format text --root <root> --now 2026-09-18T12:00:00Z
 exit 1
 --- stderr
-xmd: <root>/.xmd/modules/then-inputs-hosts.x.md: Unknown input collection: frogs
+xmd: <root>/.xmd/modules/then-inputs-hosts.x.md: Link modules require lowercase host names
 
 ### 81 write
 -- write .xmd/modules.json (41 bytes)

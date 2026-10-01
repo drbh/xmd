@@ -23,8 +23,7 @@ impl Tier {
 /// Declare the built-ins once. A row is `Variant => "spelling", Tier` and ends
 /// in `special` when the built-in is a special form: it decides for itself
 /// whether and how to evaluate its arguments (the branches of `if`, the module
-/// an `import` names, the row expression a `sum` walks, the lookups that record
-/// what they wanted). Every other built-in takes evaluated values.
+/// an `import` names, the row expression a `sum` walks). Every other built-in takes evaluated values.
 macro_rules! builtins {
     (@special special) => { true };
     (@special) => { false };
@@ -97,6 +96,7 @@ builtins! {
     Repeat => "repeat", Toolkit;
     FormatDate => "format_date", Module;
     Error => "error", Module;
+    Pending => "pending", Module;
     If => "if", Note, special;
     Let => "let", Note, special;
     Match => "match", Note, special;
@@ -112,7 +112,6 @@ builtins! {
     Length => "length", Toolkit;
     Text => "text", Toolkit;
     Debug => "debug", Note;
-    Sparkline => "sparkline", Note;
     Contains => "contains", Toolkit;
     StartsWith => "starts_with", Toolkit;
     EndsWith => "ends_with", Toolkit;
@@ -122,24 +121,23 @@ builtins! {
     Upper => "upper", Toolkit;
     Replace => "replace", Toolkit;
     MatchPattern => "match_pattern", Module;
+    Quantize => "quantize", Module;
+    Cached => "cached", Module;
+    MakeMoney => "make_money", Module;
+    MakeRatio => "make_ratio", Module;
+    Tagged => "tagged", Module;
+    Clocked => "clocked", Module, special;
+    NextOccurrence => "next_occurrence", Module;
+    ToJson => "to_json", Module;
+    EndPosition => "end_position", Module;
+    DisplayWidth => "display_width", Module;
     Sum => "sum", Note, special;
-    Countdown => "countdown", Note, special;
-    Stopwatch => "stopwatch", Note, special;
     Maximize => "maximize", Note, special;
     Solve => "solve", Note, special;
     Minimize => "minimize", Note, special;
     Today => "today", Note, special;
     Now => "now", Note, special;
-    Rate => "rate", Note, special;
-    To => "to", Note, special;
-    Forecast => "forecast", Note, special;
-    ForecastRange => "forecast_range", Note, special;
-    Quote => "quote", Note, special;
     Date => "date", Note, special;
-    Effort => "effort", Note, special;
-    Total => "total", Note, special;
-    Completed => "completed", Note, special;
-    Remaining => "remaining", Note, special;
 }
 
 impl std::fmt::Display for Builtin {

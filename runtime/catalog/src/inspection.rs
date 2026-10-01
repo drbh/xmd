@@ -110,7 +110,7 @@ impl Syntax<'_> {
             Expr::Property(_, key) => ("property", json!({"name":key})),
             Expr::List(_) => ("list", json!({})),
             Expr::Record(_) => ("record", json!({})),
-            Expr::Lambda(params, _) => ("lambda", json!({"parameters":params})),
+            Expr::Lambda(params, _, _) => ("lambda", json!({"parameters":params})),
             Expr::Apply(_, _) => ("apply", json!({})),
             Expr::Spanned(..) => unreachable!(),
         };
@@ -118,7 +118,14 @@ impl Syntax<'_> {
         self.nodes[node]["role"] = json!(role);
         match expr {
             Expr::Unary(_, e) | Expr::Property(e, _) => self.expr(e, base, None, node, "operand"),
-            Expr::Lambda(_, e) => self.expr(e, base, None, node, "body"),
+            Expr::Lambda(params, defaults, e) => {
+                // A default is the child named after the parameter it fills.
+                let first = params.len() - defaults.len();
+                for (param, default) in params[first..].iter().zip(defaults) {
+                    self.expr(default, base, None, node, param);
+                }
+                self.expr(e, base, None, node, "body")
+            }
             Expr::Binary(_, a, b) => {
                 self.expr(a, base, None, node, "left");
                 self.expr(b, base, None, node, "right");
@@ -217,7 +224,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             .map(|i| tasks[i])
             .unwrap_or_else(|| section_at(task.line));
         let node = syntax.add("task", syntax.block(task.line, task.line + 1), Some(parent),
-            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":task.state == TaskState::Done,"state":task.state.as_str(),"tags":task.tags}));
+            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":task.state == TaskState::Done,"state":task.state.as_str()}));
         tasks.push(node);
         syntax.add(
             "checkbox",
@@ -227,14 +234,16 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
         );
         syntax.attributes(&task.attributes, node);
     }
-    for event in &doc.events {
+    // Any other line whose attributes a module declares: what it means is
+    // the module's to say.
+    for line in doc.claimed().filter(|a| !a.checkbox) {
         let node = syntax.add(
-            "event",
-            syntax.block(event.line, event.line + 1),
-            Some(section_at(event.line)),
-            json!({"title":event.title}),
+            "attributed",
+            syntax.block(line.line, line.line + 1),
+            Some(section_at(line.line)),
+            json!({"title":line.title}),
         );
-        syntax.attributes(&event.attributes, node);
+        syntax.attributes(&line.attributes, node);
     }
     for table in &doc.tables {
         let node = syntax.add(
@@ -299,24 +308,36 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             syntax.expression(&constraint.source, constraint.span, child);
         }
     }
-    for day in &doc.days {
-        let node = syntax.add(
-            "day",
-            syntax.block(day.line, day.end_line),
-            Some(section_at(day.line)),
-            json!({"year":day.year,"month":day.month,"day":day.day}),
-        );
-        for stop in &day.stops {
-            let child = syntax.add("stop", syntax.block(stop.line, stop.end_line), Some(node), json!({"title":stop.title,"time":stop.time.to_string(),"marker":stop.marker_span.map(|s| s.source(doc))}));
-            for detail in &stop.details {
-                syntax.add(
-                    "detail",
-                    syntax.block(detail.line, detail.line + 1),
-                    Some(child),
-                    json!({"name":detail.key,"value":detail.value}),
-                );
-            }
+    // What a module's recognizers found, under the match each is `under`:
+    // what it means is the module's, so a node names only the recognizer
+    // and the text of each group.
+    let mut matches = Vec::with_capacity(doc.recognized.len());
+    for found in &doc.recognized {
+        // A match that only paints is no node; nothing is under it.
+        if !found.rule.record {
+            matches.push(section_at(found.span.line));
+            continue;
         }
+        let span = if found.rule.until.is_some() {
+            syntax.block(found.span.line, found.end)
+        } else {
+            found.span
+        };
+        let parent = found
+            .parent
+            .and_then(|p| matches.get(p).copied())
+            .unwrap_or_else(|| section_at(found.span.line));
+        let groups: serde_json::Map<String, Json> = found
+            .groups
+            .iter()
+            .map(|g| (g.name.clone(), json!(g.span.source(doc))))
+            .collect();
+        matches.push(syntax.add(
+            "recognized",
+            span,
+            Some(parent),
+            json!({"name":found.rule.name,"module":found.rule.module,"groups":groups}),
+        ));
     }
     for calculation in &doc.calculations {
         let node = syntax.add(
@@ -358,7 +379,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             let Value::Record(fields) = q::from_json(node) else {
                 unreachable!()
             };
-            Record::typed(path, std::sync::Arc::unwrap_or_clone(fields))
+            Record::typed(path, std::sync::Arc::unwrap_or_clone(fields).into_inner())
         })
         .collect()
 }

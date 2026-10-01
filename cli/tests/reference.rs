@@ -1,8 +1,10 @@
 //! The reference pages in `book/reference/` are generated, never written by
 //! hand, so they cannot drift from the code:
 //!
-//! - `functions.md` from the one table of built-ins and task attributes that
-//!   signature help and completion read (`runtime::services::BUILTINS`)
+//! - `functions.md` from the one table of built-ins that signature help and
+//!   completion read (`runtime::services::BUILTINS`), the prelude's functions
+//!   as they read them (`Workspace::prelude_functions`), and the attributes
+//!   the bundled modules declare, which they read beside it
 //! - `libraries.md` from what `import(id)` gives a note for each bundled
 //!   library, with each export's parameters and `//` comment from its source
 //! - `queries.md` from the collections a query binds, with the fields and
@@ -98,45 +100,95 @@ fn header(title: &str, source: &str) -> String {
     )
 }
 
+/// One entry of `functions.md`: a built-in's row, or an attribute a
+/// bundled module declares.
+struct Row<'a> {
+    name: String,
+    params: Vec<&'a str>,
+    result: &'a str,
+    documentation: &'a str,
+    example: &'a str,
+    tier: Tier,
+}
+
 fn functions() -> String {
     let mut page = header(
         "functions",
         "the table signature help and completion read, \
-         `runtime/analysis/src/signature.rs`",
+         `runtime/analysis/src/signature.rs`, and the functions of the prelude \
+         library, `lang/stdlib/prelude.xmd`, from their `//` comments",
     );
-    let mut sorted: Vec<&Signature> = BUILTINS.iter().collect();
-    sorted.sort_by_key(|s| s.name);
+    let workspace = lang::eval::Workspace::new(vec![]);
+    let declared = workspace.modules().recognizers().attributes;
+    let rows = BUILTINS
+        .iter()
+        .map(|s: &Signature| Row {
+            name: s.name.to_owned(),
+            params: s.params.to_vec(),
+            result: s.result.as_str(),
+            documentation: s.documentation,
+            example: s.example,
+            tier: s.tier,
+        })
+        .chain(declared.iter().map(|d| Row {
+            name: format!("@{}", d.key),
+            params: d.params.iter().map(String::as_str).collect(),
+            result: &d.applies,
+            documentation: &d.documentation,
+            example: &d.example,
+            tier: Tier::Note,
+        }));
     let sections = [
-        ("built-ins", "what a note is written with"),
+        (
+            "built-ins",
+            "what a note is written with. the ones marked *prelude* are .xmd \
+             functions every note can call by name, below the names it defines itself",
+        ),
         (
             "toolkit",
             "the list and text plumbing a note reaches for once it needs it",
         ),
         (
-            "task attributes",
-            "written after a task, like `- [ ] Pack @due(tomorrow)`",
+            "attributes",
+            "written on a line, like `- [ ] Pack @due(tomorrow)`. the bundled \
+             module that owns each one declares it: `tasks` a task's, \
+             `appointments` an appointment's `@at`",
         ),
         ("module built-ins", "only `.xmd` module code can call these"),
     ];
-    for (index, (title, intro)) in sections.into_iter().enumerate() {
-        write!(page, "\n## {title}\n\n{intro}\n").unwrap();
-        for signature in &sorted {
-            let section = match (signature.name.starts_with('@'), signature.tier) {
+    // Each entry as (section, name, text), sorted by name within a section.
+    let mut entries: Vec<(usize, String, String)> = rows
+        .map(|row| {
+            let section = match (row.name.starts_with('@'), row.tier) {
                 (true, _) => 2,
                 (false, Tier::Note) => 0,
                 (false, Tier::Toolkit) => 1,
                 (false, Tier::Module) => 3,
             };
-            if section != index {
-                continue;
-            }
-            let params = signature.params.join(", ");
-            write!(page, "\n### `{}({params})`\n\n", signature.name).unwrap();
+            let params = row.params.join(", ");
+            let mut text = format!("\n### `{}({params})`\n\n", row.name);
             if section != 2 {
-                writeln!(page, "returns {}\n", signature.result.as_str()).unwrap();
+                writeln!(text, "returns {}\n", row.result).unwrap();
             }
-            writeln!(page, "{}\n", signature.documentation).unwrap();
-            writeln!(page, "`{}({})`", signature.name, signature.example).unwrap();
+            writeln!(text, "{}\n", row.documentation).unwrap();
+            writeln!(text, "`{}({})`", row.name, row.example).unwrap();
+            (section, row.name, text)
+        })
+        .collect();
+    for function in workspace.prelude_functions() {
+        let text = format!(
+            "\n### `{}({})`\n\n*prelude*\n\n{}\n",
+            function.name,
+            function.params.join(", "),
+            function.documentation
+        );
+        entries.push((0, function.name, text));
+    }
+    entries.sort_by(|a, b| a.1.cmp(&b.1));
+    for (index, (title, intro)) in sections.into_iter().enumerate() {
+        write!(page, "\n## {title}\n\n{intro}\n").unwrap();
+        for (_, _, text) in entries.iter().filter(|(section, ..)| *section == index) {
+            page.push_str(text);
         }
     }
     page
@@ -220,9 +272,18 @@ fn definition(source: &str, name: &str) -> Option<(String, String)> {
     Some((params, comment.join(" ")))
 }
 
+/// Every name a query binds: the native collections, `graph`, and the
+/// collections the bundled modules declare.
 fn bindings() -> Vec<String> {
     let mut names: Vec<String> = Collection::names().split(", ").map(String::from).collect();
     names.push("graph".into());
+    let workspace = lang::eval::Workspace::new(vec![]);
+    names.extend(
+        workspace
+            .modules()
+            .declared()
+            .map(|(_, declared)| declared.name.to_string()),
+    );
     names.sort();
     names
 }
@@ -294,10 +355,7 @@ fn contract() -> String {
          carries a `module` warning naming the function and the error on the \
          first thing it failed for. **decides** is behavior the engine or an \
          editor acts on, so a failure reaches the person as a diagnostic, an \
-         error or a disabled control that says why, never as a quiet default\n\n\
-         a call marked **no clock** runs without the request's clock: every \
-         date it needs is an argument, and `now()` or `today()` inside it is an \
-         error rather than a date in 1970\n"
+         error or a disabled control that says why, never as a quiet default\n"
     )
     .unwrap();
     let mut modules: Vec<&str> = Vec::new();
@@ -318,10 +376,9 @@ fn contract() -> String {
                 Role::Decides => ("decides", "reported".to_owned()),
             };
             let optional = if entry.required { "" } else { ", optional" };
-            let clock = if entry.clock { "" } else { ", no clock" };
             writeln!(
                 page,
-                "| `{module}.{}({})` | {} | {role}{optional}{clock} | {} | {} |",
+                "| `{module}.{}({})` | {} | {role}{optional} | {} | {} |",
                 entry.function,
                 entry.params.join(", "),
                 cell(entry.returns),

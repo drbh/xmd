@@ -17,27 +17,45 @@ pub fn markup(value: String) -> MarkupContent {
     }
 }
 
-/// How the task on a row hovers, supplied by the caller: a task's hover reads
-/// its catalog record, which this crate cannot build.
-pub type TaskHover<'a> = &'a dyn Fn(&lang::eval::RequestContext<'_>, &Path, usize) -> Option<Hover>;
+/// How a row hovers where nothing on it is more specific, supplied by the
+/// caller: feature modules may word it.
+pub type RowHover<'a> = &'a dyn Fn() -> Option<Hover>;
 
 /// The editor's own hover, for whatever `locate` finds at the position:
 /// a link, a table cell, a symbol (with a property preview when a reference
-/// reads one), a bracketed calculation, or the task on this row.
+/// reads one), a bracketed calculation, or else the row's own.
 pub fn hover_at(
     request: &lang::eval::RequestContext<'_>,
     path: &Path,
     position: Position,
-    task_hover: TaskHover<'_>,
+    row_hover: RowHover<'_>,
 ) -> Option<Hover> {
     let ws = request.workspace();
     match locate::target(ws, path, position)? {
         Target::Link(link) => link_hover(request, path, link),
         Target::Cell { table, row, column } => cell_hover(request, path, table, row, column),
         Target::Calculation(calculation) => calculation_hover(request, path, calculation),
-        Target::Task(task) => task_hover(request, path, task),
+        Target::Row => row_hover(),
         Target::Symbol(symbol, span) => Some(reference_hover(request, path, &symbol, span)),
+        Target::Prelude(name, span) => prelude_hover(ws, path, &name, span),
     }
+}
+
+/// A prelude function's hover: how it is called and what its comment says.
+fn prelude_hover(ws: &Workspace, path: &Path, name: &str, span: Span) -> Option<Hover> {
+    let function = ws
+        .prelude_functions()
+        .into_iter()
+        .find(|f| f.name == name)?;
+    Some(Hover {
+        contents: HoverContents::Markup(markup(format!(
+            "**{}({})** · prelude\n\n{}",
+            function.name,
+            function.params.join(", "),
+            function.documentation
+        ))),
+        range: Some(span.range(&ws.documents()[path])),
+    })
 }
 
 /// A symbol's hover; a reference that reads a property previews it first.
@@ -48,7 +66,7 @@ fn reference_hover(
     span: Span,
 ) -> Hover {
     let doc = &request.workspace().documents()[path];
-    let mut value = symbol_hover(request, symbol);
+    let mut value = symbol_hover(request, symbol).text;
     let mut range = span.range(doc);
     if let Some(reference) = doc
         .references
@@ -102,12 +120,35 @@ pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
     format!("[{}](<{uri}>)", named.name)
 }
 
+/// A symbol's hover, and whether wording it read the clock more finely than
+/// the date — a value that reads `now()`, a lookup's age, a running timer, a
+/// link whose cached data expires — so a cache knows how long it holds.
+pub struct SymbolHover {
+    pub text: String,
+    pub reads_clock: bool,
+}
+
 /// Everything known about one definition, column or decision variable.
-pub fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> String {
-    let ws = request.workspace();
+pub fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> SymbolHover {
     let mut engine = request.engine();
+    // Module code the stdlib runs outside the evaluation (a plan's or a
+    // timer's hover) reports its clock reading here; the evaluation marks
+    // the engine.
+    let (text, read) = lang::eval::reads_clock(|| symbol_text(request, &mut engine, symbol));
+    SymbolHover {
+        text,
+        reads_clock: read || engine.time_dependent(),
+    }
+}
+
+fn symbol_text(
+    request: &lang::eval::RequestContext<'_>,
+    engine: &mut Engine<'_>,
+    symbol: &Symbol,
+) -> String {
+    let ws = request.workspace();
     if let SymbolKind::Column(t, c) = symbol.kind {
-        return column_hover(ws, &mut engine, symbol, t, c);
+        return column_hover(ws, engine, symbol, t, c);
     }
     let named = ws.named(symbol);
     let value = engine.symbol(symbol);
@@ -127,14 +168,14 @@ pub fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -
     if let SymbolKind::Definition(i) = symbol.kind {
         let def = &ws.documents()[&symbol.path].definitions[i];
         if def.expression && def.source != "table" {
-            out.push_str(&expression_detail(request, &mut engine, symbol, i, &value));
+            out.push_str(&expression_detail(request, engine, symbol, i, &value));
         }
     }
-    out.push_str(&lookups(ws, &mut engine, request.now()).unwrap_or_default());
+    out.push_str(&lookups(ws, engine, request.now()).unwrap_or_default());
     // A host object adds what only it knows: a link's presentation, a timer's
     // state, a checklist's progress.
     if let Ok(value) = &value
-        && let Some(detail) = value.host_hover(&mut engine, &symbol.path)
+        && let Some(detail) = value.host_hover(engine, &symbol.path)
     {
         out.push_str(&detail);
     }
@@ -315,33 +356,32 @@ fn contributions(engine: &mut Engine<'_>, path: &Path, source: &str) -> Option<S
 }
 
 /// The cached lookups the evaluation wanted, with each one's age and source.
+/// An age reads the clock, which marks `engine`.
 fn lookups(
     ws: &Workspace,
     engine: &mut Engine<'_>,
     now: chrono::DateTime<chrono::FixedOffset>,
 ) -> Option<String> {
-    if engine.wanted().is_empty() {
+    let mut keys: Vec<_> = engine.wanted().cloned().collect();
+    if keys.is_empty() {
         return None;
     }
-    let mut keys = engine.wanted().to_vec();
     keys.sort();
     keys.dedup();
     let now = now.to_utc();
     let mut out = String::from("\n\nLookups:");
     for key in keys {
+        let label = key.label();
         match key.lookup(ws.lookups()) {
             Some(lookup) => {
+                engine.mark_time_dependent(true);
                 let age = stdlib::shown(stdlib::format::age(
                     engine,
                     (now - lookup.fetched_at).num_seconds(),
                 ));
-                out.push_str(&format!(
-                    "\n- {} · {age} · {}",
-                    key.describe(),
-                    lookup.source
-                ))
+                out.push_str(&format!("\n- {label} · {age} · {}", lookup.source))
             }
-            None => out.push_str(&format!("\n- {} · not fetched yet", key.describe())),
+            None => out.push_str(&format!("\n- {label} · not fetched yet")),
         }
     }
     Some(out)

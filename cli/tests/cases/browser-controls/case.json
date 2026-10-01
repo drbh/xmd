@@ -26,15 +26,8 @@
           "params": {
             "command": {
               "title": "▸ start focus",
-              "command": "xmd.timer",
-              "arguments": [
-                {
-                  "kind": "timer",
-                  "document": "file:///workspace/timers.x.md",
-                  "name": "focus",
-                  "action": "start"
-                }
-              ]
+              "command": "xmd.row",
+              "arguments": [{"kind": "row", "document": "file:///workspace/timers.x.md", "row": 0, "expected": "[focus] := countdown(2s, 0s, 2026-09-16T14:00:00-04:00)", "module": "timers", "event": {"name": "focus", "action": "start"}}]
             },
             "versions": { "file:///workspace/timers.x.md": 1 }
           }

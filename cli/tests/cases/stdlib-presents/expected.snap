@@ -8,8 +8,8 @@ exit 0
 
 - [ ] Write it up
 --- stderr
+<root>/notes.x.md:1:1: warning: Module tasks.actions: TASK TOGGLE FAILURE
 <root>/notes.x.md:3:2: warning: resource.label: RESOURCE LABEL FAILURE
-<root>/notes.x.md:5:1: warning: task.toggle: TASK TOGGLE FAILURE
 
 ### 1 cli query notes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
 $ xmd query notes.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
@@ -18,14 +18,14 @@ exit 0
 [
   {
     "code": "module",
-    "line": 2,
-    "message": "resource.label: RESOURCE LABEL FAILURE",
+    "line": 0,
+    "message": "Module tasks.actions: TASK TOGGLE FAILURE",
     "severity": "warning"
   },
   {
     "code": "module",
-    "line": 4,
-    "message": "task.toggle: TASK TOGGLE FAILURE",
+    "line": 2,
+    "message": "resource.label: RESOURCE LABEL FAILURE",
     "severity": "warning"
   }
 ]
@@ -37,6 +37,22 @@ exit 0
   "diagnostics": [
     {
       "code": "module",
+      "message": "Module tasks.actions: TASK TOGGLE FAILURE",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 0
+        },
+        "start": {
+          "character": 0,
+          "line": 0
+        }
+      },
+      "severity": 2,
+      "source": "xmd"
+    },
+    {
+      "code": "module",
       "message": "resource.label: RESOURCE LABEL FAILURE",
       "range": {
         "end": {
@@ -46,22 +62,6 @@ exit 0
         "start": {
           "character": 1,
           "line": 2
-        }
-      },
-      "severity": 2,
-      "source": "xmd"
-    },
-    {
-      "code": "module",
-      "message": "task.toggle: TASK TOGGLE FAILURE",
-      "range": {
-        "end": {
-          "character": 17,
-          "line": 4
-        },
-        "start": {
-          "character": 0,
-          "line": 4
         }
       },
       "severity": 2,
@@ -114,30 +114,6 @@ exit 0
         "line": 2
       }
     }
-  },
-  {
-    "command": {
-      "arguments": [
-        {
-          "document": "file://<root>/notes.x.md",
-          "expected": "- [ ] Write it up",
-          "kind": "toggle_task",
-          "row": 4
-        }
-      ],
-      "command": "xmd.task",
-      "title": "toggle"
-    },
-    "range": {
-      "end": {
-        "character": 0,
-        "line": 4
-      },
-      "start": {
-        "character": 0,
-        "line": 4
-      }
-    }
   }
 ]
 
@@ -148,12 +124,7 @@ exit 0
 $ xmd query trip.x.md map(stops, fn(r) => {line: r.line, title: r.title}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[
-  {
-    "line": 4,
-    "title": "Coffee"
-  }
-]
+[]
 
 ### 5 cli query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json
 $ xmd query trip.x.md map(diagnostics, fn(r) => {line: r.line, severity: r.severity, code: r.code, message: r.message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
@@ -162,9 +133,9 @@ exit 0
 [
   {
     "code": "module",
-    "line": 4,
-    "message": "itinerary_core.label: today() is unavailable here: native code calls this without a clock, so the dates it needs are its arguments",
-    "severity": "warning"
+    "line": 2,
+    "message": "Module itinerary.records: today() is unavailable here: native code calls this without a clock, so the dates it needs are its arguments",
+    "severity": "error"
   }
 ]
 

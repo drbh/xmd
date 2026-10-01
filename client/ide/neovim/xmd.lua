@@ -18,8 +18,13 @@ local function highlights()
     heading = 'Title', xmdMoney = 'Number', xmdDate = 'Constant',
     xmdTime = 'Constant', xmdDuration = 'Number', xmdRatio = 'Number',
     xmdBoolean = 'Boolean', xmdPunctuation = 'Delimiter', xmdCode = 'String',
-    xmdLink = 'Underlined', xmdCheckbox = 'Todo', xmdCheckboxChecked = 'String',
-    xmdCheckboxInProgress = 'Number', xmdTaskDone = 'Comment',
+    xmdLink = 'Underlined', xmdToggle = 'Todo', xmdToggleOn = 'String',
+    xmdToggleMixed = 'Number', xmdFinished = 'Comment', xmdKey = 'Identifier',
+    -- The categorical palette: ten groups most themes color apart.
+    xmdCategory1 = 'Special', xmdCategory2 = 'String', xmdCategory3 = 'Function',
+    xmdCategory4 = 'Type', xmdCategory5 = 'Statement', xmdCategory6 = 'Constant',
+    xmdCategory7 = 'PreProc', xmdCategory8 = 'Number', xmdCategory9 = 'Character',
+    xmdCategory10 = 'Label',
   }
   for token, group in pairs(groups) do
     vim.api.nvim_set_hl(0, '@lsp.type.' .. token .. '.xmd', { link = group, default = true })

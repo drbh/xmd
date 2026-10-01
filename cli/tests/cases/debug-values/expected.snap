@@ -49,7 +49,7 @@ exit 0
     "name": "clock"
   },
   {
-    "display": "{\"elapsed\":{\"seconds\":0,\"type\":\"duration\"},\"limit\":{\"seconds\":300,\"type\":\"duration\"},\"started\":null,\"state\":\"idle\"}",
+    "display": "{\"done\":false,\"duration\":{\"seconds\":300,\"type\":\"duration\"},\"elapsed\":{\"seconds\":0,\"type\":\"duration\"},\"idle\":true,\"limit\":{\"seconds\":300,\"type\":\"duration\"},\"origin\":{\"arguments\":[\"5m\"],\"document\":\"file://<root>/debug.x.md\",\"function\":\"countdown\",\"line\":9,\"name\":\"clock\",\"range\":{\"end\":{\"character\":22,\"line\":9},\"start\":{\"character\":9,\"line\":9}},\"text\":\"clock := countdown(5m)\"},\"remaining\":{\"seconds\":300,\"type\":\"duration\"},\"running\":false,\"started\":null,\"state\":\"idle\"}",
     "errors": [],
     "name": "timer_json"
   }

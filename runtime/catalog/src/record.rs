@@ -27,9 +27,7 @@ impl SourceRef {
         Self::spanning(path, span.line, span.range(&ws.documents()[path]))
     }
     fn spanning(path: &Path, line: usize, range: Range) -> Self {
-        let mut uri = lang::common::file_url(path)
-            .map(|u| u.to_string())
-            .unwrap_or_default();
+        let mut uri = note_uri(path);
         uri.push_str(&format!("#L{}", line + 1));
         Self {
             path: path.to_string_lossy().into(),
@@ -38,6 +36,26 @@ impl SourceRef {
             range: q::range(range),
         }
     }
+}
+
+thread_local! {
+    /// The note a record was last found in, and its URI: a collection's
+    /// records come from one note at a time, so its URI is spelled once.
+    static NOTE_URI: std::cell::RefCell<(PathBuf, String)> = Default::default();
+}
+
+/// The URI of the note at `path`.
+fn note_uri(path: &Path) -> String {
+    NOTE_URI.with(|last| {
+        let mut last = last.borrow_mut();
+        if last.0 != path || last.1.is_empty() {
+            let uri = lang::common::file_url(path)
+                .map(|u| u.to_string())
+                .unwrap_or_default();
+            *last = (path.to_path_buf(), uri);
+        }
+        last.1.clone()
+    })
 }
 
 record! {
@@ -158,7 +176,9 @@ pub(crate) struct Record {
 struct Lazy {
     /// Whether evaluating the definition read the clock.
     evaluated: bool,
-    hover: Option<Option<Value>>,
+    /// The hover, and whether wording it read the clock more finely than
+    /// the date. Unlike the other fields, a hover never marks its reader.
+    hover: Option<(Option<Value>, bool)>,
     /// The presentation, and whether making it read the clock.
     presentation: Option<(Value, bool)>,
     full: Option<Value>,
@@ -170,6 +190,16 @@ impl Record {
         Self {
             path: path.into(),
             fields: record.fields(),
+            deferred: None,
+            resource: None,
+            lazy: Lazy::default(),
+        }
+    }
+    /// A record a module built, kept as it returned it.
+    pub(crate) fn built(path: &Path, fields: BTreeMap<String, Value>) -> Self {
+        Self {
+            path: path.into(),
+            fields,
             deferred: None,
             resource: None,
             lazy: Lazy::default(),
@@ -230,21 +260,27 @@ impl Record {
             .hover
             .get_or_insert_with(|| {
                 let Some(Value::Text(name)) = self.fields.get(NAME) else {
-                    return None;
+                    return (None, false);
                 };
                 let expression = self.fields.get(EXPRESSION).cloned().unwrap_or(Value::Null);
                 if self.fields.get(PROPERTY).is_some_and(|v| *v != Value::Null) {
-                    return Some(expression);
+                    return (Some(expression), false);
                 }
-                Some(
-                    engine
-                        .workspace()
-                        .resolve(&self.path, name)
-                        .map(|symbol| q::text(analysis::symbol_hover(&engine.request(), &symbol)))
-                        .unwrap_or(expression),
-                )
+                match engine.workspace().resolve(&self.path, name) {
+                    Ok(symbol) => {
+                        let hover = analysis::symbol_hover(&engine.request(), &symbol);
+                        (Some(q::text(hover.text)), hover.reads_clock)
+                    }
+                    Err(_) => (Some(expression), false),
+                }
             })
+            .0
             .clone()
+    }
+    /// Whether the hover this record has worded read the clock more finely
+    /// than the date.
+    pub(crate) fn hover_reads_clock(&self) -> bool {
+        self.lazy.hover.as_ref().is_some_and(|(_, read)| *read)
     }
     /// Evaluate the definition behind the record, once, and mark `engine`
     /// with whether that read the clock.

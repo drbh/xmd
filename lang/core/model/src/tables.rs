@@ -1,4 +1,4 @@
-//! Explicit computational tables. Parsing, typing and formatting are shared
+//! Explicit computational tables. Parsing and typing are shared
 //! language features, not browser-side Markdown interpretation. Reading one
 //! against a live workspace — resolving a column reference, renaming a
 //! symbol, or computing a `TableValue` a note holds — is `evaluate::tables`,
@@ -7,9 +7,7 @@ use crate::blocks::{Definition, HighlightKind, Link, Named, Problem, Tree, cells
 use crate::document::Document;
 use common::Span;
 use common::ValueType;
-use lsp_types::{Range, TextEdit};
 use syntax::Literal;
-use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Debug)]
 pub struct Cell {
@@ -345,16 +343,6 @@ pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
         syntax::sum_scope_at(region.source(doc), offset)
     })
 }
-/// Align parsed tables; document feature formatting runs through services::modules.
-pub fn formatting(doc: &Document) -> Vec<TextEdit> {
-    grids(doc)
-        .iter()
-        // Never invent missing cells or repair a malformed table during formatting.
-        .filter(|table| table.problems.is_empty())
-        .flat_map(|table| aligned(doc, table))
-        .map(|(line, text)| line_edit(doc, line, text))
-        .collect()
-}
 /// Data tables plus plan constraint tables, which share the same grid shape.
 pub fn grids(doc: &Document) -> Vec<Table> {
     doc.tables
@@ -362,73 +350,4 @@ pub fn grids(doc: &Document) -> Vec<Table> {
         .cloned()
         .chain(doc.plans.iter().map(crate::plans_impl::grid))
         .collect()
-}
-/// Replacement text for every table line whose padding is off. Rows with the
-/// wrong cell count are aligned as far as they go, so this also works while
-/// a row is still being typed.
-pub fn aligned(doc: &Document, table: &Table) -> Vec<(usize, String)> {
-    let mut edits = Vec::new();
-    {
-        if table.separators.len() != table.columns.len() || table.columns.is_empty() {
-            return edits;
-        }
-        let mut widths: Vec<_> = table
-            .columns
-            .iter()
-            .enumerate()
-            .map(|(i, c)| {
-                let sigil = usize::from(table.domains.get(i).is_some_and(Option::is_some));
-                (c.name.width() + sigil).max(
-                    3 + usize::from(table.separators[i].starts_with(':'))
-                        + usize::from(table.separators[i].ends_with(':')),
-                )
-            })
-            .collect();
-        for row in &table.rows {
-            for (i, c) in row.iter().enumerate().take(widths.len()) {
-                widths[i] = widths[i].max(c.source.width());
-            }
-        }
-        for line in table.header..table.end_line {
-            let Some(parts) = cells(doc.line(line), line) else {
-                continue;
-            };
-            let prefix =
-                &doc.line(line)[..doc.line(line).len() - doc.line(line).trim_start().len()];
-            let mut formatted = format!("{prefix}|");
-            for (i, (source, _)) in parts.iter().enumerate() {
-                let width = widths.get(i).copied().unwrap_or(source.width());
-                let value = if line == table.header + 1 {
-                    let left = source.starts_with(':');
-                    let right = source.ends_with(':');
-                    format!(
-                        "{}{}{}",
-                        if left { ":" } else { "" },
-                        "-".repeat(
-                            width
-                                .saturating_sub(usize::from(left) + usize::from(right))
-                                .max(3)
-                        ),
-                        if right { ":" } else { "" }
-                    )
-                } else {
-                    source.clone()
-                };
-                formatted.push_str(&format!(
-                    " {value}{} |",
-                    " ".repeat(width.saturating_sub(value.width()))
-                ));
-            }
-            if formatted != doc.line(line) {
-                edits.push((line, formatted));
-            }
-        }
-    }
-    edits
-}
-pub fn line_edit(doc: &Document, line: usize, text: String) -> TextEdit {
-    TextEdit::new(
-        Range::new(lsp_types::Position::new(line as u32, 0), doc.line_end(line)),
-        text,
-    )
 }

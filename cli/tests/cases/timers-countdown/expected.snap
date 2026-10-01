@@ -25,6 +25,11 @@ exit 0
     "line": 1,
     "name": "focus",
     "value": {
+      "done": false,
+      "duration": {
+        "seconds": 180,
+        "type": "duration"
+      },
       "elapsed": {
         "seconds": 0,
         "type": "duration"
@@ -34,13 +39,44 @@ exit 0
         "seconds": 180,
         "type": "duration"
       },
-      "started": null
+      "origin": {
+        "arguments": [
+          "session + (30s * 2)"
+        ],
+        "document": "file://<root>/focus.x.md",
+        "function": "countdown",
+        "line": 1,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 41,
+            "line": 1
+          },
+          "start": {
+            "character": 11,
+            "line": 1
+          }
+        },
+        "text": "[focus] := countdown(session + (30s * 2))"
+      },
+      "remaining": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "running": false,
+      "started": null,
+      "state": "idle"
     }
   },
   {
     "line": 2,
     "name": "focus",
     "value": {
+      "done": false,
+      "duration": {
+        "seconds": 180,
+        "type": "duration"
+      },
       "elapsed": {
         "seconds": 0,
         "type": "duration"
@@ -50,13 +86,44 @@ exit 0
         "seconds": 180,
         "type": "duration"
       },
-      "started": null
+      "origin": {
+        "arguments": [
+          "session + (30s * 2)"
+        ],
+        "document": "file://<root>/focus.x.md",
+        "function": "countdown",
+        "line": 1,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 41,
+            "line": 1
+          },
+          "start": {
+            "character": 11,
+            "line": 1
+          }
+        },
+        "text": "[focus] := countdown(session + (30s * 2))"
+      },
+      "remaining": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "running": false,
+      "started": null,
+      "state": "idle"
     }
   },
   {
     "line": 3,
     "name": "focus",
     "value": {
+      "done": false,
+      "duration": {
+        "seconds": 180,
+        "type": "duration"
+      },
       "elapsed": {
         "seconds": 0,
         "type": "duration"
@@ -66,7 +133,33 @@ exit 0
         "seconds": 180,
         "type": "duration"
       },
-      "started": null
+      "origin": {
+        "arguments": [
+          "session + (30s * 2)"
+        ],
+        "document": "file://<root>/focus.x.md",
+        "function": "countdown",
+        "line": 1,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 41,
+            "line": 1
+          },
+          "start": {
+            "character": 11,
+            "line": 1
+          }
+        },
+        "text": "[focus] := countdown(session + (30s * 2))"
+      },
+      "remaining": {
+        "seconds": 180,
+        "type": "duration"
+      },
+      "running": false,
+      "started": null,
+      "state": "idle"
     }
   }
 ]
@@ -111,6 +204,11 @@ exit 0
   {
     "name": "focus",
     "value": {
+      "done": true,
+      "duration": {
+        "seconds": 180,
+        "type": "duration"
+      },
       "elapsed": {
         "seconds": 180,
         "type": "duration"
@@ -120,15 +218,48 @@ exit 0
         "seconds": 180,
         "type": "duration"
       },
+      "origin": {
+        "arguments": [
+          "session + (30s * 2)",
+          "0s",
+          "2026-09-16T13:59:00-04:00"
+        ],
+        "document": "file://<root>/running.x.md",
+        "function": "countdown",
+        "line": 1,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 72,
+            "line": 1
+          },
+          "start": {
+            "character": 11,
+            "line": 1
+          }
+        },
+        "text": "[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00)"
+      },
+      "remaining": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "running": false,
       "started": {
         "type": "datetime",
         "value": "2026-09-16T13:59:00-04:00"
-      }
+      },
+      "state": "done"
     }
   },
   {
     "name": "focus",
     "value": {
+      "done": true,
+      "duration": {
+        "seconds": 180,
+        "type": "duration"
+      },
       "elapsed": {
         "seconds": 180,
         "type": "duration"
@@ -138,10 +269,38 @@ exit 0
         "seconds": 180,
         "type": "duration"
       },
+      "origin": {
+        "arguments": [
+          "session + (30s * 2)",
+          "0s",
+          "2026-09-16T13:59:00-04:00"
+        ],
+        "document": "file://<root>/running.x.md",
+        "function": "countdown",
+        "line": 1,
+        "name": "focus",
+        "range": {
+          "end": {
+            "character": 72,
+            "line": 1
+          },
+          "start": {
+            "character": 11,
+            "line": 1
+          }
+        },
+        "text": "[focus] := countdown(session + (30s * 2), 0s, 2026-09-16T13:59:00-04:00)"
+      },
+      "remaining": {
+        "seconds": 0,
+        "type": "duration"
+      },
+      "running": false,
       "started": {
         "type": "datetime",
         "value": "2026-09-16T13:59:00-04:00"
-      }
+      },
+      "state": "done"
     }
   }
 ]
@@ -154,7 +313,7 @@ exit 0
   "uri": "file://<root>/multiline.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline.x.md}","kind":"timer","name":"focus"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:multiline.x.md}","event":{"action":"start","name":"focus"},"expected":"[focus] := countdown(","kind":"row","module":"timers","row":2}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -163,14 +322,14 @@ null
       {
         "edits": [
           {
-            "newText": " countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 1,
                 "line": 4
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 2
               }
             }
@@ -185,7 +344,7 @@ null
   }
 }
 -- open multiline-crlf.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:multiline-crlf.x.md}","kind":"timer","name":"focus"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:multiline-crlf.x.md}","event":{"action":"start","name":"focus"},"expected":"[focus] := countdown(","kind":"row","module":"timers","row":2}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -194,14 +353,14 @@ null
       {
         "edits": [
           {
-            "newText": " countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "countdown(session + 30s, 0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 1,
                 "line": 4
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 2
               }
             }
@@ -216,7 +375,7 @@ null
   }
 }
 -- open grouped.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:grouped.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:grouped.x.md}","event":{"action":"start","name":"watch"},"expected":"[watch] := ((countdown(limit)))","kind":"row","module":"timers","row":1}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -225,14 +384,14 @@ null
       {
         "edits": [
           {
-            "newText": " countdown(limit, 0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "countdown(limit, 0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 31,
                 "line": 1
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 1
               }
             }

@@ -12,13 +12,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": 0,
-                "expected": "- [ ] Different"
+                "expected": "- [ ] Different",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -26,13 +28,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:note.x.md}",
                 "row": 9999,
-                "expected": ""
+                "expected": "",
+                "module": "tasks",
+                "event": {"line": 9999}
               }
             ]
           }
@@ -40,13 +44,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:gone.x.md}",
                 "row": 0,
-                "expected": "- [ ] Task"
+                "expected": "- [ ] Task",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -54,13 +60,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:blocked.x.md}",
                 "row": 0,
-                "expected": "- [ ] Waiting @after(prerequisite)"
+                "expected": "- [ ] Waiting @after(prerequisite)",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -68,13 +76,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:plain.x.md}",
                 "row": 0,
-                "expected": "plain text"
+                "expected": "plain text",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -82,15 +92,8 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:alias.x.md}",
-                "name": "alias",
-                "action": "start"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timer.x.md}", "row": 0, "expected": "[focus] := stopwatch()", "module": "timers", "event": {"name": "focus", "action": "start"}}]
           }
         },
         {
@@ -116,29 +119,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:alias.x.md}",
-                "name": "alias",
-                "action": "start"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timer.x.md}", "row": 0, "expected": "[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)", "module": "timers", "event": {"name": "focus", "action": "start"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:alias.x.md}",
-                "name": "alias",
-                "action": "pause"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timer.x.md}", "row": 0, "expected": "[focus] := stopwatch(0s, 2026-09-16T13:58:45-04:00)", "module": "timers", "event": {"name": "focus", "action": "pause"}}]
           }
         },
         {

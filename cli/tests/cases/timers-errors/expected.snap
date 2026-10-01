@@ -6,7 +6,7 @@ exit 0
   {
     "code": "evaluation",
     "line": 0,
-    "message": "countdown expects duration, optionally followed by elapsed and a start timestamp",
+    "message": "countdown expects 1 to 3 arguments, got 0",
     "severity": "error"
   },
   {
@@ -48,7 +48,7 @@ exit 0
   {
     "code": "evaluation",
     "line": 7,
-    "message": "stopwatch accepts optional elapsed and a start timestamp",
+    "message": "stopwatch expects 0 to 2 arguments, got 3",
     "severity": "error"
   },
   {
@@ -60,19 +60,19 @@ exit 0
   {
     "code": "evaluation",
     "line": 9,
-    "message": "countdown expects duration, optionally followed by elapsed and a start timestamp",
+    "message": "countdown expects 1 to 3 arguments, got 4",
     "severity": "error"
   },
   {
     "code": "evaluation",
     "line": 10,
-    "message": "Module timer.property: Only countdowns have .remaining",
+    "message": "Unknown stopwatch property 'remaining'",
     "severity": "error"
   },
   {
     "code": "evaluation",
     "line": 11,
-    "message": "Module timer.property: Unknown timer property 'bogus'",
+    "message": "Unknown countdown property 'bogus'",
     "severity": "error"
   },
   {
@@ -103,7 +103,7 @@ exit 0
   {
     "code": "property",
     "line": 2,
-    "message": "Module timer.property: Unknown timer property 'bogus'",
+    "message": "Unknown stopwatch property 'bogus'",
     "severity": "error"
   }
 ]
@@ -117,7 +117,7 @@ exit 1
 [watch.bogus]
 --- stderr
 <root>/attributes.x.md:2:18: error: @timer requires a named stopwatch or countdown, e.g. @timer(focus)
-<root>/attributes.x.md:3:8: error: Module timer.property: Unknown timer property 'bogus'
+<root>/attributes.x.md:3:8: error: Unknown stopwatch property 'bogus'
 xmd: 2 error(s) while rendering
 
 ### 3 lsp
@@ -143,7 +143,7 @@ xmd: 2 error(s) while rendering
     },
     {
       "code": "property",
-      "message": "Module timer.property: Unknown timer property 'bogus'",
+      "message": "Unknown stopwatch property 'bogus'",
       "range": {
         "end": {
           "character": 12,

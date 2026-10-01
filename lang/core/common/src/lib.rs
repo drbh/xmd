@@ -15,7 +15,7 @@ pub use notes::{
     EXTENSION, LIBRARY_EXTENSION, is_library, is_note, library_file, note_file, note_stem,
 };
 pub use paths::{file_path, file_url, uri, uri_from_url, url_from_uri};
-pub use pattern::{Found, MAX_PATTERN, Pattern};
+pub use pattern::{Found, Pattern};
 pub use resource::Resource;
 pub use span::{LineIndex, Lines, Span};
 pub use values::{Code, Currency, ValueType, is_code};

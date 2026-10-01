@@ -1,0 +1,31 @@
+{
+  "steps": [
+    { "cli": ["query", "plan.x.md", "get(attributed, 0)", "--json"] },
+    { "cli": ["query", "plan.x.md", "attributed | map(fn(a) => [a.line, a.title, a.block, a.task, map(entries(a.attributes), fn(e) => [e.key, e.value.text, text(e.value.value), text(e.value.date), e.value.error])])", "--json"] },
+    { "cli": ["query", "plan.x.md", "events | map(.{title, at, at_date, errors})", "--json"] },
+    { "cli": ["query", "plan.x.md", "entries | map(.{kind, title})", "--json"] },
+    { "cli": ["query", "plan.x.md", "diagnostics | map(.{line, code, message})", "--json"] },
+    { "cli": ["render", "plan.x.md", "--format", "text"] },
+    {
+      "lsp": [
+        { "open": "plan.x.md" },
+        { "await": "textDocument/publishDiagnostics", "file": "plan.x.md" },
+        { "request": "textDocument/signatureHelp", "file": "plan.x.md", "line": 1, "character": 14 },
+        { "request": "textDocument/signatureHelp", "file": "plan.x.md", "line": 6, "character": 30 },
+        { "request": "textDocument/completion", "file": "plan.x.md", "line": 1, "character": 14 },
+        { "request": "textDocument/completion", "file": "plan.x.md", "line": 9, "character": 8 },
+        { "request": "textDocument/documentSymbol", "file": "plan.x.md" },
+        { "request": "textDocument/semanticTokens/full", "file": "plan.x.md" },
+        { "request": "textDocument/references", "file": "plan.x.md", "line": 0, "character": 2, "extra": { "context": { "includeDeclaration": false } } }
+      ]
+    },
+    { "write": { ".xmd/modules/effort.x.md": "module := {api: 1, id: \"effort\", kind: \"feature\", attributes: {due: {value: \"when\"}}}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "plan.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/effort.x.md": "module := {api: 1, id: \"effort\", kind: \"feature\", attributes: {at: {value: \"when\"}}}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "plan.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/effort.x.md": "module := {api: 1, id: \"effort\", kind: \"feature\", attributes: {left: {value: \"money\"}}}\ncollect := fn(ctx) => []\n" } },
+    { "cli": ["render", "plan.x.md", "--format", "text"] },
+    { "write": { ".xmd/modules/effort.x.md": "module := {api: 1, id: \"effort\", kind: \"library\", attributes: {left: {value: \"text\"}}}\n" } },
+    { "cli": ["render", "plan.x.md", "--format", "text"] }
+  ]
+}

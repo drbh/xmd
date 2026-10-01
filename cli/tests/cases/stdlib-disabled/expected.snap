@@ -39,7 +39,7 @@ exit 0
 
 ### 4 cli render timers.x.md --format text
 $ xmd render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
-exit 0
+exit 1
 --- stdout
 watch := stopwatch()
 focus := countdown(2m, 30s, 2026-09-16T13:59:30-04:00)
@@ -47,12 +47,44 @@ paused := stopwatch(65s)
 done := countdown(1s, 1s)
 - [ ] Work @timer(focus)
 Spent [watch.elapsed], use [focus] and [paused].
+--- stderr
+<root>/timers.x.md:5:12: error: Unknown attribute @timer
+xmd: 1 error(s) while rendering
 
 ### 5 cli query timers.x.md diagnostics --json
 $ xmd query timers.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[]
+[
+  {
+    "anchor": {
+      "character": 24,
+      "line": 4
+    },
+    "code": "syntax",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 4,
+    "message": "Unknown attribute @timer",
+    "severity": "error",
+    "source": {
+      "line": 5,
+      "path": "<root>/timers.x.md",
+      "range": {
+        "end": {
+          "character": 24,
+          "line": 4
+        },
+        "start": {
+          "character": 11,
+          "line": 4
+        }
+      },
+      "uri": "file://<root>/timers.x.md#L5"
+    },
+    "title": "Unknown attribute @timer"
+  }
+]
 
 ### 6 cli render oaxaca.x.md --format text
 $ xmd render oaxaca.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
@@ -124,8 +156,11 @@ exit 1
 - [ ] Review :review @scheduled(2026-09-17)
 https://github.com/openai/example/pull/42
 --- stderr
-<root>/work.x.md:7:63: error: Put recurrence on individual tasks, not parent checklists
-xmd: 1 error(s) while rendering
+<root>/work.x.md:7:24: error: Unknown attribute @due
+<root>/work.x.md:7:41: error: Unknown attribute @after
+<root>/work.x.md:7:56: error: Unknown attribute @every
+<root>/work.x.md:10:22: error: Unknown attribute @scheduled
+xmd: 4 error(s) while rendering
 
 ### 13 cli query work.x.md diagnostics --json
 $ xmd query work.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
@@ -137,28 +172,112 @@ exit 0
       "character": 65,
       "line": 6
     },
-    "code": "attribute",
+    "code": "syntax",
     "errors": [],
     "kind": "diagnostic",
     "line": 6,
-    "message": "Put recurrence on individual tasks, not parent checklists",
+    "message": "Unknown attribute @due",
     "severity": "error",
     "source": {
       "line": 7,
       "path": "<root>/work.x.md",
       "range": {
         "end": {
-          "character": 64,
+          "character": 39,
           "line": 6
         },
         "start": {
-          "character": 62,
+          "character": 23,
           "line": 6
         }
       },
       "uri": "file://<root>/work.x.md#L7"
     },
-    "title": "Put recurrence on individual tasks, not parent checklists"
+    "title": "Unknown attribute @due"
+  },
+  {
+    "anchor": {
+      "character": 65,
+      "line": 6
+    },
+    "code": "syntax",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 6,
+    "message": "Unknown attribute @after",
+    "severity": "error",
+    "source": {
+      "line": 7,
+      "path": "<root>/work.x.md",
+      "range": {
+        "end": {
+          "character": 54,
+          "line": 6
+        },
+        "start": {
+          "character": 40,
+          "line": 6
+        }
+      },
+      "uri": "file://<root>/work.x.md#L7"
+    },
+    "title": "Unknown attribute @after"
+  },
+  {
+    "anchor": {
+      "character": 65,
+      "line": 6
+    },
+    "code": "syntax",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 6,
+    "message": "Unknown attribute @every",
+    "severity": "error",
+    "source": {
+      "line": 7,
+      "path": "<root>/work.x.md",
+      "range": {
+        "end": {
+          "character": 65,
+          "line": 6
+        },
+        "start": {
+          "character": 55,
+          "line": 6
+        }
+      },
+      "uri": "file://<root>/work.x.md#L7"
+    },
+    "title": "Unknown attribute @every"
+  },
+  {
+    "anchor": {
+      "character": 43,
+      "line": 9
+    },
+    "code": "syntax",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 9,
+    "message": "Unknown attribute @scheduled",
+    "severity": "error",
+    "source": {
+      "line": 10,
+      "path": "<root>/work.x.md",
+      "range": {
+        "end": {
+          "character": 43,
+          "line": 9
+        },
+        "start": {
+          "character": 21,
+          "line": 9
+        }
+      },
+      "uri": "file://<root>/work.x.md#L10"
+    },
+    "title": "Unknown attribute @scheduled"
   }
 ]
 
@@ -173,21 +292,41 @@ exit 1
 </span><span class="line " data-line="3">  <span class="t-variable" title="">budget</span> <span class="t-operator" title="">*</span> <span class="t-number" title="">2</span>
 </span><span class="line " data-line="4"><span class="t-xmdPunctuation" title="">)</span>
 </span><span class="line " data-line="5">🦀 Total <span class="t-xmdPunctuation" title="">[</span><span class="t-variable" title="">total</span><span class="t-xmdPunctuation" title="">]</span>, extra <span class="t-xmdPunctuation" title="">[</span><span class="t-variable" title="">total</span> <span class="t-operator" title="">+</span> <span class="t-xmdMoney" title="">$1</span><span class="t-xmdPunctuation" title="">]</span>.
-</span><span class="line task" data-line="6"><span class="t-xmdPunctuation" title="">-</span> <span class="t-xmdCheckbox" title="">[ ]</span> Release <span class="t-xmdPunctuation" title="">:</span><span class="t-variable declaration" title="">release</span> <span class="t-decorator" title="">@due</span><span class="t-xmdPunctuation" title="">(</span><span class="t-xmdDate" title="">2026-09-15</span><span class="t-xmdPunctuation" title="">)</span> <span class="t-decorator" title="">@after</span><span class="t-xmdPunctuation" title="">(</span><span class="t-variable" title="">review</span><span class="t-xmdPunctuation" title="">)</span> <span class="t-decorator" title="">@every</span><span class="t-xmdPunctuation" title="">(</span><span class="t-string diagnostic error" title="Put recurrence on individual tasks, not parent checklists">1w</span><span class="t-xmdPunctuation" title="">)</span>
-</span><span class="line task" data-line="7">  <span class="t-xmdPunctuation" title="">-</span> <span class="t-xmdCheckboxChecked" title="">[x]</span><span class="t-xmdTaskDone" title=""> Test</span>
-</span><span class="line task" data-line="8">  <span class="t-xmdPunctuation" title="">-</span> <span class="t-xmdCheckbox" title="">[ ]</span> Publish
-</span><span class="line task" data-line="9"><span class="t-xmdPunctuation" title="">-</span> <span class="t-xmdCheckbox" title="">[ ]</span> Review <span class="t-xmdPunctuation" title="">:</span><span class="t-variable declaration" title="">review</span> <span class="t-decorator" title="">@scheduled</span><span class="t-xmdPunctuation" title="">(</span><span class="t-xmdDate" title="">2026-09-17</span><span class="t-xmdPunctuation" title="">)</span>
+</span><span class="line task" data-line="6">- <span class="t-keyword" title="">[ ]</span> Release <span class="t-xmdPunctuation" title="">:</span><span class="t-variable declaration" title="">release</span> <span class="t-decorator diagnostic error" title="Unknown attribute @due">@due</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @due">(</span><span class="t-string diagnostic error" title="Unknown attribute @due">2026-09-15</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @due">)</span> <span class="t-decorator diagnostic error" title="Unknown attribute @after">@after</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @after">(</span><span class="t-string diagnostic error" title="Unknown attribute @after">review</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @after">)</span> <span class="t-decorator diagnostic error" title="Unknown attribute @every">@every</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @every">(</span><span class="t-string diagnostic error" title="Unknown attribute @every">1w</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @every">)</span>
+</span><span class="line task" data-line="7">  - <span class="t-keyword" title="">[x]</span> Test
+</span><span class="line task" data-line="8">  - <span class="t-keyword" title="">[ ]</span> Publish
+</span><span class="line task" data-line="9">- <span class="t-keyword" title="">[ ]</span> Review <span class="t-xmdPunctuation" title="">:</span><span class="t-variable declaration" title="">review</span> <span class="t-decorator diagnostic error" title="Unknown attribute @scheduled">@scheduled</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @scheduled">(</span><span class="t-string diagnostic error" title="Unknown attribute @scheduled">2026-09-17</span><span class="t-xmdPunctuation diagnostic error" title="Unknown attribute @scheduled">)</span>
 </span><span class="line " data-line="10"><a class="t-xmdLink" title="Open https://github.com/openai/example/pull/42" href="https://github.com/openai/example/pull/42">https://github.com/openai/example/pull/42</a>
 </span><span class="line " data-line="11"></span></code></pre></body></html>
 --- stderr
-<root>/work.x.md:7:63: error: Put recurrence on individual tasks, not parent checklists
-xmd: 1 error(s) while rendering
+<root>/work.x.md:7:24: error: Unknown attribute @due
+<root>/work.x.md:7:41: error: Unknown attribute @after
+<root>/work.x.md:7:56: error: Unknown attribute @every
+<root>/work.x.md:10:22: error: Unknown attribute @scheduled
+xmd: 4 error(s) while rendering
 
 ### 15 lsp
 -- open timers.x.md
 -- await textDocument/publishDiagnostics timers.x.md
 {
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "code": "syntax",
+      "message": "Unknown attribute @timer",
+      "range": {
+        "end": {
+          "character": 24,
+          "line": 4
+        },
+        "start": {
+          "character": 11,
+          "line": 4
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
   "uri": "file://<root>/timers.x.md",
   "version": 1
 }

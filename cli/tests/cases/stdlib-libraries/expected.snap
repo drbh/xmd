@@ -3,7 +3,7 @@ $ xmd render watch.x.md --format text --root <root> --now 2026-09-16T14:00:00-04
 exit 0
 --- stdout
 watch := stopwatch() = ◴ 00:41 elapsed · ‖ paused
-Elapsed [watch.elapsed] 42s.
+Elapsed [watch.elapsed] 41s.
 
 ### 1 lsp
 -- open watch.x.md
@@ -13,34 +13,126 @@ Elapsed [watch.elapsed] 42s.
   "uri": "file://<root>/watch.x.md",
   "version": 1
 }
--- request textDocument/codeAction watch.x.md {"end":{"character":0,"line":0},"start":{"character":0,"line":0}}
+-- request textDocument/codeLens watch.x.md
 [
   {
-    "arguments": [
-      {
-        "action": "resume",
-        "document": "file://<root>/watch.x.md",
-        "kind": "timer",
-        "name": "watch"
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/watch.x.md",
+          "event": {
+            "action": "resume",
+            "name": "watch"
+          },
+          "expected": "watch := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "▸ resume watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
       }
-    ],
-    "command": "xmd.timer",
-    "title": "▸ resume watch"
+    }
   },
   {
-    "arguments": [
-      {
-        "action": "reset",
-        "document": "file://<root>/watch.x.md",
-        "kind": "timer",
-        "name": "watch"
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/watch.x.md",
+          "event": {
+            "action": "reset",
+            "name": "watch"
+          },
+          "expected": "watch := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "↺ reset watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
       }
-    ],
-    "command": "xmd.timer",
-    "title": "↺ reset watch"
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/watch.x.md",
+          "event": {
+            "action": "resume",
+            "name": "watch"
+          },
+          "expected": "watch := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "▸ resume watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/watch.x.md",
+          "event": {
+            "action": "reset",
+            "name": "watch"
+          },
+          "expected": "watch := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "↺ reset watch"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
   }
 ]
--- request workspace/executeCommand {"arguments":"${last:/0/arguments}","command":"${last:/0/command}"}
+-- request workspace/executeCommand {"arguments":"${last:/0/command/arguments}","command":"${last:/0/command/command}"}
 null
 -- await workspace/applyEdit
 {
@@ -49,14 +141,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(17s)",
+            "newText": "stopwatch(17s)",
             "range": {
               "end": {
                 "character": 20,
                 "line": 0
               },
               "start": {
-                "character": 8,
+                "character": 9,
                 "line": 0
               }
             }
@@ -74,7 +166,7 @@ null
 {
   "contents": {
     "kind": "markdown",
-    "value": "watch.elapsed = 42s\n\n**watch · Stopwatch**\n\nCUSTOM TIMER\n\n```text\nstopwatch()\n= CUSTOM TIMER\n```\n\nElapsed: 41s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/watch.x.md#L1>) · <root>/watch.x.md:1"
+    "value": "watch.elapsed = 41s\n\n**watch · Stopwatch**\n\nCUSTOM TIMER\n\n```text\nstopwatch()\n= CUSTOM TIMER\n```\n\nElapsed: 41s. State: paused.\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it.\n\nDefinition: [watch](<file://<root>/watch.x.md#L1>) · <root>/watch.x.md:1"
   },
   "range": {
     "end": {
@@ -98,7 +190,7 @@ exit 1
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
-<root>/watch.x.md:1:10: error: Module 'timer' is unavailable or disabled
+<root>/watch.x.md:1:10: error: Unknown or undeclared import 'timer'
 xmd: 1 error(s) while rendering
 
 ### 4 cli query watch.x.md map(diagnostics, fn(r) => {message: r.message, code: r.code}) --json
@@ -108,7 +200,7 @@ exit 0
 [
   {
     "code": "evaluation",
-    "message": "Module 'timer' is unavailable or disabled"
+    "message": "Unknown or undeclared import 'timer'"
   }
 ]
 

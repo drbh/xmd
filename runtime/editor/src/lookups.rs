@@ -1,6 +1,7 @@
-//! The lookup provider: refreshing the rates, quotes and forecasts a note
-//! reads. It offers the refresh on every row that calls a lookup or plans a
-//! day at a place, and prepares `refresh` for the note or the workspace.
+//! The lookup provider: refreshing the lookups a note reads, whichever
+//! module reads them. It offers the refresh on every row whose evaluation
+//! read a lookup, or that holds a record a module built that asks for one,
+//! and prepares `refresh` for the note or the workspace.
 use crate::Request;
 use crate::commands::{
     Action, ActionProvider, Ask, Capabilities, CommandId, NOT_MINE, Prepared, PreparedAction,
@@ -8,34 +9,20 @@ use crate::commands::{
 };
 use std::{collections::BTreeSet, path::Path};
 
-/// The calls that read a lookup.
-const LOOKUPS: [&str; 5] = ["rate(", "to(", "forecast(", "forecast_range(", "quote("];
-
 pub(crate) struct Lookups;
 impl ActionProvider for Lookups {
     fn kinds(&self) -> &'static [CommandId] {
         &[CommandId::Refresh]
     }
     fn propose(&self, request: &Request<'_>, path: &Path, ask: Ask) -> Vec<Proposal> {
-        let Some(doc) = request.workspace().documents().get(path) else {
-            return vec![];
-        };
         let Ok(uri) = lang::common::file_url(path) else {
             return vec![];
         };
-        let places: BTreeSet<usize> = doc
-            .days
-            .iter()
-            .filter(|d| d.places.is_some())
-            .map(|d| d.line)
-            .collect();
-        let rows = (0..doc.text.lines().count())
+        let rows: BTreeSet<usize> = catalog::lookups(&request.records, &mut request.engine(), path)
+            .into_iter()
+            .filter_map(|(row, _)| row)
             .filter(|row| ask.rows.has(*row))
-            .filter(|row| {
-                let line = doc.line(*row);
-                LOOKUPS.iter().any(|call| line.contains(call)) || places.contains(row)
-            })
-            .collect::<Vec<_>>();
+            .collect();
         if rows.is_empty() {
             return vec![];
         }

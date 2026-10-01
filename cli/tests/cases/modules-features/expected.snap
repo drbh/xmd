@@ -193,7 +193,7 @@ error: {
         "expected": "Hello\n",
         "kind": "invoke",
         "module": "stamp",
-        "revision": "907406b808ea2c29"
+        "revision": "7b26cec80448345d"
       }
     ],
     "command": "xmd.invoke",
@@ -248,7 +248,7 @@ null
         "expected": "Hello\n",
         "kind": "invoke",
         "module": "stamp",
-        "revision": "05b2b6e35a1ee7ee"
+        "revision": "eaabfc275fe99164"
       }
     ],
     "command": "xmd.invoke",

@@ -2,32 +2,36 @@
 //! over them. Reading a catalog never performs I/O. Exposes its interface from
 //! the root, as one list of names.
 //!
-//! A catalog is a named set of records — tasks, days, timers, definitions and the
-//! rest — each a struct that knows its own field names. One module per record
+//! A catalog is a named set of records — checklist items, mentions,
+//! definitions and the rest — each a struct that knows its own field names. One module per record
 //! family holds the struct, its field projection and the builder that walks the
 //! workspace for it; this root names the collections and dispatches to them.
+//! A collection a feature module declares is built by its `records` hook
+//! (`built`), from what `context` hands every hook of a module.
 //! `query` evaluates queries over the collections, and `inspection` adds the
 //! syntax and dependency views that queries and feature modules read.
 //!
 //! Every reader takes records from `cache` ([`Records`]), which builds each
 //! collection once per workspace revision and clock and keeps what its lazy
-//! fields produce; `hovers` words a task's hover from the same records.
+//! fields produce.
+mod attributed;
+mod built;
 mod cache;
-mod days;
+mod checkboxes;
+mod context;
 mod definitions;
 mod diagnostics;
 mod expressions;
-mod hovers;
 mod inspection;
 mod links;
+mod lookups;
+mod mentions;
 mod notes;
 mod presentations;
 mod query;
 mod recognized;
 mod record;
 mod sections;
-mod tasks;
-mod timers;
 mod value;
 
 use lang::eval::engine::Engine;
@@ -35,9 +39,11 @@ use lang::eval::{RequestContext, Workspace};
 use lsp_types::Diagnostic;
 use std::path::Path;
 
+pub use built::problems as build_problems;
 pub use cache::{Records, View};
-pub use hovers::task as task_hover;
+pub use context::feature_context;
 use lang::eval::modules::Collection;
+pub use lookups::lookups;
 pub use presentations::presentations;
 pub use query::{NoteFiles, Query, QueryResult, execute};
 use record::Record;
@@ -57,11 +63,8 @@ pub type DiagnosticSource = fn(&RequestContext<'_>, &Path) -> Vec<Diagnostic>;
 )]
 #[strum(serialize_all = "snake_case")]
 enum RecordKind {
-    Task,
-    Event,
-    Stop,
-    Day,
-    Timer,
+    Checkbox,
+    Mention,
     Link,
     Section,
     Calculation,
@@ -76,6 +79,7 @@ enum RecordKind {
     Resource,
     Diagnostic,
     Recognized,
+    Attributed,
 }
 impl lang::eval::ToValue for RecordKind {
     fn to_value(&self) -> lang::eval::engine::Value {
@@ -86,12 +90,13 @@ impl lang::eval::ToValue for RecordKind {
 /// The query API and feature modules read the same semantic records. Each
 /// collection is one record builder below; this match is their index.
 pub(crate) fn collect(
-    ws: &Workspace,
+    cache: &Records,
     collection: Collection,
     engine: &mut Engine<'_>,
     only: Option<&Path>,
     diagnostics: DiagnosticSource,
 ) -> Result<Vec<Record>, String> {
+    let ws: &Workspace = engine.workspace();
     let mut records = Vec::new();
     match collection {
         // Two collections span documents instead of visiting them in turn.
@@ -115,10 +120,9 @@ pub(crate) fn collect(
         if only.is_some_and(|wanted| wanted != path) {
             continue;
         }
-        match collection {
+        match &collection {
             Collection::Ast | Collection::Decisions => unreachable!("handled above"),
-            Collection::Days => days::days(ws, path, doc, engine, &mut records),
-            Collection::Timers => timers::timers(ws, path, doc, engine, &mut records),
+            Collection::Mentions => mentions::mentions(ws, path, doc, &mut records),
             Collection::Links => links::links(ws, path, doc, &mut records),
             Collection::Sections => sections::sections(ws, path, doc, &mut records),
             Collection::Calculations => {
@@ -127,21 +131,19 @@ pub(crate) fn collect(
             Collection::References => expressions::references(ws, path, doc, engine, &mut records),
             Collection::Cells => expressions::cells(ws, path, doc, engine, &mut records),
             Collection::Notes => notes::notes(ws, path, doc, &mut records),
-            Collection::Tasks => tasks::tasks(ws, path, doc, engine, false, &mut records),
-            Collection::Events => tasks::events(ws, path, doc, engine, &mut records),
-            Collection::Stops => tasks::stops(ws, path, doc, engine, &mut records),
-            Collection::Entries => {
-                tasks::tasks(ws, path, doc, engine, true, &mut records);
-                tasks::events(ws, path, doc, engine, &mut records);
-                tasks::stops(ws, path, doc, engine, &mut records);
-            }
+            Collection::Checkboxes => checkboxes::checkboxes(ws, path, doc, &mut records),
+            Collection::Entries => built::entries(cache, engine, path, &mut records),
             Collection::Values | Collection::Plans | Collection::Tables | Collection::Rows => {
-                definitions::definitions(ws, path, doc, collection, engine, &mut records)?
+                definitions::definitions(ws, path, doc, &collection, engine, &mut records)?
             }
             Collection::Resources => links::resources(ws, path, doc, &mut records),
             Collection::Recognized => recognized::recognized(ws, path, doc, &mut records),
+            Collection::Attributed => attributed::attributed(ws, path, doc, engine, &mut records),
             Collection::Diagnostics => {
                 diagnostics::diagnostics(ws, path, engine, diagnostics, &mut records)
+            }
+            Collection::Declared(name) => {
+                built::collection(cache, engine, path, name, &mut records)
             }
         }
     }

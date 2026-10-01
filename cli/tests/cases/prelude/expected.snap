@@ -1,0 +1,195 @@
+### 0 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Prelude
+
+## Trip :trip ████░░░░ 2/4 complete · 65m estimated left
+
+- [x] Book flights @estimate(2h)
+- [ ] Pack @estimate(45m)
+- [ ] Passport ████░░░░ 1/2 subtasks
+  - [x] Photo @estimate(missing)
+  - [ ] Form @estimate(20m)
+
+[count] := total(trip) = 4
+[done] := completed(trip) = 2
+[left] := remaining(trip) = 2
+[work] := effort(trip) = 65m
+[titles] := map(trip.tasks, .title) = ["Book flights", "Pack", "Photo", "Form"]
+[open] := trip.tasks | filter(fn(t) => !t.done) | map(.title) = ["Pack", "Form"]
+[charts] := map([[1, 2, 3], [3, 2, 1]], sparkline) = ["▁▅█", "█▅▁"]
+[fixed] := sparkline([1, 5, 3], 0, 10) = ▂▅▃
+greet := fn(name, greeting = "Hello", mark = if(greeting == "Hello", ".", "!")) => greeting + ", " + name + mark = <function>
+[a] := greet("Ada") = Hello, Ada.
+[b] := greet("Ada", "Hi") = Hi, Ada!
+[c] := greet()
+[d] := greet("Ada", "Hi", "?", 4)
+--- stderr
+<root>/main.x.md:8:25: error: Unknown name 'missing'
+<root>/main.x.md:22:8: error: greet expects 1 to 3 arguments, got 0
+<root>/main.x.md:23:8: error: greet expects 1 to 3 arguments, got 4
+xmd: 3 error(s) while rendering
+
+### 1 cli render shadow.x.md --format text
+$ xmd render shadow.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+# Shadow
+
+A note's own names come before the prelude's.
+
+total := fn(xs) => length(xs) * 100 = <function>
+[mine] := total([1, 2]) = 200
+
+### 2 cli query main.x.md trip.tasks --json
+$ xmd query main.x.md trip.tasks --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "attributes": {
+      "estimate": {
+        "error": null,
+        "text": "2h",
+        "value": {
+          "seconds": 7200,
+          "type": "duration"
+        }
+      }
+    },
+    "done": true,
+    "line": 4,
+    "title": "Book flights"
+  },
+  {
+    "attributes": {
+      "estimate": {
+        "error": null,
+        "text": "45m",
+        "value": {
+          "seconds": 2700,
+          "type": "duration"
+        }
+      }
+    },
+    "done": false,
+    "line": 5,
+    "title": "Pack"
+  },
+  {
+    "attributes": {
+      "estimate": {
+        "error": "Unknown name 'missing'",
+        "text": "missing",
+        "value": null
+      }
+    },
+    "done": true,
+    "line": 7,
+    "title": "Photo"
+  },
+  {
+    "attributes": {
+      "estimate": {
+        "error": null,
+        "text": "20m",
+        "value": {
+          "seconds": 1200,
+          "type": "duration"
+        }
+      }
+    },
+    "done": false,
+    "line": 8,
+    "title": "Form"
+  }
+]
+
+### 3 lsp
+-- open main.x.md
+-- request textDocument/hover main.x.md 13:11
+{
+  "contents": {
+    "kind": "markdown",
+    "value": "**effort(checklist)** · prelude\n\nSum estimates of unfinished leaf tasks beneath a named heading, as a Duration: `effort(trip)`."
+  },
+  "range": {
+    "end": {
+      "character": 16,
+      "line": 13
+    },
+    "start": {
+      "character": 10,
+      "line": 13
+    }
+  }
+}
+-- request textDocument/signatureHelp main.x.md 17:30
+{
+  "activeParameter": 2,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Draw one Unicode bar per numeric value, in list order, as Text. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units. `sparkline([12, 18, 9, 24])` is ▂▅▁█."
+      },
+      "label": "sparkline(values, min?, max?)",
+      "parameters": [
+        {
+          "label": "values"
+        },
+        {
+          "label": "min?"
+        },
+        {
+          "label": "max?"
+        }
+      ]
+    }
+  ]
+}
+
+### 4 write
+-- write .xmd/modules.json (27 bytes)
+-- write .xmd/modules/prelude.x.md (156 bytes)
+
+### 5 cli render main.x.md --format text
+$ xmd render main.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+# Prelude
+
+## Trip :trip ████░░░░ 2/4 complete · 65m estimated left
+
+- [x] Book flights @estimate(2h)
+- [ ] Pack @estimate(45m)
+- [ ] Passport ████░░░░ 1/2 subtasks
+  - [x] Photo @estimate(missing)
+  - [ ] Form @estimate(20m)
+
+[count] := total(trip) = 8
+[done] := completed(trip)
+[left] := remaining(trip)
+[work] := effort(trip)
+[titles] := map(trip.tasks, .title) = ["Book flights", "Pack", "Photo", "Form"]
+[open] := trip.tasks | filter(fn(t) => !t.done) | map(.title) = ["Pack", "Form"]
+[charts] := map([[1, 2, 3], [3, 2, 1]], sparkline)
+[fixed] := sparkline([1, 5, 3], 0, 10)
+greet := fn(name, greeting = "Hello", mark = if(greeting == "Hello", ".", "!")) => greeting + ", " + name + mark = <function>
+[a] := greet("Ada") = Hello, Ada.
+[b] := greet("Ada", "Hi") = Hi, Ada!
+[c] := greet()
+[d] := greet("Ada", "Hi", "?", 4)
+--- stderr
+<root>/main.x.md:8:25: error: Unknown name 'missing'
+<root>/main.x.md:12:11: error: Unknown name 'completed'
+<root>/main.x.md:13:11: error: Unknown name 'remaining'
+<root>/main.x.md:14:11: error: Unknown name 'effort'
+<root>/main.x.md:17:41: error: Unknown name 'sparkline'
+<root>/main.x.md:18:12: error: Unknown name 'sparkline'
+<root>/main.x.md:22:8: error: greet expects 1 to 3 arguments, got 0
+<root>/main.x.md:23:8: error: greet expects 1 to 3 arguments, got 4
+xmd: 8 error(s) while rendering
+

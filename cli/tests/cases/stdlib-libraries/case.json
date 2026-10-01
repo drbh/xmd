@@ -19,29 +19,14 @@
           "file": "watch.x.md"
         },
         {
-          "request": "textDocument/codeAction",
-          "file": "watch.x.md",
-          "range": {
-            "start": {
-              "line": 0,
-              "character": 0
-            },
-            "end": {
-              "line": 0,
-              "character": 0
-            }
-          },
-          "extra": {
-            "context": {
-              "diagnostics": []
-            }
-          }
+          "request": "textDocument/codeLens",
+          "file": "watch.x.md"
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "${last:/0/command}",
-            "arguments": "${last:/0/arguments}"
+            "command": "${last:/0/command/command}",
+            "arguments": "${last:/0/command/arguments}"
           }
         },
         {

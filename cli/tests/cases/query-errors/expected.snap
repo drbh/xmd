@@ -194,7 +194,7 @@ xmd: if requires a Boolean condition
 $ xmd query n.x.md good() --json --root <root> --now 2026-09-16T12:00:00-04:00
 exit 1
 --- stderr
-xmd: Function expects 1 arguments, got 0
+xmd: good expects one argument
 
 ### 33 cli query n.x.md loop(1) --json
 $ xmd query n.x.md loop(1) --json --root <root> --now 2026-09-16T12:00:00-04:00

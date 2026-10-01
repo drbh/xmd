@@ -348,27 +348,61 @@
 -- request textDocument/codeAction freeze.x.md {"end":{"character":26,"line":1},"start":{"character":13,"line":1}}
 [
   {
-    "arguments": [
-      {
-        "action": "resume",
-        "document": "file://<root>/freeze.x.md",
-        "kind": "timer",
-        "name": "watch"
-      }
-    ],
-    "command": "xmd.timer",
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "stopwatch(73s, 2026-09-16T14:00:00-04:00)",
+              "range": {
+                "end": {
+                  "character": 25,
+                  "line": 0
+                },
+                "start": {
+                  "character": 11,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.x.md",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
     "title": "▸ resume watch"
   },
   {
-    "arguments": [
-      {
-        "action": "reset",
-        "document": "file://<root>/freeze.x.md",
-        "kind": "timer",
-        "name": "watch"
-      }
-    ],
-    "command": "xmd.timer",
+    "edit": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "stopwatch()",
+              "range": {
+                "end": {
+                  "character": 25,
+                  "line": 0
+                },
+                "start": {
+                  "character": 11,
+                  "line": 0
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file://<root>/freeze.x.md",
+            "version": 1
+          }
+        }
+      ]
+    },
+    "kind": "refactor.rewrite",
     "title": "↺ reset watch"
   },
   {

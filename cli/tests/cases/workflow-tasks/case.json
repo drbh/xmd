@@ -71,13 +71,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:release.x.md}",
                 "row": 1,
-                "expected": "- [ ] Parent"
+                "expected": "- [ ] Parent",
+                "module": "tasks",
+                "event": {"line": 1}
               }
             ]
           }
@@ -110,13 +112,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:blocked.x.md}",
                 "row": 1,
-                "expected": "- [ ] Publish @after(review)"
+                "expected": "- [ ] Publish @after(review)",
+                "module": "tasks",
+                "event": {"line": 1}
               }
             ]
           }
@@ -175,13 +179,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:walk.x.md}",
                 "row": 1,
-                "expected": "- [ ] Walk @every(day)"
+                "expected": "- [ ] Walk @every(day)",
+                "module": "tasks",
+                "event": {"line": 1}
               }
             ]
           }

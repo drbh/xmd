@@ -33,16 +33,16 @@
         "kind": "markdown",
         "value": "An idle countdown. Use Start timer to capture a timestamp; elapsed and started are persisted by timer controls."
       },
-      "label": "countdown(duration: Duration, elapsed?: Duration, started?: DateTime) → Countdown",
+      "label": "countdown(duration, elapsed?, started?)",
       "parameters": [
         {
-          "label": "duration: Duration"
+          "label": "duration"
         },
         {
-          "label": "elapsed?: Duration"
+          "label": "elapsed?"
         },
         {
-          "label": "started?: DateTime"
+          "label": "started?"
         }
       ]
     }
@@ -58,16 +58,16 @@
         "kind": "markdown",
         "value": "An idle countdown. Use Start timer to capture a timestamp; elapsed and started are persisted by timer controls."
       },
-      "label": "countdown(duration: Duration, elapsed?: Duration, started?: DateTime) → Countdown",
+      "label": "countdown(duration, elapsed?, started?)",
       "parameters": [
         {
-          "label": "duration: Duration"
+          "label": "duration"
         },
         {
-          "label": "elapsed?: Duration"
+          "label": "elapsed?"
         },
         {
-          "label": "started?: DateTime"
+          "label": "started?"
         }
       ]
     }

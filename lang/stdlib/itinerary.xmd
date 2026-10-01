@@ -1,14 +1,439 @@
-// Itinerary days are decorated from the parsed day records the catalog holds.
+// Itineraries: day lines, the timed stops under them, and each stop's details
+// and notes. The syntax, the vocabulary and what they mean are this module's:
+// the recognizers below find them as a note is parsed, `records` builds the
+// `days` and `stops` collections from their matches (stops join `entries`,
+// beside tasks and events), and the other hooks decorate those days.
 module := {
   api: 1,
   id: "itinerary",
   kind: "feature",
-  inputs: {days: ["value"]},
-  imports: ["itinerary_core"]
+  inputs: {
+    recognized: ["recognizer", "line", "text", "range", "groups", "parent", "end_line"],
+    days: ["value"]
+  },
+  imports: ["itinerary_core", "prelude"],
+  recognizes: [_day, _stop, _address, _detail, _note],
+  collections: {days: {}, stops: {entries: true}}
 }
 trip := import("itinerary_core")
+lookups := import("prelude")
 
-// Unwrap the parsed day records selected from the catalog.
+// Each kind of stop: the marker written for it after the time, the leading
+// words that imply it, the emoji Format Document turns into the marker, and
+// the category of the palette its marker and title are painted with, one of
+// its own so a day reads at a glance.
+_kinds := [
+  {
+    marker: ">",
+    name: "Depart",
+    paint: "category1",
+    words: ["depart", "departure", "fly", "flight", "leave", "board"],
+    emoji: ["🛫", "✈️", "✈", "🚆", "🚄", "🚢"]
+  },
+  {
+    marker: "<",
+    name: "Arrive",
+    paint: "category2",
+    words: ["arrive", "arrival", "land"],
+    emoji: ["🛬"]
+  },
+  {
+    marker: "~",
+    name: "Transit",
+    paint: "category3",
+    words: ["transit", "taxi", "walk", "bus", "drive", "transfer", "uber", "metro", "ferry"],
+    emoji: ["🚕", "🚶", "🚌", "🚗", "🚇", "🛵", "🚲"]
+  },
+  {
+    marker: "@",
+    name: "Stay",
+    paint: "category4",
+    words: ["check in", "check-in", "checkin", "check out", "check-out", "checkout", "hotel", "stay"],
+    emoji: ["🛏️", "🛏", "🏨", "🧳"]
+  },
+  {
+    marker: "*",
+    name: "Meal",
+    paint: "category5",
+    words: [
+      "breakfast",
+      "brunch",
+      "lunch",
+      "dinner",
+      "coffee",
+      "drinks",
+      "food",
+      "eat",
+      "grab food",
+      "snack",
+      "tasting"
+    ],
+    emoji: ["🍽️", "🍽", "☕", "🍷", "🍺", "🍸", "🥐", "🌮"]
+  },
+  {
+    marker: "+",
+    name: "Visit",
+    paint: "category6",
+    words: ["visit", "tour", "see", "museum", "show", "concert", "hike", "class"],
+    emoji: ["🌳", "🎟️", "🎟", "🏛️", "🏛", "🎭", "🎶", "🥾"]
+  },
+  {
+    marker: "?",
+    name: "Explore",
+    paint: "category7",
+    words: ["explore", "wander", "free time", "browse", "shop"],
+    emoji: ["🔍", "🗺️", "🗺", "🛍️"]
+  }
+]
+
+// The categories a day line's date and its places are painted with, apart
+// from every kind's.
+_day_paint := "category8"
+_place_paint := "category9"
+
+// Emoji that decorate a title without naming a kind.
+_decorations := ["🌟", "⭐", "❗", "✨"]
+
+// Detail keys, what their values hold, and which completion offers.
+_keys := [
+  ["Reservation Number", "code"],
+  ["Confirmation Number", "code"],
+  ["Seats", "code"],
+  ["Phone", "text"],
+  ["Cancel by", "date"],
+  ["Cost", "text"],
+  ["Note", "text"],
+  ["Confirmation", "code"],
+  ["PNR", "code"]
+]
+
+_weekdays := ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+_months := [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+]
+
+// Join lists into one.
+_flat := fn(lists) => fold(lists, [], fn(out, l) => concat(out, l))
+
+// Each name with its position, counted from `first`, as a term.
+_numbered := fn(names, first) => fold(
+  names,
+  [],
+  fn(out, name) => concat(out, [[name, source(number(length(out) + first))]])
+)
+
+// Each kind's markers, words or emoji, as terms naming the kind.
+_named := fn(field) => _flat(map(_kinds, fn(k) => map(get(k, field), fn(t) => [t, k.name])))
+
+// Each kind's category, by the kind's name.
+_paints := map(_kinds, fn(k) => [k.name, k.paint])
+
+// A pattern matching any of `texts`.
+_any := fn(texts) => join(texts, "|")
+
+_emoji := _flat(map(_kinds, fn(k) => k.emoji))
+_decoration := "(?:" + _any(_decorations) + "|[\\x{1F3FB}-\\x{1F3FF}\\x{FE0F}\\x{200D}\\s])"
+
+// `Friday, November 20, 2026 · Places`, also as a heading.
+_day := {
+  name: "day",
+  on: "line",
+  until: "heading",
+  pattern: "^\\s*(?:#+\\s*)?(?:(?<weekday>(?i:"
+  + _any(_weekdays)
+  + "))\\b(?<comma>[, \\t]*))?(?<date>(?<month>(?i:"
+  + _any(_months)
+  + "))\\s+(?<day>[0-9]{1,2})\\b(?:[, \\t]*(?<year>[0-9]{4})\\b)?)[\\s·\\-—–|:]*(?<places>.*?)\\s*(?: :[A-Za-z_][A-Za-z0-9_]*)?\\s*$",
+  terms: {weekday: _numbered(_weekdays, 0), month: _numbered(_months, 1)},
+  tokens: {
+    weekday: {paint: _day_paint, declaration: true},
+    comma: _day_paint,
+    date: {paint: _day_paint, declaration: true},
+    places: _place_paint
+  }
+}
+
+// `07:04 AM  > Title`: a time, then a kind's marker, emoji or first words.
+_stop := {
+  name: "stop",
+  on: "line",
+  under: "day",
+  until: "break",
+  pattern: "^\\s*(?<time>(?<hour>0?[1-9]|1[0-2])(?::(?<minute>[0-5][0-9]))?\\s*(?<meridiem>[AaPp][Mm])|(?<hour24>[01]?[0-9]|2[0-3]):(?<minute24>[0-5][0-9]))(?:\\s+|$)(?:(?<marker>["
+  + join(map(_kinds, fn(k) => k.marker), "")
+  + "])(?:\\s+|$))?"
+  + _decoration
+  + "*(?:(?<emoji>"
+  + _any(_emoji)
+  + ")(?:"
+  + _any(_emoji)
+  + "|"
+  + _decoration
+  + ")*)?(?<title>(?:(?<word>(?i:"
+  + _any(_flat(map(_kinds, fn(k) => k.words)))
+  + "))(?:$|[^\\p{Alphabetic}\\p{N}]))?.*?)\\s*$",
+  // An hour a 12-hour clock does not have is no time at all.
+  unless: "^\\s*(?:0?0|1[3-9]|2[0-9])(?::[0-9][0-9])?\\s*[AaPp][Mm](?:\\s|$)",
+  terms: {
+    meridiem: [["am", "0"], ["pm", "12"]],
+    marker: map(_kinds, fn(k) => [k.marker, k.name]),
+    emoji: _named("emoji"),
+    word: _named("words")
+  },
+  tokens: {
+    time: "time",
+    marker: {terms: ["marker"], paints: _paints, paint: "heading", declaration: true},
+    title: {terms: ["marker", "emoji", "word"], paints: _paints, paint: "heading"}
+  }
+}
+
+// `Address: …` under a stop links to a map search.
+_address := {
+  name: "address",
+  on: "line",
+  under: "stop",
+  pattern: "^\\s*(?<key>(?i:address))(?<colon>\\s*:\\s*)(?<value>\\S.*?)\\s*$",
+  unless: "^\\s*[^:]*://",
+  terms: {key: [["Address", "text"]]},
+  tokens: {key: "key", colon: "punctuation"},
+  links: {value: "https://www.google.com/maps/search/?api=1&query={}"}
+}
+
+// `Key: value` under a stop, the key in letters and spaces; a key ending in
+// "number" holds a code.
+_detail := {
+  name: "detail",
+  on: "line",
+  under: "stop",
+  pattern: "^\\s*(?<key>(?:\\p{Alphabetic}[\\p{Alphabetic} ]*?)?(?<numbered>(?i:number))|\\p{Alphabetic}[\\p{Alphabetic} ]*?)(?<colon>\\s*:\\s*)(?<value>.*?)\\s*$",
+  // Not a URL, and a key of at most 32 characters.
+  unless: "^\\s*[^:]*://|^\\s*[^:\\s][^:]{31,}[^:\\s]\\s*:",
+  terms: {numbered: [["number", "code"]], key: _keys},
+  tokens: {key: "key", colon: "punctuation", value: {terms: ["numbered", "key"]}}
+}
+
+// Any other line right under a stop, except a task, a table row or a
+// bracketed form.
+_note := {
+  name: "note",
+  on: "line",
+  under: "stop",
+  pattern: "\\S(?:.*\\S)?",
+  unless: "^\\s*(?:- \\[|\\||\\[)"
+}
+
+// A number written in digits.
+_digits := fn(t) => fold(
+  split(t, ""),
+  0,
+  fn(n, c) => if(c == "", n, n * 10 + length(get(split("0123456789", c), 0)))
+)
+
+// A group of a match, or null when it took no part.
+_group := fn(r, name) => get(r.groups, name)
+
+// A group's term, read as a number, or null when the group took no part.
+_term := fn(r, name) => if(_group(r, name) == null, null, _digits(_group(r, name).term))
+
+// A group's text, read as a number, or null when the group took no part.
+_number := fn(r, name) => if(_group(r, name) == null, null, _digits(_group(r, name).text))
+
+// Where a matched line sits, as every day, stop, detail and note record
+// names it: the whole line, which ends past the match by the blanks around
+// it.
+_line := fn(r, lines) => let(
+  {
+    raw: get(lines, r.line),
+    end: {
+      line: r.line,
+      character: r.range.end.character + length(raw) - length(r.text) - r.range.start.character
+    }
+  },
+  {line: r.line, raw: raw, line_range: {start: {line: r.line, character: 0}, end: end}, anchor: end}
+)
+
+// The first kind a stop's marker, emoji or leading words name, with the
+// marker written for it.
+_kind := fn(r) => let(
+  {
+    name: coalesce(
+      get(_group(r, "marker"), "term"),
+      get(_group(r, "emoji"), "term"),
+      get(_group(r, "word"), "term")
+    )
+  },
+  if(name == null, null, {marker: get(filter(_kinds, fn(k) => k.name == name), 0).marker, name: name})
+)
+
+// A stop's clock time, from a 12-hour or a 24-hour time.
+_time := fn(r) => if(
+  _group(r, "hour") == null,
+  _number(r, "hour24") * 1h + _number(r, "minute24") * 1m,
+  (_number(r, "hour") - 12 * floor(_number(r, "hour") / 12) + _term(r, "meridiem")) * 1h
+  + coalesce(_number(r, "minute"), 0) * 1m
+)
+
+// Whether a line under a stop is a `Key: value` detail rather than a note.
+_keyed := fn(u) => _group(u, "key") != null && _group(u, "value") != null
+
+// One stop, with the details and notes under it.
+_stop_value := fn(r, under, lines) => let(
+  {at: _line(r, lines), below: coalesce(get(under, text(r.line)), [])},
+  {
+    line: at.line,
+    raw: at.raw,
+    line_range: at.line_range,
+    anchor: at.anchor,
+    kind: _kind(r),
+    time: _time(r),
+    twelve_hour: _group(r, "hour") != null,
+    title: r.groups.title.text,
+    time_range: r.groups.time.range,
+    title_range: r.groups.title.range,
+    range: {start: r.groups.time.range.start, end: r.groups.title.range.end},
+    details: map(
+      filter(below, _keyed),
+      fn(u) => let(
+        {row: _line(u, lines)},
+        {
+          line: row.line,
+          raw: row.raw,
+          line_range: row.line_range,
+          anchor: row.anchor,
+          key: u.groups.key.text,
+          value: u.groups.value.text
+        }
+      )
+    ),
+    notes: map(filter(below, fn(u) => !_keyed(u)), fn(u) => _line(u, lines))
+  }
+)
+
+// The destination a day's places name: the last stop of a route such as
+// `New York | Oaxaca`.
+_place := fn(places) => let(
+  {
+    parts: filter(
+      map(split(replace(replace(places, "→", "|"), ">", "|"), "|"), fn(p) => trim(p)),
+      fn(p) => p != ""
+    )
+  },
+  if(length(parts) == 0, null, get(parts, length(parts) - 1))
+)
+
+// A day's calendar parts as written, before any year is carried forward.
+_parts := fn(r) => {month: _term(r, "month"), day: _number(r, "day"), year: _number(r, "year")}
+
+// One day and its stops, asking for the cached forecast where a dated day
+// with places ends.
+_day_value := fn(r, date, stops, lines) => let(
+  {
+    at: _line(r, lines),
+    parts: _parts(r),
+    places: if(_group(r, "places") == null || r.groups.places.text == "", null, r.groups.places.text),
+    place: if(places == null, null, _place(places))
+  },
+  {
+    line: at.line,
+    raw: at.raw,
+    line_range: at.line_range,
+    anchor: at.anchor,
+    month: parts.month,
+    day: parts.day,
+    year: parts.year,
+    weekday: _term(r, "weekday"),
+    weekday_range: get(_group(r, "weekday"), "range"),
+    date_range: r.groups.date.range,
+    places: places,
+    forecast: if(
+      date == null || place == null,
+      null,
+      {lookup: lookups.forecast_lookup(place, date), place: place}
+    ),
+    stops: stops
+  }
+)
+
+// Matches by the line of the match they are under.
+_under := fn(found) => object(
+  map(
+    group_by(filter(found, fn(r) => r.parent != null), fn(r) => text(r.parent)),
+    fn(g) => {key: g.key, value: g.rows}
+  )
+)
+
+// A stop as `entries` holds it beside tasks and events: when it is, on its
+// day's date, or its time alone when the day has none.
+_entry := fn(s, date, midnight) => {
+  kind: "stop",
+  line: s.line,
+  title: trip.label(s),
+  at: if(
+    date == null,
+    format_date(at_time(make_date(2000, 1, 1), s.time, midnight), "%H:%M"),
+    at_time(date, s.time, midnight)
+  ),
+  at_date: date,
+  due: null,
+  scheduled: null,
+  estimate: null,
+  parent: null,
+  tags: [],
+  blocked_by: [],
+  done: false,
+  leaf: true
+}
+
+// Pair each item with its zero-based position.
+_indexed := fn(items) => (
+  fold(items, [], fn(out, item) => concat(out, [{index: length(out), value: item}]))
+)
+
+// Build the day and stop records from what the recognizers found: each
+// day's calendar date decided once, by `itinerary_core.dates`.
+records := fn(ctx) => let(
+  {
+    found: ctx.document.recognized,
+    lines: ctx.document.lines,
+    matched: filter(found, fn(r) => r.recognizer == "day"),
+    under: _under(filter(found, fn(r) => r.recognizer != "day" && r.recognizer != "stop")),
+    stops: _under(filter(found, fn(r) => r.recognizer == "stop")),
+    dates: trip.dates(map(matched, _parts), ctx.today),
+    days: map(
+      _indexed(matched),
+      fn(d) => {
+        date: get(dates, d.index),
+        value: _day_value(
+          d.value,
+          get(dates, d.index),
+          map(coalesce(get(stops, text(d.value.line)), []), fn(s) => _stop_value(s, under, lines)),
+          lines
+        )
+      }
+    )
+  },
+  {
+    days: map(days, fn(d) => {kind: "day", line: d.value.line, value: d.value}),
+    stops: fold(
+      days,
+      [],
+      fn(out, d) => concat(out, map(d.value.stops, fn(s) => _entry(s, d.date, ctx.midnight)))
+    )
+  }
+)
+
+// Unwrap the day records `records` built, as the catalog holds them.
 days := fn(ctx) => (
   map(ctx.document.days, fn(d) => d.value)
 )
@@ -23,9 +448,32 @@ hovers := fn(ctx) => (
   trip.hovers(days(ctx), ctx.today)
 )
 
-// Validate itinerary dates and ordering through the shared library.
+// How to give a stop a kind: every kind's marker, then its name.
+_kind_hint := (
+  "; start the title with one of "
+  + join(map(_kinds, fn(k) => k.marker), " ")
+  + " ("
+  + join(map(_kinds, fn(k) => lower(k.name)), ", ")
+  + ")"
+)
+
+// Validate itinerary dates and ordering through the shared library, saying
+// how to give a stop without a kind one.
 diagnostics := fn(ctx) => (
-  trip.diagnostics(days(ctx), ctx.today)
+  map(
+    trip.diagnostics(days(ctx), ctx.today),
+    fn(i) => if(
+      i.code == "itinerary-kind",
+      {
+        range: i.range,
+        message: i.message + _kind_hint,
+        code: i.code,
+        severity: i.severity,
+        source: i.source
+      },
+      i
+    )
+  )
 )
 
 // Normalize stop lines and detail indentation.
@@ -36,4 +484,127 @@ format := fn(ctx) => (
 // Refresh relative dates only for documents with itinerary days.
 time_dependent := fn(ctx) => (
   length(ctx.document.days) > 0
+)
+
+// Where each day and stop ends: one past its last line, the lines under it
+// included, by its line.
+_ends := fn(ctx) => object(
+  map(
+    filter(ctx.document.recognized, fn(r) => r.recognizer == "day" || r.recognizer == "stop"),
+    fn(r) => {key: text(r.line), value: r.end_line}
+  )
+)
+
+// One outline entry for each day, named by its date and places, and one for
+// each stop under it, named by its title.
+symbols := fn(ctx) => let(
+  {
+    list: days(ctx),
+    ends: _ends(ctx),
+    dates: trip.dates(list, ctx.today)
+  },
+  fold(
+    _indexed(list),
+    [],
+    fn(out, d) => concat(
+      out,
+      [
+        {
+          name: format_date(make_date(2000, d.value.month, 1), "%B")
+          + " "
+          + source(number(d.value.day))
+          + if(d.value.places == null, "", " · " + d.value.places),
+          detail: source(number(length(d.value.stops)))
+          + " stops"
+          + if(
+              get(dates, d.index) == null,
+              "",
+              " · " + format_date(get(dates, d.index), "%A %Y-%m-%d")
+            ),
+          kind: "namespace",
+          line: d.value.line,
+          end_line: get(ends, text(d.value.line)),
+          selection: d.value.date_range
+        }
+      ],
+      map(
+        d.value.stops,
+        fn(s) => {
+          name: s.title,
+          detail: trip.time_text(s) + if(s.kind == null, "", " · " + s.kind.name),
+          kind: "event",
+          line: s.line,
+          end_line: get(ends, text(s.line)),
+          selection: s.title_range
+        }
+      )
+    )
+  )
+)
+
+// Whether text is letters alone, blanks around them aside.
+_letters := fn(t) => match_pattern(t, "^\\s*\\p{Alphabetic}*\\s*$") != null
+
+// Every detail key the recognizers under a stop know, each once, in the
+// order they are declared.
+_detail_keys := fold(
+  concat(_address.terms.key, _detail.terms.key),
+  [],
+  fn(out, k) => if(
+    length(filter(out, fn(o) => lower(o) == lower(get(k, 0)))) > 0,
+    out,
+    concat(out, [get(k, 0)])
+  )
+)
+
+// After a stop's time, offer the kinds of stop; at the start of a line
+// under a stop, offer the detail keys. Anywhere else is the editor's.
+completions := fn(ctx) => let(
+  {
+    row: ctx.position.line,
+    raw: coalesce(get(ctx.document.lines, row), ""),
+    at: if(ctx.position.character > length(raw), length(raw), ctx.position.character),
+    found: filter(ctx.document.recognized, fn(r) => r.line < row && row < r.end_line),
+    stop: get(
+      filter(ctx.document.recognized, fn(r) => r.recognizer == "stop" && r.line == row),
+      0
+    ),
+    title_start: if(
+      stop == null,
+      null,
+      stop.groups.time.range.end.character
+      + length(slice(raw, stop.groups.time.range.end.character, length(raw)))
+      - length(trim(slice(raw, stop.groups.time.range.end.character, length(raw)) + "."))
+      + 1
+    )
+  },
+  if(
+    length(filter(found, fn(r) => r.recognizer == "day")) == 0,
+    null,
+    if(
+      title_start != null && at >= title_start && _letters(slice(raw, title_start, at)),
+      map(
+        filter(
+          _kinds,
+          fn(k) => starts_with(lower(k.name), lower(trim(slice(raw, title_start, at))))
+        ),
+        fn(k) => {
+          label: k.marker + " " + k.name,
+          insert: k.marker + " " + k.name + " ",
+          detail: "itinerary stop",
+          kind: "event"
+        }
+      ),
+      if(
+        length(filter(found, fn(r) => r.recognizer == "stop")) > 0
+        && _letters(slice(raw, 0, at))
+        && !contains(slice(raw, at, length(raw)), ":"),
+        map(
+          filter(_detail_keys, fn(k) => starts_with(lower(k), lower(trim(slice(raw, 0, at))))),
+          fn(k) => {label: k + ":", insert: k + ": ", detail: "stop detail", kind: "property"}
+        ),
+        null
+      )
+    )
+  )
 )

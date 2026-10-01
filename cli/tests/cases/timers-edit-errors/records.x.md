@@ -1,9 +1,5 @@
-# Malformed timer records
+# Malformed timers
 
 [scalar] := stopwatch("scalar")
-[limit] := stopwatch("limit")
-[elapsed] := stopwatch("elapsed")
-[started] := stopwatch("started")
-[idle] := stopwatch("idle")
-[live] := stopwatch("live")
+[untagged] := stopwatch("untagged")
 [fine] := stopwatch()

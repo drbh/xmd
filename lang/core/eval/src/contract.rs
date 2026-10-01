@@ -8,11 +8,11 @@
 //! registry links, and `book/reference/contract.md` is generated from it.
 //!
 //! A call runs through a [`Caller`]: inside an evaluation (the [`Engine`],
-//! sharing its memo, clock and budget), against a registry snapshot
-//! ([`Snapshot`]), or on one module a value holds directly ([`Held`]).
+//! sharing its memo, clock and budget), or against a registry snapshot
+//! ([`Snapshot`]).
 use crate::engine::Engine;
 use chrono::{DateTime, FixedOffset};
-use modules::{Module, ModuleRegistry};
+use modules::ModuleRegistry;
 use std::path::PathBuf;
 use values::{EvalResult, Value};
 
@@ -42,10 +42,6 @@ pub struct Contract {
     /// Whether the module must define it. An optional function has a native
     /// fallback when it is absent.
     pub required: bool,
-    /// Whether the call runs at the request's clock. One without a clock is
-    /// handed every date it needs as an argument, and `now()` or `today()`
-    /// inside it fails rather than answering 1970 ([`modules::no_clock`]).
-    pub clock: bool,
     pub doc: &'static str,
 }
 
@@ -64,7 +60,6 @@ const fn entry(
         returns,
         role,
         required: true,
-        clock: true,
         doc,
     }
 }
@@ -72,14 +67,6 @@ const fn entry(
 const fn optional(contract: Contract) -> Contract {
     Contract {
         required: false,
-        ..contract
-    }
-}
-
-/// An entry native code calls without a clock: see [`Contract::clock`].
-const fn clockless(contract: Contract) -> Contract {
-    Contract {
-        clock: false,
         ..contract
     }
 }
@@ -134,22 +121,6 @@ pub static CONTRACT: &[Contract] = &[
         "The progress words a named heading's hover shows for its tasks.",
     ),
     entry(
-        "task",
-        "hover",
-        &["task: tasks record"],
-        "Markdown",
-        presents("the task's title"),
-        "A task's hover: its state, blockers, estimate, timer and subtasks, from its `tasks` record as queries and feature modules see it.",
-    ),
-    entry(
-        "task",
-        "toggle",
-        &["recurring: Boolean", "done: Boolean"],
-        "Text",
-        presents("`toggle`"),
-        "The title of the control that completes, reopens or advances a task.",
-    ),
-    entry(
         "resource",
         "label",
         &["resource: resource record"],
@@ -172,86 +143,6 @@ pub static CONTRACT: &[Contract] = &[
         "Text",
         presents("the resource's target"),
         "The title of the control that opens a resource.",
-    ),
-    clockless(entry(
-        "itinerary_core",
-        "dates",
-        &["days: List", "today: Date"],
-        "List of Date or Null",
-        Decides,
-        "The calendar date of each itinerary day, inferring years and steps.",
-    )),
-    clockless(entry(
-        "itinerary_core",
-        "time_text",
-        &["stop: stop record"],
-        "Text",
-        presents("the time as `HH:MM`"),
-        "A stop's time as written in its label.",
-    )),
-    clockless(entry(
-        "itinerary_core",
-        "label",
-        &["stop: stop record"],
-        "Text",
-        presents("the stop's title"),
-        "A stop's inline label.",
-    )),
-    entry(
-        "timer",
-        "create",
-        &["name: Text", "args: List"],
-        "timer record",
-        Decides,
-        "A new timer from `countdown(...)` or `stopwatch(...)` and its arguments.",
-    ),
-    optional(entry(
-        "timer",
-        "time_dependent",
-        &["timer: timer record"],
-        "Boolean",
-        Decides,
-        "Whether the timer's display changes with the clock; without it, the module's `live` flag.",
-    )),
-    entry(
-        "timer",
-        "state",
-        &["timer: timer record"],
-        "Text",
-        Decides,
-        "The timer's state: idle, running, paused or done.",
-    ),
-    entry(
-        "timer",
-        "display",
-        &["timer: timer record"],
-        "Text",
-        presents("nothing"),
-        "The timer's inline display.",
-    ),
-    entry(
-        "timer",
-        "hover",
-        &["timer: timer record"],
-        "Markdown",
-        presents("nothing"),
-        "The timer's hover.",
-    ),
-    entry(
-        "timer",
-        "property",
-        &["timer: timer record", "name: Text"],
-        "Value",
-        Decides,
-        "A property a note reads from the timer, such as `.remaining`.",
-    ),
-    entry(
-        "timer",
-        "transition",
-        &["timer: timer record", "action: Text", "original: Text"],
-        "Text",
-        Decides,
-        "The timer's new source expression after a start, pause, resume or reset.",
     ),
     entry(
         "plan",
@@ -301,6 +192,18 @@ pub static CONTRACT: &[Contract] = &[
         presents("`write decisions`"),
         "The title of the code action that writes a plan's decisions.",
     ),
+    optional(entry(
+        "prelude",
+        "lookup_display",
+        &[
+            "kind: Text",
+            "key: List of one-field records",
+            "value: Value",
+        ],
+        "Text",
+        presents("the cached value"),
+        "How the cached value of a lookup a module's record asked for reads, or why it cannot be read.",
+    )),
 ];
 
 /// Every module id the contract names, once each, whatever order its
@@ -320,17 +223,11 @@ pub(crate) fn contract(module: &str, function: &str) -> Option<&'static Contract
 /// Where a contract call runs.
 pub trait Caller {
     fn call_stdlib(&mut self, module: &str, function: &str, args: Vec<Value>) -> EvalResult<Value>;
-    /// Whether the call runs at a real clock rather than
-    /// [`modules::no_clock`].
-    fn has_clock(&self) -> bool;
 }
 
 impl Caller for Engine<'_> {
     fn call_stdlib(&mut self, module: &str, function: &str, args: Vec<Value>) -> EvalResult<Value> {
         self.call_module(module, function, args)
-    }
-    fn has_clock(&self) -> bool {
-        Engine::has_clock(self)
     }
 }
 
@@ -339,41 +236,9 @@ pub struct Snapshot<'a> {
     pub modules: &'a ModuleRegistry,
     pub now: DateTime<FixedOffset>,
 }
-impl<'a> Snapshot<'a> {
-    /// The registry with no clock, for the entries [`CONTRACT`] marks as
-    /// called without one.
-    pub(crate) fn clockless(modules: &'a ModuleRegistry) -> Self {
-        Self {
-            modules,
-            now: modules::no_clock(),
-        }
-    }
-}
 impl Caller for Snapshot<'_> {
     fn call_stdlib(&mut self, module: &str, function: &str, args: Vec<Value>) -> EvalResult<Value> {
         self.modules.call(module, function, args, self.now)
-    }
-    fn has_clock(&self) -> bool {
-        modules::has_clock(self.now)
-    }
-}
-
-/// One module a value holds on to, such as the implementation a timer was
-/// created with.
-pub(crate) struct Held<'a> {
-    pub(crate) module: &'a Module,
-    pub(crate) now: DateTime<FixedOffset>,
-}
-impl Caller for Held<'_> {
-    fn call_stdlib(&mut self, module: &str, function: &str, args: Vec<Value>) -> EvalResult<Value> {
-        debug_assert_eq!(
-            module, self.module.id,
-            "a held module answers only for itself"
-        );
-        self.module.call(function, args, self.now)
-    }
-    fn has_clock(&self) -> bool {
-        modules::has_clock(self.now)
     }
 }
 
@@ -394,10 +259,6 @@ fn call(
         entry.map(|c| c.params.len()),
         Some(args.len()),
         "{module}.{function} takes the arguments its contract lists"
-    );
-    debug_assert!(
-        entry.is_none_or(|c| !c.clock || caller.has_clock()),
-        "{module}.{function} runs at the request's clock, so its caller needs one"
     );
     caller.call_stdlib(module, function, args)
 }
@@ -548,6 +409,24 @@ pub mod format {
     }
 }
 
+pub mod prelude {
+    use super::*;
+    use values::{Lookup, LookupKey};
+    /// How the cached `lookup` of `key` reads where a module's record asked
+    /// for it, or why it cannot be read.
+    pub fn lookup_display(caller: &mut impl Caller, key: &LookupKey, lookup: &Lookup) -> Presented {
+        let value = values::from_json(&lookup.value);
+        let fallback = value.display();
+        present(
+            caller,
+            ("prelude", "lookup_display"),
+            vec![Value::Text(key.kind().into()), key.key(), value],
+            display,
+            fallback,
+        )
+    }
+}
+
 pub mod today {
     use super::*;
     /// The today page for `day`, from its agenda entries. The page is the
@@ -576,21 +455,6 @@ pub mod task {
             vec![Value::Count(done), Value::Count(total)],
             display,
             format!("{done}/{total}"),
-        )
-    }
-    /// A task's hover, from its task record.
-    pub fn hover(caller: &mut impl Caller, task: Value) -> Presented {
-        let fallback = field(&task, "title");
-        present(caller, ("task", "hover"), vec![task], display, fallback)
-    }
-    /// The title of the control that completes, reopens or advances a task.
-    pub fn toggle(caller: &mut impl Caller, recurring: bool, done: bool) -> Presented {
-        present(
-            caller,
-            ("task", "toggle"),
-            vec![Value::Bool(recurring), Value::Bool(done)],
-            display,
-            "toggle".into(),
         )
     }
 }
@@ -629,146 +493,6 @@ pub mod resource {
             display,
             fallback,
         )
-    }
-}
-
-pub(crate) mod itinerary_core {
-    use super::*;
-    /// The calendar date of each day, from its calendar parts; `None` for a
-    /// day the module gives no date.
-    pub(crate) fn dates(
-        caller: &mut impl Caller,
-        days: Vec<Value>,
-        today: chrono::NaiveDate,
-    ) -> EvalResult<Vec<Option<chrono::NaiveDate>>> {
-        let result = call(
-            caller,
-            "itinerary_core",
-            "dates",
-            vec![Value::list(days), Value::Date(today)],
-        )?;
-        Ok(values::list(&result)?
-            .iter()
-            .map(|v| match v {
-                Value::Date(d) => Some(*d),
-                _ => None,
-            })
-            .collect())
-    }
-    /// A stop's time as written in its label, from its stop record.
-    pub(crate) fn time_text(caller: &mut impl Caller, stop: Value) -> Presented {
-        let fallback = match &stop {
-            Value::Record(fields) => match fields.get("time") {
-                Some(Value::Duration(seconds)) => {
-                    let minutes = seconds / 60;
-                    format!("{:02}:{:02}", minutes / 60, minutes % 60)
-                }
-                _ => String::new(),
-            },
-            _ => String::new(),
-        };
-        present(
-            caller,
-            ("itinerary_core", "time_text"),
-            vec![stop],
-            display,
-            fallback,
-        )
-    }
-    /// A stop's inline label, from its stop record.
-    pub(crate) fn label(caller: &mut impl Caller, stop: Value) -> Presented {
-        let fallback = field(&stop, "title");
-        present(
-            caller,
-            ("itinerary_core", "label"),
-            vec![stop],
-            display,
-            fallback,
-        )
-    }
-}
-
-pub(crate) mod timer {
-    use super::*;
-    /// A new timer record from `countdown(...)` or `stopwatch(...)` and its
-    /// arguments.
-    pub(crate) fn create(
-        caller: &mut impl Caller,
-        name: &str,
-        args: Vec<Value>,
-    ) -> EvalResult<Value> {
-        call(
-            caller,
-            "timer",
-            "create",
-            vec![Value::Text(name.into()), Value::list(args)],
-        )
-    }
-    /// Whether the timer's display changes with the clock. Optional: callers
-    /// fall back to the module's `live` flag when it is absent.
-    pub(crate) fn time_dependent(caller: &mut impl Caller, timer: Value) -> EvalResult<bool> {
-        match call(caller, "timer", "time_dependent", vec![timer])? {
-            Value::Bool(live) => Ok(live),
-            _ => Err(values::EvalError::Message(
-                "timer.time_dependent must return a boolean".into(),
-            )),
-        }
-    }
-    /// The timer's state as the module names it: idle, running, paused or done.
-    pub(crate) fn state(caller: &mut impl Caller, timer: Value) -> EvalResult<String> {
-        text(call(caller, "timer", "state", vec![timer]))
-    }
-    /// The timer's inline display.
-    pub(crate) fn display(caller: &mut impl Caller, timer: Value) -> Presented {
-        present(
-            caller,
-            ("timer", "display"),
-            vec![timer],
-            super::display,
-            String::new(),
-        )
-    }
-    /// The timer's hover.
-    pub(crate) fn hover(caller: &mut impl Caller, timer: Value) -> Presented {
-        present(
-            caller,
-            ("timer", "hover"),
-            vec![timer],
-            super::display,
-            String::new(),
-        )
-    }
-    /// A property a note reads from the timer, such as `.remaining`.
-    pub(crate) fn property(
-        caller: &mut impl Caller,
-        timer: Value,
-        name: &str,
-    ) -> EvalResult<Value> {
-        call(
-            caller,
-            "timer",
-            "property",
-            vec![timer, Value::Text(name.into())],
-        )
-    }
-    /// The timer's new source expression after `action`, from the first
-    /// argument it was `original`ly declared with.
-    pub(crate) fn transition(
-        caller: &mut impl Caller,
-        timer: Value,
-        action: &str,
-        original: &str,
-    ) -> EvalResult<String> {
-        text(call(
-            caller,
-            "timer",
-            "transition",
-            vec![
-                timer,
-                Value::Text(action.into()),
-                Value::Text(original.into()),
-            ],
-        ))
     }
 }
 

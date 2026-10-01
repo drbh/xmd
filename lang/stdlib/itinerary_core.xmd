@@ -1,21 +1,6 @@
 // Calendar policy and presentation use shared date and collection primitives.
 module := {api: 1, id: "itinerary_core", kind: "library", inputs: [], imports: ["format"], exports: []}
 fmt := import("format")
-_weekdays := ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-_months := [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December"
-]
 
 // Use the first explicit year, falling back to the request's year.
 _initial_year := fn(days, day) => (
@@ -343,17 +328,13 @@ _issue := fn(range, message, code, severity) => (
   {range: range, message: message, code: code, severity: severity, source: "xmd"}
 )
 
-// Warn about unknown kinds and report times that go backwards.
+// Warn about stops without a kind, which the feature module words, and
+// report times that go backwards.
 _stop_issues := fn(stops) => (
   concat(
     map(
       filter(stops, fn(s) => s.kind == null),
-      fn(s) => _issue(
-        s.title_range,
-        "Stop has no kind; start the title with one of > < ~ @ * + ? (depart, arrive, transit, stay, meal, visit, explore)",
-        "itinerary-kind",
-        2
-      )
+      fn(s) => _issue(s.title_range, "Stop has no kind", "itinerary-kind", 2)
     ),
     fold(
       _indexed(stops),
@@ -386,7 +367,7 @@ _day_issues := fn(d, date, previous) => (
     [
       _issue(
         d.date_range,
-        get(_months, d.month - 1) + " " + source(number(d.day)) + " is not a valid date",
+        format_date(make_date(2000, d.month, 1), "%B") + " " + source(number(d.day)) + " is not a valid date",
         "itinerary",
         1
       )
@@ -401,7 +382,7 @@ _day_issues := fn(d, date, previous) => (
             + " is a "
             + format_date(date, "%A")
             + ", not a "
-            + get(_weekdays, d.weekday),
+            + format_date(make_date(2024, 1, 1 + d.weekday), "%A"),
             "itinerary",
             1
           )

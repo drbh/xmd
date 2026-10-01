@@ -28,7 +28,7 @@ test("resolved HTML matches inline text, editor colors, links and diagnostics wi
     await expect(page.locator(".t-variable.declaration").filter({ hasText: "remaining" })).toHaveCSS("font-weight", "700");
     await expect(page.locator(".inlay").filter({ hasText: "= $7" })).toHaveCSS("background-color", "rgb(45, 49, 56)");
     await expect(page.locator(".diagnostic.error").filter({ hasText: "missing" })).toHaveCSS("text-decoration-style", "wavy");
-    await expect(page.locator(".t-xmdTaskDone").filter({ hasText: "Done" })).toHaveCSS("text-decoration-line", "line-through");
+    await expect(page.locator(".t-xmdFinished").filter({ hasText: "Done" })).toHaveCSS("text-decoration-line", "line-through");
     expect(await page.locator('a[href="https://example.com/?a=1&b=2"]').count()).toBeGreaterThan(0);
     await expect(page.locator("script, img, link, iframe")).toHaveCount(0);
     expect(await page.evaluate(() => globalThis.pwned)).toBeUndefined();

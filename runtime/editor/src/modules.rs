@@ -3,48 +3,25 @@
 //! position and edit it proposes.
 use crate::{
     commands::{
-        self, Action, ActionProvider, Capabilities, CommandId, NOT_MINE, Prepared, Proposal,
-        SOURCE_CHANGED,
+        self, Action, ActionProvider, Capabilities, CommandId, Control, NOT_MINE, Prepared,
+        Proposal, SOURCE_CHANGED,
     },
     inlays::{InlayContext, InlaySink},
 };
-use catalog::View;
-use chrono::{DateTime, FixedOffset, NaiveDate};
+use chrono::{DateTime, FixedOffset};
 use lang::eval::engine::{Engine, Value};
-use lang::eval::modules::{Collection, Hook, Module, ModuleKind, from_json, json};
-use lang::eval::{ToValue, record};
+use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
+use lang::eval::{EvalError, ToValue, record};
 use lang::model::{Document, LineIndex};
 use lsp_types::{
-    Command, Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
+    Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
     NumberOrString, Position, Range, TextEdit,
 };
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
-
-record! {
-    /// The note a hook is looking at, with the record collections it declared
-    /// under their own names.
-    #[derive(Clone)]
-    struct DocumentInput {
-        ..collections: BTreeMap<String, Value>,
-        path: String,
-        uri: String,
-        text: String,
-        lines: Vec<String>,
-    }
-}
-
-record! {
-    /// Which module is asking, and at what revision.
-    #[derive(Clone)]
-    struct ModuleInput {
-        id: String,
-        revision: String,
-    }
-}
 
 record! {
     /// What the host can do with an action the module proposes.
@@ -59,18 +36,16 @@ record! {
 /// field by field at each call site.
 #[derive(Clone)]
 pub(crate) struct HookInput {
-    today: NaiveDate,
-    document: DocumentInput,
-    module: ModuleInput,
+    /// What every hook shares: `today`, `midnight`, `document`, `module`.
+    shared: BTreeMap<String, Value>,
     range: Option<Range>,
     capabilities: Option<Capabilities>,
+    position: Option<Position>,
 }
 impl HookInput {
-    const TODAY: &'static str = "today";
-    const DOCUMENT: &'static str = "document";
-    const MODULE: &'static str = "module";
     const RANGE: &'static str = "range";
     const CAPABILITIES: &'static str = "capabilities";
+    const POSITION: &'static str = "position";
     fn with_range(mut self, range: Range) -> Self {
         self.range = Some(range);
         self
@@ -79,15 +54,15 @@ impl HookInput {
         self.capabilities = Some(capabilities);
         self
     }
+    fn with_position(mut self, position: Position) -> Self {
+        self.position = Some(position);
+        self
+    }
 }
 impl ToValue for HookInput {
     fn to_value(&self) -> Value {
-        let mut fields = BTreeMap::from([
-            (Self::TODAY.into(), self.today.to_value()),
-            (Self::DOCUMENT.into(), self.document.to_value()),
-            (Self::MODULE.into(), self.module.to_value()),
-        ]);
-        // The optional two are absent, not null, when the call has no use
+        let mut fields = self.shared.clone();
+        // The optional ones are absent, not null, when the call has no use
         // for them: a hook tells them apart with `has`.
         if let Some(range) = self.range {
             fields.insert(Self::RANGE.into(), from_json(&serde_json::json!(range)));
@@ -100,6 +75,12 @@ impl ToValue for HookInput {
                     views: capabilities.views,
                 }
                 .to_value(),
+            );
+        }
+        if let Some(position) = self.position {
+            fields.insert(
+                Self::POSITION.into(),
+                from_json(&serde_json::json!(position)),
             );
         }
         Value::record(fields)
@@ -151,7 +132,7 @@ impl TryFrom<(&Bounds<'_>, Value)> for InlayHint {
 
 /// Decode one action a module proposed for a line, before its capabilities
 /// and source are checked.
-fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Proposal, String> {
+fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Control, String> {
     {
         let Value::Record(fields) = value else {
             return Err("Each action must be a record".into());
@@ -169,10 +150,18 @@ fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Proposal, String> {
         let action: Action =
             serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
                 .map_err(|e| e.to_string())?;
-        Ok(Proposal {
-            line,
-            title: title.clone(),
-            action,
+        let disabled = match fields.get("disabled") {
+            None | Some(Value::Null) => None,
+            Some(Value::Text(reason)) => Some(reason.clone()),
+            Some(_) => return Err("Action disabled must be text or null".into()),
+        };
+        Ok(Control {
+            proposal: Proposal {
+                line,
+                title: title.clone(),
+                action,
+            },
+            disabled,
         })
     }
 }
@@ -181,6 +170,8 @@ fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Proposal, String> {
 struct HoverItem {
     range: Range,
     contents: String,
+    /// Shown only where the editor's own hover finds nothing more specific.
+    fallback: bool,
 }
 impl TryFrom<serde_json::Value> for HoverItem {
     type Error = String;
@@ -190,105 +181,34 @@ impl TryFrom<serde_json::Value> for HoverItem {
         let contents = item["contents"]
             .as_str()
             .ok_or("Hover contents must be text")?;
+        let fallback = match &item["fallback"] {
+            serde_json::Value::Null => false,
+            serde_json::Value::Bool(fallback) => *fallback,
+            _ => return Err("Hover fallback must be true or false".into()),
+        };
         Ok(Self {
             range,
             contents: contents.to_owned(),
+            fallback,
         })
     }
 }
 
-/// What `module`'s hooks are handed for the note at `path`. Each declared
-/// collection comes from the request's shared records, narrowed to the fields
-/// the module asked for, and `engine` is marked with whatever clock reading
-/// they took.
+/// What `module`'s hooks are handed for the note at `path`: the context
+/// every hook shares, read from the request's shared records, with `engine`
+/// marked by whatever clock reading they took.
 pub(crate) fn input(
     module: &Module,
     request: &crate::Request<'_>,
     engine: &mut Engine<'_>,
     path: &Path,
 ) -> Result<HookInput, String> {
-    let doc = &engine.workspace().documents()[path];
-    let mut document = DocumentInput {
-        path: path.to_string_lossy().into(),
-        uri: lang::common::file_url(path)?.into(),
-        text: doc.text.clone(),
-        lines: doc.text.lines().map(str::to_owned).collect(),
-        collections: BTreeMap::new(),
-    };
-    for collection in &module.inputs {
-        let view = match module.fields.get(collection) {
-            Some(fields) => View::Fields(fields),
-            None => View::Full,
-        };
-        let read = |engine: &mut Engine<'_>, view| {
-            request
-                .records
-                .view(engine, Some(path), *collection, view, |request, path| {
-                    analysis::collect_native(request, path, false)
-                })
-        };
-        let mut values = read(engine, view)?;
-        if *collection == Collection::Recognized {
-            // A module sees only its own recognizers' matches. Which module
-            // made a match is read off the full records, which a narrowed
-            // view may leave out.
-            let full = read(engine, View::Full)?;
-            values = own(&values, &full, &module.id);
-        }
-        if *collection == Collection::Values {
-            // Preserve the original API's alias; all new fields come from the catalog.
-            let mut definitions = values.clone();
-            if let Value::List(items) = &mut definitions {
-                for item in Arc::make_mut(items) {
-                    if let Value::Record(fields) = item {
-                        let error = match fields.get("errors") {
-                            Some(Value::List(errors)) => {
-                                errors.first().cloned().unwrap_or(Value::Null)
-                            }
-                            _ => Value::Null,
-                        };
-                        Arc::make_mut(fields).insert("error".into(), error);
-                    }
-                }
-            }
-            document
-                .collections
-                .insert("definitions".into(), definitions);
-        }
-        document
-            .collections
-            .insert(<&str>::from(collection).into(), values);
-    }
     Ok(HookInput {
-        today: engine.today(),
-        document,
-        module: ModuleInput {
-            id: module.id.clone(),
-            revision: module.revision(),
-        },
+        shared: catalog::feature_context(&request.records, engine, module, path, false)?,
         range: None,
         capabilities: None,
+        position: None,
     })
-}
-
-/// The items of `values` whose record in `full`, the same list unnarrowed,
-/// was made by module `id`.
-fn own(values: &Value, full: &Value, id: &str) -> Value {
-    let (Value::List(values), Value::List(full)) = (values, full) else {
-        return values.clone();
-    };
-    let mine = |record: &Value| {
-        matches!(record, Value::Record(fields)
-            if matches!(fields.get("module"), Some(Value::Text(module)) if module == id))
-    };
-    Value::list(
-        values
-            .iter()
-            .zip(full.iter())
-            .filter(|(_, record)| mine(record))
-            .map(|(value, _)| value.clone())
-            .collect(),
-    )
 }
 
 /// The note a hook's items are checked against, measured once per call
@@ -321,18 +241,103 @@ impl<'a> Bounds<'a> {
     }
 }
 
+/// What feature modules' hooks answered, for a later call with the same
+/// input at a clock the answer still holds for. Module code is pure but for
+/// the clock, so an answer holds for as long as the clock reads the same to
+/// it: all day (the input carries the date), or — when the call read the clock
+/// more finely, as [`lang::eval::reads_clock`] reports — only at that
+/// instant. The module registry is the workspace's, so an owner keeps these
+/// only for one workspace revision.
+#[derive(Default)]
+pub(crate) struct Answers {
+    answers: Mutex<Vec<Answer>>,
+}
+struct Answer {
+    module: String,
+    hook: Hook,
+    input: Value,
+    now: DateTime<FixedOffset>,
+    exact: bool,
+    result: lang::eval::EvalResult<Value>,
+}
+impl Answer {
+    fn holds_at(&self, now: DateTime<FixedOffset>) -> bool {
+        self.now.offset() == now.offset()
+            && if self.exact {
+                self.now == now
+            } else {
+                self.now.date_naive() == now.date_naive()
+            }
+    }
+}
+/// How many answers a request's owner keeps: enough for every hook of every
+/// feature module over the notes open at once.
+const ANSWERS: usize = 256;
+impl Answers {
+    /// `module`'s answer to `hook` with `input` at `now`.
+    fn call(
+        &self,
+        module: &Module,
+        hook: Hook,
+        input: &HookInput,
+        now: DateTime<FixedOffset>,
+    ) -> lang::eval::EvalResult<Value> {
+        let input = input.to_value();
+        let lock = || {
+            self.answers
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+        };
+        if let Some(answer) = lock().iter().find(|answer| {
+            answer.module == module.id
+                && answer.hook == hook
+                && answer.holds_at(now)
+                && answer.input == input
+        }) {
+            return answer.result.clone();
+        }
+        let (result, exact) =
+            lang::eval::reads_clock(|| module.call(hook, vec![input.clone()], now));
+        let mut answers = lock();
+        answers.retain(|answer| answer.holds_at(now));
+        if answers.len() >= ANSWERS {
+            answers.remove(0);
+        }
+        answers.push(Answer {
+            module: module.id.clone(),
+            hook,
+            input,
+            now,
+            exact,
+            result: result.clone(),
+        });
+        result
+    }
+}
+
+#[cfg(test)]
+impl Answers {
+    /// The clock each kept answer was given at.
+    pub(crate) fn clocks(&self) -> Vec<DateTime<FixedOffset>> {
+        let answers = self.answers.lock().unwrap();
+        answers.iter().map(|answer| answer.now).collect()
+    }
+}
+
 /// Call one hook with `input` and decode each item of the list it returns.
 fn hook_items<T>(
+    request: &crate::Request<'_>,
     module: &Module,
     hook: Hook,
     input: &HookInput,
-    now: DateTime<FixedOffset>,
     decode: impl FnMut(Value) -> Result<T, String>,
 ) -> Result<Vec<T>, String> {
-    let Value::List(items) = module.call(hook, vec![input.to_value()], now)? else {
+    let answer = request.answers.call(module, hook, input, request.now())?;
+    let Value::List(items) = answer else {
         return Err(format!("{hook} must return a list"));
     };
     Arc::unwrap_or_clone(items)
+        .into_inner()
         .into_iter()
         .map(decode)
         .collect()
@@ -350,7 +355,7 @@ fn json_items<T>(
         return Ok(vec![]);
     }
     let input = input(module, request, &mut request.engine(), path)?;
-    hook_items(module, hook, &input, request.now(), |item| Ok(json(&item)?))?
+    hook_items(request, module, hook, &input, |item| Ok(json(&item)?))?
         .into_iter()
         .map(decode)
         .collect()
@@ -365,9 +370,12 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
     let document = context.document;
     let result = input(module, context.request, context.engine, context.path).and_then(|input| {
         let input = input.with_range(context.range);
-        let now = context.engine.now();
+        let request = context.request;
         if module.has(Hook::TimeDependent) {
-            if module.call(Hook::TimeDependent, vec![input.to_value()], now)? == Value::Bool(true) {
+            let answer = request
+                .answers
+                .call(module, Hook::TimeDependent, &input, request.now());
+            if answer? == Value::Bool(true) {
                 context.mark_time_dependent();
             }
         } else if module.live {
@@ -379,7 +387,7 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
             return Ok(vec![]);
         }
         let bounds = Bounds::new(document);
-        hook_items(module, Hook::Collect, &input, now, |hint| {
+        hook_items(request, module, Hook::Collect, &input, |hint| {
             InlayHint::try_from((&bounds, hint))
         })
     });
@@ -399,41 +407,43 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
 /// Actions are proposals, each for one line of the note, gathered in one call.
 /// Each is checked with `check` (its owner's preparation) before it is
 /// exposed, and a line's controls stand or fall together; the host repeats
-/// validation against the execution snapshot. Gives each line's controls, or
-/// why that line's are withheld; `Err` when the hook itself fails.
+/// validation against the execution snapshot. A control the module says is
+/// disabled is kept with its reason, unchecked. Gives each line's controls,
+/// or why that line's are withheld; `Err` when the hook itself fails.
 pub(crate) fn controls(
     module: &Module,
     request: &crate::Request<'_>,
     path: &Path,
     capabilities: Capabilities,
     check: &dyn Fn(&Action) -> Result<(), String>,
-) -> Result<BTreeMap<usize, Result<Vec<Command>, String>>, String> {
+) -> Result<BTreeMap<usize, Result<Vec<Control>, String>>, String> {
     if !module.has(Hook::Actions) {
         return Ok(BTreeMap::new());
     }
     let bounds = Bounds::of(request, path);
     let proposals = input(module, request, &mut request.engine(), path).and_then(|input| {
         let input = input.with_capabilities(capabilities);
-        hook_items(module, Hook::Actions, &input, request.now(), |item| {
+        hook_items(request, module, Hook::Actions, &input, |item| {
             proposal(&bounds, item)
         })
     })?;
-    let mut lines: BTreeMap<usize, Result<Vec<Command>, String>> = BTreeMap::new();
-    for Proposal {
-        line,
-        title,
-        action,
-    } in proposals
-    {
-        let entry = lines.entry(line).or_insert_with(|| Ok(vec![]));
-        let Ok(commands) = entry else {
+    let mut lines: BTreeMap<usize, Result<Vec<Control>, String>> = BTreeMap::new();
+    for control in proposals {
+        let entry = lines
+            .entry(control.proposal.line)
+            .or_insert_with(|| Ok(vec![]));
+        let Ok(kept) = entry else {
             continue;
         };
-        if !capabilities.supports(&action) {
+        if !capabilities.supports(&control.proposal.action) {
             continue;
         }
-        match check(&action) {
-            Ok(()) => commands.push(action.command(title)),
+        if control.disabled.is_some() {
+            kept.push(control);
+            continue;
+        }
+        match check(&control.proposal.action) {
+            Ok(()) => kept.push(control),
             Err(error) => *entry = Err(error),
         }
     }
@@ -445,7 +455,7 @@ pub(crate) fn controls(
 /// a warning where the controls would be.
 pub(crate) fn control_problems(
     module: &Module,
-    controls: Result<BTreeMap<usize, Result<Vec<Command>, String>>, String>,
+    controls: Result<BTreeMap<usize, Result<Vec<Control>, String>>, String>,
 ) -> Vec<Diagnostic> {
     let warning = |range: Range, message: String| Diagnostic {
         range,
@@ -497,15 +507,25 @@ pub(crate) fn diagnostics(
         }]
     })
 }
+/// The module's hover at `at`, handed in as `ctx.position`: one it words
+/// first, or with `fallback`, one it words for where the editor's own hover
+/// finds nothing more specific.
 pub(crate) fn hover(
     module: &Module,
     request: &crate::Request<'_>,
     path: &Path,
     at: Position,
+    fallback: bool,
 ) -> Option<Hover> {
+    if !module.has(Hook::Hovers) {
+        return None;
+    }
+    let input = input(module, request, &mut request.engine(), path)
+        .ok()?
+        .with_position(at);
     let mut bounds = None;
-    json_items(module, request, path, Hook::Hovers, |item| {
-        let hover = HoverItem::try_from(item)?;
+    hook_items(request, module, Hook::Hovers, &input, |item| {
+        let hover = HoverItem::try_from(json(&item)?)?;
         bounds
             .get_or_insert_with(|| Bounds::of(request, path))
             .validate(hover.range)?;
@@ -513,7 +533,7 @@ pub(crate) fn hover(
     })
     .ok()?
     .into_iter()
-    .find(|hover| at >= hover.range.start && at <= hover.range.end)
+    .find(|hover| hover.fallback == fallback && at >= hover.range.start && at <= hover.range.end)
     .map(|hover| Hover {
         range: Some(hover.range),
         contents: HoverContents::Markup(MarkupContent {
@@ -522,14 +542,168 @@ pub(crate) fn hover(
         }),
     })
 }
+/// The outline entries a module adds, each checked against the note.
+pub(crate) fn symbols(
+    module: &Module,
+    request: &crate::Request<'_>,
+    path: &Path,
+) -> Vec<analysis::Outlined> {
+    let bounds = Bounds::of(request, path);
+    json_items(module, request, path, Hook::Symbols, |item| {
+        let line = |key: &str| item[key].as_u64().and_then(|n| usize::try_from(n).ok());
+        let row = line("line")
+            .filter(|row| *row < bounds.lines)
+            .ok_or("A symbol needs a line within the note")?;
+        let selection: Range =
+            serde_json::from_value(item["selection"].clone()).map_err(|e| e.to_string())?;
+        bounds.validate(selection)?;
+        let text = |key: &str| item[key].as_str().map(str::to_owned);
+        Ok(analysis::Outlined {
+            name: text("name").ok_or("A symbol's name must be text")?,
+            detail: text("detail").unwrap_or_default(),
+            kind: match text("kind") {
+                None => lsp_types::SymbolKind::NAMESPACE,
+                Some(kind) => symbol_kind(&kind).ok_or(format!("Unknown symbol kind '{kind}'"))?,
+            },
+            line: row,
+            end_line: line("end_line").unwrap_or(row + 1),
+            selection,
+        })
+    })
+    .unwrap_or_default()
+}
+/// An LSP symbol kind by its snake-case name.
+fn symbol_kind(name: &str) -> Option<lsp_types::SymbolKind> {
+    use lsp_types::SymbolKind as K;
+    Some(match name {
+        "file" => K::FILE,
+        "module" => K::MODULE,
+        "namespace" => K::NAMESPACE,
+        "package" => K::PACKAGE,
+        "class" => K::CLASS,
+        "method" => K::METHOD,
+        "property" => K::PROPERTY,
+        "field" => K::FIELD,
+        "constructor" => K::CONSTRUCTOR,
+        "enum" => K::ENUM,
+        "interface" => K::INTERFACE,
+        "function" => K::FUNCTION,
+        "variable" => K::VARIABLE,
+        "constant" => K::CONSTANT,
+        "string" => K::STRING,
+        "number" => K::NUMBER,
+        "boolean" => K::BOOLEAN,
+        "array" => K::ARRAY,
+        "object" => K::OBJECT,
+        "key" => K::KEY,
+        "null" => K::NULL,
+        "enum_member" => K::ENUM_MEMBER,
+        "struct" => K::STRUCT,
+        "event" => K::EVENT,
+        "operator" => K::OPERATOR,
+        "type_parameter" => K::TYPE_PARAMETER,
+        _ => return None,
+    })
+}
+/// One completion a module offers, before it is given the word it replaces.
+pub(crate) struct Offered {
+    pub(crate) label: String,
+    pub(crate) insert: String,
+    pub(crate) detail: Option<String>,
+    pub(crate) kind: Option<lsp_types::CompletionItemKind>,
+}
+/// What a module offers at `position`: `None` when it leaves the position
+/// to the editor, or fails.
+pub(crate) fn completions(
+    module: &Module,
+    request: &crate::Request<'_>,
+    path: &Path,
+    position: Position,
+) -> Option<Vec<Offered>> {
+    if !module.has(Hook::Completions) {
+        return None;
+    }
+    let input = input(module, request, &mut request.engine(), path)
+        .ok()?
+        .with_position(position);
+    let answer = request
+        .answers
+        .call(module, Hook::Completions, &input, request.now())
+        .ok()?;
+    let Value::List(items) = answer else {
+        return None;
+    };
+    items
+        .iter()
+        .map(|item| {
+            let item = json(item).ok()?;
+            let text = |key: &str| item[key].as_str().map(str::to_owned);
+            let label = text("label")?;
+            Some(Offered {
+                insert: text("insert").unwrap_or_else(|| label.clone()),
+                label,
+                detail: text("detail"),
+                kind: match text("kind") {
+                    None => None,
+                    Some(kind) => Some(completion_kind(&kind)?),
+                },
+            })
+        })
+        .collect()
+}
+/// An LSP completion kind by its snake-case name.
+fn completion_kind(name: &str) -> Option<lsp_types::CompletionItemKind> {
+    use lsp_types::CompletionItemKind as K;
+    Some(match name {
+        "text" => K::TEXT,
+        "method" => K::METHOD,
+        "function" => K::FUNCTION,
+        "constructor" => K::CONSTRUCTOR,
+        "field" => K::FIELD,
+        "variable" => K::VARIABLE,
+        "class" => K::CLASS,
+        "interface" => K::INTERFACE,
+        "module" => K::MODULE,
+        "property" => K::PROPERTY,
+        "unit" => K::UNIT,
+        "value" => K::VALUE,
+        "enum" => K::ENUM,
+        "keyword" => K::KEYWORD,
+        "snippet" => K::SNIPPET,
+        "color" => K::COLOR,
+        "file" => K::FILE,
+        "reference" => K::REFERENCE,
+        "folder" => K::FOLDER,
+        "enum_member" => K::ENUM_MEMBER,
+        "constant" => K::CONSTANT,
+        "struct" => K::STRUCT,
+        "event" => K::EVENT,
+        "operator" => K::OPERATOR,
+        "type_parameter" => K::TYPE_PARAMETER,
+        _ => return None,
+    })
+}
+/// The edits formatting makes; `at` is where a `|` was just typed when the
+/// note is formatted as it is typed.
 pub(crate) fn edits(
     module: &Module,
     request: &crate::Request<'_>,
     path: &Path,
+    at: Option<Position>,
 ) -> Result<Vec<TextEdit>, String> {
-    json_items(module, request, path, Hook::Format, |item| {
-        serde_json::from_value(item).map_err(|e| e.to_string())
-    })
+    if !module.has(Hook::Format) {
+        return Ok(vec![]);
+    }
+    let mut input = input(module, request, &mut request.engine(), path)?;
+    if let Some(position) = at {
+        input = input.with_position(position);
+    }
+    hook_items(request, module, Hook::Format, &input, |item| {
+        Ok(json(&item)?)
+    })?
+    .into_iter()
+    .map(|item| serde_json::from_value(item).map_err(|e| e.to_string()))
+    .collect()
 }
 
 /// Feature modules own the invocation kind: a control a module proposed that
@@ -538,7 +712,7 @@ pub(crate) fn edits(
 pub(crate) struct Invocations;
 impl ActionProvider for Invocations {
     fn kinds(&self) -> &'static [CommandId] {
-        &[CommandId::Invoke]
+        &[CommandId::Invoke, CommandId::Row]
     }
     fn prepare(
         &self,
@@ -546,7 +720,7 @@ impl ActionProvider for Invocations {
         action: &Action,
         capabilities: Capabilities,
     ) -> Result<Prepared, String> {
-        let Action::Invoke { event, .. } = action else {
+        let (Action::Invoke { event, .. } | Action::Row { event, .. }) = action else {
             return Err(NOT_MINE.into());
         };
         let (path, module) = invocation(request, action)?;
@@ -562,31 +736,48 @@ impl ActionProvider for Invocations {
         invocation(request, action).map(drop)
     }
 }
-/// The module an invocation still reaches, with the document it acts on.
+/// The module an invocation still reaches, with the document it acts on:
+/// the whole note must read as it did for an invocation, only its row for a
+/// row action, and an invocation's module must be at the same revision.
 fn invocation<'a>(
     request: &crate::Request<'a>,
     action: &Action,
 ) -> Result<(PathBuf, &'a Module), String> {
-    let Action::Invoke {
-        document,
-        expected,
-        module,
-        revision,
-        ..
-    } = action
-    else {
-        return Err("Expected a module invocation".into());
+    let (path, module, revision) = match action {
+        Action::Invoke {
+            document,
+            expected,
+            module,
+            revision,
+            ..
+        } => {
+            let (path, doc) = commands::document(request, document)?;
+            if doc.text != *expected {
+                return Err(SOURCE_CHANGED.into());
+            }
+            (path, module, Some(revision))
+        }
+        Action::Row {
+            document,
+            row,
+            expected,
+            module,
+            ..
+        } => {
+            let (path, doc) = commands::document(request, document)?;
+            if *row >= doc.line_count() || doc.line(*row) != expected {
+                return Err(SOURCE_CHANGED.into());
+            }
+            (path, module, None)
+        }
+        _ => return Err("Expected a module invocation".into()),
     };
-    let (path, doc) = commands::document(request, document)?;
-    if doc.text != *expected {
-        return Err(SOURCE_CHANGED.into());
-    }
     let module = request
         .workspace()
         .modules()
         .get(module)
         .ok_or("Module is no longer available")?;
-    if module.revision() != *revision {
+    if revision.is_some_and(|revision| module.revision() != *revision) {
         return Err("Module changed; request fresh controls".into());
     }
     if !module.has(Hook::Reduce) {
@@ -603,14 +794,29 @@ fn reduce(
 ) -> Result<Action, String> {
     let context =
         input(module, request, &mut request.engine(), path)?.with_capabilities(capabilities);
-    let result = module.call(
-        Hook::Reduce,
-        vec![context.to_value(), from_json(event)],
-        request.now(),
-    )?;
+    let result = module
+        .call(
+            Hook::Reduce,
+            vec![context.to_value(), from_json(event)],
+            request.now(),
+        )
+        .map_err(refusal)?;
     let action: Action = serde_json::from_value(json(&result)?).map_err(|e| e.to_string())?;
-    if matches!(action, Action::Invoke { .. }) {
+    if matches!(action, Action::Invoke { .. } | Action::Row { .. }) {
         return Err("A reducer must return a concrete action".into());
     }
     Ok(action)
+}
+/// Why a reducer failed. One that refuses with `error(reason)` has said why
+/// the control cannot run, which the person reads as written; any other
+/// failure names the module.
+fn refusal(error: EvalError) -> String {
+    match &error {
+        EvalError::Module { source, .. }
+            if matches!(**source, EvalError::Custom(_) | EvalError::Pending(_)) =>
+        {
+            source.to_string()
+        }
+        _ => error.to_string(),
+    }
 }

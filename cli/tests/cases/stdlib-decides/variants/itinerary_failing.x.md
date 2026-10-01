@@ -1,12 +1,14 @@
 module := {api: 1, id: "itinerary_core", kind: "library"}
 dates := fn(days, today) => error("ITINERARY DATES FAILURE")
 
-// The rest of the stdlib contract.
+// A failing `dates` fails the itinerary's `records` build, which decides
+// every day's date: the note has no days or stops, and one error says why.
+
+// The rest of what the itinerary module calls.
 time_text := fn(s) => "09:00"
 label := fn(s) => "a stop"
 
-// What the itinerary feature module calls, kept quiet so only the native
-// report of the failing dates shows.
+// Its other hooks, kept quiet so only the failed build shows.
 collect := fn(days, day) => []
 hovers := fn(days, day) => []
 diagnostics := fn(days, day) => []

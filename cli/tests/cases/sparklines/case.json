@@ -40,6 +40,12 @@
           "file": "charts.x.md",
           "line": 1,
           "character": 47
+        },
+        {
+          "request": "textDocument/hover",
+          "file": "charts.x.md",
+          "line": 0,
+          "character": 12
         }
       ]
     }

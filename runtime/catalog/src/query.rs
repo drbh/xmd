@@ -75,8 +75,12 @@ struct WorkspaceBindings {
 }
 impl Bindings for WorkspaceBindings {
     fn get(&self, name: &str, engine: &mut Engine<'_>) -> Option<lang::eval::EvalResult<Value>> {
-        let collection = name.parse::<Collection>();
-        if name != "graph" && collection.is_err() {
+        // A declared collection is bound only while a module declares it.
+        let collection = name
+            .parse::<Collection>()
+            .ok()
+            .filter(|c| !c.is_declared() || engine.workspace().modules().declaring(name).is_some());
+        if name != "graph" && collection.is_none() {
             return None;
         }
         if let Some(value) = self.cache.lock().expect("query cache poisoned").get(name) {
@@ -129,7 +133,7 @@ pub fn execute(
     });
     let value = engine.bound_expr(&context, &query.expression, bindings)?;
     let rows = match q::query_value(value) {
-        Value::List(rows) => Arc::unwrap_or_clone(rows),
+        Value::List(rows) => Arc::unwrap_or_clone(rows).into_inner(),
         value => vec![value],
     };
     Ok(QueryResult { rows })

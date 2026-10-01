@@ -14,7 +14,7 @@ test("the document view edits, toggles checkboxes, persists, and shares a worksp
   await expect(view.locator(".line.h1").first()).toHaveText(/Trip budget/);
   await expect(page.locator("input.title-input")).toHaveValue("Trip budget");
   // Clicking a checkbox flips it in the text and the engine repaints.
-  const box = view.locator(".t-xmdCheckbox").first();
+  const box = view.locator(".t-xmdToggle").first();
   await box.click();
   await expect(view).toContainText("[x] Book the hotel");
   await expect(page.locator(".status")).toContainText("Saved in this browser");

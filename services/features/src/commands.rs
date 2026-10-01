@@ -312,10 +312,10 @@ impl ActionProvider for Direct {
                 edits,
             } => {
                 let (path, doc) = document(request, url)?;
-                if doc.text != *expected {
+                if doc.text() != *expected {
                     return Err(SOURCE_CHANGED.into());
                 }
-                lang::document::apply_edits(&doc.text, edits)?;
+                lang::document::apply_edits(doc.text(), edits)?;
                 Ok(PreparedAction::Edit {
                     path,
                     edits: edits.clone(),

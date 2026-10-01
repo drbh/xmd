@@ -5,9 +5,11 @@
 //! unclosed attribute. Every line that writes attributes is kept as it was
 //! read ([`Attributed`]), so what a declared attribute means is read off it
 //! later, by the module that owns it.
-use crate::blocks::{Attribute, HighlightKind, Line, Tree};
+use crate::blocks::Line;
 use crate::declared::On;
 use crate::document::Document;
+use crate::inline::Attribute;
+use crate::tree::{HighlightKind, Tree};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use syntax::AttributeValue;

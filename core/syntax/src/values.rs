@@ -57,15 +57,7 @@ pub fn is_relative_date(s: &str) -> bool {
     relative_date(s, NaiveDate::default()).is_some()
 }
 pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
-    const DAYS: [&str; 7] = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-    ];
+    const DAYS: &str = "monday tuesday wednesday thursday friday saturday sunday";
     let s = s.trim().to_lowercase();
     match s.as_str() {
         "today" => return Some(today),
@@ -74,7 +66,7 @@ pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
         _ => {}
     }
     let day = s.strip_prefix("next ")?;
-    let weekday = DAYS.iter().position(|d| *d == day)? as i64;
+    let weekday = DAYS.split(' ').position(|d| d == day)? as i64;
     let mut delta = (weekday - today.weekday().num_days_from_monday() as i64).rem_euclid(7);
     if delta == 0 {
         delta = 7;

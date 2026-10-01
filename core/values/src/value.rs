@@ -3,18 +3,14 @@
 //! `syntax::Literal`; this adds the host objects (tables, checklists, tagged
 //! records...) a literal can never be.
 use crate::error::{EvalError, EvalResult, Overflow};
+use crate::functional::Size;
 use chrono::{DateTime, FixedOffset, Months, NaiveDate};
 use common::{Code, Currency, Resource, ValueType};
 use serde_json::json;
-use std::{
-    any::Any,
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering},
-    },
-};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{any::Any, collections::BTreeMap};
 use syntax::{Expr, Literal};
 pub type TaskKey = (PathBuf, usize);
 
@@ -80,18 +76,15 @@ impl<T> Measured<T> {
         self.inner
     }
     /// Its size, when it has been measured in full.
-    pub(crate) fn size(&self) -> Option<crate::functional::Size> {
+    pub(crate) fn size(&self) -> Option<Size> {
         match self.items.load(Ordering::Acquire) {
             0 => None,
-            items => Some(crate::functional::Size {
-                items: items - 1,
-                bytes: self.bytes.load(Ordering::Relaxed),
-            }),
+            items => Some(Size::new(items - 1, self.bytes.load(Ordering::Relaxed))),
         }
     }
     /// Keep its size, measured in full. Whoever measures it finds the same
     /// size, so racing to keep it is harmless.
-    pub(crate) fn measured(&self, size: crate::functional::Size) {
+    pub(crate) fn measured(&self, size: Size) {
         if let Some(items) = size.items.checked_add(1) {
             self.bytes.store(size.bytes, Ordering::Relaxed);
             self.items.store(items, Ordering::Release);
@@ -454,20 +447,14 @@ impl Function {
 
 impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
+        let environment = |f: &Self| f.environment.as_ref().map(|e| Arc::as_ptr(e).cast::<()>());
         self.params == other.params
             && self.defaults == other.defaults
             && self.body == other.body
             && self.path == other.path
             && self.source == other.source
             && self.captured == other.captured
-            && self
-                .environment
-                .as_ref()
-                .map(|e| Arc::as_ptr(e).cast::<()>())
-                == other
-                    .environment
-                    .as_ref()
-                    .map(|e| Arc::as_ptr(e).cast::<()>())
+            && environment(self) == environment(other)
     }
 }
 
@@ -597,26 +584,15 @@ impl Value {
             Self::Count(n) => n.to_string(),
             Self::Money(n, c) => money(*n, *c),
             Self::Ratio(n) => format!("{}%", decimal(n * 100.0)),
-            Self::Duration(s) => {
-                if *s == 0 {
-                    "0s".into()
-                } else if s % 86400 == 0 {
-                    format!("{}d", s / 86400)
-                } else if s % 3600 == 0 {
-                    format!("{}h", s / 3600)
-                } else if s % 60 == 0 {
-                    format!("{}m", s / 60)
-                } else if s.unsigned_abs() >= 60 {
-                    format!(
-                        "{}{}m {}s",
-                        if *s < 0 { "-" } else { "" },
-                        s.unsigned_abs() / 60,
-                        s.unsigned_abs() % 60
-                    )
-                } else {
-                    format!("{s}s")
-                }
+            Self::Duration(0) => "0s".into(),
+            Self::Duration(s) if s % 86400 == 0 => format!("{}d", s / 86400),
+            Self::Duration(s) if s % 3600 == 0 => format!("{}h", s / 3600),
+            Self::Duration(s) if s % 60 == 0 => format!("{}m", s / 60),
+            Self::Duration(s) if s.unsigned_abs() >= 60 => {
+                let (sign, s) = (if *s < 0 { "-" } else { "" }, s.unsigned_abs());
+                format!("{sign}{}m {}s", s / 60, s % 60)
             }
+            Self::Duration(s) => format!("{s}s"),
             Self::Date(d) => d.to_string(),
             Self::DateTime(d) => d.format("%Y-%m-%d %H:%M:%S %:z").to_string(),
             Self::Bool(b) => b.to_string(),
@@ -721,10 +697,9 @@ pub(crate) fn next_occurrence(
                 s => duration(s)
                     .filter(|d| *d > 0 && *d % 86400 == 0)
                     .map(|d| d / 86400)
-                    .ok_or(EvalError::Message(
-                        "@every supports day, week, month, year, or positive whole-day durations"
-                            .into(),
-                    ))?,
+                    .ok_or(
+                        "@every supports day, week, month, year, or positive whole-day durations",
+                    )?,
             };
             days.checked_mul(n as i64)
                 .and_then(chrono::Duration::try_days)
@@ -735,9 +710,7 @@ pub(crate) fn next_occurrence(
             return Ok(candidate);
         }
     }
-    Err(EvalError::Message(
-        "Recurrence exceeded its search limit".into(),
-    ))
+    Err("Recurrence exceeded its search limit".into())
 }
 
 /// A value as compact JSON: what `debug` shows, and what the `records` crate's
@@ -786,7 +759,7 @@ pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
             (*v as u64).into()
         }
         Value::Number(v) => serde_json::Number::from_f64(*v)
-            .ok_or(EvalError::Message("Nonfinite module number".into()))?
+            .ok_or("Nonfinite module number")?
             .into(),
         Value::Count(v) => (*v).into(),
         Value::Text(v) => v.clone().into(),
@@ -796,11 +769,7 @@ pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
                 .map(|(k, v)| Ok((k.clone(), json(v)?)))
                 .collect::<EvalResult<_>>()?,
         ),
-        _ => {
-            return Err(EvalError::Message(
-                "Cached module data must contain JSON values".into(),
-            ));
-        }
+        _ => return Err("Cached module data must contain JSON values".into()),
     })
 }
 

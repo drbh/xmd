@@ -5,13 +5,10 @@ use crate::{engine::Engine, memo::Memo, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use document::Document;
 use modules::{Evaluator, Module, ModuleEnvironment, ModuleRegistry};
-use std::{
-    any::Any,
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
-use values::{EvalResult, Value};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::{any::Any, collections::BTreeMap};
+use values::{EvalResult, Size, Value};
 
 impl ModuleEnvironment for Workspace {
     fn document(&self, path: &Path) -> &Document {
@@ -44,15 +41,9 @@ impl ModuleEnvironment for Workspace {
             .with_expressions(module.expressions().clone());
         // What the call is handed sets how much it may do with it. Measured
         // once, its parts are known when the values built of them are.
-        let cap = values::Size {
-            items: usize::MAX,
-            bytes: usize::MAX,
-        };
-        let input = args
-            .iter()
-            .fold(values::Size { items: 0, bytes: 0 }, |total, arg| {
-                total + values::Size::of(arg, cap)
-            });
+        let cap = Size::new(usize::MAX, usize::MAX);
+        let sizes = args.iter().map(|arg| Size::of(arg, cap));
+        let input = sizes.fold(Size::new(0, 0), |total, size| total + size);
         engine.budget = crate::engine::Budget::scaled(input);
         let result = engine
             .named(&module.path, name)

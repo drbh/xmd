@@ -1,83 +1,39 @@
 //! The registry of feature recognizers: the one list of what reads a note's
-//! features out of its generic blocks. The generic layer (`blocks`) knows the
-//! document's structure and the language's inline forms; each recognizer
+//! features out of its generic blocks. The generic layer (`blocks`, `inline`)
+//! knows the document's structure and the language's inline forms; each recognizer
 //! below reads those blocks and fills its `Document` fields, highlights and
 //! problems, so the generic parser never names a feature and a new feature is
-//! one row. Order is meaningful: recognizers run in list order at every hook,
+//! one entry. Order is meaningful: recognizers run in list order at every hook,
 //! so what one adds is there for the next.
 use crate::attributes::Declaration;
-use crate::blocks::{
-    Block, BlockState, Checkbox, Heading, HighlightKind, Line, Tree, classify, trailing_name,
-};
+use crate::blocks::{Block, BlockState, Checkbox, Heading, Line, classify, trailing_name};
 use crate::declared::On;
 use crate::document::Document;
+use crate::tree::{HighlightKind, Tree};
 use crate::{attributes, calculations, forms_impl, sections, tables_impl, tasks};
 use std::sync::Arc;
 
-/// A heading, after its own marks are read.
-type OnHeading = fn(&mut Tree, &mut Document, &Heading<'_>);
-/// A line of prose, a list item or a table row: before its inline forms are
-/// read (as `line`), or after (as `inline`).
+// The recognizers each hook runs, in list order. On a heading, after its own
+// marks are read: sections, every heading, closed by the next that outranks
+// it.
+static HEADING: &[fn(&mut Tree, &mut Document, &Heading<'_>)] = &[sections::recognize];
+// On a line of prose, a list item or a table row, before its inline forms
+// are read: attributes, what `@key(value)` means (painting each value, the
+// unknown, repeated and unclosed attribute problems, and every line that
+// writes any); tasks, a list item with a checkbox. After: calculations, a
+// line of math with bracketed variables.
+static LINE: &[OnLine] = &[attributes::recognize, tasks::recognize];
+static INLINE: &[OnLine] = &[calculations::recognize];
 type OnLine = fn(&mut Tree, &mut Document, &Line<'_>);
-/// The rows under a line, once its inline forms and any continued expression
-/// are read: how many rows below `row` it takes, when it claims them. Rows
-/// taken are never classified.
+// The rows under a line, once its inline forms and any continued expression
+// are read: how many rows below `row` each takes, when it claims them (rows
+// taken are never classified). Forms, a definition that calls a form a
+// module declares and the table under it when the form takes one; tables,
+// `name := table` over the table under it.
+static BLOCK: &[OnBlock] = &[forms_impl::recognize, tables_impl::recognize];
 type OnBlock = fn(&mut Tree, &mut Document, &[&str], usize) -> Option<usize>;
-/// The whole note, after every line is read.
-type OnDocument = fn(&mut Tree, &mut Document, &[&str]);
-
-struct Recognizer {
-    heading: Option<OnHeading>,
-    line: Option<OnLine>,
-    inline: Option<OnLine>,
-    block: Option<OnBlock>,
-    document: Option<OnDocument>,
-}
-impl Recognizer {
-    const NONE: Self = Self {
-        heading: None,
-        line: None,
-        inline: None,
-        block: None,
-        document: None,
-    };
-}
-
-static RECOGNIZERS: &[Recognizer] = &[
-    // What `@key(value)` means: painting each value, the unknown, repeated
-    // and unclosed attribute problems, and every line that writes any.
-    Recognizer {
-        line: Some(attributes::recognize),
-        ..Recognizer::NONE
-    },
-    // Sections: every heading, closed by the next that outranks it.
-    Recognizer {
-        heading: Some(sections::recognize),
-        document: Some(sections::close),
-        ..Recognizer::NONE
-    },
-    // Tasks: a list item with a checkbox.
-    Recognizer {
-        line: Some(tasks::recognize),
-        ..Recognizer::NONE
-    },
-    // A line of math with bracketed variables.
-    Recognizer {
-        inline: Some(calculations::recognize),
-        ..Recognizer::NONE
-    },
-    // A definition that calls a form a module declares, and the table under
-    // it when the form takes one.
-    Recognizer {
-        block: Some(forms_impl::recognize),
-        ..Recognizer::NONE
-    },
-    // `name := table` over the table under it.
-    Recognizer {
-        block: Some(tables_impl::recognize),
-        ..Recognizer::NONE
-    },
-];
+// The whole note, after every line is read: sections close.
+static DOCUMENT: &[fn(&mut Tree, &mut Document, &[&str])] = &[sections::close];
 
 /// What the active modules declare that a note is read with: the recognizers
 /// run over it once it is parsed, and the attributes and forms it is parsed
@@ -154,7 +110,7 @@ impl Document {
                     tree.heading(line, &heading);
                     let title = text_from(line, heading.start + heading.level);
                     blocks[row] = Some((On::Heading, title, heading.title_end));
-                    for on in RECOGNIZERS.iter().filter_map(|r| r.heading) {
+                    for on in HEADING {
                         on(&mut tree, &mut doc, &heading);
                     }
                     None
@@ -191,7 +147,7 @@ impl Document {
             }
             row += 1 + consumed;
         }
-        for on in RECOGNIZERS.iter().filter_map(|r| r.document) {
+        for on in DOCUMENT {
             on(&mut tree, &mut doc, &lines);
         }
         tree.finish();
@@ -259,15 +215,15 @@ fn text_line(
         attributes,
         title_end,
     };
-    for on in RECOGNIZERS.iter().filter_map(|r| r.line) {
+    for on in LINE {
         on(tree, doc, &line);
     }
     tree.prose(&line);
-    for on in RECOGNIZERS.iter().filter_map(|r| r.inline) {
+    for on in INLINE {
         on(tree, doc, &line);
     }
     let mut consumed = tree.continuation(note, lines, row).unwrap_or(0);
-    for on in RECOGNIZERS.iter().filter_map(|r| r.block) {
+    for on in BLOCK {
         if let Some(rows) = on(tree, doc, lines, row) {
             consumed = rows;
         }

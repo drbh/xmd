@@ -62,10 +62,7 @@ leaf!(NaiveDate, Date);
 /// `Null` is the absent one: nothing else stands in for a missing value.
 impl<T: ToValue> ToValue for Option<T> {
     fn to_value(&self) -> Value {
-        match self {
-            Some(v) => v.to_value(),
-            None => Value::Null,
-        }
+        self.as_ref().map_or(Value::Null, ToValue::to_value)
     }
 }
 impl<T: FromValue> FromValue for Option<T> {
@@ -91,11 +88,8 @@ impl<T: FromValue> FromValue for Vec<T> {
 }
 impl<T: ToValue> ToValue for BTreeMap<String, T> {
     fn to_value(&self) -> Value {
-        Value::record(
-            self.iter()
-                .map(|(k, v)| (k.clone(), v.to_value()))
-                .collect(),
-        )
+        let fields = self.iter().map(|(k, v)| (k.clone(), v.to_value()));
+        Value::record(fields.collect())
     }
 }
 impl<T: FromValue> FromValue for BTreeMap<String, T> {
@@ -203,7 +197,7 @@ impl<'a> Fields<'a> {
         T::from_value(
             self.fields
                 .get(key)
-                .ok_or_else(|| EvalError::Message(format!("Missing field '{key}'")))?,
+                .ok_or_else(|| format!("Missing field '{key}'"))?,
         )
     }
     /// Absent reads as nothing; anything present, `Null` included, must decode.

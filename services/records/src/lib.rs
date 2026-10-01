@@ -5,7 +5,8 @@
 //! A collection is a named set of records — checklist items, mentions,
 //! definitions and the rest — each a struct that knows its own field names. One module per record
 //! family holds the struct, its field projection and the builder that walks the
-//! workspace for it; this root names the collections and dispatches to them.
+//! workspace for it (`structure` holds the plain ones: notes, sections and
+//! mentions); this root names the collections and dispatches to them.
 //! A collection a feature module declares is built by its `records` hook
 //! (`built`), from what `context` hands every hook of a module.
 //! `query` evaluates queries over the collections, and `inspection` adds the
@@ -25,13 +26,11 @@ mod expressions;
 mod inspection;
 mod links;
 mod lookups;
-mod mentions;
-mod notes;
 mod presentations;
 mod query;
 mod recognized;
 mod record;
-mod sections;
+mod structure;
 mod value;
 
 use lang::eval::engine::Engine;
@@ -103,32 +102,21 @@ fn collect(
 ) -> Result<Vec<Record>, String> {
     let ws: &Workspace = engine.workspace();
     let mut records = Vec::new();
-    // The syntax tree spans documents instead of visiting them in turn.
-    if collection == Collection::Ast {
-        for path in ws
-            .documents()
-            .keys()
-            .filter(|p| only.is_none_or(|only| only == p.as_path()))
-        {
-            records.extend(inspection::ast(ws, path));
-        }
-        return Ok(records);
-    }
     for (path, doc) in ws.documents() {
         if only.is_some_and(|wanted| wanted != path) {
             continue;
         }
         match &collection {
-            Collection::Ast => unreachable!("handled above"),
-            Collection::Mentions => mentions::mentions(ws, path, doc, &mut records),
+            Collection::Ast => records.extend(inspection::ast(ws, path)),
+            Collection::Mentions => structure::mentions(ws, path, doc, &mut records),
             Collection::Links => links::links(ws, path, doc, &mut records),
-            Collection::Sections => sections::sections(ws, path, doc, &mut records),
+            Collection::Sections => structure::sections(ws, path, doc, &mut records),
             Collection::Calculations => {
                 expressions::calculations(ws, path, doc, engine, &mut records)
             }
             Collection::References => expressions::references(ws, path, doc, engine, &mut records),
             Collection::Cells => expressions::cells(ws, path, doc, engine, &mut records),
-            Collection::Notes => notes::notes(ws, path, doc, &mut records),
+            Collection::Notes => structure::notes(ws, path, doc, &mut records),
             Collection::Checkboxes => checkboxes::checkboxes(ws, path, doc, &mut records),
             Collection::Entries => built::entries(cache, engine, path, &mut records),
             Collection::Values | Collection::Forms | Collection::Tables | Collection::Rows => {

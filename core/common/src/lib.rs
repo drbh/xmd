@@ -11,11 +11,17 @@ mod resource;
 mod span;
 mod values;
 
-pub use notes::{
-    EXTENSION, LIBRARY_EXTENSION, is_library, is_note, library_file, note_file, note_stem,
-};
+pub use notes::note_stem;
+pub use notes::{EXTENSION, LIBRARY_EXTENSION, is_library, is_note, library_file, note_file};
 pub use paths::{file_path, file_url, uri, uri_from_url, url_from_uri};
 pub use pattern::{Found, Pattern};
 pub use resource::Resource;
 pub use span::{LineIndex, Lines, Span};
 pub use values::{Code, Currency, ValueType, is_code};
+
+/// Lock `mutex`, taking the guard over even when a panic poisoned it.
+pub fn lock<T>(mutex: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}

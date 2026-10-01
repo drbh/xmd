@@ -35,13 +35,6 @@ impl SourceRef {
     }
 }
 
-/// The range of a line's text, without its indentation or trailing space.
-pub(super) fn text_range(doc: &lang::document::Document, row: usize) -> Value {
-    let raw = doc.line(row);
-    let start = raw.len() - raw.trim_start().len();
-    q::range(Span::new(row, start, raw.trim_end().len().max(start)).range(doc))
-}
-
 thread_local! {
     /// The note a record was last found in, and its URI: a collection's
     /// records come from one note at a time, so its URI is spelled once.

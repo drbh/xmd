@@ -47,6 +47,20 @@ fn code_of(diagnostic: &Diagnostic) -> Option<DiagnosticCode> {
     code.parse().ok()
 }
 
+/// A module's own failure, as a diagnostic of the `module` code.
+pub fn module_problem(severity: DiagnosticSeverity, range: Range, message: String) -> Diagnostic {
+    Diagnostic {
+        range,
+        severity: Some(severity),
+        source: Some("xmd".into()),
+        code: Some(NumberOrString::String(
+            <&str>::from(DiagnosticCode::Module).into(),
+        )),
+        message,
+        ..Default::default()
+    }
+}
+
 /// The one severity vocabulary shared by the `records` crate and the CLI.
 pub fn severity_name(severity: Option<DiagnosticSeverity>) -> &'static str {
     match severity {
@@ -124,12 +138,12 @@ impl Issue {
 /// advice about the name, never an error.
 fn file_name(doc: &lang::document::Document, path: &Path) -> Option<Issue> {
     let stem = lang::common::note_stem(path)?;
-    let lines: Vec<&str> = doc.text.lines().collect();
+    let lines: Vec<&str> = doc.text().lines().collect();
     // Rows that belong to a definition written as its own line, `name := …`;
     // a table, or the table a form takes, laid out under a name is note
     // content.
     let mut defined = vec![false; lines.len()];
-    for (index, d) in doc.definitions.iter().enumerate() {
+    for (index, d) in doc.definitions().iter().enumerate() {
         let line = lines.get(d.named.span.line).copied().unwrap_or("");
         let own_line = d.expression && d.named.span.start == line.len() - line.trim_start().len();
         if own_line && doc.grid_of(index).is_none() {
@@ -164,7 +178,7 @@ fn file_name(doc: &lang::document::Document, path: &Path) -> Option<Issue> {
         return None;
     }
     let first = doc
-        .definitions
+        .definitions()
         .iter()
         .find(|d| d.expression && d.source.starts_with("fn"))?;
     Some(Issue {
@@ -189,7 +203,7 @@ pub(crate) fn incomplete(source: &str) -> bool {
         || source.ends_with(['+', '-', '*', '/', '(', ',', '.', '!', '=', '&', '|'])
         || source.chars().filter(|c| *c == '(').count()
             > source.chars().filter(|c| *c == ')').count()
-        || lang::eval::engine::lex(source).is_err_and(|e| e == "Unclosed string")
+        || lang::syntax::lex(source).is_err_and(|e| e == "Unclosed string")
 }
 /// The native analysis only: name resolution, evaluation, resources and
 /// attributes. Feature modules add their own on top in `collect`.
@@ -204,7 +218,7 @@ pub fn collect_native(
     };
     // The definitions still being typed, found once rather than per name.
     let typing: Vec<_> = doc
-        .definitions
+        .definitions()
         .iter()
         .filter(|d| editing && d.expression && incomplete(&d.source))
         .collect();
@@ -215,7 +229,7 @@ pub fn collect_native(
     };
     let symbols = ws.symbols();
     let mut issues: Vec<Issue> = file_name(doc, path).into_iter().collect();
-    for problem in &doc.problems {
+    for problem in doc.problems() {
         if editing && problem.message.starts_with("Unclosed") {
             continue;
         }
@@ -245,10 +259,10 @@ pub fn collect_native(
         let mut engine = request.engine();
         let evaluated = engine.symbol(symbol);
         if let Ok(Value::Resource(resource)) = &evaluated
-            && let Err(message) = resource.url(path)
+            && let Err(message) = resource.url(path, ws.home())
         {
             let span = match symbol.kind {
-                SymbolKind::Definition(i) => doc.definitions[i].value_span,
+                SymbolKind::Definition(i) => doc.definitions()[i].value_span,
                 _ => named.span,
             };
             issues.push(Issue::failed(
@@ -270,7 +284,7 @@ pub fn collect_native(
         };
         let incomplete_dependency = editing
             && ws.documents().get(&failure.path).is_some_and(|dependency| {
-                dependency.definitions.iter().any(|d| {
+                dependency.definitions().iter().any(|d| {
                     d.expression
                         && d.value_span.contains(dependency, failure.span)
                         && incomplete(&d.source)
@@ -302,7 +316,7 @@ pub fn collect_native(
             );
         }
     }
-    for calculation in &doc.calculations {
+    for calculation in doc.calculations() {
         let mut engine = request.engine();
         if let Err(message) = engine.eval_at(path, &calculation.source, calculation.span) {
             let span = engine
@@ -313,7 +327,7 @@ pub fn collect_native(
             issues.push(Issue::failed(span, DiagnosticCode::Evaluation, &message));
         }
     }
-    for reference in &doc.references {
+    for reference in doc.references() {
         if unfinished(reference.span) {
             continue;
         }
@@ -353,7 +367,11 @@ pub fn collect_native(
     for line in doc.claimed() {
         let item = line
             .checkbox
-            .then(|| doc.tasks.binary_search_by_key(&line.line, |t| t.line).ok())
+            .then(|| {
+                doc.tasks()
+                    .binary_search_by_key(&line.line, |t| t.line)
+                    .ok()
+            })
             .flatten();
         for (declared, attr) in doc.live_attributes(line) {
             engine.clear_failure();

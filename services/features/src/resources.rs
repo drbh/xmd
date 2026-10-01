@@ -35,7 +35,7 @@ impl ActionProvider for Resources {
             for (url, resource) in found {
                 let title = stdlib::shown(stdlib::resource::control(
                     &mut engine,
-                    resource.record(path),
+                    resource.record(path, request.workspace().home()),
                 ));
                 proposals.push(Proposal {
                     line: row,
@@ -101,16 +101,16 @@ fn by_row(
     // The names each row reads, in the order they are resolved.
     let mut names: BTreeMap<usize, Vec<&str>> = BTreeMap::new();
     let defined = doc
-        .definitions
+        .definitions()
         .iter()
         .map(|d| (d.named.span.line, &d.named.name));
-    let read = doc.references.iter().map(|r| (r.span.line, &r.name));
+    let read = doc.references().iter().map(|r| (r.span.line, &r.name));
     for (row, name) in defined.chain(read).filter(|(row, _)| rows.has(*row)) {
         names.entry(row).or_default().push(name);
     }
     let mut found: BTreeMap<usize, BTreeMap<url::Url, Resource>> = BTreeMap::new();
     let mut add = |row: usize, resource: Resource| {
-        if let Ok(url) = resource.url(path) {
+        if let Ok(url) = resource.url(path, request.workspace().home()) {
             found.entry(row).or_default().insert(url, resource);
         }
     };
@@ -122,7 +122,7 @@ fn by_row(
             }
         }
     }
-    for link in doc.links.iter().filter(|l| rows.has(l.span.line)) {
+    for link in doc.links().iter().filter(|l| rows.has(l.span.line)) {
         if let Some(mut r) = Resource::parse(&link.target) {
             r.origin = Some(path.into());
             add(link.span.line, r);

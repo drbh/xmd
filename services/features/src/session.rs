@@ -280,7 +280,11 @@ impl WorkspaceSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lang::eval::engine::{Measured, Value as Item};
     use lsp_types::{Position, Range};
+
+    /// A list value, shared by every request that reuses it.
+    type Items = Arc<Measured<Vec<Item>>>;
 
     fn at(now: &str) -> DateTime<FixedOffset> {
         DateTime::parse_from_rfc3339(now).unwrap()
@@ -295,28 +299,24 @@ mod tests {
     /// for a value that reads it.
     #[test]
     fn shared_records_follow_edits_and_the_clock() {
-        let path = Path::new("/workspace/note.x.md");
-        let mut session = WorkspaceSession::browser(Workspace::new(vec!["/workspace".into()]));
+        let path = Path::new(NOTE);
         let text = "stamp := now()\n- [ ] Water :water @every(day)\n";
-        session.open(path, 1, text.into()).unwrap();
+        let mut session = open(text);
         let due = "map(tasks, fn(t) => t.due)";
         let stamp = "map(values, fn(v) => v.display)";
 
-        let morning = "2026-09-16T09:00:00-04:00";
-        let noon = "2026-09-16T12:00:00-04:00";
-        let tomorrow = "2026-09-17T09:00:00-04:00";
-        assert_eq!(rows(&session, morning, due), rows(&session, noon, due));
-        assert_ne!(rows(&session, morning, due), rows(&session, tomorrow, due));
-        assert_ne!(rows(&session, morning, stamp), rows(&session, noon, stamp));
+        assert_eq!(rows(&session, MORNING, due), rows(&session, NOON, due));
+        assert_ne!(rows(&session, MORNING, due), rows(&session, TOMORROW, due));
+        assert_ne!(rows(&session, MORNING, stamp), rows(&session, NOON, stamp));
 
         let titles = "map(tasks, fn(t) => t.title)";
-        assert_eq!(rows(&session, morning, titles), json!(["Water"]));
+        assert_eq!(rows(&session, MORNING, titles), json!(["Water"]));
         session
             .open(path, 2, text.replace("Water", "Feed"))
             .unwrap();
-        assert_eq!(rows(&session, morning, titles), json!(["Feed"]));
+        assert_eq!(rows(&session, MORNING, titles), json!(["Feed"]));
         session.workspace_mut().remove_document(path);
-        assert_eq!(rows(&session, morning, titles), json!([]));
+        assert_eq!(rows(&session, MORNING, titles), json!([]));
     }
 
     const NOTE: &str = "/workspace/note.x.md";
@@ -329,18 +329,18 @@ mod tests {
         session.open(Path::new(NOTE), 1, text.into()).unwrap();
         session
     }
-    /// The list `name` evaluates to in a request at `now`: the very value an
-    /// earlier request evaluated, when the session reuses it.
-    fn list(
-        session: &WorkspaceSession,
-        now: &str,
-        name: &str,
-    ) -> Arc<lang::eval::engine::Measured<Vec<lang::eval::engine::Value>>> {
-        let request = session.request(at(now));
-        match request.engine().named(Path::new(NOTE), name) {
-            Ok(lang::eval::engine::Value::List(items)) => items,
+    /// The list a read gave.
+    fn items(read: Result<Item, impl std::fmt::Debug>) -> Items {
+        match read {
+            Ok(Item::List(items)) => items,
             other => panic!("expected a list, found {other:?}"),
         }
+    }
+    /// The list `name` evaluates to in a request at `now`: the very value an
+    /// earlier request evaluated, when the session reuses it.
+    fn list(session: &WorkspaceSession, now: &str, name: &str) -> Items {
+        let request = session.request(at(now));
+        items(request.engine().named(Path::new(NOTE), name))
     }
     fn quote(session: &mut WorkspaceSession, price: f64) {
         let key = "quote:NVDA".to_string();
@@ -387,10 +387,7 @@ mod tests {
     }
 
     /// The records' hovers, as a feature module reading them sees them.
-    fn hovers(
-        session: &WorkspaceSession,
-        now: &str,
-    ) -> Arc<lang::eval::engine::Measured<Vec<lang::eval::engine::Value>>> {
+    fn hovers(session: &WorkspaceSession, now: &str) -> Items {
         let request = session.request(at(now));
         let fields = ["hover".to_owned()];
         let view = records::View::Fields(&fields);
@@ -401,10 +398,7 @@ mod tests {
             .view(&mut request.engine(), path, collection, view, |_, _| {
                 Vec::new()
             });
-        match read {
-            Ok(lang::eval::engine::Value::List(items)) => items,
-            other => panic!("expected a list, found {other:?}"),
-        }
+        items(read)
     }
 
     /// A hover that reads the clock only through the date is kept all day,

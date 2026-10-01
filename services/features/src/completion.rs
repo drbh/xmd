@@ -2,11 +2,12 @@
 use analysis::{BUILTINS, call_context, describe, inert, markup, source_link};
 use lang::common::Span;
 use lang::document::{Document, byte_at};
-use lang::eval::engine::{HostPresenting, Tier, Value, claimed};
+use lang::eval::engine::{HostPresenting, Value, claimed};
 use lang::eval::modules::ModuleKind;
 use lang::eval::tables::TableValue;
 use lang::syntax::AttributeValue;
-use lsp_types::*;
+use lang::syntax::Tier;
+use lsp_types::{CompletionItemKind as Kind, *};
 use std::path::Path;
 
 /// What the value of an attribute holds, when a call context names one: a
@@ -76,6 +77,20 @@ struct Offered<'a> {
 /// The edit a completion makes: `text` in place of the word at the cursor.
 pub(crate) fn replace(replacement: Range, text: String) -> Option<CompletionTextEdit> {
     Some(CompletionTextEdit::Edit(TextEdit::new(replacement, text)))
+}
+/// An item that inserts its `label` in place of the word at the cursor.
+fn item(replacement: Range, label: String, kind: Kind, detail: Option<String>) -> CompletionItem {
+    CompletionItem {
+        text_edit: replace(replacement, label.clone()),
+        label,
+        kind: Some(kind),
+        detail,
+        ..Default::default()
+    }
+}
+/// Markdown `text` as an item's documentation.
+fn documentation(text: String) -> Option<Documentation> {
+    Some(Documentation::MarkupContent(markup(text)))
 }
 
 /// How a call completes at the cursor: its parenthesis may already be typed,
@@ -192,21 +207,18 @@ pub(crate) fn completions(
                 continue;
             }
             let detail = describe::detail(&mut engine, &ws.documents()[&symbol.path], &symbol);
+            let detail = Some(detail.chars().take(120).collect());
             result.push(CompletionItem {
-                label: name.clone(),
-                kind: Some(CompletionItemKind::VARIABLE),
-                detail: Some(detail.chars().take(120).collect()),
-                documentation: Some(Documentation::MarkupContent(markup(format!(
+                documentation: documentation(format!(
                     "Defined in {}\n\n{}",
                     symbol.path.display(),
                     source_link(ws, &symbol)
-                )))),
+                )),
                 sort_text: Some(format!(
                     "{}_{name}",
                     if symbol.path == path { "0" } else { "1" }
                 )),
-                text_edit: replace(replacement, name.clone()),
-                ..Default::default()
+                ..item(replacement, name.clone(), Kind::VARIABLE, detail)
             });
         }
     }
@@ -284,14 +296,12 @@ pub(crate) fn completions(
         let name = function.name.trim_start_matches('@');
         result.push(CompletionItem {
             kind: Some(if attribute {
-                CompletionItemKind::KEYWORD
+                Kind::KEYWORD
             } else {
-                CompletionItemKind::FUNCTION
+                Kind::FUNCTION
             }),
             detail: Some(function.result.into()),
-            documentation: Some(Documentation::MarkupContent(markup(
-                function.documentation.into(),
-            ))),
+            documentation: documentation(function.documentation.into()),
             ..call.item(name, function.example, function.example)
         });
     }
@@ -306,9 +316,9 @@ pub(crate) fn completions(
             }
             let params = function.params.join(", ");
             result.push(CompletionItem {
-                kind: Some(CompletionItemKind::FUNCTION),
+                kind: Some(Kind::FUNCTION),
                 detail: Some("prelude".into()),
-                documentation: Some(Documentation::MarkupContent(markup(function.documentation))),
+                documentation: documentation(function.documentation),
                 ..call.item(&function.name, &params, "")
             });
         }
@@ -332,12 +342,7 @@ pub(crate) fn completions(
         _ => Vec::new(),
     };
     for name in literals {
-        result.push(CompletionItem {
-            label: name.clone(),
-            kind: Some(CompletionItemKind::VALUE),
-            text_edit: replace(replacement, name),
-            ..Default::default()
-        });
+        result.push(item(replacement, name, Kind::VALUE, None));
     }
     result
 }
@@ -360,15 +365,10 @@ fn column_completions(
             .columns
             .iter()
             .enumerate()
-            .map(|(i, column)| CompletionItem {
-                label: column.name.clone(),
-                kind: Some(CompletionItemKind::FIELD),
-                detail: Some(format!(
-                    "{} · column of {table_name}",
-                    table.types[i].map(|t| t.as_str()).unwrap_or("Unknown")
-                )),
-                text_edit: replace(replacement, column.name.clone()),
-                ..Default::default()
+            .map(|(i, column)| {
+                let kind = table.types[i].map(|t| t.as_str()).unwrap_or("Unknown");
+                let detail = Some(format!("{kind} · column of {table_name}"));
+                item(replacement, column.name.clone(), Kind::FIELD, detail)
             })
             .collect(),
     )
@@ -412,13 +412,8 @@ fn property_completions(
         };
         for name in names {
             let preview = engine.eval(path, &format!("{receiver}.{name}"));
-            result.push(CompletionItem {
-                label: name.clone(),
-                kind: Some(CompletionItemKind::PROPERTY),
-                detail: Some(describe::summary(&preview)),
-                text_edit: replace(replacement, name.clone()),
-                ..Default::default()
-            });
+            let detail = Some(describe::summary(&preview));
+            result.push(item(replacement, name, Kind::PROPERTY, detail));
         }
     }
     result

@@ -5,21 +5,35 @@ use std::path::{Path, PathBuf};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct Resource {
     pub target: String,
     pub origin: Option<PathBuf>,
 }
 impl Resource {
+    /// `target` as written, with no note of its own to resolve against.
+    pub fn new(target: impl Into<String>) -> Self {
+        Self {
+            target: target.into(),
+            origin: None,
+        }
+    }
+    /// The same target, resolved against the note `origin` rather than the
+    /// one it is read in.
+    pub fn with_origin(mut self, origin: impl Into<PathBuf>) -> Self {
+        self.origin = Some(origin.into());
+        self
+    }
     pub fn parse(s: &str) -> Option<Self> {
         let prefixes = [
             "https://", "http://", "geo:", "./", "../", "~/", "/", "file://",
         ];
-        (prefixes.iter().any(|p| s.starts_with(p)) || bare_file_path(s)).then(|| Self {
-            target: s.into(),
-            origin: None,
-        })
+        (prefixes.iter().any(|p| s.starts_with(p)) || bare_file_path(s)).then(|| Self::new(s))
     }
-    pub fn url(&self, document: &Path) -> Result<Url, String> {
+    /// Where the target points, relative to `document` (or the note it came
+    /// from). `home` is the user's home directory, which `~/` paths resolve
+    /// against; the host supplies it, and a browser has none.
+    pub fn url(&self, document: &Path, home: Option<&Path>) -> Result<Url, String> {
         let document = self.origin.as_deref().unwrap_or(document);
         if let Some(coords) = self.target.strip_prefix("geo:") {
             let (lat, lon) = coords
@@ -53,34 +67,19 @@ impl Resource {
             return Err("Unsupported link scheme".into());
         }
         if let Some(relative) = self.target.strip_prefix("~/") {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let home_dir =
-                    std::env::var_os("HOME").ok_or("Home directory is unavailable".to_string())?;
-                return resolved_file_url(&PathBuf::from(home_dir).join(relative));
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = relative;
-                return Err(
-                    "Home-directory paths can be opened in the native editor, not the browser"
-                        .into(),
-                );
-            }
+            let home = home.ok_or(if cfg!(target_arch = "wasm32") {
+                "Home-directory paths can be opened in the native editor, not the browser"
+            } else {
+                "Home directory is unavailable"
+            })?;
+            return resolved_file_url(&home.join(relative));
         }
-        let path = document
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(&self.target);
-        resolved_file_url(&path)
+        let directory = document.parent().unwrap_or(Path::new("."));
+        resolved_file_url(&directory.join(&self.target))
     }
     pub fn is_image(&self) -> bool {
-        let target = self
-            .target
-            .split(['?', '#'])
-            .next()
-            .unwrap_or("")
-            .to_lowercase();
+        let path = self.target.split(['?', '#']).next().unwrap_or("");
+        let target = path.to_lowercase();
         [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
             .iter()
             .any(|e| target.ends_with(e))

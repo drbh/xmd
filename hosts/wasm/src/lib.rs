@@ -213,17 +213,14 @@ impl BrowserWorkspace {
                 let diagnostics = request.diagnostics(&path, editing);
                 let html = fragment(doc, &library, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":uri,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":uri,"source":doc.text(),"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )
             }
             "completion" => serialized(request.completions(&path, position()?, true)),
             "signature" => serialized(signature(request.workspace(), &path, position()?)),
-            "hover" => match request.hover(&path, position()?) {
-                Some(hover) => serialized(hover),
-                None => Ok(Value::Null),
-            },
+            "hover" => serialized(request.hover(&path, position()?)),
             "definition" | "references" | "highlights" | "prepareRename" | "rename" => {
                 let Some((symbol, span)) = symbol_at(ws, &path, position()?) else {
                     return Ok(Value::Null);

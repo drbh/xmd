@@ -13,7 +13,7 @@ use lang::eval::engine::Value;
 use lang::eval::resources::{Resource, ResourcePresenting};
 use lang::eval::{RequestContext, Symbol, SymbolKind};
 use lang::stdlib::{self, Presented};
-use lsp_types::{Diagnostic, DiagnosticSeverity, NumberOrString};
+use lsp_types::{Diagnostic, DiagnosticSeverity};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -34,7 +34,7 @@ pub fn presentations(
     let mut failures = Failures::default();
     let mut engine = request.engine();
 
-    for (i, section) in doc.sections.iter().enumerate() {
+    for (i, section) in doc.sections().iter().enumerate() {
         let Some(named) = &section.named else {
             continue;
         };
@@ -54,10 +54,10 @@ pub fn presentations(
         let Some(resource) = Resource::parse(target) else {
             continue;
         };
-        let record = resource.record(path);
+        let record = resource.record(path, ws.home());
         // A named resource shows a label, which a link module that
         // recognizes it words instead; a prose link shows only that one's.
-        let named = !doc.links.iter().any(|link| link.span == span);
+        let named = !doc.links().iter().any(|link| link.span == span);
         if named
             && engine
                 .link_features()
@@ -76,7 +76,7 @@ pub fn presentations(
             stdlib::format::glyph(&mut engine, "refresh"),
         );
     }
-    for (i, definition) in doc.definitions.iter().enumerate() {
+    for (i, definition) in doc.definitions().iter().enumerate() {
         let span = definition.named.span;
         let symbol = Symbol::new(path, SymbolKind::Definition(i));
         // A fresh engine, so what it wanted is this definition's alone.
@@ -96,7 +96,7 @@ pub fn presentations(
             failures.check(span, stdlib::format::series(&mut own, contributions));
         }
     }
-    for table in &doc.tables {
+    for table in doc.tables() {
         for (c, column) in table.columns.iter().enumerate() {
             if table.domains[c].is_some() {
                 continue;
@@ -118,13 +118,8 @@ pub fn presentations(
     failures
         .found
         .into_values()
-        .map(|(span, message)| Diagnostic {
-            range: span.range(doc),
-            severity: Some(DiagnosticSeverity::WARNING),
-            code: Some(NumberOrString::String("module".into())),
-            source: Some("xmd".into()),
-            message,
-            ..Default::default()
+        .map(|(span, message)| {
+            analysis::module_problem(DiagnosticSeverity::WARNING, span.range(doc), message)
         })
         .collect()
 }
@@ -138,14 +133,10 @@ impl Failures {
     fn check<T>(&mut self, span: Span, presented: Presented<T>) {
         let entry = presented.entry;
         if let Err(error) = presented.result {
+            let message = format!("{}.{}: {error}", entry.module, entry.function);
             self.found
                 .entry((entry.module, entry.function))
-                .or_insert_with(|| {
-                    (
-                        span,
-                        format!("{}.{}: {error}", entry.module, entry.function),
-                    )
-                });
+                .or_insert((span, message));
         }
     }
 }

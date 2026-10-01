@@ -92,7 +92,7 @@ pub(crate) fn freeze_dates(request: &crate::Request<'_>, path: &Path) -> Vec<Tex
     doc.claimed_attributes()
         .filter(|(key, _)| doc.attribute_value(key) == Some(AttributeValue::When))
         .filter_map(|(_, a)| {
-            lang::eval::engine::relative_date(&a.value, today)
+            lang::syntax::relative_date(&a.value, today)
                 .and_then(|_| engine.when(path, &a.value).ok())
                 .map(|v| TextEdit::new(a.value_span.range(doc), v.display()))
         })

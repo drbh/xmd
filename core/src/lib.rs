@@ -9,7 +9,7 @@
 pub mod common {
     pub use ::common::{
         EXTENSION, LIBRARY_EXTENSION, Span, file_path, file_url, is_library, is_note, library_file,
-        note_extension, note_file, note_stem, uri, uri_from_url, url_from_uri,
+        lock, note_extension, note_file, note_stem, uri, uri_from_url, url_from_uri,
     };
 }
 
@@ -17,7 +17,9 @@ pub mod common {
 /// value can hold.
 pub mod syntax {
     pub use ::syntax::{
-        AttributeValue, Lexeme, Literal, is_relative_date, literal, stamp, valid_expression,
+        AttributeValue, Builtin, Expr, Lexeme, Literal, Operator, Parser, Tier,
+        is_builtin_function, is_relative_date, lex, lex_with_comments, literal, relative_date,
+        stamp, sum_scope_at, valid_expression,
     };
 }
 
@@ -25,7 +27,7 @@ pub mod syntax {
 /// in a bundled .xmd module, declared once and called through typed functions.
 /// `book/reference/contract.md` is generated from it.
 pub mod stdlib {
-    pub use ::eval::stdlib::{CONTRACT, Contract, Presented, Role, modules, shown};
+    pub use ::eval::stdlib::{CONTRACT, Presented, Role, modules, shown};
     pub mod format {
         pub use ::eval::stdlib::format::{age, glyph, series};
     }
@@ -63,17 +65,13 @@ pub mod document {
 /// those crates are private too.
 pub mod eval {
     pub use ::eval::{
-        Clock, Evaluations, PreludeFunction, RequestContext, Symbol, SymbolKind, Workspace,
-        member_symbol, reads_clock,
+        Clock, Evaluations, RequestContext, Symbol, SymbolKind, Workspace, member_symbol,
+        reads_clock,
     };
     pub use ::values::{EvalError, EvalResult, RecordFields, ToValue, record};
     pub mod engine {
         pub use ::common::ValueType;
         pub use ::eval::{Bindings, Engine, HostPresenting};
-        pub use ::syntax::{
-            Builtin, Expr, Lexeme, Literal, Operator, Parser, Tier, is_builtin_function, lex,
-            lex_with_comments, relative_date, sum_scope_at,
-        };
         pub use ::values::{HostObject, Measured, Value, claimed, literal, value_json};
     }
     pub mod link_features {
@@ -85,16 +83,15 @@ pub mod eval {
     pub mod modules {
         pub use ::eval::CompileModules;
         pub use ::modules::{
-            Declared, Effect, HOOK_RECORDS, HOOKS, Hook, HookContract, HookRecord, Joins, Module,
-            ModuleKind, ModuleRegistry, STEPS, StepProtocol, is_module_path, no_clock,
+            Declared, Effect, HOOK_RECORDS, HOOKS, Hook, Joins, Module, ModuleKind, ModuleRegistry,
+            STEPS, is_module_path, no_clock,
         };
-        pub use ::values::{Collection, from_json, json, record};
+        pub use ::values::{Collection, from_json, json};
     }
-    /// The definitions that call a form a module declares, and what its
-    /// module says about one besides its value.
+    /// The definitions that call a form a module declares: the call, and how
+    /// the host reads each expression it is handed.
     pub mod forms {
         pub use ::document::forms::{Reading, call};
-        pub use ::eval::About;
     }
     pub mod resources {
         pub use ::eval::{Resource, ResourcePresenting};

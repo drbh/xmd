@@ -3,8 +3,10 @@
 //! against a live workspace — resolving a column reference, renaming a
 //! symbol, or computing a `TableValue` a note holds — is `evaluate::tables`,
 //! one layer up.
-use crate::blocks::{Definition, HighlightKind, Link, Named, Problem, Tree, cells, identifier};
+use crate::blocks::cells;
 use crate::document::Document;
+use crate::inline::{Definition, Link, Named, identifier};
+use crate::tree::{HighlightKind, Problem, Tree};
 use common::Span;
 use common::ValueType;
 use syntax::Literal;
@@ -26,7 +28,8 @@ impl Cell {
 /// What a decision column holds for each row: an unknown a linear reading of
 /// a `sum` over the table solves for (a plan chooses it), never a value a
 /// note writes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum Domain {
     /// `name?`: yes or no.
     Choice,
@@ -88,19 +91,11 @@ pub(crate) fn recognize(
                 continue;
             }
             if let Ok(Literal::Resource(resource)) = &cell.value {
-                tree.links.push(Link {
-                    span: cell.span,
-                    target: resource.target.clone(),
-                });
+                tree.links
+                    .push(Link::new(cell.span, resource.target.clone()));
             }
-            tree.paint(
-                cell.span,
-                if matches!(&cell.value, Ok(Literal::Text(_) | Literal::Resource(_))) {
-                    HighlightKind::String
-                } else {
-                    HighlightKind::Number
-                },
-            );
+            let text = matches!(&cell.value, Ok(Literal::Text(_) | Literal::Resource(_)));
+            tree.paint(cell.span, HighlightKind::literal(text));
         }
     }
     tree.problems.extend(table.problems.clone());
@@ -123,10 +118,8 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
     };
     let mut problem = |span, message| table.problems.push(Problem { span, message });
     let Some(headers) = lines.get(header).and_then(|l| cells(l, header)) else {
-        problem(
-            def.value_span,
-            "A table needs a pipe-delimited header on the next line".into(),
-        );
+        let message = "A table needs a pipe-delimited header on the next line";
+        problem(def.value_span, message.into());
         return table;
     };
     for (raw, span) in headers {
@@ -138,10 +131,8 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
         let name = raw[..raw.len() - usize::from(domain.is_some())].to_string();
         let span = Span::new(span.line, span.start, span.start + name.len());
         if !identifier(&name) || matches!(name.as_str(), "true" | "false") {
-            problem(
-                span,
-                "Column names must be identifiers (not true or false)".into(),
-            );
+            let message = "Column names must be identifiers (not true or false)";
+            problem(span, message.into());
         }
         if table.columns.iter().any(|c: &Named| c.name == name) {
             problem(span, format!("Duplicate column '{name}'"));
@@ -149,40 +140,14 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
         table.columns.push(Named { name, span });
         table.domains.push(domain);
     }
-    table.end_line = header + 1;
-    let separator = lines.get(header + 1).and_then(|l| cells(l, header + 1));
-    if let Some(parts) = separator {
-        table.end_line = header + 2;
-        table.separators = parts.iter().map(|(s, _)| s.clone()).collect();
-        if parts.len() != table.columns.len()
-            || parts.iter().any(|(s, _)| {
-                let core = s.strip_prefix(':').unwrap_or(s);
-                let core = core.strip_suffix(':').unwrap_or(core);
-                core.len() < 3 || !core.bytes().all(|c| c == b'-')
-            })
-        {
-            problem(
-                Span::new(header + 1, 0, lines[header + 1].len()),
-                "Table separator must have one --- cell per column".into(),
-            );
-        }
-    } else {
-        problem(
-            def.value_span,
-            "A table needs a Markdown separator row after its header".into(),
-        );
-    }
-    while let Some(line) = lines
-        .get(table.end_line)
-        .filter(|l| l.trim_start().starts_with('|'))
-    {
-        let row = table.end_line;
-        table.end_line += 1;
-        let Some(parts) = cells(line, row) else {
-            problem(
-                Span::new(row, 0, line.len()),
-                "Unclosed table row or quoted cell; use outer | delimiters".into(),
-            );
+    let message = "A table needs a Markdown separator row after its header";
+    let (missing, width) = ((def.value_span, message.into()), table.columns.len());
+    let (separators, end_line, grid) = rows(lines, header, width, false, missing, &mut problem);
+    (table.separators, table.end_line) = (separators, end_line);
+    for (row, line, parts) in grid {
+        let Some(parts) = parts else {
+            let message = "Unclosed table row or quoted cell; use outer | delimiters";
+            problem(Span::new(row, 0, line.len()), message.into());
             continue;
         };
         if parts.len() != table.columns.len() {
@@ -242,6 +207,48 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
     }
     table
 }
+/// What follows a grid's header on line `header`: its separator row, checked
+/// against `width` columns (with `colons`, any run of alignment colons at
+/// either end, rather than one), or the problem `missing` names; then each
+/// `|` row with its cells, or `None` for one that does not close. Returns
+/// the separator's cells and one past the last row with them.
+pub(crate) fn rows<'l>(
+    lines: &[&'l str],
+    header: usize,
+    width: usize,
+    colons: bool,
+    missing: (Span, String),
+    problem: &mut impl FnMut(Span, String),
+) -> (Vec<String>, usize, Vec<Row<'l>>) {
+    let (mut separators, mut end_line, mut rows) = (vec![], header + 1, vec![]);
+    if let Some(parts) = lines.get(header + 1).and_then(|l| cells(l, header + 1)) {
+        end_line = header + 2;
+        separators = parts.iter().map(|(s, _)| s.clone()).collect();
+        let dashes = |s: &str| {
+            let core = s.strip_prefix(':').unwrap_or(s);
+            let core = core.strip_suffix(':').unwrap_or(core);
+            let core = core.trim_matches(|c| colons && c == ':');
+            core.len() < 3 || !core.bytes().all(|c| c == b'-')
+        };
+        if parts.len() != width || parts.iter().any(|(s, _)| dashes(s)) {
+            let at = Span::new(header + 1, 0, lines[header + 1].len());
+            let message = "Table separator must have one --- cell per column";
+            problem(at, message.into());
+        }
+    } else {
+        problem(missing.0, missing.1);
+    }
+    while let Some(line) = lines
+        .get(end_line)
+        .filter(|l| l.trim_start().starts_with('|'))
+    {
+        rows.push((end_line, *line, cells(line, end_line)));
+        end_line += 1;
+    }
+    (separators, end_line, rows)
+}
+/// A grid row: its line, its text, and its cells unless it does not close.
+pub(crate) type Row<'l> = (usize, &'l str, Option<Vec<(String, Span)>>);
 /// A row's cell as written: a `[calculation]` evaluated with the table, or a
 /// literal, read here. A decision column's cell is never either.
 fn cell(source: String, span: Span, decision: bool) -> Cell {
@@ -310,14 +317,7 @@ pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
 }
 /// Data tables plus the tables forms take, which share the same grid shape.
 pub fn grids(doc: &Document) -> Vec<Table> {
-    doc.tables
-        .iter()
-        .cloned()
-        .chain(
-            doc.forms
-                .iter()
-                .filter(|f| f.has_table())
-                .map(crate::forms_impl::grid),
-        )
-        .collect()
+    let forms = doc.forms.iter().filter(|f| f.has_table());
+    let forms = forms.map(crate::forms_impl::grid);
+    doc.tables.iter().cloned().chain(forms).collect()
 }

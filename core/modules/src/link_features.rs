@@ -138,12 +138,8 @@ impl<'a> LinkFeatures<'a> {
         now: DateTime<Utc>,
         name: &str,
     ) -> EvalResult<Value> {
-        let (module, context) =
-            self.context(target, cache, now)
-                .ok_or_else(|| EvalError::UnknownProperty {
-                    owner: common::ValueType::Resource,
-                    name: name.into(),
-                })?;
+        let found = self.context(target, cache, now);
+        let (module, context) = found.ok_or_else(|| unknown_property(name))?;
         module.property(&context, name)
     }
     pub fn refresh_request(&self, target: &str) -> Option<RefreshRequest> {
@@ -158,7 +154,7 @@ impl<'a> LinkFeatures<'a> {
     ) -> EvalResult<Metadata> {
         let (module, url) = self
             .matching(target)
-            .ok_or(EvalError::Message("No feature recognizes this link".into()))?;
+            .ok_or("No feature recognizes this link")?;
         module.decode_refresh(&url, data, now)
     }
 }
@@ -170,16 +166,10 @@ impl Module {
         LinkContextRecord {
             url: UrlRecord::from(&ctx.url),
             native: !cfg!(target_arch = "wasm32"),
-            cached: ctx
-                .cached
-                .map(|m| {
-                    from_json(
-                        &m.data.clone().unwrap_or_else(|| {
-                            serde_json::to_value(m).expect("metadata serializes")
-                        }),
-                    )
-                })
-                .unwrap_or(Value::Null),
+            cached: ctx.cached.map_or(Value::Null, |m| {
+                let legacy = || serde_json::to_value(m).expect("metadata serializes");
+                from_json(&m.data.clone().unwrap_or_else(legacy))
+            }),
             fetched_at: ctx.cached.map(|m| m.fetched_at.fixed_offset()),
         }
         .to_value()
@@ -242,10 +232,7 @@ impl Module {
     }
     fn property(&self, ctx: &LinkContext<'_>, name: &str) -> EvalResult<Value> {
         if !self.property_names(&ctx.url).iter().any(|p| p == name) {
-            return Err(EvalError::UnknownProperty {
-                owner: common::ValueType::Resource,
-                name: name.into(),
-            });
+            return Err(unknown_property(name));
         }
         self.call(
             Hook::Property,
@@ -258,25 +245,27 @@ impl Module {
         if !self.has(Hook::Refresh) {
             return None;
         }
-        // A request is data. The native host alone executes it on explicit refresh.
-        let request = RefreshRecord::from_value(&self.on_url(Hook::Refresh, url).ok()?).ok()?;
+        // A request is data: `{program, args, title?, env?, format?}`. The
+        // native host alone executes it on explicit refresh.
+        let request = self.on_url(Hook::Refresh, url).ok()?;
+        let request = Fields::new(&request).ok()?;
+        let program: String = request.required("program").ok()?;
+        let title: Option<String> = request.present("title").ok()?;
+        let env: Option<BTreeMap<String, String>> = request.present("env").ok()?;
+        let format: Option<String> = request.present("format").ok()?;
         // A relative program is relative to the module that asked for it.
-        let program = if request.program.starts_with("./") || request.program.starts_with("../") {
-            self.path
-                .parent()?
-                .join(request.program)
-                .to_string_lossy()
-                .into_owned()
+        let program = if program.starts_with("./") || program.starts_with("../") {
+            let program = self.path.parent()?.join(program);
+            program.to_string_lossy().into_owned()
         } else {
-            request.program
+            program
         };
         Some(RefreshRequest {
-            title: request.title.unwrap_or_else(|| "Module refresh".into()),
+            title: title.unwrap_or_else(|| "Module refresh".into()),
             program,
-            args: request.args,
-            env: request.env.unwrap_or_default().into_iter().collect(),
-            format: request
-                .format
+            args: request.required("args").ok()?,
+            env: env.unwrap_or_default().into_iter().collect(),
+            format: format
                 .map(|format| format.parse())
                 .transpose()
                 .ok()?
@@ -295,7 +284,7 @@ impl Module {
             now.fixed_offset(),
         )?;
         let Value::Record(_) = &value else {
-            return Err(EvalError::Message("decode must return a record".into()));
+            return Err("decode must return a record".into());
         };
         let data = json(&value)?;
         Ok(Metadata {
@@ -309,6 +298,12 @@ impl Module {
             data: Some(data),
         })
     }
+}
+
+/// A resource property no link module gives the URL.
+fn unknown_property(name: &str) -> EvalError {
+    let (owner, name) = (common::ValueType::Resource, name.into());
+    EvalError::UnknownProperty { owner, name }
 }
 
 fn url_value(url: &Url) -> Value {
@@ -342,27 +337,5 @@ record! {
         pub native: bool,
         pub cached: Value,
         pub fetched_at: Option<DateTime<FixedOffset>>,
-    }
-}
-
-/// What a link module's `refresh` hook asked the host to run. The request is
-/// data: nothing here is executed until the user asks for a refresh.
-pub(crate) struct RefreshRecord {
-    pub title: Option<String>,
-    pub program: String,
-    pub args: Vec<String>,
-    pub env: Option<BTreeMap<String, String>>,
-    pub format: Option<String>,
-}
-impl FromValue for RefreshRecord {
-    fn from_value(value: &Value) -> EvalResult<Self> {
-        let fields = Fields::new(value)?;
-        Ok(Self {
-            program: fields.required("program")?,
-            title: fields.present("title")?,
-            args: fields.required("args")?,
-            env: fields.present("env")?,
-            format: fields.present("format")?,
-        })
     }
 }

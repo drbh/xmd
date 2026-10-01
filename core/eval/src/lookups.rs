@@ -32,17 +32,14 @@ impl Engine<'_> {
         label: Option<&str>,
     ) -> EvalResult<Value> {
         let key = LookupKey::new(kind, key, label).map_err(EvalError::Message)?;
-        let answer = match key.lookup(&self.lookups) {
-            None => Value::Null,
-            Some(lookup) => record([
+        let answer = key.lookup(&self.lookups).map_or(Value::Null, |lookup| {
+            let fetched_at = Value::DateTime(lookup.fetched_at.fixed_offset());
+            record([
                 ("value", from_json(&lookup.value)),
-                (
-                    "fetched_at",
-                    Value::DateTime(lookup.fetched_at.fixed_offset()),
-                ),
+                ("fetched_at", fetched_at),
                 ("source", Value::Text(lookup.source.clone())),
-            ]),
-        };
+            ])
+        });
         let at = self.reading_for();
         self.wanted.push(LookupRead { key, at });
         Ok(answer)

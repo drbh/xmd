@@ -49,12 +49,9 @@ fn main() {
 /// True when the script's top-level `requires` field is `"browser"`, without
 /// pulling a JSON parser into the build script.
 fn requires_browser(script: &str) -> bool {
-    let Some(rest) = script.split("\"requires\"").nth(1) else {
-        return false;
-    };
-    let rest = rest.trim_start();
-    let Some(rest) = rest.strip_prefix(':') else {
-        return false;
-    };
-    rest.trim_start().starts_with("\"browser\"")
+    script
+        .split("\"requires\"")
+        .nth(1)
+        .and_then(|rest| rest.trim_start().strip_prefix(':'))
+        .is_some_and(|rest| rest.trim_start().starts_with("\"browser\""))
 }

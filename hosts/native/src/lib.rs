@@ -22,5 +22,7 @@ pub use command::{MAX_REQUESTS, MAX_STEPS, run_command_named};
 pub use lookups::PROVIDER_STEPS;
 // The process clock, which `XMD_NOW` can freeze.
 pub use clock::now;
+// The home directory a workspace resolves `~/` links against.
+pub use io::home;
 // Refreshing what a workspace reads from outside: link statuses and lookups.
 pub use refresh::{fetch_link, refresh_workspace};

@@ -44,14 +44,8 @@ fn unique(ws: &Workspace, path: &Path, stem: &str) -> String {
         .filter(|s| s.path == path)
         .map(|s| ws.named(s).name.clone())
         .collect();
-    (0..)
-        .map(|n| {
-            if n == 0 {
-                stem.into()
-            } else {
-                format!("{stem}_{n}")
-            }
-        })
+    std::iter::once(stem.to_owned())
+        .chain((1..).map(|n| format!("{stem}_{n}")))
         .find(|n| !taken.contains(n))
         .unwrap()
 }
@@ -98,31 +92,28 @@ pub fn refactors(
     // Moving row-local expressions out of their sum, or treating literal table
     // cells as prose, would change their meaning. Do not offer those refactors.
     if doc
-        .tables
+        .tables()
         .iter()
         .any(|t| row >= t.header && row < t.end_line)
         || doc
-            .forms
+            .forms()
             .iter()
             .any(|f| f.has_table() && row >= f.header && row < f.end_line)
         || doc
-            .references
+            .references()
             .iter()
             .any(|r| r.span.line == row && lang::eval::tables::scope_at(doc, r.span).is_some())
     {
         return result;
     }
     let line = doc.line(row);
-    let Some(start) = byte_at(line, range.start.character) else {
+    let Some((start, end)) = byte_at(line, range.start.character)
+        .zip(byte_at(line, range.end.character))
+        .filter(|(start, end)| start <= end)
+    else {
         return vec![];
     };
-    let Some(end) = byte_at(line, range.end.character) else {
-        return vec![];
-    };
-    if start > end {
-        return vec![];
-    }
-    let newline = if doc.text.contains("\r\n") {
+    let newline = if doc.text().contains("\r\n") {
         "\r\n"
     } else {
         "\n"
@@ -150,10 +141,10 @@ pub fn refactors(
                 ));
             }
         // Definitions and references count the brackets around them.
-        } else if !doc.definitions.iter().any(|d| {
+        } else if !doc.definitions().iter().any(|d| {
             let opening = d.value_span.start.saturating_sub(1);
             overlaps(selection, Span::new(d.named.span.line, opening, d.end.end))
-        }) && !doc.references.iter().any(|r| {
+        }) && !doc.references().iter().any(|r| {
             let opening = r.span.start.saturating_sub(1);
             overlaps(selection, Span::new(r.span.line, opening, r.end() + 1))
         }) && !doc
@@ -182,7 +173,7 @@ pub fn refactors(
             ));
         }
     }
-    for reference in doc.references.iter().filter(|r| r.span.line == row) {
+    for reference in doc.references().iter().filter(|r| r.span.line == row) {
         let begin = if reference.bracket {
             line[..reference.span.start]
                 .rfind('[')
@@ -280,7 +271,7 @@ pub fn refactors(
         }
         if let SymbolKind::Definition(index) = symbol.kind {
             let original = &ws.documents()[&symbol.path];
-            let def = &original.definitions[index];
+            let def = &original.definitions()[index];
             if !def.expression
                 || !lang::syntax::valid_expression(&def.source)
                 || matches!(
@@ -291,7 +282,7 @@ pub fn refactors(
                 continue;
             }
             let safe = original
-                .references
+                .references()
                 .iter()
                 .filter(|r| def.value_span.contains(original, r.span))
                 .all(|r| ws.resolve(&symbol.path, &r.name).ok() == ws.resolve(path, &r.name).ok());
@@ -308,6 +299,6 @@ pub fn refactors(
         }
     }
     // Guard every offered transformation against invalid ranges/overlapping edits.
-    result.retain(|r| lang::document::apply_edits(&doc.text, &r.edits).is_ok());
+    result.retain(|r| lang::document::apply_edits(doc.text(), &r.edits).is_ok());
     result
 }

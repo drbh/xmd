@@ -27,7 +27,7 @@ record! {
 }
 
 pub(super) fn recognized(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
-    for found in doc.recognized.iter().filter(|found| found.rule.record) {
+    for found in doc.recognized().iter().filter(|found| found.rule.record) {
         let text = found.span.source(doc);
         let range = found.span.range(doc);
         let groups = found
@@ -61,7 +61,7 @@ pub(super) fn recognized(ws: &Workspace, path: &Path, doc: &Document, records: &
                 text: text.into(),
                 range: q::range(range),
                 groups: Value::record(groups),
-                parent: found.parent.map(|p| doc.recognized[p].span.line),
+                parent: found.parent.map(|p| doc.recognized()[p].span.line),
                 end_line: found.end,
             },
         ));

@@ -3,11 +3,8 @@
 //! module declares. Matching runs in time linear in the text (the `regex`
 //! crate never backtracks), and a pattern's source and compiled size are
 //! bounded, so no pattern a module or note writes can stall a keystroke.
-use std::{
-    collections::HashMap,
-    ops::Range,
-    sync::{Arc, Mutex, OnceLock},
-};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::{collections::HashMap, ops::Range};
 
 /// The longest pattern source, in bytes.
 pub(crate) const MAX_PATTERN: usize = 4096;

@@ -6,9 +6,12 @@
 //! to read each column, the names its expressions read and the problems with
 //! how it is written. What the expressions are worth, and what the form
 //! means, is the evaluator's and the module's.
-use crate::blocks::{Definition, HighlightKind, Named, Problem, Tree, cells, identifier, name_len};
+use crate::blocks::cells;
 use crate::document::Document;
+use crate::inline::{Definition, Named, identifier, name_len};
 use crate::tables::{Cell, Table};
+use crate::tables_impl::rows;
+use crate::tree::{HighlightKind, Problem, Tree};
 use common::Span;
 use std::sync::Arc;
 use syntax::Literal;
@@ -274,11 +277,8 @@ pub(crate) fn recognize(
 
 /// "a" or "an", for the word that follows.
 fn article(word: &str) -> &'static str {
-    if word.starts_with(['a', 'e', 'i', 'o', 'u']) {
-        "an"
-    } else {
-        "a"
-    }
+    let vowel = word.starts_with(['a', 'e', 'i', 'o', 'u']);
+    if vowel { "an" } else { "a" }
 }
 
 /// A count as a word, the way a problem says how many columns there are.
@@ -297,28 +297,17 @@ fn capitalized(word: &str) -> String {
         .unwrap_or_default()
 }
 
-fn parse(
-    text: &str,
-    def: &Definition,
-    definition: usize,
-    form: Arc<Form>,
-    lines: &[&str],
-) -> Formed {
+fn parse(text: &str, def: &Definition, index: usize, form: Arc<Form>, lines: &[&str]) -> Formed {
     let (_, bounds) = call(&def.source).expect("a form is a call");
     let offset = def.expression_span(text).start;
     let source = Span::new(def.value_span.line, offset, offset);
     let header = def.end.line + 1;
     let arguments: Vec<(String, Span)> = bounds
         .iter()
-        .map(|&(start, end)| {
-            (
-                def.source[start..end].into(),
-                source.relative(text, start, end),
-            )
-        })
+        .map(|&(s, e)| (def.source[s..e].into(), source.relative(text, s, e)))
         .collect();
     let mut formed = Formed {
-        definition,
+        definition: index,
         form: form.clone(),
         arguments,
         header,
@@ -330,93 +319,48 @@ fn parse(
         problems: vec![],
     };
     let mut problem = |span, message: String| formed.problems.push(Problem { span, message });
-    for missing in formed.arguments.len()..form.reads.len() {
+    let (at, takes) = (def.value_span, form.reads.len());
+    let (name, noun) = (&form.name, &form.noun);
+    for missing in formed.arguments.len()..takes {
         let param = form.param(missing);
-        problem(
-            def.value_span,
-            format!(
-                "{}() needs {} {param} expression",
-                form.name,
-                article(param)
-            ),
-        );
+        let message = format!("{name}() needs {} {param} expression", article(param));
+        problem(at, message);
     }
-    if formed.arguments.len() > form.reads.len() {
-        problem(
-            def.value_span,
-            format!(
-                "{}() takes {} argument{}",
-                form.name,
-                form.reads.len(),
-                if form.reads.len() == 1 { "" } else { "s" }
-            ),
-        );
+    if formed.arguments.len() > takes {
+        let plural = if takes == 1 { "" } else { "s" };
+        problem(at, format!("{name}() takes {takes} argument{plural}"));
     }
     if form.table.is_empty() {
         return formed;
     }
     let width = form.table.len();
     let Some(headers) = lines.get(header).and_then(|l| cells(l, header)) else {
-        problem(
-            def.value_span,
-            format!(
-                "A {} needs a {} table on the next line",
-                form.noun,
-                form.header()
-            ),
-        );
+        let message = format!("A {noun} needs a {} table on the next line", form.header());
+        problem(at, message);
         return formed;
     };
     if headers.len() != width || headers.iter().any(|(name, _)| !identifier(name)) {
-        problem(
-            Span::new(header, 0, lines[header].len()),
-            format!(
-                "{} tables have {} columns: {}",
-                capitalized(&form.noun),
-                count(width),
-                form.header()
-            ),
-        );
+        let (title, layout) = (capitalized(&form.noun), form.header());
+        let message = format!("{title} tables have {} columns: {layout}", count(width));
+        problem(Span::new(header, 0, lines[header].len()), message);
     }
     formed.columns = headers
         .into_iter()
         .map(|(name, span)| Named { name, span })
         .collect();
-    formed.end_line = header + 1;
-    if let Some(parts) = lines.get(header + 1).and_then(|l| cells(l, header + 1)) {
-        formed.end_line = header + 2;
-        formed.separators = parts.iter().map(|(s, _)| s.clone()).collect();
-        if parts.len() != formed.columns.len()
-            || parts.iter().any(|(s, _)| {
-                let core = s.trim_matches(':');
-                core.len() < 3 || !core.bytes().all(|c| c == b'-')
-            })
-        {
-            problem(
-                Span::new(header + 1, 0, lines[header + 1].len()),
-                "Table separator must have one --- cell per column".into(),
-            );
-        }
-    } else {
-        problem(
-            def.value_span,
-            format!(
-                "A {} table needs a Markdown separator row after its header",
-                form.noun
-            ),
-        );
-    }
+    let message = format!("A {noun} table needs a Markdown separator row after its header");
+    let missing = (at, message);
+    let n = formed.columns.len();
+    let (separators, end_line, grid) = rows(lines, header, n, true, missing, &mut problem);
+    (formed.separators, formed.end_line) = (separators, end_line);
     let named = form.table.iter().position(|c| c.reads == Reading::Name);
     let expected = {
         let described: Vec<String> = form
             .table
             .iter()
             .map(|c| {
-                let name = if c.reads == Reading::Name {
-                    " name"
-                } else {
-                    ""
-                };
+                let named = c.reads == Reading::Name;
+                let name = if named { " name" } else { "" };
                 format!("{} {}{name}", article(&c.name), c.name)
             })
             .collect();
@@ -426,41 +370,26 @@ fn parse(
             None => String::new(),
         }
     };
-    while let Some(line) = lines
-        .get(formed.end_line)
-        .filter(|l| l.trim_start().starts_with('|'))
-    {
-        let row = formed.end_line;
-        formed.end_line += 1;
-        let Some(parts) = cells(line, row) else {
-            problem(
-                Span::new(row, 0, line.len()),
-                "Unclosed table row; use outer | delimiters".into(),
-            );
+    for (row, line, parts) in grid {
+        let Some(parts) = parts else {
+            let message = "Unclosed table row; use outer | delimiters";
+            problem(Span::new(row, 0, line.len()), message.into());
             continue;
         };
         if parts.len() != width {
-            problem(
-                Span::new(row, 0, line.len()),
-                format!("Expected {expected}, found {} cells", parts.len()),
-            );
+            let message = format!("Expected {expected}, found {} cells", parts.len());
+            problem(Span::new(row, 0, line.len()), message);
             continue;
         }
         if let Some(column) = named {
             let (name, span) = &parts[column];
             let what = &form.table[column].name;
             if !identifier(name) {
-                problem(
-                    *span,
-                    format!("{} names must be identifiers", capitalized(what)),
-                );
+                let message = format!("{} names must be identifiers", capitalized(what));
+                problem(*span, message);
                 continue;
             }
-            if formed
-                .rows
-                .iter()
-                .any(|cells: &Vec<(String, Span)>| cells[column].0 == *name)
-            {
+            if formed.rows.iter().any(|cells| cells[column].0 == *name) {
                 problem(*span, format!("Duplicate {what} '{name}'"));
             }
         }

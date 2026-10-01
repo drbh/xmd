@@ -8,10 +8,11 @@
 //! in its `records` hook; those are [`Collection::Declared`], known only by
 //! name here, and whether any module declares one is the registry's to say.
 use std::sync::Arc;
+use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
 /// A named set of workspace records. Queries bind these names, and feature
 /// modules declare the ones they read in `module.inputs`.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum::IntoStaticStr)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, IntoStaticStr, EnumIter)]
 #[strum(serialize_all = "snake_case")]
 pub enum Collection {
     Ast,
@@ -47,26 +48,9 @@ pub enum Collection {
 }
 impl Collection {
     /// The language's own collections, in declaration order.
-    pub const NATIVE: [Collection; 18] = [
-        Self::Ast,
-        Self::Mentions,
-        Self::Links,
-        Self::Checkboxes,
-        Self::Entries,
-        Self::Values,
-        Self::Forms,
-        Self::Tables,
-        Self::Rows,
-        Self::Resources,
-        Self::Diagnostics,
-        Self::Notes,
-        Self::Sections,
-        Self::Calculations,
-        Self::References,
-        Self::Cells,
-        Self::Recognized,
-        Self::Attributed,
-    ];
+    fn natives() -> impl Iterator<Item = Self> {
+        Self::iter().filter(|c| !c.is_declared())
+    }
     /// The name a query or `inputs` binds.
     pub fn as_str(&self) -> &str {
         match self {
@@ -76,16 +60,13 @@ impl Collection {
     }
     /// The language's own collection called `name`.
     fn native(name: &str) -> Option<Self> {
-        Self::NATIVE.into_iter().find(|c| c.as_str() == name)
+        Self::natives().find(|c| c.as_str() == name)
     }
     /// Every native collection name, in declaration order, for error
     /// messages; the declared ones are the registry's to add.
     pub fn names() -> String {
-        Self::NATIVE
-            .iter()
-            .map(Self::as_str)
-            .collect::<Vec<_>>()
-            .join(", ")
+        let names: Vec<&str> = Self::natives().map(<&str>::from).collect();
+        names.join(", ")
     }
     /// Whether a module builds it.
     pub fn is_declared(&self) -> bool {

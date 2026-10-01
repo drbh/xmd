@@ -1,10 +1,8 @@
 use document::{Document, Named};
 use modules::Cache;
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
+use std::{collections::BTreeMap, sync::Arc};
+use values::{EvalError, EvalResult};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SymbolKind {
@@ -17,6 +15,7 @@ pub enum SymbolKind {
     Variable(usize, usize),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[non_exhaustive]
 pub struct Symbol {
     pub path: PathBuf,
     pub kind: SymbolKind,
@@ -61,6 +60,9 @@ pub struct Workspace {
     recognizers: document::recognized::Recognizers,
     /// What calls into a module with this as its environment share.
     pub(crate) calls: crate::module_runtime::CallMemo,
+    /// The user's home directory, which `~/` links resolve against. The host
+    /// supplies it; a browser has none.
+    home: Option<PathBuf>,
 }
 impl Workspace {
     /// A workspace over `roots` with no notes, caches or modules of its own
@@ -89,6 +91,7 @@ impl Workspace {
             modules: Arc::new(modules),
             recognizers: Default::default(),
             calls: Default::default(),
+            home: None,
         };
         workspace.recognize_with(recognizers);
         workspace
@@ -96,6 +99,14 @@ impl Workspace {
     /// The directories this workspace was opened on.
     pub fn roots(&self) -> &[PathBuf] {
         &self.roots
+    }
+    /// The user's home directory, if the host supplied one.
+    pub fn home(&self) -> Option<&Path> {
+        self.home.as_deref()
+    }
+    /// Resolve `~/` links against `home` from now on.
+    pub fn set_home(&mut self, home: Option<PathBuf>) {
+        self.home = home;
     }
     /// Every loaded note, by path.
     pub fn documents(&self) -> &BTreeMap<PathBuf, Document> {
@@ -187,19 +198,15 @@ impl Workspace {
     pub fn link_features(&self) -> modules::LinkFeatures<'_> {
         self.modules.link_features()
     }
-    pub fn resolve(&self, path: &Path, name: &str) -> values::EvalResult<Symbol> {
+    pub fn resolve(&self, path: &Path, name: &str) -> EvalResult<Symbol> {
         self.resolve_shared(path, name).map(Arc::unwrap_or_clone)
     }
     /// [`Self::resolve`], sharing the workspace's own copy of the symbol.
-    pub(crate) fn resolve_shared(
-        &self,
-        path: &Path,
-        name: &str,
-    ) -> values::EvalResult<Arc<Symbol>> {
+    pub(crate) fn resolve_shared(&self, path: &Path, name: &str) -> EvalResult<Arc<Symbol>> {
         match self.candidates(path, name) {
-            [] => Err(values::EvalError::UnknownName { name: name.into() }),
+            [] => Err(EvalError::UnknownName { name: name.into() }),
             [symbol] => Ok(symbol.clone()),
-            _ => Err(values::EvalError::AmbiguousName { name: name.into() }),
+            _ => Err(EvalError::AmbiguousName { name: name.into() }),
         }
     }
     /// Every symbol `name` may mean in the note at `path`.
@@ -263,7 +270,7 @@ fn names_in(path: &Path, doc: &Document) -> Names {
     names
 }
 fn variables_in(doc: &Document) -> impl Iterator<Item = SymbolKind> + '_ {
-    doc.forms.iter().enumerate().flat_map(move |(f, formed)| {
+    doc.forms().iter().enumerate().flat_map(move |(f, formed)| {
         undeclared(doc, formed)
             .into_iter()
             .map(move |(i, _)| SymbolKind::Variable(f, i))
@@ -287,19 +294,19 @@ fn undeclared<'a>(doc: &Document, formed: &'a document::forms::Formed) -> Vec<(u
 }
 /// Symbols written down by hand: definitions, named tasks and sections.
 fn declared_in(doc: &Document) -> impl Iterator<Item = SymbolKind> + '_ {
-    doc.definitions
+    doc.definitions()
         .iter()
         .enumerate()
         .map(|(i, _)| SymbolKind::Definition(i))
         .chain(
-            doc.tasks
+            doc.tasks()
                 .iter()
                 .enumerate()
                 .filter(|(_, t)| t.named.is_some())
                 .map(|(i, _)| SymbolKind::Task(i)),
         )
         .chain(
-            doc.sections
+            doc.sections()
                 .iter()
                 .enumerate()
                 .filter(|(_, s)| s.named.is_some())
@@ -308,10 +315,10 @@ fn declared_in(doc: &Document) -> impl Iterator<Item = SymbolKind> + '_ {
 }
 fn named<'a>(doc: &'a Document, kind: &SymbolKind) -> &'a Named {
     match *kind {
-        SymbolKind::Definition(i) => &doc.definitions[i].named,
-        SymbolKind::Task(i) => doc.tasks[i].named.as_ref().unwrap(),
-        SymbolKind::Section(i) => doc.sections[i].named.as_ref().unwrap(),
-        SymbolKind::Column(table, column) => &doc.tables[table].columns[column],
-        SymbolKind::Variable(form, name) => &doc.forms[form].names[name],
+        SymbolKind::Definition(i) => &doc.definitions()[i].named,
+        SymbolKind::Task(i) => doc.tasks()[i].named.as_ref().unwrap(),
+        SymbolKind::Section(i) => doc.sections()[i].named.as_ref().unwrap(),
+        SymbolKind::Column(table, column) => &doc.tables()[table].columns[column],
+        SymbolKind::Variable(form, name) => &doc.forms()[form].names[name],
     }
 }

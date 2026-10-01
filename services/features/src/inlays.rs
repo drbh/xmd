@@ -1,9 +1,7 @@
 //! Inlays: what providers read and write while contributing inline labels.
 use lang::document::Document;
 use lang::eval::engine::Engine;
-use lsp_types::{
-    InlayHint, InlayHintLabel, InlayHintTooltip, MarkupContent, MarkupKind, Position, Range,
-};
+use lsp_types::{InlayHint, InlayHintLabel, InlayHintTooltip, Position, Range};
 use std::path::Path;
 
 /// All producers in one request share evaluation memoization and a clock snapshot.
@@ -33,10 +31,7 @@ impl InlaySink {
             label: InlayHintLabel::String(label),
             kind: None,
             text_edits: None,
-            tooltip: Some(InlayHintTooltip::MarkupContent(MarkupContent {
-                kind: MarkupKind::Markdown,
-                value: tooltip,
-            })),
+            tooltip: Some(InlayHintTooltip::MarkupContent(analysis::markup(tooltip))),
             padding_left: Some(true),
             padding_right: None,
             data: None,

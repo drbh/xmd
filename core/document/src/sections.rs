@@ -1,8 +1,10 @@
 //! Sections: every heading opens one and closes the open sections it
 //! outranks; a named heading (`## Packing :packing`) is a checklist over the
 //! tasks under it.
-use crate::blocks::{Heading, Named, Tree};
+use crate::blocks::Heading;
 use crate::document::Document;
+use crate::inline::Named;
+use crate::tree::Tree;
 
 #[derive(Clone, Debug)]
 pub struct Section {

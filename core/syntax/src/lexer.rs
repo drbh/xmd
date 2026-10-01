@@ -149,11 +149,8 @@ pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                     _ => return Err(format!("Unexpected character '{c}'")),
                 }
             };
-        out.push(Token {
-            kind,
-            start,
-            end: i,
-        });
+        let end = i;
+        out.push(Token { kind, start, end });
         if out.len() > 2048 {
             return Err("Expression is too long".into());
         }
@@ -271,18 +268,20 @@ impl Expr {
         }
     }
     pub fn bare(&self) -> &Self {
-        if let Self::Spanned(_, _, e) = self {
-            e.bare()
-        } else {
-            self
+        match self {
+            Self::Spanned(_, _, e) => e.bare(),
+            _ => self,
         }
     }
     pub fn bounds(&self) -> (usize, usize) {
-        if let Self::Spanned(s, e, _) = self {
-            (*s, *e)
-        } else {
-            (0, 0)
+        match self {
+            Self::Spanned(s, e, _) => (*s, *e),
+            _ => (0, 0),
         }
+    }
+    /// `expr` spanning `start..end` of its source.
+    fn spanned(start: usize, end: usize, expr: Expr) -> Self {
+        Self::Spanned(start, end, Box::new(expr))
     }
 }
 /// Free variable positions, excluding function parameters and record keys.
@@ -385,11 +384,11 @@ impl Parser {
     }
     /// Steps past the next token, which has to be `kind`.
     fn expect(&mut self, kind: &Lexeme, error: &str) -> Result<(), String> {
-        if self.eat(kind) {
-            Ok(())
-        } else {
-            Err(error.into())
-        }
+        self.eat(kind).then_some(()).ok_or_else(|| error.into())
+    }
+    /// Where the token just read ends.
+    fn end(&self) -> usize {
+        self.tokens[self.at - 1].end
     }
     fn close(&mut self) -> Result<(), String> {
         self.expect(&Lexeme::Right, "Expected ')'")
@@ -432,11 +431,11 @@ impl Parser {
         self.at += 1;
         let mut lhs = match token {
             Lexeme::Value(v) => Expr::Value(v),
-            Lexeme::OpenList => Expr::List(self.arguments(false)?),
+            Lexeme::OpenList => Expr::List(self.arguments(Lexeme::CloseList)?),
             Lexeme::OpenRecord => Expr::Record(self.fields(
                 "Expected a record field name",
                 |p, key, (start, end), value| {
-                    value.unwrap_or_else(|| Expr::Spanned(start, end, Box::new(p.name(key.into()))))
+                    value.unwrap_or_else(|| Expr::spanned(start, end, p.name(key.into())))
                 },
             )?),
             Lexeme::Name(n) if n == "fn" => {
@@ -472,11 +471,8 @@ impl Parser {
                 self.expect(&Lexeme::Op(Operator::Arrow), "Expected '=>'")?;
                 let (params, defaults): (Vec<_>, Vec<_>) = params.into_iter().unzip();
                 let body = self.scoped(params.clone(), |p| p.expression(0))?;
-                Expr::Lambda(
-                    params,
-                    defaults.into_iter().flatten().collect(),
-                    Arc::new(body),
-                )
+                let defaults = defaults.into_iter().flatten().collect();
+                Expr::Lambda(params, defaults, Arc::new(body))
             }
             Lexeme::Name(n) if n == "let" && self.peek() == Some(&Lexeme::Left) => {
                 self.at += 1;
@@ -519,15 +515,11 @@ impl Parser {
             }
             _ => return Err("Expected a value, name, or function".into()),
         };
-        lhs = Expr::Spanned(start, self.tokens[self.at - 1].end, Box::new(lhs));
+        lhs = Expr::spanned(start, self.end(), lhs);
         loop {
             if self.eat(&Lexeme::Left) {
-                let args = self.arguments(true)?;
-                lhs = Expr::Spanned(
-                    start,
-                    self.tokens[self.at - 1].end,
-                    Box::new(Expr::Apply(Box::new(lhs), args)),
-                );
+                let args = self.arguments(Lexeme::Right)?;
+                lhs = Expr::spanned(start, self.end(), Expr::Apply(Box::new(lhs), args));
                 continue;
             }
             if self.eat(&Lexeme::Dot) {
@@ -539,11 +531,7 @@ impl Parser {
                 else {
                     return Err("Expected property name".into());
                 };
-                lhs = Expr::Spanned(
-                    start,
-                    *end,
-                    Box::new(Expr::Property(Box::new(lhs), n.clone())),
-                );
+                lhs = Expr::spanned(start, *end, Expr::Property(Box::new(lhs), n.clone()));
                 self.at += 1;
                 continue;
             }
@@ -570,11 +558,8 @@ impl Parser {
             if is_row_function(&lhs) || is_row_function(&rhs) {
                 return Err(ROW_OPERAND.into());
             }
-            lhs = Expr::Spanned(
-                start,
-                rhs.bounds().1,
-                Box::new(Expr::Binary(op, Box::new(lhs), Box::new(rhs))),
-            );
+            let end = rhs.bounds().1;
+            lhs = Expr::spanned(start, end, Expr::Binary(op, Box::new(lhs), Box::new(rhs)));
         }
         self.depth -= 1;
         Ok(lhs)
@@ -641,11 +626,8 @@ impl Parser {
                     else {
                         return Err("Expected property name".into());
                     };
-                    path = Expr::Spanned(
-                        *start,
-                        *end,
-                        Box::new(Expr::Property(Box::new(path), field.clone())),
-                    );
+                    path =
+                        Expr::spanned(*start, *end, Expr::Property(Box::new(path), field.clone()));
                     self.at += 1;
                     if !self.eat(&Lexeme::Dot) {
                         return Ok(path);
@@ -663,18 +645,14 @@ impl Parser {
                             Some(value) => match value.bare() {
                                 Expr::Lambda(params, _, _) if params.len() == 1 => {
                                     let (s, e) = value.bounds();
-                                    Expr::Spanned(
-                                        s,
-                                        e,
-                                        Box::new(Expr::Apply(Box::new(value), vec![row()])),
-                                    )
+                                    Expr::spanned(s, e, Expr::Apply(Box::new(value), vec![row()]))
                                 }
                                 _ => value,
                             },
-                            None => Expr::Spanned(
+                            None => Expr::spanned(
                                 start,
                                 end,
-                                Box::new(Expr::Property(Box::new(row()), key.into())),
+                                Expr::Property(Box::new(row()), key.into()),
                             ),
                         }
                     },
@@ -743,19 +721,13 @@ impl Parser {
             Ok((bindings, p.expression(0)?))
         })?;
         self.close()?;
-        let end = self.tokens[self.at - 1].end;
+        let end = self.end();
         Ok(bindings
             .into_iter()
             .rev()
             .fold(body, |body, (name, value)| {
-                Expr::Spanned(
-                    start,
-                    end,
-                    Box::new(Expr::Apply(
-                        Box::new(Expr::Lambda(vec![name], vec![], Arc::new(body))),
-                        vec![value],
-                    )),
-                )
+                let function = Expr::Lambda(vec![name], vec![], Arc::new(body));
+                Expr::spanned(start, end, Expr::Apply(Box::new(function), vec![value]))
             }))
     }
     /// The `{name: value, …}` of a `let`, after its `{`. Each value is parsed
@@ -784,12 +756,7 @@ impl Parser {
         self.expect(&Lexeme::CloseRecord, "Expected '}'")?;
         Ok(bindings)
     }
-    fn arguments(&mut self, parentheses: bool) -> Result<Vec<Expr>, String> {
-        let close = if parentheses {
-            Lexeme::Right
-        } else {
-            Lexeme::CloseList
-        };
+    fn arguments(&mut self, close: Lexeme) -> Result<Vec<Expr>, String> {
         let args = self.separated(&close, |p, _| p.expression(0))?;
         self.expect(&close, "Unclosed arguments or list")?;
         Ok(args)

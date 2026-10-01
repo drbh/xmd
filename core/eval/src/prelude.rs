@@ -30,10 +30,12 @@ impl Workspace {
     /// Whether `name` is one the prelude gives a note: it exports it, and
     /// the note at `path` defines nothing by that name.
     pub fn prelude_name(&self, path: &Path, name: &str) -> bool {
-        matches!(
-            self.resolve(path, name),
-            Err(values::EvalError::UnknownName { .. })
-        ) && self.modules.prelude().is_some_and(|m| m.is_public(name))
+        self.undefined(path, name) && self.modules.prelude().is_some_and(|m| m.is_public(name))
+    }
+    /// Whether the note at `path` defines nothing by `name`.
+    fn undefined(&self, path: &Path, name: &str) -> bool {
+        let found = self.resolve(path, name);
+        matches!(found, Err(values::EvalError::UnknownName { .. }))
     }
     /// The prelude's names the note at `path` does not define itself: the
     /// ones its calls reach in the prelude.
@@ -43,12 +45,7 @@ impl Workspace {
             .map(|m| m.public_names())
             .unwrap_or_default()
             .into_iter()
-            .filter(|name| {
-                matches!(
-                    self.resolve(path, name),
-                    Err(values::EvalError::UnknownName { .. })
-                )
-            })
+            .filter(|name| self.undefined(path, name))
             .collect()
     }
     /// The functions the prelude exports, in the order it lists them.
@@ -61,7 +58,8 @@ impl Workspace {
             .public_names()
             .into_iter()
             .filter_map(|name| {
-                let definition = document.definitions.iter().find(|d| d.named.name == name)?;
+                let mut definitions = document.definitions().iter();
+                let definition = definitions.find(|d| d.named.name == name)?;
                 let Some(Expr::Lambda(params, defaults, _)) =
                     module.expressions().get(&definition.source).map(Expr::bare)
                 else {
@@ -73,7 +71,7 @@ impl Workspace {
                     .enumerate()
                     .map(|(i, p)| format!("{p}{}", if i < first { "" } else { "?" }))
                     .collect();
-                let lines: Vec<&str> = document.text.lines().collect();
+                let lines: Vec<&str> = document.text().lines().collect();
                 let above = &lines[..definition.named.span.line];
                 let start = above.iter().rposition(|line| !line.starts_with("//"));
                 let comment: Vec<&str> = above[start.map_or(0, |i| i + 1)..]

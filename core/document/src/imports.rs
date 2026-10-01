@@ -1,9 +1,7 @@
 //! Explicit note dependencies and source navigation, using the expression parser.
 use common::Span;
-use std::{
-    collections::BTreeSet,
-    path::{Component, Path, PathBuf},
-};
+use std::collections::BTreeSet;
+use std::path::{Component, Path, PathBuf};
 use syntax::{Expr, Literal, Parser};
 
 #[derive(Clone, Debug)]

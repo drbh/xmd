@@ -10,32 +10,27 @@
 //! workspace's own resolution and cycle checks) or the definition's own name
 //! ([`Unknowns::Own`], found through the definitions that read it).
 //! `features` registers this for [`document::DefinitionKind::Form`].
-use crate::{
-    engine::{Engine, Linear, RowVariable, Unit, Value},
-    workspace::{Symbol, Workspace},
-};
+use crate::engine::{Engine, Linear, RowVariable, Unit, Value};
+use crate::linear::Vars;
+use crate::workspace::{Symbol, Workspace};
 use common::Span;
 use document::forms::{Formed, Reading, Unknowns};
-use std::{collections::BTreeSet, path::Path};
+use std::path::Path;
 use values::{EvalError, EvalResult, geometry, record};
 
-/// Evaluate form definition `index` of `symbol`'s note: read its expressions,
+/// Evaluate form definition `i` of `symbol`'s note: read its expressions,
 /// then ask its module's `define` hook. What the hook says besides the value
 /// (a hover, a detail, a record) is kept with the value: [`Engine::about`].
-pub(crate) fn evaluate(
-    engine: &mut Engine<'_>,
-    symbol: &Symbol,
-    index: usize,
-) -> EvalResult<Value> {
+pub(crate) fn evaluate(engine: &mut Engine<'_>, symbol: &Symbol, i: usize) -> EvalResult<Value> {
     let ws = engine.workspace();
     let doc = &ws.documents[&symbol.path];
-    let formed = doc.form_of(index).ok_or(EvalError::Expected("a form"))?;
+    let formed = doc.form_of(i).ok_or(EvalError::Expected("a form"))?;
     let path = symbol.path.as_path();
     if let Some(problem) = formed.problems.first() {
         let message = EvalError::Message(problem.message.clone());
         return Err(engine.fail_at(path, problem.span, message));
     }
-    let definition = &doc.definitions[index];
+    let definition = &doc.definitions()[i];
     let unknowns: Vec<String> = match formed.form.unknowns {
         Unknowns::Free => ws
             .claimed(path, formed)
@@ -44,13 +39,15 @@ pub(crate) fn evaluate(
             .collect(),
         Unknowns::Own => vec![definition.named.name.clone()],
     };
-    let vars: BTreeSet<String> = unknowns.iter().cloned().collect();
+    let vars: Vars = unknowns.iter().cloned().collect();
     // A form read while reading another (a constant that is a form's value)
     // keeps its decision cells to itself.
     let outer = std::mem::take(&mut engine.row_variables);
     let read = read_all(engine, path, formed, &vars);
     let decisions = std::mem::replace(&mut engine.row_variables, outer);
     let (arguments, rows) = read?;
+    let unknowns = unknowns.into_iter().map(Value::Text).collect();
+    let decisions = decisions.iter().filter_map(|d| decision_record(ws, d));
     let input = record([
         ("form", Value::Text(formed.form.name.clone())),
         ("name", Value::Text(definition.named.name.clone())),
@@ -58,36 +55,24 @@ pub(crate) fn evaluate(
         ("line", Value::Count(definition.named.span.line)),
         ("arguments", Value::list(arguments)),
         ("rows", Value::list(rows)),
-        (
-            "unknowns",
-            Value::list(unknowns.into_iter().map(Value::Text).collect()),
-        ),
-        (
-            "decisions",
-            Value::list(
-                decisions
-                    .iter()
-                    .filter_map(|decision| decision_record(ws, decision))
-                    .collect(),
-            ),
-        ),
+        ("unknowns", Value::list(unknowns)),
+        ("decisions", Value::list(decisions.collect())),
     ]);
-    let at = formed
-        .arguments
-        .first()
-        .map_or(definition.value_span, |(_, span)| *span);
+    let first = formed.arguments.first();
+    let at = first.map_or(definition.value_span, |(_, span)| *span);
+    let (module, define) = (&formed.form.module, modules::Hook::Define.as_ref());
     let answer = engine
-        .call_hook(&formed.form.module, modules::Hook::Define, vec![input])
+        .call_hook(module, define, vec![input], true)
         .map_err(|message| engine.fail_at(path, at, message))?;
     let Value::Record(fields) = &answer else {
-        let message = EvalError::Message(format!(
+        let message = EvalError::from(format!(
             "{}.define must return a record with the definition's value",
             formed.form.module
         ));
         return Err(engine.fail_at(path, at, message));
     };
     let Some(value) = fields.get("value").cloned() else {
-        let message = EvalError::Message(format!(
+        let message = EvalError::from(format!(
             "{}.define must return the definition's value under `value`",
             formed.form.module
         ));
@@ -103,7 +88,7 @@ fn read_all(
     engine: &mut Engine<'_>,
     path: &Path,
     formed: &Formed,
-    vars: &BTreeSet<String>,
+    vars: &Vars,
 ) -> EvalResult<(Vec<Value>, Vec<Value>)> {
     let arguments = formed
         .arguments
@@ -140,17 +125,15 @@ fn read(
     source: &str,
     span: Span,
     reads: Reading,
-    vars: &BTreeSet<String>,
+    vars: &Vars,
 ) -> EvalResult<Value> {
     let doc = &engine.workspace().documents[path];
     let range = span.range(doc);
+    let anchor = geometry(doc.line_end(range.end.line as usize));
     let mut fields = vec![
         ("text".to_owned(), Value::Text(source.into())),
         ("range".to_owned(), geometry(range)),
-        (
-            "anchor".to_owned(),
-            geometry(doc.line_end(range.end.line as usize)),
-        ),
+        ("anchor".to_owned(), anchor),
     ];
     match reads {
         Reading::Name => {}
@@ -187,17 +170,13 @@ fn unit_value(kind: Unit, currency: Option<common::Currency>) -> Value {
 
 /// `{constant, terms, unit, per}`: a linear form as a module reads it.
 fn form_record(form: &Linear) -> Value {
+    let terms = form
+        .terms
+        .iter()
+        .map(|(name, n)| (name.clone(), Value::Number(*n)));
     record([
         ("constant", Value::Number(form.constant)),
-        (
-            "terms",
-            Value::record(
-                form.terms
-                    .iter()
-                    .map(|(name, coefficient)| (name.clone(), Value::Number(*coefficient)))
-                    .collect(),
-            ),
-        ),
+        ("terms", Value::record(terms.collect())),
         ("unit", unit_value(form.kind, form.currency)),
         (
             "per",
@@ -230,43 +209,22 @@ fn decision_record(ws: &Workspace, decision: &RowVariable) -> Option<Value> {
     let crate::workspace::SymbolKind::Definition(definition) = decision.table.kind else {
         return None;
     };
+    let domain: &str = decision.domain.into();
+    let label = table.rows[decision.row].first().map(|c| c.source.clone());
+    let label = label.unwrap_or_else(|| (decision.row + 1).to_string());
+    let padded = Span::new(cell.span.line, a, b);
+    let text = |text: &str| Value::Text(text.into());
     Some(record([
-        ("name", Value::Text(decision.name.clone())),
-        (
-            "domain",
-            Value::Text(
-                match decision.domain {
-                    document::tables::Domain::Choice => "choice",
-                    document::tables::Domain::Count => "count",
-                }
-                .into(),
-            ),
-        ),
-        (
-            "table",
-            Value::Text(doc.definitions[definition].named.name.clone()),
-        ),
-        (
-            "column",
-            Value::Text(table.columns[decision.column].name.clone()),
-        ),
+        ("name", text(&decision.name)),
+        ("domain", text(domain)),
+        ("table", text(&doc.definitions()[definition].named.name)),
+        ("column", text(&table.columns[decision.column].name)),
         ("row", Value::Count(decision.row)),
-        (
-            "label",
-            Value::Text(
-                table.rows[decision.row]
-                    .first()
-                    .map(|c| c.source.clone())
-                    .unwrap_or_else(|| (decision.row + 1).to_string()),
-            ),
-        ),
+        ("label", Value::Text(label)),
         ("document", Value::Text(uri(&decision.table.path))),
-        ("source", Value::Text(cell.source.clone())),
+        ("source", text(&cell.source)),
         ("line", Value::Count(cell.span.line)),
-        (
-            "range",
-            geometry(Span::new(cell.span.line, a, b).range(doc)),
-        ),
+        ("range", geometry(padded.range(doc))),
         ("anchor", geometry(cell.span.range(doc).end)),
         ("width", Value::Count((b - a).saturating_sub(2))),
     ]))

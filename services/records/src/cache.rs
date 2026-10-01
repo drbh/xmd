@@ -32,6 +32,7 @@
 use crate::built::Build;
 use crate::{Collection, DiagnosticSource, Record};
 use chrono::{DateTime, FixedOffset};
+use lang::common::lock;
 use lang::eval::Workspace;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::modules::Module;
@@ -162,12 +163,6 @@ fn holds(built: DateTime<FixedOffset>, exact: bool, now: DateTime<FixedOffset>) 
         }
 }
 
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
 impl Records {
     /// An empty cache whose collections `collect` builds.
     pub(crate) fn new(collect: Collect) -> Self {
@@ -294,10 +289,10 @@ impl Records {
         if let Some(note) = self.state(workspace).notes.get(path) {
             return Ok(note.clone());
         }
-        let text = &workspace.documents()[path].text;
+        let text = workspace.documents()[path].text();
         let note = Arc::new(NoteValues {
             uri: lang::common::file_url(path)?.into(),
-            text: Value::Text(text.clone()),
+            text: Value::Text(text.into()),
             lines: Value::list(text.lines().map(|l| Value::Text(l.into())).collect()),
         });
         self.state(workspace)

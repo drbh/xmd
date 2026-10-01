@@ -15,6 +15,7 @@
 use crate::document::Document;
 use common::{Found, Pattern, Span};
 use std::sync::Arc;
+use strum::{EnumString, IntoStaticStr, VariantArray, VariantNames};
 
 /// The most matches one note keeps across every declared recognizer: past
 /// it, recognizing stops.
@@ -25,9 +26,7 @@ pub(crate) const MAX_MATCHES: usize = 4096;
 /// a table row (from its first `|`), a line of prose (after its
 /// indentation), or, for `line`, a line of any of those kinds whole, from
 /// its first column. A pattern's `^` anchors there.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr, strum::VariantNames,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, EnumString, IntoStaticStr, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum On {
     Prose,
@@ -40,9 +39,7 @@ pub enum On {
 /// How long a line rule's match stays open to the matches `under` it: until
 /// the next heading, or until the first line that is blank or that none of
 /// its children claims.
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr, strum::VariantNames,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, EnumString, IntoStaticStr, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum Until {
     Heading,
@@ -52,15 +49,7 @@ pub enum Until {
 /// How a captured group is painted: the highlight kinds a module may name,
 /// each drawn with the editor's token of that kind.
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    strum::EnumString,
-    strum::IntoStaticStr,
-    strum::VariantNames,
-    strum::VariantArray,
+    Clone, Copy, Debug, PartialEq, Eq, EnumString, IntoStaticStr, VariantNames, VariantArray,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Paint {
@@ -157,7 +146,7 @@ pub struct Rule {
     /// The id of the module that declared it.
     pub module: String,
     pub name: String,
-    pub on: On,
+    pub(crate) on: On,
     pub pattern: Arc<Pattern>,
     /// A line this matches is not the rule's, whatever `pattern` finds: what
     /// a lookahead would say, in a pattern language without one.
@@ -382,10 +371,9 @@ impl Document {
                     let text = group.span.source(&*self);
                     let encoded: String =
                         url::form_urlencoded::byte_serialize(text.as_bytes()).collect();
-                    self.links.push(crate::blocks::Link {
-                        span: group.span,
-                        target: template.replace("{}", &encoded),
-                    });
+                    let target = template.replace("{}", &encoded);
+                    self.links
+                        .push(crate::inline::Link::new(group.span, target));
                 }
             }
         }

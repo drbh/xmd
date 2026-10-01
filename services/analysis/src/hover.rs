@@ -73,7 +73,7 @@ fn reference_hover(
     let mut value = symbol_hover(request, symbol).text;
     let mut range = span.range(doc);
     if let Some(reference) = doc
-        .references
+        .references()
         .iter()
         .find(|r| r.span == span && r.property.is_some())
     {
@@ -101,11 +101,8 @@ fn link_hover(
 ) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents().get(path)?;
-    let link = &doc.links[index];
-    let resource = resources::Resource {
-        target: link.target.clone(),
-        origin: None,
-    };
+    let link = &doc.links()[index];
+    let resource = resources::Resource::new(&link.target);
     let text = resource.presentation(&mut request.engine(), path).hover;
     Some(hover(text, link.span.range(doc)))
 }
@@ -155,7 +152,7 @@ fn symbol_text(
     };
     // A name a form solves for, as the form describes its unknowns.
     if let SymbolKind::Variable(f, _) = symbol.kind {
-        let formed = &ws.documents()[&symbol.path].forms[f];
+        let formed = &ws.documents()[&symbol.path].forms()[f];
         let definition = symbol.sibling(SymbolKind::Definition(formed.definition));
         let mut unknown = formed.form.unknown.chars();
         let unknown: String = unknown
@@ -172,7 +169,7 @@ fn symbol_text(
         });
     }
     if let SymbolKind::Definition(i) = symbol.kind {
-        let def = &ws.documents()[&symbol.path].definitions[i];
+        let def = &ws.documents()[&symbol.path].definitions()[i];
         if def.expression && def.source != "table" {
             out.push_str(&expression_detail(request, engine, symbol, i, &value));
         }
@@ -204,8 +201,8 @@ fn column_hover(
 ) -> String {
     let named = ws.named(symbol);
     let doc = &ws.documents()[&symbol.path];
-    let table = &doc.tables[t];
-    let name = &doc.definitions[table.definition].named.name;
+    let table = &doc.tables()[t];
+    let name = &doc.definitions()[table.definition].named.name;
     if let Some(domain) = table.domains[c] {
         let (written, chooses) = match domain {
             lang::eval::tables::Domain::Choice => ("name?", "yes or no"),
@@ -256,7 +253,7 @@ fn expression_detail(
     value: &lang::eval::EvalResult<Value>,
 ) -> String {
     let ws = request.workspace();
-    let def = &ws.documents()[&symbol.path].definitions[definition];
+    let def = &ws.documents()[&symbol.path].definitions()[definition];
     let substituted = engine
         .substituted(&symbol.path, &def.source)
         .unwrap_or_else(|_| def.source.clone());
@@ -353,7 +350,7 @@ fn calculation_hover(
 ) -> Option<Hover> {
     let ws = request.workspace();
     let doc = ws.documents().get(path)?;
-    let calculation = &doc.calculations[index];
+    let calculation = &doc.calculations()[index];
     let mut engine = request.engine();
     let value = engine.eval_at(path, &calculation.source, calculation.span);
     let mut text = match &value {
@@ -385,7 +382,7 @@ fn cell_hover(
     column: usize,
 ) -> Option<Hover> {
     let doc = request.workspace().documents().get(path)?;
-    let t = &doc.tables[table];
+    let t = &doc.tables()[table];
     let cell = &t.rows[row][column];
     let value = match &cell.expression {
         Some((inner, _)) => request
@@ -397,7 +394,7 @@ fn cell_hover(
     let text = match value {
         Ok((value, expression)) => format!(
             "**{}.{} · {}**\n\nRow {}: {}{}",
-            doc.definitions[t.definition].named.name,
+            doc.definitions()[t.definition].named.name,
             t.columns[column].name,
             value.type_name(),
             row + 1,

@@ -14,18 +14,18 @@ fn occurrences(ws: &Workspace, symbol: &Symbol) -> Vec<(PathBuf, Span)> {
     let mut found = vec![(symbol.path.clone(), ws.named(symbol).span)];
     let definition = match symbol.kind {
         SymbolKind::Variable(f, _) => Some(symbol.sibling(SymbolKind::Definition(
-            ws.documents()[&symbol.path].forms[f].definition,
+            ws.documents()[&symbol.path].forms()[f].definition,
         ))),
         _ => None,
     };
     let name = &ws.named(symbol).name;
     for (path, doc) in ws.documents() {
-        for member in &doc.members {
+        for member in doc.members() {
             if lang::eval::member_symbol(ws, path, &member.source).as_ref() == Some(symbol) {
                 found.push((path.clone(), member.span));
             }
         }
-        for r in &doc.references {
+        for r in doc.references() {
             if r.name == *name
                 && lang::eval::tables::resolve_reference(ws, path, r)
                     .ok()

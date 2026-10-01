@@ -17,12 +17,12 @@ pub fn prepare(ws: &Workspace, path: &Path, position: Position) -> Option<Symbol
     }
     let doc = ws.documents().get(path)?;
     let row = position.line as usize;
-    doc.tasks
+    doc.tasks()
         .iter()
         .position(|t| t.line == row)
         .map(|i| Symbol::new(path, SymbolKind::Task(i)))
         .or_else(|| {
-            doc.sections
+            doc.sections()
                 .iter()
                 .position(|s| s.line == row && s.named.is_some())
                 .map(|i| Symbol::new(path, SymbolKind::Section(i)))
@@ -32,24 +32,17 @@ pub fn prepare(ws: &Workspace, path: &Path, position: Position) -> Option<Symbol
 /// Display name for any node, including tasks without a `:name`.
 pub fn label(ws: &Workspace, symbol: &Symbol) -> String {
     let doc = &ws.documents()[&symbol.path];
-    match symbol.kind {
-        SymbolKind::Task(i) => doc.tasks[i]
-            .named
-            .as_ref()
-            .map(|n| n.name.clone())
-            .unwrap_or_else(|| doc.tasks[i].title.clone()),
-        SymbolKind::Section(i) => doc.sections[i]
-            .named
-            .as_ref()
-            .map(|n| n.name.clone())
-            .unwrap_or_else(|| doc.sections[i].title.clone()),
-        _ => ws.named(symbol).name.clone(),
-    }
+    let (named, title) = match symbol.kind {
+        SymbolKind::Task(i) => (&doc.tasks()[i].named, &doc.tasks()[i].title),
+        SymbolKind::Section(i) => (&doc.sections()[i].named, &doc.sections()[i].title),
+        _ => return ws.named(symbol).name.clone(),
+    };
+    named.as_ref().map_or(title, |n| &n.name).clone()
 }
 pub fn selection(doc: &Document, symbol: &Symbol) -> Span {
     match symbol.kind {
         SymbolKind::Task(i) => {
-            let task = &doc.tasks[i];
+            let task = &doc.tasks()[i];
             task.named.as_ref().map(|n| n.span).unwrap_or_else(|| {
                 let start = task.checkbox.end + 1;
                 Span::new(
@@ -60,29 +53,29 @@ pub fn selection(doc: &Document, symbol: &Symbol) -> Span {
             })
         }
         SymbolKind::Section(i) => {
-            let section = &doc.sections[i];
+            let section = &doc.sections()[i];
             section
                 .named
                 .as_ref()
                 .map(|n| n.span)
                 .unwrap_or_else(|| Span::new(section.line, 0, doc.line(section.line).len()))
         }
-        SymbolKind::Definition(i) => doc.definitions[i].named.span,
-        SymbolKind::Column(t, c) => doc.tables[t].columns[c].span,
-        SymbolKind::Variable(f, n) => doc.forms[f].names[n].span,
+        SymbolKind::Definition(i) => doc.definitions()[i].named.span,
+        SymbolKind::Column(t, c) => doc.tables()[t].columns[c].span,
+        SymbolKind::Variable(f, n) => doc.forms()[f].names[n].span,
     }
 }
 fn extent(doc: &Document, symbol: &Symbol) -> Range {
     let line = |row: usize| Range::new(Position::new(row as u32, 0), doc.line_end(row));
     match symbol.kind {
-        SymbolKind::Task(i) => line(doc.tasks[i].line),
-        SymbolKind::Section(i) => line(doc.sections[i].line),
+        SymbolKind::Task(i) => line(doc.tasks()[i].line),
+        SymbolKind::Section(i) => line(doc.sections()[i].line),
         SymbolKind::Definition(i) => {
             let (first, last) = doc.definition_rows(i);
             Range::new(Position::new(first as u32, 0), doc.line_end(last))
         }
-        SymbolKind::Column(t, _) => line(doc.tables[t].header),
-        SymbolKind::Variable(f, n) => line(doc.forms[f].names[n].span.line),
+        SymbolKind::Column(t, _) => line(doc.tables()[t].header),
+        SymbolKind::Variable(f, n) => line(doc.forms()[f].names[n].span.line),
     }
 }
 
@@ -120,31 +113,27 @@ pub fn decode(ws: &Workspace, item: &CallHierarchyItem) -> Option<Symbol> {
     let doc = ws.documents().get(&path)?;
     let index = data.get("index")?.as_u64()? as usize;
     let column = data.get("column")?.as_u64()? as usize;
+    let (forms, tables) = (doc.forms(), doc.tables());
     let kind = match data.get("kind")?.as_str()? {
-        "definition" if index < doc.definitions.len() => SymbolKind::Definition(index),
-        "task" if index < doc.tasks.len() => SymbolKind::Task(index),
-        "section" if index < doc.sections.len() => SymbolKind::Section(index),
-        "variable" if doc.forms.get(index).is_some_and(|f| column < f.names.len()) => {
+        "definition" if index < doc.definitions().len() => SymbolKind::Definition(index),
+        "task" if index < doc.tasks().len() => SymbolKind::Task(index),
+        "section" if index < doc.sections().len() => SymbolKind::Section(index),
+        "variable" if forms.get(index).is_some_and(|f| column < f.names.len()) => {
             SymbolKind::Variable(index, column)
         }
-        "column"
-            if doc
-                .tables
-                .get(index)
-                .is_some_and(|t| column < t.columns.len()) =>
-        {
+        "column" if tables.get(index).is_some_and(|t| column < t.columns.len()) => {
             SymbolKind::Column(index, column)
         }
         _ => return None,
     };
-    Some(Symbol { path, kind })
+    Some(Symbol::new(path, kind))
 }
 
 /// Everything `symbol` reads, with the spans in its own note where each read happens.
 pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)> {
     let doc = &ws.documents()[&symbol.path];
     let mut edges: Vec<(Symbol, Vec<Span>)> = Vec::new();
-    let own_variable = |target: &Symbol| matches!((&symbol.kind, &target.kind), (SymbolKind::Definition(i), SymbolKind::Variable(f, _)) if target.path == symbol.path && doc.forms[*f].definition == *i);
+    let own_variable = |target: &Symbol| matches!((&symbol.kind, &target.kind), (SymbolKind::Definition(i), SymbolKind::Variable(f, _)) if target.path == symbol.path && doc.forms()[*f].definition == *i);
     let mut add = |target: Symbol, span: Span| {
         if own_variable(&target) {
             return;
@@ -161,7 +150,7 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
     };
     match symbol.kind {
         SymbolKind::Definition(i) => {
-            let def = &doc.definitions[i];
+            let def = &doc.definitions()[i];
             if let Some(formed) = doc.form_of(i) {
                 for region in formed.regions() {
                     references(region);
@@ -177,14 +166,14 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
             }
         }
         SymbolKind::Variable(f, n) => add(
-            symbol.sibling(SymbolKind::Definition(doc.forms[f].definition)),
-            doc.forms[f].names[n].span,
+            symbol.sibling(SymbolKind::Definition(doc.forms()[f].definition)),
+            doc.forms()[f].names[n].span,
         ),
         SymbolKind::Task(i) => {
-            for attr in doc.tasks[i].attributes.values() {
+            for attr in doc.tasks()[i].attributes.values() {
                 references(attr.value_span);
             }
-            for (j, child) in doc.tasks.iter().enumerate() {
+            for (j, child) in doc.tasks().iter().enumerate() {
                 if child.parent == Some(i) {
                     add(symbol.sibling(SymbolKind::Task(j)), child.checkbox);
                 }
@@ -192,12 +181,12 @@ pub fn dependencies(ws: &Workspace, symbol: &Symbol) -> Vec<(Symbol, Vec<Span>)>
         }
         SymbolKind::Section(i) => {
             for j in doc.section_tasks(i) {
-                add(symbol.sibling(SymbolKind::Task(j)), doc.tasks[j].checkbox);
+                add(symbol.sibling(SymbolKind::Task(j)), doc.tasks()[j].checkbox);
             }
         }
         SymbolKind::Column(t, c) => add(
-            symbol.sibling(SymbolKind::Definition(doc.tables[t].definition)),
-            doc.tables[t].columns[c].span,
+            symbol.sibling(SymbolKind::Definition(doc.tables()[t].definition)),
+            doc.tables()[t].columns[c].span,
         ),
     }
     edges
@@ -219,15 +208,15 @@ pub fn nodes(ws: &Workspace) -> Vec<Symbol> {
     ws.documents()
         .iter()
         .flat_map(|(path, doc)| {
-            let mut kinds: Vec<SymbolKind> = (0..doc.definitions.len())
+            let mut kinds: Vec<SymbolKind> = (0..doc.definitions().len())
                 .map(SymbolKind::Definition)
-                .chain((0..doc.tasks.len()).map(SymbolKind::Task))
-                .chain((0..doc.sections.len()).map(SymbolKind::Section))
-                .chain(doc.tables.iter().enumerate().flat_map(|(t, table)| {
+                .chain((0..doc.tasks().len()).map(SymbolKind::Task))
+                .chain((0..doc.sections().len()).map(SymbolKind::Section))
+                .chain(doc.tables().iter().enumerate().flat_map(|(t, table)| {
                     (0..table.columns.len()).map(move |c| SymbolKind::Column(t, c))
                 }))
                 .collect();
-            for (f, formed) in doc.forms.iter().enumerate() {
+            for (f, formed) in doc.forms().iter().enumerate() {
                 kinds.extend(
                     ws.claimed(path, formed)
                         .into_iter()
@@ -242,6 +231,6 @@ pub fn nodes(ws: &Workspace) -> Vec<Symbol> {
         .collect()
 }
 pub fn ranges(ws: &Workspace, path: &Path, spans: &[Span]) -> Vec<Range> {
-    let text = &ws.documents()[path].text;
+    let text = ws.documents()[path].text();
     spans.iter().map(|s| s.range(text)).collect()
 }

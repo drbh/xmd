@@ -1,5 +1,6 @@
 //! Currencies, codes and value kinds: scalar vocabulary shared by every
 //! layer, independent of how a note is parsed or a value is evaluated.
+use strum::{Display, IntoStaticStr, VariantArray};
 /// An ISO 4217 code such as USD or EUR.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Currency([u8; 3]);
@@ -60,10 +61,8 @@ impl Code {
         is_code(name).then(|| {
             let mut letters = [0; 5];
             letters[..name.len()].copy_from_slice(name.as_bytes());
-            Code {
-                letters,
-                length: name.len() as u8,
-            }
+            let length = name.len() as u8;
+            Code { letters, length }
         })
     }
     pub fn as_str(&self) -> &str {
@@ -85,19 +84,7 @@ impl std::fmt::Debug for Code {
     }
 }
 /// The kind of a value, named exactly as a note or query sees it.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    strum::IntoStaticStr,
-    strum::Display,
-    strum::VariantArray,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, IntoStaticStr, Display, VariantArray)]
 pub enum ValueType {
     Null,
     List,

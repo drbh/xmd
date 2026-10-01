@@ -234,7 +234,7 @@ pub(crate) fn edits(
     for m in modules(request) {
         edits.extend(module::edits(m, request, path, at)?);
     }
-    lang::document::apply_edits(&doc.text, &edits)?;
+    lang::document::apply_edits(doc.text(), &edits)?;
     edits.sort_by_key(|e| (e.range.start, e.range.end));
     Ok(edits)
 }

@@ -3,8 +3,9 @@ use crate::{Record, SourceRef, value as q};
 use analysis::hierarchy;
 use lang::common::Span;
 use lang::document::{Attribute, Document, TaskState};
-use lang::eval::engine::{Expr, Parser, Value, value_json};
+use lang::eval::engine::{Value, value_json};
 use lang::eval::{Symbol, ToValue, Workspace};
+use lang::syntax::{Expr, Parser};
 use serde_json::{Value as Json, json};
 use std::{collections::BTreeMap, path::Path};
 
@@ -28,7 +29,7 @@ impl Syntax<'_> {
         let mut node = json!({
             "id":id, "kind":kind, "name":null,
             "parent":parent.map(|p| self.nodes[p]["id"].clone()), "children":[],
-            "text":span.source(&self.doc.text),
+            "text":span.source(self.doc.text()),
             "source":value_json(&SourceRef::new(self.ws, self.path, span).to_value()),
         });
         node.as_object_mut()
@@ -43,10 +44,15 @@ impl Syntax<'_> {
         }
         index
     }
+    /// A node spanning the whole of row `line`.
+    fn row(&mut self, kind: &str, line: usize, parent: usize, extra: Json) -> usize {
+        let span = self.block(line, line + 1);
+        self.add(kind, span, parent, extra)
+    }
     fn block(&self, line: usize, end: usize) -> Span {
         let length = self
             .doc
-            .text
+            .text()
             .split_inclusive('\n')
             .skip(line)
             .take(end.saturating_sub(line))
@@ -77,8 +83,8 @@ impl Syntax<'_> {
         }
     }
     fn expression(&mut self, source: &str, span: Span, parent: usize) {
-        let offset = span.source(&self.doc.text).find(source).unwrap_or(0);
-        let span = span.relative(&self.doc.text, offset, offset + source.len());
+        let offset = span.source(self.doc.text()).find(source).unwrap_or(0);
+        let span = span.relative(self.doc.text(), offset, offset + source.len());
         match Parser::parse(source) {
             Ok(expr) => self.expr(&expr, span, Some(span), parent, "expression"),
             Err(message) => {
@@ -91,7 +97,7 @@ impl Syntax<'_> {
             self.expr(
                 expr,
                 base,
-                Some(base.relative(&self.doc.text, *start, *end)),
+                Some(base.relative(self.doc.text(), *start, *end)),
                 parent,
                 role,
             );
@@ -165,22 +171,22 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
     };
     let root = syntax.add(
         "document",
-        Span::new(0, 0, doc.text.len()),
+        Span::new(0, 0, doc.text().len()),
         None,
         json!({"schemaVersion":1}),
     );
-    for (line, text) in doc.text.split_inclusive('\n').enumerate() {
+    for (line, text) in doc.text().split_inclusive('\n').enumerate() {
         syntax.add("line", Span::new(line, 0, text.len()), root, json!({}));
     }
     let mut sections = Vec::new();
-    for section in &doc.sections {
+    for section in doc.sections() {
         let parent = enclosing(doc, &sections, section.line, section.level).unwrap_or(root);
         sections.push(syntax.add("section", syntax.block(section.line, section.end_line), parent,
             json!({"name":section.named.as_ref().map(|n| &n.name),"title":section.title,"level":section.level})));
     }
     let section_at = |line| enclosing(doc, &sections, line, usize::MAX).unwrap_or(root);
     let mut definitions = Vec::new();
-    for (i, def) in doc.definitions.iter().enumerate() {
+    for (i, def) in doc.definitions().iter().enumerate() {
         let end = doc.grid_of(i).map(|(_, end)| end);
         let span = if let Some(end) = end {
             syntax.block(def.named.span.line, end)
@@ -211,34 +217,31 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
         }
     }
     let mut tasks = Vec::new();
-    for task in &doc.tasks {
+    for task in doc.tasks() {
         let parent = task
             .parent
             .map(|i| tasks[i])
             .unwrap_or_else(|| section_at(task.line));
-        let node = syntax.add("task", syntax.block(task.line, task.line + 1), parent,
-            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":task.state == TaskState::Done,"state":task.state.as_str()}));
+        let (done, state) = (task.state == TaskState::Done, task.state.as_str());
+        let node = syntax.row("task", task.line, parent,
+            json!({"name":task.named.as_ref().map(|n| &n.name),"title":task.title,"checked":done,"state":state}));
         tasks.push(node);
         syntax.add(
             "checkbox",
             task.checkbox,
             node,
-            json!({"checked":task.state == TaskState::Done,"state":task.state.as_str()}),
+            json!({"checked":done,"state":state}),
         );
         syntax.attributes(&task.attributes, node);
     }
     // Any other line whose attributes a module declares: what it means is
     // the module's to say.
     for line in doc.claimed().filter(|a| !a.checkbox) {
-        let node = syntax.add(
-            "attributed",
-            syntax.block(line.line, line.line + 1),
-            section_at(line.line),
-            json!({"title":line.title}),
-        );
+        let parent = section_at(line.line);
+        let node = syntax.row("attributed", line.line, parent, json!({"title":line.title}));
         syntax.attributes(&line.attributes, node);
     }
-    for table in &doc.tables {
+    for table in doc.tables() {
         let node = syntax.add(
             "table",
             syntax.block(table.header, table.end_line),
@@ -252,12 +255,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             let Some(first) = row.first() else {
                 continue;
             };
-            let row_node = syntax.add(
-                "row",
-                syntax.block(first.span.line, first.span.line + 1),
-                node,
-                json!({"index":i}),
-            );
+            let row_node = syntax.row("row", first.span.line, node, json!({"index":i}));
             for (j, cell) in row.iter().enumerate() {
                 let child = syntax.add(
                     "cell",
@@ -275,12 +273,12 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
     // definitions (a plan), with its arguments named by their parameters,
     // its columns, and each expression of a row named by the column that
     // names the row (a constraint).
-    for formed in doc.forms.iter().filter(|f| f.has_table()) {
+    for formed in doc.forms().iter().filter(|f| f.has_table()) {
         let form = &formed.form;
         let node = syntax.add(
             &form.noun,
             syntax.block(
-                doc.definitions[formed.definition].named.span.line,
+                doc.definitions()[formed.definition].named.span.line,
                 formed.end_line,
             ),
             definitions[formed.definition],
@@ -318,8 +316,8 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
     // What a module's recognizers found, under the match each is `under`:
     // what it means is the module's, so a node names only the recognizer
     // and the text of each group.
-    let mut matches = Vec::with_capacity(doc.recognized.len());
-    for found in &doc.recognized {
+    let mut matches = Vec::with_capacity(doc.recognized().len());
+    for found in doc.recognized() {
         // A match that only paints is no node; nothing is under it.
         if !found.rule.record {
             matches.push(section_at(found.span.line));
@@ -346,7 +344,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
             json!({"name":found.rule.name,"module":found.rule.module,"groups":groups}),
         ));
     }
-    for calculation in &doc.calculations {
+    for calculation in doc.calculations() {
         let node = syntax.add(
             "calculation",
             calculation.span,
@@ -355,10 +353,10 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
         );
         syntax.expression(&calculation.source, calculation.span, node);
     }
-    for reference in &doc.references {
+    for reference in doc.references() {
         syntax.add("reference", reference.full_span(), section_at(reference.span.line), json!({"name":reference.name,"property":reference.property,"bracketed":reference.bracket}));
     }
-    for link in &doc.links {
+    for link in doc.links() {
         syntax.add(
             "link",
             link.span,
@@ -367,10 +365,10 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
         );
     }
     for problem in doc
-        .problems
+        .problems()
         .iter()
-        .chain(doc.tables.iter().flat_map(|t| &t.problems))
-        .chain(doc.forms.iter().flat_map(|f| &f.problems))
+        .chain(doc.tables().iter().flat_map(|t| &t.problems))
+        .chain(doc.forms().iter().flat_map(|f| &f.problems))
     {
         syntax.add(
             "problem",
@@ -394,7 +392,7 @@ pub(crate) fn ast(ws: &Workspace, path: &Path) -> Vec<Record> {
 /// The node of the innermost section, among those already added, that
 /// contains `line` and is shallower than `level`.
 fn enclosing(doc: &Document, sections: &[usize], line: usize, level: usize) -> Option<usize> {
-    doc.sections
+    doc.sections()
         .iter()
         .zip(sections)
         .rev()

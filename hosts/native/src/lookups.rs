@@ -7,10 +7,10 @@
 use crate::command::Step;
 use crate::io::{output, read_json_or_default, write_json_atomic};
 use chrono::{DateTime, FixedOffset, NaiveDate};
-use lang::eval::Workspace;
 use lang::eval::engine::Value;
-use lang::eval::lookups::{Lookup, LookupKey, Store};
-use lang::eval::modules::{Module, ModuleKind, ModuleRegistry, from_json, json, record};
+use lang::eval::lookups::{Lookup, LookupKey};
+use lang::eval::modules::{Module, ModuleKind, ModuleRegistry, from_json, json};
+use lang::eval::{Workspace, record};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -33,9 +33,6 @@ fn wanted(
         .collect()
 }
 
-fn save(root: &Path, store: &Store) -> Result<(), String> {
-    write_json_atomic(&root.join(".xmd/lookups.json"), store)
-}
 /// `.xmd/providers.json` maps a lookup kind to a command printing JSON, with
 /// a placeholder for each part of the key: `{from}`, `{to}`, `{symbol}`,
 /// `{place}`, `{date}`.
@@ -191,8 +188,6 @@ pub(crate) async fn refresh(
             Err(e) => errors.push(format!("{}: {e}", key.label())),
         }
     }
-    if let Err(e) = save(&root, ws.lookups()) {
-        errors.push(e);
-    }
+    errors.extend(write_json_atomic(&root.join(".xmd/lookups.json"), ws.lookups()).err());
     errors
 }

@@ -41,10 +41,10 @@ pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<
     let doc = ws.documents().get(path)?;
     let row = position.line as usize;
     let byte = byte_at(doc.line(row), position.character)?;
-    if let Some(link) = doc.links.iter().position(|l| covers(l.span, row, byte)) {
+    if let Some(link) = doc.links().iter().position(|l| covers(l.span, row, byte)) {
         return Some(Target::Link(link));
     }
-    for (table, t) in doc.tables.iter().enumerate() {
+    for (table, t) in doc.tables().iter().enumerate() {
         for (row_index, cells) in t.rows.iter().enumerate() {
             for (column, cell) in cells.iter().enumerate().take(t.columns.len()) {
                 if touches(cell.span, row, byte) {
@@ -61,14 +61,14 @@ pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<
         return Some(Target::Symbol(symbol, span));
     }
     if let Some(reference) = doc
-        .references
+        .references()
         .iter()
         .find(|r| touches(r.span, row, byte) && ws.prelude_name(path, &r.name))
     {
         return Some(Target::Prelude(reference.name.clone(), reference.span));
     }
     // A bracketed calculation also answers on its opening bracket.
-    if let Some(calculation) = doc.calculations.iter().position(|c| {
+    if let Some(calculation) = doc.calculations().iter().position(|c| {
         let opening = c.span.start.saturating_sub(usize::from(c.bracketed));
         touches(Span::new(c.span.line, opening, c.span.end), row, byte)
     }) {
@@ -81,12 +81,12 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
     let doc = workspace.documents().get(path)?;
     let byte = byte_at(doc.line(position.line as usize), position.character)?;
     let inside = |span: Span| touches(span, position.line as usize, byte);
-    if let Some(member) = doc.members.iter().find(|m| inside(m.span))
+    if let Some(member) = doc.members().iter().find(|m| inside(m.span))
         && let Some(symbol) = lang::eval::member_symbol(workspace, path, &member.source)
     {
         return Some((symbol, member.span));
     }
-    for (table, t) in doc.tables.iter().enumerate() {
+    for (table, t) in doc.tables().iter().enumerate() {
         for (column, c) in t.columns.iter().enumerate() {
             if inside(c.span) {
                 return Some((Symbol::new(path, SymbolKind::Column(table, column)), c.span));
@@ -99,7 +99,7 @@ pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Opti
             return Some((symbol, span));
         }
     }
-    doc.references
+    doc.references()
         .iter()
         .find(|r| inside(Span::new(r.span.line, r.span.start, r.end())))
         .and_then(|r| {
@@ -120,12 +120,12 @@ pub(crate) fn reads_within<'a>(
     let doc = &ws.documents()[path];
     let within = within.range(doc);
     let members = doc
-        .members
+        .members()
         .iter()
         .filter(move |m| Span::encloses(within, doc, m.span))
         .filter_map(move |m| Some((lang::eval::member_symbol(ws, path, &m.source)?, m.span)));
     let references = doc
-        .references
+        .references()
         .iter()
         .map(|r| (r, Span::new(r.span.line, r.span.start, r.end())))
         .filter(move |(_, span)| Span::encloses(within, doc, *span))
@@ -143,14 +143,14 @@ pub fn inert(doc: &Document, position: Position) -> bool {
     let Some(byte) = byte_at(doc.line(row), position.character) else {
         return true;
     };
-    doc.highlights.iter().any(|h| {
+    doc.highlights().iter().any(|h| {
         covers(h.span, row, byte)
             && (h.kind == lang::document::HighlightKind::Comment
                 || h.kind == lang::document::HighlightKind::String
                     && !doc
                         .claimed_attributes()
                         .any(|(_, a)| touches(a.span, row, byte))
-                    && !doc.definitions.iter().any(|d| {
+                    && !doc.definitions().iter().any(|d| {
                         d.expression && d.value_span.contains(doc, Span::new(row, byte, byte))
                     }))
     })

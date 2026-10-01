@@ -62,7 +62,7 @@ pub enum CurrencyOp {
     Combine,
     Add,
 }
-/// What was being attempted when two plan units failed to meet.
+/// What was being attempted when two units of a linear form failed to meet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnitOp {
     Add,
@@ -130,8 +130,8 @@ pub enum EvalError {
         key: String,
         on: Option<ValueType>,
     },
-    /// A field an object that answers for its own property names (a plan,
-    /// a resource, a tagged record) does not have.
+    /// A field an object that answers for its own property names (a
+    /// resource, a tagged record such as a plan) does not have.
     UnknownProperty {
         owner: ValueType,
         name: String,

@@ -1,15 +1,117 @@
-// Plans present the solver's answer: decisions, constraint slack and errors.
+// Plans and goal seek: the forms `maximize`, `minimize` and `solve`. A plan
+// solves for the names its objective and constraint table read that its note
+// leaves undefined, and the decision cells its sums walk over; a goal seek
+// for the definition's own name. The host reads every expression as a linear
+// form in the note's scope; the `plan` library solves and words the result.
+// The `plans` and `decisions` collections are built here, and so are the
+// inlays, and the action that writes a plan's choices into its tables.
 module := {
   api: 1,
   id: "plans",
   kind: "feature",
   imports: ["plan"],
   inputs: {
-    plans: ["anchor", "value", "errors", "hover"],
+    plans: ["line", "name", "anchor", "solution", "errors", "hover"],
     decisions: ["anchor", "value", "plan"]
+  },
+  collections: {plans: {from: ["forms"]}, decisions: {}},
+  forms: {
+    maximize: {
+      params: ["objective: linear expression"],
+      reads: ["linear"],
+      table: [
+        {name: "constraint", reads: "name"},
+        {name: "expression", reads: "constraint", example: "bagels >= 12"}
+      ],
+      unknowns: "free",
+      unknown: {
+        name: "decision variable",
+        doc: "no note defines this name, so the plan chooses its value."
+      },
+      noun: "plan",
+      returns: "Plan",
+      doc: "Declare a linear plan over the | constraint | expression | table below; undefined names become decisions.",
+      example: "3 * bagels + 1.25 * doughnuts"
+    },
+    minimize: {
+      params: ["objective: linear expression"],
+      reads: ["linear"],
+      table: [
+        {name: "constraint", reads: "name"},
+        {name: "expression", reads: "constraint", example: "bagels >= 12"}
+      ],
+      unknowns: "free",
+      unknown: {
+        name: "decision variable",
+        doc: "no note defines this name, so the plan chooses its value."
+      },
+      noun: "plan",
+      returns: "Plan",
+      doc: "Like maximize, but finds the smallest objective that satisfies every constraint in the table below.",
+      example: "cost"
+    },
+    solve: {
+      params: ["constraint: expression with <=, >=, or =="],
+      reads: ["constraint"],
+      unknowns: "own",
+      returns: "Number, Money, or Duration",
+      doc: "Goal seek: the definition's own name is the unknown, set to the boundary value that makes the constraint hold.",
+      example: "total >= $500"
+    }
   }
 }
 plan := import("plan")
+
+// What a definition of one of the forms is worth.
+define := fn(form) => (
+  if(form.form == "solve", plan.seek(form), plan.define(form))
+)
+
+// Whether a definition is a plan.
+_plan := fn(v) => v.form == "maximize" || v.form == "minimize"
+
+// A plan definition's record: the definition's own, with the solution its
+// form recorded, or null when it does not solve.
+_planned := fn(v) => (
+  object(
+    concat(
+      filter(entries(v), fn(e) => e.key != "form" && e.key != "record" && e.key != "kind"),
+      [{key: "kind", value: "plan"}, {key: "solution", value: v.record}]
+    )
+  )
+)
+
+// One record per decision cell of this note a plan chose: on the cell's
+// line, its inlay at the cell's end.
+_decisions := fn(document, plans) => (
+  fold(
+    filter(plans, fn(p) => p.solution != null),
+    [],
+    fn(out, p) => concat(
+      out,
+      map(
+        filter(
+          fold(p.solution.columns, [], fn(cells, c) => concat(cells, c.cells)),
+          fn(cell) => cell.document == document
+        ),
+        fn(cell) => {
+          line: cell.line,
+          kind: "decision",
+          title: p.name,
+          plan: p.name,
+          anchor: cell.anchor,
+          value: cell.value
+        }
+      )
+    )
+  )
+)
+
+// The note's plans, and the decision cells they chose.
+records := fn(ctx) => let(
+  {plans: map(filter(ctx.document.forms, _plan), _planned)},
+  {plans: plans, decisions: _decisions(ctx.document.uri, plans)}
+)
 
 // Place each constraint's result at its original source anchor.
 constraints := fn(plans) => (
@@ -19,7 +121,7 @@ constraints := fn(plans) => (
     fn(hints, p) => concat(
       hints,
       map(
-        p.value.constraints,
+        p.solution.constraints,
         fn(c) => {
           at: c.anchor,
           label: plan.constraint_label(c),
@@ -32,7 +134,7 @@ constraints := fn(plans) => (
 
 // Attach plan summaries and hover text to their definitions.
 definitions := fn(plans) => (
-  map(plans, fn(p) => {at: p.anchor, label: plan.inlay(p.value), tooltip: p.hover})
+  map(plans, fn(p) => {at: p.anchor, label: plan.inlay(p.solution), tooltip: p.hover})
 )
 
 // Show chosen cell values and point to the write-choices action.
@@ -50,10 +152,62 @@ decisions := fn(cells) => (
 )
 
 // Combine successful plan summaries, decisions, and constraint hints.
-collect := fn(ctx) => (
-  concat(
-    definitions(filter(ctx.document.plans, fn(p) => length(p.errors) == 0)),
-    decisions(ctx.document.decisions),
-    constraints(filter(ctx.document.plans, fn(p) => length(p.errors) == 0))
+collect := fn(ctx) => let(
+  {solved: filter(ctx.document.plans, fn(p) => length(p.errors) == 0 && p.solution != null)},
+  concat(definitions(solved), decisions(ctx.document.decisions), constraints(solved))
+)
+
+// The plan named `name`, solved, of the note.
+_solved := fn(ctx, name) => (
+  get(filter(ctx.document.plans, fn(p) => p.name == name && p.solution != null), 0)
+)
+
+// A chosen value as a decision cell writes it.
+_written := fn(value) => if(type(value) == "Boolean", if(value, "yes", "no"), text(value))
+
+// The decision cells of the note a plan chose otherwise than they read.
+_unwritten := fn(p, document) => (
+  filter(
+    fold(p.solution.columns, [], fn(cells, c) => concat(cells, c.cells)),
+    fn(cell) => cell.document == document && cell.source != _written(cell.value)
+  )
+)
+
+// On a plan's line, the action that writes the choices it made into the
+// note's decision cells, while a cell reads otherwise. The edits are the
+// `plan` library's to word, when the action runs.
+actions := fn(ctx) => (
+  map(
+    filter(
+      ctx.document.plans,
+      fn(p) => p.solution != null && length(_unwritten(p, ctx.document.uri)) > 0
+    ),
+    fn(p) => {
+      line: p.line,
+      title: plan.write_title(),
+      action: {
+        kind: "row",
+        document: ctx.document.uri,
+        row: p.line,
+        expected: get(ctx.document.lines, p.line),
+        module: "plans",
+        event: {plan: p.name}
+      }
+    }
+  )
+)
+
+// The edits that write a plan's choices, from the note as it is now.
+reduce := fn(ctx, event) => let(
+  {p: _solved(ctx, event.plan)},
+  if(
+    p == null,
+    error("The plan " + event.plan + " no longer solves"),
+    {
+      kind: "edit",
+      document: ctx.document.uri,
+      expected: ctx.document.text,
+      edits: plan.write_edits(p.solution, ctx.document.uri)
+    }
   )
 )

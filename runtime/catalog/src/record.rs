@@ -3,7 +3,6 @@ use super::RecordKind;
 use super::value as q;
 use lang::common::Span;
 use lang::eval::engine::{Engine, Value};
-use lang::eval::plans::PlanValue;
 use lang::eval::resources::ResourcePresenting;
 use lang::eval::{RecordFields, Symbol, Workspace, record};
 use lsp_types::{Position, Range};
@@ -27,15 +26,20 @@ impl SourceRef {
         Self::spanning(path, span.line, span.range(&ws.documents()[path]))
     }
     fn spanning(path: &Path, line: usize, range: Range) -> Self {
-        let mut uri = note_uri(path);
-        uri.push_str(&format!("#L{}", line + 1));
         Self {
             path: path.to_string_lossy().into(),
-            uri,
+            uri: format!("{}#L{}", note_uri(path), line + 1),
             line: line + 1,
             range: q::range(range),
         }
     }
+}
+
+/// The range of a line's text, without its indentation or trailing space.
+pub(super) fn text_range(doc: &lang::model::Document, row: usize) -> Value {
+    let raw = doc.line(row);
+    let start = raw.len() - raw.trim_start().len();
+    q::range(Span::new(row, start, raw.trim_end().len().max(start)).range(doc))
 }
 
 thread_local! {
@@ -136,6 +140,7 @@ record! {
 /// Field names the lazy accessors read back off a record they did not build.
 pub(super) const NAME: &str = "name";
 const EXPRESSION: &str = "expression";
+const FORM: &str = "form";
 const PROPERTY: &str = "property";
 
 /// Fields a record only produces when they are read: evaluating a definition, or
@@ -147,7 +152,8 @@ pub(crate) enum LazyField {
     Hover,
     Value,
     Type,
-    Solution,
+    /// What the module of the form a definition calls records of it.
+    Record,
     Errors,
     Display,
 }
@@ -157,7 +163,8 @@ impl LazyField {
     }
 }
 
-/// Definitions are evaluated only when their value, type, solution or errors are read.
+/// Definitions are evaluated only when their value, type, display, errors or
+/// a form's record are read.
 ///
 /// A record remembers what its lazy fields produced, and whether producing
 /// each read the clock, so a cached record answers a later reader as the
@@ -187,13 +194,7 @@ struct Lazy {
 
 impl Record {
     pub(crate) fn typed(path: &Path, record: impl RecordFields) -> Self {
-        Self {
-            path: path.into(),
-            fields: record.fields(),
-            deferred: None,
-            resource: None,
-            lazy: Lazy::default(),
-        }
+        Self::built(path, record.fields())
     }
     /// A record a module built, kept as it returned it.
     pub(crate) fn built(path: &Path, fields: BTreeMap<String, Value>) -> Self {
@@ -213,19 +214,23 @@ impl Record {
                     return Ok(hover);
                 }
             }
-            Ok(
-                LazyField::Value
-                | LazyField::Type
-                | LazyField::Solution
-                | LazyField::Errors
-                | LazyField::Display,
-            ) => self.evaluate(engine),
-            Err(_) => {}
+            Ok(LazyField::Value | LazyField::Type | LazyField::Errors | LazyField::Display) => {
+                self.evaluate(engine)
+            }
+            // Only a form's definition has a record to evaluate for.
+            Ok(LazyField::Record) if self.calls_form() => self.evaluate(engine),
+            _ => {}
         }
         self.fields
             .get(key)
             .cloned()
             .ok_or_else(|| format!("Unknown field '{key}'"))
+    }
+    /// Whether the record is a definition that calls a form.
+    fn calls_form(&self) -> bool {
+        self.fields
+            .get(FORM)
+            .is_some_and(|form| *form != Value::Null)
     }
     fn presentation(&mut self, engine: &mut Engine<'_>) -> Value {
         self.evaluate(engine);
@@ -302,15 +307,16 @@ impl Record {
                     .insert(LazyField::Type.as_str().into(), q::text(value.type_name()));
                 self.fields
                     .insert(LazyField::Display.as_str().into(), q::text(value.display()));
-                let value = q::query_value(match value.downcast::<PlanValue>() {
-                    Some(p) => p.record(engine.workspace()),
-                    None => value,
-                });
-                if self.fields.contains_key(LazyField::Solution.as_str()) {
-                    self.fields
-                        .insert(LazyField::Solution.as_str().into(), value.clone());
+                if self.calls_form()
+                    && let Some(about) = engine.about(symbol)
+                {
+                    self.fields.insert(
+                        LazyField::Record.as_str().into(),
+                        q::query_value(about.record),
+                    );
                 }
-                self.fields.insert(LazyField::Value.as_str().into(), value);
+                self.fields
+                    .insert(LazyField::Value.as_str().into(), q::query_value(value));
             }
             Err(e) => {
                 self.fields.insert(

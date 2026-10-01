@@ -11,7 +11,7 @@ use crate::blocks::{
 };
 use crate::declared::On;
 use crate::document::Document;
-use crate::{attributes, calculations, plans_impl, sections, tables_impl, tasks};
+use crate::{attributes, calculations, forms_impl, sections, tables_impl, tasks};
 use std::sync::Arc;
 
 /// A heading, after its own marks are read.
@@ -66,9 +66,10 @@ static RECOGNIZERS: &[Recognizer] = &[
         inline: Some(calculations::recognize),
         ..Recognizer::NONE
     },
-    // `maximize`/`minimize` over the constraint table under it.
+    // A definition that calls a form a module declares, and the table under
+    // it when the form takes one.
     Recognizer {
-        block: Some(plans_impl::recognize),
+        block: Some(forms_impl::recognize),
         ..Recognizer::NONE
     },
     // `name := table` over the table under it.
@@ -79,35 +80,57 @@ static RECOGNIZERS: &[Recognizer] = &[
 ];
 
 /// What the active modules declare that a note is read with: the recognizers
-/// run over it once it is parsed, and the attributes it is parsed with.
+/// run over it once it is parsed, and the attributes and forms it is parsed
+/// with.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Recognizers {
     pub rules: Vec<Arc<crate::declared::Rule>>,
     pub attributes: Vec<Arc<Declaration>>,
+    pub forms: Vec<Arc<crate::forms::Form>>,
 }
 
 impl Document {
     /// Read the note with what modules declare, replacing what an earlier
     /// set found: parsed again when it writes an attribute no native feature
-    /// owns and it was parsed with other declared attributes, then run the
+    /// owns and it was parsed with other declared attributes, or calls a form
+    /// either set declares and it was parsed with other forms, then run the
     /// declared `rules` over.
     pub fn recognize(&mut self, recognizers: &Recognizers) {
-        if self.foreign && self.declarations != recognizers.attributes {
+        let attributes = self.foreign && self.declarations != recognizers.attributes;
+        let forms = self.forms_declared != recognizers.forms
+            && self
+                .forms_declared
+                .iter()
+                .chain(&recognizers.forms)
+                .any(|form| calls(&self.text, &form.name));
+        if attributes || forms {
             let text = std::mem::take(&mut self.text);
-            *self = Self::parse_with(text, &recognizers.attributes);
+            *self = Self::parse_with(text, &recognizers.attributes, &recognizers.forms);
+        } else {
+            // A note that calls no form reads the same with any, and knows
+            // the ones it may call next.
+            self.forms_declared.clone_from(&recognizers.forms);
         }
         self.match_declared(&recognizers.rules);
     }
-    /// Parse a note knowing only the attributes native features own; a
-    /// workspace parses it again with its modules' when it needs them.
+    /// Parse a note knowing only the attributes native features own and no
+    /// forms; a workspace parses it again with its modules' when it needs
+    /// them.
     pub fn parse(text: String) -> Self {
-        Self::parse_with(text, &[])
+        Self::parse_with(text, &[], &[])
     }
-    /// Parse a note knowing the attributes `declarations` declare too.
-    pub fn parse_with(text: String, declarations: &[Arc<Declaration>]) -> Self {
+    /// Parse a note knowing the attributes `declarations` and the `forms`
+    /// modules declare too.
+    pub fn parse_with(
+        text: String,
+        declarations: &[Arc<Declaration>],
+        forms: &[Arc<crate::forms::Form>],
+    ) -> Self {
         let mut tree = Tree::new(text.clone());
+        tree.forms = forms.iter().map(|form| form.name.clone()).collect();
         let mut doc = Self::default();
         doc.declarations = declarations.to_vec();
+        doc.forms_declared = forms.to_vec();
         let lines: Vec<_> = text.lines().collect();
         let mut state = BlockState::default();
         let mut blocks = vec![None; lines.len()];
@@ -118,11 +141,11 @@ impl Document {
             // A line of text: its indentation, any checkbox, and which block
             // it is, from where its text starts.
             let text_block = match classify(line, row, &mut state) {
-                Block::Fence { start } => {
+                Block::Fence(start) => {
                     tree.mark(row, start, line.len(), HighlightKind::String);
                     None
                 }
-                Block::Comment { start } => {
+                Block::Comment(start) => {
                     tree.mark(row, start, line.len(), HighlightKind::Comment);
                     None
                 }
@@ -140,8 +163,8 @@ impl Document {
                     let marker = checkbox.map_or(start + 1, |c| c.at + 3);
                     Some((start, checkbox, (On::Item, text_from(line, marker))))
                 }
-                Block::Row { start } => Some((start, None, (On::Row, start))),
-                Block::Prose { start } => Some((start, None, (On::Prose, start))),
+                Block::Row(start) => Some((start, None, (On::Row, start))),
+                Block::Prose(start) => Some((start, None, (On::Prose, start))),
             };
             if let Some((start, checkbox, (on, from))) = text_block {
                 let title_end;
@@ -157,7 +180,7 @@ impl Document {
                 );
                 blocks[row] = Some((on, from, title_end));
             }
-            // The rows a table or plan claims are still rows; the ones a
+            // The rows a table or form claims are still rows; the ones a
             // continued expression claims are part of it.
             for taken in row + 1..=row + consumed {
                 let line = lines[taken];
@@ -176,6 +199,17 @@ impl Document {
         doc.blocks = blocks;
         doc
     }
+}
+
+/// Whether `text` may call `name`: it holds the name right before a `(`.
+fn calls(text: &str, name: &str) -> bool {
+    text.match_indices(name).any(|(at, _)| {
+        text[at + name.len()..].trim_start().starts_with('(')
+            && !text[..at]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_')
+    })
 }
 
 /// Where a line's text starts from `at` on, past the blanks there.
@@ -202,18 +236,8 @@ fn text_line(
 ) -> (usize, usize) {
     let text = lines[row];
     let body = checkbox.map_or(start, |c| c.at + 3);
-    let line = Line {
-        text,
-        row,
-        start,
-        checkbox,
-        body,
-        on,
-        from,
-        attributes: tree.attributes(text, row, body),
-    };
-    let title_end = line
-        .attributes
+    let attributes = tree.attributes(text, row, body);
+    let title_end = attributes
         .map
         .values()
         .map(|a| a.span.start)
@@ -224,6 +248,17 @@ fn text_line(
         )
         .min()
         .unwrap_or(text.len());
+    let line = Line {
+        text,
+        row,
+        start,
+        checkbox,
+        body,
+        on,
+        from,
+        attributes,
+        title_end,
+    };
     for on in RECOGNIZERS.iter().filter_map(|r| r.line) {
         on(tree, doc, &line);
     }

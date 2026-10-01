@@ -1,15 +1,15 @@
 //! A browser-local workspace. JSON crosses the worker boundary; all language logic stays in Rust.
 
 use chrono::{DateTime, FixedOffset};
-use lang::common::{file_path, uri};
+use lang::common::file_path;
 use lang::eval::Workspace;
 use lang::eval::modules::CompileModules;
 use lang::model::identifier;
 use lsp_types::*;
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
 use runtime::services::{
-    Query, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, folding_ranges, fragment,
-    line_classes, occurrences, semantic_tokens, signature, symbol_at,
+    Query, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, definition, folding_ranges,
+    fragment, highlights, line_classes, references, rename, semantic_tokens, signature, symbol_at,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -86,109 +86,98 @@ fn virtual_path(uri: &str) -> Result<PathBuf, String> {
     }
     Ok(path)
 }
+/// A module source's place in the virtual workspace, from its bare file name.
+fn module_path(name: String) -> Result<PathBuf, String> {
+    let mut parts = Path::new(&name).components();
+    if !matches!(
+        (parts.next(), parts.next()),
+        (Some(Component::Normal(_)), None)
+    ) || !lang::common::is_note(&name)
+        || name.contains(['\\', '\0'])
+    {
+        return Err(format!(
+            "Module names must be .{} filenames",
+            lang::common::EXTENSION
+        ));
+    }
+    Ok(Path::new("/workspace/.xmd/modules").join(name))
+}
 fn serialized(value: impl serde::Serialize) -> Result<Value, String> {
     serde_json::to_value(value).map_err(|e| e.to_string())
 }
 
 impl BrowserWorkspace {
-    fn edit(&self, changes: BTreeMap<PathBuf, Vec<TextEdit>>) -> Value {
-        json!({"documentChanges": changes.into_iter().map(|(p,edits)| json!({
-            "textDocument":{"uri":uri(&p),"version":self.session.version(&p)}, "edits":edits
-        })).collect::<Vec<_>>()})
-    }
-    fn single_edit(&self, path: &Path, edits: Vec<TextEdit>) -> Value {
-        self.edit([(path.to_path_buf(), edits)].into())
-    }
     fn dispatch(
         &mut self,
         method: &str,
         params: Value,
         now: DateTime<FixedOffset>,
     ) -> Result<Value, String> {
-        if method == "semanticLegend" {
-            return Ok(json!({"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}));
-        }
-        if method == "setResourceData" {
-            let target: String = field(&params, "url")?;
-            let data: Value = field(&params, "data")?;
-            let metadata = self.session.workspace().link_features().decode_refresh(
-                &target,
-                &data,
-                now.to_utc(),
-            )?;
-            self.session
-                .workspace_mut()
-                .store_link_status(target, metadata);
-            return Ok(Value::Null);
-        }
-        if method == "setModules" {
-            let sources: BTreeMap<String, String> = field(&params, "sources")?;
-            let sources = sources
-                .into_iter()
-                .map(|(name, source)| {
-                    if Path::new(&name).components().count() != 1
-                        || !matches!(
-                            Path::new(&name).components().next(),
-                            Some(Component::Normal(_))
-                        )
-                        || !lang::common::is_note(&name)
-                        || name.contains(['\\', '\0'])
-                    {
-                        return Err(format!(
-                            "Module names must be .{} filenames",
-                            lang::common::EXTENSION
-                        ));
-                    }
-                    Ok((Path::new("/workspace/.xmd/modules").join(name), source))
-                })
-                .collect::<Result<BTreeMap<_, _>, _>>()?;
-            let modules = lang::eval::modules::ModuleRegistry::compile(sources)?;
-            self.session
-                .workspace_mut()
-                .replace_modules(std::sync::Arc::new(modules));
-            return Ok(Value::Null);
-        }
-        if method == "setDocument" {
-            let path = virtual_path(&field::<String>(&params, "uri")?)?;
-            let version: i32 = field(&params, "version")?;
-            let text: String = field(&params, "text")?;
-            if text.len() > 1_000_000 {
-                return Err("Notes are limited to 1 MB in the browser".into());
+        match method {
+            "semanticLegend" => {
+                return Ok(json!({"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}));
             }
-            self.session.open(&path, version, text)?;
-            return Ok(Value::Null);
-        }
-        if method == "removeDocument" {
-            let path = virtual_path(&field::<String>(&params, "uri")?)?;
-            self.session.workspace_mut().remove_document(&path);
-            self.session.close(&path);
-            return Ok(Value::Null);
-        }
-        if method == "execute" {
-            if params["versions"] != self.session.versions_json() {
-                return Err(
-                    "Notes changed; request fresh controls before applying this action".into(),
-                );
+            "setResourceData" => {
+                let target: String = field(&params, "url")?;
+                let metadata = self.session.workspace().link_features().decode_refresh(
+                    &target,
+                    &field(&params, "data")?,
+                    now.to_utc(),
+                )?;
+                self.session
+                    .workspace_mut()
+                    .store_link_status(target, metadata);
+                return Ok(Value::Null);
             }
-            let command: Command = field(&params, "command")?;
-            return self.execute(command, now);
+            "setModules" => {
+                let sources: BTreeMap<String, String> = field(&params, "sources")?;
+                let sources = sources
+                    .into_iter()
+                    .map(|(name, source)| Ok((module_path(name)?, source)))
+                    .collect::<Result<BTreeMap<_, _>, String>>()?;
+                let modules = lang::eval::modules::ModuleRegistry::compile(sources)?;
+                self.session
+                    .workspace_mut()
+                    .replace_modules(std::sync::Arc::new(modules));
+                return Ok(Value::Null);
+            }
+            "setDocument" => {
+                let path = virtual_path(&field::<String>(&params, "uri")?)?;
+                let version: i32 = field(&params, "version")?;
+                let text: String = field(&params, "text")?;
+                if text.len() > 1_000_000 {
+                    return Err("Notes are limited to 1 MB in the browser".into());
+                }
+                self.session.open(&path, version, text)?;
+                return Ok(Value::Null);
+            }
+            "removeDocument" => {
+                let path = virtual_path(&field::<String>(&params, "uri")?)?;
+                self.session.workspace_mut().remove_document(&path);
+                self.session.close(&path);
+                return Ok(Value::Null);
+            }
+            "execute" => {
+                if params["versions"] != self.session.versions_json() {
+                    return Err(
+                        "Notes changed; request fresh controls before applying this action".into(),
+                    );
+                }
+                return self.execute(field(&params, "command")?, now);
+            }
+            "query" => {
+                let compiled = Query::parse(&field::<String>(&params, "query")?)?;
+                let only = params
+                    .get("uri")
+                    .filter(|v| !v.is_null())
+                    .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
+                    .transpose()?;
+                return self.session.query(&compiled, only.as_deref(), now);
+            }
+            _ => {}
         }
-        if method == "query" {
-            let compiled = Query::parse(&field::<String>(&params, "query")?)?;
-            let only = params
-                .get("uri")
-                .filter(|v| !v.is_null())
-                .map(|_| field::<String>(&params, "uri").and_then(|uri| virtual_path(&uri)))
-                .transpose()?;
-            let result = self
-                .session
-                .request(now)
-                .query(&compiled, only.as_deref())?;
-            return Ok(
-                json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.json(),"versions":self.session.versions_json()}),
-            );
-        }
-        let path = virtual_path(&field::<String>(&params, "uri")?)?;
+        let uri: String = field(&params, "uri")?;
+        let path = virtual_path(&uri)?;
         let doc = self
             .session
             .workspace()
@@ -198,10 +187,6 @@ impl BrowserWorkspace {
         let ws = self.session.workspace();
         let request = self.session.request(now);
         let position = || field::<Position>(&params, "position");
-        let location = |symbol: &lang::eval::Symbol| Location {
-            uri: lang::common::uri_from_url(&uri(&symbol.path)),
-            range: ws.named(symbol).span.range(&ws.documents()[&symbol.path]),
-        };
         match method {
             "documentLinks" => serialized(request.document_links(&path)),
             "documentSymbols" => serialized(request.document_symbols(&path)),
@@ -216,18 +201,9 @@ impl BrowserWorkspace {
                     Range::new(Position::new(0, 0), Position::new(u32::MAX, 0)),
                 );
                 let library = request.workspace().prelude_names(&path);
-                let tokens: Vec<u32> = semantic_tokens(doc, &library)
-                    .into_iter()
-                    .flat_map(|t| {
-                        [
-                            t.delta_line,
-                            t.delta_start,
-                            t.length,
-                            t.token_type,
-                            t.token_modifiers_bitset,
-                        ]
-                    })
-                    .collect();
+                // Flat, five numbers a token, as the protocol encodes them.
+                let data = semantic_tokens(doc, &library);
+                let tokens = serialized(SemanticTokensPartialResult { data })?["data"].take();
                 let lenses = request.code_lenses(&path, Capabilities::BROWSER);
                 let links = request.document_links(&path);
                 let editing = params
@@ -237,7 +213,7 @@ impl BrowserWorkspace {
                 let diagnostics = request.diagnostics(&path, editing);
                 let html = fragment(doc, &library, &inlays.hints, &diagnostics, &links)?;
                 Ok(
-                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":field::<String>(&params,"uri")?,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
+                    json!({"schemaVersion":1,"engineVersion":env!("CARGO_PKG_VERSION"),"uri":uri,"source":doc.text,"now":now.to_rfc3339(),"editing":editing,"html":html,"lineClasses":line_classes(doc),"tokenModifiers":TOKEN_MODIFIERS,"version":self.session.version(&path),"versions":self.session.versions_json(),"hints":inlays.hints,"tokens":tokens,"tokenTypes":TOKEN_TYPES,
                     "diagnostics":diagnostics,"lenses":lenses,"links":links,"live":inlays.time_dependent,
                     "symbols":request.document_symbols(&path)}),
                 )
@@ -252,48 +228,21 @@ impl BrowserWorkspace {
                 let Some((symbol, span)) = symbol_at(ws, &path, position()?) else {
                     return Ok(Value::Null);
                 };
-                if method == "definition" {
-                    return serialized(location(&symbol));
+                match method {
+                    "definition" => serialized(definition(ws, &symbol)),
+                    "references" => serialized(references(ws, &symbol)),
+                    "highlights" => serialized(highlights(ws, &path, &symbol)),
+                    "prepareRename" => {
+                        Ok(json!({"range":span.range(doc),"placeholder":ws.named(&symbol).name}))
+                    }
+                    _ => {
+                        let name: String = field(&params, "newName")?;
+                        if !identifier(&name) {
+                            return Err("Use a name with letters, digits, and underscores".into());
+                        }
+                        serialized(self.session.edit(rename(ws, &symbol, &name)?))
+                    }
                 }
-                if method == "prepareRename" {
-                    return Ok(
-                        json!({"range":span.range(doc),"placeholder":ws.named(&symbol).name}),
-                    );
-                }
-                let locations: Vec<Location> = occurrences(ws, &symbol)
-                    .into_iter()
-                    .map(|(p, span)| Location {
-                        uri: lang::common::uri_from_url(&uri(&p)),
-                        range: span.range(&ws.documents()[&p]),
-                    })
-                    .collect();
-                if method == "references" {
-                    return serialized(locations);
-                }
-                if method == "highlights" {
-                    let current = lang::common::uri_from_url(&uri(&path));
-                    return Ok(json!(
-                        locations
-                            .into_iter()
-                            .enumerate()
-                            .filter(|(_, l)| l.uri == current)
-                            .map(|(i, l)| json!({"range":l.range,"kind":if i==0 {3} else {2}}))
-                            .collect::<Vec<_>>()
-                    ));
-                }
-                let name: String = field(&params, "newName")?;
-                if !identifier(&name) {
-                    return Err("Use a name with letters, digits, and underscores".into());
-                }
-                lang::eval::tables::validate_rename(ws, &symbol, &name)?;
-                let mut changes = BTreeMap::<PathBuf, Vec<TextEdit>>::new();
-                for location in locations {
-                    changes
-                        .entry(file_path(&lang::common::url_from_uri(&location.uri))?)
-                        .or_default()
-                        .push(TextEdit::new(location.range, name.clone()));
-                }
-                Ok(self.edit(changes))
             }
             "actions" => {
                 let range: Range = field(&params, "range")?;
@@ -312,7 +261,7 @@ impl BrowserWorkspace {
                             None => json!({
                                 "title": item.title,
                                 "kind": item.kind,
-                                "edit": self.single_edit(&path, item.edits),
+                                "edit": self.session.edit([(path.clone(), item.edits)]),
                             }),
                         },
                     })
@@ -335,7 +284,7 @@ impl BrowserWorkspace {
         let request = self.session.request(now);
         match request.prepare(&action, Capabilities::BROWSER)? {
             PreparedAction::Edit { path, edits } => {
-                Ok(json!({"edit":self.single_edit(&path, edits)}))
+                Ok(json!({"edit":self.session.edit([(path, edits)])}))
             }
             PreparedAction::Open { url } => Ok(json!({"open":url})),
             _ => Err("This command is not available in the browser".into()),

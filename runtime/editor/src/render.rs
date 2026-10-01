@@ -1,7 +1,6 @@
 //! Standalone HTML from the editor's semantic tokens, inlays, diagnostics and
 //! links: the one serializer the CLI's export and the browser share.
 use crate::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
-use crate::inlays::FULL_RANGE;
 use crate::links::document_links;
 use lang::model::{Document, LineIndex};
 use lsp_types::{
@@ -26,9 +25,11 @@ fn labelled<'a>(
             lang::common::EXTENSION
         )
     })?;
+    // Every position in the note.
+    let everywhere = Range::new(Position::new(0, 0), Position::new(u32::MAX, u32::MAX));
     Ok((
         doc,
-        crate::providers::hints(request, path, FULL_RANGE).hints,
+        crate::providers::hints(request, path, everywhere).hints,
     ))
 }
 
@@ -108,6 +109,7 @@ fn inlay_label(hint: &InlayHint) -> String {
     label.replace(['\r', '\n', '\t'], " ")
 }
 
+#[derive(Default)]
 struct Decoration {
     class: String,
     title: String,
@@ -195,8 +197,7 @@ fn serialize(
             ),
             Decoration {
                 class,
-                title: String::new(),
-                href: None,
+                ..Decoration::default()
             },
         )?;
     }
@@ -225,9 +226,9 @@ fn serialize(
             decorate(
                 link.range,
                 Decoration {
-                    class: String::new(),
                     title: link.tooltip.clone().unwrap_or_default(),
                     href: Some(target.to_string()),
+                    ..Decoration::default()
                 },
             )?;
         }

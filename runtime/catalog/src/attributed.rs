@@ -8,9 +8,8 @@
 use super::value as q;
 use super::{
     RecordKind,
-    record::{Base, Record, SourceRef},
+    record::{Base, Record, SourceRef, text_range},
 };
-use lang::common::Span;
 use lang::eval::engine::{Engine, Value};
 use lang::eval::{Clock, ToValue, Workspace, record};
 use lang::model::Document;
@@ -82,16 +81,13 @@ pub(super) fn attributed(
         if attributes.is_empty() {
             continue;
         }
-        let raw = doc.line(line.line);
-        let start = raw.len() - raw.trim_start().len();
-        let text = Span::new(line.line, start, raw.trim_end().len().max(start));
         records.push(Record::typed(
             path,
             AttributedRecord {
                 base: Base::line(ws, path, RecordKind::Attributed, &line.title, line.line),
                 block: <&str>::from(line.on).into(),
                 task: line.checkbox,
-                range: q::range(text.range(doc)),
+                range: text_range(doc, line.line),
                 attributes,
             },
         ));

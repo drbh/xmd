@@ -42,8 +42,10 @@ test("code lens chips find their lines when the editor was mounted before it was
   await expect.poll(() => page.evaluate(() => [...document.querySelectorAll(".xmd-lenses")].map(group => {
     const line = group.parentElement.parentElement.querySelector(`.line[data-line="${group.dataset.line}"]`);
     const boxes = line.getClientRects();
-    return Math.abs(Math.round(group.getBoundingClientRect().top - boxes[boxes.length - 1].top));
-  }))).toEqual([0, 0]);
+    // Within a couple of pixels: fonts and sub-pixel rounding differ by
+    // platform, while the bug this guards against was hundreds of pixels.
+    return Math.abs(Math.round(group.getBoundingClientRect().top - boxes[boxes.length - 1].top)) <= 2;
+  }))).toEqual([true, true]);
 });
 
 // An edit repaints after a round trip to the engine; focus someone moved to

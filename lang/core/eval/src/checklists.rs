@@ -49,20 +49,14 @@ impl Engine<'_> {
             .map(|(path, index)| {
                 let doc = &self.workspace().documents[path];
                 let task = &doc.tasks[*index];
-                let declared: Vec<_> = task
+                let attributes = task
                     .attributes
                     .iter()
                     .filter_map(|(key, attribute)| {
-                        Some((key.clone(), doc.attribute_value(key)?, attribute.clone()))
-                    })
-                    .collect();
-                let (title, line) = (task.title.clone(), task.line);
-                let attributes = declared
-                    .into_iter()
-                    .map(|(key, holds, attribute)| {
+                        let holds = doc.attribute_value(key)?;
                         // Reported by whoever reads `error`, not here.
                         let failure = self.failure.take();
-                        let value = self.evaluated(path, holds, &attribute);
+                        let value = self.evaluated(path, holds, attribute);
                         self.failure = failure;
                         let (value, error) = match value {
                             Ok(value) => (value, Value::Null),
@@ -73,12 +67,12 @@ impl Engine<'_> {
                             ("value", value),
                             ("error", error),
                         ]);
-                        (key, fields)
+                        Some((key.clone(), fields))
                     })
                     .collect();
                 record([
-                    ("title", Value::Text(title)),
-                    ("line", Value::Number(line as f64)),
+                    ("title", Value::Text(task.title.clone())),
+                    ("line", Value::Number(task.line as f64)),
                     ("done", Value::Bool(self.task_done(path, *index))),
                     ("attributes", Value::record(attributes)),
                 ])

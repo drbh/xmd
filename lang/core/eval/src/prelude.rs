@@ -33,10 +33,7 @@ impl Workspace {
         matches!(
             self.resolve(path, name),
             Err(values::EvalError::UnknownName { .. })
-        ) && self
-            .modules
-            .prelude()
-            .is_some_and(|m| m.public_names().iter().any(|n| n == name))
+        ) && self.modules.prelude().is_some_and(|m| m.is_public(name))
     }
     /// The prelude's names the note at `path` does not define itself: the
     /// ones its calls reach in the prelude.
@@ -74,22 +71,15 @@ impl Workspace {
                 let params = params
                     .iter()
                     .enumerate()
-                    .map(|(i, p)| {
-                        if i < first {
-                            p.clone()
-                        } else {
-                            format!("{p}?")
-                        }
-                    })
+                    .map(|(i, p)| format!("{p}{}", if i < first { "" } else { "?" }))
                     .collect();
-                let mut comment: Vec<&str> = document.text.lines().collect::<Vec<_>>()
-                    [..definition.named.span.line]
+                let lines: Vec<&str> = document.text.lines().collect();
+                let above = &lines[..definition.named.span.line];
+                let start = above.iter().rposition(|line| !line.starts_with("//"));
+                let comment: Vec<&str> = above[start.map_or(0, |i| i + 1)..]
                     .iter()
-                    .rev()
-                    .map_while(|line| line.strip_prefix("//"))
-                    .map(str::trim)
+                    .map(|line| line[2..].trim())
                     .collect();
-                comment.reverse();
                 Some(PreludeFunction {
                     accepts: module.accepts.get(&name).cloned().unwrap_or_default(),
                     name,

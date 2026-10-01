@@ -1,4 +1,7 @@
-// Plan policy surrounds the generic numerical primitive.
+// Linear plans and goal seek: what a definition of the `plans` module's
+// forms is worth. The host reads the objective and every constraint as linear
+// forms over the unknowns; this library builds the model, solves it with the
+// generic numerical primitive, and words the solution.
 module := {api: 1, id: "plan", kind: "library", imports: ["format"], inputs: [], exports: []}
 fmt := import("format")
 
@@ -23,25 +26,40 @@ _evaluate := fn(form, values) => (
   + fold(entries(form.terms), 0, fn(total, term) => total + term.value * get(values, term.key))
 )
 
-// Give plan variables nonnegative bounds and decision-column domains.
-_variables := fn(model) => (
+// A plan's constraints, one per row of its table: the row's name and the
+// constraint read from its expression, where the expression is.
+constraints := fn(f) => (
+  map(
+    f.rows,
+    fn(row) => let(
+      {named: get(row.cells, 0), c: get(row.cells, 1)},
+      {name: named.text, op: c.op, lhs: c.lhs, rhs: c.rhs, anchor: c.anchor, range: c.range}
+    )
+  )
+)
+
+// Give plan variables nonnegative bounds and decision cells their domains.
+_variables := fn(f) => (
   object(
     concat(
-      map(model.names, fn(name) => {key: name, value: {kind: "continuous", lower: 0}}),
-      map(model.decisions, fn(v) => {key: v.name, value: {kind: v.kind, lower: 0}})
+      map(f.unknowns, fn(name) => {key: name, value: {kind: "continuous", lower: 0}}),
+      map(
+        f.decisions,
+        fn(d) => {key: d.name, value: {kind: if(d.domain == "choice", "binary", "integer"), lower: 0}}
+      )
     )
   )
 )
 
 // Build the numerical model while preserving source variable order.
-_solve_raw := fn(model) => (
+_solve_raw := fn(f) => (
   solve_linear(
     {
-      goal: model.goal,
-      variables: _variables(model),
-      order: concat(model.names, map(model.decisions, fn(v) => v.name)),
-      objective: _raw(model.objective),
-      constraints: map(model.constraints, fn(c) => {lhs: _raw(c.lhs), op: c.op, rhs: _raw(c.rhs)})
+      goal: f.form,
+      variables: _variables(f),
+      order: concat(f.unknowns, map(f.decisions, fn(d) => d.name)),
+      objective: _raw(get(f.arguments, 0)),
+      constraints: map(constraints(f), fn(c) => {lhs: _raw(c.lhs), op: c.op, rhs: _raw(c.rhs)})
     }
   )
 )
@@ -59,7 +77,9 @@ _constraint_result := fn(c, lhs, rhs, unit) => (
     lhs: _typed(unit, lhs),
     rhs: _typed(unit, rhs),
     slack: _typed(unit, _slack(c.op, lhs, rhs)),
-    binding: _slack(c.op, lhs, rhs) == 0
+    binding: _slack(c.op, lhs, rhs) == 0,
+    anchor: c.anchor,
+    range: c.range
   }
 )
 
@@ -73,54 +93,119 @@ _constraint := fn(c, values) => (
   )
 )
 
-// Restore units and interpret decision cells from the raw solution.
-_result := fn(model, values) => (
-  {
-    objective: _typed(model.objective.unit, _tidy(_evaluate(model.objective, values))),
-    variables: map(model.names, fn(n) => {name: n, value: _tidy(get(values, n))}),
-    constraints: map(model.constraints, fn(c) => _constraint(c, values)),
-    rows: object(
-      map(
-        model.decisions,
-        fn(d) => {
-          key: d.name,
-          value: if(
-            d.kind == "binary",
-            _tidy(get(values, d.name)) >= 0.5,
-            round(_tidy(get(values, d.name)))
+// A decision cell's chosen value: yes or no, or a whole number.
+_choice := fn(d, values) => (
+  if(
+    d.domain == "choice",
+    _tidy(get(values, d.name)) >= 0.5,
+    round(_tidy(get(values, d.name)))
+  )
+)
+
+// Each decision column, with the cells the plan chose for it, in the order
+// the plan first reads them.
+_columns := fn(f, values) => (
+  map(
+    fold(
+      f.decisions,
+      [],
+      fn(columns, d) => let(
+        {
+          key: d.document + "#" + d.table + "." + d.column,
+          cell: {
+            value: _choice(d, values),
+            label: d.label,
+            document: d.document,
+            source: d.source,
+            line: d.line,
+            anchor: d.anchor,
+            range: d.range,
+            width: d.width
+          }
+        },
+        if(
+          length(filter(columns, fn(c) => c.key == key)) == 0,
+          concat(columns, [{key: key, name: d.column, cells: [cell]}]),
+          map(
+            columns,
+            fn(c) => if(c.key == key, {key: c.key, name: c.name, cells: concat(c.cells, [cell])}, c)
           )
-        }
+        )
       )
-    )
+    ),
+    fn(c) => {name: c.name, cells: c.cells}
+  )
+)
+
+// The solution as a plan's record holds it: typed, rounded for display, and
+// where each constraint and decision cell is.
+_solution := fn(f, values) => let(
+  {objective: get(f.arguments, 0)},
+  {
+    goal: f.form,
+    objective: _typed(objective.unit, _tidy(_evaluate(objective, values))),
+    variables: object(map(f.unknowns, fn(n) => {key: n, value: _tidy(get(values, n))})),
+    variable_order: f.unknowns,
+    constraints: map(constraints(f), fn(c) => _constraint(c, values)),
+    columns: _columns(f, values)
   }
 )
 
 // Translate solver statuses into a solution or an actionable error.
-_checked := fn(model, solution) => (
+_checked := fn(f, solved) => (
   if(
-    solution.status == "optimal",
-    _result(model, solution.values),
+    solved.status == "optimal",
+    _solution(f, solved.values),
     error(
       if(
-        solution.status == "infeasible",
+        solved.status == "infeasible",
         "No values satisfy every constraint; relax one of them",
         "The objective can be "
-        + if(model.goal == "maximize", "raised", "lowered")
+        + if(f.form == "maximize", "raised", "lowered")
         + " without limit; add a constraint that bounds it"
       )
     )
   )
 )
 
-// Engine contract: the plan evaluator calls solve_model, seek_boundary,
-// seek_summary, hover, write_edits and write_title by name, and the plans
-// feature module calls constraint_label, constraint_hover, inlay and choice.
-// These names are the engine's, not a note's: `exports: []` keeps them out
-// of import().
+// Solve a plan definition: its solution record, or why it has none.
+solve := fn(f) => (
+  if(
+    length(f.unknowns) == 0 && length(f.decisions) == 0,
+    error("A plan needs at least one unknown name to solve for"),
+    _checked(f, _solve_raw(f))
+  )
+)
 
-// Solve the assembled model and interpret its result.
-solve_model := fn(model) => (
-  _checked(model, _solve_raw(model))
+// What the note reads of a solved plan: the objective, each variable and
+// each constraint's slack, by name. A variable wins over a constraint of the
+// same name, and the objective over both.
+fields := fn(p) => (
+  object(
+    concat(
+      map(p.constraints, fn(c) => {key: c.name, value: c.slack}),
+      map(p.variable_order, fn(n) => {key: n, value: get(p.variables, n)}),
+      [{key: "objective", value: p.objective}]
+    )
+  )
+)
+
+// A plan definition as the note reads it: tagged a Plan, shown as its
+// objective, with its hover, its outline detail and its solution record.
+define := fn(f) => let(
+  {p: solve(f)},
+  {
+    value: tagged("Plan", fields(p), text(p.objective)),
+    hover: hover(p),
+    detail: "plan · "
+    + p.goal
+    + " "
+    + text(p.objective)
+    + " · "
+    + text(length(p.variable_order))
+    + " variables",
+    record: p
+  }
 )
 
 // Use compact mathematical symbols for displayed comparisons.
@@ -190,8 +275,7 @@ choice := fn(value) => (
 
 // List chosen rows, striking out rejected boolean choices.
 _column_hover := fn(c) => (
-  "\n\n"
-  + c.name
+  c.name
   + ": "
   + join(
       map(
@@ -208,30 +292,36 @@ _column_hover := fn(c) => (
 
 // Explain the solution, constraint usage, and default variable bounds.
 hover := fn(p) => (
-  join(map(p.columns, _column_hover), "")
-  + "\n\n"
-  + if(p.goal == "maximize", "Maximizes", "Minimizes")
-  + " the objective. Variables: "
-  + join(map(p.variable_order, fn(name) => name + " = " + text(get(p.variables, name))), ", ")
-  + "\n\nConstraints:\n"
-  + join(
-      map(
-        p.constraints,
-        fn(c) => "\n- "
-        + c.name
-        + ": "
-        + _usage(c, true)
-        + text(c.lhs)
-        + " "
-        + _comparison(c.op)
-        + " "
-        + text(c.rhs)
-        + " · "
-        + _status(c)
-      ),
-      ""
-    )
-  + "\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds."
+  join(
+    concat(
+      map(p.columns, _column_hover),
+      [
+        if(p.goal == "maximize", "Maximizes", "Minimizes")
+        + " the objective. Variables: "
+        + join(map(p.variable_order, fn(name) => name + " = " + text(get(p.variables, name))), ", ")
+        + "\n\nConstraints:\n"
+        + join(
+            map(
+              p.constraints,
+              fn(c) => "\n- "
+              + c.name
+              + ": "
+              + _usage(c, true)
+              + text(c.lhs)
+              + " "
+              + _comparison(c.op)
+              + " "
+              + text(c.rhs)
+              + " · "
+              + _status(c)
+            ),
+            ""
+          )
+        + "\n\nDecision variables are never negative; add a constraint like x >= 5 for other bounds."
+      ]
+    ),
+    "\n\n"
+  )
 )
 
 // Preserve a decision cell's padding when writing its result.
@@ -299,5 +389,36 @@ seek_summary := fn(op, positive) => (
       "the smallest value that satisfies",
       "the largest value that satisfies"
     )
+  )
+)
+
+// A goal seek: the boundary its constraint sets on the definition's own
+// name, and which way the hover says it moves. Both sides read as one form,
+// the left minus the right; one that cannot be one scales the unknown by two
+// different units.
+seek := fn(f) => let(
+  {c: get(f.arguments, 0), name: get(f.unknowns, 0)},
+  let(
+    {
+      difference: if(
+        c.difference == null,
+        {constant: 0, terms: {}, per: null},
+        c.difference
+      )
+    },
+    {
+      value: if(
+        c.difference == null,
+        error(
+          "Cannot tell the unit of the answer; the unknown is scaled by two different units"
+        ),
+        seek_boundary(name, difference, difference.per)
+      ),
+      hover: "Goal seek: "
+      + seek_summary(c.op, coalesce(get(difference.terms, name), 0) > 0)
+      + " `"
+      + c.text
+      + "`."
+    }
   )
 )

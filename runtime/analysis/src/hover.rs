@@ -3,7 +3,6 @@ use crate::locate;
 use crate::locate::Target;
 use lang::common::Span;
 use lang::eval::engine::{Engine, HostPresenting, Value};
-use lang::eval::plans::PlanValue;
 use lang::eval::resources::{self, ResourcePresenting};
 use lang::eval::{Symbol, SymbolKind, Workspace};
 use lang::stdlib;
@@ -14,6 +13,13 @@ pub fn markup(value: String) -> MarkupContent {
     MarkupContent {
         kind: MarkupKind::Markdown,
         value,
+    }
+}
+/// Markdown `text` over `range`.
+fn hover(text: String, range: Range) -> Hover {
+    Hover {
+        contents: HoverContents::Markup(markup(text)),
+        range: Some(range),
     }
 }
 
@@ -47,15 +53,13 @@ fn prelude_hover(ws: &Workspace, path: &Path, name: &str, span: Span) -> Option<
         .prelude_functions()
         .into_iter()
         .find(|f| f.name == name)?;
-    Some(Hover {
-        contents: HoverContents::Markup(markup(format!(
-            "**{}({})** · prelude\n\n{}",
-            function.name,
-            function.params.join(", "),
-            function.documentation
-        ))),
-        range: Some(span.range(&ws.documents()[path])),
-    })
+    let text = format!(
+        "**{}({})** · prelude\n\n{}",
+        function.name,
+        function.params.join(", "),
+        function.documentation
+    );
+    Some(hover(text, span.range(&ws.documents()[path])))
 }
 
 /// A symbol's hover; a reference that reads a property previews it first.
@@ -81,10 +85,7 @@ fn reference_hover(
         value = format!("{} = {preview}\n\n{value}", reference.expression());
         range = Span::new(span.line, span.start, reference.end()).range(doc);
     }
-    Hover {
-        contents: HoverContents::Markup(markup(value)),
-        range: Some(range),
-    }
+    hover(value, range)
 }
 
 /// `format.series` over a column or a sum's rows: a sparkline and its range,
@@ -105,12 +106,8 @@ fn link_hover(
         target: link.target.clone(),
         origin: None,
     };
-    Some(Hover {
-        contents: HoverContents::Markup(markup(
-            resource.presentation(&mut request.engine(), path).hover,
-        )),
-        range: Some(link.span.range(doc)),
-    })
+    let text = resource.presentation(&mut request.engine(), path).hover;
+    Some(hover(text, link.span.range(doc)))
 }
 
 pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
@@ -121,19 +118,19 @@ pub fn source_link(ws: &Workspace, symbol: &Symbol) -> String {
 }
 
 /// A symbol's hover, and whether wording it read the clock more finely than
-/// the date — a value that reads `now()`, a lookup's age, a running timer, a
-/// link whose cached data expires — so a cache knows how long it holds.
+/// the date — a value that reads `now()`, a lookup's age, a tagged record
+/// whose module reads the clock, a link whose cached data expires — so a
+/// cache knows how long it holds.
 pub struct SymbolHover {
     pub text: String,
     pub reads_clock: bool,
 }
 
-/// Everything known about one definition, column or decision variable.
+/// Everything known about one definition, column or name a form solves for.
 pub fn symbol_hover(request: &lang::eval::RequestContext<'_>, symbol: &Symbol) -> SymbolHover {
     let mut engine = request.engine();
-    // Module code the stdlib runs outside the evaluation (a plan's or a
-    // timer's hover) reports its clock reading here; the evaluation marks
-    // the engine.
+    // Module code the stdlib runs outside the evaluation (a tagged record's
+    // hover) reports its clock reading here; the evaluation marks the engine.
     let (text, read) = lang::eval::reads_clock(|| symbol_text(request, &mut engine, symbol));
     SymbolHover {
         text,
@@ -156,14 +153,23 @@ fn symbol_text(
         Ok(v) => format!("**{} · {}**\n\n{}", named.name, v.type_name(), v.display()),
         Err(e) => format!("**{}**\n\n{e}", named.name),
     };
-    if let SymbolKind::Variable(p, _) = symbol.kind {
-        let plan = symbol.sibling(SymbolKind::Definition(
-            ws.documents()[&symbol.path].plans[p].definition,
-        ));
+    // A name a form solves for, as the form describes its unknowns.
+    if let SymbolKind::Variable(f, _) = symbol.kind {
+        let formed = &ws.documents()[&symbol.path].forms[f];
+        let definition = symbol.sibling(SymbolKind::Definition(formed.definition));
+        let mut unknown = formed.form.unknown.chars();
+        let unknown: String = unknown
+            .next()
+            .map(|c| c.to_uppercase().chain(unknown).collect())
+            .unwrap_or_default();
         out.push_str(&format!(
-            "\n\nDecision variable of {}: no note defines this name, so the plan chooses its value.",
-            source_link(ws, &plan)
+            "\n\n{unknown} of {}",
+            source_link(ws, &definition)
         ));
+        out.push_str(&match formed.form.unknown_doc.as_str() {
+            "" => ".".to_owned(),
+            doc => format!(": {doc}"),
+        });
     }
     if let SymbolKind::Definition(i) = symbol.kind {
         let def = &ws.documents()[&symbol.path].definitions[i];
@@ -172,8 +178,8 @@ fn symbol_text(
         }
     }
     out.push_str(&lookups(ws, engine, request.now()).unwrap_or_default());
-    // A host object adds what only it knows: a link's presentation, a timer's
-    // state, a checklist's progress.
+    // A host object adds what only it knows: a link's presentation, a tagged
+    // record's own hover, a checklist's progress.
     if let Ok(value) = &value
         && let Some(detail) = value.host_hover(engine, &symbol.path)
     {
@@ -201,18 +207,14 @@ fn column_hover(
     let table = &doc.tables[t];
     let name = &doc.definitions[table.definition].named.name;
     if let Some(domain) = table.domains[c] {
+        let (written, chooses) = match domain {
+            lang::eval::tables::Domain::Choice => ("name?", "yes or no"),
+            lang::eval::tables::Domain::Count => ("name#", "a whole number"),
+        };
         return format!(
-            "**{} · {}**\n\nDecision column of `{name}` ({}): a plan that sums over it chooses {} for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: {}",
+            "**{} · {}**\n\nDecision column of `{name}` ({written}): a plan that sums over it chooses {chooses} for every row. Written cell values are notes; the plan's inlays show the choice.\n\nDefinition: {}",
             named.name,
             domain.value_type(),
-            match domain {
-                lang::eval::tables::Domain::Choice => "name?",
-                lang::eval::tables::Domain::Count => "name#",
-            },
-            match domain {
-                lang::eval::tables::Domain::Choice => "yes or no",
-                lang::eval::tables::Domain::Count => "a whole number",
-            },
             source_link(ws, symbol)
         );
     }
@@ -244,8 +246,8 @@ fn column_hover(
     )
 }
 
-/// An expression definition worked through, then what it seeks, plans, sums
-/// and reads.
+/// An expression definition worked through, then what its form's module says
+/// of it, what it sums and what it reads.
 fn expression_detail(
     request: &lang::eval::RequestContext<'_>,
     engine: &mut Engine<'_>,
@@ -263,17 +265,10 @@ fn expression_detail(
         Some(substituted.as_str()).filter(|s| *s != def.source),
         value.as_ref().ok(),
     );
-    out.push_str(&goal_seek(ws, engine, symbol, definition).unwrap_or_default());
-    if let Ok(value) = value
-        && let Some(plan) = value.downcast::<PlanValue>()
+    if ws.documents()[&symbol.path].form_of(definition).is_some()
+        && let Some(hover) = engine.about(symbol).and_then(|about| about.hover)
     {
-        out.push_str(&stdlib::shown(stdlib::plan::hover(
-            &mut stdlib::Snapshot {
-                modules: ws.modules(),
-                now: request.now(),
-            },
-            plan.record(ws),
-        )));
+        out.push_str(&format!("\n\n{hover}"));
     }
     out.push_str(&contributions(engine, &symbol.path, &def.source).unwrap_or_default());
     let inputs: std::collections::BTreeSet<_> =
@@ -300,43 +295,6 @@ fn worked(source: &str, substituted: Option<&str>, value: Option<&Value>) -> Str
     }
     out.push_str("```");
     out
-}
-
-/// Which way a goal-seeking definition moves its own name.
-fn goal_seek(
-    ws: &Workspace,
-    engine: &mut Engine<'_>,
-    symbol: &Symbol,
-    definition: usize,
-) -> Option<String> {
-    let def = &ws.documents()[&symbol.path].definitions[definition];
-    let body = lang::eval::plans::seek_body(&def.source)?;
-    let summary = stdlib::shown(seek_summary(ws, engine, symbol, definition)?);
-    Some(format!("\n\nGoal seek: {summary} `{body}`."))
-}
-
-/// The words for which way a goal-seeking definition moves its own name, or
-/// nothing when the definition is not a goal seek its hover can explain.
-pub fn seek_summary(
-    ws: &Workspace,
-    engine: &mut Engine<'_>,
-    symbol: &Symbol,
-    definition: usize,
-) -> Option<stdlib::Presented> {
-    let def = &ws.documents()[&symbol.path].definitions[definition];
-    let body = lang::eval::plans::seek_body(&def.source)?;
-    let name = &def.named.name;
-    let vars = [name.clone()].into_iter().collect();
-    let (lhs, op, rhs) = engine
-        .constraint(&symbol.path, body, def.value_span, &vars)
-        .ok()?;
-    let difference = lhs.minus(&rhs).ok()?;
-    let coefficient = difference.terms.get(name).copied().unwrap_or(0.0);
-    Some(stdlib::plan::seek_summary(
-        engine,
-        op.as_str(),
-        coefficient > 0.0,
-    ))
 }
 
 /// What each row adds to a sum over a table, charted, the first 30 listed.
@@ -414,17 +372,10 @@ fn calculation_hover(
         substituted.as_deref(),
         value.as_ref().ok(),
     ));
-    Some(Hover {
-        contents: HoverContents::Markup(markup(text)),
-        range: Some(
-            Span::new(
-                calculation.span.line,
-                calculation.span.start - usize::from(calculation.bracketed),
-                calculation.span.end + usize::from(calculation.bracketed),
-            )
-            .range(doc),
-        ),
-    })
+    let bracket = usize::from(calculation.bracketed);
+    let span = calculation.span;
+    let range = Span::new(span.line, span.start - bracket, span.end + bracket).range(doc);
+    Some(hover(text, range))
 }
 fn cell_hover(
     request: &lang::eval::RequestContext<'_>,
@@ -457,8 +408,5 @@ fn cell_hover(
         ),
         Err(error) => error.to_string(),
     };
-    Some(Hover {
-        contents: HoverContents::Markup(markup(text)),
-        range: Some(cell.span.range(doc)),
-    })
+    Some(hover(text, cell.span.range(doc)))
 }

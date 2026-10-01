@@ -5,7 +5,7 @@
 //! unclosed attribute. Every line that writes attributes is kept as it was
 //! read ([`Attributed`]), so what a declared attribute means is read off it
 //! later, by the module that owns it.
-use crate::blocks::{Attribute, HighlightKind, Line, Problem, Tree};
+use crate::blocks::{Attribute, HighlightKind, Line, Tree};
 use crate::declared::On;
 use crate::document::Document;
 use std::collections::BTreeMap;
@@ -37,7 +37,7 @@ pub struct Declaration {
 }
 impl Declaration {
     /// Whether it is live on a line that is, or is not, a checklist item.
-    pub fn live_on(&self, checkbox: bool) -> bool {
+    pub(crate) fn live_on(&self, checkbox: bool) -> bool {
         checkbox || !self.checkbox
     }
 }
@@ -115,34 +115,25 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         doc.foreign = true;
         match known {
             Some(AttributeValue::When) if syntax::is_relative_date(&attr.value) => {
-                tree.mark(row, value.start, value.end, HighlightKind::Number);
+                tree.paint(value, HighlightKind::Number);
             }
             Some(AttributeValue::Date) if syntax::stamp(&attr.value).is_some() => {
-                tree.mark(row, value.start, value.end, HighlightKind::Number);
+                tree.paint(value, HighlightKind::Number);
             }
             Some(kind) if kind.is_expression() => {
                 tree.expression(line.text, row, value.start, value.end);
             }
-            _ => tree.mark(row, value.start, value.end, HighlightKind::String),
+            _ => tree.paint(value, HighlightKind::String),
         }
         if line.attributes.list[..index].iter().any(|(k, _)| k == key) {
-            tree.problems.push(Problem {
-                span: attr.span,
-                message: format!("Duplicate @{key} attribute"),
-            });
+            tree.problem(attr.span, format!("Duplicate @{key} attribute"));
         }
         if known.is_none() {
-            tree.problems.push(Problem {
-                span: attr.span,
-                message: format!("Unknown attribute @{key}"),
-            });
+            tree.problem(attr.span, format!("Unknown attribute @{key}"));
         }
     }
     if let Some(span) = line.attributes.unclosed {
-        tree.problems.push(Problem {
-            span,
-            message: "Unclosed task attribute".into(),
-        });
+        tree.problem(span, "Unclosed task attribute".into());
     }
     if !line.attributes.map.is_empty() {
         let end = line

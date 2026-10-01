@@ -72,10 +72,8 @@ enum RecordKind {
     Cell,
     Note,
     Value,
-    Plan,
     Table,
     Row,
-    Decision,
     Resource,
     Diagnostic,
     Recognized,
@@ -87,9 +85,16 @@ impl lang::eval::ToValue for RecordKind {
     }
 }
 
+/// A cache whose collections are the ones [`collect`] indexes.
+impl Default for Records {
+    fn default() -> Self {
+        Self::new(collect)
+    }
+}
+
 /// The query API and feature modules read the same semantic records. Each
 /// collection is one record builder below; this match is their index.
-pub(crate) fn collect(
+fn collect(
     cache: &Records,
     collection: Collection,
     engine: &mut Engine<'_>,
@@ -98,30 +103,23 @@ pub(crate) fn collect(
 ) -> Result<Vec<Record>, String> {
     let ws: &Workspace = engine.workspace();
     let mut records = Vec::new();
-    match collection {
-        // Two collections span documents instead of visiting them in turn.
-        Collection::Ast => {
-            for path in ws
-                .documents()
-                .keys()
-                .filter(|p| only.is_none_or(|only| only == p.as_path()))
-            {
-                records.extend(inspection::ast(ws, path));
-            }
-            return Ok(records);
+    // The syntax tree spans documents instead of visiting them in turn.
+    if collection == Collection::Ast {
+        for path in ws
+            .documents()
+            .keys()
+            .filter(|p| only.is_none_or(|only| only == p.as_path()))
+        {
+            records.extend(inspection::ast(ws, path));
         }
-        Collection::Decisions => {
-            definitions::decisions(ws, engine, only, &mut records);
-            return Ok(records);
-        }
-        _ => {}
+        return Ok(records);
     }
     for (path, doc) in ws.documents() {
         if only.is_some_and(|wanted| wanted != path) {
             continue;
         }
         match &collection {
-            Collection::Ast | Collection::Decisions => unreachable!("handled above"),
+            Collection::Ast => unreachable!("handled above"),
             Collection::Mentions => mentions::mentions(ws, path, doc, &mut records),
             Collection::Links => links::links(ws, path, doc, &mut records),
             Collection::Sections => sections::sections(ws, path, doc, &mut records),
@@ -133,7 +131,7 @@ pub(crate) fn collect(
             Collection::Notes => notes::notes(ws, path, doc, &mut records),
             Collection::Checkboxes => checkboxes::checkboxes(ws, path, doc, &mut records),
             Collection::Entries => built::entries(cache, engine, path, &mut records),
-            Collection::Values | Collection::Plans | Collection::Tables | Collection::Rows => {
+            Collection::Values | Collection::Forms | Collection::Tables | Collection::Rows => {
                 definitions::definitions(ws, path, doc, &collection, engine, &mut records)?
             }
             Collection::Resources => links::resources(ws, path, doc, &mut records),

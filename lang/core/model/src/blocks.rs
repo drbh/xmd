@@ -7,7 +7,7 @@
 //! bracket forms (`[name]`, `[a / b]`, `[name] := …`, `[value]:name`, `[text](target)`),
 //! `@key(value)` attributes as spans, raw links, code spans and comments.
 //!
-//! Nothing here knows what a task, event, section, table, plan or itinerary
+//! Nothing here knows what a task, event, section, table, form or itinerary
 //! is: the recognizers (listed in `recognizers`) read these blocks and fill
 //! the note's features. Everything read here lands in a [`Tree`], the shared
 //! output the recognizers add to.
@@ -21,6 +21,14 @@ pub struct Named {
     pub name: String,
     pub span: Span,
 }
+impl Named {
+    pub(crate) fn new(name: &str, row: usize, start: usize) -> Self {
+        Self {
+            name: name.into(),
+            span: Span::new(row, start, start + name.len()),
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Definition {
     pub named: Named,
@@ -30,6 +38,29 @@ pub struct Definition {
     pub end: Span,
 }
 impl Definition {
+    /// `name := expression`, the expression running from `start` to the end
+    /// of `line`.
+    fn calculated(named: Named, line: &str, start: usize) -> Self {
+        let (row, end) = (named.span.line, line.len());
+        Self {
+            named,
+            source: line[start..].trim().into(),
+            expression: true,
+            value_span: Span::new(row, start, end),
+            end: Span::new(row, end, end),
+        }
+    }
+    /// `value:name`, which ends where its name does.
+    fn literal(named: Named, source: &str, value_span: Span) -> Self {
+        let end = Span::new(named.span.line, named.span.end, named.span.end);
+        Self {
+            named,
+            source: source.into(),
+            expression: false,
+            value_span,
+            end,
+        }
+    }
     /// The value span without the blanks it starts with: where the
     /// expression text begins after its `=` or `:=`.
     pub fn expression_span(&self, text: &(impl Lines + ?Sized)) -> Span {
@@ -128,16 +159,13 @@ pub(crate) struct Checkbox {
     pub(crate) at: usize,
     pub(crate) mark: u8,
 }
-/// What a line is, decided before anything is read from it.
+/// What a line is, decided before anything is read from it. A `start` is
+/// the line's indentation.
 pub(crate) enum Block<'a> {
     /// A fence delimiter, or a line inside an open fence.
-    Fence {
-        start: usize,
-    },
+    Fence(usize),
     /// An HTML comment line (opening, inside or closing) or a `//` line.
-    Comment {
-        start: usize,
-    },
+    Comment(usize),
     Heading(Heading<'a>),
     /// `- text`, `* text`, `+ text`, or `- [ ] text` with a checkbox.
     Item {
@@ -145,19 +173,15 @@ pub(crate) enum Block<'a> {
         checkbox: Option<Checkbox>,
     },
     /// `| a | b |`
-    Row {
-        start: usize,
-    },
+    Row(usize),
     /// Whitespace only: it says nothing about the note.
     Blank,
     /// Everything else.
-    Prose {
-        start: usize,
-    },
+    Prose(usize),
 }
 
 /// All a line needs to know about the lines before it. A block a recognizer
-/// reads over several rows (a table, a plan, a continued expression) is not
+/// reads over several rows (a table, a form's table, a continued expression) is not
 /// held here: whoever read those rows reports how many it took, and they
 /// never reach the classifier.
 #[derive(Default)]
@@ -177,18 +201,18 @@ pub(crate) fn classify<'a>(line: &'a str, row: usize, state: &mut BlockState) ->
     if let Some((kind, count)) = state.fence {
         let closes = marker == kind && run >= count && trimmed[run..].trim().is_empty();
         state.fence = (!closes).then_some((kind, count));
-        return Block::Fence { start };
+        return Block::Fence(start);
     }
     if (marker == '`' || marker == '~') && run >= 3 {
         state.fence = Some((marker, run));
-        return Block::Fence { start };
+        return Block::Fence(start);
     }
     if state.comment || trimmed.starts_with("<!--") {
         state.comment = !trimmed.contains("-->");
-        return Block::Comment { start };
+        return Block::Comment(start);
     }
     if trimmed.starts_with("//") {
-        return Block::Comment { start };
+        return Block::Comment(start);
     }
     if marker == '#'
         && run <= 6
@@ -215,13 +239,13 @@ pub(crate) fn classify<'a>(line: &'a str, row: usize, state: &mut BlockState) ->
         return Block::Blank;
     }
     if marker == '|' {
-        return Block::Row { start };
+        return Block::Row(start);
     }
     let bytes = line.as_bytes();
     let item = matches!(marker, '-' | '*' | '+')
         && bytes.get(start + 1).is_none_or(u8::is_ascii_whitespace);
     if !item {
-        return Block::Prose { start };
+        return Block::Prose(start);
     }
     let at = start + 2;
     let checkbox = (bytes[start + 1..].starts_with(b" [")
@@ -251,6 +275,9 @@ pub(crate) struct Line<'a> {
     pub(crate) on: crate::declared::On,
     pub(crate) from: usize,
     pub(crate) attributes: Attributes<'a>,
+    /// Where its title ends: at its first attribute, or a checklist item's
+    /// trailing `:name`.
+    pub(crate) title_end: usize,
 }
 
 /// The `@key(value)` forms on a line, as written: what a key means is a
@@ -282,6 +309,9 @@ pub(crate) struct Tree {
     pub(crate) calculations: Vec<Calculation>,
     pub(crate) highlights: Vec<Highlight>,
     pub(crate) problems: Vec<Problem>,
+    /// The forms modules declare, which a call names the way it names a
+    /// built-in rather than a value of the note.
+    pub(crate) forms: Vec<String>,
 }
 impl Lines for Tree {
     fn text(&self) -> &str {
@@ -308,6 +338,12 @@ impl Tree {
                 kind,
             });
         }
+    }
+    pub(crate) fn paint(&mut self, span: Span, kind: HighlightKind) {
+        self.mark(span.line, span.start, span.end, kind);
+    }
+    pub(crate) fn problem(&mut self, span: Span, message: String) {
+        self.problems.push(Problem { span, message });
     }
 
     /// Put the highlights in reading order, one per span.
@@ -466,9 +502,8 @@ impl Tree {
         let mut i = start;
         // `total := units * price` needs no brackets: the := says it all.
         if let Some(def) = bare_calculation(line, row, start) {
-            let named = def.named.span;
             let source = def.value_span;
-            self.mark(row, named.start, named.end, HighlightKind::Variable);
+            self.paint(def.named.span, HighlightKind::Variable);
             self.mark(
                 row,
                 source.start.saturating_sub(3),
@@ -487,21 +522,19 @@ impl Tree {
             // `$3,000:budget`, `"Oaxaca City":city`, `https://…/pull/1:pr`: a
             // value followed by :name defines it without brackets.
             if let Some(def) = bare_literal(line, row, i) {
-                let value = def.value_span;
-                let named = def.named.span;
-                self.mark(
-                    row,
-                    value.start,
-                    value.end,
-                    if def.source.starts_with('"') || Resource::parse(&def.source).is_some() {
+                let (value, named) = (def.value_span, def.named.span);
+                let resource = Resource::parse(&def.source);
+                self.paint(
+                    value,
+                    if def.source.starts_with('"') || resource.is_some() {
                         HighlightKind::String
                     } else {
                         HighlightKind::Number
                     },
                 );
                 self.mark(row, value.end, value.end + 1, HighlightKind::Operator);
-                self.mark(row, named.start, named.end, HighlightKind::Variable);
-                if let Some(r) = Resource::parse(&def.source) {
+                self.paint(named, HighlightKind::Variable);
+                if let Some(r) = resource {
                     self.links.push(Link {
                         span: value,
                         target: r.target,
@@ -539,6 +572,7 @@ impl Tree {
             };
             let inner = line[i + 1..close].trim();
             let inner_start = i + 1 + line[i + 1..close].find(inner).unwrap_or(0);
+            let inner_span = Span::new(row, inner_start, inner_start + inner.len());
             if line.as_bytes().get(close + 1) == Some(&b'(')
                 && let Some(end) = line[close + 2..].find(')').map(|o| close + 2 + o)
             {
@@ -554,16 +588,9 @@ impl Tree {
             let after = close + 1 + tail.len() - tail.trim_start().len();
             if line[after..].starts_with(":=") && identifier(inner) {
                 let expr_start = after + 2;
-                self.definitions.push(Definition {
-                    named: Named {
-                        name: inner.into(),
-                        span: Span::new(row, inner_start, inner_start + inner.len()),
-                    },
-                    source: line[expr_start..].trim().into(),
-                    expression: true,
-                    value_span: Span::new(row, expr_start, line.len()),
-                    end: Span::new(row, line.len(), line.len()),
-                });
+                let named = Named::new(inner, row, inner_start);
+                self.definitions
+                    .push(Definition::calculated(named, line, expr_start));
                 self.mark(row, i, close + 1, HighlightKind::Variable);
                 self.mark(row, after, after + 2, HighlightKind::Operator);
                 self.expression(line, row, expr_start, line.len());
@@ -574,16 +601,9 @@ impl Tree {
                 let len = name_len(&line[close + 2..]);
                 let name = &line[close + 2..close + 2 + len];
                 if identifier(name) {
-                    self.definitions.push(Definition {
-                        named: Named {
-                            name: name.into(),
-                            span: Span::new(row, close + 2, close + 2 + len),
-                        },
-                        source: inner.into(),
-                        expression: false,
-                        value_span: Span::new(row, inner_start, inner_start + inner.len()),
-                        end: Span::new(row, close + 2 + len, close + 2 + len),
-                    });
+                    let named = Named::new(name, row, close + 2);
+                    self.definitions
+                        .push(Definition::literal(named, inner, inner_span));
                     self.mark(
                         row,
                         i,
@@ -602,17 +622,9 @@ impl Tree {
                     continue;
                 }
             }
-            let (name, property) = inner
-                .split_once('.')
-                .map(|(n, p)| (n, Some(p)))
-                .unwrap_or((inner, None));
-            if identifier(name) && property.is_none_or(identifier) {
+            if let Some((name, property)) = bracket_reference(inner) {
                 if property.is_some() {
-                    let (_, members) = crate::imports::analyze(
-                        inner,
-                        &self.text,
-                        Span::new(row, inner_start, inner_start + inner.len()),
-                    );
+                    let (_, members) = crate::imports::analyze(inner, &self.text, inner_span);
                     self.members.extend(members);
                 }
                 self.references.push(Reference {
@@ -623,75 +635,79 @@ impl Tree {
                 });
                 self.mark(row, i, close + 1, HighlightKind::Variable);
             } else if is_calculation(inner) {
-                let span = Span::new(row, inner_start, inner_start + inner.len());
                 self.calculations.push(Calculation {
-                    span,
+                    span: inner_span,
                     source: inner.into(),
                     bracketed: true,
                 });
                 self.mark(row, i, i + 1, HighlightKind::Operator);
                 self.mark(row, close, close + 1, HighlightKind::Operator);
-                self.expression(line, row, span.start, span.end);
+                self.expression(line, row, inner_span.start, inner_span.end);
             }
             i = close + 1;
         }
     }
 
     pub(crate) fn expression(&mut self, line: &str, row: usize, start: usize, end: usize) {
-        let (imports, members) =
-            crate::imports::analyze(&line[start..end], &self.text, Span::new(row, start, end));
+        let (source, whole) = (&line[start..end], Span::new(row, start, end));
+        let (imports, members) = crate::imports::analyze(source, &self.text, whole);
         self.imports.extend(imports);
         self.members.extend(members);
         // Use the parser's lexer, so identifiers and dates have identical boundaries.
-        match syntax::lex_with_comments(&line[start..end]) {
-            Ok(tokens) => {
-                let free_names = syntax::expression_names(&line[start..end]);
-                for token in tokens {
-                    let span = Span::new(row, start, end).relative(self, token.start, token.end);
-                    let kind = match &token.kind {
-                        syntax::Lexeme::Name(name) => {
-                            let builtin_call = syntax::is_builtin_function(name)
-                                && line[start + token.end..end].trim_start().starts_with('(');
-                            if free_names
-                                .as_ref()
-                                .is_none_or(|names| names.contains(&token.start))
-                                && !builtin_call
-                                && !common::is_code(name)
-                                && (token.start == 0
-                                    || !line[start..start + token.start].trim_end().ends_with('.'))
-                                && !matches!(name.as_str(), "true" | "false" | "null" | "fn")
-                                && (!matches!(name.as_str(), "tomorrow" | "today")
-                                    || syntax::sum_scope_at(&line[start..end], token.start)
-                                        .is_some())
-                            {
-                                self.references.push(Reference {
-                                    name: name.clone(),
-                                    span,
-                                    bracket: false,
-                                    property: None,
-                                });
-                            }
-                            HighlightKind::Variable
-                        }
-                        syntax::Lexeme::Value(_) => HighlightKind::Number,
-                        syntax::Lexeme::Comment => HighlightKind::Comment,
-                        _ => HighlightKind::Operator,
-                    };
-                    for part in span.fragments(self) {
-                        self.mark(part.line, part.start, part.end, kind);
-                    }
-                }
+        let Ok(tokens) = syntax::lex_with_comments(source) else {
+            for part in whole.fragments(self) {
+                self.mark(part.line, part.start, part.end, HighlightKind::String);
             }
-            Err(_) => {
-                for part in Span::new(row, start, end).fragments(self) {
-                    self.mark(part.line, part.start, part.end, HighlightKind::String);
+            return;
+        };
+        let free_names = syntax::expression_names(source);
+        for token in tokens {
+            let span = whole.relative(self, token.start, token.end);
+            let kind = match &token.kind {
+                syntax::Lexeme::Name(name) => {
+                    let builtin_call = (syntax::is_builtin_function(name)
+                        || self.forms.contains(name))
+                        && source[token.end..].trim_start().starts_with('(');
+                    if free_names
+                        .as_ref()
+                        .is_none_or(|names| names.contains(&token.start))
+                        && !builtin_call
+                        && !common::is_code(name)
+                        && !source[..token.start].trim_end().ends_with('.')
+                        && !matches!(name.as_str(), "true" | "false" | "null" | "fn")
+                        && (!matches!(name.as_str(), "tomorrow" | "today")
+                            || syntax::sum_scope_at(source, token.start).is_some())
+                    {
+                        self.references.push(Reference {
+                            name: name.clone(),
+                            span,
+                            bracket: false,
+                            property: None,
+                        });
+                    }
+                    HighlightKind::Variable
                 }
+                syntax::Lexeme::Value(_) => HighlightKind::Number,
+                syntax::Lexeme::Comment => HighlightKind::Comment,
+                _ => HighlightKind::Operator,
+            };
+            for part in span.fragments(self) {
+                self.mark(part.line, part.start, part.end, kind);
             }
         }
     }
 }
 
-fn name_len(s: &str) -> usize {
+/// `name` or `name.property`, each an identifier: what a bracket can read.
+pub(crate) fn bracket_reference(inner: &str) -> Option<(&str, Option<&str>)> {
+    let (name, property) = match inner.split_once('.') {
+        Some((name, property)) => (name, Some(property)),
+        None => (inner, None),
+    };
+    (identifier(name) && property.is_none_or(identifier)).then_some((name, property))
+}
+/// The length of the run of identifier bytes `s` starts with.
+pub(crate) fn name_len(s: &str) -> usize {
     s.bytes()
         .take_while(|c| c.is_ascii_alphanumeric() || *c == b'_')
         .count()
@@ -700,16 +716,14 @@ fn name_len(s: &str) -> usize {
 /// a name or calls a function. Bare literals such as `[$25]` stay prose, so
 /// prices in a sentence are not annotated.
 fn is_calculation(inner: &str) -> bool {
-    if inner.is_empty() || !syntax::valid_expression(inner) {
-        return false;
-    }
-    let Ok(tokens) = syntax::lex(inner) else {
-        return false;
-    };
-    tokens.iter().any(|t| {
-        matches!(&t.kind, syntax::Lexeme::Name(n)
-            if !matches!(n.as_str(), "true" | "false") && !common::is_code(n))
-    })
+    !inner.is_empty()
+        && syntax::valid_expression(inner)
+        && syntax::lex(inner).is_ok_and(|tokens| {
+            tokens.iter().any(|t| {
+                matches!(&t.kind, syntax::Lexeme::Name(n)
+                    if !matches!(n.as_str(), "true" | "false") && !common::is_code(n))
+            })
+        })
 }
 
 /// Inline calculations can contain lists and quoted closing brackets, e.g.
@@ -808,16 +822,12 @@ fn bare_literal(line: &str, row: usize, at: usize) -> Option<Definition> {
     if name.eq_ignore_ascii_case("am") || name.eq_ignore_ascii_case("pm") {
         return None;
     }
-    Some(Definition {
-        named: Named {
-            name: name.into(),
-            span: Span::new(row, at + colon + 1, at + name_end),
-        },
-        source: value.into(),
-        expression: false,
-        value_span: Span::new(row, at, at + colon),
-        end: Span::new(row, at + name_end, at + name_end),
-    })
+    let named = Named::new(name, row, at + colon + 1);
+    Some(Definition::literal(
+        named,
+        value,
+        Span::new(row, at, at + colon),
+    ))
 }
 /// Continue an expression inside delimiters or after an unfinished operator.
 /// An outdented declaration/prose line remains a separate document item, even
@@ -891,17 +901,8 @@ fn bare_calculation(line: &str, row: usize, start: usize) -> Option<Definition> 
     if !after[gap..].starts_with(":=") {
         return None;
     }
-    let expr_start = start + len + gap + 2;
-    Some(Definition {
-        named: Named {
-            name: name.into(),
-            span: Span::new(row, start, start + len),
-        },
-        source: line[expr_start..].trim().into(),
-        expression: true,
-        value_span: Span::new(row, expr_start, line.len()),
-        end: Span::new(row, line.len(), line.len()),
-    })
+    let named = Named::new(name, row, start);
+    Some(Definition::calculated(named, line, start + len + gap + 2))
 }
 pub(crate) fn skip_code(line: &str, start: usize) -> usize {
     let count = line[start..].bytes().take_while(|c| *c == b'`').count();
@@ -917,10 +918,7 @@ pub(crate) fn trailing_name(line: &str, row: usize) -> Option<Named> {
     let text = line[..limit].trim_end();
     let at = text.rfind(" :")? + 2;
     let name = &text[at..];
-    identifier(name).then(|| Named {
-        name: name.into(),
-        span: Span::new(row, at, at + name.len()),
-    })
+    identifier(name).then(|| Named::new(name, row, at))
 }
 
 /// End byte of a raw resource at a prose boundary. Uses no filesystem/network IO.

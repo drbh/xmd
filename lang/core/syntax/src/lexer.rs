@@ -5,7 +5,7 @@ use super::{BinaryOp, Builtin, Literal, Operator, UnaryOp, date_value, literal};
 use common::{Code, Currency, is_code};
 use std::collections::BTreeSet;
 use std::sync::Arc;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Lexeme {
     Comment,
     Value(Literal),
@@ -34,6 +34,11 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
         .collect())
 }
 pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
+    let bytes = s.as_bytes();
+    // The end of the run from `i` on whose bytes `keep` accepts.
+    fn run(bytes: &[u8], i: usize, keep: impl Fn(u8) -> bool) -> usize {
+        i + bytes[i..].iter().take_while(|b| keep(**b)).count()
+    }
     let mut out = Vec::new();
     let mut i = 0;
     while i < s.len() {
@@ -52,7 +57,7 @@ pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                 let mut escaped = false;
                 let mut closed = false;
                 while i < s.len() {
-                    let ch = s.as_bytes()[i];
+                    let ch = bytes[i];
                     i += 1;
                     if ch == b'"' && !escaped {
                         closed = true;
@@ -66,31 +71,27 @@ pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                 Lexeme::Value(literal(&s[start..i])?)
             } else if c.is_ascii_digit() && s.get(i..i + 10).and_then(date_value).is_some() {
                 i += 10;
-                if s.as_bytes().get(i) == Some(&b'T') {
-                    while i < s.len()
-                        && !s.as_bytes()[i].is_ascii_whitespace()
-                        && !matches!(s.as_bytes()[i], b')' | b',' | b']' | b'}')
-                    {
-                        i += 1;
-                    }
+                if bytes.get(i) == Some(&b'T') {
+                    i = run(bytes, i, |b| {
+                        !b.is_ascii_whitespace() && !matches!(b, b')' | b',' | b']' | b'}')
+                    });
                 }
                 Lexeme::Value(date_value(&s[start..i]).ok_or(
                     "Invalid date/time (use an explicit offset for ambiguous local times)",
                 )?)
             } else if c.is_ascii_digit()
                 || Currency::from_symbol(c).is_some()
-                || c == '.' && s.as_bytes().get(i + 1).is_some_and(u8::is_ascii_digit)
+                || c == '.' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit)
             {
                 i += c.len_utf8();
                 while i < s.len()
-                    && (s.as_bytes()[i].is_ascii_digit()
-                        || s.as_bytes()[i] == b'.'
-                        || s.as_bytes()[i] == b','
-                            && s.as_bytes().get(i + 1).is_some_and(u8::is_ascii_digit))
+                    && (bytes[i].is_ascii_digit()
+                        || bytes[i] == b'.'
+                        || bytes[i] == b',' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit))
                 {
                     i += 1;
                 }
-                if s.as_bytes()
+                if bytes
                     .get(i)
                     .is_some_and(|c| matches!(c, b's' | b'm' | b'h' | b'd' | b'w' | b'%'))
                 {
@@ -118,12 +119,7 @@ pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                 }
                 Lexeme::Value(v)
             } else if c.is_ascii_alphabetic() || c == '_' {
-                i += 1;
-                while i < s.len()
-                    && (s.as_bytes()[i].is_ascii_alphanumeric() || s.as_bytes()[i] == b'_')
-                {
-                    i += 1;
-                }
+                i = run(bytes, i + 1, |b| b.is_ascii_alphanumeric() || b == b'_');
                 Lexeme::Name(s[start..i].into())
             } else {
                 i += 1;
@@ -138,7 +134,7 @@ pub fn lex_with_comments(s: &str) -> Result<Vec<Token>, String> {
                     '}' => Lexeme::CloseRecord,
                     ':' => Lexeme::Colon,
                     '+' | '-' | '*' | '/' | '!' | '=' | '<' | '>' | '&' | '|' => {
-                        if s.as_bytes().get(i).is_some_and(|b| {
+                        if bytes.get(i).is_some_and(|b| {
                             *b == b'='
                                 || c == '=' && *b == b'>'
                                 || *b == c as u8 && matches!(c, '&' | '|')
@@ -198,29 +194,34 @@ pub enum Expr {
     Apply(Box<Expr>, Vec<Expr>),
 }
 impl Expr {
-    /// Visits this node and every descendant, depth first.
-    pub fn walk(&self, visit: &mut impl FnMut(&Expr)) {
-        visit(self);
+    /// Calls `visit` on each operand of this node, past any span, in source
+    /// order: a lambda's defaults before its body.
+    fn for_each_child<'a>(&'a self, mut visit: impl FnMut(&'a Expr)) {
         match self.bare() {
-            Self::Unary(_, e) | Self::Property(e, _) => e.walk(visit),
+            Self::Unary(_, e) | Self::Property(e, _) => visit(e),
             Self::Lambda(_, defaults, body) => {
-                defaults.iter().for_each(|e| e.walk(visit));
-                body.walk(visit);
+                defaults.iter().for_each(&mut visit);
+                visit(body);
             }
             Self::Binary(_, a, b) => {
-                a.walk(visit);
-                b.walk(visit);
+                visit(a);
+                visit(b);
             }
             Self::Call(_, args) | Self::Builtin(_, args) | Self::List(args) => {
-                args.iter().for_each(|e| e.walk(visit))
+                args.iter().for_each(visit)
             }
-            Self::Record(fields) => fields.iter().for_each(|(_, e)| e.walk(visit)),
+            Self::Record(fields) => fields.iter().for_each(|(_, e)| visit(e)),
             Self::Apply(f, args) => {
-                f.walk(visit);
-                args.iter().for_each(|e| e.walk(visit));
+                visit(f);
+                args.iter().for_each(visit);
             }
             _ => (),
         }
+    }
+    /// Visits this node and every descendant, depth first.
+    pub fn walk(&self, visit: &mut impl FnMut(&Expr)) {
+        visit(self);
+        self.for_each_child(|e| e.walk(visit));
     }
     /// Whether this node reads a lambda parameter, whose properties are the
     /// caller's, not a note's.
@@ -235,8 +236,6 @@ impl Expr {
             match expr {
                 Expr::Spanned(start, _, e) => visit(e, bound, *start, out),
                 Expr::Name(name) if !bound.contains(name) => out.push((name.clone(), start)),
-                // A parameter is bound by construction.
-                Expr::Param { .. } => (),
                 Expr::Lambda(params, defaults, body) => {
                     // A default sees the parameters before its own.
                     let first = params.len() - defaults.len();
@@ -249,36 +248,15 @@ impl Expr {
                     bound.extend(params.clone());
                     visit(body, &bound, start, out);
                 }
-                Expr::Unary(_, e) | Expr::Property(e, _) => visit(e, bound, start, out),
-                Expr::Binary(_, a, b) => {
-                    visit(a, bound, start, out);
-                    visit(b, bound, start, out);
-                }
-                Expr::Call(name, items) => {
-                    if !bound.contains(name) {
+                // A parameter is bound by construction, and has no operands.
+                _ => {
+                    if let Expr::Call(name, _) = expr
+                        && !bound.contains(name)
+                    {
                         out.push((name.clone(), start));
                     }
-                    for e in items {
-                        visit(e, bound, start, out);
-                    }
+                    expr.for_each_child(|e| visit(e, bound, start, out));
                 }
-                Expr::Builtin(_, items) | Expr::List(items) => {
-                    for e in items {
-                        visit(e, bound, start, out);
-                    }
-                }
-                Expr::Record(fields) => {
-                    for (_, e) in fields {
-                        visit(e, bound, start, out);
-                    }
-                }
-                Expr::Apply(f, args) => {
-                    visit(f, bound, start, out);
-                    for e in args {
-                        visit(e, bound, start, out);
-                    }
-                }
-                _ => (),
             }
         }
         let mut names = Vec::new();
@@ -392,29 +370,57 @@ impl Parser {
             if depth > 64 {
                 return Err("Expression depth exceeds 64 levels".into());
             }
-            match node {
-                Expr::Spanned(_, _, e) => pending.push((e, depth)),
-                Expr::Unary(_, e) | Expr::Property(e, _) => pending.push((e, depth + 1)),
-                Expr::Lambda(_, defaults, e) => {
-                    pending.push((e, depth + 1));
-                    pending.extend(defaults.iter().map(|e| (e, depth + 1)));
-                }
-                Expr::Binary(_, a, b) => {
-                    pending.push((a, depth + 1));
-                    pending.push((b, depth + 1));
-                }
-                Expr::List(items) | Expr::Call(_, items) | Expr::Builtin(_, items) => {
-                    pending.extend(items.iter().map(|e| (e, depth + 1)))
-                }
-                Expr::Record(fields) => pending.extend(fields.iter().map(|(_, e)| (e, depth + 1))),
-                Expr::Apply(f, args) => {
-                    pending.push((f, depth + 1));
-                    pending.extend(args.iter().map(|e| (e, depth + 1)));
-                }
-                _ => (),
-            }
+            node.for_each_child(|e| pending.push((e, depth + 1)));
         }
         Ok(expr)
+    }
+    fn peek(&self) -> Option<&Lexeme> {
+        self.tokens.get(self.at).map(|t| &t.kind)
+    }
+    /// Steps past the next token when it is `kind`.
+    fn eat(&mut self, kind: &Lexeme) -> bool {
+        let found = self.peek() == Some(kind);
+        self.at += usize::from(found);
+        found
+    }
+    /// Steps past the next token, which has to be `kind`.
+    fn expect(&mut self, kind: &Lexeme, error: &str) -> Result<(), String> {
+        if self.eat(kind) {
+            Ok(())
+        } else {
+            Err(error.into())
+        }
+    }
+    fn close(&mut self) -> Result<(), String> {
+        self.expect(&Lexeme::Right, "Expected ')'")
+    }
+    /// Comma-separated items up to `close`, not past it, a trailing comma
+    /// allowed. Each item is read knowing the ones before it.
+    fn separated<T>(
+        &mut self,
+        close: &Lexeme,
+        mut item: impl FnMut(&mut Self, &[T]) -> Result<T, String>,
+    ) -> Result<Vec<T>, String> {
+        let mut items = Vec::new();
+        while self.peek() != Some(close) {
+            items.push(item(self, &items)?);
+            if !self.eat(&Lexeme::Comma) {
+                break;
+            }
+        }
+        Ok(items)
+    }
+    /// Runs `parse` with `parameters` as the innermost lambda's, then puts
+    /// the enclosing ones back.
+    fn scoped<T>(
+        &mut self,
+        parameters: Vec<String>,
+        parse: impl FnOnce(&mut Self) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let enclosing = std::mem::replace(&mut self.parameters, parameters);
+        let parsed = parse(self);
+        self.parameters = enclosing;
+        parsed
     }
     fn expression(&mut self, min: u8) -> Result<Expr, String> {
         self.depth += 1;
@@ -422,173 +428,79 @@ impl Parser {
             return Err("Expression nesting exceeds 64 levels".into());
         }
         let start = self.tokens.get(self.at).map(|t| t.start).unwrap_or(0);
-        let token = self
-            .tokens
-            .get(self.at)
-            .ok_or("Expected an expression")?
-            .kind
-            .clone();
+        let token = self.peek().ok_or("Expected an expression")?.clone();
         self.at += 1;
         let mut lhs = match token {
             Lexeme::Value(v) => Expr::Value(v),
             Lexeme::OpenList => Expr::List(self.arguments(false)?),
-            Lexeme::OpenRecord => {
-                let mut fields = Vec::new();
-                while !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::CloseRecord)
-                ) {
-                    let key = match self.tokens.get(self.at).map(|t| &t.kind) {
-                        Some(Lexeme::Name(key)) | Some(Lexeme::Value(Literal::Text(key))) => {
-                            key.clone()
-                        }
-                        _ => return Err("Expected a record field name".into()),
-                    };
-                    if fields.iter().any(|(k, _)| k == &key) {
-                        return Err(format!("Duplicate field '{key}'"));
-                    }
-                    self.at += 1;
-                    let value = if matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Colon)
-                    ) {
-                        self.at += 1;
-                        self.expression(0)?
-                    } else if identifier(&key) {
-                        let token = &self.tokens[self.at - 1];
-                        Expr::Spanned(token.start, token.end, Box::new(self.name(key.clone())))
-                    } else {
-                        return Err("Expected ':'".into());
-                    };
-                    fields.push((key, value));
-                    if !matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Comma)
-                    ) {
-                        break;
-                    }
-                    self.at += 1;
-                }
-                if !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::CloseRecord)
-                ) {
-                    return Err("Expected '}'".into());
-                }
-                self.at += 1;
-                Expr::Record(fields)
-            }
+            Lexeme::OpenRecord => Expr::Record(self.fields(
+                "Expected a record field name",
+                |p, key, (start, end), value| {
+                    value.unwrap_or_else(|| Expr::Spanned(start, end, Box::new(p.name(key.into()))))
+                },
+            )?),
             Lexeme::Name(n) if n == "fn" => {
-                if !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::Left)
-                ) {
-                    return Err("Expected fn(parameters) => expression".into());
-                }
-                self.at += 1;
-                let mut params = Vec::new();
-                let mut defaults = Vec::new();
-                while !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::Right)
-                ) {
-                    let Some(Token {
-                        kind: Lexeme::Name(name),
-                        ..
-                    }) = self.tokens.get(self.at)
-                    else {
+                self.expect(&Lexeme::Left, "Expected fn(parameters) => expression")?;
+                let params = self.separated(&Lexeme::Right, |p, before: &[(String, _)]| {
+                    let Some(Lexeme::Name(name)) = p.peek() else {
                         return Err("Expected a parameter name".into());
                     };
-                    if params.contains(name)
+                    let name = name.clone();
+                    if before.iter().any(|(param, _)| *param == name)
                         || matches!(name.as_str(), "true" | "false" | "null" | "fn")
-                        || is_code(name)
+                        || is_code(&name)
                     {
                         return Err(format!("Invalid or duplicate parameter '{name}'"));
                     }
-                    params.push(name.clone());
-                    self.at += 1;
+                    p.at += 1;
                     // `name = default`: this and every later parameter may be
                     // left out of a call, which then evaluates the default
                     // with the parameters before it bound.
-                    if matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Op(Operator::Unsupported("=")))
-                    ) {
-                        self.at += 1;
-                        let before = params[..params.len() - 1].to_vec();
-                        let enclosing = std::mem::replace(&mut self.parameters, before);
-                        let default = self.expression(0);
-                        self.parameters = enclosing;
-                        defaults.push(default?);
-                    } else if !defaults.is_empty() {
-                        return Err(format!(
+                    if p.eat(&Lexeme::Op(Operator::Unsupported("="))) {
+                        let before = before.iter().map(|(param, _)| param.clone()).collect();
+                        let default = p.scoped(before, |p| p.expression(0))?;
+                        Ok((name, Some(default)))
+                    } else if before.iter().any(|(_, default)| default.is_some()) {
+                        Err(format!(
                             "Parameter '{name}' needs a default: it follows one that has one"
-                        ));
+                        ))
+                    } else {
+                        Ok((name, None))
                     }
-                    if !matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Comma)
-                    ) {
-                        break;
-                    }
-                    self.at += 1;
-                }
+                })?;
                 self.close()?;
-                if !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::Op(Operator::Arrow))
-                ) {
-                    return Err("Expected '=>'".into());
-                }
-                self.at += 1;
-                let enclosing = std::mem::replace(&mut self.parameters, params.clone());
-                let body = self.expression(0);
-                self.parameters = enclosing;
-                Expr::Lambda(params, defaults, Arc::new(body?))
+                self.expect(&Lexeme::Op(Operator::Arrow), "Expected '=>'")?;
+                let (params, defaults): (Vec<_>, Vec<_>) = params.into_iter().unzip();
+                let body = self.scoped(params.clone(), |p| p.expression(0))?;
+                Expr::Lambda(
+                    params,
+                    defaults.into_iter().flatten().collect(),
+                    Arc::new(body),
+                )
             }
-            Lexeme::Name(n)
-                if n == "let"
-                    && matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Left)
-                    ) =>
-            {
+            Lexeme::Name(n) if n == "let" && self.peek() == Some(&Lexeme::Left) => {
                 self.at += 1;
                 self.let_form(start)?
             }
-            Lexeme::Name(n) => {
-                if matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::Left)
-                ) {
-                    self.at += 1;
-                    let mut args = Vec::new();
-                    if !matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Right)
-                    ) {
-                        loop {
-                            args.push(self.expression(0)?);
-                            if !matches!(
-                                self.tokens.get(self.at).map(|t| &t.kind),
-                                Some(Lexeme::Comma)
-                            ) {
-                                break;
-                            }
-                            self.at += 1;
+            Lexeme::Name(n) if self.eat(&Lexeme::Left) => {
+                let mut args = Vec::new();
+                if self.peek() != Some(&Lexeme::Right) {
+                    loop {
+                        args.push(self.expression(0)?);
+                        if !self.eat(&Lexeme::Comma) {
+                            break;
                         }
                     }
-                    self.close()?;
-                    // The callee's spelling is decided once, here: a built-in
-                    // never has to be recognized again while a note evaluates.
-                    match n.parse::<Builtin>() {
-                        Ok(builtin) => Expr::Builtin(builtin, args),
-                        Err(()) => Expr::Call(n, args),
-                    }
-                } else {
-                    self.name(n)
+                }
+                self.close()?;
+                // The callee's spelling is decided once, here: a built-in
+                // never has to be recognized again while a note evaluates.
+                match n.parse::<Builtin>() {
+                    Ok(builtin) => Expr::Builtin(builtin, args),
+                    Err(()) => Expr::Call(n, args),
                 }
             }
+            Lexeme::Name(n) => self.name(n),
             Lexeme::Left => {
                 let v = self.expression(0)?;
                 self.close()?;
@@ -601,16 +513,15 @@ impl Parser {
                 }
                 Expr::Unary(op.unary().unwrap(), Box::new(operand))
             }
-            Lexeme::Dot => self.row_function()?,
+            Lexeme::Dot => {
+                let body = self.scoped(vec![ROW.into()], Self::row_body)?;
+                Expr::Lambda(vec![ROW.into()], vec![], Arc::new(body))
+            }
             _ => return Err("Expected a value, name, or function".into()),
         };
         lhs = Expr::Spanned(start, self.tokens[self.at - 1].end, Box::new(lhs));
         loop {
-            if matches!(
-                self.tokens.get(self.at).map(|t| &t.kind),
-                Some(Lexeme::Left)
-            ) {
-                self.at += 1;
+            if self.eat(&Lexeme::Left) {
                 let args = self.arguments(true)?;
                 lhs = Expr::Spanned(
                     start,
@@ -619,10 +530,10 @@ impl Parser {
                 );
                 continue;
             }
-            if matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Dot)) {
-                self.at += 1;
+            if self.eat(&Lexeme::Dot) {
                 let Some(Token {
                     kind: Lexeme::Name(n),
+                    end,
                     ..
                 }) = self.tokens.get(self.at)
                 else {
@@ -630,20 +541,16 @@ impl Parser {
                 };
                 lhs = Expr::Spanned(
                     start,
-                    self.tokens[self.at].end,
+                    *end,
                     Box::new(Expr::Property(Box::new(lhs), n.clone())),
                 );
                 self.at += 1;
                 continue;
             }
-            let Some(Token {
-                kind: Lexeme::Op(op),
-                ..
-            }) = self.tokens.get(self.at)
-            else {
+            let Some(&Lexeme::Op(op)) = self.peek() else {
                 break;
             };
-            if *op == Operator::Pipe {
+            if op == Operator::Pipe {
                 if PIPE_PRECEDENCE < min {
                     break;
                 }
@@ -714,21 +621,15 @@ impl Parser {
         };
         Ok(Expr::Spanned(start, callee.bounds().1, Box::new(piped)))
     }
-    /// After a leading `.`: `.a.b` is `fn(x) => x.a.b`, and `.{a, b: .c}` is
-    /// `fn(x) => {a: x.a, b: x.c}`. The parameter cannot be written in source,
-    /// so it never shadows a name.
-    fn row_function(&mut self) -> Result<Expr, String> {
-        let enclosing = std::mem::replace(&mut self.parameters, vec![ROW.into()]);
-        let body = self.row_body();
-        self.parameters = enclosing;
-        Ok(Expr::Lambda(vec![ROW.into()], vec![], Arc::new(body?)))
-    }
+    /// After a leading `.`, with the row as the only parameter: `.a.b` is
+    /// `fn(x) => x.a.b`, and `.{a, b: .c}` is `fn(x) => {a: x.a, b: x.c}`.
+    /// The parameter cannot be written in source, so it never shadows a name.
     fn row_body(&mut self) -> Result<Expr, String> {
         let row = || Expr::Param {
             name: ROW.into(),
             index: 0,
         };
-        match self.tokens.get(self.at).map(|t| &t.kind) {
+        match self.peek() {
             Some(Lexeme::Name(_)) => {
                 let mut path = row();
                 loop {
@@ -746,73 +647,72 @@ impl Parser {
                         Box::new(Expr::Property(Box::new(path), field.clone())),
                     );
                     self.at += 1;
-                    if !matches!(self.tokens.get(self.at).map(|t| &t.kind), Some(Lexeme::Dot)) {
+                    if !self.eat(&Lexeme::Dot) {
                         return Ok(path);
                     }
-                    self.at += 1;
                 }
             }
             Some(Lexeme::OpenRecord) => {
                 self.at += 1;
-                let mut fields: Vec<(String, Expr)> = Vec::new();
-                while !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::CloseRecord)
-                ) {
-                    let token = &self.tokens.get(self.at).ok_or("Expected '}'")?;
-                    let (key, start, end) = match &token.kind {
-                        Lexeme::Name(key) | Lexeme::Value(Literal::Text(key)) => {
-                            (key.clone(), token.start, token.end)
+                Ok(Expr::Record(self.fields(
+                    "Expected '}'",
+                    |_, key, (start, end), value| {
+                        match value {
+                            // A function of the row, `.c` or `fn(r) => …`, is applied
+                            // to it; anything else is the field's value as written.
+                            Some(value) => match value.bare() {
+                                Expr::Lambda(params, _, _) if params.len() == 1 => {
+                                    let (s, e) = value.bounds();
+                                    Expr::Spanned(
+                                        s,
+                                        e,
+                                        Box::new(Expr::Apply(Box::new(value), vec![row()])),
+                                    )
+                                }
+                                _ => value,
+                            },
+                            None => Expr::Spanned(
+                                start,
+                                end,
+                                Box::new(Expr::Property(Box::new(row()), key.into())),
+                            ),
                         }
-                        _ => return Err("Expected a record field name".into()),
-                    };
-                    if fields.iter().any(|(k, _)| *k == key) {
-                        return Err(format!("Duplicate field '{key}'"));
-                    }
-                    self.at += 1;
-                    let value = if matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Colon)
-                    ) {
-                        self.at += 1;
-                        // A function of the row, `.c` or `fn(r) => …`, is applied
-                        // to it; anything else is the field's value as written.
-                        let value = self.expression(0)?;
-                        if matches!(value.bare(), Expr::Lambda(params, _, _) if params.len() == 1) {
-                            let (s, e) = value.bounds();
-                            Expr::Spanned(s, e, Box::new(Expr::Apply(Box::new(value), vec![row()])))
-                        } else {
-                            value
-                        }
-                    } else if identifier(&key) {
-                        Expr::Spanned(
-                            start,
-                            end,
-                            Box::new(Expr::Property(Box::new(row()), key.clone())),
-                        )
-                    } else {
-                        return Err("Expected ':'".into());
-                    };
-                    fields.push((key, value));
-                    if !matches!(
-                        self.tokens.get(self.at).map(|t| &t.kind),
-                        Some(Lexeme::Comma)
-                    ) {
-                        break;
-                    }
-                    self.at += 1;
-                }
-                if !matches!(
-                    self.tokens.get(self.at).map(|t| &t.kind),
-                    Some(Lexeme::CloseRecord)
-                ) {
-                    return Err("Expected '}'".into());
-                }
-                self.at += 1;
-                Ok(Expr::Record(fields))
+                    },
+                )?))
             }
             _ => Err("Expected a field name or {…} after '.'".into()),
         }
+    }
+    /// A record's fields after its `{`, through its `}`: `key: value`, or a
+    /// bare identifier `key` as shorthand, which `field` is handed with no
+    /// value. `eof` is the error for text that ends inside it.
+    fn fields(
+        &mut self,
+        eof: &str,
+        field: impl Fn(&Self, &str, (usize, usize), Option<Expr>) -> Expr,
+    ) -> Result<Vec<(String, Expr)>, String> {
+        let fields = self.separated(&Lexeme::CloseRecord, |p, before: &[(String, Expr)]| {
+            let token = p.tokens.get(p.at).ok_or(eof)?;
+            let (Lexeme::Name(key) | Lexeme::Value(Literal::Text(key))) = &token.kind else {
+                return Err("Expected a record field name".into());
+            };
+            let (key, bounds) = (key.clone(), (token.start, token.end));
+            if before.iter().any(|(k, _)| *k == key) {
+                return Err(format!("Duplicate field '{key}'"));
+            }
+            p.at += 1;
+            let value = if p.eat(&Lexeme::Colon) {
+                Some(p.expression(0)?)
+            } else if identifier(&key) {
+                None
+            } else {
+                return Err("Expected ':'".into());
+            };
+            let value = field(p, &key, bounds, value);
+            Ok((key, value))
+        })?;
+        self.expect(&Lexeme::CloseRecord, "Expected '}'")?;
+        Ok(fields)
     }
     /// A bare name: an uppercase code is a literal, and a name that spells a
     /// parameter of the enclosing lambda is resolved to its slot.
@@ -831,36 +731,17 @@ impl Parser {
     /// that, so evaluation and capture work as they do for any function.
     fn let_form(&mut self, start: usize) -> Result<Expr, String> {
         const SHAPE: &str = "let expects {name: value, …} and a body";
-        if !matches!(
-            self.tokens.get(self.at).map(|t| &t.kind),
-            Some(Lexeme::OpenRecord)
-        ) {
-            return Err(SHAPE.into());
-        }
-        self.at += 1;
-        let enclosing = self.parameters.clone();
-        let parsed = self.let_bindings();
-        let bindings = match parsed {
-            Ok(bindings) => bindings,
-            Err(error) => {
-                self.parameters = enclosing;
-                return Err(error);
+        self.expect(&Lexeme::OpenRecord, SHAPE)?;
+        let (bindings, body) = self.scoped(self.parameters.clone(), |p| {
+            let bindings = p.let_bindings()?;
+            if !p.eat(&Lexeme::Comma) {
+                return Err(SHAPE.into());
             }
-        };
-        let body = if matches!(
-            self.tokens.get(self.at).map(|t| &t.kind),
-            Some(Lexeme::Comma)
-        ) {
-            self.at += 1;
             if let Some((name, _)) = bindings.last() {
-                self.parameters = vec![name.clone()];
+                p.parameters = vec![name.clone()];
             }
-            self.expression(0)
-        } else {
-            Err(SHAPE.into())
-        };
-        self.parameters = enclosing;
-        let body = body?;
+            Ok((bindings, p.expression(0)?))
+        })?;
         self.close()?;
         let end = self.tokens[self.at - 1].end;
         Ok(bindings
@@ -880,85 +761,37 @@ impl Parser {
     /// The `{name: value, …}` of a `let`, after its `{`. Each value is parsed
     /// with the previous name as the innermost parameter, as its lambda has it.
     fn let_bindings(&mut self) -> Result<Vec<(String, Expr)>, String> {
-        let mut bindings: Vec<(String, Expr)> = Vec::new();
-        while !matches!(
-            self.tokens.get(self.at).map(|t| &t.kind),
-            Some(Lexeme::CloseRecord)
-        ) {
-            let Some(Token {
-                kind: Lexeme::Name(name),
-                ..
-            }) = self.tokens.get(self.at)
-            else {
+        let bindings = self.separated(&Lexeme::CloseRecord, |p, before: &[(String, Expr)]| {
+            let Some(Lexeme::Name(name)) = p.peek() else {
                 return Err("Expected a name to bind".into());
             };
             let name = name.clone();
-            if bindings.iter().any(|(bound, _)| *bound == name)
+            if before.iter().any(|(bound, _)| *bound == name)
                 || matches!(name.as_str(), "true" | "false" | "null" | "fn" | "let")
                 || is_code(&name)
             {
                 return Err(format!("Invalid or duplicate name '{name}' in let"));
             }
-            self.at += 1;
-            if !matches!(
-                self.tokens.get(self.at).map(|t| &t.kind),
-                Some(Lexeme::Colon)
-            ) {
+            p.at += 1;
+            if !p.eat(&Lexeme::Colon) {
                 return Err(format!("Expected ':' after '{name}' in let"));
             }
-            self.at += 1;
-            if let Some((previous, _)) = bindings.last() {
-                self.parameters = vec![previous.clone()];
+            if let Some((previous, _)) = before.last() {
+                p.parameters = vec![previous.clone()];
             }
-            let value = self.expression(0)?;
-            bindings.push((name, value));
-            if !matches!(
-                self.tokens.get(self.at).map(|t| &t.kind),
-                Some(Lexeme::Comma)
-            ) {
-                break;
-            }
-            self.at += 1;
-        }
-        if !matches!(
-            self.tokens.get(self.at).map(|t| &t.kind),
-            Some(Lexeme::CloseRecord)
-        ) {
-            return Err("Expected '}'".into());
-        }
-        self.at += 1;
+            Ok((name, p.expression(0)?))
+        })?;
+        self.expect(&Lexeme::CloseRecord, "Expected '}'")?;
         Ok(bindings)
     }
-    fn close(&mut self) -> Result<(), String> {
-        if !matches!(
-            self.tokens.get(self.at).map(|t| &t.kind),
-            Some(Lexeme::Right)
-        ) {
-            return Err("Expected ')'".into());
-        }
-        self.at += 1;
-        Ok(())
-    }
     fn arguments(&mut self, parentheses: bool) -> Result<Vec<Expr>, String> {
-        let closed = |token: Option<&Token>| {
-            matches!(token.map(|t| &t.kind), Some(Lexeme::Right) if parentheses)
-                || matches!(token.map(|t| &t.kind), Some(Lexeme::CloseList) if !parentheses)
+        let close = if parentheses {
+            Lexeme::Right
+        } else {
+            Lexeme::CloseList
         };
-        let mut args = Vec::new();
-        while !closed(self.tokens.get(self.at)) {
-            args.push(self.expression(0)?);
-            if !matches!(
-                self.tokens.get(self.at).map(|t| &t.kind),
-                Some(Lexeme::Comma)
-            ) {
-                break;
-            }
-            self.at += 1;
-        }
-        if !closed(self.tokens.get(self.at)) {
-            return Err("Unclosed arguments or list".into());
-        }
-        self.at += 1;
+        let args = self.separated(&close, |p, _| p.expression(0))?;
+        self.expect(&close, "Unclosed arguments or list")?;
         Ok(args)
     }
 }

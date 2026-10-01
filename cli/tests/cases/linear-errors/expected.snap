@@ -111,11 +111,11 @@ exit 1
 | constraint | expression |
 | ---------- | ---------- |
 | c          | q <= 1     |
-[strict] := maximize(r + 3)
+[strict] := maximize(r + 3) = 3
 | constraint | expression |
 | ---------- | ---------- |
 | c          | r <= 1     |
-[unnamed] := maximize(w + 4)
+[unnamed] := maximize(w + 4) = {"objective": 4}
 | constraint | expression |
 | ---------- | ---------- |
 | c          | w <= 1     |
@@ -127,16 +127,12 @@ exit 1
 | constraint | expression           |
 | ---------- | -------------------- |
 | c          | sum(gear, take) <= 1 |
+Unknowns read the value: [w].
 --- stderr
-<root>/records.x.md:7:2: error: Expected a record
-<root>/records.x.md:7:22: error: Expected a record
-<root>/records.x.md:11:2: error: Missing field 'objective'
-<root>/records.x.md:11:24: error: Missing field 'objective'
-<root>/records.x.md:15:2: error: Linear comparison must be <=, >=, or ==
-<root>/records.x.md:15:22: error: Linear comparison must be <=, >=, or ==
-<root>/records.x.md:19:2: error: Missing field 'value'
-<root>/records.x.md:19:23: error: Missing field 'value'
-<root>/records.x.md:23:2: error: Missing field 'gear.take[1]'
-<root>/records.x.md:27:2: error: Expected a record
-xmd: 10 error(s) while rendering
+<root>/records.x.md:7:22: error: plans.define must return a record with the definition's value
+<root>/records.x.md:11:24: error: plans.define must return the definition's value under `value`
+<root>/records.x.md:15:22: error: Unknown field 'r' on Number
+<root>/records.x.md:19:23: error: Unknown field 'w'
+<root>/records.x.md:23:22: error: STAND-IN REFUSES
+xmd: 5 error(s) while rendering
 

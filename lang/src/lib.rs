@@ -25,9 +25,7 @@ pub mod syntax {
 /// in a bundled .xmd module, declared once and called through typed functions.
 /// `book/reference/contract.md` is generated from it.
 pub mod stdlib {
-    pub use ::eval::stdlib::{
-        CONTRACT, Caller, Contract, Presented, Role, Snapshot, modules, shown,
-    };
+    pub use ::eval::stdlib::{CONTRACT, Contract, Presented, Role, modules, shown};
     pub mod format {
         pub use ::eval::stdlib::format::{age, glyph, series};
     }
@@ -43,16 +41,13 @@ pub mod stdlib {
     pub mod resource {
         pub use ::eval::stdlib::resource::{control, hover, label};
     }
-    pub mod plan {
-        pub use ::eval::stdlib::plan::{hover, seek_summary, write_edits, write_title};
-    }
 }
 
 /// A parsed note: its definitions, attributes, imports and highlighting.
 pub mod model {
     pub use ::model::{
         Attribute, Document, ExprImports, HighlightKind, LineIndex, Named, TaskState, apply_edits,
-        byte_at, end_position, expression_regions, identifier, note_path, utf16,
+        byte_at, expression_regions, identifier, note_path, utf16,
     };
     /// What the recognizers modules declare found in a note.
     pub mod recognized {
@@ -79,9 +74,7 @@ pub mod eval {
             Builtin, Expr, Lexeme, Literal, Operator, Parser, Tier, is_builtin_function, lex,
             lex_with_comments, relative_date, sum_scope_at,
         };
-        pub use ::values::{
-            HostObject, Measured, Value, claimed, literal, next_occurrence, value_json,
-        };
+        pub use ::values::{HostObject, Measured, Value, claimed, literal, value_json};
     }
     pub mod link_features {
         pub use ::modules::{LinkFeatures, RefreshFormat, RefreshRequest};
@@ -97,9 +90,11 @@ pub mod eval {
         };
         pub use ::values::{Collection, from_json, json, record};
     }
-    pub mod plans {
-        pub use ::eval::PlanValue;
-        pub use ::model::plans::{goal, regions, seek_body};
+    /// The definitions that call a form a module declares, and what its
+    /// module says about one besides its value.
+    pub mod forms {
+        pub use ::eval::About;
+        pub use ::model::forms::{Reading, call};
     }
     pub mod resources {
         pub use ::eval::{Resource, ResourcePresenting};

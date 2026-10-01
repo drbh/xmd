@@ -1,11 +1,10 @@
-//! Definition, row and decision records: values, plans and tables.
+//! Definition and row records: values and tables.
 use super::value as q;
 use super::{
     Collection, RecordKind,
     record::{Base, LazyField, Record},
 };
 use lang::eval::engine::{Engine, Value};
-use lang::eval::plans::PlanValue;
 use lang::eval::tables::TableValue;
 use lang::eval::{RecordFields, record};
 use lang::eval::{Symbol, SymbolKind, Workspace};
@@ -13,8 +12,10 @@ use lang::model::Document;
 use std::{collections::BTreeMap, path::Path};
 
 record! {
-    /// Values, plans and tables are one definition each. Their value, type and
-    /// display (and a plan's solution) stay null until the record is evaluated.
+    /// Values and tables are one definition each. Their value, type and
+    /// display (and what a form's module records of it) stay null until the
+    /// record is evaluated. `form` names the form a definition calls, when
+    /// it calls one a module declares.
     #[derive(Clone, Debug)]
     pub(super) struct DefinitionRecord {
         ..base: Base,
@@ -24,11 +25,12 @@ record! {
         type_name: Value => "type",
         display: Value,
         computed: bool,
+        form: Value,
     }
 }
 
 record! {
-    /// Where a table or a plan's constraint table lies, how its lines split
+    /// Where a table, or the table a form takes, lies, how its lines split
     /// into cells and what parsing found wrong with how it is written: what
     /// a module that lays one out reads.
     #[derive(Clone, Debug)]
@@ -60,64 +62,8 @@ record! {
     }
 }
 
-record! {
-    #[derive(Clone, Debug)]
-    pub(super) struct DecisionRecord {
-        ..base: Base,
-        value: Value,
-        plan: String,
-    }
-}
-
-pub(super) fn decisions(
-    ws: &Workspace,
-    engine: &mut Engine<'_>,
-    only: Option<&Path>,
-    records: &mut Vec<Record>,
-) {
-    for (plan_path, doc) in ws.documents() {
-        for plan in &doc.plans {
-            let symbol = Symbol::new(plan_path.clone(), SymbolKind::Definition(plan.definition));
-            let Ok(value) = engine.symbol(&symbol) else {
-                continue;
-            };
-            let Some(value) = value.downcast::<PlanValue>() else {
-                continue;
-            };
-            for (row, value) in &value.rows {
-                if only.is_some_and(|path| path != row.table.path) {
-                    continue;
-                }
-                let Some(cell) = lang::eval::tables::table(ws, &row.table)
-                    .and_then(|t| t.rows.get(row.row))
-                    .and_then(|r| r.get(row.column))
-                else {
-                    continue;
-                };
-                let name = &doc.definitions[plan.definition].named.name;
-                let table_doc = &ws.documents()[&row.table.path];
-                let base = Base::at(
-                    ws,
-                    &row.table.path,
-                    RecordKind::Decision,
-                    name,
-                    table_doc.line_span(cell.span.line),
-                    Some(cell.span.range(table_doc).end),
-                );
-                records.push(Record::typed(
-                    &row.table.path,
-                    DecisionRecord {
-                        base,
-                        value: q::query_value(value.clone()),
-                        plan: name.clone(),
-                    },
-                ));
-            }
-        }
-    }
-}
-
-/// Values, plans, tables and table rows all project one definition.
+/// Values, the definitions forms lay out, tables and table rows all project
+/// one definition.
 pub(super) fn definitions(
     ws: &Workspace,
     path: &Path,
@@ -127,10 +73,10 @@ pub(super) fn definitions(
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
     for (i, def) in doc.definitions.iter().enumerate() {
-        let plan = doc.plan_of(i).is_some();
         let table = doc.table_of(i);
-        if (*collection == Collection::Plans && !plan)
-            || (matches!(collection, Collection::Tables | Collection::Rows) && table.is_none())
+        let form = doc.form_of(i);
+        if (matches!(collection, Collection::Tables | Collection::Rows) && table.is_none())
+            || (*collection == Collection::Forms && form.is_none())
         {
             continue;
         }
@@ -174,13 +120,7 @@ pub(super) fn definitions(
         let base = Base::at(
             ws,
             path,
-            if plan {
-                RecordKind::Plan
-            } else if table.is_some() {
-                RecordKind::Table
-            } else {
-                RecordKind::Value
-            },
+            table.map_or(RecordKind::Value, |_| RecordKind::Table),
             &def.named.name,
             doc.line_span(def.named.span.line),
             Some(def.end.range(doc).end),
@@ -195,14 +135,14 @@ pub(super) fn definitions(
                 type_name: Value::Null,
                 display: Value::Null,
                 computed: def.expression,
+                form: form.map_or(Value::Null, |f| q::text(&f.form.name)),
             },
         );
-        if plan {
-            r.fields
-                .insert(LazyField::Solution.as_str().into(), Value::Null);
-        }
-        let grid = match (doc.plan_of(i), table) {
-            (Some(p), _) => Some((p.header, p.end_line, &p.problems)),
+        // What the form's module records of it, read when it is evaluated.
+        r.fields
+            .insert(LazyField::Record.as_str().into(), Value::Null);
+        let grid = match (form.filter(|f| f.has_table()), table) {
+            (Some(f), _) => Some((f.header, f.end_line, &f.problems)),
             (None, Some(t)) => Some((t.header, t.end_line, &t.problems)),
             (None, None) => None,
         };
@@ -222,6 +162,12 @@ pub(super) fn definitions(
                     problems: problems.iter().map(|p| p.message.clone()).collect(),
                 }
                 .fields(),
+            );
+        } else if form.is_some() {
+            // A form's definition has a table's fields, null when its form
+            // takes no table, so a module reads every form's alike.
+            r.fields.extend(
+                ["header", "end_line", "grid", "problems"].map(|key| (key.to_owned(), Value::Null)),
             );
         }
         r.deferred = Some(symbol);

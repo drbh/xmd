@@ -12,7 +12,8 @@ pub enum SymbolKind {
     Task(usize),
     Section(usize),
     Column(usize, usize),
-    /// A decision variable: (plan index, index into that plan's names).
+    /// A name a form solves for, which its note leaves undefined: (form
+    /// index, index into that form's names).
     Variable(usize, usize),
 }
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -112,10 +113,19 @@ impl Workspace {
     pub fn modules(&self) -> &Arc<modules::ModuleRegistry> {
         &self.modules
     }
-    /// Parse a note's text knowing the attributes the active modules
-    /// declare, as [`insert_document`](Self::insert_document) would read it.
+    /// Parse a note's text knowing the attributes and forms the active
+    /// modules declare, as [`insert_document`](Self::insert_document) would
+    /// read it.
     pub fn parse(&self, text: String) -> Document {
-        Document::parse_with(text, &self.recognizers.attributes)
+        Document::parse_with(text, &self.recognizers.attributes, &self.recognizers.forms)
+    }
+    /// The form named `name` an active module declares.
+    pub(crate) fn form(&self, name: &str) -> Option<&model::forms::Form> {
+        self.recognizers
+            .forms
+            .iter()
+            .find(|form| form.name == name)
+            .map(Arc::as_ref)
     }
     /// Add or replace a note, returning the one it replaces.
     pub fn insert_document(&mut self, path: PathBuf, mut document: Document) -> Option<Document> {
@@ -166,8 +176,11 @@ impl Workspace {
         if recognizers == self.recognizers {
             return;
         }
-        for document in self.documents.values_mut() {
+        for (path, document) in self.documents.iter_mut() {
             document.recognize(&recognizers);
+            // A note read with other forms solves for other names.
+            self.names
+                .insert(path.clone(), Arc::new(names_in(path, document)));
         }
         self.recognizers = recognizers;
     }
@@ -197,56 +210,42 @@ impl Workspace {
             .map_or(&[][..], Vec::as_slice)
     }
     pub fn symbols(&self) -> Vec<Symbol> {
-        let mut symbols: Vec<_> = self
+        let declared = self
             .documents
             .iter()
-            .flat_map(|(path, doc)| Self::declared_in(path, doc))
-            .collect();
-        for (path, doc) in &self.documents {
-            symbols.extend(self.variables_in(path, doc));
-        }
-        symbols
+            .flat_map(|(path, doc)| declared_in(doc).map(move |kind| Symbol::new(path, kind)));
+        let variables = self
+            .documents
+            .iter()
+            .flat_map(|(path, doc)| variables_in(doc).map(move |kind| Symbol::new(path, kind)));
+        declared.chain(variables).collect()
     }
     /// The symbols of the note at `path`, in the order [`Self::symbols`]
     /// lists them.
     pub fn symbols_in(&self, path: &Path) -> Vec<Symbol> {
-        let Some(doc) = self.documents.get(path) else {
-            return vec![];
-        };
-        Self::declared_in(path, doc)
-            .chain(self.variables_in(path, doc))
-            .collect()
+        self.documents.get(path).map_or(vec![], |doc| {
+            declared_in(doc)
+                .chain(variables_in(doc))
+                .map(|kind| Symbol::new(path, kind))
+                .collect()
+        })
     }
-    fn variables_in<'a>(
-        &'a self,
-        path: &'a Path,
-        doc: &'a Document,
-    ) -> impl Iterator<Item = Symbol> + 'a {
-        variables_in(doc).map(move |kind| Symbol::new(path, kind))
-    }
-    /// Names a plan reads that its own note does not declare: decision variables.
-    pub fn plan_variables<'a>(
+    /// The names a form solves for that its own note does not declare,
+    /// with their index in its names: none unless its unknowns are free.
+    pub fn claimed<'a>(
         &self,
         path: &Path,
-        plan: &'a model::plans::Plan,
+        formed: &'a model::forms::Formed,
     ) -> Vec<(usize, &'a Named)> {
-        match self.documents.get(path) {
-            Some(doc) => undeclared(doc, plan),
-            None => plan.names.iter().enumerate().collect(),
-        }
-    }
-    /// Symbols written down by hand: definitions, named tasks and sections.
-    fn declared_in<'a>(path: &'a Path, doc: &'a Document) -> impl Iterator<Item = Symbol> + 'a {
-        declared_in(doc).map(move |kind| Symbol::new(path, kind))
+        self.documents
+            .get(path)
+            .map_or(vec![], |doc| undeclared(doc, formed))
     }
     pub fn named<'a>(&'a self, symbol: &Symbol) -> &'a Named {
         named(&self.documents[&symbol.path], &symbol.kind)
     }
     pub fn root(&self) -> &Path {
-        self.roots
-            .first()
-            .map(PathBuf::as_path)
-            .unwrap_or(Path::new("."))
+        self.roots.first().map_or(Path::new("."), PathBuf::as_path)
     }
 }
 
@@ -264,23 +263,29 @@ fn names_in(path: &Path, doc: &Document) -> Names {
     names
 }
 fn variables_in(doc: &Document) -> impl Iterator<Item = SymbolKind> + '_ {
-    doc.plans.iter().enumerate().flat_map(move |(p, plan)| {
-        undeclared(doc, plan)
+    doc.forms.iter().enumerate().flat_map(move |(f, formed)| {
+        undeclared(doc, formed)
             .into_iter()
-            .map(move |(i, _)| SymbolKind::Variable(p, i))
+            .map(move |(i, _)| SymbolKind::Variable(f, i))
     })
 }
-/// The names `plan` reads that `doc` does not declare.
-fn undeclared<'a>(doc: &Document, plan: &'a model::plans::Plan) -> Vec<(usize, &'a Named)> {
+/// The names `formed` reads that `doc` does not declare, when the form
+/// solves for those.
+fn undeclared<'a>(doc: &Document, formed: &'a model::forms::Formed) -> Vec<(usize, &'a Named)> {
+    if formed.form.unknowns != model::forms::Unknowns::Free {
+        return vec![];
+    }
     let declared: std::collections::BTreeSet<&str> = declared_in(doc)
         .map(|kind| named(doc, &kind).name.as_str())
         .collect();
-    plan.names
+    formed
+        .names
         .iter()
         .enumerate()
         .filter(|(_, n)| !declared.contains(n.name.as_str()))
         .collect()
 }
+/// Symbols written down by hand: definitions, named tasks and sections.
 fn declared_in(doc: &Document) -> impl Iterator<Item = SymbolKind> + '_ {
     doc.definitions
         .iter()
@@ -307,6 +312,6 @@ fn named<'a>(doc: &'a Document, kind: &SymbolKind) -> &'a Named {
         SymbolKind::Task(i) => doc.tasks[i].named.as_ref().unwrap(),
         SymbolKind::Section(i) => doc.sections[i].named.as_ref().unwrap(),
         SymbolKind::Column(table, column) => &doc.tables[table].columns[column],
-        SymbolKind::Variable(plan, name) => &doc.plans[plan].names[name],
+        SymbolKind::Variable(form, name) => &doc.forms[form].names[name],
     }
 }

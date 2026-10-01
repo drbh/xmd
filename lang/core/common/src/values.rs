@@ -10,26 +10,25 @@ impl Currency {
         (bytes.len() == 3 && bytes.iter().all(u8::is_ascii_uppercase))
             .then(|| Currency([bytes[0], bytes[1], bytes[2]]))
     }
+    /// The currencies a note can write with a symbol, `$3` for USD.
+    const SYMBOLS: [(char, Currency); 4] = [
+        ('$', Self::USD),
+        ('€', Currency(*b"EUR")),
+        ('£', Currency(*b"GBP")),
+        ('¥', Currency(*b"JPY")),
+    ];
     pub fn from_symbol(symbol: char) -> Option<Self> {
-        Some(match symbol {
-            '$' => Self::USD,
-            '€' => Currency(*b"EUR"),
-            '£' => Currency(*b"GBP"),
-            '¥' => Currency(*b"JPY"),
-            _ => return None,
-        })
+        Self::SYMBOLS
+            .iter()
+            .find_map(|&(s, currency)| (s == symbol).then_some(currency))
     }
     pub fn as_str(&self) -> &str {
         std::str::from_utf8(&self.0).unwrap_or("???")
     }
     pub fn symbol(&self) -> Option<char> {
-        match self.as_str() {
-            "USD" => Some('$'),
-            "EUR" => Some('€'),
-            "GBP" => Some('£'),
-            "JPY" => Some('¥'),
-            _ => None,
-        }
+        Self::SYMBOLS
+            .iter()
+            .find_map(|&(s, currency)| (currency == *self).then_some(s))
     }
 }
 impl std::fmt::Display for Currency {
@@ -117,7 +116,6 @@ pub enum ValueType {
     Resource,
     Checklist,
     Table,
-    Plan,
     /// No value has this kind: it types a table's yes/no decision column.
     Choice,
     /// A record a module gave a kind of its own with `tagged`. The kind is

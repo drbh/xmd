@@ -100,19 +100,13 @@ fn by_row(
 ) -> BTreeMap<usize, BTreeMap<url::Url, Resource>> {
     // The names each row reads, in the order they are resolved.
     let mut names: BTreeMap<usize, Vec<&str>> = BTreeMap::new();
-    for definition in &doc.definitions {
-        let row = definition.named.span.line;
-        if rows.has(row) {
-            names.entry(row).or_default().push(&definition.named.name);
-        }
-    }
-    for reference in &doc.references {
-        if rows.has(reference.span.line) {
-            names
-                .entry(reference.span.line)
-                .or_default()
-                .push(&reference.name);
-        }
+    let defined = doc
+        .definitions
+        .iter()
+        .map(|d| (d.named.span.line, &d.named.name));
+    let read = doc.references.iter().map(|r| (r.span.line, &r.name));
+    for (row, name) in defined.chain(read).filter(|(row, _)| rows.has(*row)) {
+        names.entry(row).or_default().push(name);
     }
     let mut found: BTreeMap<usize, BTreeMap<url::Url, Resource>> = BTreeMap::new();
     let mut add = |row: usize, resource: Resource| {

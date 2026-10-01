@@ -419,11 +419,11 @@ exit 0
 -- request textDocument/completion bakery.x.md 8:13
 [
   {
-    "detail": "Money · $94.75",
+    "detail": "Number · 13.75",
     "kind": 10,
-    "label": "objective",
+    "label": "bagel_min",
     "textEdit": {
-      "newText": "objective",
+      "newText": "bagel_min",
       "range": {
         "end": {
           "character": 19,
@@ -442,6 +442,24 @@ exit 0
     "label": "bagels",
     "textEdit": {
       "newText": "bagels",
+      "range": {
+        "end": {
+          "character": 19,
+          "line": 8
+        },
+        "start": {
+          "character": 13,
+          "line": 8
+        }
+      }
+    }
+  },
+  {
+    "detail": "Number · 0",
+    "kind": 10,
+    "label": "doughnut_min",
+    "textEdit": {
+      "newText": "doughnut_min",
       "range": {
         "end": {
           "character": 19,
@@ -509,29 +527,11 @@ exit 0
     }
   },
   {
-    "detail": "Number · 13.75",
+    "detail": "Money · $94.75",
     "kind": 10,
-    "label": "bagel_min",
+    "label": "objective",
     "textEdit": {
-      "newText": "bagel_min",
-      "range": {
-        "end": {
-          "character": 19,
-          "line": 8
-        },
-        "start": {
-          "character": 13,
-          "line": 8
-        }
-      }
-    }
-  },
-  {
-    "detail": "Number · 0",
-    "kind": 10,
-    "label": "doughnut_min",
-    "textEdit": {
-      "newText": "doughnut_min",
+      "newText": "objective",
       "range": {
         "end": {
           "character": 19,

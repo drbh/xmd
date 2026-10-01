@@ -31,9 +31,6 @@ pub(crate) enum DiagnosticCode {
     FileName,
 }
 impl DiagnosticCode {
-    pub(crate) fn as_str(self) -> &'static str {
-        self.into()
-    }
     /// Names a token, so a second error for the containing expression is noise.
     fn names_a_token(self) -> bool {
         matches!(self, Self::UnknownName | Self::AmbiguousName)
@@ -106,15 +103,12 @@ impl Issue {
             }),
             source: Some("xmd".into()),
             message: self.message,
-            code: Some(NumberOrString::String(self.code.as_str().into())),
+            code: Some(NumberOrString::String(<&str>::from(self.code).into())),
             related_information: (!related.is_empty()).then(|| {
                 related
                     .iter()
                     .map(|s| DiagnosticRelatedInformation {
-                        location: Location {
-                            uri: lang::common::uri_from_url(&lang::common::uri(&s.path)),
-                            range: ws.named(s).span.range(&ws.documents()[&s.path]),
-                        },
+                        location: crate::definition(ws, s),
                         message: format!("{} defined here", ws.named(s).name),
                     })
                     .collect()
@@ -132,12 +126,13 @@ fn file_name(doc: &lang::model::Document, path: &Path) -> Option<Issue> {
     let stem = lang::common::note_stem(path)?;
     let lines: Vec<&str> = doc.text.lines().collect();
     // Rows that belong to a definition written as its own line, `name := …`;
-    // a table or plan laid out under a name is note content.
+    // a table, or the table a form takes, laid out under a name is note
+    // content.
     let mut defined = vec![false; lines.len()];
     for (index, d) in doc.definitions.iter().enumerate() {
         let line = lines.get(d.named.span.line).copied().unwrap_or("");
         let own_line = d.expression && d.named.span.start == line.len() - line.trim_start().len();
-        if own_line && doc.table_of(index).is_none() && doc.plan_of(index).is_none() {
+        if own_line && doc.grid_of(index).is_none() {
             let (first, last) = doc.definition_rows(index);
             defined[first..=last.min(lines.len().saturating_sub(1))].fill(true);
         }

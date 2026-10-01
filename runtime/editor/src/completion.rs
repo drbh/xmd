@@ -73,6 +73,43 @@ struct Offered<'a> {
     tier: Tier,
 }
 
+/// The edit a completion makes: `text` in place of the word at the cursor.
+pub(crate) fn replace(replacement: Range, text: String) -> Option<CompletionTextEdit> {
+    Some(CompletionTextEdit::Edit(TextEdit::new(replacement, text)))
+}
+
+/// How a call completes at the cursor: its parenthesis may already be typed,
+/// and a client that takes snippets gets its arguments as a placeholder.
+struct Call {
+    replacement: Range,
+    snippets: bool,
+    open: bool,
+}
+impl Call {
+    /// `name(args)`, inserted as `name(plain)` where there is no snippet to
+    /// fill in, or as `name` alone after a typed parenthesis.
+    fn item(&self, name: &str, args: &str, plain: &str) -> CompletionItem {
+        let text = if self.open {
+            name.into()
+        } else if self.snippets && !args.is_empty() {
+            format!("{name}(${{1:{args}}})$0")
+        } else {
+            format!("{name}({plain})")
+        };
+        CompletionItem {
+            label: format!("{name}({args})"),
+            filter_text: Some(name.into()),
+            insert_text_format: Some(if self.snippets && !self.open {
+                InsertTextFormat::SNIPPET
+            } else {
+                InsertTextFormat::PLAIN_TEXT
+            }),
+            text_edit: replace(self.replacement, text),
+            ..Default::default()
+        }
+    }
+}
+
 fn property_names_with_links(
     value: &Value,
     links: lang::eval::link_features::LinkFeatures<'_>,
@@ -131,21 +168,9 @@ pub(crate) fn completions(
         .workspace()
         .modules()
         .of_kind(ModuleKind::Feature)
-        .find_map(|m| crate::modules::completions(m, request, path, position))
+        .find_map(|m| crate::modules::completions(m, request, path, position, replacement))
     {
-        return offered
-            .into_iter()
-            .map(|item| CompletionItem {
-                label: item.label,
-                kind: item.kind,
-                detail: item.detail,
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
-                    replacement,
-                    item.insert,
-                ))),
-                ..Default::default()
-            })
-            .collect();
+        return offered;
     }
     let mut engine = request.engine();
     let mut result = vec![];
@@ -180,10 +205,7 @@ pub(crate) fn completions(
                     "{}_{name}",
                     if symbol.path == path { "0" } else { "1" }
                 )),
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
-                    replacement,
-                    name.clone(),
-                ))),
+                text_edit: replace(replacement, name.clone()),
                 ..Default::default()
             });
         }
@@ -191,6 +213,11 @@ pub(crate) fn completions(
     let prose = line[..byte]
         .rfind('[')
         .is_some_and(|i| !line[i..byte].contains(']'));
+    let call = Call {
+        replacement,
+        snippets,
+        open: line[end..].starts_with('('),
+    };
     // The module-tier built-ins are not names a note has, so they are not
     // offered in one either; a module buffer still sees its own primitives.
     let module = lang::eval::modules::is_module_path(path);
@@ -206,6 +233,14 @@ pub(crate) fn completions(
             tier: Tier::Note,
         })
         .collect();
+    // The forms modules declare are written like built-ins.
+    let forms = doc.forms_declared().iter().map(|f| Offered {
+        name: f.name.clone(),
+        example: &f.example,
+        result: &f.returns,
+        documentation: &f.documentation,
+        tier: Tier::Note,
+    });
     let offered = BUILTINS
         .iter()
         .map(|f| Offered {
@@ -215,6 +250,7 @@ pub(crate) fn completions(
             documentation: f.documentation,
             tier: f.tier,
         })
+        .chain(forms)
         .chain(declared);
     for function in offered {
         if (!module && function.tier == Tier::Module)
@@ -246,33 +282,17 @@ pub(crate) fn completions(
             }
         }
         let name = function.name.trim_start_matches('@');
-        let already_open = line[end..].starts_with('(');
-        let text = if already_open {
-            name.into()
-        } else if snippets && !function.example.is_empty() {
-            format!("{name}(${{1:{}}})$0", function.example)
-        } else {
-            format!("{name}({})", function.example)
-        };
         result.push(CompletionItem {
-            label: format!("{name}({})", function.example),
             kind: Some(if attribute {
                 CompletionItemKind::KEYWORD
             } else {
                 CompletionItemKind::FUNCTION
             }),
-            filter_text: Some(name.into()),
             detail: Some(function.result.into()),
             documentation: Some(Documentation::MarkupContent(markup(
                 function.documentation.into(),
             ))),
-            insert_text_format: Some(if snippets && !already_open {
-                InsertTextFormat::SNIPPET
-            } else {
-                InsertTextFormat::PLAIN_TEXT
-            }),
-            text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, text))),
-            ..Default::default()
+            ..call.item(name, function.example, function.example)
         });
     }
     // The prelude's functions, wherever a call that is no special form's
@@ -285,27 +305,11 @@ pub(crate) fn completions(
                 continue;
             }
             let params = function.params.join(", ");
-            let already_open = line[end..].starts_with('(');
-            let text = if already_open {
-                function.name.clone()
-            } else if snippets && !params.is_empty() {
-                format!("{}(${{1:{params}}})$0", function.name)
-            } else {
-                format!("{}()", function.name)
-            };
             result.push(CompletionItem {
-                label: format!("{}({params})", function.name),
                 kind: Some(CompletionItemKind::FUNCTION),
-                filter_text: Some(function.name.clone()),
                 detail: Some("prelude".into()),
                 documentation: Some(Documentation::MarkupContent(markup(function.documentation))),
-                insert_text_format: Some(if snippets && !already_open {
-                    InsertTextFormat::SNIPPET
-                } else {
-                    InsertTextFormat::PLAIN_TEXT
-                }),
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, text))),
-                ..Default::default()
+                ..call.item(&function.name, &params, "")
             });
         }
     }
@@ -331,7 +335,7 @@ pub(crate) fn completions(
         result.push(CompletionItem {
             label: name.clone(),
             kind: Some(CompletionItemKind::VALUE),
-            text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(replacement, name))),
+            text_edit: replace(replacement, name),
             ..Default::default()
         });
     }
@@ -363,10 +367,7 @@ fn column_completions(
                     "{} · column of {table_name}",
                     table.types[i].map(|t| t.as_str()).unwrap_or("Unknown")
                 )),
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
-                    replacement,
-                    column.name.clone(),
-                ))),
+                text_edit: replace(replacement, column.name.clone()),
                 ..Default::default()
             })
             .collect(),
@@ -415,10 +416,7 @@ fn property_completions(
                 label: name.clone(),
                 kind: Some(CompletionItemKind::PROPERTY),
                 detail: Some(describe::summary(&preview)),
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit::new(
-                    replacement,
-                    name.clone(),
-                ))),
+                text_edit: replace(replacement, name.clone()),
                 ..Default::default()
             });
         }

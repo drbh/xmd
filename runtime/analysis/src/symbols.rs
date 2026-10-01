@@ -129,27 +129,15 @@ pub fn document_symbols(
         let first = definition.named.span.start.min(definition.value_span.start);
         let start = doc.line(row)[..first].rfind('[').unwrap_or(first);
         let table = doc.table_of(i);
-        let plan = doc.plan_of(i);
-        let full_range = if table.is_some() || plan.is_some() {
-            Range::new(
-                Span::new(row, start, start).range(doc).start,
-                line_range(doc, doc.definition_rows(i).1).end,
-            )
+        let formed = doc.form_of(i);
+        let end = if doc.grid_of(i).is_some() {
+            line_range(doc, doc.definition_rows(i).1).end
         } else {
-            Range::new(
-                Span::new(row, start, start).range(doc).start,
-                Span::new(
-                    definition.end.line,
-                    0,
-                    definition
-                        .end
-                        .end
-                        .min(doc.line(definition.end.line).trim_end().len()),
-                )
-                .range(doc)
-                .end,
-            )
+            let last = definition.end;
+            let end = last.end.min(doc.line(last.line).trim_end().len());
+            Span::new(last.line, 0, end).range(doc).end
         };
+        let full_range = Range::new(Span::new(row, start, start).range(doc).start, end);
         entries.push(symbol(
             definition.named.name.clone(),
             detail,
@@ -157,11 +145,13 @@ pub fn document_symbols(
             full_range,
             definition.named.span.range(doc),
         ));
-        if let Some(plan) = plan {
-            let p = doc.plans.iter().position(|p| p.definition == i).unwrap();
-            for (n, named) in ws.plan_variables(path, plan) {
+        // A form's unknowns, and each row its table names, with the rest of
+        // the row as its detail.
+        if let Some(formed) = formed {
+            let f = doc.forms.iter().position(|f| f.definition == i).unwrap();
+            for (n, named) in ws.claimed(path, formed) {
                 let range = named.span.range(doc);
-                let variable = Symbol::new(path, SymbolKind::Variable(p, n));
+                let variable = Symbol::new(path, SymbolKind::Variable(f, n));
                 entries.push(symbol(
                     named.name.clone(),
                     describe::detail(&mut engine, doc, &variable),
@@ -170,11 +160,19 @@ pub fn document_symbols(
                     range,
                 ));
             }
-            for constraint in &plan.constraints {
-                let range = constraint.named.span.range(doc);
+            for (row, cells) in formed.rows.iter().enumerate() {
+                let Some((name, span)) = formed.row_name(row) else {
+                    continue;
+                };
+                let range = span.range(doc);
+                let detail: Vec<&str> = cells
+                    .iter()
+                    .filter(|(_, cell)| cell != span)
+                    .map(|(source, _)| source.as_str())
+                    .collect();
                 entries.push(symbol(
-                    constraint.named.name.clone(),
-                    constraint.source.clone(),
+                    name.clone(),
+                    detail.join(" · "),
                     lsp_types::SymbolKind::FIELD,
                     range,
                     range,
@@ -230,7 +228,7 @@ pub fn document_symbols(
     roots
 }
 
-/// Foldable regions: sections, tables and plans, and what a module's
+/// Foldable regions: sections, tables and the tables forms take, and what a module's
 /// recognizer holds open (`until`).
 pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
     let mut ranges: Vec<(usize, usize, Option<lsp_types::FoldingRangeKind>)> = Vec::new();

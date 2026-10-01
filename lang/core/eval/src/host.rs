@@ -1,6 +1,5 @@
-//! The host objects the evaluator builds — tables and plans — and
-//! what every host value shows once the engine and the link registry can
-//! answer too.
+//! The host objects the evaluator builds — tables — and what every host
+//! value shows once the engine and the link registry can answer too.
 //!
 //! [`HostObject`] is the value layer's contract for reading an object a note
 //! cannot build. The objects that layer defines implement it there; the ones
@@ -9,10 +8,10 @@
 //! one file answers "what can a note see of an evaluator-built object?".
 //! Each forwards to the object's own inherent methods.
 use crate::engine::{Engine, Value, ValueType};
-use crate::{plans::PlanValue, resources::ResourcePresenting, stdlib, tables_impl::TableValue};
+use crate::{resources::ResourcePresenting, stdlib, tables_impl::TableValue};
 use modules::LinkFeatures;
 use std::path::Path;
-use values::{EvalResult, HostObject, ToValue, record};
+use values::HostObject;
 
 /// What a host value shows that needs more than the object itself: a
 /// resource's link fields and presentation, a checklist's progress. Every
@@ -67,33 +66,5 @@ impl HostObject for TableValue {
     }
     fn query(&self) -> Option<Value> {
         Some(Value::list(self.named_rows().map(Value::record).collect()))
-    }
-}
-impl HostObject for PlanValue {
-    fn kind(&self) -> ValueType {
-        ValueType::Plan
-    }
-    fn display(&self) -> String {
-        self.objective.display()
-    }
-    fn property(&self, key: &str) -> EvalResult<Value> {
-        PlanValue::property(self, key)
-    }
-    fn fields(&self) -> Vec<String> {
-        self.property_names()
-    }
-    fn query(&self) -> Option<Value> {
-        Some(record([
-            ("goal", Value::Text(self.goal.keyword().into())),
-            ("objective", self.objective.clone()),
-            (
-                "variables",
-                Value::record(self.variables.iter().cloned().collect()),
-            ),
-            (
-                "constraints",
-                Value::list(self.constraints.iter().map(ToValue::to_value).collect()),
-            ),
-        ]))
     }
 }

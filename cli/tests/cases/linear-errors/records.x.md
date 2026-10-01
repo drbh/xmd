@@ -28,3 +28,4 @@
 | constraint | expression           |
 | ---------- | -------------------- |
 | c          | sum(gear, take) <= 1 |
+Unknowns read the value: [w].

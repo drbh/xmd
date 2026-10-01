@@ -1,7 +1,8 @@
 //! Signature help, over the one table of built-in calls that also feeds
 //! completion, and the prelude's functions, which describe themselves in
-//! their `.xmd` source. The attributes modules declare describe themselves,
-//! and a note knows them ([`Document::declarations`]).
+//! their `.xmd` source. The attributes and forms modules declare describe
+//! themselves, and a note knows them ([`Document::declarations`],
+//! [`Document::forms_declared`]).
 use crate::{hover::markup, locate::inert};
 use lang::eval::Workspace;
 use lang::eval::engine::{Builtin, ValueType};
@@ -142,9 +143,6 @@ signatures! {
         Tagged("kind: Text", "fields: Record", "display: Text", "hover?: Markdown") -> "the kind", "A record a note sees as a kind of its own, named by the module: a capitalized name of letters, digits and underscores that no built-in kind has. It reads its fields, names the kind in type, hovers and errors, shows the display text wherever it is shown, adds the hover to a symbol's hover, and is the plain record in queries and JSON. A record whose origin field is null learns the definition whose whole expression is the call that built it: {document, name, line, text, range, function, arguments}.", "\"Reading\", {celsius: 21}, \"21°C\"";
         Clocked("value: Value", "ticking: Function") -> "Value", "The value, which keeps depending on the clock it read only while ticking(value) is true: once ticking says no, the value no longer moves with the clock it read, so nothing refreshes it.", "state, fn(s) => s.running";
         Sum("items: List or Table", "expression?: row calculation") -> "Number, Money, Ratio, or Duration", "Add compatible quantities from a list, skipping nulls, or a row expression over each table row, keeping units.", "groceries, quantity * price";
-        Maximize("objective: linear expression") -> Plan, "Declare a linear plan over the | constraint | expression | table below; undefined names become decisions.", "3 * bagels + 1.25 * doughnuts";
-        Solve("constraint: expression with <=, >=, or ==") -> "Number, Money, or Duration", "Goal seek: the definition's own name is the unknown, set to the boundary value that makes the constraint hold.", "total >= $500";
-        Minimize("objective: linear expression") -> Plan, "Like maximize, but finds the smallest objective that satisfies every constraint in the table below.", "cost";
         Today() -> Date, "The current local calendar date. Updates at midnight.", "";
         Now() -> DateTime, "The current timestamp. Sampled once per evaluation; live hints refresh every second.", "";
         Date("value: Text, Date, or DateTime") -> "Date or DateTime", "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone.", "\"next Friday\"";
@@ -153,7 +151,7 @@ signatures! {
 
 /// Every built-in, in `Builtin::ALL` order: what signature help and
 /// completion read.
-const fn table() -> [Signature; Builtin::ALL.len()] {
+pub static BUILTINS: &[Signature] = &{
     let mut table = [describe(Builtin::Import); Builtin::ALL.len()];
     let mut i = 0;
     while i < Builtin::ALL.len() {
@@ -161,9 +159,7 @@ const fn table() -> [Signature; Builtin::ALL.len()] {
         i += 1;
     }
     table
-}
-const TABLE: [Signature; Builtin::ALL.len()] = table();
-pub static BUILTINS: &[Signature] = &TABLE;
+};
 
 pub fn signature(
     ws: &Workspace,
@@ -193,6 +189,12 @@ pub fn signature(
             ),
             function.params.iter().map(|p| p.to_string()).collect(),
             function.documentation.to_string(),
+        ),
+        // A form a module declares describes itself.
+        None if let Some(form) = doc.declared_form(name) => (
+            format!("{name}({}) → {}", form.params.join(", "), form.returns),
+            form.params.clone(),
+            form.documentation.clone(),
         ),
         None if ws.prelude_name(path, name) => {
             let function = ws

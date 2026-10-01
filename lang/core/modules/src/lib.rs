@@ -20,6 +20,6 @@ pub use module::{
 // declared as data.
 pub use module::{Effect, HOOK_RECORDS, HOOKS, HookContract, HookRecord, STEPS, StepProtocol};
 // The compiled set of modules, linked and ready to call.
-pub use registry::{ModuleRegistry, PRELUDE};
+pub use registry::ModuleRegistry;
 // The link modules a request consults, and the refresh formats they name.
 pub use link_features::{Cache, LinkFeatures, Metadata, RefreshFormat, RefreshRequest};

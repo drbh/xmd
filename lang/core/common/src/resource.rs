@@ -11,16 +11,10 @@ pub struct Resource {
 }
 impl Resource {
     pub fn parse(s: &str) -> Option<Self> {
-        (s.starts_with("https://")
-            || s.starts_with("http://")
-            || s.starts_with("geo:")
-            || s.starts_with("./")
-            || s.starts_with("../")
-            || s.starts_with("~/")
-            || s.starts_with('/')
-            || s.starts_with("file://")
-            || bare_file_path(s))
-        .then(|| Self {
+        let prefixes = [
+            "https://", "http://", "geo:", "./", "../", "~/", "/", "file://",
+        ];
+        (prefixes.iter().any(|p| s.starts_with(p)) || bare_file_path(s)).then(|| Self {
             target: s.into(),
             origin: None,
         })
@@ -128,57 +122,13 @@ fn bare_file_path(s: &str) -> bool {
     {
         return false;
     }
-    s.contains('/')
-        || matches!(
-            extension.to_ascii_lowercase().as_str(),
-            "md" | "txt"
-                | "pdf"
-                | "rs"
-                | "js"
-                | "mjs"
-                | "cjs"
-                | "jsx"
-                | "ts"
-                | "tsx"
-                | "json"
-                | "jsonc"
-                | "toml"
-                | "yaml"
-                | "yml"
-                | "lock"
-                | "html"
-                | "css"
-                | "scss"
-                | "py"
-                | "go"
-                | "rb"
-                | "sh"
-                | "zsh"
-                | "c"
-                | "h"
-                | "cpp"
-                | "hpp"
-                | "swift"
-                | "java"
-                | "kt"
-                | "sql"
-                | "csv"
-                | "png"
-                | "jpg"
-                | "jpeg"
-                | "gif"
-                | "webp"
-                | "svg"
-                | "mp4"
-                | "mov"
-                | "mp3"
-                | "wav"
-                | "zip"
-                | "tar"
-                | "gz"
-                | "log"
-                | "wasm"
-                | "env"
-                | "ini"
-        )
+    s.contains('/') || KNOWN_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
 }
+
+/// The extensions that make a bare `name.ext`, with no `/`, a file path.
+const KNOWN_EXTENSIONS: &[&str] = &[
+    "md", "txt", "pdf", "rs", "js", "mjs", "cjs", "jsx", "ts", "tsx", "json", "jsonc", "toml",
+    "yaml", "yml", "lock", "html", "css", "scss", "py", "go", "rb", "sh", "zsh", "c", "h", "cpp",
+    "hpp", "swift", "java", "kt", "sql", "csv", "png", "jpg", "jpeg", "gif", "webp", "svg", "mp4",
+    "mov", "mp3", "wav", "zip", "tar", "gz", "log", "wasm", "env", "ini",
+];

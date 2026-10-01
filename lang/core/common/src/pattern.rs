@@ -23,6 +23,12 @@ const CACHED: usize = 128;
 pub struct Pattern {
     regex: regex::Regex,
 }
+/// Two patterns are the same when they were compiled from the same source.
+impl PartialEq for Pattern {
+    fn eq(&self, other: &Self) -> bool {
+        self.source() == other.source()
+    }
+}
 
 /// One match: its byte range, and each named group that took part, in the
 /// order the pattern names them.

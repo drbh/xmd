@@ -152,7 +152,7 @@ impl Term {
 }
 
 /// One recognizer, as its module declared it.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Rule {
     /// The id of the module that declared it.
     pub module: String,
@@ -222,23 +222,6 @@ impl Rule {
             .map(|t| t.term.clone())
     }
 }
-impl PartialEq for Rule {
-    fn eq(&self, other: &Self) -> bool {
-        let source = |p: &Option<Arc<Pattern>>| p.as_ref().map(|p| p.source().to_owned());
-        self.module == other.module
-            && self.name == other.name
-            && self.on == other.on
-            && self.pattern.source() == other.pattern.source()
-            && source(&self.unless) == source(&other.unless)
-            && self.under == other.under
-            && self.until == other.until
-            && self.terms == other.terms
-            && self.tokens == other.tokens
-            && self.links == other.links
-            && self.title == other.title
-            && self.record == other.record
-    }
-}
 
 /// One match of a rule in a note.
 #[derive(Clone, Debug)]
@@ -256,7 +239,7 @@ pub struct Match {
 }
 impl Match {
     /// The group named `name`, when it took part.
-    pub fn group(&self, name: &str) -> Option<&Group> {
+    pub(crate) fn group(&self, name: &str) -> Option<&Group> {
         self.groups.iter().find(|g| g.name == name)
     }
 }

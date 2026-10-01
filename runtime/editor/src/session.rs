@@ -16,11 +16,14 @@
 //! [`WorkspaceSession::workspace`] and [`WorkspaceSession::workspace_mut`], and
 //! every change starts all of it over.
 use crate::{Request, commands::Capabilities, request::Shared};
-use catalog::NoteFiles;
+use catalog::{NoteFiles, Query};
 use chrono::{DateTime, FixedOffset};
 use lang::eval::Workspace;
 use lang::model::Document;
-use lsp_types::{CodeLens, Diagnostic};
+use lsp_types::{
+    CodeLens, Diagnostic, DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier,
+    TextDocumentEdit, TextEdit, WorkspaceEdit,
+};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -162,6 +165,36 @@ impl WorkspaceSession {
     pub fn version(&self, path: &Path) -> Option<i32> {
         self.open.get(path).copied()
     }
+    /// `changes` as one workspace edit, each note at the version it is open at.
+    pub fn edit(
+        &self,
+        changes: impl IntoIterator<Item = (PathBuf, Vec<TextEdit>)>,
+    ) -> WorkspaceEdit {
+        let changes = changes.into_iter().map(|(path, edits)| TextDocumentEdit {
+            text_document: OptionalVersionedTextDocumentIdentifier {
+                uri: lang::common::uri_from_url(&lang::common::uri(&path)),
+                version: self.version(&path),
+            },
+            edits: edits.into_iter().map(OneOf::Left).collect(),
+        });
+        WorkspaceEdit {
+            document_changes: Some(DocumentChanges::Edits(changes.collect())),
+            ..Default::default()
+        }
+    }
+    /// `query` over the workspace at `now`, optionally scoped to one note, as
+    /// a host answers it: the rows, with the open versions they were read at.
+    pub fn query(
+        &self,
+        query: &Query,
+        only: Option<&Path>,
+        now: DateTime<FixedOffset>,
+    ) -> Result<Value, String> {
+        let rows = self.request(now).query(query, only)?.json();
+        Ok(
+            json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":rows,"versions":self.versions_json()}),
+        )
+    }
     /// The open versions as a client sees them, keyed by file URI.
     pub fn versions_json(&self) -> Value {
         Value::Object(
@@ -183,12 +216,10 @@ fn module_path(workspace: &Workspace, path: &Path) -> bool {
 }
 
 /// What one refresh found: the diagnostics a client has not been told about,
-/// whether any code lens changed, and the notes whose labels still move with
-/// the clock, so a host knows whether to keep ticking.
+/// and whether any code lens changed.
 pub struct RefreshReport {
     pub diagnostics: Vec<(Url, i32, Vec<Diagnostic>)>,
     pub lenses_changed: bool,
-    pub live: BTreeSet<PathBuf>,
 }
 
 impl WorkspaceSession {
@@ -223,7 +254,7 @@ impl WorkspaceSession {
             .iter()
             .filter(|(path, _)| request.live_hints(path))
             .map(|(path, _)| (*path).clone())
-            .collect::<BTreeSet<_>>();
+            .collect();
         let mut diagnostics = Vec::new();
         let mut lenses_changed = all;
         for (path, &version) in paths {
@@ -238,11 +269,10 @@ impl WorkspaceSession {
                 lenses_changed = true;
             }
         }
-        self.live = live.clone();
+        self.live = live;
         RefreshReport {
             diagnostics,
             lenses_changed,
-            live,
         }
     }
 }
@@ -250,7 +280,6 @@ impl WorkspaceSession {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use catalog::Query;
     use lsp_types::{Position, Range};
 
     fn at(now: &str) -> DateTime<FixedOffset> {

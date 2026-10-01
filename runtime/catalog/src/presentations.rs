@@ -10,7 +10,6 @@
 use crate::{Records, links};
 use lang::common::Span;
 use lang::eval::engine::Value;
-use lang::eval::plans::PlanValue;
 use lang::eval::resources::{Resource, ResourcePresenting};
 use lang::eval::{RequestContext, Symbol, SymbolKind};
 use lang::stdlib::{self, Presented};
@@ -82,7 +81,7 @@ pub fn presentations(
         let symbol = Symbol::new(path, SymbolKind::Definition(i));
         // A fresh engine, so what it wanted is this definition's alone.
         let mut own = request.engine();
-        let value = own.symbol(&symbol);
+        let _ = own.symbol(&symbol);
         let wanted: Vec<_> = own.wanted().cloned().collect();
         if !wanted.is_empty() {
             failures.check(span, stdlib::format::glyph(&mut own, "refresh"));
@@ -93,22 +92,8 @@ pub fn presentations(
                 failures.check(span, stdlib::format::age(&mut own, elapsed));
             }
         }
-        if let Some(summary) = analysis::seek_summary(ws, &mut own, &symbol, i) {
-            failures.check(span, summary);
-        }
         if let Some(contributions) = own.sum_contributions(path, &definition.source) {
             failures.check(span, stdlib::format::series(&mut own, contributions));
-        }
-        let Ok(value) = value else {
-            continue;
-        };
-        if let Some(plan) = value.downcast::<PlanValue>() {
-            let mut snapshot = stdlib::Snapshot {
-                modules: ws.modules(),
-                now: request.now(),
-            };
-            failures.check(span, stdlib::plan::hover(&mut snapshot, plan.record(ws)));
-            failures.check(span, stdlib::plan::write_title(&mut snapshot));
         }
     }
     for table in &doc.tables {

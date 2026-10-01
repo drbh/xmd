@@ -7,28 +7,21 @@
 use lang::common::{uri, uri_from_url, url_from_uri};
 use lang::eval::{SymbolKind, Workspace};
 use lang::model::identifier;
-use runtime::host::WorkspaceFiles;
+use runtime::host::{WorkspaceFiles, now};
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
 use runtime::services::{
-    Query, RefreshReport, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession,
-    flat_symbols, folding_ranges, hierarchy, occurrences, signature, symbol_at, today_markdown,
-    typing,
+    Query, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, definition,
+    flat_symbols, folding_ranges, hierarchy, highlights, references, rename, semantic_tokens,
+    signature, symbol_at, today_markdown, typing,
 };
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-use tokio::sync::RwLock;
+use std::{path::PathBuf, sync::Arc};
+use tokio::sync::{RwLock, RwLockReadGuard};
 use tower_lsp_server::{
     Client, LanguageServer, LspService, Server,
     jsonrpc::{Error, Result},
     lsp_types::*,
 };
 use url::Url;
-
-use runtime::host::now;
-pub(crate) use runtime::services::semantic_tokens;
 
 struct State {
     session: WorkspaceSession,
@@ -74,15 +67,10 @@ impl Backend {
             only.as_deref(),
             &runtime::host::DiskFiles,
         );
-        let result = state
+        state
             .session
-            .request(now)
-            .query(&compiled, only.as_deref())
-            .map_err(Error::invalid_params)?;
-        let versions = state.session.versions_json();
-        Ok(
-            serde_json::json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":result.json(),"versions":versions}),
-        )
+            .query(&compiled, only.as_deref(), now)
+            .map_err(Error::invalid_params)
     }
     fn new(client: Client) -> Self {
         Self {
@@ -102,25 +90,27 @@ impl Backend {
     }
     /// Re-evaluate every open note and tell the client about all of it.
     async fn notify_changes(&self) {
-        let (report, hint_refresh, lens_refresh) = {
-            let mut state = self.state.write().await;
-            let report = state.session.refresh(now());
-            (report, state.hint_refresh, state.lens_refresh)
-        };
-        self.publish(report, hint_refresh, lens_refresh).await;
+        self.publish(true).await;
     }
     /// A clock tick: only the notes that read the clock, and only what moved.
     async fn tick(&self) {
+        self.publish(false).await;
+    }
+    /// Re-evaluate every open note, or only the live ones, and tell the
+    /// client what it has not been told.
+    async fn publish(&self, all: bool) {
         let (report, hint_refresh, lens_refresh) = {
             let mut state = self.state.write().await;
-            let Some(report) = state.session.refresh_live(now()) else {
-                return;
+            let report = if all {
+                state.session.refresh(now())
+            } else {
+                let Some(report) = state.session.refresh_live(now()) else {
+                    return;
+                };
+                report
             };
             (report, state.hint_refresh, state.lens_refresh)
         };
-        self.publish(report, hint_refresh, lens_refresh).await;
-    }
-    async fn publish(&self, report: RefreshReport, hint_refresh: bool, lens_refresh: bool) {
         for (uri, version, diagnostics) in report.diagnostics {
             self.client
                 .publish_diagnostics(uri_from_url(&uri), diagnostics, Some(version))
@@ -142,6 +132,11 @@ impl Backend {
                 return;
             }
         }
+        self.notify_changes().await;
+    }
+    /// Reload the notes on disk and tell the client what changed.
+    async fn reload(&self) {
+        self.rescan().await;
         self.notify_changes().await;
     }
     /// Reload the notes on disk, keeping the open buffers on top of them.
@@ -168,25 +163,33 @@ impl Backend {
             }
         }
     }
-}
-fn file(uri: &Uri) -> Result<PathBuf> {
-    url_from_uri(uri)
-        .to_file_path()
-        .map_err(|_| Error::invalid_params("XMD needs a local file URI"))
-}
-fn edit_for(state: &State, path: &Path, edits: Vec<TextEdit>) -> WorkspaceEdit {
-    versioned_edit(path, edits, state.session.version(path))
-}
-fn versioned_edit(path: &Path, edits: Vec<TextEdit>, version: Option<i32>) -> WorkspaceEdit {
-    WorkspaceEdit {
-        document_changes: Some(DocumentChanges::Edits(vec![TextDocumentEdit {
-            text_document: OptionalVersionedTextDocumentIdentifier {
-                uri: uri_from_url(&uri(path)),
-                version,
-            },
-            edits: edits.into_iter().map(OneOf::Left).collect(),
-        }])),
-        ..Default::default()
+    /// The note a request names, and the state to answer it from.
+    async fn note(&self, uri: &Uri) -> Result<(PathBuf, RwLockReadGuard<'_, State>)> {
+        let path = url_from_uri(uri)
+            .to_file_path()
+            .map_err(|_| Error::invalid_params("XMD needs a local file URI"))?;
+        Ok((path, self.state.read().await))
+    }
+    /// Fold what a refresh of `snapshot` fetched into the session with
+    /// `adopt`, unless its modules changed meanwhile, then save the cache.
+    async fn adopt(
+        &self,
+        snapshot: &Workspace,
+        adopt: impl FnOnce(&mut Workspace),
+    ) -> Result<std::result::Result<(), String>> {
+        let (root, cache) = {
+            let mut state = self.state.write().await;
+            if !Arc::ptr_eq(snapshot.modules(), state.session.workspace().modules()) {
+                return Err(Error::invalid_params(
+                    "Modules changed during refresh; refresh again",
+                ));
+            }
+            adopt(state.session.workspace_mut());
+            let workspace = state.session.workspace();
+            (workspace.root().to_path_buf(), workspace.cache().clone())
+        };
+        let saved = tokio::task::spawn_blocking(move || runtime::host::save_cache(&root, &cache));
+        Ok(saved.await.unwrap_or_else(|e| Err(e.to_string())))
     }
 }
 
@@ -226,16 +229,11 @@ impl LanguageServer for Backend {
             // Nothing is open before initialization, so the workspace starts
             // over on the client's roots.
             *state.session.workspace_mut() = Workspace::new(roots);
-            state.hierarchical_symbols = params
-                .capabilities
-                .text_document
-                .as_ref()
+            let text_document = params.capabilities.text_document.as_ref();
+            state.hierarchical_symbols = text_document
                 .and_then(|t| t.document_symbol.as_ref())
                 .is_some_and(|s| s.hierarchical_document_symbol_support == Some(true));
-            state.snippets = params
-                .capabilities
-                .text_document
-                .as_ref()
+            state.snippets = text_document
                 .and_then(|t| t.completion.as_ref())
                 .and_then(|c| c.completion_item.as_ref())
                 .is_some_and(|c| c.snippet_support == Some(true));
@@ -255,76 +253,40 @@ impl LanguageServer for Backend {
                 name: "XMD".into(),
                 version: Some(env!("CARGO_PKG_VERSION").into()),
             }),
-            capabilities: ServerCapabilities {
-                experimental: Some(
-                    serde_json::json!({"xmdQuery":{"method":"xmd/query","schemaVersion":1}}),
-                ),
-                text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::FULL,
-                )),
-                inlay_hint_provider: Some(OneOf::Left(true)),
-                hover_provider: Some(HoverProviderCapability::Simple(true)),
-                definition_provider: Some(OneOf::Left(true)),
-                references_provider: Some(OneOf::Left(true)),
-                rename_provider: Some(OneOf::Right(RenameOptions {
-                    prepare_provider: Some(true),
-                    work_done_progress_options: Default::default(),
-                })),
-                document_highlight_provider: Some(OneOf::Left(true)),
-                code_lens_provider: Some(CodeLensOptions {
-                    resolve_provider: Some(false),
-                }),
-                signature_help_provider: Some(SignatureHelpOptions {
-                    trigger_characters: Some(vec!["(".into(), ",".into()]),
-                    retrigger_characters: Some(vec![")".into()]),
-                    ..Default::default()
-                }),
-                completion_provider: Some(CompletionOptions {
-                    trigger_characters: Some(vec!["[".into(), "@".into(), ".".into()]),
-                    ..Default::default()
-                }),
-                document_link_provider: Some(DocumentLinkOptions {
-                    resolve_provider: Some(false),
-                    work_done_progress_options: Default::default(),
-                }),
-                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
-                execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: Action::commands().map(Into::into).collect(),
-                    ..Default::default()
-                }),
-                workspace_symbol_provider: Some(OneOf::Left(true)),
-                document_symbol_provider: Some(OneOf::Left(true)),
-                document_formatting_provider: Some(OneOf::Left(true)),
-                document_on_type_formatting_provider: Some(DocumentOnTypeFormattingOptions {
-                    first_trigger_character: typing::TRIGGERS[0].into(),
-                    more_trigger_character: Some(
-                        typing::TRIGGERS[1..]
-                            .iter()
-                            .map(|c| c.to_string())
-                            .collect(),
-                    ),
-                }),
-                call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
-                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
-                semantic_tokens_provider: Some(
-                    SemanticTokensOptions {
-                        legend: SemanticTokensLegend {
-                            token_types: TOKEN_TYPES
-                                .iter()
-                                .map(|t| SemanticTokenType::new(t))
-                                .collect(),
-                            token_modifiers: TOKEN_MODIFIERS
-                                .iter()
-                                .map(|m| SemanticTokenModifier::new(m))
-                                .collect(),
-                        },
-                        full: Some(SemanticTokensFullOptions::Bool(true)),
-                        ..Default::default()
-                    }
-                    .into(),
-                ),
-                ..Default::default()
-            },
+            // What the server offers, as the protocol spells it.
+            capabilities: serde_json::from_value(serde_json::json!({
+                "experimental": {"xmdQuery": {"method": "xmd/query", "schemaVersion": 1}},
+                "textDocumentSync": TextDocumentSyncKind::FULL,
+                "inlayHintProvider": true,
+                "hoverProvider": true,
+                "definitionProvider": true,
+                "referencesProvider": true,
+                "renameProvider": {"prepareProvider": true},
+                "documentHighlightProvider": true,
+                "codeLensProvider": {"resolveProvider": false},
+                "signatureHelpProvider": {
+                    "triggerCharacters": ["(", ","],
+                    "retriggerCharacters": [")"],
+                },
+                "completionProvider": {"triggerCharacters": ["[", "@", "."]},
+                "documentLinkProvider": {"resolveProvider": false},
+                "codeActionProvider": true,
+                "executeCommandProvider": {"commands": Action::commands().collect::<Vec<_>>()},
+                "workspaceSymbolProvider": true,
+                "documentSymbolProvider": true,
+                "documentFormattingProvider": true,
+                "documentOnTypeFormattingProvider": {
+                    "firstTriggerCharacter": typing::TRIGGERS[0],
+                    "moreTriggerCharacter": typing::TRIGGERS[1..],
+                },
+                "callHierarchyProvider": true,
+                "foldingRangeProvider": true,
+                "semanticTokensProvider": {
+                    "legend": {"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS},
+                    "full": true,
+                },
+            }))
+            .expect("the server's capabilities are well formed"),
         })
     }
     async fn initialized(&self, _: InitializedParams) {
@@ -376,23 +338,17 @@ impl LanguageServer for Backend {
         Ok(())
     }
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.update(
-            params.text_document.uri,
-            params.text_document.version,
-            params.text_document.text,
-        )
-        .await;
+        let document = params.text_document;
+        self.update(document.uri, document.version, document.text)
+            .await;
     }
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         if let Some(change) = params.content_changes.into_iter().last()
             && change.range.is_none()
         {
-            self.update(
-                params.text_document.uri,
-                params.text_document.version,
-                change.text,
-            )
-            .await;
+            let document = params.text_document;
+            self.update(document.uri, document.version, change.text)
+                .await;
         }
     }
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
@@ -406,16 +362,13 @@ impl LanguageServer for Backend {
         }
     }
     async fn did_save(&self, _: DidSaveTextDocumentParams) {
-        self.rescan().await;
-        self.notify_changes().await;
+        self.reload().await;
     }
     async fn did_change_watched_files(&self, _: DidChangeWatchedFilesParams) {
-        self.rescan().await;
-        self.notify_changes().await;
+        self.reload().await;
     }
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         Ok(state
             .session
             .workspace()
@@ -433,8 +386,7 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         let library = state.session.workspace().prelude_names(&path);
         Ok(state.session.document_for_highlighting(&path).map(|doc| {
             SemanticTokensResult::Tokens(SemanticTokens {
@@ -445,49 +397,26 @@ impl LanguageServer for Backend {
     }
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let at = params.text_document_position_params;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        let request = state.session.request(now());
-        Ok(request.hover(&path, at.position))
+        let (path, state) = self.note(&at.text_document.uri).await?;
+        Ok(state.session.request(now()).hover(&path, at.position))
     }
     async fn goto_definition(
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
         let at = params.text_document_position_params;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        Ok(
-            symbol_at(state.session.workspace(), &path, at.position).map(|(s, _)| {
-                GotoDefinitionResponse::Scalar(Location {
-                    uri: uri_from_url(&uri(&s.path)),
-                    range: state
-                        .session
-                        .workspace()
-                        .named(&s)
-                        .span
-                        .range(&state.session.workspace().documents()[&s.path]),
-                })
-            }),
-        )
+        let (path, state) = self.note(&at.text_document.uri).await?;
+        let ws = state.session.workspace();
+        Ok(symbol_at(ws, &path, at.position)
+            .map(|(symbol, _)| GotoDefinitionResponse::Scalar(definition(ws, &symbol))))
     }
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let at = params.text_document_position;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        let ws = &state.session.workspace();
-        let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
-            return Ok(None);
-        };
-        let result = occurrences(ws, &symbol)
-            .into_iter()
-            .skip(usize::from(!params.context.include_declaration))
-            .map(|(p, span)| Location {
-                uri: uri_from_url(&uri(&p)),
-                range: span.range(&ws.documents()[&p]),
-            })
-            .collect();
-        Ok(Some(result))
+        let (path, state) = self.note(&at.text_document.uri).await?;
+        let ws = state.session.workspace();
+        let skip = usize::from(!params.context.include_declaration);
+        Ok(symbol_at(ws, &path, at.position)
+            .map(|(symbol, _)| references(ws, &symbol).into_iter().skip(skip).collect()))
     }
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         if !identifier(&params.new_name) {
@@ -496,40 +425,17 @@ impl LanguageServer for Backend {
             ));
         }
         let at = params.text_document_position;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        let ws = &state.session.workspace();
+        let (path, state) = self.note(&at.text_document.uri).await?;
+        let ws = state.session.workspace();
         let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
             return Ok(None);
         };
-        lang::eval::tables::validate_rename(ws, &symbol, &params.new_name)
-            .map_err(Error::invalid_params)?;
-        let mut changes: BTreeMap<PathBuf, Vec<TextEdit>> = BTreeMap::new();
-        for (p, span) in occurrences(ws, &symbol) {
-            changes.entry(p.clone()).or_default().push(TextEdit::new(
-                span.range(&ws.documents()[&p]),
-                params.new_name.clone(),
-            ));
-        }
-        let edits = changes
-            .into_iter()
-            .map(|(p, edits)| TextDocumentEdit {
-                text_document: OptionalVersionedTextDocumentIdentifier {
-                    uri: uri_from_url(&uri(&p)),
-                    version: state.session.version(&p),
-                },
-                edits: edits.into_iter().map(OneOf::Left).collect(),
-            })
-            .collect();
-        Ok(Some(WorkspaceEdit {
-            document_changes: Some(DocumentChanges::Edits(edits)),
-            ..Default::default()
-        }))
+        let changes = rename(ws, &symbol, &params.new_name).map_err(Error::invalid_params)?;
+        Ok(Some(state.session.edit(changes)))
     }
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let at = params.text_document_position;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&at.text_document.uri).await?;
         let request = state.session.request(now());
         Ok(Some(CompletionResponse::Array(request.completions(
             &path,
@@ -539,13 +445,11 @@ impl LanguageServer for Backend {
     }
     async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
         let at = params.text_document_position_params;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&at.text_document.uri).await?;
         Ok(signature(state.session.workspace(), &path, at.position))
     }
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         let request = state.session.request(now());
         Ok(Some(request.code_lenses(&path, Capabilities::NATIVE)))
     }
@@ -554,55 +458,32 @@ impl LanguageServer for Backend {
         params: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
         let at = params.text_document_position_params;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        let ws = &state.session.workspace();
-        let Some((symbol, _)) = symbol_at(ws, &path, at.position) else {
-            return Ok(None);
-        };
-        let doc = &ws.documents()[&path];
-        let result = occurrences(ws, &symbol)
-            .into_iter()
-            .enumerate()
-            .filter(|(_, (p, _))| *p == path)
-            .map(|(i, (_, span))| DocumentHighlight {
-                range: span.range(doc),
-                kind: Some(if i == 0 {
-                    DocumentHighlightKind::WRITE
-                } else {
-                    DocumentHighlightKind::READ
-                }),
-            })
-            .collect();
-        Ok(Some(result))
+        let (path, state) = self.note(&at.text_document.uri).await?;
+        let ws = state.session.workspace();
+        Ok(symbol_at(ws, &path, at.position).map(|(symbol, _)| highlights(ws, &path, &symbol)))
     }
     async fn prepare_rename(
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
-        Ok(
-            symbol_at(state.session.workspace(), &path, params.position).map(|(s, span)| {
-                PrepareRenameResponse::RangeWithPlaceholder {
-                    range: span.range(&state.session.workspace().documents()[&path]),
-                    placeholder: state.session.workspace().named(&s).name.clone(),
-                }
-            }),
-        )
+        let (path, state) = self.note(&params.text_document.uri).await?;
+        let ws = state.session.workspace();
+        Ok(symbol_at(ws, &path, params.position).map(|(symbol, span)| {
+            PrepareRenameResponse::RangeWithPlaceholder {
+                range: span.range(&ws.documents()[&path]),
+                placeholder: ws.named(&symbol).name.clone(),
+            }
+        }))
     }
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         if !state.session.workspace().documents().contains_key(&path) {
             return Ok(None);
         }
-        let request = state.session.request(now());
-        Ok(Some(request.document_links(&path)))
+        Ok(Some(state.session.request(now()).document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         if !state.session.workspace().documents().contains_key(&path) {
             return Ok(None);
         }
@@ -618,7 +499,7 @@ impl LanguageServer for Backend {
                     edit: item
                         .disabled
                         .is_none()
-                        .then(|| edit_for(&state, &path, item.edits)),
+                        .then(|| state.session.edit([(path.clone(), item.edits)])),
                     disabled: item.disabled.map(|reason| CodeActionDisabled { reason }),
                     ..Default::default()
                 }),
@@ -645,21 +526,22 @@ impl LanguageServer for Backend {
             Action::decode(&params.command, &params.arguments).map_err(Error::invalid_params)?;
         // Reload closed notes while preserving open buffers before validation.
         self.rescan().await;
-        let (prepared, version) = {
+        let (prepared, edit) = {
             let state = self.state.read().await;
             let request = state.session.request(now());
             let prepared = request
                 .prepare(&action, Capabilities::NATIVE)
                 .map_err(Error::invalid_params)?;
-            let version = match &prepared {
-                PreparedAction::Edit { path, .. } => state.session.version(path),
-                _ => None,
+            let edit = match &prepared {
+                PreparedAction::Edit { path, edits } => {
+                    state.session.edit([(path.clone(), edits.clone())])
+                }
+                _ => WorkspaceEdit::default(),
             };
-            (prepared, version)
+            (prepared, edit)
         };
         match prepared {
-            PreparedAction::Edit { path, edits } => {
-                let edit = versioned_edit(&path, edits, version);
+            PreparedAction::Edit { .. } => {
                 let applied = self.client.apply_edit(edit).await?;
                 if !applied.applied {
                     return Err(Error::invalid_params(
@@ -690,63 +572,31 @@ impl LanguageServer for Backend {
                     runtime::host::fetch_link(snapshot.link_features(), &resource.target)
                         .await
                         .map_err(Error::invalid_params)?;
-                let (root, cache) = {
-                    let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(snapshot.modules(), state.session.workspace().modules()) {
-                        return Err(Error::invalid_params(
-                            "Modules changed during refresh; refresh again",
-                        ));
-                    }
-                    state
-                        .session
-                        .workspace_mut()
-                        .store_link_status(resource.target, metadata);
-                    let workspace = &state.session.workspace();
-                    (workspace.root().to_path_buf(), workspace.cache().clone())
-                };
-                tokio::task::spawn_blocking(move || runtime::host::save_cache(&root, &cache))
-                    .await
-                    .map_err(|e| Error::invalid_params(e.to_string()))?
-                    .map_err(Error::invalid_params)?;
+                self.adopt(&snapshot, |workspace| {
+                    workspace.store_link_status(resource.target, metadata)
+                })
+                .await?
+                .map_err(Error::invalid_params)?;
                 self.notify_changes().await;
             }
             PreparedAction::Refresh { path } => {
                 let mut workspace = self.state.read().await.session.workspace().clone();
                 let mut errors =
                     runtime::host::refresh_workspace(&mut workspace, now(), path.as_deref()).await;
-                let (root, cache) = {
-                    let mut state = self.state.write().await;
-                    if !Arc::ptr_eq(workspace.modules(), state.session.workspace().modules()) {
-                        return Err(Error::invalid_params(
-                            "Modules changed during refresh; refresh again",
-                        ));
-                    }
-                    state.session.workspace_mut().adopt_caches(&workspace);
-                    let workspace = &state.session.workspace();
-                    (workspace.root().to_path_buf(), workspace.cache().clone())
-                };
-                match tokio::task::spawn_blocking(move || runtime::host::save_cache(&root, &cache))
-                    .await
-                {
-                    Ok(Ok(())) => (),
-                    Ok(Err(e)) => errors.push(e),
-                    Err(e) => errors.push(e.to_string()),
-                }
+                let saved = self
+                    .adopt(&workspace, |own| own.adopt_caches(&workspace))
+                    .await?;
+                errors.extend(saved.err());
                 self.notify_changes().await;
-                self.client
-                    .show_message(
-                        if errors.is_empty() {
-                            MessageType::INFO
-                        } else {
-                            MessageType::WARNING
-                        },
-                        if errors.is_empty() {
-                            "Resource status and lookups refreshed".into()
-                        } else {
-                            errors.join("\n")
-                        },
+                let (kind, message) = if errors.is_empty() {
+                    (
+                        MessageType::INFO,
+                        "Resource status and lookups refreshed".into(),
                     )
-                    .await;
+                } else {
+                    (MessageType::WARNING, errors.join("\n"))
+                };
+                self.client.show_message(kind, message).await;
             }
             PreparedAction::ShowToday => {
                 self.rescan().await;
@@ -782,17 +632,13 @@ impl LanguageServer for Backend {
         params: WorkspaceSymbolParams,
     ) -> Result<Option<OneOf<Vec<SymbolInformation>, Vec<WorkspaceSymbol>>>> {
         let state = self.state.read().await;
-        let ws = &state.session.workspace();
+        let ws = state.session.workspace();
+        let query = params.query.to_lowercase();
         #[allow(deprecated)]
         let result = ws
             .symbols()
             .into_iter()
-            .filter(|s| {
-                ws.named(s)
-                    .name
-                    .to_lowercase()
-                    .contains(&params.query.to_lowercase())
-            })
+            .filter(|s| ws.named(s).name.to_lowercase().contains(&query))
             .map(|s| SymbolInformation {
                 name: ws.named(&s).name.clone(),
                 kind: match s.kind {
@@ -802,10 +648,7 @@ impl LanguageServer for Backend {
                 },
                 tags: None,
                 deprecated: None,
-                location: Location {
-                    uri: uri_from_url(&uri(&s.path)),
-                    range: ws.named(&s).span.range(&ws.documents()[&s.path]),
-                },
+                location: definition(ws, &s),
                 container_name: Some(s.path.display().to_string()),
             })
             .collect();
@@ -815,10 +658,8 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
-        let ws = &state.session.workspace();
-        if !ws.documents().contains_key(&path) {
+        let (path, state) = self.note(&params.text_document.uri).await?;
+        if !state.session.workspace().documents().contains_key(&path) {
             return Ok(None);
         }
         let symbols = state.session.request(now()).document_symbols(&path);
@@ -836,8 +677,7 @@ impl LanguageServer for Backend {
         params: DocumentOnTypeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
         let at = params.text_document_position;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&at.text_document.uri).await?;
         if !state.session.workspace().documents().contains_key(&path) {
             return Ok(None);
         }
@@ -849,19 +689,19 @@ impl LanguageServer for Backend {
         params: CallHierarchyPrepareParams,
     ) -> Result<Option<Vec<CallHierarchyItem>>> {
         let at = params.text_document_position_params;
-        let path = file(&at.text_document.uri)?;
-        let state = self.state.read().await;
-        let ws = &state.session.workspace();
+        let (path, state) = self.note(&at.text_document.uri).await?;
         let request = state.session.request(now());
-        Ok(hierarchy::prepare(ws, &path, at.position)
-            .map(|symbol| vec![request.hierarchy_item(&symbol)]))
+        Ok(
+            hierarchy::prepare(state.session.workspace(), &path, at.position)
+                .map(|symbol| vec![request.hierarchy_item(&symbol)]),
+        )
     }
     async fn incoming_calls(
         &self,
         params: CallHierarchyIncomingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
         let state = self.state.read().await;
-        let ws = &state.session.workspace();
+        let ws = state.session.workspace();
         let Some(symbol) = hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
@@ -881,7 +721,7 @@ impl LanguageServer for Backend {
         params: CallHierarchyOutgoingCallsParams,
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
         let state = self.state.read().await;
-        let ws = &state.session.workspace();
+        let ws = state.session.workspace();
         let Some(symbol) = hierarchy::decode(ws, &params.item) else {
             return Ok(None);
         };
@@ -897,16 +737,14 @@ impl LanguageServer for Backend {
         ))
     }
     async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         Ok(state
             .session
             .document_for_highlighting(&path)
             .map(folding_ranges))
     }
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
-        let path = file(&params.text_document.uri)?;
-        let state = self.state.read().await;
+        let (path, state) = self.note(&params.text_document.uri).await?;
         let request = state.session.request(now());
         request
             .formatting(&path)

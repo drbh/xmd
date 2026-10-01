@@ -1,6 +1,6 @@
 //! Scalar literals: the shapes a note's own syntax can spell out,
 //! independent of how the evaluator represents a value.
-use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate, NaiveDateTime, TimeZone, Weekday};
+use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate, NaiveDateTime, TimeZone};
 use common::{Currency, Resource};
 
 /// A scalar literal, exactly as a note's own syntax can spell one: the shapes
@@ -54,16 +54,18 @@ pub fn date_value(s: &str) -> Option<Literal> {
 /// Whether `s` names a day relative to some other day (`today`, `tomorrow`,
 /// `yesterday`, `next friday`), without needing to know which day that is.
 pub fn is_relative_date(s: &str) -> bool {
-    let s = s.trim().to_lowercase();
-    matches!(s.as_str(), "today" | "tomorrow" | "yesterday")
-        || s.strip_prefix("next ").is_some_and(|day| {
-            matches!(
-                day,
-                "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
-            )
-        })
+    relative_date(s, NaiveDate::default()).is_some()
 }
 pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
+    const DAYS: [&str; 7] = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ];
     let s = s.trim().to_lowercase();
     match s.as_str() {
         "today" => return Some(today),
@@ -71,19 +73,9 @@ pub fn relative_date(s: &str, today: NaiveDate) -> Option<NaiveDate> {
         "yesterday" => return today.pred_opt(),
         _ => {}
     }
-    let weekday = match s.strip_prefix("next ")? {
-        "monday" => Weekday::Mon,
-        "tuesday" => Weekday::Tue,
-        "wednesday" => Weekday::Wed,
-        "thursday" => Weekday::Thu,
-        "friday" => Weekday::Fri,
-        "saturday" => Weekday::Sat,
-        "sunday" => Weekday::Sun,
-        _ => return None,
-    };
-    let mut delta = (weekday.num_days_from_monday() as i64
-        - today.weekday().num_days_from_monday() as i64)
-        .rem_euclid(7);
+    let day = s.strip_prefix("next ")?;
+    let weekday = DAYS.iter().position(|d| *d == day)? as i64;
+    let mut delta = (weekday - today.weekday().num_days_from_monday() as i64).rem_euclid(7);
     if delta == 0 {
         delta = 7;
     }

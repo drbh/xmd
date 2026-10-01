@@ -78,24 +78,6 @@ impl Operator {
             Self::Unsupported(s) => s,
         }
     }
-    /// The binary operation this spelling denotes, if any.
-    pub fn binary(self) -> Option<BinaryOp> {
-        Some(match self {
-            Self::Add => BinaryOp::Add,
-            Self::Subtract => BinaryOp::Subtract,
-            Self::Multiply => BinaryOp::Multiply,
-            Self::Divide => BinaryOp::Divide,
-            Self::Equal => BinaryOp::Equal,
-            Self::NotEqual => BinaryOp::NotEqual,
-            Self::Less => BinaryOp::Less,
-            Self::LessEqual => BinaryOp::LessEqual,
-            Self::Greater => BinaryOp::Greater,
-            Self::GreaterEqual => BinaryOp::GreaterEqual,
-            Self::And => BinaryOp::And,
-            Self::Or => BinaryOp::Or,
-            _ => return None,
-        })
-    }
     /// The prefix operation this spelling denotes, if any.
     pub(crate) fn unary(self) -> Option<UnaryOp> {
         Some(match self {
@@ -116,42 +98,43 @@ impl std::fmt::Display for Operator {
 pub(crate) const PIPE_PRECEDENCE: u8 = 5;
 /// How tightly a prefix operator binds, above every binary operator.
 pub(crate) const UNARY_PRECEDENCE: u8 = 8;
-/// An operation between two values.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BinaryOp {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Equal,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    And,
-    Or,
+/// Declare the binary operations once, each named as the operator that
+/// spells it, so the two lists cannot drift apart.
+macro_rules! binary_ops {
+    ($($op:ident),*) => {
+        /// An operation between two values.
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum BinaryOp {
+            $($op,)*
+        }
+        impl Operator {
+            /// The binary operation this spelling denotes, if any.
+            pub fn binary(self) -> Option<BinaryOp> {
+                match self {
+                    $(Self::$op => Some(BinaryOp::$op),)*
+                    _ => None,
+                }
+            }
+        }
+        impl BinaryOp {
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$op => Operator::$op.as_str(),)*
+                }
+            }
+        }
+        impl std::fmt::Display for BinaryOp {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(self.as_str())
+            }
+        }
+    };
+}
+binary_ops! {
+    Add, Subtract, Multiply, Divide, Equal, NotEqual,
+    Less, LessEqual, Greater, GreaterEqual, And, Or
 }
 impl BinaryOp {
-    pub fn as_str(self) -> &'static str {
-        self.operator().as_str()
-    }
-    pub(crate) fn operator(self) -> Operator {
-        match self {
-            Self::Add => Operator::Add,
-            Self::Subtract => Operator::Subtract,
-            Self::Multiply => Operator::Multiply,
-            Self::Divide => Operator::Divide,
-            Self::Equal => Operator::Equal,
-            Self::NotEqual => Operator::NotEqual,
-            Self::Less => Operator::Less,
-            Self::LessEqual => Operator::LessEqual,
-            Self::Greater => Operator::Greater,
-            Self::GreaterEqual => Operator::GreaterEqual,
-            Self::And => Operator::And,
-            Self::Or => Operator::Or,
-        }
-    }
     /// Binding power: a higher number binds tighter. A pipe sits between
     /// comparisons and arithmetic, at [`PIPE_PRECEDENCE`].
     pub(crate) fn precedence(self) -> u8 {
@@ -165,12 +148,7 @@ impl BinaryOp {
         }
     }
 }
-impl std::fmt::Display for BinaryOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-/// The comparison at the top of a plan constraint.
+/// The comparison at the top of a constraint, as a linear reading reads one.
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr, strum::EnumString, strum::Display,
 )]
@@ -197,23 +175,17 @@ impl Comparison {
     }
 }
 /// A prefix operation on one value.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr, strum::Display)]
 pub enum UnaryOp {
+    #[strum(serialize = "-")]
     Negate,
+    #[strum(serialize = "+")]
     Plus,
+    #[strum(serialize = "!")]
     Not,
 }
 impl UnaryOp {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Negate => "-",
-            Self::Plus => "+",
-            Self::Not => "!",
-        }
-    }
-}
-impl std::fmt::Display for UnaryOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
+        self.into()
     }
 }

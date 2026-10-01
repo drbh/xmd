@@ -196,19 +196,24 @@ impl Module {
                     .is_some_and(|host| self.hosts.iter().any(|h| h == host)))
             && url.path().starts_with(&self.prefix)
             && (!self.has(Hook::Matches)
-                || matches!(
-                    self.call(Hook::Matches, vec![url_value(url)], crate::module::no_clock()),
-                    Ok(Value::Bool(true))
-                ))
+                || matches!(self.on_url(Hook::Matches, url), Ok(Value::Bool(true))))
+    }
+    /// Call `hook` with the link's context, at the request's clock.
+    fn on_link(&self, hook: Hook, ctx: &LinkContext<'_>) -> EvalResult<Value> {
+        self.call(hook, vec![self.context(ctx)], ctx.now.fixed_offset())
+    }
+    /// Call `hook` with the URL alone, at no clock.
+    fn on_url(&self, hook: Hook, url: &Url) -> EvalResult<Value> {
+        self.call(hook, vec![url_value(url)], crate::module::no_clock())
     }
     fn inlay(&self, ctx: &LinkContext<'_>) -> String {
-        self.call(Hook::Inlay, vec![self.context(ctx)], ctx.now.fixed_offset())
+        self.on_link(Hook::Inlay, ctx)
             .and_then(|v| String::from_value(&v))
             .unwrap_or_else(|e| format!("module error · {e}"))
     }
     fn hover(&self, ctx: &LinkContext<'_>) -> Option<String> {
         self.has(Hook::Hover).then(|| {
-            self.call(Hook::Hover, vec![self.context(ctx)], ctx.now.fixed_offset())
+            self.on_link(Hook::Hover, ctx)
                 .and_then(|v| String::from_value(&v))
                 .unwrap_or_else(|e| e.to_string())
         })
@@ -217,11 +222,7 @@ impl Module {
     fn time_dependent(&self, ctx: &LinkContext<'_>) -> bool {
         if self.has(Hook::TimeDependent) {
             return !matches!(
-                self.call(
-                    Hook::TimeDependent,
-                    vec![self.context(ctx)],
-                    ctx.now.fixed_offset()
-                ),
+                self.on_link(Hook::TimeDependent, ctx),
                 Ok(Value::Bool(false))
             );
         }
@@ -230,11 +231,7 @@ impl Module {
     fn property_names(&self, url: &Url) -> Vec<String> {
         if self.has(Hook::PropertyNames) {
             return self
-                .call(
-                    Hook::PropertyNames,
-                    vec![url_value(url)],
-                    crate::module::no_clock(),
-                )
+                .on_url(Hook::PropertyNames, url)
                 .and_then(|v| Vec::<String>::from_value(&v))
                 .unwrap_or_default()
                 .into_iter()
@@ -262,16 +259,7 @@ impl Module {
             return None;
         }
         // A request is data. The native host alone executes it on explicit refresh.
-        let request = RefreshRecord::from_value(
-            &self
-                .call(
-                    Hook::Refresh,
-                    vec![url_value(url)],
-                    crate::module::no_clock(),
-                )
-                .ok()?,
-        )
-        .ok()?;
+        let request = RefreshRecord::from_value(&self.on_url(Hook::Refresh, url).ok()?).ok()?;
         // A relative program is relative to the module that asked for it.
         let program = if request.program.starts_with("./") || request.program.starts_with("../") {
             self.path

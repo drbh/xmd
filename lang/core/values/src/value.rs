@@ -1,6 +1,6 @@
 //! Values: the kinds a note computes, closures among them, and their display
 //! and JSON forms. The scalar literals a note's own syntax can spell are
-//! `syntax::Literal`; this adds the host objects (tables, plans, tagged
+//! `syntax::Literal`; this adds the host objects (tables, checklists, tagged
 //! records...) a literal can never be.
 use crate::error::{EvalError, EvalResult, Overflow};
 use chrono::{DateTime, FixedOffset, Months, NaiveDate};
@@ -10,7 +10,10 @@ use std::{
     any::Any,
     collections::BTreeMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 use syntax::{Expr, Literal};
 pub type TaskKey = (PathBuf, usize);
@@ -43,8 +46,8 @@ pub enum Value {
     Resource(Resource),
     Tasks(Vec<TaskKey>),
     /// An object the evaluator builds and a note only reads: a tagged
-    /// record, a table or a plan. Its kind, display and fields are the
-    /// object's own.
+    /// record, a table, or a checklist handed to module code. Its kind,
+    /// display and fields are the object's own.
     Host(Arc<dyn HostObject>),
 }
 // Values cross threads (the language server evaluates off its I/O thread), so
@@ -61,20 +64,15 @@ pub struct Measured<T> {
     inner: T,
     /// Its size once measured: how many values it holds plus one (zero
     /// while unknown), and its bytes, written first.
-    items: std::sync::atomic::AtomicUsize,
-    bytes: std::sync::atomic::AtomicUsize,
-}
-impl<T: Default> Default for Measured<T> {
-    fn default() -> Self {
-        Self::new(T::default())
-    }
+    items: AtomicUsize,
+    bytes: AtomicUsize,
 }
 impl<T> Measured<T> {
-    pub fn new(inner: T) -> Self {
+    pub(crate) fn new(inner: T) -> Self {
         Self {
             inner,
-            items: std::sync::atomic::AtomicUsize::new(0),
-            bytes: std::sync::atomic::AtomicUsize::new(0),
+            items: AtomicUsize::new(0),
+            bytes: AtomicUsize::new(0),
         }
     }
     /// What it holds.
@@ -83,7 +81,6 @@ impl<T> Measured<T> {
     }
     /// Its size, when it has been measured in full.
     pub(crate) fn size(&self) -> Option<crate::functional::Size> {
-        use std::sync::atomic::Ordering;
         match self.items.load(Ordering::Acquire) {
             0 => None,
             items => Some(crate::functional::Size {
@@ -95,7 +92,6 @@ impl<T> Measured<T> {
     /// Keep its size, measured in full. Whoever measures it finds the same
     /// size, so racing to keep it is harmless.
     pub(crate) fn measured(&self, size: crate::functional::Size) {
-        use std::sync::atomic::Ordering;
         if let Some(items) = size.items.checked_add(1) {
             self.bytes.store(size.bytes, Ordering::Relaxed);
             self.items.store(items, Ordering::Release);
@@ -104,7 +100,6 @@ impl<T> Measured<T> {
 }
 impl<T: Clone> Clone for Measured<T> {
     fn clone(&self) -> Self {
-        use std::sync::atomic::{AtomicUsize, Ordering};
         let items = self.items.load(Ordering::Acquire);
         Self {
             inner: self.inner.clone(),
@@ -189,9 +184,9 @@ impl Namespace {
 ///
 /// A note computes with language values — numbers, money, durations, dates,
 /// text, codes, lists and records. It cannot build a checklist, a table, a
-/// plan, a module's tagged record, an imported note or a link target; those
-/// are objects some host owns (the document, a module, the solver, the
-/// filesystem) and the language only reads from. Every kind of
+/// module's tagged record, an imported note or a link target; those are
+/// objects some host owns (the document, a module, the filesystem) and the
+/// language only reads from. Every kind of
 /// reading is one method here, so the generic sites — `Value::kind`,
 /// `Value::display`, `Value::property`, `QueryValue::from_value`, completion's
 /// property list and the symbol hover — dispatch once instead of carrying an
@@ -292,7 +287,7 @@ impl Value {
         }
     }
     /// The object behind a [`Value::Host`], as the concrete type it was built
-    /// with: a tagged record, a table or a plan.
+    /// with: a tagged record or a table.
     pub fn downcast<T: HostObject>(&self) -> Option<&T> {
         match self {
             Self::Host(object) => object.downcast_ref(),
@@ -311,9 +306,6 @@ impl Value {
 }
 /// The property a checklist lists its tasks under.
 pub const CHECKLIST_TASKS: &str = "tasks";
-pub fn optional(value: Option<Value>) -> Value {
-    value.unwrap_or(Value::Null)
-}
 /// A checklist: the leaf tasks under one heading, which `@after` reads and
 /// whose `tasks` property the engine answers with a record per task, since
 /// only it can tell whether a task is done.
@@ -468,11 +460,14 @@ impl PartialEq for Function {
             && self.path == other.path
             && self.source == other.source
             && self.captured == other.captured
-            && match (&self.environment, &other.environment) {
-                (None, None) => true,
-                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
-                _ => false,
-            }
+            && self
+                .environment
+                .as_ref()
+                .map(|e| Arc::as_ptr(e).cast::<()>())
+                == other
+                    .environment
+                    .as_ref()
+                    .map(|e| Arc::as_ptr(e).cast::<()>())
     }
 }
 
@@ -706,7 +701,7 @@ pub(crate) use syntax::duration;
 
 /// Repeat from the previous due date, advancing beyond completion; month repeats
 /// retain the original day-of-month so Jan 31 -> Feb 28 -> Mar 31.
-pub fn next_occurrence(
+pub(crate) fn next_occurrence(
     rule: &str,
     anchor: NaiveDate,
     completed: NaiveDate,
@@ -775,8 +770,8 @@ pub fn value_json(value: &Value) -> serde_json::Value {
         Value::Date(d) => json!({"type":"date","value":d.to_string()}),
         Value::DateTime(d) => json!({"type":"datetime","value":d.to_rfc3339()}),
         Value::Ratio(n) => json!({"type":"ratio","value":number(*n, 10)}),
-        // Every other kind (Resource, Table, Plan, tagged record, task
-        // lists, ...) implements `HostObject::query` and is handled above.
+        // Every other kind (Resource, Table, tagged record, checklist, ...)
+        // implements `HostObject::query` and is handled above.
         _ => serde_json::Value::Null,
     }
 }

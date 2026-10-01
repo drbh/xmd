@@ -98,7 +98,7 @@ best := maximize($2 * count) module error · plans
 [
   {
     "disabled": {
-      "reason": "plan.write_edits: PLAN WRITE FAILURE"
+      "reason": "PLAN WRITE FAILURE"
     },
     "kind": "refactor.rewrite",
     "title": "Write decisions"

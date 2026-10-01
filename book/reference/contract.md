@@ -40,17 +40,6 @@ the functions the engine, the language services and the editors call in a bundle
 | `resource.hover(resource: resource record)` | Markdown | presents | shows the resource's target | A resource's hover; a link module that recognizes the resource adds its details after it. |
 | `resource.control(resource: resource record)` | Text | presents | shows the resource's target | The title of the control that opens a resource. |
 
-### plan
-
-| function | returns | role | if it fails | what it is |
-| --- | --- | --- | --- | --- |
-| `plan.solve_model(model: plan model record)` | solution record | decides | reported | A plan's solution: decisions, constraint slack and status. |
-| `plan.seek_boundary(name: Text, form: linear form record, unit: Value)` | Value | decides | reported | The value of a goal-seek unknown at the boundary its constraint sets. |
-| `plan.hover(plan: plan record)` | Markdown | presents | shows nothing | A plan's hover. |
-| `plan.seek_summary(op: Text, positive: Boolean)` | Text | presents | shows the constraint's operator | The words a goal seek's hover uses for its direction. |
-| `plan.write_edits(plan: plan record, document: Text)` | List of text edits | decides | reported | The edits that write a plan's solved decisions into its note. |
-| `plan.write_title()` | Text | presents | shows `write decisions` | The title of the code action that writes a plan's decisions. |
-
 ### prelude
 
 | function | returns | role | if it fails | what it is |
@@ -173,6 +162,37 @@ One entry of a feature module's `attributes` record, under the key a note writes
 | `example?` | Text: the value signature help and completion fill in |
 | `values?` | List of Text: the values completion offers inside it |
 | `on?` | `checkbox` or `any`: `checkbox` makes it live only on a checklist item (a list item with a checkbox), and prose anywhere else. `any` when absent |
+
+#### form
+
+One entry of a feature module's `forms` record, under the name a definition calls: a form the module owns, which no other active module has and no built-in is named. The language owns none. A definition whose whole expression calls it, `bakery := maximize(objective)`, is the module's to evaluate: notes are parsed knowing it, so the table under such a definition is the form's when it takes one, and the host reads its arguments and cells in the note's scope as the declaration says, then hands the module what they are worth in its `define` hook: the module reads values, never note code. Elsewhere in an expression the form is an error. A module declares at most 16. The bundled `plans` module declares `maximize`, `minimize` and `solve` this way.
+
+| field | what it is |
+| --- | --- |
+| `params` | List of Text: its parameters, as signature help shows them, `name: what it holds` |
+| `reads` | List: how the host reads each argument, one per parameter: `linear` (a linear form over the form's unknowns) or `constraint` (`a <= b`, `a >= b` or `a == b`, each side a linear form) |
+| `table?` | List of `{name, reads, example?}`: the table under the definition, by column. `reads` is `name` (a cell that names its row: an identifier, once per table) or as for an argument; `example` is what the problem of a missing cell suggests. No table when absent |
+| `unknowns` | `free` (the names its expressions read that its note leaves undefined: each is a name of the note, which reads as the field of that name of the definition's value, so `bagels` reads `bakery.bagels`) or `own` (the definition's own name, which its other definitions read through as they are, so `monthly` is found inside `saved_by_june := monthly * 9`) |
+| `unknown?` | `{name, doc?}`: what a free unknown is called in the outline, and the words its hover adds after naming the definition that chooses it |
+| `noun?` | Text: what a definition of it is called in its table's problems; the form's name when absent |
+| `returns?` | Text: what a definition of it evaluates to, as signature help says it |
+| `doc?` | Text: what it means, for signature help, completion and the reference |
+| `example?` | Text: the arguments signature help and completion fill in |
+
+#### formed
+
+A definition that calls a form, as its module's `define` hook is handed it: every expression already read in the note's scope. A linear form is `{constant, terms, unit, per}`: `terms` the coefficient of each unknown by name, `unit` one of what the form counts in (`1`, `$1` or `1s`; `1` while it is only unknowns), and `per` one of what an unknown counts in, or null when its terms are scaled by two different units. A reading is `{text, range, anchor}`, the expression as written, its LSP range and the position at the end of its line, with a linear form's fields for `linear`, and for `constraint` `op` (`<=`, `>=` or `==`), `lhs` and `rhs` as linear forms and `difference`, their difference as one, or null when the two sides scale their unknowns differently. A failure reading one fails the definition, at the expression that failed, before the hook is called.
+
+| field | what it is |
+| --- | --- |
+| `form` | Text: the form's name |
+| `name` | Text: the definition's name |
+| `document` | Text: the note's URI |
+| `line` | Number: the zero-based line of the definition's name |
+| `arguments` | List: each argument, read as the form says |
+| `rows` | List of `{line, cells}`: each row of the table that has a cell for every column, with `cells` read as the form says, in column order. Empty for a form without a table |
+| `unknowns` | List of Text: the names it solves for, first read first: the free names its note leaves undefined, or its own name |
+| `decisions` | List: the decision cells (of a `name?` or `name#` column) the sums its expressions read walk over, each an unknown of its own, `{name, domain, table, column, row, label, document, source, line, range, anchor, width}`: `name` the unknown's (`gear.take[1]`), `domain` `choice` (yes or no) or `count` (a whole number), the table's and column's names, the row's index from 0, `label` the row's first cell, the cell's note's URI, its text as written, its line, its LSP range out to the pipes, the position past its text and how wide it is between the pipes' padding |
 
 #### checkbox
 
@@ -339,6 +359,12 @@ Entries for the note's outline. One spans from `line` to its last filled line be
 returns Null, or a list of `{label: Text, insert?: Text, detail?: Text, kind?: Text}`
 
 What to offer at `ctx.position`, replacing the word being typed with `insert` (the label when absent); `kind` is an LSP completion kind in snake case. The first module with a list answers, even an empty one; null leaves the position to the editor. A failure is null.
+
+#### `define(form: formed)`
+
+returns `{value, hover?, detail?, record?}`
+
+What a definition that calls one of the module's `forms` is worth, called while the note evaluates, at its clock. `value` is what the definition evaluates to; `hover` Markdown its hover adds after the calculation worked through; `detail` the one line the outline, the call hierarchy and completion show for it instead of its type and display; `record` what its records' `record` field holds, for queries and modules to read. A failure is the definition's error, at its first argument. Required when the module declares `forms`.
 
 ### command and provider modules
 

@@ -55,14 +55,12 @@ pub fn run_command_named(
     report: impl FnMut(&str),
 ) -> Result<(), String> {
     let path = Path::new(name);
-    let file = if lang::common::is_note(path) {
-        Some(
+    let file = lang::common::is_note(path)
+        .then(|| {
             path.canonicalize()
-                .map_err(|e| format!("Cannot open {name}: {e}"))?,
-        )
-    } else {
-        None
-    };
+                .map_err(|e| format!("Cannot open {name}: {e}"))
+        })
+        .transpose()?;
     let registry = match &file {
         Some(path) => {
             let source = std::fs::read_to_string(path).map_err(|e| format!("{name}: {e}"))?;
@@ -111,6 +109,10 @@ fn run_command(
         dir: &dir,
     };
     let args = parse_args(args);
+    let name = Value::Text(
+        dir.file_name()
+            .map_or(String::new(), |n| n.to_string_lossy().into()),
+    );
     loop {
         let clock = crate::now();
         let mut state = Value::Null;
@@ -119,14 +121,7 @@ fn run_command(
         for _ in 0..MAX_STEPS {
             let input = lang::eval::modules::record([
                 ("args", args.clone()),
-                (
-                    "dir",
-                    Value::Text(
-                        dir.file_name()
-                            .map(|n| n.to_string_lossy().into_owned())
-                            .unwrap_or_default(),
-                    ),
-                ),
+                ("dir", name.clone()),
                 ("state", state),
                 ("results", Value::list(results)),
             ]);
@@ -158,25 +153,21 @@ fn run_command(
                 break;
             }
         }
-        match finished {
+        let seconds = match finished {
             None => return Err(format!("{} did not finish in {MAX_STEPS} steps", module.id)),
             // Seconds, as a number or as text such as a `--interval` flag.
-            Some(Some(Value::Number(seconds))) if seconds > 0.0 => {
-                std::thread::sleep(std::time::Duration::from_secs_f64(seconds.min(86_400.0)));
-            }
-            Some(Some(Value::Text(seconds))) => match seconds.trim().parse::<f64>() {
-                Ok(seconds) if seconds > 0.0 => {
-                    std::thread::sleep(std::time::Duration::from_secs_f64(seconds.min(86_400.0)));
-                }
-                _ => {
-                    return Err(format!(
-                        "{}: repeat_after must be a number of seconds",
-                        module.id
-                    ));
-                }
-            },
+            Some(Some(Value::Number(seconds))) if seconds > 0.0 => seconds,
+            Some(Some(Value::Text(seconds))) => seconds
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .filter(|seconds| *seconds > 0.0)
+                .ok_or_else(|| {
+                    format!("{}: repeat_after must be a number of seconds", module.id)
+                })?,
             Some(_) => return Ok(()),
-        }
+        };
+        std::thread::sleep(std::time::Duration::from_secs_f64(seconds.min(86_400.0)));
     }
 }
 
@@ -280,17 +271,13 @@ impl Context<'_> {
                     }
                     _ => return Err("write needs text or json".into()),
                 };
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-                }
+                make_parent(&path)?;
                 std::fs::write(&path, text).map_err(|e| e.to_string())?;
                 Ok(serde_json::json!({}))
             }),
             "move" => self.path(&request["from"]).and_then(|from| {
                 let to = self.path(&request["to"])?;
-                if let Some(parent) = to.parent() {
-                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-                }
+                make_parent(&to)?;
                 std::fs::rename(&from, &to).map_err(|e| e.to_string())?;
                 Ok(serde_json::json!({}))
             }),
@@ -424,9 +411,7 @@ impl Context<'_> {
         let mut saved: BTreeMap<String, String> = crate::io::read_json_or_default(&path);
         if let Some(value) = request["set"].as_str() {
             saved.insert(key.clone(), value.to_string());
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-            }
+            make_parent(&path)?;
             let text = serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())? + "\n";
             std::fs::write(&path, text).map_err(|e| e.to_string())?;
             #[cfg(unix)]
@@ -436,6 +421,14 @@ impl Context<'_> {
             }
         }
         Ok(serde_json::json!({ "value": saved.get(&key) }))
+    }
+}
+
+/// Make the directory a file is about to be written into.
+fn make_parent(path: &Path) -> Result<(), String> {
+    match path.parent() {
+        Some(parent) => std::fs::create_dir_all(parent).map_err(|e| e.to_string()),
+        None => Ok(()),
     }
 }
 

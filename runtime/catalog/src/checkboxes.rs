@@ -7,9 +7,8 @@
 use super::value as q;
 use super::{
     RecordKind,
-    record::{Base, Record},
+    record::{Base, Record, text_range},
 };
-use lang::common::Span;
 use lang::eval::engine::Value;
 use lang::eval::{Workspace, record};
 use lang::model::{Document, TaskState};
@@ -56,9 +55,6 @@ pub(super) fn checkboxes(ws: &Workspace, path: &Path, doc: &Document, records: &
         }
     }
     for (i, (task, children)) in doc.tasks.iter().zip(children).enumerate() {
-        let raw = doc.line(task.line);
-        let start = raw.len() - raw.trim_start().len();
-        let text = Span::new(task.line, start, raw.trim_end().len().max(start));
         records.push(Record::typed(
             path,
             CheckboxRecord {
@@ -79,7 +75,7 @@ pub(super) fn checkboxes(ws: &Workspace, path: &Path, doc: &Document, records: &
                 children,
                 indent: task.indent,
                 checkbox: q::range(task.checkbox.range(doc)),
-                range: q::range(text.range(doc)),
+                range: text_range(doc, task.line),
                 attributes: task
                     .attributes
                     .iter()

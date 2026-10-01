@@ -22,6 +22,10 @@
 //! A module's `records` build ([`crate::built`]) is kept the same way, per
 //! note and module, so the collections one call built share it.
 //!
+//! The cache knows nothing of any collection: it is handed what builds them
+//! (the catalog's index, `crate::collect`, and each module's `records` build),
+//! so building may read other collections back through it.
+//!
 //! Lazy fields stay lazy: a reader that narrows a collection to a few fields
 //! evaluates only those, and what they produce is kept on the cached record
 //! for the next reader.
@@ -50,10 +54,22 @@ pub enum View<'a> {
 
 type Key = (Option<PathBuf>, Collection);
 
+/// How a collection's records are built for `only` (or every note).
+pub(crate) type Collect = fn(
+    &Records,
+    Collection,
+    &mut Engine<'_>,
+    Option<&Path>,
+    DiagnosticSource,
+) -> Result<Vec<Record>, String>;
+
+/// How a module's `records` hook builds for the note at a path.
+pub(crate) type BuildRecords = fn(&Records, &mut Engine<'_>, &Module, &Path) -> Build;
+
 /// Derived records for one workspace, shared by every reader of it.
-#[derive(Default)]
 pub struct Records {
     state: Mutex<State>,
+    collect: Collect,
 }
 
 #[derive(Default)]
@@ -133,14 +149,17 @@ impl Entry {
             views: Vec::new(),
         }
     }
-    fn holds_at(&self, now: DateTime<FixedOffset>) -> bool {
-        let same_offset = self.now.offset() == now.offset();
-        if self.exact {
-            same_offset && self.now == now
+}
+
+/// Whether what was built at `built` still holds at `now`: at that instant
+/// when it is `exact`, else all that day at the same offset.
+fn holds(built: DateTime<FixedOffset>, exact: bool, now: DateTime<FixedOffset>) -> bool {
+    built.offset() == now.offset()
+        && if exact {
+            built == now
         } else {
-            same_offset && self.now.date_naive() == now.date_naive()
+            built.date_naive() == now.date_naive()
         }
-    }
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -150,6 +169,13 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Records {
+    /// An empty cache whose collections `collect` builds.
+    pub(crate) fn new(collect: Collect) -> Self {
+        Self {
+            state: Mutex::default(),
+            collect,
+        }
+    }
     /// `collection`'s records for `only` (or every note), as `view` reads them.
     /// `engine` is marked time-dependent exactly when building and reading
     /// them afresh would have marked it.
@@ -194,17 +220,22 @@ impl Records {
         // Which diagnostics a collection holds is the caller's choice, so
         // that one collection is never shared.
         if collection == Collection::Diagnostics {
-            let records = crate::collect(self, collection, engine, only, diagnostics)?;
+            let records = (self.collect)(self, collection, engine, only, diagnostics)?;
             let mut entry = Entry::new(engine.now(), false, records);
             return read(&mut entry, engine).map(|(value, _)| value);
         }
         let key = (only.map(Path::to_path_buf), collection.clone());
-        let slot = self.slot(engine.workspace(), key);
+        let slot = self
+            .state(engine.workspace())
+            .entries
+            .entry(key)
+            .or_default()
+            .clone();
         let mut entry = lock(&slot);
         let now = engine.now();
-        if !entry.as_ref().is_some_and(|e| e.holds_at(now)) {
+        if !entry.as_ref().is_some_and(|e| holds(e.now, e.exact, now)) {
             let mut own = engine.request().engine();
-            let records = crate::collect(self, collection, &mut own, only, diagnostics)?;
+            let records = (self.collect)(self, collection, &mut own, only, diagnostics)?;
             let built_time_dependent = own.time_dependent();
             *entry = Some(Entry::new(now, built_time_dependent, records));
         }
@@ -223,35 +254,26 @@ impl Records {
     }
 
     /// What `module`'s `records` hook built for the note at `path`, built
-    /// first when no build holds at the engine's clock. `engine` is marked
-    /// when reading the module's inputs read the clock.
+    /// by `build` first when no build holds at the engine's clock. `engine`
+    /// is marked when reading the module's inputs read the clock.
     pub(crate) fn built(
         &self,
         engine: &mut Engine<'_>,
         module: &Module,
         path: &Path,
+        build: BuildRecords,
     ) -> Arc<Build> {
-        let slot = {
-            let mut state = self.state(engine.workspace());
-            state
-                .builds
-                .entry((path.to_path_buf(), module.id.clone()))
-                .or_default()
-                .clone()
-        };
+        let slot = self
+            .state(engine.workspace())
+            .builds
+            .entry((path.to_path_buf(), module.id.clone()))
+            .or_default()
+            .clone();
         let mut entry = lock(&slot);
         let now = engine.now();
-        let holds = |e: &BuildEntry| {
-            e.now.offset() == now.offset()
-                && if e.exact {
-                    e.now == now
-                } else {
-                    e.now.date_naive() == now.date_naive()
-                }
-        };
-        if !entry.as_ref().is_some_and(holds) {
+        if !entry.as_ref().is_some_and(|e| holds(e.now, e.exact, now)) {
             let mut own = engine.request().engine();
-            let build = crate::built::build(self, &mut own, module, path);
+            let build = build(self, &mut own, module, path);
             *entry = Some(BuildEntry {
                 now,
                 exact: own.time_dependent(),
@@ -294,14 +316,6 @@ impl Records {
             state.notes.clear();
         }
         state
-    }
-
-    fn slot(&self, workspace: &Workspace, key: Key) -> Arc<Mutex<Option<Entry>>> {
-        self.state(workspace)
-            .entries
-            .entry(key)
-            .or_default()
-            .clone()
     }
 }
 

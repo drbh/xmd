@@ -6,18 +6,6 @@ use lsp_types::{
 };
 use std::path::Path;
 
-/// Every position in a note, for a caller that wants all of its labels.
-pub(crate) const FULL_RANGE: Range = Range {
-    start: Position {
-        line: 0,
-        character: 0,
-    },
-    end: Position {
-        line: u32::MAX,
-        character: u32::MAX,
-    },
-};
-
 /// All producers in one request share evaluation memoization and a clock snapshot.
 pub(crate) struct InlayContext<'request, 'workspace> {
     pub request: &'request crate::Request<'workspace>,
@@ -28,12 +16,6 @@ pub(crate) struct InlayContext<'request, 'workspace> {
     /// Whether the labels are wanted, or only whether any of them moves with
     /// the clock.
     pub labels: bool,
-}
-impl InlayContext<'_, '_> {
-    /// Call when a label/tooltip reads the clock without going through the evaluator.
-    pub(crate) fn mark_time_dependent(&mut self) {
-        self.engine.mark_time_dependent(true);
-    }
 }
 
 /// Owns LSP construction and range filtering so producers only supply content.

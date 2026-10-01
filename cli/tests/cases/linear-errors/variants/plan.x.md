@@ -1,18 +1,16 @@
 module := {api: 1, id: "plan", kind: "library"}
 
-// A solver stand-in: the objective's constant picks the malformed solution.
-solve_model := fn(model) => (
-  if(model.objective.constant == 1, 5,
-  if(model.objective.constant == 2, {variables: [], constraints: [], rows: {}},
-  if(model.objective.constant == 3, {objective: 1, variables: [], rows: {}, constraints: [{name: "c", op: "<", lhs: 1, rhs: 1, slack: 0, binding: false}]},
-  if(model.objective.constant == 4, {objective: 1, variables: [{name: "x"}], constraints: [], rows: {}},
-  if(model.objective.constant == 5, {objective: 1, variables: [], constraints: [], rows: {}},
-  {objective: 1, variables: [], constraints: [], rows: 7})))))
+// A stand-in for what a plan is worth: the objective's constant picks an
+// answer the host refuses, or reads as it is.
+define := fn(f) => let(
+  {c: get(f.arguments, 0).constant},
+  if(c == 1, 5,
+  if(c == 2, {hover: "a hover and no value"},
+  if(c == 3, {value: 3, hover: 7, detail: true},
+  if(c == 4, {value: {objective: 4}},
+  if(c == 5, error("STAND-IN REFUSES"),
+  {value: tagged("Plan", {objective: 6}, "6")})))))
 )
 
-// The rest of the stdlib contract, which this stand-in never reaches.
-hover := fn(p) => error("not in this stand-in")
-write_edits := fn(p, document) => error("not in this stand-in")
-write_title := fn() => "Write decisions"
-seek_boundary := fn(name, form, unit) => error("not in this stand-in")
-seek_summary := fn(op, positive) => error("not in this stand-in")
+// The rest of what the plans module calls, which this stand-in never reaches.
+seek := fn(f) => error("not in this stand-in")

@@ -1,10 +1,9 @@
 //! Line calculations: a line that is only math, with its variables in
 //! brackets, shows its result at the end: `[budget] - [spent]`. Bracketed
 //! calculations in prose (`[a / b]`) are an inline form the generic layer reads.
-use crate::blocks::{Calculation, Line, Tree};
+use crate::blocks::{Calculation, Line, Tree, bracket_reference};
 use crate::document::Document;
 use common::Span;
-use syntax::identifier;
 
 pub(crate) fn recognize(tree: &mut Tree, _: &mut Document, line: &Line<'_>) {
     if line.checkbox.is_some() || !line.attributes.list.is_empty() {
@@ -38,14 +37,7 @@ fn line_calculation(trimmed: &str) -> Option<String> {
     let mut at = 0;
     while let Some(open) = rest.find('[') {
         let close = rest[open..].find(']')? + open;
-        let inner = rest[open + 1..close].trim();
-        let (name, property) = inner
-            .split_once('.')
-            .map(|(n, p)| (n, Some(p)))
-            .unwrap_or((inner, None));
-        if !identifier(name) || !property.is_none_or(identifier) {
-            return None;
-        }
+        bracket_reference(rest[open + 1..close].trim())?;
         masked.push_str(&rest[..open]);
         masked.push(' ');
         masked.push_str(&rest[open + 1..close]);

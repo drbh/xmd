@@ -41,7 +41,7 @@ pub(crate) enum Command {
     #[command(
         alias = "q",
         override_usage = "xmd query [OPTIONS] <QUERY>                (note on stdin)\n       xmd query [OPTIONS] <FILE> <QUERY>\n       xmd query [OPTIONS] --workspace <QUERY>",
-        after_help = concat!("Bindings: ast, graph, days, timers, mentions, links, tasks, checkboxes, events, stops, entries, values, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells, recognized, attributed\nFunctions: map, filter, fold, get, sort_by, desc, group_by, slice, concat, sum, length\nxs | f(a) is f(xs, a); .due is fn(x) => x.due; .{title, due} picks fields.\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: xmd query ", note!("note"), " 'tasks | sort_by(desc(.due)) | map(.title)' --json\n          cat ", note!("note"), " | xmd query 'tasks | length'\n          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | xmd query ", note!("note"), " -")
+        after_help = concat!("Bindings: ast, graph, days, timers, mentions, links, tasks, checkboxes, events, stops, entries, values, forms, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells, recognized, attributed\nFunctions: map, filter, fold, get, sort_by, desc, group_by, slice, concat, sum, length\nxs | f(a) is f(xs, a); .due is fn(x) => x.due; .{title, due} picks fields.\nUse - as QUERY to read an expression from stdin; the note then has to be a file.\nExamples: xmd query ", note!("note"), " 'tasks | sort_by(desc(.due)) | map(.title)' --json\n          cat ", note!("note"), " | xmd query 'tasks | length'\n          xmd query --workspace 'filter(tasks, fn(t) => !t.done)' --json\n          printf 'length(tasks)' | xmd query ", note!("note"), " -")
     )]
     Query(QueryOptions),
     /// Export a saved note with the language server's colors and inline values.
@@ -142,18 +142,6 @@ pub(crate) enum RenderFormat {
     Html,
     Text,
 }
-pub(crate) async fn refresh(workspace: &mut Workspace) -> Vec<String> {
-    let mut errors = runtime::host::refresh_workspace(workspace, runtime::host::now(), None).await;
-    if let Err(e) = runtime::host::save_cache(workspace.root(), workspace.cache()) {
-        errors.push(e);
-    }
-    errors
-}
-fn load(root: PathBuf) -> Result<Workspace, String> {
-    Workspace::load(vec![
-        std::fs::canonicalize(root).map_err(|e| e.to_string())?,
-    ])
-}
 pub(crate) async fn run(command: Command) -> Result<(), String> {
     match command {
         Command::Lsp => unreachable!(),
@@ -165,8 +153,13 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
             runtime::host::run_command_named(&module, &args, &root, |line| println!("{line}"))
         }
         Command::Refresh { root } => {
-            let mut workspace = load(root)?;
-            let errors = refresh(&mut workspace).await;
+            let root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
+            let mut workspace = Workspace::load(vec![root])?;
+            let now = runtime::host::now();
+            let mut errors = runtime::host::refresh_workspace(&mut workspace, now, None).await;
+            if let Err(e) = runtime::host::save_cache(workspace.root(), workspace.cache()) {
+                errors.push(e);
+            }
             if !errors.is_empty() {
                 return Err(errors.join("\n"));
             }
@@ -266,8 +259,7 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
     };
     compiled.load_imports(&mut workspace, only.as_deref(), &runtime::host::DiskFiles);
     let result = Request::new(&workspace, now).query(&compiled, only.as_deref())?;
-    let stdout = io::stdout();
-    let mut output = io::BufWriter::new(stdout.lock());
+    let mut output = io::BufWriter::new(io::stdout().lock());
     let write_result = (|| -> io::Result<()> {
         if options.json {
             serde_json::to_writer_pretty(&mut output, &result.json())?;
@@ -284,16 +276,22 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
         }
         output.flush()
     })();
-    if let Err(e) = write_result {
-        if e.kind() == io::ErrorKind::BrokenPipe {
-            return Ok(());
-        }
-        return Err(e.to_string());
+    if stdout_closed(write_result)? {
+        return Ok(());
     }
     if options.fail_on_match && !result.rows.is_empty() {
         return Err(format!("{} matching result(s)", result.rows.len()));
     }
     Ok(())
+}
+/// Whether writing the output failed because whoever read it has stopped
+/// reading, which ends a command quietly.
+fn stdout_closed(written: io::Result<()>) -> Result<bool, String> {
+    match written {
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(true),
+        Err(e) => Err(e.to_string()),
+        Ok(()) => Ok(false),
+    }
 }
 fn request_time(
     on: Option<NaiveDate>,
@@ -327,16 +325,13 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
         RenderFormat::Text => request.render_text(&path)?,
     };
     let diagnostics = request.diagnostics(&path, false);
-    let stdout = io::stdout();
-    let mut output = stdout.lock();
-    if let Err(e) = output
-        .write_all(text.as_bytes())
-        .and_then(|_| output.flush())
-    {
-        if e.kind() == io::ErrorKind::BrokenPipe {
-            return Ok(());
-        }
-        return Err(e.to_string());
+    let mut output = io::stdout().lock();
+    if stdout_closed(
+        output
+            .write_all(text.as_bytes())
+            .and_then(|_| output.flush()),
+    )? {
+        return Ok(());
     }
     let mut errors = 0;
     for diagnostic in diagnostics {

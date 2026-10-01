@@ -59,6 +59,9 @@ pub(crate) struct MemoEntry {
     /// the request that made it may read it.
     pub(crate) contextual: bool,
     pub(crate) cost: Cost,
+    /// What the module that evaluates a form definition said about it
+    /// besides its value.
+    pub(crate) about: Option<crate::forms::About>,
 }
 
 /// How evaluating a definition spent the budget, for a later request to
@@ -257,6 +260,15 @@ impl Memo {
             return Some(Found::Reached(entry.clone()));
         }
         self.earlier.as_ref()?.find(key).map(Found::Earlier)
+    }
+
+    /// What the module of form definition `symbol` said about it besides its
+    /// value, once it is evaluated.
+    pub(crate) fn about(&self, symbol: &Symbol) -> Option<crate::forms::About> {
+        let key = MemoKey::Symbol(Arc::new(symbol.clone()));
+        match self.find(&key)? {
+            Found::Reached(entry) | Found::Earlier(entry) => entry.about.clone(),
+        }
     }
 
     /// Keep a result this request evaluated, for later requests too when it

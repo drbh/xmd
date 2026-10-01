@@ -1,7 +1,6 @@
 //! How every feature names a symbol: the kind and the one-line detail the
 //! outline, the call hierarchy and completion all show, so the three agree.
 use lang::eval::engine::{Engine, Value};
-use lang::eval::plans::PlanValue;
 use lang::eval::tables::TableValue;
 use lang::eval::{EvalResult, Symbol, SymbolKind};
 use lang::model::Document;
@@ -13,9 +12,7 @@ pub(crate) fn kind(doc: &Document, symbol: &Symbol) -> LspSymbolKind {
         SymbolKind::Section(_) => LspSymbolKind::NAMESPACE,
         SymbolKind::Column(..) => LspSymbolKind::FIELD,
         SymbolKind::Variable(..) => LspSymbolKind::VARIABLE,
-        SymbolKind::Definition(i) if doc.table_of(i).is_some() || doc.plan_of(i).is_some() => {
-            LspSymbolKind::STRUCT
-        }
+        SymbolKind::Definition(i) if doc.grid_of(i).is_some() => LspSymbolKind::STRUCT,
         SymbolKind::Definition(i) if doc.definitions[i].expression => LspSymbolKind::VARIABLE,
         SymbolKind::Definition(_) => LspSymbolKind::CONSTANT,
     }
@@ -49,24 +46,29 @@ pub fn detail(engine: &mut Engine<'_>, doc: &Document, symbol: &Symbol) -> Strin
                 .unwrap_or("Unknown"),
             doc.definitions[doc.tables[t].definition].named.name
         ),
-        SymbolKind::Variable(p, _) => match engine.symbol(symbol) {
-            Ok(v) => format!(
-                "decision variable of {} · {}",
-                doc.definitions[doc.plans[p].definition].named.name,
-                v.display()
-            ),
-            Err(e) => format!("decision variable · {e}"),
-        },
-        SymbolKind::Definition(_) => match engine.symbol(symbol) {
+        SymbolKind::Variable(f, _) => {
+            let formed = &doc.forms[f];
+            match engine.symbol(symbol) {
+                Ok(v) => format!(
+                    "{} of {} · {}",
+                    formed.form.unknown,
+                    doc.definitions[formed.definition].named.name,
+                    v.display()
+                ),
+                Err(e) => format!("{} · {e}", formed.form.unknown),
+            }
+        }
+        // What a form's module says of its definition, when it says it.
+        SymbolKind::Definition(i) => match engine.symbol(symbol) {
             Ok(table) if table.downcast::<TableValue>().is_some() => {
                 format!("table · {}", table.display())
             }
-            Ok(ref value) if let Some(p) = value.downcast::<PlanValue>() => format!(
-                "plan · {} {} · {} variables",
-                p.goal.keyword(),
-                p.objective.display(),
-                p.variables.len()
-            ),
+            Ok(_)
+                if doc.form_of(i).is_some()
+                    && let Some(detail) = engine.about(symbol).and_then(|a| a.detail) =>
+            {
+                detail
+            }
             other => summary(&other),
         },
     }

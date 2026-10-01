@@ -1,9 +1,9 @@
 //! The engine that turns a definition into a value: name resolution over the
 //! environment frames, the request memo, and where a failure is placed. Calls
 //! are in `calls`, the objects only the evaluator builds in `host`, and the
-//! linear forms plans need in `linear`. A definition that is a feature (a
-//! plan, a goal seek, a table) is evaluated by the feature `features`
-//! registers for its kind, never named here. The syntax it reads — the lexer,
+//! linear forms a form's expressions are read as in `linear`. A definition
+//! that is a feature (a form a module declares, a table) is evaluated by the
+//! feature `features` registers for its kind, never named here. The syntax it reads — the lexer,
 //! the expression tree and the built-in vocabulary — lives in `syntax`, and
 //! the value kinds and operators in `values`; both are re-exported here, so
 //! the crate spells them `engine::lex`, `engine::Value` and so on.
@@ -22,6 +22,7 @@ use model::TaskState;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 pub(crate) use syntax::{BinaryOp, Comparison, UnaryOp, relative_date};
 pub(crate) use syntax::{Builtin, Expr, Lexeme, Parser, Tier, lex, sum_scope_at};
@@ -44,6 +45,7 @@ pub trait Bindings: Send + Sync {
 
 /// How much work one evaluation may still do. A module evaluates on an engine
 /// of its own, which inherits the budget rather than being given a fresh one.
+#[derive(Clone, Copy)]
 pub(crate) struct Budget {
     pub(crate) steps: usize,
     pub(crate) calls: usize,
@@ -85,10 +87,10 @@ pub(crate) struct Trace {
     /// Definitions on the value stack.
     symbols: Vec<Symbol>,
     /// Definitions being walked symbolically, separate from the value stack:
-    /// a goal seek is legitimately on both at once.
+    /// a form solving for its own name is legitimately on both at once.
     pub(crate) linear: Vec<Symbol>,
     /// The note and span each nested evaluation belongs to.
-    pub(crate) contexts: Vec<(std::sync::Arc<Path>, Span)>,
+    pub(crate) contexts: Vec<(Arc<Path>, Span)>,
 }
 pub struct Engine<'a> {
     /// The workspace, clock snapshot, link registry and memo this evaluation
@@ -101,16 +103,19 @@ pub struct Engine<'a> {
     pub(crate) failure: Option<EvalFailure>,
     /// The lookup cache `cached` reads: the request's workspace's, which a
     /// module engine running on the request's behalf shares.
-    pub(crate) lookups: std::sync::Arc<values::Store>,
+    pub(crate) lookups: Arc<values::Store>,
     /// Lookup keys read during evaluation, hit or miss, for hovers and
     /// refresh, each with the note text it was read for.
     pub(crate) wanted: Vec<LookupRead>,
     /// In a module engine, the note text whose evaluation called into the
     /// module: what a lookup the module reads is read for.
-    pub(crate) reader: Option<(std::sync::Arc<Path>, Span)>,
+    pub(crate) reader: Option<(Arc<Path>, Span)>,
     pub(crate) time_dependent: bool,
-    /// Decision-column variables met while linearizing a plan.
+    /// Decision-column variables met while reading a form's linear forms.
     pub(crate) row_variables: Vec<RowVariable>,
+    /// What the module of the form definition just evaluated said about it
+    /// besides its value, which the memo keeps with the value.
+    pub(crate) about: Option<crate::forms::About>,
     /// The definition being evaluated, and what it has spent and read so far:
     /// recorded with its result, so a later request can charge itself for it.
     pub(crate) walk: Option<Walk>,
@@ -119,8 +124,8 @@ pub struct Engine<'a> {
     /// to "am I running module code", which decides whether the module-tier
     /// built-ins are names at all.
     module: bool,
-    environment: Option<std::sync::Arc<Workspace>>,
-    pub(crate) expressions: Option<std::sync::Arc<BTreeMap<String, Expr>>>,
+    environment: Option<Arc<Workspace>>,
+    pub(crate) expressions: Option<Arc<BTreeMap<String, Expr>>>,
 }
 /// One level of the environment a name is resolved against. The stack is one
 /// list rather than one per kind, but the order a name is searched in is not
@@ -131,7 +136,7 @@ pub(crate) enum Frame {
     /// A call in progress: its arguments by parameter index, and the function
     /// itself, which names those parameters and carries what it captured.
     Function {
-        function: std::sync::Arc<Function>,
+        function: Arc<Function>,
         arguments: Vec<Value>,
     },
     /// One table row, while a `sum` row expression runs.
@@ -139,7 +144,7 @@ pub(crate) enum Frame {
     /// Names a host resolves lazily: a query's row fields, a module's context.
     /// Taken out of the frame while it answers, so resolving a binding cannot
     /// see itself.
-    Bindings(Option<std::sync::Arc<dyn Bindings>>),
+    Bindings(Option<Arc<dyn Bindings>>),
     /// A named definition, a call, or a dynamic `eval`: nothing below is in
     /// scope. A row survives an `eval`, which still runs inside its row.
     Barrier { rows: bool },
@@ -155,7 +160,8 @@ struct Scope {
 pub(crate) struct RowScope {
     pub(crate) table: String,
     pub(crate) values: BTreeMap<String, Value>,
-    /// Decision columns, mapped to the per-row variable name a plan uses.
+    /// Decision columns, mapped to the per-row unknown a linear reading
+    /// solves for.
     pub(crate) decisions: BTreeMap<String, String>,
 }
 impl<'a> Engine<'a> {
@@ -175,6 +181,7 @@ impl<'a> Engine<'a> {
             reader: None,
             time_dependent: false,
             row_variables: Vec::new(),
+            about: None,
             walk: None,
             module: false,
             environment: None,
@@ -225,7 +232,7 @@ impl<'a> Engine<'a> {
     pub fn mark_time_dependent(&mut self, dependent: bool) {
         self.time_dependent |= dependent;
     }
-    pub fn date(&self, value: &Value) -> EvalResult<NaiveDate> {
+    pub(crate) fn date(&self, value: &Value) -> EvalResult<NaiveDate> {
         self.request
             .clock
             .date(value)
@@ -238,7 +245,7 @@ impl<'a> Engine<'a> {
         &mut self,
         path: &Path,
         expr: &Expr,
-        bindings: std::sync::Arc<dyn Bindings>,
+        bindings: Arc<dyn Bindings>,
     ) -> EvalResult<Value> {
         let height = self.frames.len();
         self.frames.push(Frame::Bindings(Some(bindings)));
@@ -267,18 +274,23 @@ impl<'a> Engine<'a> {
         }
         scope
     }
+    /// The call in scope, if any: the function and its arguments by
+    /// parameter index.
+    fn call_frame(&self) -> Option<(&Arc<Function>, &[Value])> {
+        match &self.frames[self.scope().function?] {
+            Frame::Function {
+                function,
+                arguments,
+            } => Some((function, arguments)),
+            _ => None,
+        }
+    }
     /// A call's locals: its parameters first, then what it captured.
     pub(crate) fn local(&self, name: &str) -> Option<Value> {
         self.local_ref(name).cloned()
     }
     fn local_ref(&self, name: &str) -> Option<&Value> {
-        let Some(Frame::Function {
-            function,
-            arguments,
-        }) = self.scope().function.map(|at| &self.frames[at])
-        else {
-            return None;
-        };
+        let (function, arguments) = self.call_frame()?;
         function
             .params
             .iter()
@@ -294,10 +306,7 @@ impl<'a> Engine<'a> {
     fn local_path(&self, expr: &Expr) -> Option<(&Value, usize)> {
         match expr {
             Expr::Spanned(_, _, inner) => self.local_path(inner).map(|(v, n)| (v, n + 1)),
-            Expr::Param { index, .. } => match self.scope().function.map(|at| &self.frames[at]) {
-                Some(Frame::Function { arguments, .. }) => Some((arguments.get(*index)?, 1)),
-                _ => None,
-            },
+            Expr::Param { index, .. } => Some((self.call_frame()?.1.get(*index)?, 1)),
             Expr::Name(name) if keyword(name).is_none() => Some((self.local_ref(name)?, 1)),
             Expr::Property(record, key) => match self.local_path(record)? {
                 (Value::Record(fields), n) => Some((fields.get(key)?, n + 1)),
@@ -309,13 +318,7 @@ impl<'a> Engine<'a> {
     /// Those locals as a closure captures them: the call's parameters in a
     /// scope inside what the function itself captured.
     fn captured(&self) -> Option<values::Captured> {
-        let Some(Frame::Function {
-            function,
-            arguments,
-        }) = self.scope().function.map(|at| &self.frames[at])
-        else {
-            return None;
-        };
+        let (function, arguments) = self.call_frame()?;
         Some(
             function.captured.with(
                 function
@@ -354,7 +357,7 @@ impl<'a> Engine<'a> {
             arguments.push(value);
         }
     }
-    pub(crate) fn push_call(&mut self, function: std::sync::Arc<Function>, arguments: Vec<Value>) {
+    pub(crate) fn push_call(&mut self, function: Arc<Function>, arguments: Vec<Value>) {
         self.frames.push(Frame::Function {
             function,
             arguments,
@@ -375,13 +378,10 @@ impl<'a> Engine<'a> {
     }
     pub fn eval_at(&mut self, path: &Path, expression: &str, span: Span) -> EvalResult<Value> {
         self.start();
-        let parsed = self
-            .expressions
-            .as_ref()
-            .and_then(|m| m.get(expression))
-            .cloned()
-            .map(Ok)
-            .unwrap_or_else(|| Parser::parse(expression));
+        let parsed = match self.expressions.as_ref().and_then(|m| m.get(expression)) {
+            Some(expr) => Ok(expr.clone()),
+            None => Parser::parse(expression),
+        };
         self.with_context(path, span, |engine| match parsed {
             // A code never outlives the expression it was written in.
             Ok(expr) => engine.expr(path, &expr).map(Value::plain),
@@ -389,8 +389,7 @@ impl<'a> Engine<'a> {
                 let tokens = lex(expression).unwrap_or_default();
                 let bounds = tokens
                     .last()
-                    .map(|t| (t.start, t.end))
-                    .unwrap_or((0, expression.len()));
+                    .map_or((0, expression.len()), |t| (t.start, t.end));
                 engine.refuse(bounds, EvalError::Message(message))
             }
         })
@@ -403,7 +402,7 @@ impl<'a> Engine<'a> {
         span: Span,
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        self.trace.contexts.push((std::sync::Arc::from(path), span));
+        self.trace.contexts.push((Arc::from(path), span));
         let result = f(self);
         self.trace.contexts.pop();
         result
@@ -515,8 +514,9 @@ impl<'a> Engine<'a> {
         let tokens = lex(source).map_err(EvalError::Message)?;
         let mut edits = Vec::new();
         for (i, token) in tokens.iter().enumerate() {
+            let next = tokens.get(i + 1).map(|t| &t.kind);
             if let Lexeme::Name(name) = &token.kind
-                && !matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Left))
+                && !matches!(next, Some(Lexeme::Left))
                 && (i == 0 || !matches!(tokens[i - 1].kind, Lexeme::Dot))
                 && !matches!(keyword(name), Some(Value::Bool(_)))
                 && sum_scope_at(source, token.start).is_none()
@@ -526,7 +526,7 @@ impl<'a> Engine<'a> {
                     continue;
                 }
                 // For properties substitute the complete access, not an object's display text.
-                let end = if matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Dot)) {
+                let end = if matches!(next, Some(Lexeme::Dot)) {
                     tokens.get(i + 2).map(|t| t.end).unwrap_or(token.end)
                 } else {
                     token.end
@@ -581,9 +581,9 @@ impl<'a> Engine<'a> {
         self.named(path, name)
     }
     pub fn symbol(&mut self, symbol: &Symbol) -> EvalResult<Value> {
-        self.shared_symbol(std::sync::Arc::new(symbol.clone()))
+        self.shared_symbol(Arc::new(symbol.clone()))
     }
-    fn shared_symbol(&mut self, symbol: std::sync::Arc<Symbol>) -> EvalResult<Value> {
+    fn shared_symbol(&mut self, symbol: Arc<Symbol>) -> EvalResult<Value> {
         self.start();
         let key = MemoKey::Symbol(symbol.clone());
         if let Some(walk) = &mut self.walk {
@@ -619,20 +619,10 @@ impl<'a> Engine<'a> {
         if let Some(start) = self.trace.symbols.iter().position(|s| s == symbol) {
             let mut related = self.trace.symbols[start..].to_vec();
             related.push(symbol.clone());
-            let message = EvalError::Cycle {
-                names: related
-                    .iter()
-                    .map(|s| self.request.workspace.named(s).name.clone())
-                    .collect(),
-            };
-            self.failure = Some(EvalFailure {
-                path: symbol.path.clone(),
-                span: self.request.workspace.named(symbol).span,
-                message: message.clone(),
-                related,
+            let span = self.request.workspace.named(symbol).span;
+            return self.cycle(&symbol.path, span, related, |names| EvalError::Cycle {
+                names,
             });
-            self.contextual();
-            return Err(message);
         }
         if self.trace.symbols.len() >= DEPTH_LIMIT {
             self.contextual();
@@ -650,7 +640,9 @@ impl<'a> Engine<'a> {
         self.trace.symbols.push(symbol.clone());
         // Named definitions never capture a caller's frames.
         let height = self.barrier(false);
+        self.about = None;
         let result = self.evaluate(symbol);
+        let about = self.about.take().filter(|_| result.is_ok());
         self.unwind(height);
         self.trace.symbols.pop();
         let walk = std::mem::replace(&mut self.walk, caller).expect("pushed above");
@@ -669,11 +661,35 @@ impl<'a> Engine<'a> {
             time_dependent: self.time_dependent,
             contextual,
             cost,
+            about,
         };
         self.request.memo.keep(key, entry);
         self.failure = previous_failure.or(self.failure.take());
         self.time_dependent |= previous_time;
         result
+    }
+    /// Fail with the cycle through `related`, reported at `span` in `path`
+    /// and naming each definition it passes.
+    fn cycle<T>(
+        &mut self,
+        path: &Path,
+        span: Span,
+        related: Vec<Symbol>,
+        cycle: fn(Vec<String>) -> EvalError,
+    ) -> EvalResult<T> {
+        let names = related
+            .iter()
+            .map(|s| self.request.workspace.named(s).name.clone())
+            .collect();
+        let message = cycle(names);
+        self.failure = Some(EvalFailure {
+            path: path.into(),
+            span,
+            message: message.clone(),
+            related,
+        });
+        self.contextual();
+        Err(message)
     }
     /// Read a result the memo holds as evaluating it would have: its failure,
     /// lookups, clock reading and context.
@@ -701,12 +717,11 @@ impl<'a> Engine<'a> {
                     self.eval_at(&symbol.path, &def.source, def.expression_span(doc))
                         .map(|v| features::adopt(v, symbol, doc))
                 } else {
-                    literal(&def.source).map(|v| match v {
-                        Value::Resource(mut r) => {
+                    literal(&def.source).map(|mut v| {
+                        if let Value::Resource(r) = &mut v {
                             r.origin = Some(symbol.path.clone());
-                            Value::Resource(r)
                         }
-                        other => other,
+                        v
                     })
                 }
             }
@@ -719,27 +734,21 @@ impl<'a> Engine<'a> {
             SymbolKind::Column(_, _) => Err(EvalError::Message(
                 "A column needs a row context, e.g. sum(table, column)".into(),
             )),
-            // A plan's unknown: a property of the solved plan, which the
-            // plan's definition evaluates to.
-            SymbolKind::Variable(plan, name) => {
-                let name = doc.plans[plan].names[name].name.clone();
-                let definition = symbol.sibling(SymbolKind::Definition(doc.plans[plan].definition));
+            // A name a form solves for: that field of the value its
+            // definition evaluates to.
+            SymbolKind::Variable(form, name) => {
+                let formed = &doc.forms[form];
+                let name = formed.names[name].name.clone();
+                let definition = symbol.sibling(SymbolKind::Definition(formed.definition));
                 self.symbol(&definition)
-                    .and_then(|value| match value.host() {
-                        Some(plan) => plan.property(&name),
-                        None => Err(EvalError::Expected("a plan")),
-                    })
+                    .and_then(|value| self.property(&value, &name))
             }
         }
     }
     /// One node, one dispatch: every kind of expression names the method that
     /// answers it.
     pub(crate) fn expr(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
-        self.budget.steps += 1;
-        if self.budget.steps > self.budget.step_limit {
-            self.contextual();
-            return self.refuse(expr.bounds(), EvalError::StepLimit);
-        }
+        self.step(expr)?;
         match expr {
             // A span is a node of its own, counted and checked as one, but
             // stepped through here rather than by a call of its own: most
@@ -747,20 +756,21 @@ impl<'a> Engine<'a> {
             Expr::Spanned(start, end, inner) => {
                 let result = match &**inner {
                     Expr::Spanned(..) => self.expr(path, inner),
-                    node => {
-                        self.budget.steps += 1;
-                        if self.budget.steps > self.budget.step_limit {
-                            self.contextual();
-                            self.refuse(node.bounds(), EvalError::StepLimit)
-                        } else {
-                            self.node(path, node)
-                        }
-                    }
+                    node => self.step(node).and_then(|()| self.node(path, node)),
                 };
                 self.within((*start, *end), result)
             }
             node => self.node(path, node),
         }
+    }
+    /// Count one node against the step budget.
+    fn step(&mut self, node: &Expr) -> EvalResult<()> {
+        self.budget.steps += 1;
+        if self.budget.steps > self.budget.step_limit {
+            self.contextual();
+            return self.refuse(node.bounds(), EvalError::StepLimit);
+        }
+        Ok(())
     }
     /// One node that is not a span, its step already counted.
     fn node(&mut self, path: &Path, expr: &Expr) -> EvalResult<Value> {
@@ -835,12 +845,7 @@ impl<'a> Engine<'a> {
     /// Values are capped wherever one is built, not only where one is
     /// returned.
     pub(crate) fn sized(&mut self, value: Value) -> EvalResult<Value> {
-        let limit = self.budget.size_limit;
-        if values::Size::of(&value, limit).within(limit) {
-            Ok(value)
-        } else {
-            Err(EvalError::LimitExceeded(values::Limit::Value))
-        }
+        self.budget.size_limit.check(&value).map(|()| value)
     }
     /// A lambda captures the names it reads: the enclosing row scope and
     /// locals, then whatever bindings answer for its remaining free names.
@@ -850,7 +855,7 @@ impl<'a> Engine<'a> {
         expr: &Expr,
         params: &[String],
         defaults: &[Expr],
-        body: &std::sync::Arc<Expr>,
+        body: &Arc<Expr>,
     ) -> EvalResult<Value> {
         let locals = self.captured().unwrap_or_default();
         // A row's columns sit below the locals, which win over them.
@@ -876,21 +881,19 @@ impl<'a> Engine<'a> {
             }
             captured = captured.with(bound);
         }
-        Ok(Value::Function(std::sync::Arc::new(Function {
+        Ok(Value::Function(Arc::new(Function {
             environment: self
                 .environment
                 .clone()
-                .map(|workspace| workspace as std::sync::Arc<dyn std::any::Any + Send + Sync>),
+                .map(|workspace| workspace as Arc<dyn std::any::Any + Send + Sync>),
             expressions: self.expressions.clone(),
             params: params.to_vec(),
             defaults: defaults.to_vec(),
             body: body.clone(),
             // The note the enclosing call runs in, shared, when it is this one.
-            path: match self.scope().function.map(|at| &self.frames[at]) {
-                Some(Frame::Function { function, .. }) if *function.path == *path => {
-                    function.path.clone()
-                }
-                _ => std::sync::Arc::from(path),
+            path: match self.call_frame() {
+                Some((function, _)) if *function.path == *path => function.path.clone(),
+                _ => Arc::from(path),
             },
             source: self.trace.contexts.last().cloned(),
             captured,
@@ -899,10 +902,7 @@ impl<'a> Engine<'a> {
     /// A bare name: the literals it may spell, then locals, bindings, the row
     /// scope, and finally the workspace.
     fn name(&mut self, path: &Path, n: &str) -> EvalResult<Value> {
-        if let Some(value) = keyword(n) {
-            return Ok(value);
-        }
-        if let Some(value) = self.local(n) {
+        if let Some(value) = keyword(n).or_else(|| self.local(n)) {
             return Ok(value);
         }
         if let Some(value) = self.binding(n) {
@@ -924,12 +924,12 @@ impl<'a> Engine<'a> {
             })
     }
     /// A lambda parameter, read straight out of the call's arguments. Outside
-    /// its call — a body walked symbolically by a plan — the name still
-    /// decides.
+    /// its call — a body walked symbolically by a linear reading — the name
+    /// still decides.
     fn param(&mut self, path: &Path, name: &str, index: usize) -> EvalResult<Value> {
-        if let Some(Frame::Function { arguments, .. }) =
-            self.scope().function.map(|at| &self.frames[at])
-            && let Some(value) = arguments.get(index)
+        if let Some(value) = self
+            .call_frame()
+            .and_then(|(_, arguments)| arguments.get(index))
         {
             return Ok(value.clone());
         }
@@ -938,10 +938,9 @@ impl<'a> Engine<'a> {
     fn binary_expr(&mut self, path: &Path, op: BinaryOp, a: &Expr, b: &Expr) -> EvalResult<Value> {
         let a = self.expr(path, a)?;
         // A decided `and` or `or` never evaluates its right-hand side.
-        if op == BinaryOp::And && a == Value::Bool(false) {
-            return Ok(a);
-        }
-        if op == BinaryOp::Or && a == Value::Bool(true) {
+        if (op == BinaryOp::And && a == Value::Bool(false))
+            || (op == BinaryOp::Or && a == Value::Bool(true))
+        {
             return Ok(a);
         }
         let right = self.expr(path, b)?;
@@ -983,11 +982,7 @@ impl<'a> Engine<'a> {
             }
             #[cfg(not(target_arch = "wasm32"))]
             return Ok(Value::Bool(
-                resource
-                    .url(path)?
-                    .to_file_path()
-                    .map(|p| p.exists())
-                    .unwrap_or(false),
+                resource.url(path)?.to_file_path().is_ok_and(|p| p.exists()),
             ));
         }
         let time_dependent = self.request.links.time_dependent(
@@ -1017,6 +1012,7 @@ impl<'a> Engine<'a> {
                 time_dependent,
                 contextual: false,
                 cost: Default::default(),
+                about: None,
             },
         );
         value
@@ -1035,11 +1031,8 @@ impl<'a> Engine<'a> {
     }
     /// A module's own evaluation: immutable inputs only, including resource
     /// properties, no link features, and the module-tier built-ins answer.
-    pub(crate) fn for_module(workspace: &'a Workspace, now: DateTime<FixedOffset>) -> Self {
-        Self::for_module_sharing(workspace, now, crate::memo::Memo::default())
-    }
-    /// The same, sharing `memo`.
-    pub(crate) fn for_module_sharing(
+    /// It shares `memo`.
+    pub(crate) fn for_module(
         workspace: &'a Workspace,
         now: DateTime<FixedOffset>,
         memo: crate::memo::Memo,
@@ -1056,7 +1049,7 @@ impl<'a> Engine<'a> {
     }
     /// The note text being evaluated: a module engine's is its caller's,
     /// since its own text is the module's.
-    pub(crate) fn reading_for(&self) -> Option<(std::sync::Arc<Path>, Span)> {
+    pub(crate) fn reading_for(&self) -> Option<(Arc<Path>, Span)> {
         if self.module {
             self.reader.clone()
         } else {
@@ -1068,14 +1061,11 @@ impl<'a> Engine<'a> {
     pub(crate) fn module_code(&self, path: &Path) -> bool {
         self.module || modules::is_module_path(path)
     }
-    pub(crate) fn with_expressions(
-        mut self,
-        expressions: std::sync::Arc<BTreeMap<String, Expr>>,
-    ) -> Self {
+    pub(crate) fn with_expressions(mut self, expressions: Arc<BTreeMap<String, Expr>>) -> Self {
         self.expressions = Some(expressions);
         self
     }
-    pub(crate) fn with_environment(mut self, environment: std::sync::Arc<Workspace>) -> Self {
+    pub(crate) fn with_environment(mut self, environment: Arc<Workspace>) -> Self {
         self.environment = Some(environment);
         self
     }
@@ -1083,17 +1073,12 @@ impl<'a> Engine<'a> {
     /// to: its checkbox is checked, or it has subitems and every one is done.
     pub fn task_done(&self, path: &Path, i: usize) -> bool {
         let doc = &self.request.workspace.documents[path];
-        let children: Vec<_> = doc
-            .tasks
-            .iter()
-            .enumerate()
-            .filter(|(_, t)| t.parent == Some(i))
-            .map(|(j, _)| j)
-            .collect();
-        if children.is_empty() {
-            doc.tasks[i].state == TaskState::Done
-        } else {
-            children.into_iter().all(|j| self.task_done(path, j))
+        let mut children = (0..doc.tasks.len())
+            .filter(|&j| doc.tasks[j].parent == Some(i))
+            .peekable();
+        match children.peek() {
+            None => doc.tasks[i].state == TaskState::Done,
+            Some(_) => children.all(|j| self.task_done(path, j)),
         }
     }
     /// The conditions checklist item `i` still waits on: those of its
@@ -1106,7 +1091,7 @@ impl<'a> Engine<'a> {
     /// The conditions one dependencies attribute does not meet yet: on
     /// checklist item `item`, with its cycles checked as [`Self::blocked`]
     /// checks them.
-    pub fn unmet(
+    pub(crate) fn unmet(
         &mut self,
         path: &Path,
         item: Option<usize>,
@@ -1146,25 +1131,12 @@ impl<'a> Engine<'a> {
                 })
                 .map(|(p, index)| Symbol::new(p.clone(), SymbolKind::Task(*index)))
                 .collect();
-            let message = EvalError::TaskCycle {
-                names: related
-                    .iter()
-                    .map(|s| self.request.workspace.named(s).name.clone())
-                    .collect(),
-            };
             let span = self
                 .dependencies(path, i)
                 .first()
                 .map(|(_, a)| a.value_span)
                 .unwrap_or(self.request.workspace.documents[path].tasks[i].checkbox);
-            self.failure = Some(EvalFailure {
-                path: path.into(),
-                span,
-                message: message.clone(),
-                related,
-            });
-            self.contextual();
-            return Err(message);
+            return self.cycle(path, span, related, |names| EvalError::TaskCycle { names });
         }
         if stack.len() > 64 {
             self.contextual();
@@ -1262,7 +1234,7 @@ impl<'a> Engine<'a> {
     /// An attribute's value read as its kind reads it, unchecked: relative
     /// or evaluated as a date for a time, the date a calendar date writes,
     /// the expression's value for any other expression, else its text.
-    pub fn evaluated(
+    pub(crate) fn evaluated(
         &mut self,
         path: &Path,
         holds: syntax::AttributeValue,

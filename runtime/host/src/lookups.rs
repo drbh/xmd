@@ -20,8 +20,8 @@ use std::sync::Arc;
 /// that reads it.
 fn wanted(
     ws: &Workspace,
-    now: DateTime<chrono::FixedOffset>,
-    only: Option<&std::path::Path>,
+    now: DateTime<FixedOffset>,
+    only: Option<&Path>,
 ) -> std::collections::BTreeSet<LookupKey> {
     let mut engine = lang::eval::engine::Engine::at(ws, now);
     let records = catalog::Records::default();
@@ -56,16 +56,9 @@ async fn run(command: &str, fills: &[(&str, String)]) -> Result<serde_json::Valu
 }
 async fn get(url: &str) -> Result<String, String> {
     let mut child = tokio::process::Command::new("curl");
-    child.args([
-        "-sS",
-        "--fail",
-        "-L",
-        "--max-time",
-        "15",
-        "-A",
-        "Mozilla/5.0 xmd",
-        url,
-    ]);
+    child
+        .args(["-sS", "--fail", "-L", "--max-time", "15"])
+        .args(["-A", "Mozilla/5.0 xmd", url]);
     let stdout = output(&mut child, "Request timed out", "curl", "Request").await?;
     Ok(String::from_utf8_lossy(&stdout).into_owned())
 }
@@ -183,7 +176,7 @@ async fn run_provider(
 /// errors.
 pub(crate) async fn refresh(
     ws: &mut Workspace,
-    now: DateTime<chrono::FixedOffset>,
+    now: DateTime<FixedOffset>,
     only: Option<&Path>,
 ) -> Vec<String> {
     let root = ws.root().to_path_buf();

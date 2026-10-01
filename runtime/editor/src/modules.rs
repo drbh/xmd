@@ -14,8 +14,7 @@ use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
 use lang::eval::{EvalError, ToValue, record};
 use lang::model::{Document, LineIndex};
 use lsp_types::{
-    Diagnostic, DiagnosticSeverity, Hover, HoverContents, MarkupContent, MarkupKind,
-    NumberOrString, Position, Range, TextEdit,
+    Diagnostic, DiagnosticSeverity, Hover, HoverContents, NumberOrString, Position, Range, TextEdit,
 };
 use std::{
     collections::BTreeMap,
@@ -34,7 +33,7 @@ record! {
 /// Everything a feature module's hook is handed. Built once per call, so the
 /// context a module sees is one typed value rather than a record assembled
 /// field by field at each call site.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct HookInput {
     /// What every hook shares: `today`, `midnight`, `document`, `module`.
     shared: BTreeMap<String, Value>,
@@ -43,9 +42,6 @@ pub(crate) struct HookInput {
     position: Option<Position>,
 }
 impl HookInput {
-    const RANGE: &'static str = "range";
-    const CAPABILITIES: &'static str = "capabilities";
-    const POSITION: &'static str = "position";
     fn with_range(mut self, range: Range) -> Self {
         self.range = Some(range);
         self
@@ -65,11 +61,11 @@ impl ToValue for HookInput {
         // The optional ones are absent, not null, when the call has no use
         // for them: a hook tells them apart with `has`.
         if let Some(range) = self.range {
-            fields.insert(Self::RANGE.into(), from_json(&serde_json::json!(range)));
+            fields.insert("range".into(), from_json(&serde_json::json!(range)));
         }
         if let Some(capabilities) = self.capabilities {
             fields.insert(
-                Self::CAPABILITIES.into(),
+                "capabilities".into(),
                 CapabilitiesInput {
                     refresh: capabilities.refresh,
                     views: capabilities.views,
@@ -78,10 +74,7 @@ impl ToValue for HookInput {
             );
         }
         if let Some(position) = self.position {
-            fields.insert(
-                Self::POSITION.into(),
-                from_json(&serde_json::json!(position)),
-            );
+            fields.insert("position".into(), from_json(&serde_json::json!(position)));
         }
         Value::record(fields)
     }
@@ -104,14 +97,7 @@ impl TryFrom<(&Bounds<'_>, Value)> for InlayHint {
             serde_json::from_value::<Position>(json(at)?).map_err(|e| e.to_string())?
         } else {
             let line = fields.get("line").ok_or("Inlay needs at or line")?;
-            let line = json(line)?
-                .as_u64()
-                .and_then(|n| usize::try_from(n).ok())
-                .ok_or("Inlay line must be a nonnegative integer")?;
-            if line >= bounds.lines {
-                return Err("Inlay line is outside the document".into());
-            }
-            bounds.document.line_end(line)
+            bounds.document.line_end(bounds.line(line, "Inlay")?)
         };
         bounds.validate(Range::new(position, position))?;
         let Some(Value::Text(label)) = fields.get("label") else {
@@ -133,37 +119,29 @@ impl TryFrom<(&Bounds<'_>, Value)> for InlayHint {
 /// Decode one action a module proposed for a line, before its capabilities
 /// and source are checked.
 fn proposal(bounds: &Bounds<'_>, value: Value) -> Result<Control, String> {
-    {
-        let Value::Record(fields) = value else {
-            return Err("Each action must be a record".into());
-        };
-        let line = json(fields.get("line").ok_or("Action needs a line")?)?
-            .as_u64()
-            .and_then(|n| usize::try_from(n).ok())
-            .ok_or("Action line must be a nonnegative integer")?;
-        if line >= bounds.lines {
-            return Err("Action line is outside the document".into());
-        }
-        let Some(Value::Text(title)) = fields.get("title") else {
-            return Err("Action title must be text".into());
-        };
-        let action: Action =
-            serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
-                .map_err(|e| e.to_string())?;
-        let disabled = match fields.get("disabled") {
-            None | Some(Value::Null) => None,
-            Some(Value::Text(reason)) => Some(reason.clone()),
-            Some(_) => return Err("Action disabled must be text or null".into()),
-        };
-        Ok(Control {
-            proposal: Proposal {
-                line,
-                title: title.clone(),
-                action,
-            },
-            disabled,
-        })
-    }
+    let Value::Record(fields) = value else {
+        return Err("Each action must be a record".into());
+    };
+    let line = bounds.line(fields.get("line").ok_or("Action needs a line")?, "Action")?;
+    let Some(Value::Text(title)) = fields.get("title") else {
+        return Err("Action title must be text".into());
+    };
+    let action: Action =
+        serde_json::from_value(json(fields.get("action").ok_or("Missing action")?)?)
+            .map_err(|e| e.to_string())?;
+    let disabled = match fields.get("disabled") {
+        None | Some(Value::Null) => None,
+        Some(Value::Text(reason)) => Some(reason.clone()),
+        Some(_) => return Err("Action disabled must be text or null".into()),
+    };
+    Ok(Control {
+        proposal: Proposal {
+            line,
+            title: title.clone(),
+            action,
+        },
+        disabled,
+    })
 }
 
 /// One hover a module proposed, before its range is validated.
@@ -205,9 +183,7 @@ pub(crate) fn input(
 ) -> Result<HookInput, String> {
     Ok(HookInput {
         shared: catalog::feature_context(&request.records, engine, module, path, false)?,
-        range: None,
-        capabilities: None,
-        position: None,
+        ..HookInput::default()
     })
 }
 
@@ -228,6 +204,17 @@ impl<'a> Bounds<'a> {
     }
     fn of(request: &crate::Request<'a>, path: &Path) -> Self {
         Self::new(&request.workspace().documents()[path])
+    }
+    /// The row a `what` names with `line`, while the note has it.
+    fn line(&self, line: &Value, what: &str) -> Result<usize, String> {
+        let line = json(line)?
+            .as_u64()
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or(format!("{what} line must be a nonnegative integer"))?;
+        if line >= self.lines {
+            return Err(format!("{what} line is outside the document"));
+        }
+        Ok(line)
     }
     /// Whether `range` lies within the note on UTF-16 boundaries: what
     /// applying an edit over it would check.
@@ -376,10 +363,10 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
                 .answers
                 .call(module, Hook::TimeDependent, &input, request.now());
             if answer? == Value::Bool(true) {
-                context.mark_time_dependent();
+                context.engine.mark_time_dependent(true);
             }
         } else if module.live {
-            context.mark_time_dependent();
+            context.engine.mark_time_dependent(true);
         }
         // Whether labels move with the clock is decided above; the labels
         // themselves never change that.
@@ -457,14 +444,7 @@ pub(crate) fn control_problems(
     module: &Module,
     controls: Result<BTreeMap<usize, Result<Vec<Control>, String>>, String>,
 ) -> Vec<Diagnostic> {
-    let warning = |range: Range, message: String| Diagnostic {
-        range,
-        severity: Some(DiagnosticSeverity::WARNING),
-        source: Some("xmd".into()),
-        code: Some(NumberOrString::String("module".into())),
-        message,
-        ..Default::default()
-    };
+    let warning = |range, message| problem(DiagnosticSeverity::WARNING, range, message);
     match controls {
         // The error already names the module and hook.
         Err(error) => vec![warning(Range::default(), error)],
@@ -497,15 +477,24 @@ pub(crate) fn diagnostics(
         Ok(diagnostic)
     })
     .unwrap_or_else(|error| {
-        vec![Diagnostic {
-            range: Range::default(),
-            severity: Some(DiagnosticSeverity::ERROR),
-            source: Some("xmd".into()),
-            code: Some(NumberOrString::String("module".into())),
-            message: format!("{}: {error}", module.id),
-            ..Default::default()
-        }]
+        let message = format!("{}: {error}", module.id);
+        vec![problem(
+            DiagnosticSeverity::ERROR,
+            Range::default(),
+            message,
+        )]
     })
+}
+/// A module's own failure, as a diagnostic of the `module` code.
+fn problem(severity: DiagnosticSeverity, range: Range, message: String) -> Diagnostic {
+    Diagnostic {
+        range,
+        severity: Some(severity),
+        source: Some("xmd".into()),
+        code: Some(NumberOrString::String("module".into())),
+        message,
+        ..Default::default()
+    }
 }
 /// The module's hover at `at`, handed in as `ctx.position`: one it words
 /// first, or with `fallback`, one it words for where the editor's own hover
@@ -536,10 +525,7 @@ pub(crate) fn hover(
     .find(|hover| hover.fallback == fallback && at >= hover.range.start && at <= hover.range.end)
     .map(|hover| Hover {
         range: Some(hover.range),
-        contents: HoverContents::Markup(MarkupContent {
-            kind: MarkupKind::Markdown,
-            value: hover.contents,
-        }),
+        contents: HoverContents::Markup(analysis::markup(hover.contents)),
     })
 }
 /// The outline entries a module adds, each checked against the note.
@@ -563,7 +549,9 @@ pub(crate) fn symbols(
             detail: text("detail").unwrap_or_default(),
             kind: match text("kind") {
                 None => lsp_types::SymbolKind::NAMESPACE,
-                Some(kind) => symbol_kind(&kind).ok_or(format!("Unknown symbol kind '{kind}'"))?,
+                Some(kind) => {
+                    lsp_kind(SYMBOL_KINDS, &kind).ok_or(format!("Unknown symbol kind '{kind}'"))?
+                }
             },
             line: row,
             end_line: line("end_line").unwrap_or(row + 1),
@@ -572,54 +560,27 @@ pub(crate) fn symbols(
     })
     .unwrap_or_default()
 }
-/// An LSP symbol kind by its snake-case name.
-fn symbol_kind(name: &str) -> Option<lsp_types::SymbolKind> {
-    use lsp_types::SymbolKind as K;
-    Some(match name {
-        "file" => K::FILE,
-        "module" => K::MODULE,
-        "namespace" => K::NAMESPACE,
-        "package" => K::PACKAGE,
-        "class" => K::CLASS,
-        "method" => K::METHOD,
-        "property" => K::PROPERTY,
-        "field" => K::FIELD,
-        "constructor" => K::CONSTRUCTOR,
-        "enum" => K::ENUM,
-        "interface" => K::INTERFACE,
-        "function" => K::FUNCTION,
-        "variable" => K::VARIABLE,
-        "constant" => K::CONSTANT,
-        "string" => K::STRING,
-        "number" => K::NUMBER,
-        "boolean" => K::BOOLEAN,
-        "array" => K::ARRAY,
-        "object" => K::OBJECT,
-        "key" => K::KEY,
-        "null" => K::NULL,
-        "enum_member" => K::ENUM_MEMBER,
-        "struct" => K::STRUCT,
-        "event" => K::EVENT,
-        "operator" => K::OPERATOR,
-        "type_parameter" => K::TYPE_PARAMETER,
-        _ => return None,
-    })
+/// An LSP enum by its snake-case name, among `names` listed in protocol
+/// order from 1.
+fn lsp_kind<T: serde::de::DeserializeOwned>(names: &str, name: &str) -> Option<T> {
+    let index = names.split_whitespace().position(|known| known == name)?;
+    serde_json::from_value((index + 1).into()).ok()
 }
-/// One completion a module offers, before it is given the word it replaces.
-pub(crate) struct Offered {
-    pub(crate) label: String,
-    pub(crate) insert: String,
-    pub(crate) detail: Option<String>,
-    pub(crate) kind: Option<lsp_types::CompletionItemKind>,
-}
-/// What a module offers at `position`: `None` when it leaves the position
-/// to the editor, or fails.
+const SYMBOL_KINDS: &str = "file module namespace package class method property field \
+    constructor enum interface function variable constant string number boolean array object \
+    key null enum_member struct event operator type_parameter";
+const COMPLETION_KINDS: &str = "text method function constructor field variable class \
+    interface module property unit value enum keyword snippet color file reference folder \
+    enum_member constant struct event operator type_parameter";
+/// What a module offers at `position`, each item replacing `replacement`:
+/// `None` when it leaves the position to the editor, or fails.
 pub(crate) fn completions(
     module: &Module,
     request: &crate::Request<'_>,
     path: &Path,
     position: Position,
-) -> Option<Vec<Offered>> {
+    replacement: Range,
+) -> Option<Vec<lsp_types::CompletionItem>> {
     if !module.has(Hook::Completions) {
         return None;
     }
@@ -639,49 +600,19 @@ pub(crate) fn completions(
             let item = json(item).ok()?;
             let text = |key: &str| item[key].as_str().map(str::to_owned);
             let label = text("label")?;
-            Some(Offered {
-                insert: text("insert").unwrap_or_else(|| label.clone()),
+            let insert = text("insert").unwrap_or_else(|| label.clone());
+            Some(lsp_types::CompletionItem {
                 label,
                 detail: text("detail"),
                 kind: match text("kind") {
                     None => None,
-                    Some(kind) => Some(completion_kind(&kind)?),
+                    Some(kind) => Some(lsp_kind(COMPLETION_KINDS, &kind)?),
                 },
+                text_edit: crate::completion::replace(replacement, insert),
+                ..Default::default()
             })
         })
         .collect()
-}
-/// An LSP completion kind by its snake-case name.
-fn completion_kind(name: &str) -> Option<lsp_types::CompletionItemKind> {
-    use lsp_types::CompletionItemKind as K;
-    Some(match name {
-        "text" => K::TEXT,
-        "method" => K::METHOD,
-        "function" => K::FUNCTION,
-        "constructor" => K::CONSTRUCTOR,
-        "field" => K::FIELD,
-        "variable" => K::VARIABLE,
-        "class" => K::CLASS,
-        "interface" => K::INTERFACE,
-        "module" => K::MODULE,
-        "property" => K::PROPERTY,
-        "unit" => K::UNIT,
-        "value" => K::VALUE,
-        "enum" => K::ENUM,
-        "keyword" => K::KEYWORD,
-        "snippet" => K::SNIPPET,
-        "color" => K::COLOR,
-        "file" => K::FILE,
-        "reference" => K::REFERENCE,
-        "folder" => K::FOLDER,
-        "enum_member" => K::ENUM_MEMBER,
-        "constant" => K::CONSTANT,
-        "struct" => K::STRUCT,
-        "event" => K::EVENT,
-        "operator" => K::OPERATOR,
-        "type_parameter" => K::TYPE_PARAMETER,
-        _ => return None,
-    })
 }
 /// The edits formatting makes; `at` is where a `|` was just typed when the
 /// note is formatted as it is typed.
@@ -764,10 +695,7 @@ fn invocation<'a>(
             module,
             ..
         } => {
-            let (path, doc) = commands::document(request, document)?;
-            if *row >= doc.line_count() || doc.line(*row) != expected {
-                return Err(SOURCE_CHANGED.into());
-            }
+            let (path, _) = commands::row_document(request, document, *row, expected)?;
             (path, module, None)
         }
         _ => return Err("Expected a module invocation".into()),
@@ -818,5 +746,27 @@ fn refusal(error: EvalError) -> String {
             source.to_string()
         }
         _ => error.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lsp_types::{CompletionItemKind, SymbolKind};
+
+    /// The kind names are the protocol's, in its order.
+    #[test]
+    fn kinds_are_named_in_protocol_order() {
+        let symbol = |name| lsp_kind::<SymbolKind>(SYMBOL_KINDS, name);
+        assert_eq!(symbol("file"), Some(SymbolKind::FILE));
+        assert_eq!(symbol("enum_member"), Some(SymbolKind::ENUM_MEMBER));
+        assert_eq!(symbol("type_parameter"), Some(SymbolKind::TYPE_PARAMETER));
+        assert_eq!(symbol("File"), None);
+        let completion = |name| lsp_kind::<CompletionItemKind>(COMPLETION_KINDS, name);
+        assert_eq!(completion("text"), Some(CompletionItemKind::TEXT));
+        assert_eq!(
+            completion("type_parameter"),
+            Some(CompletionItemKind::TYPE_PARAMETER)
+        );
     }
 }

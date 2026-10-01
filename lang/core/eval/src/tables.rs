@@ -191,12 +191,7 @@ fn table_value(engine: &mut Engine<'_>, symbol: &Symbol, table: &Table) -> EvalR
 
 /// `sum(…)` with other than a single list: the row sum over a table, as
 /// `features` registers it for [`Builtin::Sum`].
-pub(crate) fn call_sum(
-    engine: &mut Engine<'_>,
-    path: &Path,
-    _: Builtin,
-    args: &[Expr],
-) -> EvalResult<Value> {
+pub(crate) fn call_sum(engine: &mut Engine<'_>, path: &Path, args: &[Expr]) -> EvalResult<Value> {
     engine.sum(path, args).map(|(value, _)| value)
 }
 

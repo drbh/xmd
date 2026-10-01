@@ -119,7 +119,8 @@ fn functions() -> String {
          library, `lang/stdlib/prelude.xmd`, from their `//` comments",
     );
     let workspace = lang::eval::Workspace::new(vec![]);
-    let declared = workspace.modules().recognizers().attributes;
+    let recognizers = workspace.modules().recognizers();
+    let declared = recognizers.attributes;
     let rows = BUILTINS
         .iter()
         .map(|s: &Signature| Row {
@@ -130,6 +131,15 @@ fn functions() -> String {
             example: s.example,
             tier: s.tier,
         })
+        // A form a bundled module declares is written like a built-in.
+        .chain(recognizers.forms.iter().map(|f| Row {
+            name: f.name.clone(),
+            params: f.params.iter().map(String::as_str).collect(),
+            result: &f.returns,
+            documentation: &f.documentation,
+            example: &f.example,
+            tier: Tier::Note,
+        }))
         .chain(declared.iter().map(|d| Row {
             name: format!("@{}", d.key),
             params: d.params.iter().map(String::as_str).collect(),
@@ -406,7 +416,11 @@ fn contract() -> String {
             record.name, record.doc
         )
         .unwrap();
-        for (field, doc) in record.fields {
+        for (field, doc) in record
+            .fields
+            .iter()
+            .map(|f| f.split_once(": ").expect("name: meaning"))
+        {
             writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
         }
     }
@@ -474,7 +488,10 @@ fn contract() -> String {
                 "\n#### {title}\n\n| field | what it is |\n| --- | --- |\n"
             )
             .unwrap();
-            for (field, doc) in fields {
+            for (field, doc) in fields
+                .iter()
+                .map(|f| f.split_once(": ").expect("name: meaning"))
+            {
                 writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
             }
         }

@@ -1,6 +1,6 @@
 ### 0 cli render bakery.x.md --format text
 $ xmd render bakery.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
-exit 0
+exit 1
 --- stdout
 [400]:flour_stock
 [bakery] := maximize($3 * bagels + $1.25 * doughnuts)
@@ -10,16 +10,106 @@ exit 0
 | minimum | bagels >= 12 |
 | doughnuts_min | doughnuts >= 14 |
 Bake [bakery.bagels] for [bakery].
+--- stderr
+<root>/bakery.x.md:2:13: error: Unknown name 'maximize'
+<root>/bakery.x.md:2:27: error: Unknown name 'bagels'
+<root>/bakery.x.md:2:44: error: Unknown name 'doughnuts'
+xmd: 3 error(s) while rendering
 
 ### 1 cli query bakery.x.md diagnostics --json
 $ xmd query bakery.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[]
+[
+  {
+    "anchor": {
+      "character": 53,
+      "line": 1
+    },
+    "code": "unknown-name",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 1,
+    "message": "Unknown name 'maximize'",
+    "severity": "error",
+    "source": {
+      "line": 2,
+      "path": "<root>/bakery.x.md",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 1
+        },
+        "start": {
+          "character": 12,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/bakery.x.md#L2"
+    },
+    "title": "Unknown name 'maximize'"
+  },
+  {
+    "anchor": {
+      "character": 53,
+      "line": 1
+    },
+    "code": "unknown-name",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 1,
+    "message": "Unknown name 'bagels'",
+    "severity": "error",
+    "source": {
+      "line": 2,
+      "path": "<root>/bakery.x.md",
+      "range": {
+        "end": {
+          "character": 32,
+          "line": 1
+        },
+        "start": {
+          "character": 26,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/bakery.x.md#L2"
+    },
+    "title": "Unknown name 'bagels'"
+  },
+  {
+    "anchor": {
+      "character": 53,
+      "line": 1
+    },
+    "code": "unknown-name",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 1,
+    "message": "Unknown name 'doughnuts'",
+    "severity": "error",
+    "source": {
+      "line": 2,
+      "path": "<root>/bakery.x.md",
+      "range": {
+        "end": {
+          "character": 52,
+          "line": 1
+        },
+        "start": {
+          "character": 43,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/bakery.x.md#L2"
+    },
+    "title": "Unknown name 'doughnuts'"
+  }
+]
 
 ### 2 cli render choice.x.md --format text
 $ xmd render choice.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
-exit 0
+exit 1
 --- stdout
 items := table
 | item | cost | take? |
@@ -30,12 +120,44 @@ choice := maximize(sum(items, take * cost))
 | constraint | expression |
 | --- | --- |
 | budget | sum(items, take * cost) <= $5 |
+--- stderr
+<root>/choice.x.md:6:11: error: Unknown name 'maximize'
+xmd: 1 error(s) while rendering
 
 ### 3 cli query choice.x.md diagnostics --json
 $ xmd query choice.x.md diagnostics --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[]
+[
+  {
+    "anchor": {
+      "character": 43,
+      "line": 5
+    },
+    "code": "unknown-name",
+    "errors": [],
+    "kind": "diagnostic",
+    "line": 5,
+    "message": "Unknown name 'maximize'",
+    "severity": "error",
+    "source": {
+      "line": 6,
+      "path": "<root>/choice.x.md",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 5
+        },
+        "start": {
+          "character": 10,
+          "line": 5
+        }
+      },
+      "uri": "file://<root>/choice.x.md#L6"
+    },
+    "title": "Unknown name 'maximize'"
+  }
+]
 
 ### 4 cli render timers.x.md --format text
 $ xmd render timers.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00

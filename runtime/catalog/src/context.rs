@@ -86,16 +86,13 @@ pub fn feature_context(
             Some(fields) => View::Fields(fields),
             None => View::Full,
         };
-        let read = |engine: &mut Engine<'_>, view| {
-            records.view(
-                engine,
-                Some(path),
-                collection.clone(),
-                view,
-                |request, path| analysis::collect_native(request, path, false),
-            )
-        };
-        let mut values = read(engine, view)?;
+        let mut values = records.view(
+            engine,
+            Some(path),
+            collection.clone(),
+            view,
+            |request, path| analysis::collect_native(request, path, false),
+        )?;
         if *collection == Collection::Recognized {
             // A module sees only its own recognizers' matches: the records
             // are the note's matches that make one, in order.

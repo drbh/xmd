@@ -9,7 +9,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use syntax::Comparison;
 
-pub const LINEAR_COMPARISON: &str = "Linear comparison must be <=, >=, or ==";
+pub(crate) const LINEAR_COMPARISON: &str = "Linear comparison must be <=, >=, or ==";
 /// What a solver may choose for one variable.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
@@ -23,9 +23,7 @@ pub(crate) enum VariableKind {
 struct Variable {
     /// The record's own spelling; `VariableKind` gives it meaning.
     kind: String,
-    #[serde(default)]
     lower: Option<f64>,
-    #[serde(default)]
     upper: Option<f64>,
 }
 #[derive(Deserialize)]
@@ -47,7 +45,6 @@ struct Constraint {
 struct Model {
     goal: String,
     variables: BTreeMap<String, Variable>,
-    #[serde(default)]
     order: Option<Vec<String>>,
     objective: Form,
     constraints: Vec<Constraint>,

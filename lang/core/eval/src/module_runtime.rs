@@ -29,7 +29,7 @@ impl ModuleEnvironment for Workspace {
         Arc::new(workspace)
     }
     fn evaluator<'s>(&'s self, path: &'s Path) -> Box<Evaluator<'s>> {
-        let mut engine = Engine::for_module(self, modules::no_clock());
+        let mut engine = Engine::for_module(self, modules::no_clock(), Memo::default());
         Box::new(move |name| engine.named(path, name))
     }
     fn call(
@@ -39,7 +39,7 @@ impl ModuleEnvironment for Workspace {
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
     ) -> EvalResult<Value> {
-        let mut engine = Engine::for_module_sharing(&self, now, self.calls.at(now))
+        let mut engine = Engine::for_module(&self, now, self.calls.at(now))
             .with_environment(self.clone())
             .with_expressions(module.expressions().clone());
         // What the call is handed sets how much it may do with it. Measured
@@ -51,11 +51,7 @@ impl ModuleEnvironment for Workspace {
         let input = args
             .iter()
             .fold(values::Size { items: 0, bytes: 0 }, |total, arg| {
-                let size = values::Size::of(arg, cap);
-                values::Size {
-                    items: total.items.saturating_add(size.items),
-                    bytes: total.bytes.saturating_add(size.bytes),
-                }
+                total + values::Size::of(arg, cap)
             });
         engine.budget = crate::engine::Budget::scaled(input);
         let result = engine

@@ -22,9 +22,9 @@ mod signature;
 mod symbols;
 
 pub use diagnostics::{collect_native, severity_name};
-pub use hover::{RowHover, SymbolHover, hover_at, markup, seek_summary, source_link, symbol_hover};
+pub use hover::{RowHover, SymbolHover, hover_at, markup, source_link, symbol_hover};
 pub use locate::{inert, symbol_at};
-pub use navigation::occurrences;
+pub use navigation::{definition, highlights, references, rename};
 pub use refactor::{CodeActionItem, refactors};
 pub use signature::{BUILTINS, Outcome, Signature, call_context, signature};
 pub use symbols::{Outlined, document_symbols, flat_symbols, folding_ranges};

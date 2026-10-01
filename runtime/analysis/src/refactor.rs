@@ -1,10 +1,8 @@
 use crate::locate;
 use lang::common::Span;
 use lang::eval::engine::{Engine, Value, literal};
-use lang::eval::plans::PlanValue;
-use lang::eval::{Symbol, SymbolKind, Workspace};
+use lang::eval::{SymbolKind, Workspace};
 use lang::model::{byte_at, expression_regions, identifier};
-use lang::stdlib;
 use lsp_types::*;
 use std::path::Path;
 
@@ -97,43 +95,6 @@ pub fn refactors(
     }
     let row = range.start.line as usize;
     let mut result = vec![];
-    // A plan line offers to write its decision-column choices into the note.
-    for plan in doc.plans.iter().filter(|p| {
-        p.definition < doc.definitions.len() && doc.definitions[p.definition].named.span.line == row
-    }) {
-        let symbol = Symbol::new(path, SymbolKind::Definition(plan.definition));
-        if let Ok(value) = request.engine().symbol(&symbol)
-            && let Some(solved) = value.downcast::<PlanValue>()
-        {
-            let mut snapshot = stdlib::Snapshot {
-                modules: ws.modules(),
-                now: request.now(),
-            };
-            let edits: Result<Vec<TextEdit>, String> = stdlib::plan::write_edits(
-                &mut snapshot,
-                solved.record(ws),
-                lang::common::uri(path).as_str(),
-            )
-            .and_then(|v| lang::eval::modules::json(&v))
-            .map_err(|e| e.to_string())
-            .and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string()));
-            // No edits means the note already holds the decisions; edits the
-            // module cannot write still offer the action, disabled with why.
-            if edits.as_ref().is_ok_and(Vec::is_empty) {
-                continue;
-            }
-            let mut item = CodeActionItem::edit(
-                stdlib::shown(stdlib::plan::write_title(&mut snapshot)),
-                CodeActionKind::REFACTOR_REWRITE,
-                vec![],
-            );
-            match edits {
-                Ok(edits) => item.edits = edits,
-                Err(reason) => item.disabled = Some(format!("plan.write_edits: {reason}")),
-            }
-            result.push(item);
-        }
-    }
     // Moving row-local expressions out of their sum, or treating literal table
     // cells as prose, would change their meaning. Do not offer those refactors.
     if doc
@@ -141,9 +102,9 @@ pub fn refactors(
         .iter()
         .any(|t| row >= t.header && row < t.end_line)
         || doc
-            .plans
+            .forms
             .iter()
-            .any(|p| row >= p.header && row < p.end_line)
+            .any(|f| f.has_table() && row >= f.header && row < f.end_line)
         || doc
             .references
             .iter()

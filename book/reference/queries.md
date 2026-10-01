@@ -14,7 +14,7 @@ generated from the collections a query binds by name. the fields are every field
 | `column` | number |
 | `computed` | boolean |
 | `domain` | text |
-| `goal` | text |
+| `form` | text |
 | `groups` | record |
 | `hover` | text |
 | `id` | text |
@@ -200,6 +200,30 @@ generated from the collections a query binds by name. the fields are every field
 | `tags` | list |
 | `title` | text |
 
+## forms
+
+| field | value |
+| --- | --- |
+| `anchor` | record |
+| `computed` | boolean |
+| `display` | text |
+| `end_line` | number |
+| `errors` | list |
+| `expression` | text |
+| `form` | text |
+| `grid` | list |
+| `header` | number |
+| `hover` | text |
+| `kind` | text |
+| `line` | number |
+| `name` | text |
+| `problems` | list |
+| `record` | record |
+| `source` | record |
+| `title` | text |
+| `type` | text |
+| `value` | record |
+
 ## graph
 
 | field | value |
@@ -376,6 +400,7 @@ generated from the collections a query binds by name. the fields are every field
 | `end_line` | number |
 | `errors` | list |
 | `expression` | text |
+| `form` | always null |
 | `grid` | list |
 | `header` | number |
 | `hover` | text |
@@ -383,6 +408,7 @@ generated from the collections a query binds by name. the fields are every field
 | `line` | number |
 | `name` | text |
 | `problems` | list |
+| `record` | always null |
 | `source` | record |
 | `title` | text |
 | `type` | text |
@@ -446,6 +472,7 @@ generated from the collections a query binds by name. the fields are every field
 | `end_line` | number |
 | `errors` | list |
 | `expression` | text |
+| `form` | text |
 | `grid` | list |
 | `header` | number |
 | `hover` | text |
@@ -453,7 +480,7 @@ generated from the collections a query binds by name. the fields are every field
 | `line` | number |
 | `name` | text |
 | `problems` | list |
-| `solution` | record |
+| `record` | record |
 | `source` | record |
 | `title` | text |
 | `type` | text |

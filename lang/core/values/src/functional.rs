@@ -1,7 +1,7 @@
 //! Small, pure additions to the shared expression language.
 use crate::arithmetic::binary;
 use crate::error::{EvalError, EvalResult, Limit, Overflow};
-use crate::value::{Value, duration, value_json};
+use crate::value::{Value, duration, record, value_json};
 use std::collections::BTreeMap;
 use syntax::{BinaryOp, Builtin};
 
@@ -38,15 +38,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::Entries, [Record(fields)]) => Value::list(
             fields
                 .iter()
-                .map(|(key, value)| {
-                    Value::record(
-                        [
-                            ("key".into(), Text(key.clone())),
-                            ("value".into(), value.clone()),
-                        ]
-                        .into(),
-                    )
-                })
+                .map(|(key, value)| record([("key", Text(key.clone())), ("value", value.clone())]))
                 .collect(),
         ),
         (B::Number, [value]) => {
@@ -76,7 +68,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                 Ok(date) => (Date(date), Null),
                 Err(error) => (Null, Text(error.to_string())),
             };
-            Value::record([("date".into(), date), ("error".into(), error)].into())
+            record([("date", date), ("error", error)])
         }
         (B::ToJson, [value]) => Text(
             crate::value::json(value)
@@ -98,13 +90,10 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     last.encode_utf16().count(),
                 )
             };
-            Value::record(
-                [
-                    ("line".into(), Number(line as f64)),
-                    ("character".into(), Number(character as f64)),
-                ]
-                .into(),
-            )
+            record([
+                ("line", Number(line as f64)),
+                ("character", Number(character as f64)),
+            ])
         }
         (B::ParseDuration, [Text(value)]) => duration(value).map(Duration).unwrap_or(Null),
         (B::ParseTime, [Text(value), Text(format)]) => {
@@ -159,19 +148,16 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     Err(text) => (false, text),
                 }
             };
-            Value::record([("clean".into(), Bool(clean)), ("text".into(), Text(text))].into())
+            record([("clean", Bool(clean)), ("text", Text(text))])
         }
         (B::UrlEncode, [Text(value)]) => {
             Text(url::form_urlencoded::byte_serialize(value.as_bytes()).collect())
         }
-        (B::DurationParts, [Duration(seconds)]) => Value::record(
-            [
-                ("hours".into(), Number((seconds / 3600) as f64)),
-                ("minutes".into(), Number((seconds / 60 % 60) as f64)),
-                ("seconds".into(), Number((seconds % 60) as f64)),
-            ]
-            .into(),
-        ),
+        (B::DurationParts, [Duration(seconds)]) => record([
+            ("hours", Number((seconds / 3600) as f64)),
+            ("minutes", Number((seconds / 60 % 60) as f64)),
+            ("seconds", Number((seconds % 60) as f64)),
+        ]),
         (B::DateParts, [value]) => {
             use chrono::Datelike;
             let date = match value {
@@ -183,18 +169,15 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     ));
                 }
             };
-            Value::record(
-                [
-                    ("year".into(), Number(date.year() as f64)),
-                    ("month".into(), Number(date.month() as f64)),
-                    ("day".into(), Number(date.day() as f64)),
-                    (
-                        "weekday".into(),
-                        Number(date.weekday().num_days_from_monday() as f64),
-                    ),
-                ]
-                .into(),
-            )
+            record([
+                ("year", Number(date.year() as f64)),
+                ("month", Number(date.month() as f64)),
+                ("day", Number(date.day() as f64)),
+                (
+                    "weekday",
+                    Number(date.weekday().num_days_from_monday() as f64),
+                ),
+            ])
         }
         (B::AtTime, [Date(date), Duration(seconds), DateTime(reference)]) => {
             use chrono::TimeZone;
@@ -457,9 +440,7 @@ impl Size {
             },
         };
         let mut add = |child: &Value| {
-            let child = Self::measure(child, cap, depth + 1);
-            size.items = size.items.saturating_add(child.items);
-            size.bytes = size.bytes.saturating_add(child.bytes);
+            size = size + Self::measure(child, cap, depth + 1);
             size.within(cap)
         };
         let complete = match value {
@@ -483,10 +464,7 @@ impl Size {
                 _ => None,
             };
             match (value, known) {
-                (_, Some(known)) => {
-                    size.items = size.items.saturating_add(known.items);
-                    size.bytes = size.bytes.saturating_add(known.bytes);
-                }
+                (_, Some(known)) => size = size + known,
                 (Value::List(items), None) => {
                     size.items += 1;
                     pending.extend(items.iter());
@@ -516,6 +494,24 @@ impl Size {
     pub fn within(self, limit: Self) -> bool {
         self.items <= limit.items && self.bytes <= limit.bytes
     }
+    /// Whether `value` is within this limit.
+    pub fn check(self, value: &Value) -> EvalResult<()> {
+        if Self::of(value, self).within(self) {
+            Ok(())
+        } else {
+            Err(EvalError::LimitExceeded(Limit::Value))
+        }
+    }
+}
+/// Sizes add up, saturating.
+impl std::ops::Add for Size {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            items: self.items.saturating_add(other.items),
+            bytes: self.bytes.saturating_add(other.bytes),
+        }
+    }
 }
 
 /// Keep the size of a list or record measured in full.
@@ -529,15 +525,7 @@ fn remember(value: &Value, size: Size) {
 
 /// Whether `value` is within the size any value may have.
 pub fn check_size(value: &Value) -> EvalResult<()> {
-    check_size_within(value, Size::LIMIT)
-}
-/// Whether `value` is within `limit`.
-pub fn check_size_within(value: &Value, limit: Size) -> EvalResult<()> {
-    if Size::of(value, limit).within(limit) {
-        Ok(())
-    } else {
-        Err(EvalError::LimitExceeded(Limit::Value))
-    }
+    Size::LIMIT.check(value)
 }
 
 /// A nonnegative whole number; a number past `usize` saturates.

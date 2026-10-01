@@ -17,31 +17,30 @@ impl Span {
     }
     pub fn range(self, text: &(impl Lines + ?Sized)) -> Range {
         let point = |offset| {
-            let tail = self.tail(text);
-            let prefix = tail.get(..offset).unwrap_or(tail);
-            let row = self.line + prefix.bytes().filter(|b| *b == b'\n').count();
-            let column = prefix
-                .rsplit('\n')
-                .next()
-                .unwrap_or("")
-                .trim_end_matches('\r');
-            Position::new(row as u32, column.encode_utf16().count() as u32)
+            let (row, column) = self.locate(text, offset);
+            let column = column.trim_end_matches('\r').encode_utf16().count();
+            Position::new(row as u32, column as u32)
         };
         Range::new(point(self.start), point(self.end))
     }
     fn tail(self, text: &(impl Lines + ?Sized)) -> &str {
         &text.text()[text.line_start(self.line)..]
     }
+    /// The line `offset` bytes past the start of this span's line falls on,
+    /// and that line's text up to it.
+    fn locate(self, text: &(impl Lines + ?Sized), offset: usize) -> (usize, &str) {
+        let tail = self.tail(text);
+        let prefix = tail.get(..offset).unwrap_or(tail);
+        let line = self.line + prefix.bytes().filter(|b| *b == b'\n').count();
+        (line, prefix.rsplit('\n').next().unwrap_or(""))
+    }
     pub fn source(self, text: &(impl Lines + ?Sized)) -> &str {
         self.tail(text).get(self.start..self.end).unwrap_or("")
     }
     /// Map expression-relative byte offsets back to their original source line.
     pub fn relative(self, text: &(impl Lines + ?Sized), start: usize, end: usize) -> Self {
-        let tail = self.tail(text);
-        let prefix = tail.get(..self.start + start).unwrap_or(tail);
-        let line = self.line + prefix.bytes().filter(|b| *b == b'\n').count();
-        let column = prefix.rsplit('\n').next().unwrap_or("").len();
-        Self::new(line, column, column + end.saturating_sub(start))
+        let (line, column) = self.locate(text, self.start + start);
+        Self::new(line, column.len(), column.len() + end.saturating_sub(start))
     }
     pub fn contains(self, text: &(impl Lines + ?Sized), other: Self) -> bool {
         Self::encloses(self.range(text), text, other)

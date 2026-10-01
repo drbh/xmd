@@ -1,12 +1,10 @@
 //! The registry: the compiled set of modules, linked and ready to call.
 use crate::link_features::LinkFeatures;
 use crate::module::{Declared, Module, ModuleKind, NewEnvironment};
-use chrono::{DateTime, FixedOffset};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::PathBuf,
 };
-use values::{EvalError, EvalResult, Value};
 
 /// Where the bundled modules live: no file on disk is under this root.
 const BUNDLED_ROOT: &str = "/__xmd_stdlib__";
@@ -15,7 +13,7 @@ const BUNDLED_ROOT: &str = "/__xmd_stdlib__";
 /// and every other module without an `import`, below the names they define
 /// themselves. A workspace module with this id replaces it, as with any
 /// bundled id.
-pub const PRELUDE: &str = "prelude";
+pub(crate) const PRELUDE: &str = "prelude";
 
 #[derive(Clone, Debug, Default)]
 pub struct ModuleRegistry {
@@ -50,7 +48,7 @@ impl ModuleRegistry {
     pub fn prelude(&self) -> Option<&Module> {
         self.get(PRELUDE).filter(|m| m.kind == ModuleKind::Library)
     }
-    /// The recognizers and attributes the active modules declare, in
+    /// The recognizers, attributes and forms the active modules declare, in
     /// manifest order: what a note is read with as it is parsed.
     pub fn recognizers(&self) -> model::recognized::Recognizers {
         model::recognized::Recognizers {
@@ -61,6 +59,10 @@ impl ModuleRegistry {
             attributes: self
                 .active()
                 .flat_map(|m| m.attributes.iter().cloned())
+                .collect(),
+            forms: self
+                .active()
+                .flat_map(|m| m.forms.iter().cloned())
                 .collect(),
         }
     }
@@ -78,28 +80,6 @@ impl ModuleRegistry {
     /// The active modules of one kind, in manifest order.
     pub fn of_kind(&self, kind: ModuleKind) -> impl Iterator<Item = &Module> {
         self.active().filter(move |m| m.kind == kind)
-    }
-    /// Resolve every call against this immutable workspace snapshot.
-    pub fn call(
-        &self,
-        id: &str,
-        name: &str,
-        args: Vec<Value>,
-        now: DateTime<FixedOffset>,
-    ) -> EvalResult<Value> {
-        self.get(id)
-            .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?
-            .call(name, args, now)
-            // The caller asked for this hook by name, so its own attribution
-            // would only repeat what the call site already says.
-            .map_err(|e| match e {
-                EvalError::Module {
-                    id: at,
-                    hook,
-                    source,
-                } if at == id && hook == name => *source,
-                other => other,
-            })
     }
     /// The link modules among them, as a request consults them.
     pub fn link_features(&self) -> LinkFeatures<'_> {
@@ -222,10 +202,10 @@ fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
                 stack.join(" -> ")
             ));
         }
-        let mut module = match sources.get(id) {
-            Some(m) => m.clone(),
-            None => return Err(format!("Unknown module import '{id}'")),
-        };
+        let mut module = sources
+            .get(id)
+            .ok_or_else(|| format!("Unknown module import '{id}'"))?
+            .clone();
         stack.push(id.into());
         let mut dependencies = module
             .imports
@@ -265,8 +245,9 @@ fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
         .collect()
 }
 
-/// A collection or an attribute is declared by one active module, and every
-/// collection an active module's `inputs` names is native or declared by one.
+/// A collection, an attribute or a form is declared by one active module,
+/// and every collection an active module's `inputs` names is native or
+/// declared by one.
 fn collections(modules: &[Module]) -> Result<(), String> {
     let active = || modules.iter().filter(|m| m.enabled);
     let mut attributes: BTreeMap<&str, &str> = BTreeMap::new();
@@ -276,6 +257,29 @@ fn collections(modules: &[Module]) -> Result<(), String> {
                 return Err(format!(
                     "{} and {first} both declare the attribute @{}",
                     module.id, attribute.key
+                ));
+            }
+        }
+    }
+    // A form is called the way a function is, so it is named by no function
+    // a note already calls by name.
+    let prelude: Vec<String> = active()
+        .find(|m| m.id == PRELUDE && m.kind == ModuleKind::Library)
+        .map(Module::public_names)
+        .unwrap_or_default();
+    let mut forms: BTreeMap<&str, &str> = BTreeMap::new();
+    for module in active() {
+        for form in &module.forms {
+            if let Some(first) = forms.insert(&form.name, &module.id) {
+                return Err(format!(
+                    "{} and {first} both declare the form {}",
+                    module.id, form.name
+                ));
+            }
+            if prelude.contains(&form.name) {
+                return Err(format!(
+                    "{} declares the form {}, which the prelude exports",
+                    module.id, form.name
                 ));
             }
         }

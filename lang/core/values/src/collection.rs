@@ -11,7 +11,8 @@ use std::sync::Arc;
 
 /// A named set of workspace records. Queries bind these names, and feature
 /// modules declare the ones they read in `module.inputs`.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum Collection {
     Ast,
     /// Every place a note names something: each definition's name and each
@@ -24,8 +25,9 @@ pub enum Collection {
     /// (leaf tasks, events, stops): what a query lays on a timeline.
     Entries,
     Values,
-    Plans,
-    Decisions,
+    /// The definitions that call a form a module declares, as `values`
+    /// records them: what the module that declares the form builds from.
+    Forms,
     Tables,
     Rows,
     Resources,
@@ -45,15 +47,14 @@ pub enum Collection {
 }
 impl Collection {
     /// The language's own collections, in declaration order.
-    pub const NATIVE: [Collection; 19] = [
+    pub const NATIVE: [Collection; 18] = [
         Self::Ast,
         Self::Mentions,
         Self::Links,
         Self::Checkboxes,
         Self::Entries,
         Self::Values,
-        Self::Plans,
-        Self::Decisions,
+        Self::Forms,
         Self::Tables,
         Self::Rows,
         Self::Resources,
@@ -69,30 +70,12 @@ impl Collection {
     /// The name a query or `inputs` binds.
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Ast => "ast",
-            Self::Mentions => "mentions",
-            Self::Links => "links",
-            Self::Checkboxes => "checkboxes",
-            Self::Entries => "entries",
-            Self::Values => "values",
-            Self::Plans => "plans",
-            Self::Decisions => "decisions",
-            Self::Tables => "tables",
-            Self::Rows => "rows",
-            Self::Resources => "resources",
-            Self::Diagnostics => "diagnostics",
-            Self::Notes => "notes",
-            Self::Sections => "sections",
-            Self::Calculations => "calculations",
-            Self::References => "references",
-            Self::Cells => "cells",
-            Self::Recognized => "recognized",
-            Self::Attributed => "attributed",
             Self::Declared(name) => name,
+            native => native.into(),
         }
     }
     /// The language's own collection called `name`.
-    pub fn native(name: &str) -> Option<Self> {
+    fn native(name: &str) -> Option<Self> {
         Self::NATIVE.into_iter().find(|c| c.as_str() == name)
     }
     /// Every native collection name, in declaration order, for error

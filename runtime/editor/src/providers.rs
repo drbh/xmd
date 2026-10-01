@@ -77,22 +77,22 @@ fn check(
 
 /// Inline labels come only from feature modules.
 pub(crate) fn hints(request: &crate::Request<'_>, path: &Path, range: Range) -> InlayOutput {
-    inlays::run(request, path, range, true, |context, output| {
-        for m in modules(request) {
-            module::inlays(m, context, output);
-        }
-    })
+    labels(request, path, range, true)
 }
 /// Whether any label in the note reads the clock, so a host knows to refresh.
 /// The providers run as for [`hints`], but no label is drawn.
 pub(crate) fn live_hints(request: &crate::Request<'_>, path: &Path) -> bool {
     let everywhere = Range::new(Position::new(0, 0), Position::new(u32::MAX, 0));
-    inlays::run(request, path, everywhere, false, |context, output| {
+    labels(request, path, everywhere, false).time_dependent
+}
+/// Every feature module's labels over `range`, drawn or only weighed for
+/// whether any moves with the clock.
+fn labels(request: &crate::Request<'_>, path: &Path, range: Range, drawn: bool) -> InlayOutput {
+    inlays::run(request, path, range, drawn, |context, output| {
         for m in modules(request) {
             module::inlays(m, context, output);
         }
     })
-    .time_dependent
 }
 /// A feature module's hover takes precedence, so a module can refine what the
 /// editor would otherwise explain; a module's fallback hover answers only

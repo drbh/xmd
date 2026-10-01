@@ -39,11 +39,7 @@ impl RowTarget {
         &self,
         request: &Request<'a>,
     ) -> Result<(PathBuf, &'a Document), String> {
-        let (path, doc) = document(request, &self.document)?;
-        if self.row >= doc.line_count() || doc.line(self.row) != self.expected {
-            return Err(SOURCE_CHANGED.into());
-        }
-        Ok((path, doc))
+        row_document(request, &self.document, self.row, &self.expected)
     }
 }
 /// Each variant travels as its own LSP command: the ID editors register, and
@@ -144,10 +140,6 @@ impl Action {
             .iter()
             .map(|command| command.into())
     }
-    /// The LSP command ID this action travels under.
-    pub(crate) fn id(&self) -> &'static str {
-        CommandId::from(self).into()
-    }
     pub fn document(&self) -> Option<&Url> {
         match self {
             Self::OpenResource { target, .. } | Self::RefreshResource { target, .. } => {
@@ -164,7 +156,7 @@ impl Action {
     pub(crate) fn command(&self, title: impl Into<String>) -> Command {
         Command {
             title: title.into(),
-            command: self.id().into(),
+            command: <&str>::from(CommandId::from(self)).into(),
             arguments: Some(vec![json!(self)]),
         }
     }
@@ -358,6 +350,20 @@ pub(crate) fn document<'a>(
         .documents()
         .get(&path)
         .ok_or("Document is no longer in the workspace")?;
+    Ok((path, doc))
+}
+/// The workspace document a URL names, while its `row` still reads as
+/// `expected`.
+pub(crate) fn row_document<'a>(
+    request: &Request<'a>,
+    url: &Url,
+    row: usize,
+    expected: &str,
+) -> Result<(PathBuf, &'a Document), String> {
+    let (path, doc) = document(request, url)?;
+    if row >= doc.line_count() || doc.line(row) != expected {
+        return Err(SOURCE_CHANGED.into());
+    }
     Ok((path, doc))
 }
 pub(crate) fn document_path(url: &Url) -> Result<PathBuf, String> {

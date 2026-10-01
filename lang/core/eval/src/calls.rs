@@ -1,6 +1,6 @@
 //! Calling: the built-in dispatch, the core special forms (`import`, `if`,
-//! `match`, `coalesce`, `eval`, `date`, the clock), the lookup cache
-//! (`cached`), note functions and modules, the prelude's among them. A
+//! `match`, `coalesce`, `eval`, `date`, the clock and `clocked`), the lookup
+//! cache (`cached`), note functions and modules, the prelude's among them. A
 //! special built-in a feature owns, such as a row `sum`, is answered by
 //! what `features` registers for it.
 use crate::engine::{
@@ -53,13 +53,8 @@ impl Engine<'_> {
             Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
             Builtin::Now | Builtin::Today if args.is_empty() && !self.has_clock() => {
                 Err(EvalError::Message(format!(
-                    "{}() is unavailable here: native code calls this without a clock, \
-                     so the dates it needs are its arguments",
-                    if builtin == Builtin::Now {
-                        "now"
-                    } else {
-                        "today"
-                    }
+                    "{builtin}() is unavailable here: native code calls this without a clock, \
+                     so the dates it needs are its arguments"
                 )))
             }
             Builtin::Now if args.is_empty() => {
@@ -68,10 +63,51 @@ impl Engine<'_> {
             }
             Builtin::Today if args.is_empty() => Ok(Value::Date(self.request.clock.today())),
             Builtin::Date => self.call_date(path, args),
-            // A row `sum`
-            // and whatever the registry says answers a special form no
-            // feature claims.
-            builtin => features::call(builtin)(self, path, builtin, args),
+            Builtin::Clocked => self.call_clocked(path, args),
+            // Without arguments the engine answers these itself.
+            Builtin::Today | Builtin::Now => {
+                Err(EvalError::Message(format!("{builtin} takes no arguments")))
+            }
+            // A row `sum` is the feature's that registers it; the rest take
+            // one argument and are here with any other count.
+            builtin => match features::call(builtin) {
+                Some(call) => call(self, path, args),
+                None => Err(EvalError::Arity(builtin)),
+            },
+        }
+    }
+    /// `clocked(value, ticking)`: `value`, which keeps depending on the clock
+    /// it read only while `ticking(value)` is true. A value that counts from
+    /// a moment reads the clock and moves with it; once it stops it reads the
+    /// clock too, but stays where it stopped, so nothing need refresh it.
+    fn call_clocked(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
+        let builtin = Builtin::Clocked;
+        let [value, ticking] = args else {
+            return Err(EvalError::Message(format!(
+                "{builtin} expects a value and a function that says whether it still ticks"
+            )));
+        };
+        let before = std::mem::replace(&mut self.time_dependent, false);
+        let result = self.expr(path, value).and_then(|value| {
+            let read = std::mem::replace(&mut self.time_dependent, false);
+            let ticking = self.expr(path, ticking)?;
+            match self.call(ticking, vec![value.clone()])? {
+                Value::Bool(ticks) => Ok((value, read && ticks)),
+                _ => Err(EvalError::Message(format!(
+                    "{builtin}'s function must return true or false"
+                ))),
+            }
+        });
+        match result {
+            Ok((value, ticks)) => {
+                self.time_dependent = before || ticks;
+                Ok(value)
+            }
+            // A failure may have read the clock: it holds only for that instant.
+            Err(error) => {
+                self.time_dependent = true;
+                Err(error)
+            }
         }
     }
     /// A call to a note function: the callee is resolved like any other name,
@@ -86,7 +122,16 @@ impl Engine<'_> {
             .local(name)
             .map(Ok)
             .or_else(|| self.binding(name))
-            .unwrap_or_else(|| self.resolved(path, name))?;
+            .unwrap_or_else(|| self.resolved(path, name))
+            .map_err(|error| match error {
+                // A form is a definition, not a value inside one.
+                EvalError::UnknownName { .. } if self.workspace().form(name).is_some() => {
+                    EvalError::Message(format!(
+                        "{name}(...) is only valid as a definition's whole expression"
+                    ))
+                }
+                other => other,
+            })?;
         // Called by name, a function is named when the call does not fit it,
         // before any argument is evaluated.
         if let Value::Function(f) = &function
@@ -106,16 +151,10 @@ impl Engine<'_> {
     /// memo and the definition being evaluated, all of which
     /// [`Self::absorb_module`] takes back.
     fn module_engine<'b>(&mut self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
-        let mut engine = Engine::for_module_sharing(
-            workspace,
-            self.request.clock.now,
-            self.request.memo.clone(),
-        )
-        .with_environment(workspace.clone());
-        engine.budget.steps = self.budget.steps;
-        engine.budget.calls = self.budget.calls;
-        engine.budget.step_limit = self.budget.step_limit;
-        engine.budget.size_limit = self.budget.size_limit;
+        let mut engine =
+            Engine::for_module(workspace, self.request.clock.now, self.request.memo.clone())
+                .with_environment(workspace.clone());
+        engine.budget = self.budget;
         engine.walk = self.walk.take().map(Walk::lend);
         // The prelude's lookups read the note's cache, not the module's.
         engine.lookups = self.lookups.clone();
@@ -170,6 +209,26 @@ impl Engine<'_> {
             engine.call(function, args)
         })
     }
+    /// Call the hook a feature module defines for what the host evaluates
+    /// on its behalf (`define`, what a definition of one of its forms is
+    /// worth), inside this evaluation: on its memo, clock and budget.
+    pub(crate) fn call_hook(
+        &mut self,
+        id: &str,
+        hook: modules::Hook,
+        args: Vec<Value>,
+    ) -> EvalResult<Value> {
+        let module = self
+            .workspace()
+            .modules
+            .get(id)
+            .filter(|module| module.kind == modules::ModuleKind::Feature)
+            .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?;
+        self.in_module(module, |engine| {
+            let function = engine.named(&module.path, hook.as_ref())?;
+            engine.call(function, args)
+        })
+    }
     /// `import(id)` reaches libraries and nothing else: a link or feature
     /// module is the host's to call, so naming one from a note is an error
     /// rather than a record of hooks. A note sees the library's declared
@@ -181,25 +240,20 @@ impl Engine<'_> {
             .modules
             .get(id)
             .ok_or_else(|| EvalError::UnknownImport(id.into()))?;
-        if module.kind != modules::ModuleKind::Library {
+        let module_code = self.module_code(path);
+        let names = if module_code {
+            module.member_names()
+        } else {
+            module.public_names()
+        };
+        // A library that exports nothing is one of the engine's own: called
+        // by name, never imported.
+        if module.kind != modules::ModuleKind::Library || (!module_code && names.is_empty()) {
             return Err(EvalError::NotALibrary {
                 id: id.into(),
                 kind: module.kind.into(),
             });
         }
-        let names = if self.module_code(path) {
-            module.member_names()
-        } else {
-            let names = module.public_names();
-            if names.is_empty() {
-                // The engine's own libraries: called by name, never imported.
-                return Err(EvalError::NotALibrary {
-                    id: id.into(),
-                    kind: module.kind.into(),
-                });
-            }
-            names
-        };
         self.in_module(module, |engine| {
             names
                 .into_iter()
@@ -211,7 +265,7 @@ impl Engine<'_> {
                 .map(Value::record)
         })
     }
-    pub fn call(&mut self, function: Value, args: Vec<Value>) -> EvalResult<Value> {
+    pub(crate) fn call(&mut self, function: Value, args: Vec<Value>) -> EvalResult<Value> {
         let Value::Function(function) = function else {
             return Err(EvalError::Expected("a function"));
         };

@@ -132,9 +132,6 @@ builtins! {
     EndPosition => "end_position", Module;
     DisplayWidth => "display_width", Module;
     Sum => "sum", Note, special;
-    Maximize => "maximize", Note, special;
-    Solve => "solve", Note, special;
-    Minimize => "minimize", Note, special;
     Today => "today", Note, special;
     Now => "now", Note, special;
     Date => "date", Note, special;

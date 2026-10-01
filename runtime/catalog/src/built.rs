@@ -39,12 +39,7 @@ pub(crate) type Build = Result<BTreeMap<Arc<str>, Vec<Built>>, String>;
 /// Call `module`'s `records` hook for the note at `path` and check what it
 /// returns. `engine` is marked with whatever clock reading the inputs took;
 /// the hook itself runs without the clock.
-pub(crate) fn build(
-    records: &Records,
-    engine: &mut Engine<'_>,
-    module: &Module,
-    path: &Path,
-) -> Build {
+fn build(records: &Records, engine: &mut Engine<'_>, module: &Module, path: &Path) -> Build {
     let context = crate::context::feature_context(records, engine, module, path, true)?;
     let answer = module
         .call(
@@ -202,7 +197,7 @@ pub(crate) fn collection(
     let Some((module, _)) = engine.workspace().modules().declaring(name) else {
         return;
     };
-    if let Ok(built) = &*records.built(engine, module, path)
+    if let Ok(built) = &*records.built(engine, module, path, build)
         && let Some(items) = built.get(name)
     {
         out.extend(
@@ -258,7 +253,7 @@ pub(crate) fn wanted(
     let ws = engine.workspace();
     let mut wanted = Vec::new();
     for module in builders(ws) {
-        if let Ok(built) = &*records.built(engine, module, path) {
+        if let Ok(built) = &*records.built(engine, module, path, build) {
             for item in built.values().flatten() {
                 let line = match item.fields.get("line") {
                     Some(Value::Count(line)) => *line,
@@ -285,7 +280,7 @@ pub fn problems(
     let mut engine = request.engine();
     builders(ws)
         .filter_map(|module| {
-            let build = records.built(&mut engine, module, path);
+            let build = records.built(&mut engine, module, path, build);
             let error = (*build).as_ref().err()?.clone();
             let range = doc
                 .recognized

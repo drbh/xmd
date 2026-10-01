@@ -8,7 +8,8 @@ use chrono::NaiveDate;
 
 /// What an attribute's value holds, which decides how it is highlighted, how
 /// it is checked and whether it is an expression.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum AttributeValue {
     /// A date or timestamp: relative text such as `tomorrow` or `next friday`,
     /// or an expression that evaluates to one (`2026-09-18`, `launch - 2d`).
@@ -24,6 +25,7 @@ pub enum AttributeValue {
     /// The bare name of a definition whose own call made a tagged record
     /// of one of the kinds the declaration lists (`{tagged: [kinds]}` in a
     /// manifest), written as an expression.
+    #[strum(disabled)]
     Tagged,
     /// An expression the engine evaluates, to a value of any kind.
     Expression,
@@ -54,20 +56,7 @@ impl AttributeValue {
     /// The value a module declares an attribute to hold, by the name its
     /// manifest gives it.
     pub fn declared(name: &str) -> Option<Self> {
-        match name {
-            "when" => Some(Self::When),
-            "date" => Some(Self::Date),
-            "duration" => Some(Self::Duration),
-            "dependencies" => Some(Self::Dependencies),
-            "expression" => Some(Self::Expression),
-            "text" => Some(Self::Text),
-            _ => None,
-        }
-    }
-    /// Whether the value is a date, which highlighting paints as one when it
-    /// reads as a date without evaluating anything.
-    pub const fn is_date(self) -> bool {
-        matches!(self, Self::When | Self::Date)
+        name.parse().ok()
     }
 }
 
@@ -86,5 +75,6 @@ mod tests {
             assert!(AttributeValue::declared(name).is_some(), "{name}");
         }
         assert_eq!(AttributeValue::declared("money"), None);
+        assert_eq!(AttributeValue::declared("tagged"), None);
     }
 }

@@ -23,7 +23,9 @@ impl Cell {
         self.expression.is_some()
     }
 }
-/// What a plan may choose for each row of a decision column.
+/// What a decision column holds for each row: an unknown a linear reading of
+/// a `sum` over the table solves for (a plan chooses it), never a value a
+/// note writes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Domain {
     /// `name?`: yes or no.
@@ -50,7 +52,8 @@ pub struct Table {
     pub types: Vec<Option<ValueType>>,
     pub separators: Vec<String>,
     pub problems: Vec<Problem>,
-    /// One entry per column; `Some` marks a decision column a plan fills in.
+    /// One entry per column; `Some` marks a decision column, which a form
+    /// that sums over the table solves for.
     pub domains: Vec<Option<Domain>>,
 }
 
@@ -73,28 +76,14 @@ pub(crate) fn recognize(
     tree.references
         .retain(|r| !(r.span.line == row && r.name == "table"));
     for column in &table.columns {
-        tree.mark(
-            column.span.line,
-            column.span.start,
-            column.span.end,
-            HighlightKind::Variable,
-        );
+        tree.paint(column.span, HighlightKind::Variable);
     }
     for cells in &table.rows {
         for cell in cells {
+            let Span { line, start, end } = cell.span;
             if let Some((_, span)) = &cell.expression {
-                tree.mark(
-                    cell.span.line,
-                    cell.span.start,
-                    cell.span.start + 1,
-                    HighlightKind::Operator,
-                );
-                tree.mark(
-                    cell.span.line,
-                    cell.span.end - 1,
-                    cell.span.end,
-                    HighlightKind::Operator,
-                );
+                tree.mark(line, start, start + 1, HighlightKind::Operator);
+                tree.mark(line, end - 1, end, HighlightKind::Operator);
                 tree.expression(lines[span.line], span.line, span.start, span.end);
                 continue;
             }
@@ -104,10 +93,8 @@ pub(crate) fn recognize(
                     target: resource.target.clone(),
                 });
             }
-            tree.mark(
-                cell.span.line,
-                cell.span.start,
-                cell.span.end,
+            tree.paint(
+                cell.span,
                 if matches!(&cell.value, Ok(Literal::Text(_) | Literal::Resource(_))) {
                     HighlightKind::String
                 } else {
@@ -217,70 +204,10 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
                 ),
             );
         }
-        let domains = table.domains.clone();
-        table.rows.push(
-            parts
-                .into_iter()
-                .enumerate()
-                .map(|(column, (source, span))| {
-                    let decoded = source.replace("\\|", "|");
-                    let expression = decoded
-                        .strip_prefix('[')
-                        .and_then(|s| s.strip_suffix(']'))
-                        .filter(|_| domains.get(column).is_none_or(Option::is_none))
-                        .map(|inner| {
-                            let lead = 1 + inner.len() - inner.trim_start().len();
-                            (
-                                inner.trim().to_string(),
-                                Span::new(
-                                    span.line,
-                                    span.start + lead,
-                                    span.start + lead + inner.trim().len(),
-                                ),
-                            )
-                        });
-                    let value = if let Some((inner, _)) = &expression {
-                        if inner.is_empty() {
-                            Err(
-                                "Empty calculation; write a name or expression inside the brackets"
-                                    .to_string(),
-                            )
-                        } else if syntax::valid_expression(inner) {
-                            Err(format!(
-                                "Calculated cell [{inner}] is evaluated with the table"
-                            ))
-                        } else {
-                            Err(format!("Invalid calculation '{inner}'"))
-                        }
-                    } else if domains.get(column).is_some_and(Option::is_some) {
-                        // A plan decides these; whatever is written is a note to self.
-                        Ok(Literal::Text(decoded.clone()))
-                    } else if decoded.is_empty() {
-                        Err("Missing cell value".to_string())
-                    } else {
-                        syntax::literal(&decoded).and_then(|v| {
-                            if matches!(v, Literal::Text(_))
-                                && decoded.chars().next().is_some_and(|c| {
-                                    c.is_ascii_digit() || matches!(c, '$' | '-' | '+')
-                                })
-                            {
-                                Err(format!(
-                                    "Invalid scalar literal '{decoded}'; quote it to store text"
-                                ))
-                            } else {
-                                Ok(v)
-                            }
-                        })
-                    };
-                    Cell {
-                        source,
-                        span,
-                        value,
-                        expression,
-                    }
-                })
-                .collect(),
-        );
+        let decision = |column| table.domains.get(column).is_some_and(Option::is_some);
+        let cells = parts.into_iter().enumerate();
+        let cells = cells.map(|(column, (source, span))| cell(source, span, decision(column)));
+        table.rows.push(cells.collect());
     }
     table.types = table
         .domains
@@ -299,26 +226,64 @@ fn parse(def: &Definition, definition: usize, lines: &[&str]) -> Table {
             }
             match &cell.value {
                 Err(message) => problem(cell.span, message.clone()),
-                Ok(value) => {
-                    let kind = literal_kind(value);
-                    if let Some(expected) = table.types[column] {
-                        if expected != kind {
-                            problem(
-                                cell.span,
-                                format!(
-                                    "Column '{}' expects {expected}, found {kind}",
-                                    table.columns[column].name
-                                ),
-                            );
-                        }
-                    } else {
-                        table.types[column] = Some(kind);
-                    }
-                }
+                Ok(value) => match (table.types[column], literal_kind(value)) {
+                    (None, kind) => table.types[column] = Some(kind),
+                    (Some(expected), kind) if expected != kind => problem(
+                        cell.span,
+                        format!(
+                            "Column '{}' expects {expected}, found {kind}",
+                            table.columns[column].name
+                        ),
+                    ),
+                    _ => {}
+                },
             }
         }
     }
     table
+}
+/// A row's cell as written: a `[calculation]` evaluated with the table, or a
+/// literal, read here. A decision column's cell is never either.
+fn cell(source: String, span: Span, decision: bool) -> Cell {
+    let decoded = source.replace("\\|", "|");
+    let expression = decoded
+        .strip_prefix('[')
+        .and_then(|s| s.strip_suffix(']'))
+        .filter(|_| !decision)
+        .map(|inner| {
+            let start = span.start + 1 + inner.len() - inner.trim_start().len();
+            let inner = inner.trim();
+            let at = Span::new(span.line, start, start + inner.len());
+            (inner.to_string(), at)
+        });
+    let value = match &expression {
+        Some((inner, _)) if inner.is_empty() => {
+            Err("Empty calculation; write a name or expression inside the brackets".to_string())
+        }
+        Some((inner, _)) if syntax::valid_expression(inner) => Err(format!(
+            "Calculated cell [{inner}] is evaluated with the table"
+        )),
+        Some((inner, _)) => Err(format!("Invalid calculation '{inner}'")),
+        // A plan decides these; whatever is written is a note to self.
+        None if decision => Ok(Literal::Text(decoded.clone())),
+        None if decoded.is_empty() => Err("Missing cell value".to_string()),
+        None => syntax::literal(&decoded).and_then(|v| {
+            let numeric = decoded.starts_with(|c: char| c.is_ascii_digit() || "$-+".contains(c));
+            if matches!(v, Literal::Text(_)) && numeric {
+                Err(format!(
+                    "Invalid scalar literal '{decoded}'; quote it to store text"
+                ))
+            } else {
+                Ok(v)
+            }
+        }),
+    };
+    Cell {
+        source,
+        span,
+        value,
+        expression,
+    }
 }
 /// The [`ValueType`] a parsed literal reports, mirroring `Value::kind` for
 /// the scalar shapes a table cell can hold.
@@ -338,16 +303,21 @@ fn literal_kind(value: &Literal) -> ValueType {
 
 /// Find the innermost sum row scope, including incomplete formulas while typing.
 pub fn scope_at(doc: &Document, span: Span) -> Option<String> {
-    doc.sum_regions().iter().find_map(|region| {
+    doc.sums.iter().find_map(|region| {
         let offset = region.offset_of(doc, span)?;
         syntax::sum_scope_at(region.source(doc), offset)
     })
 }
-/// Data tables plus plan constraint tables, which share the same grid shape.
+/// Data tables plus the tables forms take, which share the same grid shape.
 pub fn grids(doc: &Document) -> Vec<Table> {
     doc.tables
         .iter()
         .cloned()
-        .chain(doc.plans.iter().map(crate::plans_impl::grid))
+        .chain(
+            doc.forms
+                .iter()
+                .filter(|f| f.has_table())
+                .map(crate::forms_impl::grid),
+        )
         .collect()
 }

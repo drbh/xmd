@@ -324,7 +324,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn definitions(&mut self) {
-        for def in &self.doc.definitions {
+        for (index, def) in self.doc.definitions.iter().enumerate() {
             self.declaration(&def.named);
             if !def.expression {
                 self.brackets(def.value_span);
@@ -340,7 +340,14 @@ impl<'a> Painter<'a> {
             self.brackets(def.named.span);
             if def.source == "table" {
                 self.mark(def.value_span, Token::Keyword);
-            } else if let Some((_, start, end)) = lang::eval::plans::goal(&def.source) {
+            } else if let Some((start, end)) = self
+                .doc
+                .form_of(index)
+                .filter(|formed| formed.has_table())
+                .and_then(|_| inside(&def.source))
+            {
+                // A form that takes a table paints its call as a keyword, as
+                // `table` does, around the expressions it is handed.
                 let offset = def.expression_span(self.text).start;
                 let line = def.value_span.line;
                 self.mark(Span::new(line, offset, offset + start), Token::Keyword);
@@ -377,15 +384,24 @@ impl<'a> Painter<'a> {
             }
         }
     }
-    fn plans(&mut self) {
-        for plan in &self.doc.plans {
-            self.grid(plan.header, plan.end_line, !plan.separators.is_empty());
-            for column in &plan.columns {
+    fn forms(&mut self) {
+        for formed in self.doc.forms.iter().filter(|f| f.has_table()) {
+            self.grid(
+                formed.header,
+                formed.end_line,
+                !formed.separators.is_empty(),
+            );
+            for column in &formed.columns {
                 self.mark(column.span, Token::Keyword);
             }
-            for constraint in &plan.constraints {
-                self.paint(constraint.named.span, style(Token::Property, DECLARATION));
-                self.expression(constraint.span);
+            for cells in &formed.rows {
+                for ((_, span), column) in cells.iter().zip(&formed.form.table) {
+                    if column.reads.is_expression() {
+                        self.expression(*span);
+                    } else {
+                        self.paint(*span, style(Token::Property, DECLARATION));
+                    }
+                }
             }
         }
     }
@@ -494,11 +510,18 @@ pub fn semantic_tokens(doc: &Document, library: &[String]) -> Vec<SemanticToken>
     p.attributes();
     p.calculations();
     p.references();
-    p.plans();
+    p.forms();
     p.tables();
     p.links();
     p.comments();
     p.finish()
+}
+
+/// The byte range inside a call's parentheses, `name(` to `)`, in `source`.
+fn inside(source: &str) -> Option<(usize, usize)> {
+    let (name, _) = lang::eval::forms::call(source)?;
+    let open = name.len() + source[name.len()..].find('(')?;
+    Some((open + 1, source.trim_end().len() - 1))
 }
 
 #[cfg(test)]

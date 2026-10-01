@@ -51,9 +51,12 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         return;
     };
     let Line {
-        text, row, start, ..
+        text,
+        row,
+        start,
+        title_end,
+        ..
     } = *line;
-    let attrs = &line.attributes.map;
     let at = checkbox.at;
     let named = trailing_name(text, row);
     // The open tasks are the last task and its ancestors, unless a heading
@@ -66,12 +69,6 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
     while let Some(open) = parent.filter(|open| doc.tasks[*open].indent >= start) {
         parent = doc.tasks[open].parent;
     }
-    let title_end = attrs
-        .values()
-        .map(|a| a.span.start)
-        .chain(named.iter().map(|n| n.span.start - 1))
-        .min()
-        .unwrap_or(text.len());
     doc.tasks.push(Task {
         line: row,
         indent: start,
@@ -80,10 +77,10 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         title: text[at + 3..title_end].trim().into(),
         named: named.clone(),
         parent,
-        attributes: attrs.clone(),
+        attributes: line.attributes.map.clone(),
     });
     tree.mark(row, at, at + 3, HighlightKind::Keyword);
     if let Some(n) = named {
-        tree.mark(row, n.span.start, n.span.end, HighlightKind::Variable);
+        tree.paint(n.span, HighlightKind::Variable);
     }
 }

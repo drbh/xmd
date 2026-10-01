@@ -1,5 +1,8 @@
-//! Linearization: a definition read symbolically as `terms · variables +
-//! constant`, so plans and goal seeks can reason about an unknown.
+//! Linearization: an expression read symbolically as `terms · variables +
+//! constant` over a set of unknowns, every other name evaluated to a constant
+//! and every calculation that reads an unknown walked through. It is how the
+//! host reads a form's `linear` and `constraint` expressions, so the module
+//! that declares the form (a plan, a goal seek) reasons about values only.
 use crate::engine::{
     BinaryOp, Builtin, Comparison, Currency, Engine, Expr, Parser, RowScope, UnaryOp, Unit, Value,
 };
@@ -13,16 +16,16 @@ use values::{CurrencyOp, EvalError, EvalResult, UnitOp};
 /// `terms · variables + constant`, carrying a unit so money and durations
 /// never mix silently.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Linear {
-    pub terms: BTreeMap<String, f64>,
-    pub constant: f64,
+pub(crate) struct Linear {
+    pub(crate) terms: BTreeMap<String, f64>,
+    pub(crate) constant: f64,
     /// Set when `kind` is Money, so euros and dollars never add up silently.
-    pub currency: Option<Currency>,
+    pub(crate) currency: Option<Currency>,
     /// Unit of the whole form; `Any` while it is only bare variables.
-    pub kind: Unit,
+    pub(crate) kind: Unit,
     /// Unit the variables were multiplied by, so a goal seek can tell whether
     /// its unknown is money, a duration, or a plain number.
-    pub scale: Unit,
+    pub(crate) scale: Unit,
 }
 impl Linear {
     fn constant(kind: Unit, value: f64) -> Self {
@@ -37,10 +40,7 @@ impl Linear {
     fn variable(name: &str) -> Self {
         Self {
             terms: [(name.to_string(), 1.0)].into(),
-            constant: 0.0,
-            currency: None,
-            kind: Unit::Any,
-            scale: Unit::Number,
+            ..Self::constant(Unit::Any, 0.0)
         }
     }
     fn is_zero(&self) -> bool {
@@ -61,9 +61,6 @@ impl Linear {
             None
         }
     }
-    pub fn minus(&self, other: &Self) -> EvalResult<Self> {
-        self.add(other, -1.0)
-    }
     /// The unit of a variable in this form, or `None` when it is scaled by
     /// two different units.
     pub(crate) fn unknown_kind(&self) -> Option<Unit> {
@@ -81,7 +78,7 @@ impl Linear {
         self.constant *= factor;
         self
     }
-    fn add(&self, other: &Self, sign: f64) -> EvalResult<Self> {
+    pub(crate) fn add(&self, other: &Self, sign: f64) -> EvalResult<Self> {
         let Some(kind) = Self::combined(self, other) else {
             return Err(match (self.currency, other.currency) {
                 (Some(left), Some(right)) => EvalError::CurrencyMismatch {
@@ -190,13 +187,15 @@ impl Linear {
         Ok(result)
     }
 }
+/// One decision cell a linear reading met in a `sum` over its table: an
+/// unknown of its own, named `table.column[row]`.
 #[derive(Clone, Debug, PartialEq)]
-pub struct RowVariable {
-    pub name: String,
-    pub table: Symbol,
-    pub column: usize,
-    pub row: usize,
-    pub domain: model::tables::Domain,
+pub(crate) struct RowVariable {
+    pub(crate) name: String,
+    pub(crate) table: Symbol,
+    pub(crate) column: usize,
+    pub(crate) row: usize,
+    pub(crate) domain: model::tables::Domain,
 }
 impl Engine<'_> {
     /// A linear form over `vars`; every other name is evaluated to a constant.
@@ -213,7 +212,7 @@ impl Engine<'_> {
         })
     }
     /// `lhs <= rhs`, `lhs >= rhs`, or `lhs == rhs` as two linear forms.
-    pub fn constraint(
+    pub(crate) fn constraint(
         &mut self,
         path: &Path,
         source: &str,
@@ -256,8 +255,9 @@ impl Engine<'_> {
             Ok((lhs, op, rhs))
         })
     }
-    /// An ordinary calculation's source, for symbolic descent. Tables, plans,
-    /// goal seeks and literals are opaque and evaluate to constants instead.
+    /// An ordinary calculation's source, for symbolic descent. Tables, the
+    /// definitions forms lay out and literals are opaque and evaluate to
+    /// constants instead.
     fn definition_source(&self, path: &Path, name: &str) -> Option<(Symbol, String, Span)> {
         let symbol = self.request.workspace.resolve(path, name).ok()?;
         let SymbolKind::Definition(i) = symbol.kind else {
@@ -265,12 +265,7 @@ impl Engine<'_> {
         };
         let doc = &self.request.workspace.documents[&symbol.path];
         let def = &doc.definitions[i];
-        if !def.expression
-            || doc.table_of(i).is_some()
-            || doc.plan_of(i).is_some()
-            || model::plans::seek_body(&def.source).is_some()
-            || model::plans::goal(&def.source).is_some()
-        {
+        if !def.expression || doc.table_of(i).is_some() || doc.form_of(i).is_some() {
             return None;
         }
         Some((symbol.clone(), def.source.clone(), def.expression_span(doc)))
@@ -306,24 +301,20 @@ impl Engine<'_> {
             }
             Expr::Name(n) if vars.contains(n) && self.row().is_none() => Ok(Linear::variable(n)),
             Expr::Name(n)
-                if self
-                    .row()
-                    .is_some_and(|scope| scope.decisions.contains_key(n)) =>
+                if let Some(variable) = self.row().and_then(|row| row.decisions.get(n)) =>
             {
-                let variable = self.row().unwrap().decisions[n].clone();
                 if variable.is_empty() {
                     return Err(EvalError::DecisionColumnBareTable(n.clone()));
                 }
-                Ok(Linear::variable(&variable))
+                Ok(Linear::variable(variable))
             }
-            // Walk into calculations symbolically, so a goal seek can see its
-            // own name through any chain of definitions.
+            // Walk into calculations symbolically, so a form solving for its
+            // own name sees it through any chain of definitions.
             Expr::Name(n)
                 if self.row().is_none()
                     && !matches!(crate::engine::keyword(n), Some(Value::Bool(_)))
-                    && self.definition_source(path, n).is_some() =>
+                    && let Some((symbol, source, span)) = self.definition_source(path, n) =>
             {
-                let (symbol, source, span) = self.definition_source(path, n).unwrap();
                 if self.trace.linear.contains(&symbol) {
                     self.contextual();
                     return Err(EvalError::CycleThrough { name: n.clone() });

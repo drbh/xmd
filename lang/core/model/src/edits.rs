@@ -22,18 +22,6 @@ pub fn byte_at(line: &str, character: u32) -> Option<usize> {
     (units == character).then_some(line.len())
 }
 
-/// The position just past the last character, where an edit may append.
-pub fn end_position(text: &str) -> Position {
-    if text.ends_with('\n') {
-        Position::new(text.lines().count() as u32, 0)
-    } else {
-        let lines: Vec<_> = text.lines().collect();
-        Position::new(
-            lines.len().saturating_sub(1) as u32,
-            lines.last().unwrap_or(&"").encode_utf16().count() as u32,
-        )
-    }
-}
 /// Where each line starts, so a position resolves to a byte offset without
 /// rescanning the text.
 pub struct LineIndex<'a> {

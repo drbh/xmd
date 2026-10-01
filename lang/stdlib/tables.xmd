@@ -1,15 +1,15 @@
-// Table layout: formatting pads every cell of a table, and of a plan's
-// constraint table, to its column's width as a monospace editor shows it,
-// and stretches the separator's dashes to match. Parsing, typing and
-// calculating cells stay the language's; this module lays out the cells
-// the `tables` and `plans` collections say each line splits into.
+// Table layout: formatting pads every cell of a table, and of the table a
+// form takes (a plan's constraints), to its column's width as a monospace
+// editor shows it, and stretches the separator's dashes to match. Parsing,
+// typing and calculating cells stay the language's; this module lays out the
+// cells the `tables` and `forms` collections say each line splits into.
 module := {
   api: 1,
   id: "tables",
   kind: "feature",
   inputs: {
     tables: ["header", "end_line", "grid", "problems"],
-    plans: ["header", "end_line", "grid", "problems"]
+    forms: ["header", "end_line", "grid", "problems"]
   }
 }
 
@@ -96,23 +96,25 @@ _clean := fn(table, columns) => let(
   )
 )
 
-// Whether a plan reads a row as a constraint: a name and an expression.
-_constraint := fn(cells) => (
-  length(cells) == 2 && match_pattern(get(cells, 0), "^[A-Za-z_][A-Za-z0-9_]*$") != null
+// Whether a form reads a row of its table: a cell for every column, the
+// first naming the row.
+_read := fn(cells, columns) => (
+  length(cells) == length(columns)
+  && match_pattern(get(cells, 0), "^[A-Za-z_][A-Za-z0-9_]*$") != null
 )
 
 // A table being typed, problems or not. A row may have more cells than
 // columns or fewer: a column is as wide as its widest cell in the rows the
-// table reads (a plan reads only its constraint rows), and a cell past the
-// last column, or wider than its column, keeps its own width.
-_typed := fn(table, columns, plan) => let(
+// table reads (a form reads only its named rows with every cell), and a
+// cell past the last column, or wider than its column, keeps its own width.
+_typed := fn(table, columns, form) => let(
   {
     header: get(table.grid, 0).cells,
     rule: get(table.grid, 1).cells,
     widths: fold(
       filter(
         map(slice(table.grid, 2, length(table.grid)), fn(row) => row.cells),
-        fn(cells) => cells != null && (!plan || _constraint(cells))
+        fn(cells) => cells != null && (!form || _read(cells, columns))
       ),
       map(columns, fn(i) => _max(display_width(get(header, i)), _rule(get(rule, i)))),
       fn(widths, cells) => map(
@@ -137,7 +139,7 @@ _typed := fn(table, columns, plan) => let(
 
 // Every line of a table whose padding is off, once its header and separator
 // agree on the columns.
-_aligned := fn(table, plan) => let(
+_aligned := fn(table, form) => let(
   {header: get(table.grid, 0).cells, rule: coalesce(get(table.grid, 1), {cells: null}).cells},
   if(
     header == null || rule == null,
@@ -146,7 +148,7 @@ _aligned := fn(table, plan) => let(
     [],
     length(table.problems) == 0,
     _clean(table, _positions(header)),
-    _typed(table, _positions(header), plan)
+    _typed(table, _positions(header), form)
   )
 )
 
@@ -157,8 +159,8 @@ format := fn(ctx) => let(
   {
     at: get(ctx, "position"),
     grids: concat(
-      map(ctx.document.tables, fn(t) => {table: t, plan: false}),
-      map(ctx.document.plans, fn(p) => {table: p, plan: true})
+      map(ctx.document.tables, fn(t) => {table: t, form: false}),
+      map(filter(ctx.document.forms, fn(f) => f.grid != null), fn(f) => {table: f, form: true})
     )
   },
   fold(
@@ -171,6 +173,6 @@ format := fn(ctx) => let(
       ) && length(g.table.grid) > 0
     ),
     [],
-    fn(edits, g) => concat(edits, _aligned(g.table, g.plan))
+    fn(edits, g) => concat(edits, _aligned(g.table, g.form))
   )
 )

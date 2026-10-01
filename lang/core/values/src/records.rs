@@ -1,6 +1,6 @@
 //! The typed boundary between Rust and the .xmd modules.
 //!
-//! Plans, catalog records, link contexts and solver models all cross into
+//! Form definitions, catalog records, link contexts and solver models all cross into
 //! module functions as records. Rather than assembling a `BTreeMap` field by
 //! field at each call site and picking it apart again with `fields.get(...)`
 //! chains on the way back, each of those shapes is a Rust struct, declared
@@ -32,11 +32,6 @@ impl ToValue for Value {
         self.clone()
     }
 }
-impl FromValue for Value {
-    fn from_value(value: &Value) -> EvalResult<Self> {
-        Ok(value.clone())
-    }
-}
 /// A leaf: one Rust type, the `Value` variant it crosses as, and what a
 /// module was expected to return in its place.
 macro_rules! leaf {
@@ -56,13 +51,13 @@ macro_rules! leaf {
         })?
     };
 }
-leaf!(bool, Bool, "a boolean");
+leaf!(bool, Bool);
 leaf!(String, Text, "text");
 // A whole number of seconds: the `Duration` a module reads and writes.
-leaf!(i64, Duration, "a duration");
-leaf!(usize, Count, "a count");
-leaf!(f64, Number, "a number");
-leaf!(DateTime<FixedOffset>, DateTime, "a timestamp");
+leaf!(i64, Duration);
+leaf!(usize, Count);
+leaf!(f64, Number);
+leaf!(DateTime<FixedOffset>, DateTime);
 leaf!(NaiveDate, Date);
 /// `Null` is the absent one: nothing else stands in for a missing value.
 impl<T: ToValue> ToValue for Option<T> {
@@ -88,7 +83,10 @@ impl<T: ToValue> ToValue for Vec<T> {
 }
 impl<T: FromValue> FromValue for Vec<T> {
     fn from_value(value: &Value) -> EvalResult<Self> {
-        list(value)?.iter().map(T::from_value).collect()
+        match value {
+            Value::List(items) => items.iter().map(T::from_value).collect(),
+            _ => Err(EvalError::Expected("a list")),
+        }
     }
 }
 impl<T: ToValue> ToValue for BTreeMap<String, T> {
@@ -106,13 +104,6 @@ impl<T: FromValue> FromValue for BTreeMap<String, T> {
             .iter()
             .map(|(k, v)| Ok((k.clone(), T::from_value(v)?)))
             .collect()
-    }
-}
-
-pub fn list(value: &Value) -> EvalResult<&[Value]> {
-    match value {
-        Value::List(items) => Ok(items),
-        _ => Err(EvalError::Expected("a list")),
     }
 }
 
@@ -199,13 +190,9 @@ pub struct Fields<'a> {
 }
 impl<'a> Fields<'a> {
     pub fn new(value: &'a Value) -> EvalResult<Self> {
-        Self::expect(value, EvalError::Expected("a record"))
-    }
-    /// The same, for the call sites that name the record in their own words.
-    pub fn expect(value: &'a Value, error: impl Into<EvalError>) -> EvalResult<Self> {
         match value {
             Value::Record(fields) => Ok(Self { fields }),
-            _ => Err(error.into()),
+            _ => Err(EvalError::Expected("a record")),
         }
     }
     pub fn iter(&self) -> impl Iterator<Item = (&'a String, &'a Value)> {
@@ -219,27 +206,8 @@ impl<'a> Fields<'a> {
                 .ok_or_else(|| EvalError::Message(format!("Missing field '{key}'")))?,
         )
     }
-    /// The same, with one error for every way it can go wrong.
-    pub fn required_or<T: FromValue>(
-        &self,
-        key: &str,
-        error: impl Into<EvalError>,
-    ) -> EvalResult<T> {
-        self.required(key).map_err(|_| error.into())
-    }
     /// Absent reads as nothing; anything present, `Null` included, must decode.
     pub fn present<T: FromValue>(&self, key: &str) -> EvalResult<Option<T>> {
         self.fields.get(key).map(T::from_value).transpose()
-    }
-}
-
-/// One variable as `plan.solve_model` reports it: `{name, value}`.
-impl FromValue for (String, Value) {
-    fn from_value(value: &Value) -> EvalResult<Self> {
-        let fields = Fields::new(value)?;
-        Ok((
-            fields.required::<Value>("name")?.display(),
-            fields.required("value")?,
-        ))
     }
 }

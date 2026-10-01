@@ -7,7 +7,7 @@
 - the solver does linear plans only
 - notes that are mostly prose with no numbers are fine as plain markdown
 
-that's the tour. `lang/examples` has a note per feature, `lang/stdlib` is
+that's the tour. `examples` has a note per feature, `stdlib` is
 the standard library, [the reference](README.md#reference) lists every
 function, library and query collection, and `xmd --help` lists every
 command

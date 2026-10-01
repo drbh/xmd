@@ -1,0 +1,16 @@
+[package]
+name = "services"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# What every host shares, behind one public interface. The crates beside this
+# manifest are private to it: hosts depend on this facade, never on them.
+# Everything here is portable; native I/O is the `native` crate in hosts/.
+[dependencies]
+analysis = { path = "analysis" }
+features = { path = "features" }
+records = { path = "records" }
+
+[lints]
+workspace = true

@@ -39,9 +39,9 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       # One run covers every case: the browser feature only adds the cases
-      # that drive the browser host. The wasm job builds without it.
+      # that drive the browser host (hosts/wasm). The wasm job builds without it.
       # --workspace also runs the crates' own unit tests, which the default
-      # member (cli) alone would skip.
+      # member (hosts/cli) alone would skip.
       - name: Test
         run: cargo test --workspace --features xmd/browser
 
@@ -65,31 +65,31 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/web/package-lock.json
+          cache-dependency-path: clients/web/package-lock.json
       - name: Install web dependencies
-        run: npm --prefix client/web ci
+        run: npm --prefix clients/web ci
       - name: Build WASM
-        run: bash client/web/build.sh
+        run: bash clients/web/build.sh
       - name: Build site
-        run: npm --prefix client/web run build
+        run: npm --prefix clients/web run build
       - name: Keep the WASM package for the deploy job
         uses: actions/upload-artifact@v4
         with:
           name: wasm-pkg
-          path: client/web/pkg
+          path: clients/web/pkg
           retention-days: 1
       - name: Node tests
-        run: npm --prefix client/web run test:unit
+        run: npm --prefix clients/web run test:unit
       - name: Type tests
-        run: npm --prefix client/web run test:types
+        run: npm --prefix clients/web run test:types
       - name: Build native binary
-        # client/web/tests/render.spec.mjs spawns target/debug/xmd for native parity.
+        # clients/web/tests/render.spec.mjs spawns target/debug/xmd for native parity.
         run: cargo build
       - name: Install Playwright browser
         # playwright.config.mjs pins channel "chrome", so install Google Chrome.
-        run: npx --prefix client/web playwright install --with-deps chrome
+        run: npx --prefix clients/web playwright install --with-deps chrome
       - name: Browser tests
-        working-directory: client/web
+        working-directory: clients/web
         run: npx playwright test
       - name: Upload Playwright report
         if: failure()
@@ -97,8 +97,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            client/web/playwright-report
-            client/web/test-results
+            clients/web/playwright-report
+            clients/web/test-results
           if-no-files-found: ignore
           retention-days: 7
 
@@ -112,13 +112,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/ide/vscode/package-lock.json
+          cache-dependency-path: clients/ide/vscode/package-lock.json
       - name: Install extension dependencies
-        run: npm --prefix client/ide/vscode ci
+        run: npm --prefix clients/ide/vscode ci
       # `npm run test` launches a real VS Code against target/debug/xmd and needs
       # a display; it is not run here. `check` syntax-checks the extension only.
       - name: Check extension sources
-        run: npm --prefix client/ide/vscode run check
+        run: npm --prefix clients/ide/vscode run check
 
   deploy:
     # The hosted docs app at xmd.dholtz.com is rebuilt from every
@@ -139,21 +139,21 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: |
-            client/web/package-lock.json
-            client/web/cloud/package-lock.json
+            clients/web/package-lock.json
+            clients/web/cloud/package-lock.json
       - uses: actions/download-artifact@v4
         with:
           name: wasm-pkg
-          path: client/web/pkg
+          path: clients/web/pkg
       - name: Install dependencies
         run: |
-          npm --prefix client/web ci
-          npm --prefix client/web/cloud ci
+          npm --prefix clients/web ci
+          npm --prefix clients/web/cloud ci
       - name: Build the site and the backend module
         # The WASM package comes from the wasm job above; only the site is built here.
-        run: npm --prefix client/web/cloud run build
+        run: npm --prefix clients/web/cloud run build
       - name: Apply database migrations
-        working-directory: client/web/cloud
+        working-directory: clients/web/cloud
         # D1's query API sometimes answers with a transient "internal error"
         # (codes 7429, 7500). Applying migrations is idempotent, since D1 records
         # which ones ran, so retry a few times before failing the deploy.
@@ -167,7 +167,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Deploy
-        working-directory: client/web/cloud
+        working-directory: clients/web/cloud
         run: npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

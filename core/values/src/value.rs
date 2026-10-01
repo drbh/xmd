@@ -1,0 +1,821 @@
+//! Values: the kinds a note computes, closures among them, and their display
+//! and JSON forms. The scalar literals a note's own syntax can spell are
+//! `syntax::Literal`; this adds the host objects (tables, checklists, tagged
+//! records...) a literal can never be.
+use crate::error::{EvalError, EvalResult, Overflow};
+use chrono::{DateTime, FixedOffset, Months, NaiveDate};
+use common::{Code, Currency, Resource, ValueType};
+use serde_json::json;
+use std::{
+    any::Any,
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
+use syntax::{Expr, Literal};
+pub type TaskKey = (PathBuf, usize);
+
+/// Lists and records are shared: cloning one is a reference count, never a
+/// copy of its items, so a note's derived data can be cached and handed to a
+/// module as-is. Build one with [`Value::list`] or [`Value::record`]; code
+/// that changes one in place goes through `Arc::make_mut`, which copies only
+/// when the value is still shared.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Value {
+    Null,
+    List(Arc<Measured<Vec<Value>>>),
+    Record(Arc<Measured<BTreeMap<String, Value>>>),
+    Function(Arc<Function>),
+    /// An explicit note import. Members are evaluated only when read.
+    Namespace(Namespace),
+    Number(f64),
+    Count(usize),
+    Money(f64, Currency),
+    Ratio(f64),
+    /// Whole seconds, including for estimates and date arithmetic.
+    Duration(i64),
+    Date(NaiveDate),
+    DateTime(DateTime<FixedOffset>),
+    Bool(bool),
+    Text(String),
+    /// An uppercase code literal: text, with its shape already known.
+    Code(Code),
+    Resource(Resource),
+    Tasks(Vec<TaskKey>),
+    /// An object the evaluator builds and a note only reads: a tagged
+    /// record, a table, or a checklist handed to module code. Its kind,
+    /// display and fields are the object's own.
+    Host(Arc<dyn HostObject>),
+}
+// Values cross threads (the language server evaluates off its I/O thread), so
+// sharing a list or record must stay thread-safe.
+const _: () = {
+    const fn shared<T: Send + Sync>() {}
+    shared::<Value>()
+};
+/// A list's items or a record's fields, with how big they are once someone
+/// has measured them: the size cap is checked wherever a value is built, and
+/// a shared value is measured once rather than by every value built from it.
+/// Reading it is reading what it holds; changing it in place forgets the size.
+pub struct Measured<T> {
+    inner: T,
+    /// Its size once measured: how many values it holds plus one (zero
+    /// while unknown), and its bytes, written first.
+    items: AtomicUsize,
+    bytes: AtomicUsize,
+}
+impl<T> Measured<T> {
+    pub(crate) fn new(inner: T) -> Self {
+        Self {
+            inner,
+            items: AtomicUsize::new(0),
+            bytes: AtomicUsize::new(0),
+        }
+    }
+    /// What it holds.
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+    /// Its size, when it has been measured in full.
+    pub(crate) fn size(&self) -> Option<crate::functional::Size> {
+        match self.items.load(Ordering::Acquire) {
+            0 => None,
+            items => Some(crate::functional::Size {
+                items: items - 1,
+                bytes: self.bytes.load(Ordering::Relaxed),
+            }),
+        }
+    }
+    /// Keep its size, measured in full. Whoever measures it finds the same
+    /// size, so racing to keep it is harmless.
+    pub(crate) fn measured(&self, size: crate::functional::Size) {
+        if let Some(items) = size.items.checked_add(1) {
+            self.bytes.store(size.bytes, Ordering::Relaxed);
+            self.items.store(items, Ordering::Release);
+        }
+    }
+}
+impl<T: Clone> Clone for Measured<T> {
+    fn clone(&self) -> Self {
+        let items = self.items.load(Ordering::Acquire);
+        Self {
+            inner: self.inner.clone(),
+            bytes: AtomicUsize::new(self.bytes.load(Ordering::Relaxed)),
+            items: AtomicUsize::new(items),
+        }
+    }
+}
+impl<T> std::ops::Deref for Measured<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.inner
+    }
+}
+impl<T> std::ops::DerefMut for Measured<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        *self.items.get_mut() = 0;
+        &mut self.inner
+    }
+}
+/// One shared list or record is equal to itself without comparing what it
+/// holds, which may be a whole note's records: no value a note computes is
+/// unequal to itself, since arithmetic never makes a NaN.
+impl<T: PartialEq> PartialEq for Measured<T> {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other) || self.inner == other.inner
+    }
+}
+impl<T: std::fmt::Debug> std::fmt::Debug for Measured<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+impl<'a, T> IntoIterator for &'a Measured<T>
+where
+    &'a T: IntoIterator,
+{
+    type Item = <&'a T as IntoIterator>::Item;
+    type IntoIter = <&'a T as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.inner).into_iter()
+    }
+}
+impl<'a, T> IntoIterator for &'a mut Measured<T>
+where
+    &'a mut T: IntoIterator,
+{
+    type Item = <&'a mut T as IntoIterator>::Item;
+    type IntoIter = <&'a mut T as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&mut **self).into_iter()
+    }
+}
+/// A parsed literal is always one of these values: money, dates, a resource
+/// and the rest all become the value kind of the same name.
+impl From<Literal> for Value {
+    fn from(literal: Literal) -> Self {
+        match literal {
+            Literal::Resource(r) => Value::Resource(r),
+            Literal::Date(d) => Value::Date(d),
+            Literal::DateTime(d) => Value::DateTime(d),
+            Literal::Duration(d) => Value::Duration(d),
+            Literal::Bool(b) => Value::Bool(b),
+            Literal::Money(n, c) => Value::Money(n, c),
+            Literal::Ratio(n) => Value::Ratio(n),
+            Literal::Number(n) => Value::Number(n),
+            Literal::Text(s) => Value::Text(s),
+        }
+    }
+}
+/// An imported note. Its members are the note's definitions, which the engine
+/// resolves lazily by name, so it answers no fields of its own.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Namespace(pub PathBuf);
+impl Namespace {
+    pub fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+/// Host objects: the half of [`Value`] the language does not compute.
+///
+/// A note computes with language values — numbers, money, durations, dates,
+/// text, codes, lists and records. It cannot build a checklist, a table, a
+/// module's tagged record, an imported note or a link target; those are
+/// objects some host owns (the document, a module, the filesystem) and the
+/// language only reads from. Every kind of
+/// reading is one method here, so the generic sites — `Value::kind`,
+/// `Value::display`, `Value::property`, `QueryValue::from_value`, completion's
+/// property list and the symbol hover — dispatch once instead of carrying an
+/// arm per object. What needs the engine or the link registry to answer (a
+/// resource's link fields, a checklist's progress) the evaluator adds on top.
+pub trait HostObject: HostEq + std::fmt::Debug + Send + Sync {
+    /// The kind a note sees.
+    fn kind(&self) -> ValueType;
+    /// The kind's name, as `type` answers and hovers and errors show it: the
+    /// kind's own unless the object names itself, as a tagged record names
+    /// the kind its module chose.
+    fn type_name(&self) -> &str {
+        self.kind().as_str()
+    }
+    /// The human-readable label a hover, inlay or query result shows.
+    fn display(&self) -> String;
+    /// Fields the object answers on its own. A namespace's members, a
+    /// resource's link data and a checklist's counts need the engine, so they
+    /// stay in the evaluator and fall through to this error.
+    fn property(&self, key: &str) -> EvalResult<Value> {
+        Err(EvalError::UnknownField {
+            key: key.into(),
+            on: Some(self.kind()),
+        })
+    }
+    /// The names completion offers after `value.` that the object knows
+    /// without the link registry.
+    fn fields(&self) -> Vec<String> {
+        vec![]
+    }
+    /// The object as plain language values, which is the shape a query record
+    /// and its JSON hold. `None` keeps the value itself as the scalar: a
+    /// namespace has no shape but its own.
+    fn query(&self) -> Option<Value> {
+        None
+    }
+    /// Hover detail beyond the name, kind and display line every symbol gets,
+    /// when the object can word it without the engine.
+    fn hover(&self) -> Option<String> {
+        None
+    }
+}
+/// Equality between host objects of any type: equal when they are the same
+/// type and equal as that type, which is what `Value`'s own equality needs.
+pub trait HostEq: Any {
+    fn host_eq(&self, other: &dyn Any) -> bool;
+}
+impl<T: PartialEq + Any> HostEq for T {
+    fn host_eq(&self, other: &dyn Any) -> bool {
+        other.downcast_ref::<T>().is_some_and(|other| self == other)
+    }
+}
+impl PartialEq for dyn HostObject {
+    fn eq(&self, other: &Self) -> bool {
+        self.host_eq(other as &dyn Any)
+    }
+}
+impl dyn HostObject {
+    /// The object as the concrete type it was built with.
+    pub(crate) fn downcast_ref<T: HostObject>(&self) -> Option<&T> {
+        (self as &dyn Any).downcast_ref()
+    }
+}
+impl Value {
+    /// A list value holding these items.
+    pub fn list(items: Vec<Value>) -> Self {
+        Self::List(Arc::new(Measured::new(items)))
+    }
+    /// A record value holding these fields.
+    pub fn record(fields: BTreeMap<String, Value>) -> Self {
+        Self::Record(Arc::new(Measured::new(fields)))
+    }
+    /// The object behind a host value, or `None` for a value the language
+    /// computes. This is the one place every variant is sorted into the two
+    /// halves, so it is spelled out rather than using a wildcard: a new kind
+    /// has to say which half it belongs to, and `kind` and `display` may then
+    /// treat anything left over as impossible.
+    pub fn host(&self) -> Option<&dyn HostObject> {
+        match self {
+            Self::Tasks(tasks) => Some(tasks),
+            Self::Namespace(note) => Some(note),
+            Self::Resource(resource) => Some(resource),
+            Self::Host(object) => Some(&**object),
+            Self::Null
+            | Self::List(_)
+            | Self::Record(_)
+            | Self::Function(_)
+            | Self::Number(_)
+            | Self::Count(_)
+            | Self::Money(..)
+            | Self::Ratio(_)
+            | Self::Duration(_)
+            | Self::Date(_)
+            | Self::DateTime(_)
+            | Self::Bool(_)
+            | Self::Text(_)
+            | Self::Code(_) => None,
+        }
+    }
+    /// The object behind a [`Value::Host`], as the concrete type it was built
+    /// with: a tagged record or a table.
+    pub fn downcast<T: HostObject>(&self) -> Option<&T> {
+        match self {
+            Self::Host(object) => object.downcast_ref(),
+            _ => None,
+        }
+    }
+    /// The same, sharing the object rather than borrowing it.
+    pub fn downcast_arc<T: HostObject>(&self) -> Option<Arc<T>> {
+        match self {
+            Self::Host(object) => (object.clone() as Arc<dyn Any + Send + Sync>)
+                .downcast()
+                .ok(),
+            _ => None,
+        }
+    }
+}
+/// The property a checklist lists its tasks under.
+pub const CHECKLIST_TASKS: &str = "tasks";
+/// A checklist: the leaf tasks under one heading, which `@after` reads and
+/// whose `tasks` property the engine answers with a record per task, since
+/// only it can tell whether a task is done.
+impl HostObject for Vec<TaskKey> {
+    fn kind(&self) -> ValueType {
+        ValueType::Checklist
+    }
+    fn display(&self) -> String {
+        format!("{} tasks", self.len())
+    }
+    fn fields(&self) -> Vec<String> {
+        vec![CHECKLIST_TASKS.to_owned()]
+    }
+    fn query(&self) -> Option<Value> {
+        Some(Value::list(
+            self.iter()
+                .map(|(path, index)| {
+                    record([
+                        ("path", Value::Text(path.to_string_lossy().into())),
+                        ("task_index", Value::Count(*index)),
+                    ])
+                })
+                .collect(),
+        ))
+    }
+}
+impl HostObject for Namespace {
+    fn kind(&self) -> ValueType {
+        ValueType::Namespace
+    }
+    fn display(&self) -> String {
+        format!("import(\"{}\")", self.0.display())
+    }
+}
+impl HostObject for Resource {
+    fn kind(&self) -> ValueType {
+        ValueType::Resource
+    }
+    fn display(&self) -> String {
+        self.target.clone()
+    }
+    fn query(&self) -> Option<Value> {
+        Some(record([("target", Value::Text(self.target.clone()))]))
+    }
+}
+/// A record built from `(key, value)` pairs, keys written as `&str` or `String`.
+pub fn record<K: Into<String>>(fields: impl IntoIterator<Item = (K, Value)>) -> Value {
+    Value::record(fields.into_iter().map(|(k, v)| (k.into(), v)).collect())
+}
+/// The unit a linear form carries, so money, durations and plain numbers never
+/// mix silently.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::Display)]
+pub enum Unit {
+    /// Not yet known: the form is only bare variables.
+    Any,
+    Number,
+    Money,
+    Duration,
+}
+/// A closure: its parameters and body, the note it was written in, and the
+/// names it captured there.
+#[derive(Clone, Debug)]
+pub struct Function {
+    pub expressions: Option<Arc<BTreeMap<String, Expr>>>,
+    /// The workspace a module's closure was written against. Only the
+    /// evaluator reads it, so to values it is opaque.
+    pub environment: Option<Arc<dyn Any + Send + Sync>>,
+    pub params: Vec<String>,
+    /// The defaults of the trailing parameters that have one, in order: a
+    /// call may leave those out.
+    pub defaults: Vec<Expr>,
+    pub body: Arc<Expr>,
+    /// The note it was written in, shared by every closure made there.
+    pub path: Arc<std::path::Path>,
+    pub source: Option<(Arc<std::path::Path>, common::Span)>,
+    pub captured: Captured,
+}
+
+/// The names a closure captured where it was made, innermost scope first.
+/// A closure made inside another shares what that one captured and adds
+/// only its own scope's names, so making one costs the names it adds, not
+/// everything in scope.
+#[derive(Clone, Debug, Default)]
+pub struct Captured(Option<Arc<Scope>>);
+#[derive(Debug)]
+struct Scope {
+    names: Vec<(String, Value)>,
+    outer: Captured,
+}
+impl Captured {
+    /// Exactly these names.
+    pub fn of(names: BTreeMap<String, Value>) -> Self {
+        Self::default().with(names.into_iter().collect())
+    }
+    /// `names` in a scope inside this one.
+    pub fn with(&self, names: Vec<(String, Value)>) -> Self {
+        if names.is_empty() {
+            return self.clone();
+        }
+        Self(Some(Arc::new(Scope {
+            names,
+            outer: self.clone(),
+        })))
+    }
+    /// What `name` was bound to, the innermost binding winning.
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        let mut scope = self.0.as_deref();
+        while let Some(found) = scope {
+            if let Some((_, value)) = found.names.iter().find(|(n, _)| n == name) {
+                return Some(value);
+            }
+            scope = found.outer.0.as_deref();
+        }
+        None
+    }
+    /// Every name, the innermost binding of each.
+    pub fn names(&self) -> BTreeMap<String, Value> {
+        let mut scopes = Vec::new();
+        let mut scope = self.0.as_deref();
+        while let Some(found) = scope {
+            scopes.push(found);
+            scope = found.outer.0.as_deref();
+        }
+        let mut names = BTreeMap::new();
+        for found in scopes.into_iter().rev() {
+            names.extend(found.names.iter().cloned());
+        }
+        names
+    }
+}
+impl PartialEq for Captured {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Some(a), Some(b)) if Arc::ptr_eq(a, b) => true,
+            _ => self.names() == other.names(),
+        }
+    }
+}
+
+impl Function {
+    /// How many arguments a call must pass: every parameter without a default.
+    pub fn required(&self) -> usize {
+        self.params.len() - self.defaults.len()
+    }
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.params == other.params
+            && self.defaults == other.defaults
+            && self.body == other.body
+            && self.path == other.path
+            && self.source == other.source
+            && self.captured == other.captured
+            && self
+                .environment
+                .as_ref()
+                .map(|e| Arc::as_ptr(e).cast::<()>())
+                == other
+                    .environment
+                    .as_ref()
+                    .map(|e| Arc::as_ptr(e).cast::<()>())
+    }
+}
+
+impl Value {
+    /// Structural access shared by expressions, query records and list projections.
+    pub fn property(&self, key: &str) -> EvalResult<Self> {
+        use Value::*;
+        if let Some(object) = self.host() {
+            return object.property(key);
+        }
+        match (self, key) {
+            (Null, _) => Ok(Null),
+            (Record(fields), _) => {
+                fields
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| EvalError::UnknownField {
+                        key: key.into(),
+                        on: None,
+                    })
+            }
+            (List(items), _) => items
+                .iter()
+                .map(|v| v.property(key))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Value::list),
+            // Every other kind answers only for the fields its type owns.
+            (value, key) if value.kind().fields().contains(&key) => Ok(match (value, key) {
+                (Money(amount, _), "amount") => Number(*amount),
+                (Money(_, currency), "currency") => Text(currency.as_str().into()),
+                (Duration(seconds), "seconds") => Number(*seconds as f64),
+                (Date(date), "value") => Text(date.to_string()),
+                (DateTime(date), "value") => Text(date.to_rfc3339()),
+                (Ratio(value), "value") => Number(*value),
+                // The remaining field these kinds list is `type`, the kind's
+                // own name in the lowercase spelling notes compare against.
+                _ => Text(value.type_name().to_lowercase()),
+            }),
+            _ => Err(EvalError::UnknownField {
+                key: key.into(),
+                on: Some(self.kind()),
+            }),
+        }
+    }
+    pub fn kind(&self) -> ValueType {
+        if let Some(object) = self.host() {
+            return object.kind();
+        }
+        match self {
+            Self::Null => ValueType::Null,
+            Self::List(_) => ValueType::List,
+            Self::Record(_) => ValueType::Record,
+            Self::Function(_) => ValueType::Function,
+            Self::Number(_) => ValueType::Number,
+            Self::Count(_) => ValueType::Count,
+            Self::Money(..) => ValueType::Money,
+            Self::Ratio(_) => ValueType::Ratio,
+            Self::Duration(_) => ValueType::Duration,
+            Self::Date(_) => ValueType::Date,
+            Self::DateTime(_) => ValueType::DateTime,
+            Self::Bool(_) => ValueType::Boolean,
+            // A code is a kind of text, and notes compare `type` against it.
+            Self::Text(_) | Self::Code(_) => ValueType::Text,
+            // Every remaining kind is a host object, answered above.
+            _ => unreachable!("Value::host must sort every kind"),
+        }
+    }
+    /// The language-level name of this kind, as notes and queries compare it.
+    pub fn type_name(&self) -> &str {
+        match self.host() {
+            Some(object) => object.type_name(),
+            None => self.kind().as_str(),
+        }
+    }
+    /// A round-trippable expression, unlike the human-readable display label.
+    /// Only the language's own kinds have one: no note can write down a host
+    /// object, so every one of them falls through to `None`.
+    pub fn source(&self) -> Option<String> {
+        Some(match self {
+            Self::Null => "null".into(),
+            Self::List(values) => format!(
+                "[{}]",
+                values
+                    .iter()
+                    .map(Self::source)
+                    .collect::<Option<Vec<_>>>()?
+                    .join(", ")
+            ),
+            Self::Record(fields) => format!(
+                "{{{}}}",
+                fields
+                    .iter()
+                    .map(|(k, v)| Some(format!(
+                        "{}: {}",
+                        serde_json::to_string(k).ok()?,
+                        v.source()?
+                    )))
+                    .collect::<Option<Vec<_>>>()?
+                    .join(", ")
+            ),
+            Self::Number(n) => n.to_string(),
+            Self::Money(n, c) => match c.symbol() {
+                Some(symbol) if *n < 0.0 => format!("-{symbol}{}", n.abs()),
+                Some(symbol) => format!("{symbol}{n}"),
+                None => format!("{n} {c}"),
+            },
+            Self::Ratio(n) if (n * 100.0).is_finite() => format!("{}%", n * 100.0),
+            Self::Duration(n) => format!("{n}s"),
+            Self::Date(d) => d.to_string(),
+            Self::DateTime(d) => d.to_rfc3339(),
+            Self::Bool(b) => b.to_string(),
+            Self::Text(s) => serde_json::to_string(s).ok()?,
+            Self::Code(code) => serde_json::to_string(code.as_str()).ok()?,
+            _ => return None,
+        })
+    }
+    pub fn display(&self) -> String {
+        if let Some(object) = self.host() {
+            return object.display();
+        }
+        match self {
+            Self::Null | Self::List(_) | Self::Record(_) => {
+                self.source().unwrap_or_else(|| "<collection>".into())
+            }
+            Self::Function(_) => "<function>".into(),
+            Self::Number(n) => decimal(*n),
+            Self::Count(n) => n.to_string(),
+            Self::Money(n, c) => money(*n, *c),
+            Self::Ratio(n) => format!("{}%", decimal(n * 100.0)),
+            Self::Duration(s) => {
+                if *s == 0 {
+                    "0s".into()
+                } else if s % 86400 == 0 {
+                    format!("{}d", s / 86400)
+                } else if s % 3600 == 0 {
+                    format!("{}h", s / 3600)
+                } else if s % 60 == 0 {
+                    format!("{}m", s / 60)
+                } else if s.unsigned_abs() >= 60 {
+                    format!(
+                        "{}{}m {}s",
+                        if *s < 0 { "-" } else { "" },
+                        s.unsigned_abs() / 60,
+                        s.unsigned_abs() % 60
+                    )
+                } else {
+                    format!("{s}s")
+                }
+            }
+            Self::Date(d) => d.to_string(),
+            Self::DateTime(d) => d.format("%Y-%m-%d %H:%M:%S %:z").to_string(),
+            Self::Bool(b) => b.to_string(),
+            Self::Text(s) => s.clone(),
+            Self::Code(code) => code.as_str().into(),
+            // Every remaining kind is a host object, answered above.
+            _ => unreachable!("Value::host must sort every kind"),
+        }
+    }
+    /// The same value with a code spelled out as text, which is how every
+    /// operation but a lookup sees one.
+    pub fn plain(self) -> Self {
+        match self {
+            Self::Code(code) => Self::Text(code.as_str().into()),
+            other => other,
+        }
+    }
+    /// A plain number: a number, ratio or count.
+    pub fn scalar(&self) -> Option<f64> {
+        match self {
+            Self::Number(n) | Self::Ratio(n) => Some(*n),
+            Self::Count(n) => Some(*n as f64),
+            _ => None,
+        }
+    }
+    /// A plain number, or the amount of money.
+    pub fn amount(&self) -> Option<f64> {
+        match self {
+            Self::Money(n, _) => Some(*n),
+            other => other.scalar(),
+        }
+    }
+    pub fn currency(&self) -> Option<Currency> {
+        match self {
+            Self::Money(_, currency) => Some(*currency),
+            _ => None,
+        }
+    }
+}
+pub(crate) fn decimal(n: f64) -> String {
+    // A whole number (not -0) prints as the integer it is, without the
+    // exact-precision formatting the fraction needs.
+    if n.fract() == 0.0 && n.abs() < 1e15 && !(n == 0.0 && n.is_sign_negative()) {
+        return (n as i64).to_string();
+    }
+    let s = format!("{n:.4}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+fn money(n: f64, currency: Currency) -> String {
+    let s = format!("{:.2}", n.abs());
+    let (whole, frac) = s.split_once('.').unwrap();
+    let mut grouped = String::new();
+    for (i, c) in whole.chars().enumerate() {
+        if i > 0 && (whole.len() - i) % 3 == 0 {
+            grouped.push(',');
+        }
+        grouped.push(c);
+    }
+    let cents = if frac == "00" {
+        String::new()
+    } else {
+        format!(".{frac}")
+    };
+    let sign = if n < 0.0 { "-" } else { "" };
+    match currency.symbol() {
+        Some(symbol) => format!("{sign}{symbol}{grouped}{cents}"),
+        None => format!("{sign}{grouped}{cents} {currency}"),
+    }
+}
+/// A parsed literal, wrapped in the richer value type. Errors are rendered
+/// exactly as the syntax layer produced them.
+pub fn literal(s: &str) -> EvalResult<Value> {
+    syntax::literal(s)
+        .map(Value::from)
+        .map_err(EvalError::Message)
+}
+/// A date or timestamp literal, wrapped in the richer value type.
+pub fn date_value(s: &str) -> Option<Value> {
+    syntax::date_value(s).map(Value::from)
+}
+pub(crate) use syntax::duration;
+
+/// Repeat from the previous due date, advancing beyond completion; month repeats
+/// retain the original day-of-month so Jan 31 -> Feb 28 -> Mar 31.
+pub(crate) fn next_occurrence(
+    rule: &str,
+    anchor: NaiveDate,
+    completed: NaiveDate,
+) -> EvalResult<NaiveDate> {
+    let month_step = match rule.trim() {
+        "month" | "monthly" => Some(1),
+        "year" | "yearly" => Some(12),
+        _ => None,
+    };
+    for n in 1u32..=12000 {
+        let candidate = if let Some(step) = month_step {
+            anchor.checked_add_months(Months::new(n * step))
+        } else {
+            let days = match rule.trim() {
+                "day" | "daily" => 1,
+                "week" | "weekly" => 7,
+                s => duration(s)
+                    .filter(|d| *d > 0 && *d % 86400 == 0)
+                    .map(|d| d / 86400)
+                    .ok_or(EvalError::Message(
+                        "@every supports day, week, month, year, or positive whole-day durations"
+                            .into(),
+                    ))?,
+            };
+            days.checked_mul(n as i64)
+                .and_then(chrono::Duration::try_days)
+                .and_then(|d| anchor.checked_add_signed(d))
+        };
+        let candidate = candidate.ok_or(EvalError::Overflowed(Overflow::Recurrence))?;
+        if candidate > completed {
+            return Ok(candidate);
+        }
+    }
+    Err(EvalError::Message(
+        "Recurrence exceeded its search limit".into(),
+    ))
+}
+
+/// A value as compact JSON: what `debug` shows, and what the `records` crate's
+/// `QueryValue` falls back to for a scalar. A host object describes itself as
+/// a plain record first; everything else keeps its own shape.
+pub fn value_json(value: &Value) -> serde_json::Value {
+    if let Some(record) = value.host().and_then(HostObject::query) {
+        return value_json(&record);
+    }
+    match value {
+        Value::Null => serde_json::Value::Null,
+        Value::List(values) => serde_json::Value::Array(values.iter().map(value_json).collect()),
+        Value::Record(fields) => serde_json::Value::Object(
+            fields
+                .iter()
+                .map(|(k, v)| (k.clone(), value_json(v)))
+                .collect(),
+        ),
+        Value::Function(_) => json!({"type":"function"}),
+        Value::Namespace(path) => json!({"type":"namespace", "path":path.path()}),
+        Value::Number(n) => number(*n, 10),
+        Value::Count(n) => json!(n),
+        Value::Text(s) => json!(s),
+        Value::Code(code) => json!(code.as_str()),
+        Value::Bool(b) => json!(b),
+        Value::Money(amount, currency) => {
+            json!({"type":"money","amount":number(*amount, 2),"currency":currency.as_str()})
+        }
+        Value::Duration(seconds) => json!({"type":"duration","seconds":seconds}),
+        Value::Date(d) => json!({"type":"date","value":d.to_string()}),
+        Value::DateTime(d) => json!({"type":"datetime","value":d.to_rfc3339()}),
+        Value::Ratio(n) => json!({"type":"ratio","value":number(*n, 10)}),
+        // Every other kind (Resource, Table, tagged record, checklist, ...)
+        // implements `HostObject::query` and is handled above.
+        _ => serde_json::Value::Null,
+    }
+}
+
+pub fn json(value: &Value) -> EvalResult<serde_json::Value> {
+    Ok(match value {
+        Value::Null => serde_json::Value::Null,
+        Value::Bool(v) => (*v).into(),
+        Value::Number(v)
+            if v.is_finite() && *v >= 0.0 && *v < u64::MAX as f64 && v.fract() == 0.0 =>
+        {
+            (*v as u64).into()
+        }
+        Value::Number(v) => serde_json::Number::from_f64(*v)
+            .ok_or(EvalError::Message("Nonfinite module number".into()))?
+            .into(),
+        Value::Count(v) => (*v).into(),
+        Value::Text(v) => v.clone().into(),
+        Value::List(v) => serde_json::Value::Array(v.iter().map(json).collect::<Result<_, _>>()?),
+        Value::Record(v) => serde_json::Value::Object(
+            v.iter()
+                .map(|(k, v)| Ok((k.clone(), json(v)?)))
+                .collect::<EvalResult<_>>()?,
+        ),
+        _ => {
+            return Err(EvalError::Message(
+                "Cached module data must contain JSON values".into(),
+            ));
+        }
+    })
+}
+
+/// A number as scripts expect to read it: rounded to `decimals` places so
+/// binary floating point noise (`23.799999999999997`) never reaches the JSON,
+/// and written as an integer when it is one (`1904`, not `1904.0`).
+fn number(n: f64, decimals: i32) -> serde_json::Value {
+    if !n.is_finite() {
+        return json!(n);
+    }
+    let scale = 10f64.powi(decimals);
+    let rounded = (n * scale).round() / scale;
+    if rounded.fract() == 0.0 && rounded.abs() < 9007199254740992.0 {
+        json!(rounded as i64)
+    } else {
+        json!(rounded)
+    }
+}

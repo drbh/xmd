@@ -4,8 +4,8 @@ use crate::highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 use crate::links::document_links;
 use lang::document::{Document, LineIndex};
 use lsp_types::{
-    Diagnostic, DiagnosticSeverity, DocumentLink, InlayHint, InlayHintLabel, InlayHintTooltip,
-    Position, Range, SemanticToken, TextEdit,
+    Diagnostic, DocumentLink, InlayHint, InlayHintLabel, InlayHintTooltip, Position, Range,
+    SemanticToken, TextEdit,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -51,7 +51,7 @@ pub(crate) fn html_for(request: &crate::Request<'_>, path: &Path) -> Result<Stri
 /// The source with the editor's inline labels written into it.
 pub(crate) fn rendered_text(request: &crate::Request<'_>, path: &Path) -> Result<String, String> {
     let (doc, hints) = labelled(request, path)?;
-    render_text(&doc.text, &hints)
+    render_text(doc.text(), &hints)
 }
 
 /// Insert display labels, honoring UTF-16 positions, padding and provider order.
@@ -79,7 +79,7 @@ pub fn fragment(
     links: &[DocumentLink],
 ) -> Result<String, String> {
     serialize(
-        &doc.text,
+        doc.text(),
         &semantic_tokens(doc, library),
         hints,
         diagnostics,
@@ -90,11 +90,11 @@ pub fn fragment(
 
 /// Block styling follows the parser, including its fenced-code/comment context.
 pub fn line_classes(doc: &Document) -> Vec<String> {
-    let mut lines = vec![String::new(); doc.text.split('\n').count()];
-    for section in &doc.sections {
+    let mut lines = vec![String::new(); doc.text().split('\n').count()];
+    for section in doc.sections() {
         lines[section.line] = format!("h{}", section.level);
     }
-    for task in &doc.tasks {
+    for task in doc.tasks() {
         lines[task.line] = "task".into();
     }
     lines
@@ -202,11 +202,9 @@ fn serialize(
         )?;
     }
     for diagnostic in diagnostics {
-        let kind = match diagnostic.severity {
-            Some(DiagnosticSeverity::WARNING) => "warning",
-            Some(DiagnosticSeverity::INFORMATION) => "info",
-            Some(DiagnosticSeverity::HINT) => "hint",
-            _ => "error",
+        let kind = match analysis::severity_name(diagnostic.severity) {
+            "information" => "info",
+            name => name,
         };
         decorate(
             diagnostic.range,
@@ -262,14 +260,8 @@ fn serialize(
         }
         active.extend(event.start);
         for index in event.points {
-            let decoration = &decorations[index];
-            write!(
-                body,
-                "<span class=\"{} point\" title=\"{}\"></span>",
-                escape(&decoration.class),
-                escape(&decoration.title)
-            )
-            .unwrap();
+            let Decoration { class, title, .. } = &decorations[index];
+            span(&mut body, &format!("{class} point"), title, "");
         }
         for hint in event.hints {
             let title = match &hint.tooltip {
@@ -318,13 +310,7 @@ fn serialize(
             )
             .unwrap();
         } else if !class.is_empty() || !title.is_empty() {
-            write!(
-                body,
-                "<span class=\"{}\" title=\"{}\">{text}</span>",
-                escape(&class),
-                escape(&title)
-            )
-            .unwrap();
+            span(&mut body, &class, &title, &text);
         } else {
             body.push_str(&text);
         }
@@ -333,6 +319,16 @@ fn serialize(
         body.push_str("</span>");
     }
     Ok(body)
+}
+
+/// A `<span>` with `class` and `title` around `inner`, which is markup.
+fn span(body: &mut String, class: &str, title: &str, inner: &str) {
+    let (class, title) = (escape(class), escape(title));
+    write!(
+        body,
+        "<span class=\"{class}\" title=\"{title}\">{inner}</span>"
+    )
+    .unwrap();
 }
 
 /// A standalone page has no scripts, fonts, or other external requests.

@@ -1,9 +1,7 @@
 //! Immutable request inputs and a cache shared by independent evaluator sessions.
-use crate::{
-    engine::{Engine, Value},
-    memo::{Evaluations, Memo},
-    workspace::Workspace,
-};
+use crate::engine::{Engine, Value};
+use crate::memo::{Evaluations, Memo};
+use crate::workspace::Workspace;
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use modules::LinkFeatures;
 
@@ -51,16 +49,13 @@ impl<'a> RequestContext<'a> {
             memo: Default::default(),
         }
     }
-    /// A context reading and adding to `evaluations`, which its owner keeps
-    /// only for as long as `workspace` is unchanged.
-    pub fn sharing(
-        workspace: &'a Workspace,
-        now: DateTime<FixedOffset>,
-        evaluations: &Evaluations,
-    ) -> Self {
+    /// A context reading and adding to `kept`, which its owner keeps only for
+    /// as long as `ws` is unchanged.
+    pub fn sharing(ws: &'a Workspace, now: DateTime<FixedOffset>, kept: &Evaluations) -> Self {
+        let memo = kept.memo(ws, now);
         Self {
-            memo: evaluations.memo(workspace, now),
-            ..Self::new(workspace, now)
+            memo,
+            ..Self::new(ws, now)
         }
     }
     pub fn workspace(&self) -> &'a Workspace {

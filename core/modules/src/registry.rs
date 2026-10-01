@@ -89,7 +89,8 @@ impl ModuleRegistry {
         self.modules.len() == other.modules.len()
             && self.modules.iter().zip(&other.modules).all(|(a, b)| {
                 a.path == b.path
-                    && a.environment.document(&a.path).text == b.environment.document(&b.path).text
+                    && a.environment.document(&a.path).text()
+                        == b.environment.document(&b.path).text()
             })
     }
     /// Compile a complete replacement before the caller swaps its Arc snapshot.
@@ -251,17 +252,18 @@ fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
 /// A collection, an attribute or a form is declared by one active module,
 /// and every collection an active module's `inputs` names is native or
 /// declared by one.
-fn collections(modules: &[Module]) -> Result<(), String> {
+fn collections<'m>(modules: &'m [Module]) -> Result<(), String> {
     let active = || modules.iter().filter(|m| m.enabled);
-    let mut attributes: BTreeMap<&str, &str> = BTreeMap::new();
+    // Each declaration as a problem names it, and the module that declares it.
+    let mut declared: BTreeMap<String, &'m str> = BTreeMap::new();
+    let mut once =
+        |module: &'m Module, what: String| match declared.insert(what.clone(), &module.id) {
+            Some(first) => Err(format!("{} and {first} both declare the {what}", module.id)),
+            None => Ok(()),
+        };
     for module in active() {
         for attribute in &module.attributes {
-            if let Some(first) = attributes.insert(&attribute.key, &module.id) {
-                return Err(format!(
-                    "{} and {first} both declare the attribute @{}",
-                    module.id, attribute.key
-                ));
-            }
+            once(module, format!("attribute @{}", attribute.key))?;
         }
     }
     // A form is called the way a function is, so it is named by no function
@@ -270,15 +272,9 @@ fn collections(modules: &[Module]) -> Result<(), String> {
         .find(|m| m.id == PRELUDE && m.kind == ModuleKind::Library)
         .map(Module::public_names)
         .unwrap_or_default();
-    let mut forms: BTreeMap<&str, &str> = BTreeMap::new();
     for module in active() {
         for form in &module.forms {
-            if let Some(first) = forms.insert(&form.name, &module.id) {
-                return Err(format!(
-                    "{} and {first} both declare the form {}",
-                    module.id, form.name
-                ));
-            }
+            once(module, format!("form {}", form.name))?;
             if prelude.contains(&form.name) {
                 return Err(format!(
                     "{} declares the form {}, which the prelude exports",
@@ -287,15 +283,9 @@ fn collections(modules: &[Module]) -> Result<(), String> {
             }
         }
     }
-    let mut declared: BTreeMap<&str, &str> = BTreeMap::new();
     for module in active() {
         for collection in &module.collections {
-            if let Some(first) = declared.insert(&collection.name, &module.id) {
-                return Err(format!(
-                    "{} and {first} both declare the collection '{}'",
-                    module.id, collection.name
-                ));
-            }
+            once(module, format!("collection '{}'", collection.name))?;
         }
     }
     for module in active() {
@@ -305,7 +295,7 @@ fn collections(modules: &[Module]) -> Result<(), String> {
             .into_iter()
             .flatten();
         for input in inputs.chain(module.sources.keys()) {
-            if input.is_declared() && !declared.contains_key(input.as_str()) {
+            if input.is_declared() && !declared.contains_key(&format!("collection '{input}'")) {
                 return Err(format!(
                     "{}: Unknown input collection: {input}",
                     module.path.display()

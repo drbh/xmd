@@ -2,10 +2,11 @@
 //! forms the generic layer read (`blocks`), the features the recognizers read
 //! (`recognizers`), and the questions asked of the result. `Document::parse`
 //! lives with the recognizer registry that drives it.
-use crate::blocks::{Calculation, Definition, Highlight, Link, Problem, Reference, Tree};
 use crate::edits::utf16;
+use crate::inline::{Calculation, Definition, Link, Reference};
 use crate::sections::Section;
 use crate::tasks::Task;
+use crate::tree::{Highlight, Problem, Tree};
 use common::{LineIndex, Lines, Span};
 use lsp_types::Position;
 use std::collections::BTreeSet;
@@ -22,37 +23,40 @@ pub enum DefinitionKind {
     Expression,
     Literal,
 }
+/// A parsed note. Its layout is this crate's own: other layers read each
+/// piece through the accessors `reads!` lists below, and change it only
+/// through named methods such as `recognize`.
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct Document {
-    pub text: String,
-    pub definitions: Vec<Definition>,
-    pub references: Vec<Reference>,
-    pub imports: BTreeSet<String>,
-    pub members: Vec<crate::imports::Member>,
-    pub tasks: Vec<Task>,
-    pub sections: Vec<Section>,
+    pub(crate) text: String,
+    pub(crate) definitions: Vec<Definition>,
+    pub(crate) references: Vec<Reference>,
+    pub(crate) imports: BTreeSet<String>,
+    pub(crate) members: Vec<crate::imports::Member>,
+    pub(crate) tasks: Vec<Task>,
+    pub(crate) sections: Vec<Section>,
     /// Every line that writes `@key(value)` attributes, in note order.
-    pub attributed: Vec<crate::attributes::Attributed>,
+    pub(crate) attributed: Vec<crate::attributes::Attributed>,
     /// The attributes modules declare that the note was parsed with.
     pub(crate) declarations: Vec<std::sync::Arc<crate::attributes::Declaration>>,
     /// Whether it writes any attribute, so what the modules declare can
     /// change how it reads.
     pub(crate) foreign: bool,
-    pub tables: Vec<crate::tables::Table>,
+    pub(crate) tables: Vec<crate::tables::Table>,
     /// The definitions that call a form a module declares.
-    pub forms: Vec<crate::forms::Formed>,
+    pub(crate) forms: Vec<crate::forms::Formed>,
     /// The forms modules declare that the note was parsed with.
     pub(crate) forms_declared: Vec<std::sync::Arc<crate::forms::Form>>,
-    pub links: Vec<Link>,
-    pub calculations: Vec<Calculation>,
-    pub highlights: Vec<Highlight>,
-    pub problems: Vec<Problem>,
+    pub(crate) links: Vec<Link>,
+    pub(crate) calculations: Vec<Calculation>,
+    pub(crate) highlights: Vec<Highlight>,
+    pub(crate) problems: Vec<Problem>,
     /// What the recognizers modules declare found, in note order: filled by
     /// [`Document::recognize`], empty until then.
-    pub recognized: Vec<crate::declared::Match>,
+    pub(crate) recognized: Vec<crate::declared::Match>,
     /// The rules it was recognized with.
-    pub rules: Vec<std::sync::Arc<crate::declared::Rule>>,
+    pub(crate) rules: Vec<std::sync::Arc<crate::declared::Rule>>,
     /// How many of `links` the note's own text wrote: the rest are what
     /// declared recognizers link.
     pub(crate) native_links: usize,
@@ -68,7 +72,7 @@ pub struct Document {
     pub(crate) sums: Vec<Span>,
 }
 /// A document is its text with every line start known: pass it where a span
-/// reads text (`span.range(doc)`) instead of `&doc.text`, which rescans.
+/// reads text (`span.range(doc)`) instead of `doc.text()`, which rescans.
 impl Lines for Document {
     fn text(&self) -> &str {
         &self.text
@@ -78,35 +82,55 @@ impl Lines for Document {
     }
 }
 
+/// Read-only access to what the parse found: one inlined accessor per piece
+/// another layer reads.
+macro_rules! reads {
+    ($($field:ident: $ty:ty),* $(,)?) => {
+        impl Document {
+            $(#[inline]
+            pub fn $field(&self) -> &$ty {
+                &self.$field
+            })*
+        }
+    };
+}
+reads! {
+    text: str,
+    definitions: [Definition],
+    references: [Reference],
+    imports: BTreeSet<String>,
+    members: [crate::imports::Member],
+    tasks: [Task],
+    sections: [Section],
+    tables: [crate::tables::Table],
+    forms: [crate::forms::Formed],
+    links: [Link],
+    calculations: [Calculation],
+    highlights: [Highlight],
+    problems: [Problem],
+    recognized: [crate::declared::Match],
+    rules: [std::sync::Arc<crate::declared::Rule>],
+}
+
 impl Document {
     /// Take what the generic layer and the recognizers read into the tree,
     /// once the parse is done.
     pub(crate) fn adopt(&mut self, tree: Tree) {
-        let Tree {
-            text,
-            lines,
-            definitions,
-            references,
-            imports,
-            members,
-            links,
-            calculations,
-            highlights,
-            problems,
+        self.native_links = tree.links.len();
+        Tree {
+            text: self.text,
+            lines: self.lines,
+            definitions: self.definitions,
+            references: self.references,
+            imports: self.imports,
+            members: self.members,
+            links: self.links,
+            calculations: self.calculations,
+            highlights: self.highlights,
+            problems: self.problems,
             heading: _,
             forms: _,
         } = tree;
-        self.text = text;
-        self.lines = lines;
-        self.definitions = definitions;
-        self.references = references;
-        self.imports = imports;
-        self.members = members;
-        self.native_links = links.len();
-        self.links = links;
-        self.calculations = calculations;
-        self.highlights = highlights;
-        self.problems = problems;
         self.sums = expression_regions(self)
             .into_iter()
             .filter(|region| region.source(self).contains("sum"))

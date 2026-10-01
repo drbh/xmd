@@ -2,7 +2,8 @@
 use crate::{Collection, DiagnosticSource, Records, View, inspection, value as q};
 use lang::document::ExprImports;
 use lang::eval::Workspace;
-use lang::eval::engine::{self, Bindings, Engine, Expr, Parser, Value};
+use lang::eval::engine::{self, Bindings, Engine, Value};
+use lang::syntax::{Expr, Parser};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},

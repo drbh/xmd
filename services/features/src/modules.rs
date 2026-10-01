@@ -13,9 +13,7 @@ use lang::document::{Document, LineIndex};
 use lang::eval::engine::{Engine, Value};
 use lang::eval::modules::{Hook, Module, ModuleKind, from_json, json};
 use lang::eval::{EvalError, ToValue, record};
-use lsp_types::{
-    Diagnostic, DiagnosticSeverity, Hover, HoverContents, NumberOrString, Position, Range, TextEdit,
-};
+use lsp_types::{Diagnostic, DiagnosticSeverity, Hover, HoverContents, Position, Range, TextEdit};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -40,20 +38,6 @@ pub(crate) struct HookInput {
     range: Option<Range>,
     capabilities: Option<Capabilities>,
     position: Option<Position>,
-}
-impl HookInput {
-    fn with_range(mut self, range: Range) -> Self {
-        self.range = Some(range);
-        self
-    }
-    fn with_capabilities(mut self, capabilities: Capabilities) -> Self {
-        self.capabilities = Some(capabilities);
-        self
-    }
-    fn with_position(mut self, position: Position) -> Self {
-        self.position = Some(position);
-        self
-    }
 }
 impl ToValue for HookInput {
     fn to_value(&self) -> Value {
@@ -198,8 +182,8 @@ impl<'a> Bounds<'a> {
     fn new(document: &'a Document) -> Self {
         Self {
             document,
-            index: LineIndex::new(&document.text),
-            lines: document.text.lines().count(),
+            index: LineIndex::new(document.text()),
+            lines: document.text().lines().count(),
         }
     }
     fn of(request: &crate::Request<'a>, path: &Path) -> Self {
@@ -329,19 +313,24 @@ fn hook_items<T>(
         .map(decode)
         .collect()
 }
-/// Call one data-only hook, when the module defines it, and decode its items
-/// once every one of them has converted to JSON.
+/// Call one data-only hook, when the module defines it, with `position` as
+/// `ctx.position`, and decode its items once every one of them has converted
+/// to JSON.
 fn json_items<T>(
     module: &Module,
     request: &crate::Request<'_>,
     path: &Path,
     hook: Hook,
+    position: Option<Position>,
     decode: impl FnMut(serde_json::Value) -> Result<T, String>,
 ) -> Result<Vec<T>, String> {
     if !module.has(hook) {
         return Ok(vec![]);
     }
-    let input = input(module, request, &mut request.engine(), path)?;
+    let input = HookInput {
+        position,
+        ..input(module, request, &mut request.engine(), path)?
+    };
     hook_items(request, module, hook, &input, |item| Ok(json(&item)?))?
         .into_iter()
         .map(decode)
@@ -356,7 +345,10 @@ pub(crate) fn inlays(module: &Module, context: &mut InlayContext<'_, '_>, output
     }
     let document = context.document;
     let result = input(module, context.request, context.engine, context.path).and_then(|input| {
-        let input = input.with_range(context.range);
+        let input = HookInput {
+            range: Some(context.range),
+            ..input
+        };
         let request = context.request;
         if module.has(Hook::TimeDependent) {
             let answer = request
@@ -409,7 +401,10 @@ pub(crate) fn controls(
     }
     let bounds = Bounds::of(request, path);
     let proposals = input(module, request, &mut request.engine(), path).and_then(|input| {
-        let input = input.with_capabilities(capabilities);
+        let input = HookInput {
+            capabilities: Some(capabilities),
+            ..input
+        };
         hook_items(request, module, Hook::Actions, &input, |item| {
             proposal(&bounds, item)
         })
@@ -444,7 +439,8 @@ pub(crate) fn control_problems(
     module: &Module,
     controls: Result<BTreeMap<usize, Result<Vec<Control>, String>>, String>,
 ) -> Vec<Diagnostic> {
-    let warning = |range, message| problem(DiagnosticSeverity::WARNING, range, message);
+    let warning =
+        |range, message| analysis::module_problem(DiagnosticSeverity::WARNING, range, message);
     match controls {
         // The error already names the module and hook.
         Err(error) => vec![warning(Range::default(), error)],
@@ -468,7 +464,7 @@ pub(crate) fn diagnostics(
     path: &Path,
 ) -> Vec<Diagnostic> {
     let mut bounds = None;
-    json_items(module, request, path, Hook::Diagnostics, |item| {
+    json_items(module, request, path, Hook::Diagnostics, None, |item| {
         let mut diagnostic: Diagnostic = serde_json::from_value(item).map_err(|e| e.to_string())?;
         bounds
             .get_or_insert_with(|| Bounds::of(request, path))
@@ -478,23 +474,12 @@ pub(crate) fn diagnostics(
     })
     .unwrap_or_else(|error| {
         let message = format!("{}: {error}", module.id);
-        vec![problem(
+        vec![analysis::module_problem(
             DiagnosticSeverity::ERROR,
             Range::default(),
             message,
         )]
     })
-}
-/// A module's own failure, as a diagnostic of the `module` code.
-fn problem(severity: DiagnosticSeverity, range: Range, message: String) -> Diagnostic {
-    Diagnostic {
-        range,
-        severity: Some(severity),
-        source: Some("xmd".into()),
-        code: Some(NumberOrString::String("module".into())),
-        message,
-        ..Default::default()
-    }
 }
 /// The module's hover at `at`, handed in as `ctx.position`: one it words
 /// first, or with `fallback`, one it words for where the editor's own hover
@@ -506,15 +491,9 @@ pub(crate) fn hover(
     at: Position,
     fallback: bool,
 ) -> Option<Hover> {
-    if !module.has(Hook::Hovers) {
-        return None;
-    }
-    let input = input(module, request, &mut request.engine(), path)
-        .ok()?
-        .with_position(at);
     let mut bounds = None;
-    hook_items(request, module, Hook::Hovers, &input, |item| {
-        let hover = HoverItem::try_from(json(&item)?)?;
+    json_items(module, request, path, Hook::Hovers, Some(at), |item| {
+        let hover = HoverItem::try_from(item)?;
         bounds
             .get_or_insert_with(|| Bounds::of(request, path))
             .validate(hover.range)?;
@@ -535,7 +514,7 @@ pub(crate) fn symbols(
     path: &Path,
 ) -> Vec<analysis::Outlined> {
     let bounds = Bounds::of(request, path);
-    json_items(module, request, path, Hook::Symbols, |item| {
+    json_items(module, request, path, Hook::Symbols, None, |item| {
         let line = |key: &str| item[key].as_u64().and_then(|n| usize::try_from(n).ok());
         let row = line("line")
             .filter(|row| *row < bounds.lines)
@@ -584,9 +563,10 @@ pub(crate) fn completions(
     if !module.has(Hook::Completions) {
         return None;
     }
-    let input = input(module, request, &mut request.engine(), path)
-        .ok()?
-        .with_position(position);
+    let input = HookInput {
+        position: Some(position),
+        ..input(module, request, &mut request.engine(), path).ok()?
+    };
     let answer = request
         .answers
         .call(module, Hook::Completions, &input, request.now())
@@ -622,19 +602,9 @@ pub(crate) fn edits(
     path: &Path,
     at: Option<Position>,
 ) -> Result<Vec<TextEdit>, String> {
-    if !module.has(Hook::Format) {
-        return Ok(vec![]);
-    }
-    let mut input = input(module, request, &mut request.engine(), path)?;
-    if let Some(position) = at {
-        input = input.with_position(position);
-    }
-    hook_items(request, module, Hook::Format, &input, |item| {
-        Ok(json(&item)?)
-    })?
-    .into_iter()
-    .map(|item| serde_json::from_value(item).map_err(|e| e.to_string()))
-    .collect()
+    json_items(module, request, path, Hook::Format, at, |item| {
+        serde_json::from_value(item).map_err(|e| e.to_string())
+    })
 }
 
 /// Feature modules own the invocation kind: a control a module proposed that
@@ -683,7 +653,7 @@ fn invocation<'a>(
             ..
         } => {
             let (path, doc) = commands::document(request, document)?;
-            if doc.text != *expected {
+            if doc.text() != *expected {
                 return Err(SOURCE_CHANGED.into());
             }
             (path, module, Some(revision))
@@ -720,8 +690,10 @@ fn reduce(
     event: &serde_json::Value,
     capabilities: Capabilities,
 ) -> Result<Action, String> {
-    let context =
-        input(module, request, &mut request.engine(), path)?.with_capabilities(capabilities);
+    let context = HookInput {
+        capabilities: Some(capabilities),
+        ..input(module, request, &mut request.engine(), path)?
+    };
     let result = module
         .call(
             Hook::Reduce,

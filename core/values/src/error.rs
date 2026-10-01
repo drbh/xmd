@@ -201,6 +201,10 @@ impl EvalError {
     pub fn is_cycle(&self) -> bool {
         matches!(self, Self::Cycle { .. } | Self::TaskCycle { .. })
     }
+    /// Two currencies that failed to meet under `op`.
+    pub fn currencies(op: CurrencyOp, left: Currency, right: Currency) -> Self {
+        Self::CurrencyMismatch { op, left, right }
+    }
     /// Decorate a binary operation's failure with the operand types.
     pub fn in_binary(self, op: BinaryOp, left: &str, right: &str) -> Self {
         Self::Binary {
@@ -228,12 +232,10 @@ impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnknownName { name } => write!(f, "Unknown name '{name}'"),
-            Self::AmbiguousName { name } => {
-                write!(
-                    f,
-                    "Ambiguous name '{name}'; use a unique name within this note"
-                )
-            }
+            Self::AmbiguousName { name } => write!(
+                f,
+                "Ambiguous name '{name}'; use a unique name within this note"
+            ),
             Self::UnknownFunction(name) => write!(f, "Unknown function '{name}'"),
             Self::UnknownColumn { name, table } => {
                 write!(f, "Unknown column '{name}' in table '{table}'")
@@ -287,16 +289,12 @@ impl std::fmt::Display for EvalError {
                 write!(f, "Cannot {verb} {left} {joint} {right}")
             }
             Self::UnknownField { key, on: None } => write!(f, "Unknown field '{key}'"),
-            Self::UnknownField { key, on: Some(ty) } => {
-                write!(f, "Unknown field '{key}' on {ty}")
-            }
-            Self::UnknownProperty { owner, name } => {
-                write!(
-                    f,
-                    "Unknown {} property '{name}'",
-                    owner.as_str().to_lowercase()
-                )
-            }
+            Self::UnknownField { key, on: Some(ty) } => write!(f, "Unknown field '{key}' on {ty}"),
+            Self::UnknownProperty { owner, name } => write!(
+                f,
+                "Unknown {} property '{name}'",
+                owner.as_str().to_lowercase()
+            ),
             Self::Expected(what) => write!(f, "Expected {what}"),
             Self::Arity(function) => write!(f, "{function} expects one argument"),
             Self::FunctionArity { expected, found } => {
@@ -304,38 +302,22 @@ impl std::fmt::Display for EvalError {
             }
             Self::CallArity {
                 name,
-                required: 1,
-                params: 1,
-                ..
-            } => write!(f, "{name} expects one argument"),
-            Self::CallArity {
-                name,
                 required,
                 params,
                 found,
-            } if required == params => write!(f, "{name} expects {params} arguments, got {found}"),
-            Self::CallArity {
-                name,
-                required,
-                params,
-                found,
-            } => write!(
-                f,
-                "{name} expects {required} to {params} arguments, got {found}"
-            ),
+            } => match (required, params) {
+                (1, 1) => write!(f, "{name} expects one argument"),
+                (r, p) if r == p => write!(f, "{name} expects {p} arguments, got {found}"),
+                (r, p) => write!(f, "{name} expects {r} to {p} arguments, got {found}"),
+            },
             Self::Module { id, hook, source } => write!(f, "Module {id}.{hook}: {source}"),
             Self::ModuleUnavailable(id) => write!(f, "Module '{id}' is unavailable or disabled"),
             Self::ModuleDisabled(id) => write!(f, "Module '{id}' is disabled"),
             Self::UnknownImport(id) => write!(f, "Unknown or undeclared import '{id}'"),
-            Self::NotALibrary {
-                id,
-                kind: "library",
-            } => {
-                write!(
-                    f,
-                    "Module '{id}' exports nothing; the engine calls it by name"
-                )
-            }
+            Self::NotALibrary { id, kind } if *kind == "library" => write!(
+                f,
+                "Module '{id}' exports nothing; the engine calls it by name"
+            ),
             Self::NotALibrary { id, kind } => write!(
                 f,
                 "Module '{id}' is a {kind} module and cannot be imported; only libraries can"

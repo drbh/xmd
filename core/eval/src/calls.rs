@@ -3,9 +3,8 @@
 //! cache (`cached`), note functions and modules, the prelude's among them. A
 //! special built-in a feature owns, such as a row `sum`, is answered by
 //! what `features` registers for it.
-use crate::engine::{
-    BinaryOp, Builtin, Engine, Expr, Function, Tier, Value, binary, date_value, relative_date,
-};
+use crate::engine::relative_date;
+use crate::engine::{BinaryOp, Builtin, Engine, Expr, Function, Tier, Value, binary, date_value};
 use crate::{features, memo::Walk, workspace::Workspace};
 use modules::Module;
 use std::{collections::BTreeMap, path::Path};
@@ -34,9 +33,7 @@ impl Engine<'_> {
             Builtin::Match => self.call_match(path, args),
             Builtin::Coalesce => self.call_coalesce(path, args),
             // The parser turns every `let` into lambda calls.
-            Builtin::Let => Err(EvalError::Message(
-                "let expects {name: value, …} and a body".into(),
-            )),
+            Builtin::Let => Err("let expects {name: value, …} and a body".into()),
             // Everything else with eagerly evaluated arguments.
             builtin if !builtin.is_special_form() => {
                 let values = self.values(path, args)?;
@@ -44,19 +41,16 @@ impl Engine<'_> {
             }
             Builtin::Sum if args.len() == 1 => {
                 let Value::List(values) = self.expr(path, &args[0])? else {
-                    return Err(EvalError::Message(
-                        "sum expects a list, or a table and row expression".into(),
-                    ));
+                    return Err("sum expects a list, or a table and row expression".into());
                 };
                 values::sum(values.iter().cloned())
             }
             Builtin::Eval if args.len() == 1 => self.call_eval(path, &args[0]),
-            Builtin::Now | Builtin::Today if args.is_empty() && !self.has_clock() => {
-                Err(EvalError::Message(format!(
-                    "{builtin}() is unavailable here: native code calls this without a clock, \
+            Builtin::Now | Builtin::Today if args.is_empty() && !self.has_clock() => Err(format!(
+                "{builtin}() is unavailable here: native code calls this without a clock, \
                      so the dates it needs are its arguments"
-                )))
-            }
+            )
+            .into()),
             Builtin::Now if args.is_empty() => {
                 self.time_dependent = true;
                 Ok(Value::DateTime(self.request.clock.now))
@@ -65,9 +59,7 @@ impl Engine<'_> {
             Builtin::Date => self.call_date(path, args),
             Builtin::Clocked => self.call_clocked(path, args),
             // Without arguments the engine answers these itself.
-            Builtin::Today | Builtin::Now => {
-                Err(EvalError::Message(format!("{builtin} takes no arguments")))
-            }
+            Builtin::Today | Builtin::Now => Err(format!("{builtin} takes no arguments").into()),
             // A row `sum` is the feature's that registers it; the rest take
             // one argument and are here with any other count.
             builtin => match features::call(builtin) {
@@ -83,9 +75,10 @@ impl Engine<'_> {
     fn call_clocked(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         let builtin = Builtin::Clocked;
         let [value, ticking] = args else {
-            return Err(EvalError::Message(format!(
+            return Err(format!(
                 "{builtin} expects a value and a function that says whether it still ticks"
-            )));
+            )
+            .into());
         };
         let before = std::mem::replace(&mut self.time_dependent, false);
         let result = self.expr(path, value).and_then(|value| {
@@ -93,9 +86,7 @@ impl Engine<'_> {
             let ticking = self.expr(path, ticking)?;
             match self.call(ticking, vec![value.clone()])? {
                 Value::Bool(ticks) => Ok((value, read && ticks)),
-                _ => Err(EvalError::Message(format!(
-                    "{builtin}'s function must return true or false"
-                ))),
+                _ => Err(format!("{builtin}'s function must return true or false").into()),
             }
         });
         match result {
@@ -126,7 +117,7 @@ impl Engine<'_> {
             .map_err(|error| match error {
                 // A form is a definition, not a value inside one.
                 EvalError::UnknownName { .. } if self.workspace().form(name).is_some() => {
-                    EvalError::Message(format!(
+                    EvalError::from(format!(
                         "{name}(...) is only valid as a definition's whole expression"
                     ))
                 }
@@ -199,33 +190,25 @@ impl Engine<'_> {
         name: &str,
         args: Vec<Value>,
     ) -> EvalResult<Value> {
-        let module = self
-            .workspace()
-            .modules
-            .get(id)
-            .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?;
-        self.in_module(module, |engine| {
-            let function = engine.named(&module.path, name)?;
-            engine.call(function, args)
-        })
+        self.call_hook(id, name, args, false)
     }
-    /// Call the hook a feature module defines for what the host evaluates
-    /// on its behalf (`define`, what a definition of one of its forms is
-    /// worth), inside this evaluation: on its memo, clock and budget.
+    /// Call `name` in module `id` inside this evaluation, on its memo, clock
+    /// and budget: with `feature`, the hook a feature module defines for what
+    /// the host evaluates on its behalf (`define`, what a definition of one of
+    /// its forms is worth).
     pub(crate) fn call_hook(
         &mut self,
         id: &str,
-        hook: modules::Hook,
+        name: &str,
         args: Vec<Value>,
+        feature: bool,
     ) -> EvalResult<Value> {
-        let module = self
-            .workspace()
-            .modules
-            .get(id)
-            .filter(|module| module.kind == modules::ModuleKind::Feature)
+        let module = self.workspace().modules.get(id);
+        let module = module
+            .filter(|module| !feature || module.kind == modules::ModuleKind::Feature)
             .ok_or_else(|| EvalError::ModuleUnavailable(id.into()))?;
         self.in_module(module, |engine| {
-            let function = engine.named(&module.path, hook.as_ref())?;
+            let function = engine.named(&module.path, name)?;
             engine.call(function, args)
         })
     }
@@ -319,27 +302,27 @@ impl Engine<'_> {
     /// `import(id)`: a module ID, or a literal path to another note.
     fn call_import(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         let [arg] = args else {
-            return Err(EvalError::Message(
-                "import expects a module ID or a literal note path".into(),
-            ));
+            return Err("import expects a module ID or a literal note path".into());
         };
         let Value::Text(id) = self.expr(path, arg)?.plain() else {
-            return Err(EvalError::Message("import expects text".into()));
+            return Err("import expects text".into());
         };
         if document::is_note_path(&id) {
             if !matches!(arg.bare(), Expr::Value(Literal::Text(_))) {
-                return Err(EvalError::Message(format!(
+                return Err(format!(
                     "Note imports require a literal path, e.g. import(\"./{}\")",
                     common::note_file("values")
-                )));
+                )
+                .into());
             }
             let target = document::note_path(path, &id)?;
             if !self.request.workspace.documents.contains_key(&target) {
-                return Err(EvalError::Message(format!(
+                return Err(format!(
                     "Note import '{}' is not loaded (from {})",
                     target.display(),
                     path.display()
-                )));
+                )
+                .into());
             }
             return Ok(Value::Namespace(crate::engine::Namespace(target)));
         }
@@ -349,14 +332,12 @@ impl Engine<'_> {
     /// and only the chosen result is evaluated.
     fn call_if(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         if args.len() < 3 || args.len().is_multiple_of(2) {
-            return Err(EvalError::Message(
-                "if expects conditions and results in pairs, then an else".into(),
-            ));
+            return Err("if expects conditions and results in pairs, then an else".into());
         }
         let (otherwise, pairs) = args.split_last().expect("at least three arguments");
         for pair in pairs.chunks(2) {
             let Value::Bool(condition) = self.expr(path, &pair[0])? else {
-                return Err(EvalError::Message("if requires a Boolean condition".into()));
+                return Err("if requires a Boolean condition".into());
             };
             if condition {
                 return self.expr(path, &pair[1]);
@@ -369,9 +350,9 @@ impl Engine<'_> {
     /// to it and the chosen result are evaluated.
     fn call_match(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
         if args.len() < 4 || !args.len().is_multiple_of(2) {
-            return Err(EvalError::Message(
+            return Err(
                 "match expects a value, cases and results in pairs, then an otherwise".into(),
-            ));
+            );
         }
         let (otherwise, rest) = args.split_last().expect("at least four arguments");
         let value = self.expr(path, &rest[0])?;
@@ -397,7 +378,7 @@ impl Engine<'_> {
     fn call_eval(&mut self, path: &Path, arg: &Expr) -> EvalResult<Value> {
         self.call_check()?;
         let Value::Text(source) = self.expr(path, arg)? else {
-            return Err(EvalError::Message("eval expects expression text".into()));
+            return Err("eval expects expression text".into());
         };
         // Dynamic expressions use the current document, not query row fields,
         // but a row expression's `eval` still runs inside its row.
@@ -416,7 +397,7 @@ impl Engine<'_> {
         match self.expr(path, arg)?.plain() {
             Value::Text(s) => date_value(&s)
                 .or_else(|| relative_date(&s, self.request.clock.today()).map(Value::Date))
-                .ok_or(EvalError::Message("Unrecognized date".into())),
+                .ok_or(EvalError::from("Unrecognized date")),
             other => self.date(&other).map(Value::Date),
         }
     }
@@ -450,9 +431,7 @@ impl Engine<'_> {
                     key => sort_key(key).map(|key| vec![key]),
                 }
                 .filter(|keys| !keys.is_empty())
-                .ok_or(EvalError::Message(
-                    "sort_by expects a key function, desc(key), or a list of them".into(),
-                ))?;
+                .ok_or("sort_by expects a key function, desc(key), or a list of them")?;
                 let mut keyed = Vec::new();
                 let mut first = vec![None; keys.len()];
                 for item in items.iter() {
@@ -524,11 +503,7 @@ impl Engine<'_> {
                         match value {
                             Bool(true) => output.push(item.clone()),
                             Bool(false) => (),
-                            _ => {
-                                return Err(EvalError::Message(
-                                    "filter predicate must return a Boolean".into(),
-                                ));
-                            }
+                            _ => return Err("filter predicate must return a Boolean".into()),
                         }
                     }
                     if output.len() > 4096 {

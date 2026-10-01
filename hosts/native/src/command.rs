@@ -119,7 +119,7 @@ fn run_command(
         let mut results = Vec::new();
         let mut finished = None;
         for _ in 0..MAX_STEPS {
-            let input = lang::eval::modules::record([
+            let input = lang::eval::record([
                 ("args", args.clone()),
                 ("dir", name.clone()),
                 ("state", state),
@@ -225,7 +225,7 @@ fn parse_args(args: &[String]) -> Value {
             _ => positional.push(Value::Text(word.clone())),
         }
     }
-    lang::eval::modules::record([
+    lang::eval::record([
         ("flags", Value::record(flags)),
         ("positional", Value::list(positional)),
     ])
@@ -407,7 +407,9 @@ impl Context<'_> {
             .as_str()
             .ok_or("credential needs a scope")?;
         let key = format!("{} {scope}", self.module);
-        let path = credentials_path().ok_or("No config directory for credentials")?;
+        // Saved credentials live beside the user's other settings.
+        let config = crate::io::config_dir().ok_or("No config directory for credentials")?;
+        let path = config.join("credentials.json");
         let mut saved: BTreeMap<String, String> = crate::io::read_json_or_default(&path);
         if let Some(value) = request["set"].as_str() {
             saved.insert(key.clone(), value.to_string());
@@ -430,11 +432,6 @@ fn make_parent(path: &Path) -> Result<(), String> {
         Some(parent) => std::fs::create_dir_all(parent).map_err(|e| e.to_string()),
         None => Ok(()),
     }
-}
-
-/// Where saved credentials live, beside the user's other settings.
-fn credentials_path() -> Option<PathBuf> {
-    Some(crate::io::config_dir()?.join("credentials.json"))
 }
 
 /// A random version-4-shaped identifier, without a dependency.
@@ -474,7 +471,7 @@ mod tests {
             dir: Path::new("."),
         };
         let unknown = |kind: &str| {
-            let request = lang::eval::modules::record([("kind", Value::Text(kind.into()))]);
+            let request = lang::eval::record([("kind", Value::Text(kind.into()))]);
             context
                 .perform(&request)
                 .is_err_and(|e| e.contains("unknown request kind"))
@@ -483,7 +480,7 @@ mod tests {
             .iter()
             .find(|p| p.kind == ModuleKind::Command)
             .unwrap();
-        for effect in command.effects {
+        for effect in &command.effects {
             assert!(
                 !unknown(effect.kind),
                 "{} is declared but not performed",

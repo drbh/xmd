@@ -2,7 +2,7 @@
 //! Match complete words, validate dates/times, and leave malformed values plain.
 use crate::highlighting::Token;
 use chrono::{DateTime, NaiveDate, NaiveDateTime};
-use lang::eval::engine::{self, Lexeme, Literal};
+use lang::syntax::{self, Lexeme, Literal};
 
 struct Word<'a> {
     start: usize,
@@ -61,7 +61,7 @@ pub(crate) fn values(line: &str) -> Vec<(usize, usize, Token)> {
 }
 
 fn relative_date(text: &str) -> bool {
-    engine::relative_date(text, NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()).is_some()
+    syntax::relative_date(text, NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()).is_some()
 }
 fn calendar_date(text: &str) -> bool {
     // Slash dates in prose use month/day/four-digit-year, matching common notes.
@@ -126,7 +126,7 @@ fn kind(text: &str) -> Option<Token> {
         return Some(Token::XmdTime);
     }
     let unsigned = text.strip_prefix(['-', '+']).unwrap_or(text);
-    let tokens = engine::lex(unsigned).ok()?;
+    let tokens = syntax::lex(unsigned).ok()?;
     let [token] = tokens.as_slice() else {
         return None;
     };

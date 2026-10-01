@@ -10,11 +10,7 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
     // and a code concatenates like any other text.
     let (a, b) = (a.plain(), b.plain());
     if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) {
-        let equal = a
-            .scalar()
-            .zip(b.scalar())
-            .map(|(a, b)| a == b)
-            .unwrap_or(a == b);
+        let equal = a.scalar().zip(b.scalar()).map_or(a == b, |(x, y)| x == y);
         return Ok(Bool(equal == (op == BinaryOp::Equal)));
     }
     if let (Bool(a), Bool(b)) = (&a, &b) {
@@ -37,24 +33,16 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
             (Date(a), Date(b)) => a.partial_cmp(b),
             (DateTime(a), DateTime(b)) => a.partial_cmp(b),
             (Duration(a), Duration(b)) => a.partial_cmp(b),
-            (Money(a, ca), Money(b, cb)) => {
-                if ca != cb {
-                    return Err(EvalError::CurrencyMismatch {
-                        op: CurrencyOp::Compare,
-                        left: *ca,
-                        right: *cb,
-                    });
-                }
-                a.partial_cmp(b)
+            (Money(_, ca), Money(_, cb)) if ca != cb => {
+                return Err(EvalError::currencies(CurrencyOp::Compare, *ca, *cb));
             }
+            (Money(a, _), Money(b, _)) => a.partial_cmp(b),
             _ => a
                 .scalar()
                 .zip(b.scalar())
                 .and_then(|(a, b)| a.partial_cmp(&b)),
         }
-        .ok_or(EvalError::Message(
-            "Cannot compare these value types".into(),
-        ))?;
+        .ok_or("Cannot compare these value types")?;
         return Ok(Bool(match op {
             BinaryOp::Less => cmp.is_lt(),
             BinaryOp::LessEqual => cmp.is_le(),
@@ -66,9 +54,9 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
         (BinaryOp::Subtract, Date(a), Date(b)) => return Ok(Duration((*a - *b).num_seconds())),
         (BinaryOp::Add | BinaryOp::Subtract, Date(a), Duration(m)) => {
             if m % 86400 != 0 {
-                return Err(EvalError::Message(
+                return Err(
                     "A date requires whole-day durations; use a date/time for hours".into(),
-                ));
+                );
             }
             let delta = chrono::Duration::try_seconds(*m)
                 .ok_or(EvalError::Overflowed(Overflow::Duration))?;
@@ -103,13 +91,8 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
             .map(Duration)
             .ok_or(EvalError::Overflowed(Overflow::Duration));
         }
-        (BinaryOp::Divide, Duration(a), Duration(b)) => {
-            return if *b == 0 {
-                Err(EvalError::DivisionByZero)
-            } else {
-                Ok(Ratio(*a as f64 / *b as f64))
-            };
-        }
+        (BinaryOp::Divide, Duration(_), Duration(0)) => return Err(EvalError::DivisionByZero),
+        (BinaryOp::Divide, Duration(a), Duration(b)) => return Ok(Ratio(*a as f64 / *b as f64)),
         (BinaryOp::Add, Text(a), Text(b)) => {
             if a.len().saturating_add(b.len()) > crate::functional::MAX_BYTES {
                 return Err(EvalError::LimitExceeded(Limit::Text));
@@ -122,32 +105,21 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
     if let (Some(ca), Some(cb)) = (currency_a, currency_b)
         && ca != cb
     {
-        return Err(EvalError::CurrencyMismatch {
-            op: CurrencyOp::Combine,
-            left: ca,
-            right: cb,
-        });
+        return Err(EvalError::currencies(CurrencyOp::Combine, ca, cb));
     }
     let money_a = currency_a.is_some();
     let money_b = currency_b.is_some();
     let counts = matches!((&a, &b), (Count(_), Count(_)));
     if matches!(op, BinaryOp::Multiply | BinaryOp::Divide) {
         let scaled = match (&a, &b) {
-            (Duration(m), v) => v.scalar().map(|n| {
-                if op == BinaryOp::Multiply {
-                    *m as f64 * n
-                } else {
-                    *m as f64 / n
-                }
-            }),
+            (Duration(m), v) if op == BinaryOp::Multiply => v.scalar().map(|n| *m as f64 * n),
+            (Duration(m), v) => v.scalar().map(|n| *m as f64 / n),
             (v, Duration(m)) if op == BinaryOp::Multiply => v.scalar().map(|n| *m as f64 * n),
             _ => None,
         };
         if let Some(m) = scaled {
             if !m.is_finite() || m.fract() != 0.0 || m.abs() >= i64::MAX as f64 {
-                return Err(EvalError::Message(
-                    "Duration must fit in whole seconds".into(),
-                ));
+                return Err("Duration must fit in whole seconds".into());
             }
             return Ok(Duration(m as i64));
         }
@@ -158,30 +130,23 @@ pub fn binary(op: BinaryOp, a: Value, b: Value) -> EvalResult<Value> {
         BinaryOp::Add => x + y,
         BinaryOp::Subtract => x - y,
         BinaryOp::Multiply => x * y,
-        BinaryOp::Divide => {
-            if y == 0.0 {
-                return Err(EvalError::DivisionByZero);
-            }
-            x / y
-        }
-        _ => return Err(EvalError::Message(format!("Unknown operator {op}"))),
+        BinaryOp::Divide if y == 0.0 => return Err(EvalError::DivisionByZero),
+        BinaryOp::Divide => x / y,
+        _ => return Err(format!("Unknown operator {op}").into()),
     };
     if !n.is_finite() {
         return Err(EvalError::Overflowed(Overflow::Number));
     }
     if op == BinaryOp::Multiply && money_a && money_b {
-        return Err(EvalError::Message(
-            "Cannot multiply two money values".into(),
-        ));
+        return Err("Cannot multiply two money values".into());
     }
     if op == BinaryOp::Divide && !money_a && money_b {
-        return Err(EvalError::Message("Cannot divide a scalar by money".into()));
+        return Err("Cannot divide a scalar by money".into());
     }
     if op == BinaryOp::Divide && (money_a && money_b || counts) {
         return Ok(Ratio(n));
     }
-    Ok(match currency_a.or(currency_b) {
-        Some(currency) => Money(n, currency),
-        None => Number(n),
-    })
+    Ok(currency_a
+        .or(currency_b)
+        .map_or(Number(n), |currency| Money(n, currency)))
 }

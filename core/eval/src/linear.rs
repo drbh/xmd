@@ -3,15 +3,12 @@
 //! and every calculation that reads an unknown walked through. It is how the
 //! host reads a form's `linear` and `constraint` expressions, so the module
 //! that declares the form (a plan, a goal seek) reasons about values only.
-use crate::engine::{
-    BinaryOp, Builtin, Comparison, Currency, Engine, Expr, Parser, RowScope, UnaryOp, Unit, Value,
-};
+use crate::engine::{BinaryOp, Builtin, Comparison, Currency, Engine, Expr, Parser, RowScope};
+use crate::engine::{UnaryOp, Unit, Value};
 use crate::workspace::{Symbol, SymbolKind};
 use common::Span;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::Path,
-};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 use values::{CurrencyOp, EvalError, EvalResult, UnitOp};
 /// `terms · variables + constant`, carrying a unit so money and durations
 /// never mix silently.
@@ -81,27 +78,15 @@ impl Linear {
     pub(crate) fn add(&self, other: &Self, sign: f64) -> EvalResult<Self> {
         let Some(kind) = Self::combined(self, other) else {
             return Err(match (self.currency, other.currency) {
-                (Some(left), Some(right)) => EvalError::CurrencyMismatch {
-                    op: CurrencyOp::Add,
-                    left,
-                    right,
-                },
-                _ => EvalError::UnitMismatch {
-                    op: UnitOp::Add,
-                    left: self.kind,
-                    right: other.kind,
-                },
+                (Some(left), Some(right)) => EvalError::currencies(CurrencyOp::Add, left, right),
+                _ => mismatch(UnitOp::Add, self.kind, other.kind),
             });
         };
         let mut result = self.clone();
         result.kind = kind;
         result.currency = self.currency.or(other.currency);
         if !self.terms.is_empty() && !other.terms.is_empty() && self.scale != other.scale {
-            return Err(EvalError::UnitMismatch {
-                op: UnitOp::AddScaled,
-                left: self.scale,
-                right: other.scale,
-            });
+            return Err(mismatch(UnitOp::AddScaled, self.scale, other.scale));
         }
         if self.terms.is_empty() {
             result.scale = other.scale;
@@ -118,31 +103,19 @@ impl Linear {
         } else if self.terms.is_empty() {
             (other, self)
         } else {
-            return Err(EvalError::Message(
-                "Plans must stay linear: multiply variables by constants only".into(),
-            ));
+            return Err("Plans must stay linear: multiply variables by constants only".into());
         };
         let kind = match (form.kind, factor.kind) {
             (k, Unit::Number) | (Unit::Number, k) => k,
             (Unit::Any, k) => k,
-            (left, right) => {
-                return Err(EvalError::UnitMismatch {
-                    op: UnitOp::Multiply,
-                    left,
-                    right,
-                });
-            }
+            (left, right) => return Err(mismatch(UnitOp::Multiply, left, right)),
         };
         let mut result = form.clone().scaled(factor.constant);
         result.kind = kind;
         result.currency = form.currency.or(factor.currency);
         if factor.kind != Unit::Number && !form.terms.is_empty() {
             if form.scale != Unit::Number {
-                return Err(EvalError::UnitMismatch {
-                    op: UnitOp::Multiply,
-                    left: form.scale,
-                    right: factor.kind,
-                });
+                return Err(mismatch(UnitOp::Multiply, form.scale, factor.kind));
             }
             result.scale = factor.kind;
         }
@@ -150,9 +123,7 @@ impl Linear {
     }
     fn divide(&self, other: &Self) -> EvalResult<Self> {
         if !other.terms.is_empty() {
-            return Err(EvalError::Message(
-                "Plans must stay linear: divide by constants only".into(),
-            ));
+            return Err("Plans must stay linear: divide by constants only".into());
         }
         if other.constant == 0.0 {
             return Err(EvalError::DivisionByZero);
@@ -160,13 +131,7 @@ impl Linear {
         let kind = match (self.kind, other.kind) {
             (k, Unit::Number) => k,
             (a, b) if a == b => Unit::Number,
-            (left, right) => {
-                return Err(EvalError::UnitMismatch {
-                    op: UnitOp::Divide,
-                    left,
-                    right,
-                });
-            }
+            (left, right) => return Err(mismatch(UnitOp::Divide, left, right)),
         };
         let mut result = self.clone().scaled(1.0 / other.constant);
         result.kind = kind;
@@ -177,16 +142,19 @@ impl Linear {
             result.scale = if self.scale == other.kind {
                 Unit::Number
             } else {
-                return Err(EvalError::UnitMismatch {
-                    op: UnitOp::Divide,
-                    left: self.scale,
-                    right: other.kind,
-                });
+                return Err(mismatch(UnitOp::Divide, self.scale, other.kind));
             };
         }
         Ok(result)
     }
 }
+/// Why two forms, or a form and a factor, in units `left` and `right`
+/// cannot meet under `op`.
+fn mismatch(op: UnitOp, left: Unit, right: Unit) -> EvalError {
+    EvalError::UnitMismatch { op, left, right }
+}
+/// The unknowns a linear reading solves for.
+pub(crate) type Vars = BTreeSet<String>;
 /// One decision cell a linear reading met in a `sum` over its table: an
 /// unknown of its own, named `table.column[row]`.
 #[derive(Clone, Debug, PartialEq)]
@@ -204,7 +172,7 @@ impl Engine<'_> {
         path: &Path,
         source: &str,
         span: Span,
-        vars: &BTreeSet<String>,
+        vars: &Vars,
     ) -> EvalResult<Linear> {
         self.with_context(path, span, |engine| match Parser::parse(source) {
             Ok(expr) => engine.linear_expr(path, &expr, vars),
@@ -217,7 +185,7 @@ impl Engine<'_> {
         path: &Path,
         source: &str,
         span: Span,
-        vars: &BTreeSet<String>,
+        vars: &Vars,
     ) -> EvalResult<(Linear, Comparison, Linear)> {
         let whole = (0, source.len());
         self.with_context(path, span, |engine| {
@@ -228,29 +196,21 @@ impl Engine<'_> {
             let Expr::Binary(op, lhs, rhs) = expr.bare() else {
                 return engine.refuse(
                     whole,
-                    EvalError::Message(
-                        "A constraint compares two sides with <=, >=, or ==, e.g. bagels >= 12"
-                            .into(),
+                    EvalError::from(
+                        "A constraint compares two sides with <=, >=, or ==, e.g. bagels >= 12",
                     ),
                 );
             };
             let Some(op) = Comparison::from_op(*op) else {
                 return engine.refuse(
                     whole,
-                    EvalError::Message(format!("Constraints use <=, >=, or ==, not {op}")),
+                    EvalError::from(format!("Constraints use <=, >=, or ==, not {op}")),
                 );
             };
             let lhs = engine.linear_expr(path, lhs, vars)?;
             let rhs = engine.linear_expr(path, rhs, vars)?;
             if Linear::combined(&lhs, &rhs).is_none() {
-                return engine.refuse(
-                    whole,
-                    EvalError::UnitMismatch {
-                        op: UnitOp::Compare,
-                        left: lhs.kind,
-                        right: rhs.kind,
-                    },
-                );
+                return engine.refuse(whole, mismatch(UnitOp::Compare, lhs.kind, rhs.kind));
             }
             Ok((lhs, op, rhs))
         })
@@ -264,27 +224,23 @@ impl Engine<'_> {
             return None;
         };
         let doc = &self.request.workspace.documents[&symbol.path];
-        let def = &doc.definitions[i];
+        let def = &doc.definitions()[i];
         if !def.expression || doc.table_of(i).is_some() || doc.form_of(i).is_some() {
             return None;
         }
         Some((symbol.clone(), def.source.clone(), def.expression_span(doc)))
     }
-    fn linear_expr(
-        &mut self,
-        path: &Path,
-        expr: &Expr,
-        vars: &BTreeSet<String>,
-    ) -> EvalResult<Linear> {
+    fn linear_expr(&mut self, path: &Path, expr: &Expr, vars: &Vars) -> EvalResult<Linear> {
         let constant = |value: Value| -> EvalResult<Linear> {
             if let Value::Duration(s) = value {
                 return Ok(Linear::constant(Unit::Duration, s as f64));
             }
             let Some(n) = value.amount() else {
-                return Err(EvalError::Message(format!(
+                return Err(format!(
                     "Plans work with numbers, money, and durations, not {}",
                     value.type_name()
-                )));
+                )
+                .into());
             };
             Ok(match value.currency() {
                 Some(currency) => Linear {
@@ -332,7 +288,7 @@ impl Engine<'_> {
                 match op {
                     UnaryOp::Negate => Ok(form.scaled(-1.0)),
                     UnaryOp::Plus => Ok(form),
-                    UnaryOp::Not => Err(EvalError::Message("Plans cannot negate booleans".into())),
+                    UnaryOp::Not => Err("Plans cannot negate booleans".into()),
                 }
             }
             Expr::Binary(op, a, b)
@@ -350,20 +306,16 @@ impl Engine<'_> {
                     _ => a.divide(&b),
                 }
             }
-            Expr::Binary(op, _, _) => Err(EvalError::Message(format!(
+            Expr::Binary(op, _, _) => Err(format!(
                 "'{op}' belongs at the top of a constraint, not inside an expression"
-            ))),
+            )
+            .into()),
             other => constant(self.expr(path, other)?),
         }
     }
     /// `sum(table, row expression)` as a linear form: decision columns become
     /// one variable per row, other columns are constants.
-    fn linear_sum(
-        &mut self,
-        path: &Path,
-        args: &[Expr],
-        vars: &BTreeSet<String>,
-    ) -> EvalResult<Linear> {
+    fn linear_sum(&mut self, path: &Path, args: &[Expr], vars: &Vars) -> EvalResult<Linear> {
         let (name, table) = self.summed_table(path, &args[0])?;
         let decisions = self.decision_columns(&table);
         let mut total = Linear::constant(Unit::Any, 0.0);

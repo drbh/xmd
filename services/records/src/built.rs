@@ -17,7 +17,7 @@ use lang::eval::lookups::{LookupKey, Store};
 use lang::eval::modules::{Declared, Hook, Joins, Module, ModuleKind};
 use lang::eval::{ToValue, Workspace};
 use lang::stdlib;
-use lsp_types::{Diagnostic, DiagnosticSeverity, NumberOrString, Range};
+use lsp_types::{Diagnostic, DiagnosticSeverity, Range};
 use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 /// The most records one collection of one note holds.
@@ -113,21 +113,16 @@ fn record(
     .ok_or_else(|| format!("each of {} needs a line within the note", declared.name))?;
     let mut fields = Arc::unwrap_or_clone(fields).into_inner();
     fields.insert("line".into(), Value::Count(line));
-    fields
-        .entry("kind".into())
-        .or_insert_with(|| q::text(&*declared.name));
-    fields
-        .entry("title".into())
-        .or_insert_with(|| q::text(doc.line(line)));
-    fields
-        .entry("source".into())
-        .or_insert_with(|| SourceRef::new(ws, path, doc.line_span(line)).to_value());
-    fields
-        .entry("anchor".into())
-        .or_insert_with(|| q::position(doc.line_end(line)));
-    fields
-        .entry("errors".into())
-        .or_insert_with(|| Value::list(vec![]));
+    let mut default = |key: &str, value: &dyn Fn() -> Value| {
+        fields.entry(key.into()).or_insert_with(value);
+    };
+    default("kind", &|| q::text(&*declared.name));
+    default("title", &|| q::text(doc.line(line)));
+    default("source", &|| {
+        SourceRef::new(ws, path, doc.line_span(line)).to_value()
+    });
+    default("anchor", &|| q::position(doc.line_end(line)));
+    default("errors", &|| Value::list(vec![]));
     let mut wants = Vec::new();
     for value in fields.values_mut() {
         answer(engine, ws.lookups(), value, &mut wants, 0)?;
@@ -283,18 +278,15 @@ pub fn problems(
             let build = records.built(&mut engine, module, path, build);
             let error = (*build).as_ref().err()?.clone();
             let range = doc
-                .recognized
+                .recognized()
                 .iter()
                 .find(|found| found.rule.module == module.id)
                 .map_or(Range::default(), |found| found.span.range(doc));
-            Some(Diagnostic {
+            Some(analysis::module_problem(
+                DiagnosticSeverity::ERROR,
                 range,
-                severity: Some(DiagnosticSeverity::ERROR),
-                source: Some("xmd".into()),
-                code: Some(NumberOrString::String("module".into())),
-                message: error,
-                ..Default::default()
-            })
+                error,
+            ))
         })
         .collect()
 }

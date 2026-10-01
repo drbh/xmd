@@ -4,13 +4,16 @@
 //! a Boolean, whether it is done, and a named heading is the checklist of the
 //! items under it. What else an item means, its attributes and what a person
 //! does with it, is the `tasks` module's to say.
-use crate::blocks::{Attribute, HighlightKind, Line, Named, Tree, trailing_name};
+use crate::blocks::{Line, trailing_name};
 use crate::document::Document;
+use crate::inline::{Attribute, Named};
+use crate::tree::{HighlightKind, Tree};
 use common::Span;
 use std::collections::BTreeMap;
 
 /// What an item's checkbox says: `[ ]`, `[-]` or `[x]`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum TaskState {
     #[default]
     Open,
@@ -26,12 +29,8 @@ impl TaskState {
             _ => Self::Done,
         }
     }
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Open => "open",
-            Self::InProgress => "in_progress",
-            Self::Done => "done",
-        }
+    pub fn as_str(self) -> &'static str {
+        self.into()
     }
 }
 #[derive(Clone, Debug)]
@@ -50,13 +49,7 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
     let Some(checkbox) = line.checkbox else {
         return;
     };
-    let Line {
-        text,
-        row,
-        start,
-        title_end,
-        ..
-    } = *line;
+    let (text, row, start) = (line.text, line.row, line.start);
     let at = checkbox.at;
     let named = trailing_name(text, row);
     // The open tasks are the last task and its ancestors, unless a heading
@@ -74,7 +67,7 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         indent: start,
         state: TaskState::from_mark(checkbox.mark),
         checkbox: Span::new(row, at, at + 3),
-        title: text[at + 3..title_end].trim().into(),
+        title: text[at + 3..line.title_end].trim().into(),
         named: named.clone(),
         parent,
         attributes: line.attributes.map.clone(),

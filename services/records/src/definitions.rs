@@ -72,7 +72,7 @@ pub(super) fn definitions(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
-    for (i, def) in doc.definitions.iter().enumerate() {
+    for (i, def) in doc.definitions().iter().enumerate() {
         let table = doc.table_of(i);
         let form = doc.form_of(i);
         if (matches!(collection, Collection::Tables | Collection::Rows) && table.is_none())

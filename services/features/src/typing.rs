@@ -130,10 +130,7 @@ fn newline(doc: &Document, position: Position) -> Vec<TextEdit> {
         return vec![];
     };
     let current = doc.line(row);
-    let Some(byte) = byte_at(current, position.character) else {
-        return vec![];
-    };
-    if !current[..byte].trim().is_empty() {
+    if !byte_at(current, position.character).is_some_and(|byte| current[..byte].trim().is_empty()) {
         return vec![];
     }
     if body.trim().len() == marker.trim_end().len() {

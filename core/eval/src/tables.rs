@@ -2,14 +2,10 @@
 //! finding a table by name through an alias chain, checking a rename, and the
 //! `TableValue` a note holds once its cells are evaluated. Parsing, typing and
 //! formatting a table's shape is `document::tables`, one layer down.
-use crate::{
-    engine::{BinaryOp, Builtin, Engine, Expr, Parser, RowScope, Value, binary},
-    workspace::{Symbol, SymbolKind, Workspace},
-};
-use document::{
-    Reference,
-    tables::{Cell, Table, scope_at},
-};
+use crate::engine::{BinaryOp, Builtin, Engine, Expr, Parser, RowScope, Value, binary};
+use crate::workspace::{Symbol, SymbolKind, Workspace};
+use document::Reference;
+use document::tables::{Cell, Table, scope_at};
 use std::{collections::BTreeMap, path::Path};
 use values::{EvalError, EvalResult};
 
@@ -40,7 +36,7 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> EvalResult<Symbol> {
             if doc.table_of(index).is_some() {
                 return Ok(symbol);
             }
-            let def = &doc.definitions[index];
+            let def = &doc.definitions()[index];
             if def.expression
                 && let Some(alias) = crate::imports::member_symbol(ws, &symbol.path, &def.source)
             {
@@ -50,9 +46,7 @@ pub fn origin(ws: &Workspace, path: &Path, name: &str) -> EvalResult<Symbol> {
         }
         return Err(EvalError::NotATable(name.into()));
     }
-    Err(EvalError::Message(
-        "Table alias chain is cyclic or too deep".into(),
-    ))
+    Err("Table alias chain is cyclic or too deep".into())
 }
 pub fn table<'a>(ws: &'a Workspace, symbol: &Symbol) -> Option<&'a Table> {
     if let SymbolKind::Definition(index) = symbol.kind {
@@ -69,7 +63,7 @@ pub fn resolve_reference(ws: &Workspace, path: &Path, reference: &Reference) -> 
     let target = origin(ws, path, &name)?;
     let doc = &ws.documents[&target.path];
     let (index, table) = doc
-        .tables
+        .tables()
         .iter()
         .enumerate()
         .find(|(_, t)| matches!(target.kind, SymbolKind::Definition(i) if i == t.definition))
@@ -86,10 +80,7 @@ pub fn resolve_reference(ws: &Workspace, path: &Path, reference: &Reference) -> 
             name: reference.name.clone(),
             table: name,
         }),
-        _ => Err(EvalError::Message(format!(
-            "Ambiguous column '{}' in table '{name}'",
-            reference.name
-        ))),
+        _ => Err(format!("Ambiguous column '{}' in table '{name}'", reference.name).into()),
     }
 }
 pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<(), String> {
@@ -97,7 +88,7 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
         return Err("Use an identifier other than true or false".into());
     }
     let conflict = if let SymbolKind::Column(t, column) = symbol.kind {
-        ws.documents[&symbol.path].tables[t]
+        ws.documents[&symbol.path].tables()[t]
             .columns
             .iter()
             .enumerate()
@@ -107,11 +98,8 @@ pub fn validate_rename(ws: &Workspace, symbol: &Symbol, name: &str) -> Result<()
             .iter()
             .any(|s| s.path == symbol.path && s != symbol && ws.named(s).name == name)
     };
-    if conflict {
-        Err("That name already exists in this scope".into())
-    } else {
-        Ok(())
-    }
+    let taken = || "That name already exists in this scope".into();
+    (!conflict).then_some(()).ok_or_else(taken)
 }
 
 /// A plain cell's value, or why its text is not one.
@@ -125,12 +113,8 @@ pub fn literal_value(cell: &Cell) -> EvalResult<Value> {
 /// A table definition's value, as `features` registers it for
 /// [`document::DefinitionKind::Table`]: the first problem parsing found, or its
 /// rows.
-pub(crate) fn evaluate(
-    engine: &mut Engine<'_>,
-    symbol: &Symbol,
-    index: usize,
-) -> EvalResult<Value> {
-    let Some(table) = engine.workspace().documents[&symbol.path].table_of(index) else {
+pub(crate) fn evaluate(engine: &mut Engine<'_>, symbol: &Symbol, i: usize) -> EvalResult<Value> {
+    let Some(table) = engine.workspace().documents[&symbol.path].table_of(i) else {
         return Err(EvalError::NotATable(
             engine.workspace().named(symbol).name.clone(),
         ));
@@ -156,7 +140,7 @@ fn table_value(engine: &mut Engine<'_>, symbol: &Symbol, table: &Table) -> EvalR
                 Some((inner, span)) => {
                     let value = engine.eval_at(&symbol.path, inner, *span)?;
                     if matches!(value, Value::Host(_) | Value::Tasks(_)) {
-                        let message = EvalError::Message(format!(
+                        let message = EvalError::from(format!(
                             "A cell cannot hold a {}; use a scalar value",
                             value.type_name()
                         ));
@@ -164,7 +148,7 @@ fn table_value(engine: &mut Engine<'_>, symbol: &Symbol, table: &Table) -> EvalR
                     }
                     if let Some(expected) = types.get(column).copied().flatten() {
                         if expected != value.kind() {
-                            let message = EvalError::Message(format!(
+                            let message = EvalError::from(format!(
                                 "Column '{}' expects {expected}, found {}",
                                 table.columns[column].name,
                                 value.type_name()
@@ -212,9 +196,7 @@ impl Engine<'_> {
         first: &'e Expr,
     ) -> EvalResult<(&'e str, std::sync::Arc<TableValue>)> {
         let Some(name) = first.as_name() else {
-            return Err(EvalError::Message(
-                "The first argument to sum must be a table name".into(),
-            ));
+            return Err("The first argument to sum must be a table name".into());
         };
         let Some(table) = self.named(path, name)?.downcast_arc::<TableValue>() else {
             return Err(EvalError::NotATable(name.into()));
@@ -239,9 +221,9 @@ impl Engine<'_> {
     /// `sum(table, row expression)`: the total, and what each row added.
     fn sum(&mut self, path: &Path, args: &[Expr]) -> EvalResult<(Value, Vec<Value>)> {
         if args.len() != 2 {
-            return Err(EvalError::Message(
+            return Err(
                 "sum expects a table and a row expression: sum(groceries, quantity * price)".into(),
-            ));
+            );
         }
         let (name, table) = self.summed_table(path, &args[0])?;
         let mut total = None;
@@ -263,10 +245,11 @@ impl Engine<'_> {
                 value,
                 Value::Number(_) | Value::Money(..) | Value::Ratio(_) | Value::Duration(_)
             ) {
-                return Err(EvalError::Message(format!(
+                return Err(format!(
                     "sum requires numeric, money, ratio, or duration results, found {}",
                     value.type_name()
-                )));
+                )
+                .into());
             }
             total = Some(if let Some(previous) = total {
                 let ratios =
@@ -283,9 +266,7 @@ impl Engine<'_> {
             contributions.push(value);
         }
         total.map(|v| (v, contributions)).ok_or_else(|| {
-            EvalError::Message(
-                "Cannot sum an empty table: add a row to establish its value type".into(),
-            )
+            EvalError::from("Cannot sum an empty table: add a row to establish its value type")
         })
     }
 }

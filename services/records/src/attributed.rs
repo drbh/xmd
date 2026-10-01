@@ -8,7 +8,7 @@
 use super::value as q;
 use super::{
     RecordKind,
-    record::{Base, Record, SourceRef, text_range},
+    record::{Base, Record, SourceRef},
 };
 use lang::document::Document;
 use lang::eval::engine::{Engine, Value};
@@ -49,10 +49,11 @@ pub(super) fn attributed(
 ) {
     let clock = Clock::new(engine.now());
     for line in doc.claimed() {
-        let item = line
-            .checkbox
-            .then(|| doc.tasks.binary_search_by_key(&line.line, |t| t.line).ok())
-            .flatten();
+        let item = doc
+            .tasks()
+            .binary_search_by_key(&line.line, |t| t.line)
+            .ok()
+            .filter(|_| line.checkbox);
         let mut attributes = BTreeMap::new();
         for (declared, attribute) in doc.live_attributes(line) {
             let value =
@@ -87,7 +88,7 @@ pub(super) fn attributed(
                 base: Base::line(ws, path, RecordKind::Attributed, &line.title, line.line),
                 block: <&str>::from(line.on).into(),
                 task: line.checkbox,
-                range: text_range(doc, line.line),
+                range: q::range(analysis::line_range(doc, line.line)),
                 attributes,
             },
         ));

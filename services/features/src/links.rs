@@ -14,7 +14,7 @@ pub(crate) fn document_links(request: &crate::Request<'_>, path: &Path) -> Vec<D
     };
     let mut links = Vec::new();
     let mut add = |span: Span, resource: Resource| {
-        if let Ok(url) = resource.url(path) {
+        if let Ok(url) = resource.url(path, workspace.home()) {
             links.push(DocumentLink {
                 range: span.range(doc),
                 tooltip: Some(format!("Open {url}")),
@@ -23,24 +23,18 @@ pub(crate) fn document_links(request: &crate::Request<'_>, path: &Path) -> Vec<D
             });
         }
     };
-    for link in &doc.links {
-        add(
-            link.span,
-            Resource {
-                target: link.target.clone(),
-                origin: None,
-            },
-        );
+    for link in doc.links() {
+        add(link.span, Resource::new(&link.target));
     }
     let mut engine = request.engine();
-    for (i, def) in doc.definitions.iter().enumerate() {
+    for (i, def) in doc.definitions().iter().enumerate() {
         if let Ok(Value::Resource(resource)) =
             engine.symbol(&Symbol::new(path, SymbolKind::Definition(i)))
         {
             add(def.value_span, resource);
         }
     }
-    for reference in &doc.references {
+    for reference in doc.references() {
         if let Ok(Value::Resource(resource)) = engine.eval(path, &reference.expression()) {
             add(
                 Span::new(reference.span.line, reference.span.start, reference.end()),

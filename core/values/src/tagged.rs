@@ -35,24 +35,19 @@ impl Tagged {
         hover: Option<&Value>,
     ) -> EvalResult<Value> {
         if !ValueType::taggable(kind) {
-            return Err(EvalError::Message(format!(
+            return Err(format!(
                 "tagged expects a kind of its own: a capitalized name, letters, \
                  numbers and underscores, that no built-in kind has, not '{kind}'"
-            )));
+            )
+            .into());
         }
         let hover = match hover {
             None => None,
             Some(Value::Text(hover)) => Some(hover.clone()),
-            Some(_) => {
-                return Err(EvalError::Message(
-                    "tagged expects its hover as text".into(),
-                ));
-            }
+            Some(_) => return Err("tagged expects its hover as text".into()),
         };
         let (Value::Record(fields), Value::Text(display)) = (fields, display) else {
-            return Err(EvalError::Message(
-                "tagged expects a kind, a record and its display text".into(),
-            ));
+            return Err("tagged expects a kind, a record and its display text".into());
         };
         Ok(Value::Host(Arc::new(Self {
             kind: kind.into(),
@@ -104,7 +99,7 @@ impl HostObject for Tagged {
     }
     fn property(&self, key: &str) -> EvalResult<Value> {
         self.fields.get(key).cloned().ok_or_else(|| {
-            EvalError::Message(format!(
+            EvalError::from(format!(
                 "Unknown {} property '{key}'",
                 self.kind.to_lowercase()
             ))

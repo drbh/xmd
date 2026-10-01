@@ -57,11 +57,11 @@ pub async fn refresh_workspace(
         .iter()
         .filter(|(path, _)| only.is_none_or(|only| *path == only))
         .flat_map(|(_, doc)| {
-            doc.definitions
+            doc.definitions()
                 .iter()
                 .filter(|d| !d.expression)
                 .map(|d| d.source.as_str())
-                .chain(doc.links.iter().map(|l| l.target.as_str()))
+                .chain(doc.links().iter().map(|l| l.target.as_str()))
         })
         .filter_map(|s| Some((s.to_owned(), features.refresh_request(s)?)))
         .collect();

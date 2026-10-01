@@ -26,20 +26,20 @@ pub trait ResourcePresenting {
     fn presentation(&self, engine: &mut Engine<'_>, document: &Path) -> ResourcePresentation;
     /// What the `resource` module reads: the target, the URL it opens (or why
     /// it has none) and whether it previews as an image.
-    fn record(&self, document: &Path) -> Value;
+    fn record(&self, document: &Path, home: Option<&Path>) -> Value;
 }
 impl ResourcePresenting for Resource {
     fn presentation(&self, engine: &mut Engine<'_>, document: &Path) -> ResourcePresentation {
-        let known = engine.link_features().presentation(
-            &self.target,
-            &engine.workspace().cache,
-            engine.now().to_utc(),
-        );
+        let record = self.record(document, engine.workspace().home());
+        let (cache, now) = (&engine.workspace().cache, engine.now().to_utc());
+        let known = engine
+            .link_features()
+            .presentation(&self.target, cache, now);
         let label = match &known {
             Some(p) => p.label.clone(),
-            None => stdlib::shown(stdlib::resource::label(engine, self.record(document))),
+            None => stdlib::shown(stdlib::resource::label(engine, record.clone())),
         };
-        let mut hover = stdlib::shown(stdlib::resource::hover(engine, self.record(document)));
+        let mut hover = stdlib::shown(stdlib::resource::hover(engine, record));
         if let Some(details) = known.as_ref().and_then(|p| p.hover.as_ref()) {
             hover.push_str("\n\n");
             hover.push_str(details);
@@ -51,20 +51,15 @@ impl ResourcePresenting for Resource {
             time_dependent: known.is_some_and(|p| p.time_dependent),
         }
     }
-    fn record(&self, document: &Path) -> Value {
-        let url = self.url(document);
+    fn record(&self, document: &Path, home: Option<&Path>) -> Value {
+        let (url, error) = match self.url(document, home) {
+            Ok(url) => (Value::Text(url.to_string()), Value::Null),
+            Err(e) => (Value::Null, Value::Text(e.to_string())),
+        };
         record([
             ("target", Value::Text(self.target.clone())),
-            (
-                "url",
-                url.as_ref()
-                    .map_or(Value::Null, |url| Value::Text(url.to_string())),
-            ),
-            (
-                "error",
-                url.err()
-                    .map_or(Value::Null, |e| Value::Text(e.to_string())),
-            ),
+            ("url", url),
+            ("error", error),
             ("image", Value::Bool(self.is_image())),
         ])
     }

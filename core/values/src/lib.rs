@@ -19,10 +19,8 @@ mod value;
 // The failure vocabulary every evaluation answers with.
 pub use error::{CurrencyOp, Depth, EvalError, EvalResult, Limit, Overflow, UnitOp};
 // The value kinds, the host objects a value may hold, and their JSON forms.
-pub use value::{
-    CHECKLIST_TASKS, Captured, Function, HostObject, Measured, Namespace, TaskKey, Unit, Value,
-    date_value, json, literal, record, value_json,
-};
+pub use value::{CHECKLIST_TASKS, Captured, Function, HostObject, Measured, Namespace, TaskKey};
+pub use value::{Unit, Value, date_value, json, literal, record, value_json};
 // What operators and pure built-ins compute over values.
 pub use arithmetic::binary;
 pub use functional::{Size, builtin, check_size, compare, sum};

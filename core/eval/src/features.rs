@@ -64,19 +64,16 @@ fn origin(symbol: &Symbol, doc: &Document) -> Option<Value> {
     let crate::workspace::SymbolKind::Definition(index) = symbol.kind else {
         return None;
     };
-    let definition = &doc.definitions[index];
+    let definition = &doc.definitions()[index];
     let parsed = Parser::parse(&definition.source).ok()?;
     let Expr::Call(function, arguments) = parsed.bare() else {
         return None;
     };
-    let raw = definition.value_span.source(doc);
+    let value = definition.value_span;
+    let raw = value.source(doc);
     let leading = raw.len() - raw.trim_start().len();
     let trailing = raw.len() - leading - raw.trim().len();
-    let span = common::Span::new(
-        definition.value_span.line,
-        definition.value_span.start + leading,
-        definition.value_span.end - trailing,
-    );
+    let span = common::Span::new(value.line, value.start + leading, value.end - trailing);
     let range = span.range(doc);
     let position = |line: u32, character: u32| {
         record([
@@ -84,31 +81,20 @@ fn origin(symbol: &Symbol, doc: &Document) -> Option<Value> {
             ("character", Value::Count(character as usize)),
         ])
     };
+    let start = position(range.start.line, range.start.character);
+    let end = position(range.end.line, range.end.character);
     let line = definition.named.span.line;
+    let arguments = arguments.iter().map(|argument| {
+        let (start, end) = argument.bounds();
+        Value::Text(definition.source[start..end].trim().into())
+    });
     Some(record([
         ("document", Value::Text(crate::forms::uri(&symbol.path))),
         ("name", Value::Text(definition.named.name.clone())),
         ("line", Value::Count(line)),
         ("text", Value::Text(doc.line(line).into())),
-        (
-            "range",
-            record([
-                ("start", position(range.start.line, range.start.character)),
-                ("end", position(range.end.line, range.end.character)),
-            ]),
-        ),
+        ("range", record([("start", start), ("end", end)])),
         ("function", Value::Text(function.clone())),
-        (
-            "arguments",
-            Value::list(
-                arguments
-                    .iter()
-                    .map(|argument| {
-                        let (start, end) = argument.bounds();
-                        Value::Text(definition.source[start..end].trim().into())
-                    })
-                    .collect(),
-            ),
-        ),
+        ("arguments", Value::list(arguments.collect())),
     ]))
 }

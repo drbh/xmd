@@ -12,9 +12,12 @@
 //! definitions and built-ins they answer, and depend on the engine rather
 //! than the engine on them. `lookups` is the `cached` built-in's read of the
 //! lookup cache.
-//! `checklists` is a checklist's tasks as records, which the prelude's counts
-//! read, and `prelude` is how a name nothing else defines reaches the prelude
-//! library.
+//! `checklists` is a checklist's items: whether each is done, what it still
+//! waits on, and its tasks as the records the prelude's counts read;
+//! `attributes` is an attribute's value as its declaration reads it;
+//! `substitution` is an expression read back with its names' values, as a
+//! hover shows its worked step; and `prelude` is how a name nothing else
+//! defines reaches the prelude library.
 //!
 //! `context` holds the one workspace snapshot, clock and memo a request
 //! evaluates against; `memo` is that memo, and what of it an owner may keep
@@ -26,6 +29,7 @@
 //! `eval` owns. What it reads from `values`, `modules`, `syntax`, `document` and
 //! `common` is not re-exported: the `lang` facade takes those from their own
 //! crates.
+mod attributes;
 mod calls;
 mod checklists;
 mod context;
@@ -41,6 +45,7 @@ mod memo;
 mod module_runtime;
 mod prelude;
 mod resources;
+mod substitution;
 #[path = "tables.rs"]
 mod tables_impl;
 mod workspace;
@@ -83,7 +88,6 @@ pub mod tables {
 /// calls, declared in `CONTRACT` and called only through the typed functions
 /// in each module's namespace.
 pub mod stdlib {
-    pub use crate::contract::{
-        CONTRACT, Contract, Presented, Role, format, modules, prelude, resource, shown, task, today,
-    };
+    pub use crate::contract::{CONTRACT, Contract, Presented, Role, format, modules, prelude};
+    pub use crate::contract::{resource, shown, task, today};
 }

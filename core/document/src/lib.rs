@@ -3,10 +3,11 @@
 //! Parsing only: the workspace and editing session are runtime state, so
 //! both live one layer up in `evaluate`. Exposes its interface from the root.
 //!
-//! A parse has two layers. `blocks` is generic: what each line is as
-//! document structure (heading, list item, table row, prose, fence, comment)
-//! and the language's inline forms (definitions, named values, bracket
-//! references and calculations, `@key(value)` attributes, links). The
+//! A parse has two layers. The first is generic: `blocks` is what each line
+//! is as document structure (heading, list item, table row, prose, fence,
+//! comment), `inline` the language's inline forms (definitions, named values,
+//! bracket references and calculations, `@key(value)` attributes, links), and
+//! `tree` what they are read into, with its highlighting and problems. The
 //! feature recognizers, listed in order in `recognizers`, read those blocks
 //! and fill the note's features: `attributes` (what a key means, native or
 //! declared by a module, and every line that writes one), `sections`,
@@ -27,19 +28,22 @@ mod edits;
 #[path = "forms.rs"]
 mod forms_impl;
 mod imports;
+mod inline;
 mod recognizers;
 mod sections;
 #[path = "tables.rs"]
 mod tables_impl;
 mod tasks;
+mod tree;
 
 // The parsed note and the pieces named directly by other layers.
 pub use attributes::{Attributed, Declaration};
-pub use blocks::{Attribute, HighlightKind, Named, Reference, identifier};
 pub use document::{DefinitionKind, Document, expression_regions};
 pub use edits::{LineIndex, apply_edits, byte_at, utf16};
 pub use imports::{ExprImports, is_note_path, note_path};
+pub use inline::{Attribute, Named, Reference, identifier};
 pub use tasks::TaskState;
+pub use tree::HighlightKind;
 
 // Table and form items stay namespaced: `eval` and the `lang`
 // facade name them `document::tables::…` and so on.

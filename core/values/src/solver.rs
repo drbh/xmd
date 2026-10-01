@@ -1,9 +1,7 @@
 //! The numerical boundary: a bounded, unit-free linear model in, raw values out.
 use crate::error::{EvalError, EvalResult};
-use crate::{
-    records::{FromValue, from_json},
-    value::{Value, json},
-};
+use crate::records::{FromValue, from_json};
+use crate::value::{Value, json};
 use good_lp::{Expression, ProblemVariables, ResolutionError, Solution, SolverModel, variable};
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -56,15 +54,13 @@ struct Model {
 impl FromValue for Model {
     fn from_value(value: &Value) -> EvalResult<Self> {
         serde_json::from_value(json(value)?)
-            .map_err(|e| EvalError::Message(format!("Invalid linear model: {e}")))
+            .map_err(|e| EvalError::from(format!("Invalid linear model: {e}")))
     }
 }
 pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
     let model = Model::from_value(value)?;
     if model.variables.is_empty() || model.variables.len() > 512 || model.constraints.len() > 2048 {
-        return Err(EvalError::Message(
-            "Linear models require 1..512 variables and at most 2048 constraints".into(),
-        ));
+        return Err("Linear models require 1..512 variables and at most 2048 constraints".into());
     }
     let mut problem = ProblemVariables::new();
     let mut variables = BTreeMap::new();
@@ -76,9 +72,7 @@ pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
         || ordered.len() != order.len()
         || order.iter().any(|n| !model.variables.contains_key(n))
     {
-        return Err(EvalError::Message(
-            "Variable order must name every variable exactly once".into(),
-        ));
+        return Err("Variable order must name every variable exactly once".into());
     }
     for name in &order {
         let v = &model.variables[name];
@@ -92,7 +86,7 @@ pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
             VariableKind::Binary => variable().binary(),
         };
         if v.lower.zip(v.upper).is_some_and(|(l, u)| l > u) {
-            return Err(EvalError::Message(format!("Reversed bounds for '{name}'")));
+            return Err(format!("Reversed bounds for '{name}'").into());
         }
         if let Some(n) = v.lower {
             definition = definition.min(n);
@@ -106,9 +100,9 @@ pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
         let mut expression = Expression::from(form.constant);
         for (name, coefficient) in &form.terms {
             expression += *coefficient
-                * *variables.get(name).ok_or_else(|| {
-                    EvalError::Message(format!("Unknown linear variable '{name}'"))
-                })?;
+                * *variables
+                    .get(name)
+                    .ok_or_else(|| format!("Unknown linear variable '{name}'"))?;
         }
         Ok(expression)
     };
@@ -116,11 +110,7 @@ pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
     let mut solver = match model.goal.as_str() {
         "maximize" => problem.maximise(objective),
         "minimize" => problem.minimise(objective),
-        _ => {
-            return Err(EvalError::Message(
-                "Linear goal must be maximize or minimize".into(),
-            ));
-        }
+        _ => return Err("Linear goal must be maximize or minimize".into()),
     }
     .using(good_lp::microlp);
     for constraint in &model.constraints {
@@ -141,15 +131,13 @@ pub(crate) fn solve(value: &Value) -> EvalResult<Value> {
                 .map(|(name, var)| (name.clone(), solution.value(*var)))
                 .collect();
             if values.values().any(|v| !v.is_finite()) {
-                return Err(EvalError::Message(
-                    "Solver returned a nonfinite value".into(),
-                ));
+                return Err("Solver returned a nonfinite value".into());
             }
             serde_json::json!({"status":"optimal","values":values})
         }
         Err(ResolutionError::Infeasible) => serde_json::json!({"status":"infeasible"}),
         Err(ResolutionError::Unbounded) => serde_json::json!({"status":"unbounded"}),
-        Err(e) => return Err(EvalError::Message(format!("Solver error: {e}"))),
+        Err(e) => return Err(format!("Solver error: {e}").into()),
     };
     Ok(from_json(&result))
 }

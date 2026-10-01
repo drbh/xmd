@@ -6,12 +6,14 @@
 //! Native code never names a stdlib function by string anywhere else. A
 //! module that replaces a bundled id is checked against this table when the
 //! registry links, and `book/reference/contract.md` is generated from it.
+//! The table itself is data, `data/contract.md`.
 //!
 //! A call runs inside an evaluation: the [`Engine`] it is handed, sharing
 //! its memo, clock and budget.
 use crate::engine::Engine;
 use modules::ModuleRegistry;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use values::{EvalResult, Value};
 
 /// What native code relies on a call for.
@@ -29,12 +31,12 @@ pub enum Role {
 }
 
 /// One function native code calls in a stdlib module.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Contract {
     pub module: &'static str,
     pub function: &'static str,
     /// Each parameter as `name: kind`.
-    pub params: &'static [&'static str],
+    pub params: Vec<&'static str>,
     pub returns: &'static str,
     pub role: Role,
     /// Whether the module must define it. An optional function has a native
@@ -43,116 +45,39 @@ pub struct Contract {
     pub doc: &'static str,
 }
 
-const fn entry(
-    module: &'static str,
-    function: &'static str,
-    params: &'static [&'static str],
-    returns: &'static str,
-    role: Role,
-    doc: &'static str,
-) -> Contract {
-    Contract {
-        module,
-        function,
-        params,
-        returns,
-        role,
-        required: true,
-        doc,
-    }
-}
-
-const fn optional(contract: Contract) -> Contract {
-    Contract {
-        required: false,
-        ..contract
-    }
-}
-
-/// A `Presents` role that shows `fallback` when the call fails.
-const fn presents(fallback: &'static str) -> Role {
-    Role::Presents { fallback }
-}
-
-/// Every stdlib function native code calls, by module.
-pub static CONTRACT: &[Contract] = &[
-    entry(
-        "format",
-        "series",
-        &["values: List"],
-        "Text or Null",
-        presents("no chart"),
-        "A sparkline for a list of values, or null when nothing in it can be charted.",
-    ),
-    entry(
-        "format",
-        "age",
-        &["elapsed: Duration"],
-        "Text",
-        presents("the elapsed duration"),
-        "How long ago cached data was fetched, in the coarsest fitting unit.",
-    ),
-    entry(
-        "format",
-        "glyph",
-        &["name: Text"],
-        "Text",
-        presents("the glyph's name"),
-        "The glyph a control title starts with.",
-    ),
-    entry(
-        "today",
-        "page",
-        &["entries: List", "day: Date"],
-        "Markdown",
-        presents("nothing; the today command fails and says why"),
-        "The today page: the agenda entries laid out for one day.",
-    ),
-    entry(
-        "task",
-        "checklist",
-        &["done: Count", "total: Count"],
-        "Text",
-        presents("`done/total`"),
-        "The progress words a named heading's hover shows for its tasks.",
-    ),
-    entry(
-        "resource",
-        "label",
-        &["resource: resource record"],
-        "Text",
-        presents("the resource's target"),
-        "A resource's inline label when no link module recognizes it.",
-    ),
-    entry(
-        "resource",
-        "hover",
-        &["resource: resource record"],
-        "Markdown",
-        presents("the resource's target"),
-        "A resource's hover; a link module that recognizes the resource adds its details after it.",
-    ),
-    entry(
-        "resource",
-        "control",
-        &["resource: resource record"],
-        "Text",
-        presents("the resource's target"),
-        "The title of the control that opens a resource.",
-    ),
-    optional(entry(
-        "prelude",
-        "lookup_display",
-        &[
-            "kind: Text",
-            "key: List of one-field records",
-            "value: Value",
-        ],
-        "Text",
-        presents("the cached value"),
-        "How the cached value of a lookup a module's record asked for reads, or why it cannot be read.",
-    )),
-];
+/// Every stdlib function native code calls, by module, read once from
+/// `data/contract.md` (whose opening paragraphs give its format).
+pub static CONTRACT: LazyLock<Vec<Contract>> = LazyLock::new(|| {
+    let entry = |section: &'static str| {
+        let mut lines = section.lines().filter(|line| !line.trim().is_empty());
+        let (need, name) = lines.next()?.split_once(' ')?;
+        let (module, function) = name.split_once('.')?;
+        let mut entry = Contract {
+            module,
+            function,
+            params: Vec::new(),
+            returns: "",
+            role: Role::Decides,
+            required: need == "required",
+            doc: "",
+        };
+        for line in lines {
+            if let Some(param) = line.strip_prefix("- ") {
+                entry.params.push(param);
+            } else if let Some(returns) = line.strip_prefix("returns ") {
+                entry.returns = returns;
+            } else if let Some(fallback) = line.strip_prefix("presents ") {
+                entry.role = Role::Presents { fallback };
+            } else if line != "decides" {
+                entry.doc = line;
+            }
+        }
+        Some(entry)
+    };
+    (include_str!("../data/contract.md").split("\n## ").skip(1))
+        .map(|section| entry(section).expect("an entry is `## required module.function`"))
+        .collect()
+});
 
 /// Every module id the contract names, once each, whatever order its
 /// entries are in.
@@ -406,5 +331,26 @@ pub mod resource {
             display,
             fallback,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every entry of `data/contract.md` is read whole, once.
+    #[test]
+    fn every_entry_is_complete() {
+        let text = include_str!("../data/contract.md");
+        assert_eq!(text.matches("\n## ").count(), CONTRACT.len());
+        for (i, entry) in CONTRACT.iter().enumerate() {
+            let name = format!("{}.{}", entry.module, entry.function);
+            assert!(!entry.returns.is_empty() && !entry.doc.is_empty(), "{name}");
+            assert!(
+                CONTRACT[..i]
+                    .iter()
+                    .all(|e| (e.module, e.function) != (entry.module, entry.function))
+            );
+        }
     }
 }

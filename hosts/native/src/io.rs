@@ -9,11 +9,16 @@ pub(crate) fn at<E: Display>(path: &Path) -> impl Fn(E) -> String + '_ {
     move |error| format!("{}: {error}", path.display())
 }
 
+/// The user's home directory, `$HOME`, which `~/` links resolve against.
+pub fn home() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(PathBuf::from)
+}
+
 /// The user's own settings: `$XDG_CONFIG_HOME/xmd` or `~/.config/xmd`.
 pub(crate) fn config_dir() -> Option<PathBuf> {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
+        .or_else(|| home().map(|home| home.join(".config")))?;
     Some(config.join("xmd"))
 }
 

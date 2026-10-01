@@ -4,7 +4,6 @@ use crate::prose;
 use lang::common::Span;
 use lang::document::recognized::Paint;
 use lang::document::{Attribute, Document, HighlightKind, Named};
-use lang::eval::engine;
 use lang::syntax::{AttributeValue, Lexeme, Literal};
 use lsp_types::SemanticToken;
 
@@ -56,42 +55,27 @@ pub(crate) enum Token {
 }
 pub const TOKEN_TYPES: &[&str] = <Token as strum::VariantNames>::VARIANTS;
 /// The token a recognizer's paint is drawn with: one the legend already has.
+/// The match is exhaustive, so every paint has its token.
 fn paint_token(paint: Paint) -> Token {
-    match paint {
-        Paint::Keyword => Token::Keyword,
-        Paint::Number => Token::Number,
-        Paint::String => Token::String,
-        Paint::Variable => Token::Variable,
-        Paint::Heading => Token::Heading,
-        Paint::Function => Token::Function,
-        Paint::Property => Token::Property,
-        Paint::Decorator => Token::Decorator,
-        Paint::Operator => Token::Operator,
-        Paint::Comment => Token::Comment,
-        Paint::Punctuation => Token::XmdPunctuation,
-        Paint::Money => Token::XmdMoney,
-        Paint::Date => Token::XmdDate,
-        Paint::Time => Token::XmdTime,
-        Paint::Duration => Token::XmdDuration,
-        Paint::Boolean => Token::XmdBoolean,
-        Paint::Link => Token::XmdLink,
-        Paint::Code => Token::XmdCode,
-        Paint::Key => Token::XmdKey,
-        Paint::Toggle => Token::XmdToggle,
-        Paint::ToggleOn => Token::XmdToggleOn,
-        Paint::ToggleMixed => Token::XmdToggleMixed,
-        Paint::Finished => Token::XmdFinished,
-        Paint::Category1 => Token::XmdCategory1,
-        Paint::Category2 => Token::XmdCategory2,
-        Paint::Category3 => Token::XmdCategory3,
-        Paint::Category4 => Token::XmdCategory4,
-        Paint::Category5 => Token::XmdCategory5,
-        Paint::Category6 => Token::XmdCategory6,
-        Paint::Category7 => Token::XmdCategory7,
-        Paint::Category8 => Token::XmdCategory8,
-        Paint::Category9 => Token::XmdCategory9,
-        Paint::Category10 => Token::XmdCategory10,
+    macro_rules! tokens {
+        ($($same:ident)*; $($paint:ident => $token:ident,)*) => {
+            match paint {
+                $(Paint::$same => Token::$same,)*
+                $(Paint::$paint => Token::$token,)*
+            }
+        };
     }
+    tokens!(
+        Keyword Number String Variable Heading Function Property Decorator Operator Comment;
+        Punctuation => XmdPunctuation, Money => XmdMoney, Date => XmdDate, Time => XmdTime,
+        Duration => XmdDuration, Boolean => XmdBoolean, Link => XmdLink, Code => XmdCode,
+        Key => XmdKey, Toggle => XmdToggle, ToggleOn => XmdToggleOn,
+        ToggleMixed => XmdToggleMixed, Finished => XmdFinished,
+        Category1 => XmdCategory1, Category2 => XmdCategory2, Category3 => XmdCategory3,
+        Category4 => XmdCategory4, Category5 => XmdCategory5, Category6 => XmdCategory6,
+        Category7 => XmdCategory7, Category8 => XmdCategory8, Category9 => XmdCategory9,
+        Category10 => XmdCategory10,
+    )
 }
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
 const DECLARATION: u32 = 1;
@@ -132,7 +116,7 @@ struct Painter<'a> {
 }
 impl<'a> Painter<'a> {
     fn new(doc: &'a Document, library: &'a [String]) -> Self {
-        let lines: Vec<_> = doc.text.lines().collect();
+        let lines: Vec<_> = doc.text().lines().collect();
         let colors = lines
             .iter()
             .map(|l| vec![Style::default(); l.len()])
@@ -140,7 +124,7 @@ impl<'a> Painter<'a> {
         Self {
             doc,
             library,
-            text: &doc.text,
+            text: doc.text(),
             lines,
             colors,
         }
@@ -192,7 +176,7 @@ impl<'a> Painter<'a> {
         let source = self.source(span);
         // An unfinished expression should not suddenly become a solid string color.
         self.paint(span, Style::default());
-        let Ok(tokens) = engine::lex_with_comments(source) else {
+        let Ok(tokens) = lang::syntax::lex_with_comments(source) else {
             return;
         };
         for (i, token) in tokens.iter().enumerate() {
@@ -201,16 +185,14 @@ impl<'a> Painter<'a> {
                 Lexeme::Value(value) => value_kind(value),
                 Lexeme::Name(name) => {
                     if matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Left)) {
-                        if lang::eval::engine::is_builtin_function(name)
-                            || self.library.contains(name)
-                        {
+                        if lang::syntax::is_builtin_function(name) || self.library.contains(name) {
                             modifiers = DEFAULT_LIBRARY;
                         }
                         Token::Function
                     } else if matches!(name.as_str(), "true" | "false") {
                         Token::XmdBoolean
                     } else if i > 0 && matches!(tokens[i - 1].kind, Lexeme::Dot)
-                        || engine::sum_scope_at(source, token.start).is_some()
+                        || lang::syntax::sum_scope_at(source, token.start).is_some()
                     {
                         Token::Property
                     } else {
@@ -266,7 +248,7 @@ impl<'a> Painter<'a> {
     }
 
     fn highlights(&mut self) {
-        for h in &self.doc.highlights {
+        for h in self.doc.highlights() {
             let kind = match h.kind {
                 HighlightKind::String => Token::XmdCode,
                 HighlightKind::Comment => Token::Comment,
@@ -296,7 +278,7 @@ impl<'a> Painter<'a> {
     /// The groups a module's recognizers paint, over prose values and under
     /// the note's own structure.
     fn recognized(&mut self) {
-        for group in self.doc.recognized.iter().flat_map(|m| &m.groups) {
+        for group in self.doc.recognized().iter().flat_map(|m| &m.groups) {
             if let Some(paint) = group.paint {
                 let modifiers = if group.declaration { DECLARATION } else { 0 };
                 self.paint(group.span, style(paint_token(paint), modifiers));
@@ -304,7 +286,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn sections(&mut self) {
-        for section in &self.doc.sections {
+        for section in self.doc.sections() {
             let line = self.lines[section.line];
             let start = line.len() - line.trim_start().len();
             self.mark(
@@ -319,12 +301,12 @@ impl<'a> Painter<'a> {
     /// A checklist item's name declares it; how its checkbox and title look
     /// is what a module's recognizers paint.
     fn checklist(&mut self) {
-        for named in self.doc.tasks.iter().filter_map(|t| t.named.as_ref()) {
+        for named in self.doc.tasks().iter().filter_map(|t| t.named.as_ref()) {
             self.declaration(named);
         }
     }
     fn definitions(&mut self) {
-        for (index, def) in self.doc.definitions.iter().enumerate() {
+        for (index, def) in self.doc.definitions().iter().enumerate() {
             self.declaration(&def.named);
             if !def.expression {
                 self.brackets(def.value_span);
@@ -368,13 +350,13 @@ impl<'a> Painter<'a> {
         }
     }
     fn calculations(&mut self) {
-        for calculation in &self.doc.calculations {
+        for calculation in self.doc.calculations() {
             self.brackets(calculation.span);
             self.expression(calculation.span);
         }
     }
     fn references(&mut self) {
-        for reference in self.doc.references.iter().filter(|r| r.bracket) {
+        for reference in self.doc.references().iter().filter(|r| r.bracket) {
             let (line, end) = (reference.span.line, reference.span.end);
             self.brackets(Span::new(line, reference.span.start, reference.end()));
             self.mark(reference.span, Token::Variable);
@@ -385,7 +367,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn forms(&mut self) {
-        for formed in self.doc.forms.iter().filter(|f| f.has_table()) {
+        for formed in self.doc.forms().iter().filter(|f| f.has_table()) {
             self.grid(
                 formed.header,
                 formed.end_line,
@@ -406,7 +388,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn tables(&mut self) {
-        for table in &self.doc.tables {
+        for table in self.doc.tables() {
             self.grid(table.header, table.end_line, !table.separators.is_empty());
             for column in &table.columns {
                 self.paint(column.span, style(Token::Property, DECLARATION));
@@ -425,7 +407,7 @@ impl<'a> Painter<'a> {
         }
     }
     fn links(&mut self) {
-        for link in &self.doc.links {
+        for link in self.doc.links() {
             self.mark(link.span, Token::XmdLink);
             let raw = self.source(link.span);
             if raw.starts_with('[')
@@ -448,7 +430,7 @@ impl<'a> Painter<'a> {
     fn comments(&mut self) {
         for h in self
             .doc
-            .highlights
+            .highlights()
             .iter()
             .filter(|h| h.kind == HighlightKind::Comment)
         {
@@ -536,7 +518,7 @@ mod tests {
         let mut doc = Document::parse(String::new());
         doc.recognize(&lang::eval::Workspace::new(vec![]).modules().recognizers());
         let stop = doc
-            .rules
+            .rules()
             .iter()
             .find(|r| r.module == "itinerary" && r.name == "stop")
             .expect("the itinerary's stop rule");

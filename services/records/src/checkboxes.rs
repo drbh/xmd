@@ -7,7 +7,7 @@
 use super::value as q;
 use super::{
     RecordKind,
-    record::{Base, Record, text_range},
+    record::{Base, Record},
 };
 use lang::document::{Document, TaskState};
 use lang::eval::engine::Value;
@@ -32,18 +32,18 @@ record! {
 }
 
 pub(super) fn checkboxes(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
-    let mut children = vec![Vec::new(); doc.tasks.len()];
-    for task in &doc.tasks {
+    let mut children = vec![Vec::new(); doc.tasks().len()];
+    for task in doc.tasks() {
         if let Some(parent) = task.parent {
             children[parent].push(task.line);
         }
     }
     // Whether each is done, as `Engine::task_done` says, from the last up:
     // an item's subitems come after it.
-    let mut done = vec![false; doc.tasks.len()];
-    let mut open = vec![false; doc.tasks.len()];
-    let mut parents = vec![false; doc.tasks.len()];
-    for (i, task) in doc.tasks.iter().enumerate().rev() {
+    let mut done = vec![false; doc.tasks().len()];
+    let mut open = vec![false; doc.tasks().len()];
+    let mut parents = vec![false; doc.tasks().len()];
+    for (i, task) in doc.tasks().iter().enumerate().rev() {
         done[i] = if parents[i] {
             !open[i]
         } else {
@@ -54,7 +54,7 @@ pub(super) fn checkboxes(ws: &Workspace, path: &Path, doc: &Document, records: &
             open[parent] |= !done[i];
         }
     }
-    for (i, (task, children)) in doc.tasks.iter().zip(children).enumerate() {
+    for (i, (task, children)) in doc.tasks().iter().zip(children).enumerate() {
         records.push(Record::typed(
             path,
             CheckboxRecord {
@@ -71,11 +71,11 @@ pub(super) fn checkboxes(ws: &Workspace, path: &Path, doc: &Document, records: &
                 done: done[i],
                 parent: task
                     .parent
-                    .map_or(Value::Null, |p| Value::Count(doc.tasks[p].line)),
+                    .map_or(Value::Null, |p| Value::Count(doc.tasks()[p].line)),
                 children,
                 indent: task.indent,
                 checkbox: q::range(task.checkbox.range(doc)),
-                range: text_range(doc, task.line),
+                range: q::range(analysis::line_range(doc, task.line)),
                 attributes: task
                     .attributes
                     .iter()

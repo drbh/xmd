@@ -16,8 +16,10 @@
 //!
 //! A page that differs from what the code generates fails the test; rewrite
 //! the pages with `UPDATE_SNAPSHOTS=1`.
-use lang::eval::engine::Tier;
+mod support;
+
 use lang::eval::modules::Collection;
+use lang::syntax::Tier;
 use serde_json::Value;
 use services::{BUILTINS, Signature};
 use std::{
@@ -26,8 +28,6 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-
-const NOW: &str = "2026-09-16T14:00:00-04:00";
 
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -41,7 +41,7 @@ fn reference_pages_are_current() {
         ("queries.md", queries()),
         ("contract.md", contract()),
     ];
-    let update = std::env::var("UPDATE_SNAPSHOTS").is_ok_and(|v| !v.is_empty() && v != "0");
+    let update = support::update_snapshots();
     let directory = repo().join("book/reference");
     let mut stale = Vec::new();
     for (name, generated) in pages {
@@ -178,10 +178,10 @@ fn functions() -> String {
             let params = row.params.join(", ");
             let mut text = format!("\n### `{}({params})`\n\n", row.name);
             if section != 2 {
-                writeln!(text, "returns {}\n", row.result).unwrap();
+                let _ = writeln!(text, "returns {}\n", row.result);
             }
-            writeln!(text, "{}\n", row.documentation).unwrap();
-            writeln!(text, "`{}({})`", row.name, row.example).unwrap();
+            let _ = writeln!(text, "{}\n", row.documentation);
+            let _ = writeln!(text, "`{}({})`", row.name, row.example);
             (section, row.name, text)
         })
         .collect();
@@ -196,7 +196,7 @@ fn functions() -> String {
     }
     entries.sort_by(|a, b| a.1.cmp(&b.1));
     for (index, (title, intro)) in sections.into_iter().enumerate() {
-        write!(page, "\n## {title}\n\n{intro}\n").unwrap();
+        let _ = write!(page, "\n## {title}\n\n{intro}\n");
         for (_, _, text) in entries.iter().filter(|(section, ..)| *section == index) {
             page.push_str(text);
         }
@@ -239,16 +239,16 @@ fn libraries() -> String {
         }
         let exports: Vec<String> = serde_json::from_str(&output)
             .unwrap_or_else(|e| panic!("import(\"{id}\") failed: {e}\n{output}"));
-        write!(page, "\n## {id}\n\n`{id} := import(\"{id}\")`\n").unwrap();
+        let _ = write!(page, "\n## {id}\n\n`{id} := import(\"{id}\")`\n");
         for name in exports {
             let (params, comment) = definition(&source, &name)
                 .unwrap_or_else(|| panic!("{id} exports {name} but does not define it"));
-            write!(page, "\n### `{id}.{name}{params}`\n").unwrap();
+            let _ = write!(page, "\n### `{id}.{name}{params}`\n");
             assert!(
                 !comment.is_empty(),
                 "{id}.{name} has no `//` comment above it to describe it"
             );
-            write!(page, "\n{comment}\n").unwrap();
+            let _ = write!(page, "\n{comment}\n");
         }
     }
     page
@@ -306,7 +306,7 @@ fn queries() -> String {
     );
     let examples = repo().join("examples");
     for name in bindings() {
-        write!(page, "\n## {name}\n").unwrap();
+        let _ = write!(page, "\n## {name}\n");
         let output = xmd(&examples, &["--workspace", &name, "--json"]);
         let rows: Vec<Value> = serde_json::from_str(&output)
             .unwrap_or_else(|e| panic!("`{name}` is not a JSON list: {e}"));
@@ -320,17 +320,17 @@ fn queries() -> String {
             }
         }
         if fields.is_empty() {
-            writeln!(page, "\nno example has one yet").unwrap();
+            let _ = writeln!(page, "\nno example has one yet");
             continue;
         }
-        writeln!(page, "\n| field | value |\n| --- | --- |").unwrap();
+        let _ = writeln!(page, "\n| field | value |\n| --- | --- |");
         for (field, kinds) in fields {
             let kinds = if kinds.is_empty() {
                 "always null".to_string()
             } else {
                 kinds.into_iter().collect::<Vec<_>>().join(" or ")
             };
-            writeln!(page, "| `{field}` | {kinds} |").unwrap();
+            let _ = writeln!(page, "| `{field}` | {kinds} |");
         }
     }
     page
@@ -352,7 +352,7 @@ fn contract() -> String {
          command and provider modules, and module code calls built-ins\n",
     );
 
-    write!(
+    let _ = write!(
         page,
         "\n## native calls the stdlib\n\n\
          the functions the engine, the language services and the editors call in a \
@@ -366,27 +366,25 @@ fn contract() -> String {
          first thing it failed for. **decides** is behavior the engine or an \
          editor acts on, so a failure reaches the person as a diagnostic, an \
          error or a disabled control that says why, never as a quiet default\n"
-    )
-    .unwrap();
+    );
     let mut modules: Vec<&str> = Vec::new();
-    for entry in CONTRACT {
+    for entry in CONTRACT.iter() {
         if !modules.contains(&entry.module) {
             modules.push(entry.module);
         }
     }
     for module in modules {
-        write!(
+        let _ = write!(
             page,
             "\n### {module}\n\n| function | returns | role | if it fails | what it is |\n| --- | --- | --- | --- | --- |\n"
-        )
-        .unwrap();
+        );
         for entry in CONTRACT.iter().filter(|e| e.module == module) {
             let (role, fails) = match entry.role {
                 Role::Presents { fallback } => ("presents", format!("shows {fallback}")),
                 Role::Decides => ("decides", "reported".to_owned()),
             };
             let optional = if entry.required { "" } else { ", optional" };
-            writeln!(
+            let _ = writeln!(
                 page,
                 "| `{module}.{}({})` | {} | {role}{optional} | {} | {} |",
                 entry.function,
@@ -394,12 +392,11 @@ fn contract() -> String {
                 cell(entry.returns),
                 cell(&fails),
                 cell(entry.doc),
-            )
-            .unwrap();
+            );
         }
     }
 
-    write!(
+    let _ = write!(
         page,
         "\n## hooks\n\n\
          the fixed functions the host calls on a module, by kind. a library has \
@@ -407,25 +404,13 @@ fn contract() -> String {
          define it as a function of exactly these parameters. a shape in lowercase \
          is one of the records below, or a step's input or output under commands \
          and providers\n\n### records\n"
-    )
-    .unwrap();
-    for record in HOOK_RECORDS {
-        write!(
-            page,
-            "\n#### {}\n\n{}\n\n| field | what it is |\n| --- | --- |\n",
-            record.name, record.doc
-        )
-        .unwrap();
-        for (field, doc) in record
-            .fields
-            .iter()
-            .map(|f| f.split_once(": ").expect("name: meaning"))
-        {
-            writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
-        }
+    );
+    for record in HOOK_RECORDS.iter() {
+        let _ = write!(page, "\n#### {}\n\n{}\n", record.name, record.doc);
+        fields(&mut page, &record.fields);
     }
     // Kinds with the same hooks share a section: commands and providers.
-    let kinds: BTreeSet<ModuleKind> = HOOKS.iter().flat_map(|h| h.kinds).copied().collect();
+    let kinds: BTreeSet<ModuleKind> = HOOKS.iter().flat_map(|h| &h.kinds).copied().collect();
     let mut groups: Vec<(Vec<ModuleKind>, Vec<Hook>)> = Vec::new();
     for kind in &kinds {
         let hooks: Vec<Hook> = HOOKS
@@ -443,21 +428,20 @@ fn contract() -> String {
     }
     for (kinds, hooks) in groups {
         let names: Vec<String> = kinds.iter().map(ToString::to_string).collect();
-        write!(page, "\n### {} modules\n", names.join(" and ")).unwrap();
+        let _ = write!(page, "\n### {} modules\n", names.join(" and "));
         for hook in hooks {
             let contract = hook.contract();
-            write!(
+            let _ = write!(
                 page,
                 "\n#### `{hook}({})`\n\nreturns {}\n\n{}\n",
                 contract.params.join(", "),
                 contract.returns,
                 contract.doc
-            )
-            .unwrap();
+            );
         }
     }
 
-    write!(
+    let _ = write!(
         page,
         "\n## commands and providers\n\n\
          a command or provider module is one pure `step` hook in a loop. each step \
@@ -465,10 +449,9 @@ fn contract() -> String {
          the next step reads their results. every result has `ok`: a failed effect \
          answers `{{ok: false, error}}` rather than stopping the loop, so the module \
          decides what a failure means\n"
-    )
-    .unwrap();
-    for protocol in STEPS {
-        write!(page, "\n### {}\n\n{}\n", protocol.kind, protocol.doc).unwrap();
+    );
+    for protocol in STEPS.iter() {
+        let _ = write!(page, "\n### {}\n\n{}\n", protocol.kind, protocol.doc);
         let limits = match protocol.kind {
             ModuleKind::Command => format!(
                 "a step may request at most {} effects, and a run that has not \
@@ -481,35 +464,24 @@ fn contract() -> String {
                 native::PROVIDER_STEPS
             ),
         };
-        writeln!(page, "\n{limits}").unwrap();
-        for (title, fields) in [("input", protocol.input), ("output", protocol.output)] {
-            write!(
-                page,
-                "\n#### {title}\n\n| field | what it is |\n| --- | --- |\n"
-            )
-            .unwrap();
-            for (field, doc) in fields
-                .iter()
-                .map(|f| f.split_once(": ").expect("name: meaning"))
-            {
-                writeln!(page, "| `{field}` | {} |", cell(doc)).unwrap();
-            }
+        let _ = writeln!(page, "\n{limits}");
+        for (title, list) in [("input", &protocol.input), ("output", &protocol.output)] {
+            let _ = write!(page, "\n#### {title}\n");
+            fields(&mut page, list);
         }
-        write!(
+        let _ = write!(
             page,
             "\n#### effects\n\n| kind | request | answer | what it does |\n| --- | --- | --- | --- |\n"
-        )
-        .unwrap();
-        for effect in protocol.effects {
-            writeln!(
+        );
+        for effect in &protocol.effects {
+            let _ = writeln!(
                 page,
                 "| `{}` | {} | {} | {} |",
                 effect.kind,
                 cell(effect.request),
                 cell(effect.answer),
                 cell(effect.doc)
-            )
-            .unwrap();
+            );
         }
     }
 
@@ -519,6 +491,17 @@ fn contract() -> String {
          reads the collections in [queries](queries.md)\n",
     );
     page
+}
+
+/// A table of `name: meaning` fields.
+fn fields(page: &mut String, fields: &[&str]) {
+    page.push_str("\n| field | what it is |\n| --- | --- |\n");
+    for (field, doc) in fields
+        .iter()
+        .map(|f| f.split_once(": ").expect("name: meaning"))
+    {
+        let _ = writeln!(page, "| `{field}` | {} |", cell(doc));
+    }
 }
 
 /// Text in a table cell, its pipes escaped.
@@ -544,13 +527,9 @@ fn kind(value: &Value) -> &str {
 
 fn xmd(root: &Path, args: &[&str]) -> String {
     let config = tempfile::tempdir().unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_xmd"))
-        .args(args)
-        .arg("--root")
-        .arg(root)
-        .current_dir(root)
-        .env("XDG_CONFIG_HOME", config.path())
-        .env("XMD_NOW", NOW)
+    let mut command = Command::new(env!("CARGO_BIN_EXE_xmd"));
+    command.args(args).arg("--root").arg(root).current_dir(root);
+    let output = support::isolate(&mut command, config.path(), support::NOW)
         .output()
         .unwrap();
     // `--help` takes no `--root`; its text comes back as an error then.
@@ -570,7 +549,7 @@ fn bundled_stdlib_meets_the_contract() {
     use lang::eval::modules::{CompileModules, ModuleRegistry};
     let registry = ModuleRegistry::compile(BTreeMap::new())
         .unwrap_or_else(|problems| panic!("the bundled stdlib breaks its contract:\n{problems}"));
-    for entry in lang::stdlib::CONTRACT {
+    for entry in lang::stdlib::CONTRACT.iter() {
         let module = registry.get(entry.module).unwrap_or_else(|| {
             panic!(
                 "the contract names '{}', which is not bundled",

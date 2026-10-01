@@ -29,3 +29,6 @@ wasm = { path = "../wasm", optional = true }
 lsp-types = { workspace = true }
 tempfile = "3"
 url = { workspace = true }
+
+[lints]
+workspace = true

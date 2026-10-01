@@ -29,10 +29,9 @@
 //!   would.
 use crate::{engine::EvalFailure, workspace::Symbol};
 use chrono::{DateTime, FixedOffset};
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard},
-};
+use common::lock;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use values::{EvalResult, Value};
 
 /// The expression nodes one evaluation may visit.
@@ -239,12 +238,6 @@ pub(crate) struct Start<'a> {
     pub(crate) step_limit: usize,
     pub(crate) calls: usize,
     pub(crate) stack: &'a [Symbol],
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 impl Layers {

@@ -13,7 +13,7 @@ pub(crate) fn kind(doc: &Document, symbol: &Symbol) -> LspSymbolKind {
         SymbolKind::Column(..) => LspSymbolKind::FIELD,
         SymbolKind::Variable(..) => LspSymbolKind::VARIABLE,
         SymbolKind::Definition(i) if doc.grid_of(i).is_some() => LspSymbolKind::STRUCT,
-        SymbolKind::Definition(i) if doc.definitions[i].expression => LspSymbolKind::VARIABLE,
+        SymbolKind::Definition(i) if doc.definitions()[i].expression => LspSymbolKind::VARIABLE,
         SymbolKind::Definition(_) => LspSymbolKind::CONSTANT,
     }
 }
@@ -41,18 +41,18 @@ pub fn detail(engine: &mut Engine<'_>, doc: &Document, symbol: &Symbol) -> Strin
         },
         SymbolKind::Column(t, c) => format!(
             "{} · column of {}",
-            doc.tables[t].types[c]
+            doc.tables()[t].types[c]
                 .map(|t| t.as_str())
                 .unwrap_or("Unknown"),
-            doc.definitions[doc.tables[t].definition].named.name
+            doc.definitions()[doc.tables()[t].definition].named.name
         ),
         SymbolKind::Variable(f, _) => {
-            let formed = &doc.forms[f];
+            let formed = &doc.forms()[f];
             match engine.symbol(symbol) {
                 Ok(v) => format!(
                     "{} of {} · {}",
                     formed.form.unknown,
-                    doc.definitions[formed.definition].named.name,
+                    doc.definitions()[formed.definition].named.name,
                     v.display()
                 ),
                 Err(e) => format!("{} · {e}", formed.form.unknown),

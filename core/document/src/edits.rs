@@ -51,11 +51,8 @@ impl<'a> LineIndex<'a> {
             .map_or(self.text.len(), |next| next - 1);
         if start == end && row + 1 == self.starts.len() {
             // Past the final newline only the end of the text is a position.
-            return if pos.character == 0 {
-                Ok(start)
-            } else {
-                Err("Invalid edit position".into())
-            };
+            let end = (pos.character == 0).then_some(start);
+            return end.ok_or("Invalid edit position".into());
         }
         byte_at(self.text[start..end].trim_end_matches('\r'), pos.character)
             .map(|n| start + n)
@@ -71,11 +68,8 @@ pub fn apply_edits(text: &str, edits: &[TextEdit]) -> Result<String, String> {
             if e.range.start > e.range.end {
                 return Err("Reversed edit range".into());
             }
-            Ok((
-                index.offset(e.range.start)?,
-                index.offset(e.range.end)?,
-                e.new_text.clone(),
-            ))
+            let (start, end) = (index.offset(e.range.start)?, index.offset(e.range.end)?);
+            Ok((start, end, e.new_text.clone()))
         })
         .collect::<Result<Vec<_>, String>>()?;
     replacements.sort_by_key(|(start, end, _)| (*start, *end));

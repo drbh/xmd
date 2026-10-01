@@ -13,13 +13,14 @@
 //! prints is compared with `book/snapshots/<chapter>.txt`, so a change to the
 //! language or the CLI shows up as a diff to the book. Rewrite the snapshots
 //! with `UPDATE_SNAPSHOTS=1`.
+mod support;
+
 use std::{
     fmt::Write as _,
     path::{Path, PathBuf},
     process::Command,
 };
-
-const NOW: &str = "2026-09-16T14:00:00-04:00";
+use support::{NOW, isolate};
 
 struct Chapter {
     name: String,
@@ -40,16 +41,18 @@ fn book_runs_as_written() {
     let chapters = load(&book, &root);
     assert!(!chapters.is_empty(), "no chapters in {}", book.display());
 
-    let update = std::env::var("UPDATE_SNAPSHOTS").is_ok_and(|v| !v.is_empty() && v != "0");
+    let update = support::update_snapshots();
     let run = |args: &[&str]| {
-        Command::new(env!("CARGO_BIN_EXE_xmd"))
-            .args(args)
-            .current_dir(&root)
-            .env("XDG_CONFIG_HOME", config.path())
-            .env("XMD_NOW", NOW)
-            .output()
-            .unwrap()
+        let mut command = Command::new(env!("CARGO_BIN_EXE_xmd"));
+        command.args(args).current_dir(&root);
+        isolate(&mut command, config.path(), NOW).output().unwrap()
     };
+    let binary = Path::new(env!("CARGO_BIN_EXE_xmd")).parent().unwrap();
+    let path = format!(
+        "{}:{}",
+        binary.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let mut failures = Vec::new();
     for chapter in &chapters {
         let mut transcript = String::new();
@@ -71,15 +74,10 @@ fn book_runs_as_written() {
                 }
                 Block::Commands(commands) => {
                     for command in commands {
-                        let output = Command::new("sh")
-                            .arg("-c")
-                            .arg(command)
-                            .current_dir(&root)
-                            .env("PATH", path_with_binary())
-                            .env("XDG_CONFIG_HOME", config.path())
-                            .env("XMD_NOW", NOW)
-                            .output()
-                            .unwrap();
+                        let mut sh = Command::new("sh");
+                        sh.arg("-c").arg(command).current_dir(&root);
+                        sh.env("PATH", &path);
+                        let output = isolate(&mut sh, config.path(), NOW).output().unwrap();
                         let stdout = String::from_utf8_lossy(&output.stdout);
                         writeln!(transcript, "=== $ {command}").unwrap();
                         transcript.push_str(&stdout);
@@ -198,15 +196,6 @@ fn fences(text: &str) -> Vec<(String, String)> {
         }
     }
     blocks
-}
-
-fn path_with_binary() -> String {
-    let binary = Path::new(env!("CARGO_BIN_EXE_xmd")).parent().unwrap();
-    format!(
-        "{}:{}",
-        binary.display(),
-        std::env::var("PATH").unwrap_or_default()
-    )
 }
 
 fn first_difference(expected: &str, actual: &str) -> String {

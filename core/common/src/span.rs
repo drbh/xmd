@@ -129,20 +129,13 @@ pub struct LineIndex {
 impl LineIndex {
     pub fn new(text: &str) -> Self {
         let breaks = text.bytes().enumerate().filter(|(_, b)| *b == b'\n');
-        Self {
-            starts: std::iter::once(0)
-                .chain(breaks.map(|(i, _)| i + 1))
-                .collect(),
-            len: text.len(),
-        }
+        let starts = [0].into_iter().chain(breaks.map(|(i, _)| i + 1)).collect();
+        let len = text.len();
+        Self { starts, len }
     }
     /// The byte offset where `line` starts, or the text's length past the end.
     pub fn start(&self, line: usize) -> usize {
-        self.starts
-            .get(line)
-            .copied()
-            .unwrap_or(self.len)
-            .min(self.len)
+        self.starts.get(line).map_or(self.len, |s| *s).min(self.len)
     }
     /// How many lines `str::lines` gives the text: one per line break, and
     /// the last line's when it has no break.

@@ -19,18 +19,14 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             let mut fields = BTreeMap::new();
             for entry in entries.iter() {
                 let Record(entry) = entry else {
-                    return Err(EvalError::Message(
-                        "object requires key/value records".into(),
-                    ));
+                    return Err("object requires key/value records".into());
                 };
                 let Some(Text(key)) = entry.get("key") else {
-                    return Err(EvalError::Message("object keys must be text".into()));
+                    return Err("object keys must be text".into());
                 };
-                let value = entry
-                    .get("value")
-                    .ok_or(EvalError::Message("object entry needs value".into()))?;
+                let value = entry.get("value").ok_or("object entry needs value")?;
                 if fields.insert(key.clone(), value.clone()).is_some() {
-                    return Err(EvalError::Message(format!("Duplicate object key '{key}'")));
+                    return Err(format!("Duplicate object key '{key}'").into());
                 }
             }
             Value::record(fields)
@@ -44,24 +40,24 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::Number, [value]) => {
             Number(magnitude(value).ok_or(EvalError::Expected("a numeric value"))?)
         }
-        (B::Source, [value]) => Text(value.source().ok_or(EvalError::Message(
-            "Value cannot be written as an expression".into(),
-        ))?),
+        (B::Source, [value]) => Text(
+            value
+                .source()
+                .ok_or("Value cannot be written as an expression")?,
+        ),
         (B::Debug, [value]) => Text(value_json(value).to_string()),
         (B::Quantize, [List(values), levels, low, high]) => quantize(values, levels, low, high)?,
         (B::ParseDate, [Text(value), Text(format)]) => {
             chrono::NaiveDate::parse_from_str(value, format)
                 .ok()
-                .map(Date)
-                .unwrap_or(Null)
+                .map_or(Null, Date)
         }
         (B::ParseDatetime, [Text(value), Text(format), DateTime(reference)]) => {
             use chrono::TimeZone;
             chrono::NaiveDateTime::parse_from_str(value, format)
                 .ok()
                 .and_then(|d| reference.offset().from_local_datetime(&d).single())
-                .map(DateTime)
-                .unwrap_or(Null)
+                .map_or(Null, DateTime)
         }
         (B::NextOccurrence, [Text(rule), Date(anchor), Date(after)]) => {
             let (date, error) = match crate::value::next_occurrence(rule, *anchor, *after) {
@@ -72,23 +68,17 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         }
         (B::ToJson, [value]) => Text(
             crate::value::json(value)
-                .map_err(|_| {
-                    EvalError::Message(
-                        "to_json takes text, numbers, Booleans, null, lists and records".into(),
-                    )
-                })?
+                .map_err(|_| "to_json takes text, numbers, Booleans, null, lists and records")?
                 .to_string(),
         ),
         (B::EndPosition, [Text(text)]) => {
             // As an editor counts: lines, and UTF-16 units on the last one.
+            let lines = text.lines().count();
             let (line, character) = if text.ends_with('\n') {
-                (text.lines().count(), 0)
+                (lines, 0)
             } else {
                 let last = text.lines().last().unwrap_or("");
-                (
-                    text.lines().count().saturating_sub(1),
-                    last.encode_utf16().count(),
-                )
+                (lines.saturating_sub(1), last.encode_utf16().count())
             };
             record([
                 ("line", Number(line as f64)),
@@ -100,35 +90,28 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             use chrono::Timelike;
             chrono::NaiveTime::parse_from_str(value, format)
                 .ok()
-                .map(|t| Duration(t.num_seconds_from_midnight() as i64))
-                .unwrap_or(Null)
+                .map_or(Null, |t| Duration(t.num_seconds_from_midnight() as i64))
         }
         (B::MakeDate, [year, month, day]) => {
-            let y = number(year)?;
-            let m = number(month)?;
-            let d = number(day)?;
-            if y.fract() != 0.0
-                || m.fract() != 0.0
-                || d.fract() != 0.0
-                || y < i32::MIN as f64
-                || y > i32::MAX as f64
-                || !(1.0..=12.0).contains(&m)
-                || !(1.0..=31.0).contains(&d)
-            {
-                Null
-            } else {
-                chrono::NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32)
-                    .map(Date)
-                    .unwrap_or(Null)
-            }
+            // Each part a whole number in its range, or the date is null.
+            let part = |n: &Value, low: f64, high: f64| {
+                number(n).map(|n| Some(n).filter(|n| n.fract() == 0.0 && (low..=high).contains(n)))
+            };
+            let y = part(year, i32::MIN as f64, i32::MAX as f64)?;
+            let m = part(month, 1.0, 12.0)?;
+            let d = part(day, 1.0, 31.0)?;
+            y.zip(m)
+                .zip(d)
+                .and_then(|((y, m), d)| {
+                    chrono::NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32)
+                })
+                .map_or(Null, Date)
         }
         // Money in any currency, or null when the code is not one: what
         // the prelude's conversions and quotes build their answers with.
         (B::MakeMoney, [amount, Text(code)]) => {
             let amount = number(amount)?;
-            common::Currency::parse(code)
-                .map(|currency| Money(amount, currency))
-                .unwrap_or(Null)
+            common::Currency::parse(code).map_or(Null, |currency| Money(amount, currency))
         }
         (B::MakeRatio, [fraction]) => Ratio(number(fraction)?),
         (B::Tagged, [Text(kind), fields, display]) => {
@@ -163,11 +146,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             let date = match value {
                 Date(d) => *d,
                 DateTime(d) => d.date_naive(),
-                _ => {
-                    return Err(EvalError::Message(
-                        "date_parts requires a date or timestamp".into(),
-                    ));
-                }
+                _ => return Err("date_parts requires a date or timestamp".into()),
             };
             record([
                 ("year", Number(date.year() as f64)),
@@ -182,9 +161,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::AtTime, [Date(date), Duration(seconds), DateTime(reference)]) => {
             use chrono::TimeZone;
             if !(0..86400).contains(seconds) {
-                return Err(EvalError::Message(
-                    "Time must be within a calendar day".into(),
-                ));
+                return Err("Time must be within a calendar day".into());
             }
             DateTime(
                 reference
@@ -192,17 +169,17 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     .from_local_datetime(
                         &date
                             .and_hms_opt(0, 0, 0)
-                            .ok_or(EvalError::Message("Invalid midnight".into()))?
+                            .ok_or("Invalid midnight")?
                             .checked_add_signed(chrono::Duration::seconds(*seconds))
                             .ok_or(EvalError::Overflowed(Overflow::Date))?,
                     )
                     .single()
-                    .ok_or(EvalError::Message("Invalid timestamp".into()))?,
+                    .ok_or("Invalid timestamp")?,
             )
         }
         (B::PadStart | B::PadEnd, [Text(value), width, Text(fill)]) => {
             if fill.chars().count() != 1 {
-                return Err(EvalError::Message("Padding must be one character".into()));
+                return Err("Padding must be one character".into());
             }
             let count = index(width)?.saturating_sub(value.chars().count());
             if count > MAX_ITEMS
@@ -223,7 +200,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::Floor | B::Round, [value]) => {
             let number = value
                 .scalar()
-                .ok_or_else(|| EvalError::Message(format!("{name} requires a number")))?;
+                .ok_or_else(|| format!("{name} requires a number"))?;
             Number(if name == B::Floor {
                 number.floor()
             } else {
@@ -234,7 +211,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             let mut result = Vec::new();
             for list in lists {
                 let List(items) = list else {
-                    return Err(EvalError::Message("concat requires lists".into()));
+                    return Err("concat requires lists".into());
                 };
                 if result.len().saturating_add(items.len()) > MAX_ITEMS {
                     return Err(EvalError::LimitExceeded(Limit::Collection));
@@ -247,14 +224,14 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             let start = index(start)?;
             let end = index(end)?;
             if start > end {
-                return Err(EvalError::Message("slice start must not exceed end".into()));
+                return Err("slice start must not exceed end".into());
             }
             match value {
                 Text(text) => Text(text.chars().skip(start).take(end - start).collect()),
                 List(items) => {
                     Value::list(items[start.min(items.len())..end.min(items.len())].to_vec())
                 }
-                _ => return Err(EvalError::Message("slice requires text or a list".into())),
+                _ => return Err("slice requires text or a list".into()),
             }
         }
         (B::Repeat, [Text(text), count]) => {
@@ -268,30 +245,23 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             if chrono::format::StrftimeItems::new(format)
                 .any(|i| matches!(i, chrono::format::Item::Error))
             {
-                return Err(EvalError::Message("Invalid date format".into()));
+                return Err("Invalid date format".into());
             }
             Text(match value {
                 DateTime(d) => d.format(format).to_string(),
                 Date(d) => {
                     // Reject time/offset specifiers for dates rather than panicking in Display.
                     let mut result = String::new();
-                    std::fmt::write(&mut result, format_args!("{}", d.format(format))).map_err(
-                        |_| EvalError::Message("Format needs a time or timezone".into()),
-                    )?;
+                    std::fmt::write(&mut result, format_args!("{}", d.format(format)))
+                        .map_err(|_| "Format needs a time or timezone")?;
                     result
                 }
-                _ => {
-                    return Err(EvalError::Message(
-                        "format_date requires a date or timestamp".into(),
-                    ));
-                }
+                _ => return Err("format_date requires a date or timestamp".into()),
             })
         }
         (B::Get, [Record(fields), Text(key)]) => fields.get(key).cloned().unwrap_or(Null),
         (B::Get, [List(items), index]) => {
-            let index = whole(index).ok_or(EvalError::Message(
-                "List index must be a nonnegative integer".into(),
-            ))?;
+            let index = whole(index).ok_or("List index must be a nonnegative integer")?;
             items.get(index).cloned().unwrap_or(Null)
         }
         (B::Get, [Null, _]) => Null,
@@ -326,7 +296,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                 .iter()
                 .map(|v| match v {
                     Text(s) => Ok(s.as_str()),
-                    _ => Err(EvalError::Message("join requires a list of text".into())),
+                    _ => Err(EvalError::from("join requires a list of text")),
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let size = parts.iter().map(|s| s.len()).sum::<usize>().saturating_add(
@@ -350,7 +320,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             Text(text.replace(from, to))
         }
         (B::MatchPattern, [Text(text), Text(pattern)]) => match_pattern(text, pattern)?,
-        _ => return Err(EvalError::Message(format!("Invalid arguments for {name}"))),
+        _ => return Err(format!("Invalid arguments for {name}").into()),
     })
 }
 
@@ -401,10 +371,11 @@ pub struct Size {
 }
 impl Size {
     /// What any value may hold, wherever it is built.
-    pub const LIMIT: Self = Self {
-        items: MAX_ITEMS,
-        bytes: MAX_BYTES,
-    };
+    pub const LIMIT: Self = Self::new(MAX_ITEMS, MAX_BYTES);
+    /// `items` values and `bytes` bytes.
+    pub const fn new(items: usize, bytes: usize) -> Self {
+        Self { items, bytes }
+    }
     /// How big `value` is, counting no further than `cap`: the first size
     /// past it is as far as the count goes. A list or record measured in
     /// full keeps its size, so a value built from measured parts is measured
@@ -417,12 +388,7 @@ impl Size {
         let known = match value {
             Value::List(items) => items.size(),
             Value::Record(fields) => fields.size(),
-            Value::Text(text) => {
-                return Self {
-                    items: 1,
-                    bytes: text.len(),
-                };
-            }
+            Value::Text(text) => return Self::new(1, text.len()),
             _ => return Self { items: 1, bytes: 0 },
         };
         if let Some(size) = known {
@@ -432,13 +398,10 @@ impl Size {
         if depth > 64 {
             return Self::walked(value, cap);
         }
-        let mut size = Self {
-            items: 1,
-            bytes: match value {
-                Value::Record(fields) => fields.keys().map(String::len).sum(),
-                _ => 0,
-            },
-        };
+        let mut size = Self::new(1, 0);
+        if let Value::Record(fields) = value {
+            size.bytes = fields.keys().map(String::len).sum();
+        }
         let mut add = |child: &Value| {
             size = size + Self::measure(child, cap, depth + 1);
             size.within(cap)
@@ -496,11 +459,10 @@ impl Size {
     }
     /// Whether `value` is within this limit.
     pub fn check(self, value: &Value) -> EvalResult<()> {
-        if Self::of(value, self).within(self) {
-            Ok(())
-        } else {
-            Err(EvalError::LimitExceeded(Limit::Value))
-        }
+        let within = Self::of(value, self).within(self);
+        within
+            .then_some(())
+            .ok_or(EvalError::LimitExceeded(Limit::Value))
     }
 }
 /// Sizes add up, saturating.
@@ -587,9 +549,7 @@ pub fn sum(values: impl IntoIterator<Item = Value>) -> EvalResult<Value> {
                     value,
                     Number(_) | Count(_) | Ratio(_) | Money(..) | Duration(_)
                 ) {
-                    return Err(EvalError::Message(
-                        "sum requires numbers, money or durations".into(),
-                    ));
+                    return Err(EvalError::from("sum requires numbers, money or durations"));
                 }
                 Ok(Some(match total {
                     Some(previous) => binary(BinaryOp::Add, previous, value)?,
@@ -605,7 +565,7 @@ pub fn sum(values: impl IntoIterator<Item = Value>) -> EvalResult<Value> {
 /// when `low` and `high` are equal every value is the middle level. Units are
 /// the caller's to check: this reads magnitudes, as `number` does.
 fn quantize(values: &[Value], levels: &Value, low: &Value, high: &Value) -> EvalResult<Value> {
-    let invalid = || EvalError::Message("Invalid arguments for quantize".into());
+    let invalid = || EvalError::from("Invalid arguments for quantize");
     let levels = whole(levels).filter(|n| *n > 0).ok_or_else(invalid)?;
     let magnitudes = values
         .iter()

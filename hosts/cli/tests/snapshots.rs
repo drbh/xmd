@@ -41,7 +41,6 @@ use std::{
 };
 use support::lsp::Lsp;
 
-const DEFAULT_NOW: &str = "2026-09-16T14:00:00-04:00";
 /// Subcommands that take `--root`, and the subset that also takes `--now`.
 const ROOTED: [&str; 5] = ["query", "render", "ast", "graph", "refresh"];
 const CLOCKED: [&str; 4] = ["query", "render", "ast", "graph"];
@@ -55,8 +54,7 @@ include!(concat!(env!("OUT_DIR"), "/cases.rs"));
 
 /// Runs one case and fails the test with its diff and kept workspace.
 fn case(name: &str) {
-    let update = std::env::var("UPDATE_SNAPSHOTS").is_ok_and(|v| !v.is_empty() && v != "0");
-    match run_case(name, update) {
+    match run_case(name, support::update_snapshots()) {
         Outcome::Passed | Outcome::Updated => {}
         Outcome::Skipped(why) => println!("skip {name} ({why})"),
         Outcome::Failed(report) => panic!(
@@ -82,13 +80,17 @@ fn run_case(name: &str, update: bool) -> Outcome {
     if script["requires"] == json!("browser") && !cfg!(feature = "browser") {
         return Outcome::Skipped("requires --features browser");
     }
-    let now = script["now"].as_str().unwrap_or(DEFAULT_NOW).to_owned();
+    let now = script["now"].as_str().unwrap_or(support::NOW).to_owned();
 
     let temp = tempfile::tempdir().unwrap();
     let raw_root = temp.path().to_path_buf();
     copy_case(&dir, &raw_root);
     let root = raw_root.canonicalize().unwrap();
-    let mut world = World::new(&root, &raw_root, &now);
+    let mut world = World {
+        root: root.clone(),
+        raw_root,
+        now,
+    };
 
     let mut transcript = String::new();
     let steps = script["steps"].as_array().cloned().unwrap_or_default();
@@ -159,14 +161,6 @@ struct World {
 }
 
 impl World {
-    fn new(root: &Path, raw_root: &Path, now: &str) -> Self {
-        Self {
-            root: root.into(),
-            raw_root: raw_root.into(),
-            now: now.into(),
-        }
-    }
-
     /// Replaces every spelling of the temporary workspace with `<root>`, and
     /// any sub-second timestamp with `<clock>`.
     fn scrub(&self, text: &str) -> String {
@@ -249,13 +243,7 @@ impl World {
             for path in &paths {
                 let _ = writeln!(out, "-- {path}");
                 match std::fs::read(self.root.join(path)) {
-                    Ok(bytes) => {
-                        let text = self.body(&String::from_utf8_lossy(&bytes));
-                        out.push_str(&text);
-                        if !text.ends_with('\n') {
-                            out.push('\n');
-                        }
-                    }
+                    Ok(bytes) => push_block(out, &self.body(&String::from_utf8_lossy(&bytes))),
                     Err(e) => {
                         let _ = writeln!(out, "(missing: {})", e.kind());
                     }
@@ -315,17 +303,15 @@ impl World {
             full.push(self.now.clone());
         }
         let mut command = Command::new(env!("CARGO_BIN_EXE_xmd"));
-        command
-            .current_dir(&self.root)
-            .env("TZ", "UTC")
-            .env("XMD_NOW", &self.now)
-            .env("PATH", self.path())
-            // Personal modules come from the case's own `config/xmd`, never the developer's.
-            .env("XDG_CONFIG_HOME", self.root.join("config"))
-            .args(&full);
+        command.current_dir(&self.root).env("TZ", "UTC");
+        command.env("PATH", self.path()).args(&full);
+        // Personal modules come from the case's own `config/xmd`, never the developer's.
+        support::isolate(&mut command, &self.root.join("config"), &self.now);
+        let mut prefix = String::new();
         if let Some(Value::Object(vars)) = env {
             for (key, value) in vars {
                 command.env(key, as_text(value));
+                let _ = write!(prefix, "{key}={} ", as_text(value));
             }
         }
         let output = match &stdin {
@@ -343,20 +329,10 @@ impl World {
         }
         .expect("failed to run the xmd binary");
         let shown: Vec<String> = full.iter().map(|a| self.scrub(a)).collect();
-        let mut prefix = String::new();
-        if let Some(Value::Object(vars)) = env {
-            for (key, value) in vars {
-                let _ = write!(prefix, "{key}={} ", as_text(value));
-            }
-        }
         let _ = writeln!(out, "$ {prefix}xmd {}", shown.join(" "));
         if let Some(text) = &stdin {
-            let text = self.body(text);
             let _ = writeln!(out, "--- stdin");
-            out.push_str(&text);
-            if !text.ends_with('\n') {
-                out.push('\n');
-            }
+            push_block(out, &self.body(text));
         }
         let _ = writeln!(
             out,
@@ -371,12 +347,8 @@ impl World {
             if bytes.is_empty() {
                 continue;
             }
-            let text = self.body(&String::from_utf8_lossy(bytes));
             let _ = writeln!(out, "--- {name}");
-            out.push_str(&text);
-            if !text.ends_with('\n') {
-                out.push('\n');
-            }
+            push_block(out, &self.body(&String::from_utf8_lossy(bytes)));
         }
     }
 
@@ -390,48 +362,37 @@ impl World {
         out: &mut String,
     ) {
         let folder = folder.map(|f| self.root.join(f));
-        let mut lsp = match (capabilities, &folder) {
-            (None, None) => Lsp::start(&self.root, &self.now, &self.path()),
-            (capabilities, folder) => Lsp::start_with(
-                &self.root,
-                &self.now,
-                &self.path(),
-                capabilities.unwrap_or_else(support::lsp::capabilities),
-                folder.as_deref(),
-            ),
-        };
-        let mut texts: BTreeMap<String, String> = BTreeMap::new();
-        let mut versions: BTreeMap<String, i64> = BTreeMap::new();
+        let mut lsp = Lsp::start(
+            &self.root,
+            &self.now,
+            &self.path(),
+            capabilities,
+            folder.as_deref(),
+        );
+        // Each document's version and the text the server was last sent.
+        let mut docs: BTreeMap<String, (i64, String)> = BTreeMap::new();
         let mut last = Value::Null;
-        let mut shown;
         for item in items {
             let file = item.get("file").map(as_text);
             if let Some(name) = item.get("open").map(as_text) {
                 let text = std::fs::read_to_string(self.root.join(&name))
                     .unwrap_or_else(|e| panic!("open {name}: {e}"));
-                versions.insert(name.clone(), 1);
-                texts.insert(name.clone(), text.clone());
+                docs.insert(name.clone(), (1, text.clone()));
                 lsp.notify(
                     "textDocument/didOpen",
                     json!({"textDocument":{"uri":self.uri(&name),"languageId":"xmd","version":1,"text":text}}),
                 );
                 let _ = writeln!(out, "-- open {name}");
             } else if let Some(change) = item.get("change") {
-                let name = as_text(&change["file"]);
                 let text = as_text(&change["text"]);
-                let version = versions.entry(name.clone()).or_insert(1);
-                *version += 1;
-                texts.insert(name.clone(), text.clone());
-                lsp.notify(
-                    "textDocument/didChange",
-                    json!({"textDocument":{"uri":self.uri(&name),"version":*version},"contentChanges":[{"text":text}]}),
+                self.change(
+                    &mut lsp,
+                    &mut docs,
+                    as_text(&change["file"]),
+                    text,
+                    "change",
+                    out,
                 );
-                let _ = writeln!(out, "-- change {name} (version {version})");
-                let shown = self.body(&text);
-                out.push_str(&shown);
-                if !shown.ends_with('\n') {
-                    out.push('\n');
-                }
             } else if let Some(name) = item.get("save").map(as_text) {
                 lsp.notify(
                     "textDocument/didSave",
@@ -489,81 +450,79 @@ impl World {
                 std::fs::create_dir_all(path.parent().unwrap()).unwrap();
                 std::fs::write(&path, &text).unwrap();
                 let _ = writeln!(out, "-- write {name}");
-                let shown = self.body(&text);
-                out.push_str(&shown);
-                if !shown.ends_with('\n') {
-                    out.push('\n');
-                }
+                push_block(out, &self.body(&text));
             } else if let Some(query) = item.get("query") {
                 let mut params = query.clone();
                 if let Some(uri) = params.get("uri").map(as_text) {
                     params["uri"] = json!(self.uri(&uri));
                 }
                 params["now"] = json!(self.now);
-                let result = lsp.request("xmd/query", params);
+                last = lsp.request("xmd/query", params);
                 let _ = writeln!(out, "-- query {}", as_text(&query["query"]));
-                last = result;
-                shown = self.scrub_json(&last);
-                out.push_str(&pretty(&shown));
+                out.push_str(&pretty(&self.scrub_json(&last)));
             } else if let Some(method) = item.get("await").map(as_text) {
-                let params = self.wait(&mut lsp, &method, file.as_deref());
+                last = self.wait(&mut lsp, &method, file.as_deref());
                 let _ = writeln!(
                     out,
                     "-- await {method}{}",
                     file.map(|f| format!(" {f}")).unwrap_or_default()
                 );
-                last = params;
-                shown = self.scrub_json(&last);
-                out.push_str(&pretty(&shown));
+                out.push_str(&pretty(&self.scrub_json(&last)));
             } else if let Some(method) = item.get("request").map(as_text) {
                 let params = self.params(item, &last);
                 let response = lsp.request_message(&method, params);
                 let _ = writeln!(out, "-- request {method}{}", describe(item));
                 let body = if let Some(error) = response.get("error") {
                     last = Value::Null;
-                    shown = self.scrub_json(error);
-                    format!("error: {}", pretty(&shown))
+                    format!("error: {}", pretty(&self.scrub_json(error)))
                 } else {
                     last = response["result"].clone();
-                    shown = self.scrub_json(&last);
-                    let result = &shown;
                     match method.as_str() {
                         "textDocument/semanticTokens/full" => {
                             let name = file.clone().unwrap_or_default();
-                            let text = texts
+                            let text = docs
                                 .get(&name)
-                                .cloned()
+                                .map(|(_, text)| text.clone())
                                 .or_else(|| std::fs::read_to_string(self.root.join(&name)).ok());
                             decode_tokens(&lsp, &response["result"], text.as_ref())
                         }
-                        _ => pretty(result),
+                        _ => pretty(&self.scrub_json(&last)),
                     }
                 };
                 out.push_str(&body);
                 if item.get("apply") == Some(&json!(true)) {
                     let name = file.expect("apply needs a file");
-                    let text = texts.get(&name).cloned().expect("apply needs an open file");
+                    let (_, text) = docs.get(&name).expect("apply needs an open file");
                     let edits: Vec<lsp_types::TextEdit> =
                         serde_json::from_value(response["result"].clone()).unwrap_or_default();
-                    let updated = xmd::apply_edits(&text, &edits).expect("edits apply");
-                    let version = versions.entry(name.clone()).or_insert(1);
-                    *version += 1;
-                    texts.insert(name.clone(), updated.clone());
-                    lsp.notify(
-                        "textDocument/didChange",
-                        json!({"textDocument":{"uri":self.uri(&name),"version":*version},"contentChanges":[{"text":updated}]}),
-                    );
-                    let _ = writeln!(out, "-- applied to {name} (version {version})");
-                    let shown = self.body(&updated);
-                    out.push_str(&shown);
-                    if !shown.ends_with('\n') {
-                        out.push('\n');
-                    }
+                    let updated = xmd::apply_edits(text, &edits).expect("edits apply");
+                    self.change(&mut lsp, &mut docs, name, updated, "applied to", out);
                 }
             } else {
                 panic!("Unknown lsp item: {item}");
             }
         }
+    }
+
+    /// Sends a whole-text `didChange` with the next version, and records it.
+    fn change(
+        &self,
+        lsp: &mut Lsp,
+        docs: &mut BTreeMap<String, (i64, String)>,
+        name: String,
+        text: String,
+        verb: &str,
+        out: &mut String,
+    ) {
+        let doc = docs.entry(name.clone()).or_insert((1, String::new()));
+        doc.0 += 1;
+        doc.1.clone_from(&text);
+        lsp.notify(
+            "textDocument/didChange",
+            json!({"textDocument":{"uri":self.uri(&name),"version":doc.0},"contentChanges":[{"text":text}]}),
+        );
+        let _ = writeln!(out, "-- {verb} {name} (version {})", doc.0);
+        push_block(out, &self.body(&text));
     }
 
     /// Builds request params: `file` becomes `textDocument`, `line`/`character`
@@ -810,6 +769,14 @@ fn unstyle(text: &str) -> String {
 
 // --------------------------------------------------------------- formatting
 
+/// Appends a block of text, ending it with a newline if it lacks one.
+fn push_block(out: &mut String, text: &str) {
+    out.push_str(text);
+    if !text.ends_with('\n') {
+        out.push('\n');
+    }
+}
+
 fn as_text(value: &Value) -> String {
     match value {
         Value::String(text) => text.clone(),
@@ -835,11 +802,7 @@ fn describe(item: &Value) -> String {
     if item.get("params").is_some() {
         parts.push(compact(&item["params"]));
     }
-    if parts.is_empty() {
-        String::new()
-    } else {
-        format!(" {}", parts.join(" "))
-    }
+    parts.iter().map(|part| format!(" {part}")).collect()
 }
 
 fn compact(value: &Value) -> String {

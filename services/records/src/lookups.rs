@@ -27,7 +27,7 @@ pub fn lookups(
     for symbol in ws.symbols_in(path) {
         let _ = engine.symbol(&symbol);
     }
-    for calculation in &doc.calculations {
+    for calculation in doc.calculations() {
         let _ = engine.eval_at(path, &calculation.source, calculation.span);
     }
     // Only an expression can ask for a lookup.

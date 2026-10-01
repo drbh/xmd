@@ -82,10 +82,7 @@ pub fn feature_context(
         if building && (collection.is_declared() || *collection == Collection::Entries) {
             continue;
         }
-        let view = match kept {
-            Some(fields) => View::Fields(fields),
-            None => View::Full,
-        };
+        let view = kept.map_or(View::Full, |fields| View::Fields(fields));
         let mut values = records.view(
             engine,
             Some(path),
@@ -98,7 +95,7 @@ pub fn feature_context(
             // are the note's matches that make one, in order.
             let doc = &engine.workspace().documents()[path];
             let mine = doc
-                .recognized
+                .recognized()
                 .iter()
                 .filter(|found| found.rule.record)
                 .map(|found| found.rule.module == module.id);

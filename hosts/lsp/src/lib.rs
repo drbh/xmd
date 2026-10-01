@@ -10,9 +10,9 @@ use lang::eval::{SymbolKind, Workspace};
 use native::{WorkspaceFiles, now};
 use services::commands::{Action, Capabilities, PreparedAction};
 use services::{
-    Query, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, definition,
-    flat_symbols, folding_ranges, hierarchy, highlights, references, rename, semantic_tokens,
-    signature, symbol_at, today_markdown, typing,
+    NoteFiles, Query, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession,
+    definition, flat_symbols, folding_ranges, hierarchy, highlights, references, rename,
+    semantic_tokens, signature, symbol_at, today_markdown, typing,
 };
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::{RwLock, RwLockReadGuard};
@@ -42,6 +42,12 @@ struct QueryParams {
     uri: Option<Url>,
     now: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
+/// An empty workspace over `roots` that resolves `~/` links natively.
+fn workspace(roots: Vec<PathBuf>) -> Workspace {
+    let mut workspace = Workspace::new(roots);
+    workspace.set_home(native::home());
+    workspace
+}
 impl Backend {
     async fn query(&self, params: QueryParams) -> Result<serde_json::Value> {
         let compiled = Query::parse(&params.query).map_err(Error::invalid_params)?;
@@ -56,10 +62,9 @@ impl Backend {
             .transpose()?;
         let mut state = self.state.write().await;
         if let Some(path) = &only {
-            state
-                .session
-                .workspace_mut()
-                .include_file(path)
+            let workspace = state.session.workspace_mut();
+            native::DiskFiles
+                .include_file(workspace, path)
                 .map_err(Error::invalid_params)?;
         }
         compiled.load_imports(
@@ -77,7 +82,7 @@ impl Backend {
             client,
             state: Arc::new(RwLock::new(State {
                 session: WorkspaceSession::editor(
-                    Workspace::new(Vec::new()),
+                    workspace(Vec::new()),
                     Arc::new(native::DiskFiles),
                 ),
                 hint_refresh: false,
@@ -170,6 +175,12 @@ impl Backend {
             .map_err(|_| Error::invalid_params("XMD needs a local file URI"))?;
         Ok((path, self.state.read().await))
     }
+    /// Like `note`, but `None` when the workspace has no such document.
+    async fn open_note(&self, uri: &Uri) -> Result<Option<(PathBuf, RwLockReadGuard<'_, State>)>> {
+        let (path, state) = self.note(uri).await?;
+        let known = state.session.workspace().documents().contains_key(&path);
+        Ok(known.then_some((path, state)))
+    }
     /// Fold what a refresh of `snapshot` fetched into the session with
     /// `adopt`, unless its modules changed meanwhile, then save the cache.
     async fn adopt(
@@ -202,17 +213,11 @@ impl LanguageServer for Backend {
             .iter()
             .filter_map(|f| url_from_uri(&f.uri).to_file_path().ok())
             .collect();
-        if roots.is_empty()
-            && let Some(root) = params
+        if roots.is_empty() {
+            let root = params
                 .root_uri
-                .and_then(|u| url_from_uri(&u).to_file_path().ok())
-        {
-            roots.push(root);
-        }
-        if roots.is_empty()
-            && let Ok(root) = std::env::current_dir()
-        {
-            roots.push(root);
+                .and_then(|u| url_from_uri(&u).to_file_path().ok());
+            roots.extend(root.or_else(|| std::env::current_dir().ok()));
         }
         // An editor that opens a single note (Zed does) names that file as
         // the workspace folder; the workspace is the folder it sits in.
@@ -228,7 +233,7 @@ impl LanguageServer for Backend {
             let mut state = self.state.write().await;
             // Nothing is open before initialization, so the workspace starts
             // over on the client's roots.
-            *state.session.workspace_mut() = Workspace::new(roots);
+            *state.session.workspace_mut() = workspace(roots);
             let text_document = params.capabilities.text_document.as_ref();
             state.hierarchical_symbols = text_document
                 .and_then(|t| t.document_symbol.as_ref())
@@ -368,19 +373,11 @@ impl LanguageServer for Backend {
         self.reload().await;
     }
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        let (path, state) = self.note(&params.text_document.uri).await?;
-        Ok(state
-            .session
-            .workspace()
-            .documents()
-            .contains_key(&path)
-            .then(|| {
-                state
-                    .session
-                    .request(now())
-                    .hints(&path, params.range)
-                    .hints
-            }))
+        let Some((path, state)) = self.open_note(&params.text_document.uri).await? else {
+            return Ok(None);
+        };
+        let request = state.session.request(now());
+        Ok(Some(request.hints(&path, params.range).hints))
     }
     async fn semantic_tokens_full(
         &self,
@@ -476,17 +473,13 @@ impl LanguageServer for Backend {
         }))
     }
     async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
-        let (path, state) = self.note(&params.text_document.uri).await?;
-        if !state.session.workspace().documents().contains_key(&path) {
-            return Ok(None);
-        }
-        Ok(Some(state.session.request(now()).document_links(&path)))
+        let note = self.open_note(&params.text_document.uri).await?;
+        Ok(note.map(|(path, state)| state.session.request(now()).document_links(&path)))
     }
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
-        let (path, state) = self.note(&params.text_document.uri).await?;
-        if !state.session.workspace().documents().contains_key(&path) {
+        let Some((path, state)) = self.open_note(&params.text_document.uri).await? else {
             return Ok(None);
-        }
+        };
         let request = state.session.request(now());
         let mut result: Vec<_> = request
             .code_actions(&path, params.range, Capabilities::NATIVE, RowActions::Edit)
@@ -657,10 +650,9 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        let (path, state) = self.note(&params.text_document.uri).await?;
-        if !state.session.workspace().documents().contains_key(&path) {
+        let Some((path, state)) = self.open_note(&params.text_document.uri).await? else {
             return Ok(None);
-        }
+        };
         let symbols = state.session.request(now()).document_symbols(&path);
         Ok(Some(if state.hierarchical_symbols {
             DocumentSymbolResponse::Nested(symbols)
@@ -676,10 +668,9 @@ impl LanguageServer for Backend {
         params: DocumentOnTypeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
         let at = params.text_document_position;
-        let (path, state) = self.note(&at.text_document.uri).await?;
-        if !state.session.workspace().documents().contains_key(&path) {
+        let Some((path, state)) = self.open_note(&at.text_document.uri).await? else {
             return Ok(None);
-        }
+        };
         let request = state.session.request(now());
         Ok(Some(request.on_type(&path, at.position, &params.ch)))
     }

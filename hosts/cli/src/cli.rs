@@ -155,11 +155,8 @@ pub(crate) async fn run(command: Command) -> Result<(), String> {
         Command::Refresh { root } => {
             let root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
             let mut workspace = Workspace::load(vec![root])?;
-            let now = native::now();
-            let mut errors = native::refresh_workspace(&mut workspace, now, None).await;
-            if let Err(e) = native::save_cache(workspace.root(), workspace.cache()) {
-                errors.push(e);
-            }
+            let mut errors = native::refresh_workspace(&mut workspace, native::now(), None).await;
+            errors.extend(native::save_cache(workspace.root(), workspace.cache()).err());
             if !errors.is_empty() {
                 return Err(errors.join("\n"));
             }

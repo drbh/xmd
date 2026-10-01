@@ -15,11 +15,11 @@ use std::{
 };
 
 /// How long any single message is waited for before the test fails.
-pub const TIMEOUT: Duration = Duration::from_secs(20);
+pub(crate) const TIMEOUT: Duration = Duration::from_secs(20);
 
 /// The capabilities every snapshot case announces, so servers take the richest
 /// path through each feature (snippets, hierarchical symbols, refresh, ...).
-pub fn capabilities() -> Value {
+pub(crate) fn capabilities() -> Value {
     json!({
         "textDocument": {
             "completion": {"completionItem": {"snippetSupport": true}},
@@ -35,7 +35,7 @@ pub fn capabilities() -> Value {
     })
 }
 
-pub struct Lsp {
+pub(crate) struct Lsp {
     child: Child,
     input: ChildStdin,
     output: Receiver<Value>,
@@ -52,27 +52,26 @@ pub struct Lsp {
 impl Lsp {
     /// Starts `xmd lsp` in `root` with the clock frozen at `now` (`XMD_NOW`),
     /// `PATH` set to `path`, and completes the initialize handshake.
-    pub fn start(root: &Path, now: &str, path: &str) -> Self {
-        Self::start_with(root, now, path, capabilities(), None)
-    }
-
-    /// Like `start`, but announcing the given client capabilities, so a case can
-    /// take the path a poorer editor takes, and optionally one workspace folder
-    /// under `root`, which may be a single note the way Zed opens one file.
-    pub fn start_with(
+    ///
+    /// Given client capabilities stand in for [`capabilities`], so a case can
+    /// take the path a poorer editor takes; a `folder` is the one workspace
+    /// folder announced, under `root`, which may be a single note the way Zed
+    /// opens one file.
+    pub(crate) fn start(
         root: &Path,
         now: &str,
         path: &str,
-        capabilities: Value,
+        capabilities: Option<Value>,
         folder: Option<&Path>,
     ) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_xmd"))
+        let capabilities = capabilities.unwrap_or_else(self::capabilities);
+        let mut command = Command::new(env!("CARGO_BIN_EXE_xmd"));
+        super::isolate(&mut command, &root.join("config"), now);
+        let mut child = command
             .arg("lsp")
             .current_dir(root)
-            .env("XMD_NOW", now)
             .env("TZ", "UTC")
             .env("PATH", path)
-            .env("XDG_CONFIG_HOME", root.join("config"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -139,17 +138,13 @@ impl Lsp {
         self.input.flush().unwrap();
     }
 
-    pub fn notify(&mut self, method: &str, params: Value) {
-        let mut message = json!({"jsonrpc": "2.0", "method": method});
-        if !params.is_null() {
-            message["params"] = params;
-        }
-        self.send(message);
+    pub(crate) fn notify(&mut self, method: &str, params: Value) {
+        self.send(message(method, params));
     }
 
     /// The next message: a held one first, otherwise the next from the server.
     /// Server-initiated requests are answered the moment they are read.
-    pub fn take(&mut self) -> Value {
+    pub(crate) fn take(&mut self) -> Value {
         if let Some(value) = self.pending.pop_front() {
             return value;
         }
@@ -169,7 +164,7 @@ impl Lsp {
     }
 
     /// Puts messages back at the front of the queue, keeping their order.
-    pub fn hold(&mut self, messages: Vec<Value>) {
+    pub(crate) fn hold(&mut self, messages: Vec<Value>) {
         for message in messages.into_iter().rev() {
             self.pending.push_front(message);
         }
@@ -177,13 +172,11 @@ impl Lsp {
 
     /// Sends a request and returns the whole response message. Everything that
     /// arrives in the meantime is held for later steps.
-    pub fn request_message(&mut self, method: &str, params: Value) -> Value {
+    pub(crate) fn request_message(&mut self, method: &str, params: Value) -> Value {
         self.next += 1;
         let id = self.next;
-        let mut message = json!({"jsonrpc": "2.0", "id": id, "method": method});
-        if !params.is_null() {
-            message["params"] = params;
-        }
+        let mut message = message(method, params);
+        message["id"] = json!(id);
         self.send(message);
         let mut held = Vec::new();
         let response = loop {
@@ -197,7 +190,7 @@ impl Lsp {
         response
     }
 
-    pub fn request(&mut self, method: &str, params: Value) -> Value {
+    pub(crate) fn request(&mut self, method: &str, params: Value) -> Value {
         let response = self.request_message(method, params);
         assert!(response.get("error").is_none(), "{method}: {response}");
         response["result"].clone()
@@ -211,14 +204,18 @@ impl Drop for Lsp {
     }
 }
 
+/// A JSON-RPC message for `method`, with `params` unless they are null.
+fn message(method: &str, params: Value) -> Value {
+    let mut message = json!({"jsonrpc": "2.0", "method": method});
+    if !params.is_null() {
+        message["params"] = params;
+    }
+    message
+}
+
 fn strings(value: &Value) -> Vec<String> {
-    value
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .map(|v| v.as_str().unwrap_or_default().to_owned())
-                .collect()
-        })
-        .unwrap_or_default()
+    let items = value.as_array().into_iter().flatten();
+    items
+        .map(|v| v.as_str().unwrap_or_default().to_owned())
+        .collect()
 }

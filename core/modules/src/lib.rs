@@ -6,6 +6,8 @@
 //! calls into them without owning their shape.
 //!
 //! Exposes its interface from the root, as one flat list.
+mod declarations;
+mod hooks;
 mod link_features;
 mod module;
 mod registry;
@@ -18,7 +20,7 @@ pub use module::{
 };
 // What the host hands each hook and each `step` loop and what must come back,
 // declared as data.
-pub use module::{Effect, HOOK_RECORDS, HOOKS, HookContract, HookRecord, STEPS, StepProtocol};
+pub use hooks::{Effect, HOOK_RECORDS, HOOKS, HookContract, HookRecord, STEPS, StepProtocol};
 // The compiled set of modules, linked and ready to call.
 pub use registry::ModuleRegistry;
 // The link modules a request consults, and the refresh formats they name.

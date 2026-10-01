@@ -30,7 +30,7 @@ record! {
 }
 
 pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {
-    for link in &doc.links {
+    for link in doc.links() {
         let mut r = Record::typed(
             path,
             LinkRecord {
@@ -45,10 +45,7 @@ pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut V
                 url: link.target.clone(),
             },
         );
-        r.resource = Some(lang::eval::resources::Resource {
-            target: link.target.clone(),
-            origin: Some(path.into()),
-        });
+        r.resource = Some(lang::eval::resources::Resource::new(&link.target).with_origin(path));
         records.push(r);
     }
 }
@@ -56,14 +53,17 @@ pub(super) fn links(ws: &Workspace, path: &Path, doc: &Document, records: &mut V
 /// Every resource a note writes, as a link or as a definition's literal, and
 /// where.
 pub(super) fn targets(doc: &Document) -> impl Iterator<Item = (Span, &str)> {
-    doc.links.iter().map(|l| (l.span, l.target.as_str())).chain(
-        doc.definitions
-            .iter()
-            .filter(|d| {
-                !d.expression && lang::eval::resources::Resource::parse(&d.source).is_some()
-            })
-            .map(|d| (d.value_span, d.source.as_str())),
-    )
+    doc.links()
+        .iter()
+        .map(|l| (l.span, l.target.as_str()))
+        .chain(
+            doc.definitions()
+                .iter()
+                .filter(|d| {
+                    !d.expression && lang::eval::resources::Resource::parse(&d.source).is_some()
+                })
+                .map(|d| (d.value_span, d.source.as_str())),
+        )
 }
 
 pub(super) fn resources(ws: &Workspace, path: &Path, doc: &Document, records: &mut Vec<Record>) {

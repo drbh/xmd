@@ -51,7 +51,7 @@ pub(super) fn calculations(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) {
-    for calculation in &doc.calculations {
+    for calculation in doc.calculations() {
         let end = calculation.span.end + usize::from(calculation.bracketed);
         let evaluated = Evaluated::new(
             ws,
@@ -79,7 +79,7 @@ pub(super) fn references(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) {
-    for reference in doc.references.iter().filter(|r| r.bracket) {
+    for reference in doc.references().iter().filter(|r| r.bracket) {
         let source = reference.expression();
         let end = doc.reference_close(reference);
         let evaluated = Evaluated::new(
@@ -107,7 +107,7 @@ pub(super) fn cells(
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) {
-    for table in &doc.tables {
+    for table in doc.tables() {
         for (row, cells) in table.rows.iter().enumerate() {
             for (column, cell) in cells.iter().enumerate() {
                 let value = match &cell.expression {
@@ -132,7 +132,7 @@ pub(super) fn cells(
                     base,
                     expression,
                     computed: cell.calculated(),
-                    table: doc.definitions[table.definition].named.name.clone(),
+                    table: doc.definitions()[table.definition].named.name.clone(),
                     row,
                     column: table.columns.get(column).map(|c| c.name.clone()),
                 }));

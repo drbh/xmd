@@ -46,10 +46,7 @@ impl HostPresenting for Value {
                 Some(format!("\n\n{}", presentation.hover))
             }
             Value::Tasks(tasks) => {
-                let done = tasks
-                    .iter()
-                    .filter(|(path, index)| engine.task_done(path, *index))
-                    .count();
+                let done = tasks.iter().filter(|t| engine.task_done(&t.0, t.1)).count();
                 let summary = stdlib::shown(stdlib::task::checklist(engine, done, tasks.len()));
                 Some(format!("\n\n{summary}"))
             }

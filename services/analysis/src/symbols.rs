@@ -1,7 +1,8 @@
 //! Standard LSP document symbols, shared by the native server and browser adapter.
 use crate::describe_impl as describe;
 use lang::common::Span;
-use lang::document::Document;
+use lang::document::{Document, Named};
+use lang::eval::engine::Engine;
 use lang::eval::{Symbol, SymbolKind};
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation};
 use std::path::Path;
@@ -27,6 +28,25 @@ fn symbol(
     }
 }
 
+/// The entry of a name a form leaves unknown or a column a table declares,
+/// described as the language describes `of`.
+fn described(
+    engine: &mut Engine<'_>,
+    doc: &Document,
+    named: &Named,
+    of: &Symbol,
+) -> DocumentSymbol {
+    let detail = describe::detail(engine, doc, of);
+    let range = named.span.range(doc);
+    symbol(
+        named.name.clone(),
+        detail,
+        describe::kind(doc, of),
+        range,
+        range,
+    )
+}
+
 /// The last row in `start..=end` with text on it, so a range never ends on
 /// the blank lines before whatever follows it.
 fn last_filled(doc: &Document, start: usize, mut end: usize) -> usize {
@@ -36,16 +56,11 @@ fn last_filled(doc: &Document, start: usize, mut end: usize) -> usize {
     end
 }
 
-fn line_range(doc: &Document, row: usize) -> Range {
+/// The range of a line's text, without its indentation or trailing space.
+pub fn line_range(doc: &Document, row: usize) -> Range {
     let line = doc.line(row);
-    Span::new(
-        row,
-        line.len() - line.trim_start().len(),
-        line.trim_end()
-            .len()
-            .max(line.len() - line.trim_start().len()),
-    )
-    .range(doc)
+    let start = line.len() - line.trim_start().len();
+    Span::new(row, start, line.trim_end().len().max(start)).range(doc)
 }
 
 /// An outline entry from outside the language, such as a feature module's
@@ -73,8 +88,8 @@ pub fn document_symbols(
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    let heading = |line: usize| doc.sections.iter().any(|s| s.line == line);
-    for (index, section) in doc.sections.iter().enumerate() {
+    let heading = |line: usize| doc.sections().iter().any(|s| s.line == line);
+    for (index, section) in doc.sections().iter().enumerate() {
         let selection = line_range(doc, section.line);
         // An entry outlined on the heading's line decides where it ends.
         let outline = outlined.iter().find(|o| o.line == section.line);
@@ -122,7 +137,7 @@ pub fn document_symbols(
             outline.selection,
         ));
     }
-    for (i, definition) in doc.definitions.iter().enumerate() {
+    for (i, definition) in doc.definitions().iter().enumerate() {
         let definition_symbol = Symbol::new(path, SymbolKind::Definition(i));
         let detail = describe::detail(&mut engine, doc, &definition_symbol);
         let row = definition.named.span.line;
@@ -148,17 +163,10 @@ pub fn document_symbols(
         // A form's unknowns, and each row its table names, with the rest of
         // the row as its detail.
         if let Some(formed) = formed {
-            let f = doc.forms.iter().position(|f| f.definition == i).unwrap();
+            let f = doc.forms().iter().position(|f| f.definition == i).unwrap();
             for (n, named) in ws.claimed(path, formed) {
-                let range = named.span.range(doc);
                 let variable = Symbol::new(path, SymbolKind::Variable(f, n));
-                entries.push(symbol(
-                    named.name.clone(),
-                    describe::detail(&mut engine, doc, &variable),
-                    describe::kind(doc, &variable),
-                    range,
-                    range,
-                ));
+                entries.push(described(&mut engine, doc, named, &variable));
             }
             for (row, cells) in formed.rows.iter().enumerate() {
                 let Some((name, span)) = formed.row_name(row) else {
@@ -180,17 +188,10 @@ pub fn document_symbols(
             }
         }
         if let Some(table) = table {
-            let t = doc.tables.iter().position(|t| t.definition == i).unwrap();
+            let t = doc.tables().iter().position(|t| t.definition == i).unwrap();
             for (c, named) in table.columns.iter().enumerate() {
-                let range = named.span.range(doc);
                 let column = Symbol::new(path, SymbolKind::Column(t, c));
-                entries.push(symbol(
-                    named.name.clone(),
-                    describe::detail(&mut engine, doc, &column),
-                    describe::kind(doc, &column),
-                    range,
-                    range,
-                ));
+                entries.push(described(&mut engine, doc, named, &column));
             }
         }
     }
@@ -238,18 +239,18 @@ pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
             ranges.push((start, end, Some(lsp_types::FoldingRangeKind::Region)));
         }
     };
-    for i in 0..doc.definitions.len() {
+    for i in 0..doc.definitions().len() {
         let (first, last) = doc.definition_rows(i);
         add(first, last + 1);
     }
-    for section in &doc.sections {
+    for section in doc.sections() {
         add(section.line, section.end_line);
     }
-    for found in doc.recognized.iter().filter(|f| f.rule.until.is_some()) {
+    for found in doc.recognized().iter().filter(|f| f.rule.until.is_some()) {
         add(found.span.line, found.end);
     }
     let mut comment: Option<usize> = None;
-    for (row, line) in doc.text.lines().enumerate() {
+    for (row, line) in doc.text().lines().enumerate() {
         let trimmed = line.trim();
         if comment.is_none() && trimmed.starts_with("<!--") && !trimmed.contains("-->") {
             comment = Some(row);

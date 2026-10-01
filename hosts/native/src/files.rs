@@ -5,6 +5,7 @@ use lang::document::Document;
 use lang::eval::Workspace;
 use lang::eval::modules::{CompileModules, ModuleRegistry, is_module_path};
 use lang::eval::resources::Cache;
+use services::NoteFiles;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -24,10 +25,6 @@ pub trait WorkspaceFiles: Sized {
     /// A note that arrived on stdin: one document at a synthetic path inside
     /// the root, so relative imports and modules resolve like a saved note.
     fn load_source(roots: Vec<PathBuf>, path: &Path, text: String) -> Result<Self, String>;
-    fn include_file(&mut self, path: &Path) -> Result<(), String>;
-    /// Follow explicit imports, including ignored files and files outside roots.
-    /// Existing documents win so unsaved editor buffers remain authoritative.
-    fn load_imports(&mut self);
 }
 
 impl WorkspaceFiles for Workspace {
@@ -49,52 +46,16 @@ impl WorkspaceFiles for Workspace {
     }
     fn load_file(roots: Vec<PathBuf>, path: &Path) -> Result<Self, String> {
         let mut result = empty(roots);
-        result.include_file(path)?;
+        DiskFiles.include_file(&mut result, path)?;
         reload_modules(&mut result)?;
         Ok(result)
     }
     fn load_source(roots: Vec<PathBuf>, path: &Path, text: String) -> Result<Self, String> {
         let mut result = empty(roots);
         result.insert_document(path.into(), Document::parse(text));
-        result.load_imports();
+        DiskFiles.load_imports(&mut result);
         reload_modules(&mut result)?;
         Ok(result)
-    }
-    fn include_file(&mut self, path: &Path) -> Result<(), String> {
-        if !lang::common::is_note(path) {
-            return Err(format!("Expected a .{} note", lang::common::EXTENSION));
-        }
-        if !self.documents().contains_key(path) {
-            let text = std::fs::read_to_string(path).map_err(at(path))?;
-            self.insert_document(path.into(), Document::parse(text));
-        }
-        self.load_imports();
-        Ok(())
-    }
-    fn load_imports(&mut self) {
-        let mut pending: Vec<_> = self.documents().keys().cloned().collect();
-        let mut visited = std::collections::BTreeSet::new();
-        while let Some(path) = pending.pop() {
-            if !visited.insert(path.clone()) {
-                continue;
-            }
-            let Some(doc) = self.documents().get(&path) else {
-                continue;
-            };
-            let imports: Vec<_> = doc
-                .imports
-                .iter()
-                .filter_map(|id| lang::document::note_path(&path, id).ok())
-                .collect();
-            for target in imports {
-                if !self.documents().contains_key(&target)
-                    && let Ok(text) = std::fs::read_to_string(&target)
-                {
-                    self.insert_document(target.clone(), Document::parse(text));
-                }
-                pending.push(target);
-            }
-        }
     }
 }
 
@@ -107,12 +68,44 @@ pub fn save_cache(root: &Path, cache: &Cache) -> Result<(), String> {
 /// Notes on disk, as the language services read imports through them.
 pub struct DiskFiles;
 
-impl services::NoteFiles for DiskFiles {
+impl NoteFiles for DiskFiles {
+    /// Follow explicit imports, including ignored files and files outside roots.
+    /// Existing documents win so unsaved editor buffers remain authoritative.
     fn load_imports(&self, workspace: &mut Workspace) {
-        WorkspaceFiles::load_imports(workspace);
+        let mut pending: Vec<_> = workspace.documents().keys().cloned().collect();
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(path) = pending.pop() {
+            if !visited.insert(path.clone()) {
+                continue;
+            }
+            let Some(doc) = workspace.documents().get(&path) else {
+                continue;
+            };
+            let imports: Vec<_> = doc
+                .imports()
+                .iter()
+                .filter_map(|id| lang::document::note_path(&path, id).ok())
+                .collect();
+            for target in imports {
+                if !workspace.documents().contains_key(&target)
+                    && let Ok(text) = std::fs::read_to_string(&target)
+                {
+                    workspace.insert_document(target.clone(), Document::parse(text));
+                }
+                pending.push(target);
+            }
+        }
     }
     fn include_file(&self, workspace: &mut Workspace, path: &Path) -> Result<(), String> {
-        WorkspaceFiles::include_file(workspace, path)
+        if !lang::common::is_note(path) {
+            return Err(format!("Expected a .{} note", lang::common::EXTENSION));
+        }
+        if !workspace.documents().contains_key(path) {
+            let text = std::fs::read_to_string(path).map_err(at(path))?;
+            workspace.insert_document(path.into(), Document::parse(text));
+        }
+        self.load_imports(workspace);
+        Ok(())
     }
 }
 
@@ -135,29 +128,23 @@ fn scan_notes(roots: Vec<PathBuf>) -> (Workspace, Vec<String>) {
             })
             .build();
         for entry in walker {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    errors.push(error.to_string());
-                    continue;
-                }
+            let Ok(entry) = entry.map_err(|error| errors.push(error.to_string())) else {
+                continue;
             };
             if entry.file_type().is_some_and(|t| t.is_file())
                 && lang::common::is_note(entry.path())
                 && !is_module_path(entry.path())
             {
-                let text = match std::fs::read_to_string(entry.path()) {
-                    Ok(text) => text,
-                    Err(error) => {
-                        errors.push(at(entry.path())(error));
-                        continue;
+                match std::fs::read_to_string(entry.path()) {
+                    Ok(text) => {
+                        result.insert_document(entry.path().to_path_buf(), Document::parse(text));
                     }
-                };
-                result.insert_document(entry.path().to_path_buf(), Document::parse(text));
+                    Err(error) => errors.push(at(entry.path())(error)),
+                }
             }
         }
     }
-    result.load_imports();
+    DiskFiles.load_imports(&mut result);
     (result, errors)
 }
 
@@ -176,6 +163,7 @@ fn reload_modules(workspace: &mut Workspace) -> Result<(), String> {
 /// A workspace with no notes yet, holding each root's cache and lookups.
 fn empty(roots: Vec<PathBuf>) -> Workspace {
     let mut result = Workspace::new(roots);
+    result.set_home(crate::home());
     for root in result.roots().to_vec() {
         result.extend_caches(
             read_json_or_default(&root.join(".xmd/cache.json")),

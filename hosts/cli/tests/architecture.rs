@@ -7,7 +7,34 @@
 //! services and the browser host) do no I/O; and native code reaches a stdlib
 //! module only through the contract.
 use serde_json::Value;
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
+
+/// The repository root.
+fn root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .unwrap()
+}
+
+/// Every `.rs` file under the given directories.
+fn rust_sources(dirs: impl IntoIterator<Item = PathBuf>) -> Vec<PathBuf> {
+    let mut pending: Vec<PathBuf> = dirs.into_iter().collect();
+    let mut sources = Vec::new();
+    while let Some(path) = pending.pop() {
+        if path.is_dir() {
+            for entry in std::fs::read_dir(&path).expect("read source directory") {
+                pending.push(entry.expect("directory entry").path());
+            }
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            sources.push(path);
+        }
+    }
+    sources
+}
 
 fn metadata() -> Value {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
@@ -55,10 +82,7 @@ fn crates_only_depend_on_allowed_layers() {
 /// namespaces (`pub mod x { pub use ... }`) group re-exports; nothing else.
 #[test]
 fn facades_only_re_export() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .unwrap();
+    let root = root();
     for facade in [
         "hosts/cli/src/lib.rs",
         "core/src/lib.rs",
@@ -89,10 +113,7 @@ fn facades_only_re_export() {
 /// expose whatever that crate adds to it next, without anyone deciding to.
 #[test]
 fn facades_list_items_not_namespaces() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .unwrap();
+    let root = root();
     // Each facade's directory, which holds its private crates beside it.
     for (facade, crates) in [
         (
@@ -141,13 +162,10 @@ fn facades_list_items_not_namespaces() {
 #[test]
 fn private_crates_stay_behind_their_facade() {
     let metadata = metadata();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .unwrap();
+    let root = root();
     let packages = metadata["packages"].as_array().unwrap();
     let dir_of = |package: &Value| {
-        std::path::Path::new(package["manifest_path"].as_str().unwrap())
+        Path::new(package["manifest_path"].as_str().unwrap())
             .parent()
             .unwrap()
             .to_path_buf()
@@ -180,11 +198,11 @@ fn private_crates_stay_behind_their_facade() {
 #[test]
 fn components_publish_a_curated_interface() {
     let metadata = metadata();
-    let facade = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let facade = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     for package in metadata["packages"].as_array().unwrap() {
         let name = package["name"].as_str().unwrap();
-        let manifest = std::path::Path::new(package["manifest_path"].as_str().unwrap());
+        let manifest = Path::new(package["manifest_path"].as_str().unwrap());
         let dir = manifest.parent().unwrap();
         // The xmd facade only re-exports and opts out of the lints; a separate
         // rule (`facades_only_re_export`) covers it.
@@ -228,23 +246,23 @@ fn components_publish_a_curated_interface() {
 /// `core/` (the language itself), `services/` (the language services and their
 /// facade) and `hosts/wasm`. Reading files, running programs and talking to the
 /// network belong to `hosts/native`, which the native hosts pass in where the
-/// services need files (`NoteFiles`); no portable crate depends on it.
+/// services need files (`NoteFiles`); no portable crate depends on it. Nor do
+/// they read the environment: what they need from it, like the home directory
+/// `~/` links resolve against, the host sets on the workspace.
 #[test]
 fn portable_crates_do_no_io() {
     const FORBIDDEN_CRATES: [&str; 6] =
         ["tokio", "ignore", "feed-rs", "reqwest", "notify", "native"];
-    const FORBIDDEN_CODE: [&str; 5] = [
+    const FORBIDDEN_CODE: [&str; 6] = [
         "std::fs",
         "std::process",
         "std::net",
+        "std::env",
         "tokio::",
         "Command::new",
     ];
     let metadata = metadata();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .unwrap();
+    let root = root();
     let portable = [
         root.join("core"),
         root.join("services"),
@@ -253,7 +271,7 @@ fn portable_crates_do_no_io() {
     let mut checked = 0;
     for package in metadata["packages"].as_array().unwrap() {
         let name = package["name"].as_str().unwrap();
-        let manifest = std::path::Path::new(package["manifest_path"].as_str().unwrap());
+        let manifest = Path::new(package["manifest_path"].as_str().unwrap());
         let dir = manifest.parent().unwrap();
         if !portable.iter().any(|p| dir.starts_with(p)) {
             continue;
@@ -266,22 +284,14 @@ fn portable_crates_do_no_io() {
                 "portable crate `{name}` depends on `{dep}`; I/O belongs to hosts/native"
             );
         }
-        let mut pending = vec![dir.join("src")];
-        while let Some(path) = pending.pop() {
-            for entry in std::fs::read_dir(&path).expect("read source directory") {
-                let path = entry.expect("directory entry").path();
-                if path.is_dir() {
-                    pending.push(path);
-                } else if path.extension().is_some_and(|e| e == "rs") {
-                    let source = std::fs::read_to_string(&path).expect("read source");
-                    for pattern in FORBIDDEN_CODE {
-                        assert!(
-                            !source.contains(pattern),
-                            "{path:?} uses `{pattern}`; portable crates stay free of I/O, \
-                             which belongs to hosts/native"
-                        );
-                    }
-                }
+        for path in rust_sources([dir.join("src")]) {
+            let source = std::fs::read_to_string(&path).expect("read source");
+            for pattern in FORBIDDEN_CODE {
+                assert!(
+                    !source.contains(pattern),
+                    "{path:?} uses `{pattern}`; portable crates stay free of I/O, \
+                     which belongs to hosts/native"
+                );
             }
         }
     }
@@ -295,49 +305,40 @@ fn portable_crates_do_no_io() {
 /// called through its typed functions: no other source names one by string.
 #[test]
 fn stdlib_is_called_only_through_the_contract() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .unwrap();
+    let root = root();
     let contract = root.join("core/eval/src/contract.rs");
     let mut forbidden: Vec<String> = lang::stdlib::modules()
         .iter()
         .map(|id| format!("call(\"{id}\","))
         .collect();
     forbidden.extend(["call_module(".into(), "call_stdlib(".into()]);
-    let mut pending: Vec<_> = [
+    let dirs = [
         "core",
         "services",
         "hosts/native",
         "hosts/lsp",
         "hosts/wasm",
         "hosts/cli/src",
-    ]
-    .iter()
-    .map(|dir| root.join(dir))
-    .collect();
+    ];
     let mut checked = 0;
-    while let Some(path) = pending.pop() {
-        if path.is_dir() {
-            for entry in std::fs::read_dir(&path).expect("read source directory") {
-                pending.push(entry.expect("directory entry").path());
-            }
-        } else if path.extension().is_some_and(|e| e == "rs") && path != contract {
-            checked += 1;
-            let source: String = std::fs::read_to_string(&path)
-                .expect("read source")
-                .split_whitespace()
-                .collect::<String>()
-                // Declaring the calls is fine; only making them is not.
-                .replace("fncall_module(", "")
-                .replace("fncall_stdlib(", "");
-            for pattern in &forbidden {
-                assert!(
-                    !source.contains(pattern.as_str()),
-                    "{path:?} calls `{pattern}`; native code reaches the stdlib only through \
-                     lang::stdlib (core/eval/src/contract.rs)"
-                );
-            }
+    for path in rust_sources(dirs.map(|dir| root.join(dir))) {
+        if path == contract {
+            continue;
+        }
+        checked += 1;
+        let source: String = std::fs::read_to_string(&path)
+            .expect("read source")
+            .split_whitespace()
+            .collect::<String>()
+            // Declaring the calls is fine; only making them is not.
+            .replace("fncall_module(", "")
+            .replace("fncall_stdlib(", "");
+        for pattern in &forbidden {
+            assert!(
+                !source.contains(pattern.as_str()),
+                "{path:?} calls `{pattern}`; native code reaches the stdlib only through \
+                 lang::stdlib (core/eval/src/contract.rs)"
+            );
         }
     }
     assert!(

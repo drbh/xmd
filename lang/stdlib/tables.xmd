@@ -1,0 +1,176 @@
+// Table layout: formatting pads every cell of a table, and of a plan's
+// constraint table, to its column's width as a monospace editor shows it,
+// and stretches the separator's dashes to match. Parsing, typing and
+// calculating cells stay the language's; this module lays out the cells
+// the `tables` and `plans` collections say each line splits into.
+module := {
+  api: 1,
+  id: "tables",
+  kind: "feature",
+  inputs: {
+    tables: ["header", "end_line", "grid", "problems"],
+    plans: ["header", "end_line", "grid", "problems"]
+  }
+}
+
+// The larger of two widths.
+_max := fn(a, b) => if(a > b, a, b)
+
+// The widest of some widths.
+_widest := fn(widths) => get(sort_by(widths, desc(fn(w) => w)), 0)
+
+// The positions of a list's items.
+_positions := fn(items) => fold(items, [], fn(out, _) => concat(out, [length(out)]))
+
+// The narrowest a separator cell can be: three dashes and its colons.
+_rule := fn(separator) => (
+  3 + if(starts_with(separator, ":"), 1, 0) + if(ends_with(separator, ":"), 1, 0)
+)
+
+// A separator cell stretched to `width`, keeping its alignment colons.
+_separator := fn(source, width) => let(
+  {left: starts_with(source, ":"), right: ends_with(source, ":")},
+  if(left, ":", "")
+  + repeat("-", _max(width - if(left, 1, 0) - if(right, 1, 0), 3))
+  + if(right, ":", "")
+)
+
+// The separator laid out to the column widths.
+_dashes := fn(cells, widths, columns) => map(columns, fn(i) => _separator(get(cells, i), get(widths, i)))
+
+// Every line of a table whose text laying it out changes, replaced: its
+// indentation, then each cell `layout` gives for the line.
+_edits := fn(table, layout) => fold(
+  table.grid,
+  [],
+  fn(edits, row) => if(
+    row.cells == null,
+    edits,
+    let(
+      {
+        text: if(starts_with(row.text, "|"), "", slice(row.text, 0, match_pattern(row.text, "^\\s*").end))
+        + "| "
+        + join(layout(row), " | ")
+        + " |"
+      },
+      if(
+        text == row.text,
+        edits,
+        concat(
+          edits,
+          [
+            {
+              range: {
+                start: {line: row.line, character: 0},
+                end: {line: row.line, character: end_position(row.text).character}
+              },
+              newText: text
+            }
+          ]
+        )
+      )
+    )
+  )
+)
+
+// A table without problems, where every line has a cell for every column.
+// Each column is as wide as its widest cell, its header and the separator's
+// dashes and colons included.
+_clean := fn(table, columns) => let(
+  {
+    measured: map(table.grid, fn(row) => map(row.cells, fn(c) => display_width(c))),
+    rule: get(table.grid, 1).cells,
+    body: slice(measured, 2, length(measured)),
+    widths: map(
+      columns,
+      fn(i) => _widest(concat([get(get(measured, 0), i), _rule(get(rule, i))], map(body, fn(w) => get(w, i))))
+    )
+  },
+  _edits(
+    table,
+    fn(row) => if(
+      row.line == table.header + 1,
+      _dashes(row.cells, widths, columns),
+      map(columns, fn(i) => get(row.cells, i) + repeat(" ", get(widths, i) - display_width(get(row.cells, i))))
+    )
+  )
+)
+
+// Whether a plan reads a row as a constraint: a name and an expression.
+_constraint := fn(cells) => (
+  length(cells) == 2 && match_pattern(get(cells, 0), "^[A-Za-z_][A-Za-z0-9_]*$") != null
+)
+
+// A table being typed, problems or not. A row may have more cells than
+// columns or fewer: a column is as wide as its widest cell in the rows the
+// table reads (a plan reads only its constraint rows), and a cell past the
+// last column, or wider than its column, keeps its own width.
+_typed := fn(table, columns, plan) => let(
+  {
+    header: get(table.grid, 0).cells,
+    rule: get(table.grid, 1).cells,
+    widths: fold(
+      filter(
+        map(slice(table.grid, 2, length(table.grid)), fn(row) => row.cells),
+        fn(cells) => cells != null && (!plan || _constraint(cells))
+      ),
+      map(columns, fn(i) => _max(display_width(get(header, i)), _rule(get(rule, i)))),
+      fn(widths, cells) => map(
+        columns,
+        fn(i) => if(i < length(cells), _max(get(widths, i), display_width(get(cells, i))), get(widths, i))
+      )
+    ),
+    width: fn(cells, i) => if(i < length(widths), get(widths, i), display_width(get(cells, i)))
+  },
+  _edits(
+    table,
+    fn(row) => map(
+      _positions(row.cells),
+      fn(i) => if(
+        row.line == table.header + 1,
+        _separator(get(row.cells, i), width(row.cells, i)),
+        get(row.cells, i) + repeat(" ", _max(width(row.cells, i) - display_width(get(row.cells, i)), 0))
+      )
+    )
+  )
+)
+
+// Every line of a table whose padding is off, once its header and separator
+// agree on the columns.
+_aligned := fn(table, plan) => let(
+  {header: get(table.grid, 0).cells, rule: coalesce(get(table.grid, 1), {cells: null}).cells},
+  if(
+    header == null || rule == null,
+    [],
+    length(header) == 0 || length(header) != length(rule),
+    [],
+    length(table.problems) == 0,
+    _clean(table, _positions(header)),
+    _typed(table, _positions(header), plan)
+  )
+)
+
+// Align every table without problems; one with problems is left as written.
+// Typing a `|` sets `ctx.position`, and then only the table being typed is
+// aligned, problems or not, as typing leaves a row half-written.
+format := fn(ctx) => let(
+  {
+    at: get(ctx, "position"),
+    grids: concat(
+      map(ctx.document.tables, fn(t) => {table: t, plan: false}),
+      map(ctx.document.plans, fn(p) => {table: p, plan: true})
+    )
+  },
+  fold(
+    filter(
+      grids,
+      fn(g) => if(
+        at == null,
+        length(g.table.problems) == 0,
+        g.table.header <= at.line && at.line < g.table.end_line
+      ) && length(g.table.grid) > 0
+    ),
+    [],
+    fn(edits, g) => concat(edits, _aligned(g.table, g.plan))
+  )
+)

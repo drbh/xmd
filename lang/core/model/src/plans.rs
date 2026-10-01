@@ -260,7 +260,7 @@ pub fn regions(plan: &Plan) -> impl Iterator<Item = Span> + '_ {
 fn contains(plan: &Plan, span: Span, text: &str) -> bool {
     regions(plan).any(|r| r.contains(text, span))
 }
-/// The plan's rows as a table, so formatting and format-on-type align them.
+/// The plan's rows as a table, so typing a pipe finds them as it finds a table.
 pub(crate) fn grid(plan: &Plan) -> Table {
     Table {
         definition: plan.definition,

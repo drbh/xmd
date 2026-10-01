@@ -196,11 +196,8 @@ pub fn refactors(
             let opening = r.span.start.saturating_sub(1);
             overlaps(selection, Span::new(r.span.line, opening, r.end() + 1))
         }) && !doc
-            .tasks
-            .iter()
-            .flat_map(|t| t.attributes.values())
-            .chain(doc.events.iter().flat_map(|e| e.attributes.values()))
-            .any(|a| overlaps(selection, a.value_span))
+            .claimed_attributes()
+            .any(|(_, a)| overlaps(selection, a.value_span))
             && let Ok(value) = literal(selected)
             && !matches!(
                 value,

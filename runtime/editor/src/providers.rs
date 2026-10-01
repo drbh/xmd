@@ -7,22 +7,21 @@
 //! nothing calls back up into it.
 //!
 //! Controls have one pipeline. Every provider proposes its controls for the
-//! whole note at once (`tasks`, `resources` and `lookups` natively, each
-//! feature module through its `actions` hook), each control is an action of
+//! whole note at once (`resources` and `lookups` natively, each feature
+//! module through its `actions` hook), each control is an action of
 //! a kind exactly one provider owns, and that owner prepares it, whoever
 //! proposed it: when a module's proposal is checked, and again when a host
 //! executes it.
 use crate::commands::{
-    Action, ActionProvider, Ask, Capabilities, CommandId, Direct, Prepared, PreparedAction, Rows,
-    TaskToggle,
+    Action, ActionProvider, Ask, Capabilities, CommandId, Control, Direct, Prepared,
+    PreparedAction, Rows,
 };
 use crate::inlays::{self, InlayOutput};
 use crate::lookups::Lookups;
 use crate::modules::{self as module, Invocations};
 use crate::resources::Resources;
-use crate::tasks::Tasks;
 use lang::eval::modules::{Module, ModuleKind};
-use lsp_types::{CodeLens, Command, Diagnostic, Hover, Position, Range, TextEdit};
+use lsp_types::{CodeLens, Diagnostic, DocumentSymbol, Hover, Position, Range, TextEdit};
 use std::{collections::BTreeMap, path::Path};
 
 /// Every active feature module, in manifest order.
@@ -32,9 +31,9 @@ fn modules<'a>(request: &crate::Request<'a>) -> impl Iterator<Item = &'a Module>
 
 /// The built-in providers that propose controls, in the order their
 /// controls show on a row; the feature modules' follow them.
-const PROPOSING: [&dyn ActionProvider; 3] = [&Tasks, &Resources, &Lookups];
+const PROPOSING: [&dyn ActionProvider; 2] = [&Resources, &Lookups];
 /// Every provider that owns an action kind.
-const OWNERS: [&dyn ActionProvider; 5] = [&Tasks, &Resources, &Lookups, &Direct, &Invocations];
+const OWNERS: [&dyn ActionProvider; 4] = [&Resources, &Lookups, &Direct, &Invocations];
 
 /// The provider that prepares `action`'s kind.
 fn owner(action: &Action) -> &'static dyn ActionProvider {
@@ -96,16 +95,24 @@ pub(crate) fn live_hints(request: &crate::Request<'_>, path: &Path) -> bool {
     .time_dependent
 }
 /// A feature module's hover takes precedence, so a module can refine what the
-/// editor would otherwise explain.
+/// editor would otherwise explain; a module's fallback hover answers only
+/// where the editor finds nothing more specific than the row.
 pub(crate) fn hover(request: &crate::Request<'_>, path: &Path, at: Position) -> Option<Hover> {
     request.workspace().documents().get(path)?;
     modules(request)
-        .find_map(|m| module::hover(m, request, path, at))
+        .find_map(|m| module::hover(m, request, path, at, false))
         .or_else(|| {
-            analysis::hover_at(request, path, at, &|context, path, index| {
-                catalog::task_hover(context, &request.records, path, index)
+            analysis::hover_at(request, path, at, &|| {
+                modules(request).find_map(|m| module::hover(m, request, path, at, true))
             })
         })
+}
+/// The note's outline: the editor's own entries and the feature modules'.
+pub(crate) fn symbols(request: &crate::Request<'_>, path: &Path) -> Vec<DocumentSymbol> {
+    let outlined = modules(request)
+        .flat_map(|m| module::symbols(m, request, path))
+        .collect();
+    analysis::document_symbols(request, path, outlined)
 }
 /// The editor's own diagnostics, then the feature modules', in source order.
 pub(crate) fn diagnostics(
@@ -115,6 +122,8 @@ pub(crate) fn diagnostics(
 ) -> Vec<Diagnostic> {
     let mut result = analysis::collect_native(request, path, editing);
     result.extend(modules(request).flat_map(|m| module::diagnostics(m, request, path)));
+    // A module whose `records` failed built nothing for the note.
+    result.extend(catalog::build_problems(request, &request.records, path));
     // Why a module's controls are withheld. Like the stdlib presentation
     // checks, only for a workspace with modules of its own.
     if !request.workspace().modules().only_bundled() {
@@ -135,19 +144,20 @@ pub(crate) fn diagnostics(
 }
 /// Every control on `ask.rows`, by row: each built-in provider's, then each
 /// feature module's that passed its owners' checks. Every provider is asked
-/// once for the whole note.
+/// once for the whole note. A disabled control is kept, with its reason.
 pub(crate) fn controls(
     request: &crate::Request<'_>,
     path: &Path,
     ask: Ask,
-) -> BTreeMap<usize, Vec<Command>> {
-    let mut rows: BTreeMap<usize, Vec<Command>> = BTreeMap::new();
+) -> BTreeMap<usize, Vec<Control>> {
+    let mut rows: BTreeMap<usize, Vec<Control>> = BTreeMap::new();
     for provider in PROPOSING {
         for proposal in provider.propose(request, path, ask) {
             if ask.capabilities.supports(&proposal.action) {
-                rows.entry(proposal.line)
-                    .or_default()
-                    .push(proposal.action.command(proposal.title));
+                rows.entry(proposal.line).or_default().push(Control {
+                    proposal,
+                    disabled: None,
+                });
             }
         }
     }
@@ -155,33 +165,35 @@ pub(crate) fn controls(
         let lines = module::controls(m, request, path, ask.capabilities, &|action| {
             check(request, action, ask.capabilities)
         });
-        for (line, commands) in lines.unwrap_or_default() {
-            if let (true, Ok(commands)) = (ask.rows.has(line), commands) {
-                rows.entry(line).or_default().extend(commands);
+        for (line, proposals) in lines.unwrap_or_default() {
+            if let (true, Ok(proposals)) = (ask.rows.has(line), proposals) {
+                rows.entry(line).or_default().extend(proposals);
             }
         }
     }
+    // A row action is the row's own control, what its checkbox does, so it
+    // leads the row's controls; the others keep their order.
+    for controls in rows.values_mut() {
+        controls.sort_by_key(|c| !matches!(c.proposal.action, Action::Row { .. }));
+    }
     rows
 }
-/// The commands one row offers. The task toggle is among them only when the
-/// host takes it as a command; as an action it is a code action of its own.
+/// The controls one row offers, disabled ones included.
 pub(crate) fn row_controls(
     request: &crate::Request<'_>,
     path: &Path,
     row: usize,
-    toggle: TaskToggle,
     capabilities: Capabilities,
-) -> Vec<Command> {
+) -> Vec<Control> {
     let ask = Ask {
         rows: Rows::One(row),
-        toggle,
         capabilities,
     };
     controls(request, path, ask)
         .remove(&row)
         .unwrap_or_default()
 }
-/// A lens for every control in the note, in row order.
+/// A lens for every control in the note that can run, in row order.
 pub(crate) fn lenses(
     request: &crate::Request<'_>,
     path: &Path,
@@ -189,32 +201,38 @@ pub(crate) fn lenses(
 ) -> Vec<CodeLens> {
     let ask = Ask {
         rows: Rows::All,
-        toggle: TaskToggle::Command,
         capabilities,
     };
     controls(request, path, ask)
         .into_iter()
-        .flat_map(|(row, commands)| {
+        .flat_map(|(row, controls)| {
             let at = Position::new(row as u32, 0);
-            commands.into_iter().map(move |command| CodeLens {
-                range: Range::new(at, at),
-                command: Some(command),
-                data: None,
-            })
+            controls
+                .into_iter()
+                .filter(|c| c.disabled.is_none())
+                .map(move |c| CodeLens {
+                    range: Range::new(at, at),
+                    command: Some(c.proposal.action.command(c.proposal.title)),
+                    data: None,
+                })
         })
         .collect()
 }
-/// Table formatting, then every feature module's edits, checked to apply
-/// cleanly together.
-pub(crate) fn edits(request: &crate::Request<'_>, path: &Path) -> Result<Vec<TextEdit>, String> {
+/// Every feature module's edits, checked to apply cleanly together. `at` is
+/// where a `|` was just typed when formatting as the note is typed.
+pub(crate) fn edits(
+    request: &crate::Request<'_>,
+    path: &Path,
+    at: Option<Position>,
+) -> Result<Vec<TextEdit>, String> {
     let doc = request
         .workspace()
         .documents()
         .get(path)
         .ok_or("Unknown document")?;
-    let mut edits = lang::eval::tables::formatting(doc);
+    let mut edits = Vec::new();
     for m in modules(request) {
-        edits.extend(module::edits(m, request, path)?);
+        edits.extend(module::edits(m, request, path, at)?);
     }
     lang::model::apply_edits(&doc.text, &edits)?;
     edits.sort_by_key(|e| (e.range.start, e.range.end));

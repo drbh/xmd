@@ -13,12 +13,16 @@
       "arguments": [
         {
           "document": "file://<root>/controls.x.md",
+          "event": {
+            "line": 0
+          },
           "expected": "- [ ] First :first",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 0
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -95,7 +99,7 @@ null
   "takeFocus": true,
   "uri": "file://<root>/receipt.png"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [ ] First :first","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","event":{"line":0},"expected":"- [ ] First :first","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -155,12 +159,16 @@ Use [receipt].
       "arguments": [
         {
           "document": "file://<root>/controls.x.md",
+          "event": {
+            "line": 0
+          },
           "expected": "- [x] First :first @completed(2026-09-16)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 0
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "○ reopen"
     },
     "range": {
@@ -240,7 +248,7 @@ Use [receipt].
   "uri": "file://<root>/controls.x.md",
   "version": 3
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","expected":"- [x] First :first @completed(2026-09-16)","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:controls.x.md}","event":{"line":0},"expected":"- [x] First :first @completed(2026-09-16)","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Source changed; request fresh controls"

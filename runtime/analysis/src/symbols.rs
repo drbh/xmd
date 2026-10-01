@@ -3,8 +3,6 @@ use crate::describe_impl as describe;
 use lang::common::Span;
 use lang::eval::{Symbol, SymbolKind};
 use lang::model::Document;
-use lang::stdlib;
-use lang::syntax::AttributeKey;
 use lsp_types::{DocumentSymbol, Location, Range, SymbolInformation};
 use std::path::Path;
 use url::Url;
@@ -50,42 +48,41 @@ fn line_range(doc: &Document, row: usize) -> Range {
     .range(doc)
 }
 
+/// An outline entry from outside the language, such as a feature module's
+/// `symbols`: it spans from `line` to its last filled line before `end_line`.
+/// One on a heading's line gives that heading's entry its detail and span.
+#[derive(Clone, Debug)]
+pub struct Outlined {
+    pub name: String,
+    pub detail: String,
+    pub kind: lsp_types::SymbolKind,
+    pub line: usize,
+    pub end_line: usize,
+    pub selection: Range,
+}
+
 pub fn document_symbols(
     request: &lang::eval::RequestContext<'_>,
     path: &Path,
+    outlined: Vec<Outlined>,
 ) -> Vec<DocumentSymbol> {
     let ws = request.workspace();
-    let now = request.now();
 
     let Some(doc) = ws.documents().get(path) else {
         return Vec::new();
     };
     let mut engine = request.engine();
     let mut entries = Vec::new();
-    // A day's date is only detail here; when `itinerary_core.dates` fails, the
-    // note's diagnostics say why and the outline lists the days undated.
-    let dates = lang::eval::itinerary::dates(ws.modules(), &doc.days, now.date_naive())
-        .unwrap_or_else(|_| vec![None; doc.days.len()]);
-    let day_detail = |day: &lang::eval::itinerary::Day, date: &Option<chrono::NaiveDate>| {
-        format!(
-            "{} stops{}",
-            day.stops.len(),
-            date.map(|d| format!(" · {}", d.format("%A %Y-%m-%d")))
-                .unwrap_or_default()
-        )
-    };
+    let heading = |line: usize| doc.sections.iter().any(|s| s.line == line);
     for (index, section) in doc.sections.iter().enumerate() {
         let selection = line_range(doc, section.line);
-        // A day heading ends where the next day starts, even without a heading.
-        let day = doc
-            .days
-            .iter()
-            .zip(&dates)
-            .find(|(d, _)| d.line == section.line);
+        // An entry outlined on the heading's line decides where it ends.
+        let outline = outlined.iter().find(|o| o.line == section.line);
         let end = last_filled(
             doc,
             section.line,
-            day.map(|(d, _)| d.end_line)
+            outline
+                .map(|o| o.end_line)
                 .unwrap_or(section.end_line)
                 .saturating_sub(1),
         );
@@ -96,8 +93,8 @@ pub fn document_symbols(
             } else {
                 section.title.clone()
             },
-            match day {
-                Some((day, date)) => day_detail(day, date),
+            match outline {
+                Some(outline) => outline.detail.clone(),
                 None if section.named.is_some() => {
                     describe::detail(&mut engine, doc, &section_symbol)
                 }
@@ -108,95 +105,21 @@ pub fn document_symbols(
             selection,
         ));
     }
-    // Extend each task's range through all descendants, without consuming a sibling.
-    let mut task_ends: Vec<_> = doc.tasks.iter().map(|t| t.line).collect();
-    for (i, task) in doc.tasks.iter().enumerate().rev() {
-        if let Some(parent) = task.parent {
-            task_ends[parent] = task_ends[parent].max(task_ends[i]);
-        }
-    }
-    for (i, task) in doc.tasks.iter().enumerate() {
-        let selection = task
-            .named
-            .as_ref()
-            .map(|n| n.span.range(doc))
-            .unwrap_or_else(|| line_range(doc, task.line));
-        let task_symbol = Symbol::new(path, SymbolKind::Task(i));
+    for outline in outlined.into_iter().filter(|o| !heading(o.line)) {
+        let end = last_filled(
+            doc,
+            outline.line,
+            outline.end_line.saturating_sub(1).max(outline.line),
+        );
         entries.push(symbol(
-            if task.title.is_empty() {
-                "Untitled task".into()
-            } else {
-                task.title.clone()
-            },
-            describe::detail(&mut engine, doc, &task_symbol),
-            describe::kind(doc, &task_symbol),
+            outline.name,
+            outline.detail,
+            outline.kind,
             Range::new(
-                line_range(doc, task.line).start,
-                line_range(doc, task_ends[i]).end,
+                line_range(doc, outline.line).start,
+                line_range(doc, end).end,
             ),
-            selection,
-        ));
-    }
-    for (day, date) in doc.days.iter().zip(&dates) {
-        let selection = day.date_span.range(doc);
-        let end = last_filled(doc, day.line, day.end_line.saturating_sub(1).max(day.line));
-        // A day written as a heading is already a section symbol.
-        if !doc.sections.iter().any(|s| s.line == day.line) {
-            entries.push(symbol(
-                format!(
-                    "{} {}{}",
-                    lang::eval::itinerary::month_name(day.month),
-                    day.day,
-                    day.places
-                        .as_ref()
-                        .map(|(p, _)| format!(" · {p}"))
-                        .unwrap_or_default()
-                ),
-                day_detail(day, date),
-                lsp_types::SymbolKind::NAMESPACE,
-                Range::new(selection.start, line_range(doc, end).end),
-                selection,
-            ));
-        }
-        for stop in &day.stops {
-            let selection = stop.title_span.range(doc);
-            entries.push(symbol(
-                stop.title.clone(),
-                match stop.kind {
-                    Some(kind) => {
-                        format!(
-                            "{} · {}",
-                            stdlib::shown(lang::eval::itinerary::display_time(ws.modules(), stop)),
-                            kind.name
-                        )
-                    }
-                    None => stdlib::shown(lang::eval::itinerary::display_time(ws.modules(), stop)),
-                },
-                lsp_types::SymbolKind::EVENT,
-                Range::new(
-                    line_range(doc, stop.line).start,
-                    line_range(doc, stop.end_line.saturating_sub(1).max(stop.line)).end,
-                ),
-                selection,
-            ));
-        }
-    }
-    for event in &doc.events {
-        let range = line_range(doc, event.line);
-        entries.push(symbol(
-            if event.title.is_empty() {
-                "Untitled event".into()
-            } else {
-                event.title.clone()
-            },
-            event
-                .attributes
-                .get(AttributeKey::At.as_str())
-                .map(|a| format!("{}({})", AttributeKey::At.spelling(), a.value))
-                .unwrap_or_default(),
-            lsp_types::SymbolKind::EVENT,
-            range,
-            range,
+            outline.selection,
         ));
     }
     for (i, definition) in doc.definitions.iter().enumerate() {
@@ -307,7 +230,8 @@ pub fn document_symbols(
     roots
 }
 
-/// Foldable regions: sections, itinerary days and stops, tables and plans.
+/// Foldable regions: sections, tables and plans, and what a module's
+/// recognizer holds open (`until`).
 pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
     let mut ranges: Vec<(usize, usize, Option<lsp_types::FoldingRangeKind>)> = Vec::new();
     let mut add = |start: usize, end_exclusive: usize| {
@@ -323,11 +247,8 @@ pub fn folding_ranges(doc: &Document) -> Vec<lsp_types::FoldingRange> {
     for section in &doc.sections {
         add(section.line, section.end_line);
     }
-    for day in &doc.days {
-        add(day.line, day.end_line);
-        for stop in &day.stops {
-            add(stop.line, stop.end_line);
-        }
+    for found in doc.recognized.iter().filter(|f| f.rule.until.is_some()) {
+        add(found.span.line, found.end);
     }
     let mut comment: Option<usize> = None;
     for (row, line) in doc.text.lines().enumerate() {

@@ -1,13 +1,15 @@
-//! Tasks: a list item with a checkbox, `- [ ] title #tag @due(…) :name`,
-//! nested under the nearest open task indented less than it, until a heading
-//! starts over.
+//! Checklist items: a list item with a checkbox, `- [ ] title :name`,
+//! nested under the nearest open item indented less than it, until a
+//! heading starts over. They are the language's checklists: a named item is
+//! a Boolean, whether it is done, and a named heading is the checklist of the
+//! items under it. What else an item means, its attributes and what a person
+//! does with it, is the `tasks` module's to say.
 use crate::blocks::{Attribute, HighlightKind, Line, Named, Tree, trailing_name};
 use crate::document::Document;
 use common::Span;
 use std::collections::BTreeMap;
-use syntax::identifier;
 
-/// What a task's checkbox says: `[ ]`, `[-]` or `[x]`.
+/// What an item's checkbox says: `[ ]`, `[-]` or `[x]`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TaskState {
     #[default]
@@ -42,7 +44,6 @@ pub struct Task {
     pub named: Option<Named>,
     pub parent: Option<usize>,
     pub attributes: BTreeMap<String, Attribute>,
-    pub tags: Vec<String>,
 }
 
 pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
@@ -71,18 +72,6 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         .chain(named.iter().map(|n| n.span.start - 1))
         .min()
         .unwrap_or(text.len());
-    let tags = text
-        .split_whitespace()
-        .filter_map(|t| t.strip_prefix('#'))
-        .filter(|t| identifier(t))
-        .map(str::to_owned)
-        .chain(
-            attrs
-                .get(syntax::AttributeKey::Tag.as_str())
-                .into_iter()
-                .flat_map(|a| a.value.split(',').map(|s| s.trim().to_string())),
-        )
-        .collect();
     doc.tasks.push(Task {
         line: row,
         indent: start,
@@ -92,7 +81,6 @@ pub(crate) fn recognize(tree: &mut Tree, doc: &mut Document, line: &Line<'_>) {
         named: named.clone(),
         parent,
         attributes: attrs.clone(),
-        tags,
     });
     tree.mark(row, at, at + 3, HighlightKind::Keyword);
     if let Some(n) = named {

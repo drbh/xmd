@@ -7,29 +7,29 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "nope", "action": "start" }]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:controls.x.md}", "row": 0, "expected": "# Timer controls", "module": "timers", "event": {"name": "nope", "action": "start"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "number", "action": "start" }]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:controls.x.md}", "row": 3, "expected": "[number] := 5", "module": "timers", "event": {"name": "number", "action": "start"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "wrapped", "action": "start" }]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:controls.x.md}", "row": 4, "expected": "[wrapped] := if(true, stopwatch(), 0)", "module": "timers", "event": {"name": "wrapped", "action": "start"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [{ "kind": "timer", "document": "${uri:controls.x.md}", "name": "plain", "action": "start" }]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:controls.x.md}", "row": 2, "expected": "[plain] := stopwatch()", "module": "timers", "event": {"name": "plain", "action": "start"}}]
           }
         }
       ]

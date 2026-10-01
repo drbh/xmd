@@ -92,12 +92,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/review.x.md",
+          "event": {
+            "line": 1
+          },
           "expected": "- [ ] Draft outline   ",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 1
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -123,7 +127,7 @@ null
           "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
           "kind": "invoke",
           "module": "review",
-          "revision": "cc37068c297e4e8c"
+          "revision": "9fb2c0e0f0fe7751"
         }
       ],
       "command": "xmd.invoke",
@@ -145,12 +149,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/review.x.md",
+          "event": {
+            "line": 2
+          },
           "expected": "- [x] Book room",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 2
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "○ reopen"
     },
     "range": {
@@ -169,12 +177,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/review.x.md",
+          "event": {
+            "line": 3
+          },
           "expected": "- [ ] Send invites",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 3
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -200,7 +212,7 @@ null
           "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
           "kind": "invoke",
           "module": "review",
-          "revision": "cc37068c297e4e8c"
+          "revision": "9fb2c0e0f0fe7751"
         }
       ],
       "command": "xmd.invoke",
@@ -292,7 +304,7 @@ Plain prose.
         "expected": "# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
         "kind": "invoke",
         "module": "review",
-        "revision": "cc37068c297e4e8c"
+        "revision": "9fb2c0e0f0fe7751"
       }
     ],
     "command": "xmd.invoke",
@@ -396,7 +408,7 @@ error: {
         "expected": "# Review\n- [ ] Draft outline\n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
         "kind": "invoke",
         "module": "review",
-        "revision": "cc37068c297e4e8c"
+        "revision": "9fb2c0e0f0fe7751"
       }
     ],
     "command": "xmd.invoke",
@@ -536,7 +548,7 @@ error: {
         "expected": "# Review\n- [ ] Draft outline   \n- [x] Book room\n- [ ] Send invites\nPlain prose.\n",
         "kind": "invoke",
         "module": "review",
-        "revision": "97a448fe619ba06b"
+        "revision": "94424fbd32d28d2d"
       }
     ],
     "command": "xmd.invoke",
@@ -616,7 +628,7 @@ null
       }
     ],
     "command": "xmd.refresh",
-    "title": "a626ded12528ee11"
+    "title": "bfa2d9fd9e53c72f"
   },
   {
     "arguments": [

@@ -36,13 +36,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:controls.x.md}",
                 "row": 0,
-                "expected": "- [ ] First :first"
+                "expected": "- [ ] First :first",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -77,13 +79,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:controls.x.md}",
                 "row": 0,
-                "expected": "- [x] First :first @completed(2026-09-16)"
+                "expected": "- [x] First :first @completed(2026-09-16)",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }

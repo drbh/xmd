@@ -1,0 +1,3 @@
+# A `Measured` list or record keeps its size once it is measured: interior
+# mutability that never changes how a value compares, orders or hashes.
+ignore-interior-mutability = ["values::value::Measured"]

@@ -50,13 +50,34 @@ exit 0
     },
     "title": "watch",
     "value": {
+      "done": false,
       "elapsed": {
         "seconds": 0,
         "type": "duration"
       },
       "idle": true,
       "limit": null,
-      "started": null
+      "origin": {
+        "arguments": [],
+        "document": "file://<root>/idle.x.md",
+        "function": "stopwatch",
+        "line": 0,
+        "name": "watch",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 0
+          },
+          "start": {
+            "character": 14,
+            "line": 0
+          }
+        },
+        "text": "🦀 [watch] := stopwatch()"
+      },
+      "running": false,
+      "started": null,
+      "state": "idle"
     }
   }
 ]
@@ -69,12 +90,12 @@ exit 0
   "uri": "file://<root>/idle.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:idle.x.md}","event":{"action":"pause","name":"watch"},"expected":"🦀 [watch] := stopwatch()","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Cannot pause a idle timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:idle.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:idle.x.md}","event":{"action":"start","name":"watch"},"expected":"🦀 [watch] := stopwatch()","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -83,14 +104,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "stopwatch(0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 25,
                 "line": 0
               },
               "start": {
-                "character": 13,
+                "character": 14,
                 "line": 0
               }
             }
@@ -157,23 +178,47 @@ exit 0
     },
     "title": "watch",
     "value": {
+      "done": false,
       "elapsed": {
         "seconds": 73,
         "type": "duration"
       },
       "idle": false,
       "limit": null,
+      "origin": {
+        "arguments": [
+          "0s",
+          "2026-09-16T13:58:47-04:00"
+        ],
+        "document": "file://<root>/running.x.md",
+        "function": "stopwatch",
+        "line": 0,
+        "name": "watch",
+        "range": {
+          "end": {
+            "character": 51,
+            "line": 0
+          },
+          "start": {
+            "character": 11,
+            "line": 0
+          }
+        },
+        "text": "[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)"
+      },
+      "running": true,
       "started": {
         "type": "datetime",
         "value": "2026-09-16T13:58:47-04:00"
-      }
+      },
+      "state": "running"
     }
   }
 ]
 
 ### 7 lsp
 -- open running.x.md
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:running.x.md}","event":{"action":"pause","name":"watch"},"expected":"[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -182,14 +227,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(73s)",
+            "newText": "stopwatch(73s)",
             "range": {
               "end": {
                 "character": 51,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -203,7 +248,7 @@ null
     ]
   }
 }
--- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:running.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:running.x.md}","event":{"action":"reset","name":"watch"},"expected":"[watch] := stopwatch(0s, 2026-09-16T13:58:47-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -212,14 +257,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch()",
+            "newText": "stopwatch()",
             "range": {
               "end": {
                 "character": 51,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -286,25 +331,48 @@ exit 0
     },
     "title": "watch",
     "value": {
+      "done": false,
       "elapsed": {
         "seconds": 73,
         "type": "duration"
       },
       "idle": false,
       "limit": null,
-      "started": null
+      "origin": {
+        "arguments": [
+          "73s"
+        ],
+        "document": "file://<root>/paused.x.md",
+        "function": "stopwatch",
+        "line": 0,
+        "name": "watch",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 0
+          },
+          "start": {
+            "character": 11,
+            "line": 0
+          }
+        },
+        "text": "[watch] := stopwatch(73s)"
+      },
+      "running": false,
+      "started": null,
+      "state": "paused"
     }
   }
 ]
 
 ### 11 lsp
 -- open paused.x.md
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:paused.x.md}","event":{"action":"start","name":"watch"},"expected":"[watch] := stopwatch(73s)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Cannot start a paused timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"resume","document":"${uri:paused.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:paused.x.md}","event":{"action":"resume","name":"watch"},"expected":"[watch] := stopwatch(73s)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -313,14 +381,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(73s, 2026-09-16T14:00:00-04:00)",
+            "newText": "stopwatch(73s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 25,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -351,7 +419,125 @@ Remaining [alias.remaining] 25m.
   "uri": "file://<root>/alias.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:alias.x.md}","kind":"timer","name":"alias"}],"command":"xmd.timer"}
+-- request textDocument/codeLens alias.x.md
+[
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/shared.x.md",
+          "event": {
+            "action": "start",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(25m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "▸ start focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/shared.x.md",
+          "event": {
+            "action": "start",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(25m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "▸ start focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/alias.x.md",
+          "event": {
+            "line": 2
+          },
+          "expected": "- [ ] Work @timer(alias)",
+          "kind": "row",
+          "module": "tasks",
+          "row": 2
+        }
+      ],
+      "command": "xmd.row",
+      "title": "✓ done"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "command": {
+      "arguments": [
+        {
+          "document": "file://<root>/shared.x.md",
+          "event": {
+            "action": "start",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(25m)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
+        }
+      ],
+      "command": "xmd.row",
+      "title": "▸ start focus"
+    },
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  }
+]
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:shared.x.md}","event":{"action":"start","name":"focus"},"expected":"[focus] := countdown(25m)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -360,14 +546,14 @@ null
       {
         "edits": [
           {
-            "newText": " countdown(25m, 0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "countdown(25m, 0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 25,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }

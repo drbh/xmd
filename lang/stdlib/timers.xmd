@@ -1,13 +1,78 @@
-// Timers show their own state, and only ask for live refreshes while one runs.
+// Timers show their own state wherever a note names one, offer the controls
+// that rewrite the definition that made it, and only ask for live refreshes
+// while one runs.
 module := {
   api: 1,
   id: "timers",
   kind: "feature",
-  inputs: {timers: ["line", "anchor", "value", "origin", "definition", "inlay", "hover"]},
-  imports: ["timer", "format"]
+  inputs: {
+    values: ["name"],
+    timers: ["name", "line", "anchor", "value", "origin", "definition", "inlay", "hover"]
+  },
+  imports: ["timer", "format"],
+  collections: {
+    timers: {
+      from: {
+        mentions: ["name", "line", "anchor", "bracket", "property"],
+        values: ["name", "line", "anchor", "type", "value"]
+      }
+    }
+  }
 }
 timer := import("timer")
 fmt := import("format")
+
+// Whether a definition's value is a timer.
+_timer := fn(v) => v.type == "Countdown" || v.type == "Stopwatch"
+
+// One record wherever the note names a timer: its definition and every
+// reference to it. `value` is the timer's record; `origin`, the definition
+// whose call made it, which its controls rewrite; `inlay`, whether the timer
+// shows there (a definition or a bracketed reference to the timer itself).
+// A name defined twice names no one timer.
+records := fn(ctx) => let(
+  {
+    timers: filter(ctx.document.values, _timer),
+    once: filter(
+      timers,
+      fn(t) => length(filter(ctx.document.values, fn(v) => v.name == t.name)) == 1
+    ),
+    names: map(once, fn(t) => t.name)
+  },
+  {
+    timers: if(
+      length(once) == 0,
+      [],
+      concat(
+        map(once, fn(t) => _record(t, true, false, null, t.value)),
+        map(
+          filter(ctx.document.mentions, fn(m) => contains(names, m.name)),
+          fn(m) => _record(
+            m,
+            false,
+            m.bracket,
+            m.property,
+            get(filter(once, fn(t) => t.name == m.name), 0).value
+          )
+        )
+      )
+    )
+  }
+)
+
+// The record of where `at` names a timer whose record is `value`: its
+// definition, or a reference, bracketed or not and reading `property`.
+_record := fn(at, definition, bracket, property, value) => {
+  kind: "timer",
+  title: at.name,
+  line: at.line,
+  anchor: at.anchor,
+  name: at.name,
+  definition: definition,
+  inlay: definition || (bracket && property == null),
+  value: value,
+  origin: if(value.origin == null, null, {document: value.origin.document, name: value.origin.name})
+}
 
 // Stop live refreshes when no visible timer is running.
 time_dependent := fn(ctx) => (
@@ -30,6 +95,13 @@ collect := fn(ctx) => (
   )
 )
 
+// The definition a control rewrites: one that calls countdown or stopwatch
+// itself, or null.
+_controlled := fn(value) => let(
+  {o: value.origin},
+  if(o == null || (o.function != "countdown" && o.function != "stopwatch"), null, o)
+)
+
 // Collapse aliases on one line that refer to the same original timer declaration.
 unique := fn(timers) => (
   fold(
@@ -48,26 +120,83 @@ glyph := fn(action) => (
   fmt.glyph(if(action == "pause" || action == "reset", action, "start"))
 )
 
-// Offer each timer's valid controls once on each line it appears on.
+// Offer each timer's valid controls once on each line it appears on. Each
+// acts on the row that defines the timer, in whichever note that is, so an
+// edit elsewhere leaves it standing.
 actions := fn(ctx) => (
   fold(
-    unique(filter(ctx.document.timers, fn(t) => t.origin != null)),
+    unique(filter(ctx.document.timers, fn(t) => _controlled(t.value) != null)),
     [],
-    fn(out, t) => concat(
-      out,
-      map(
-        timer.actions(t.value),
-        fn(action) => {
-          line: t.line,
-          title: glyph(action) + " " + action + " " + t.origin.name,
-          action: {
-            kind: "timer",
-            document: t.origin.document,
-            name: t.origin.name,
-            action: action
+    fn(out, t) => let(
+      {o: _controlled(t.value)},
+      concat(
+        out,
+        map(
+          timer.actions(t.value),
+          fn(action) => {
+            line: t.line,
+            title: glyph(action) + " " + action + " " + o.name,
+            action: {
+              kind: "row",
+              document: o.document,
+              row: o.line,
+              expected: o.text,
+              module: ctx.module.id,
+              event: {name: o.name, action: action}
+            }
           }
-        }
+        )
       )
+    )
+  )
+)
+
+// Why the timer this note defines as `name` cannot be controlled here, or
+// null when it can.
+_refusal := fn(ctx, name, t) => (
+  if(
+    length(filter(ctx.document.values, fn(v) => v.name == name)) == 0,
+    "Unknown name '" + text(name) + "'",
+    if(
+      t == null,
+      "Expected a named timer",
+      let(
+        {o: _controlled(t.value)},
+        if(
+          o == null || o.document != ctx.document.uri || o.name != name,
+          "Controls require a direct named countdown or stopwatch declaration",
+          null
+        )
+      )
+    )
+  )
+)
+
+// Start, pause, resume or reset the timer the event names, as of now: the
+// edit that rewrites its definition's call with its new arguments, or why it
+// cannot.
+reduce := fn(ctx, event) => let(
+  {
+    found: filter(ctx.document.timers, fn(t) => t.definition && t.name == event.name),
+    t: if(length(found) == 0, null, get(found, 0)),
+    refusal: _refusal(ctx, event.name, t)
+  },
+  if(
+    refusal != null,
+    error(refusal),
+    let(
+      {o: t.value.origin},
+      {
+        kind: "edit",
+        document: ctx.document.uri,
+        expected: ctx.document.text,
+        edits: [
+          {
+            range: o.range,
+            newText: timer.transition(t.value, event.action, coalesce(get(o.arguments, 0), ""))
+          }
+        ]
+      }
     )
   )
 )

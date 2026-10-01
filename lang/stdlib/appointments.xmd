@@ -1,0 +1,63 @@
+// Appointments: a line that says when it happens with `@at`, and no
+// checkbox. This module owns the attribute: it declares what its value holds
+// and how the editor describes it, and the host evaluates it in the note's
+// scope wherever it is written, handing each line's value over in the
+// `attributed` collection. From those values `records` builds the `events`
+// collection, which joins `entries` beside tasks, so the agenda and the
+// today page lay appointments out with them; `symbols` outlines them.
+module := {
+  api: 1,
+  id: "appointments",
+  kind: "feature",
+  inputs: {attributed: ["line", "title", "task", "range", "attributes"]},
+  attributes: {
+    at: {
+      value: "when",
+      params: ["time: Date or DateTime"],
+      applies: "task or appointment attribute",
+      doc: "Appointment time; a line with @at and no checkbox is an appointment. Include an explicit UTC offset for ambiguous local times.",
+      example: "2026-09-18T14:00-04:00"
+    }
+  },
+  collections: {events: {entries: true}}
+}
+
+// The lines that are appointments: an `at` time on a line that is no task.
+_appointments := fn(ctx) => (
+  filter(ctx.document.attributed, fn(a) => !a.task && get(a.attributes, "at") != null)
+)
+
+// An appointment as `entries` holds it beside tasks: when it is, the day
+// that falls on, and why it has no time when its value fails.
+_event := fn(a) => {
+  kind: "event",
+  line: a.line,
+  title: a.title,
+  at: a.attributes.at.value,
+  at_date: a.attributes.at.date,
+  due: null,
+  scheduled: null,
+  estimate: null,
+  parent: null,
+  tags: [],
+  blocked_by: [],
+  done: false,
+  leaf: true,
+  errors: if(a.attributes.at.error == null, [], [a.attributes.at.error])
+}
+
+// Build the event records from the appointment lines.
+records := fn(ctx) => {events: map(_appointments(ctx), _event)}
+
+// One outline entry per appointment, named by its title, its time as
+// written beside it.
+symbols := fn(ctx) => map(
+  _appointments(ctx),
+  fn(a) => {
+    name: if(a.title == "", "Untitled event", a.title),
+    detail: "@" + "at(" + a.attributes.at.text + ")",
+    kind: "event",
+    line: a.line,
+    selection: a.range
+  }
+)

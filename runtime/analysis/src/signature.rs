@@ -1,10 +1,11 @@
-//! Signature help, over the one table of built-in calls and task attributes
-//! that also feeds completion. The attributes' rows come from `AttributeKey`,
-//! the table of attributes the parser and the diagnostics read too.
+//! Signature help, over the one table of built-in calls that also feeds
+//! completion, and the prelude's functions, which describe themselves in
+//! their `.xmd` source. The attributes modules declare describe themselves,
+//! and a note knows them ([`Document::declarations`]).
 use crate::{hover::markup, locate::inert};
+use lang::eval::Workspace;
 use lang::eval::engine::{Builtin, ValueType};
-use lang::model::{Document, byte_at};
-use lang::syntax::AttributeKey;
+use lang::model::byte_at;
 use lsp_types::*;
 
 /// What a call answers with: one value kind wherever the answer has one, so
@@ -28,10 +29,9 @@ impl Outcome {
 // needs to know which built-ins module code alone may call.
 use lang::eval::engine::Tier;
 
-/// One built-in call or task attribute, as signature help and completion show
-/// it: `documentation` explains it and `example` is what signature help fills
-/// in. The table below is the only description of them the editor has; an
-/// attribute's row is built from its `AttributeKey`.
+/// One built-in call, as signature help and completion show it:
+/// `documentation` explains it and `example` is what signature help fills
+/// in. The table below is the only description of them the editor has.
 #[derive(Clone, Copy)]
 pub struct Signature {
     pub name: &'static str,
@@ -106,6 +106,7 @@ signatures! {
         Repeat("text: Text", "count: Number") -> Text, "Repeat text a bounded number of times.", "\"█\", 3";
         FormatDate("date: Date or DateTime", "format: Text") -> Text, "Format a date or timestamp with strftime directives.", "today(), \"%Y-%m-%d\"";
         Error("message: Text") -> "Never", "Return an evaluation error.", "\"Missing data\"";
+        Pending("message: Text") -> "Never", "Return an evaluation error that says the data is not available yet, such as a lookup nothing has fetched: hosts report it as a warning rather than a mistake in the note.", "\"No cached score; run xmd refresh\"";
         If("condition: Boolean", "then: Value", "else: Value") -> "Value", "Evaluate only the selected branch; more condition, result pairs may come before the else.", "n < 0, \"negative\", n == 0, \"zero\", \"positive\"";
         Match("value: Value", "case: Value", "result: Value", "otherwise: Value") -> "Value", "Pick the result of the first case equal to the value, else the last argument; more case, result pairs may follow the first.", "state, \"open\", \"○\", \"done\", \"✓\", \"?\"";
         Let("names: Record", "body: Value") -> "Value", "Name values for the body; each name can use the ones before it.", "{x: 2, y: x * 3}, x + y";
@@ -121,7 +122,6 @@ signatures! {
         Length("value: List, Record, or Text") -> Count, "Count items, fields, or Unicode characters.", "\"hello\"";
         Text("value: Value") -> Text, "Format a value as text; null remains null.", "$25";
         Debug("value: Value") -> Text, "Inspect any value as compact JSON text in an inlay. Records, lists, and host objects expose their fields; money, dates, durations, and ratios keep their type and units.", "{rain: 35%, pack: true}";
-        Sparkline("values: List", "min?: Number, Money, Ratio, or Duration", "max?: Number, Money, Ratio, or Duration") -> Text, "Draw one Unicode bar per numeric value, in list order. Null leaves a gap (·). The scale uses the data's minimum and maximum unless both bounds are supplied; values outside fixed bounds are clipped. Values and bounds must use matching units.", "[12, 18, 9, 24]";
         Contains("value: List or Text", "part: Value") -> Boolean, "Test membership or a text substring.", "\"hello\", \"ell\"";
         StartsWith("text: Text", "prefix: Text") -> Boolean, "Test a text prefix.", "\"hello\", \"he\"";
         EndsWith("text: Text", "suffix: Text") -> Boolean, "Test a text suffix.", "\"hello\", \"lo\"";
@@ -130,94 +130,104 @@ signatures! {
         Lower("text: Text") -> Text, "Convert text to lowercase.", "\"Hello\"";
         Upper("text: Text") -> Text, "Convert text to uppercase.", "\"Hello\"";
         Replace("text: Text", "from: Text", "to: Text") -> Text, "Replace text occurrences.", "\"hello\", \"h\", \"j\"";
-        MatchPattern("text: Text", "pattern: Text") -> "Record or Null", "The first match of a regular expression, or null: `{text, start, end, groups}`, offsets counting Unicode characters as `slice` does. `groups` has every named group `(?<name>...)` as `{text, start, end}`, or null when it took no part. Matching takes time linear in the text; a pattern is limited to 1024 bytes and compiled once.", "\"Ada: 42\", \"(?<name>\\\\w+): (?<n>\\\\d+)\"";
+        Quantize("values: List", "levels: Number", "low: Number or Null", "high: Number or Null") -> List, "Each value's level from 0 to levels - 1, in equal steps between low and high (the values' own extremes when both are null) and clipped to them; null stays null, and equal bounds put every value on the middle level. Reads magnitudes as number does, so units are the caller's to check.", "[12, 18, 9, 24], 8, null, null";
+        NextOccurrence("rule: Text", "anchor: Date", "after: Date") -> Record, "`{date, error}`: the first date after `after` that a recurrence counted from `anchor` falls on, or null with why there is none. A recurrence is `day`, `week`, `month` or `year` (or `daily`, `weekly`, `monthly`, `yearly`), or a positive whole-day duration such as `2w`. Months and years keep the anchor's day, or the month's last day when it has none (an anchor on the 31st comes back on the 30th, then the 31st).", "\"month\", 2026-01-31, today()";
+        ToJson("value: Text, Number, Boolean, Null, List or Record") -> Text, "The value as compact JSON, record keys sorted. Anything else, a date included, is an error: write it as text first.", "{title: \"Rent\", due: \"2026-10-01\"}";
+        EndPosition("text: Text") -> Record, "Where `text` ends as an editor counts: `{line, character}`, its line count and the UTF-16 length of its last line, or the next line's start when it ends in a line break. Where an edit appends to a note.", "ctx.document.text";
+        DisplayWidth("text: Text") -> Count, "How many columns `text` takes in a terminal or a monospace editor: most characters take one, wide ones such as CJK and most emoji take two, and combining marks and zero-width characters none. It aligns text where padding to `length` would not.", "\"名前\"";
+        MatchPattern("text: Text", "pattern: Text") -> "Record or Null", "The first match of a regular expression, or null: `{text, start, end, groups}`, offsets counting Unicode characters as `slice` does. `groups` has every named group `(?<name>...)` as `{text, start, end}`, or null when it took no part. Matching takes time linear in the text; a pattern is limited to 4096 bytes and compiled once.", "\"Ada: 42\", \"(?<name>\\\\w+): (?<n>\\\\d+)\"";
+        Cached("kind: Text", "key: List of one-field records", "label?: Text") -> "Record or Null", "The workspace's cached answer for a lookup as {value, fetched_at, source}, or null before anything has fetched it. Every key read, cached or not, is one xmd refresh and the ⟳ lookups lens fetch, through the provider for its kind; hovers name it by its label and show its age. The key's parts are in the order the cache spells them: [{from: \"EUR\"}, {to: \"USD\"}] is rate:EUR:USD.", "\"rate\", [{from: \"EUR\"}, {to: \"USD\"}], \"rate EUR→USD\"";
+        MakeMoney("amount: Number", "currency: Text") -> "Money or Null", "An amount of money in a currency code, or null when the code is not three uppercase letters.", "12.5, \"EUR\"";
+        MakeRatio("fraction: Number") -> Ratio, "A number as a ratio: 0.4 is 40%.", "0.4";
+        Tagged("kind: Text", "fields: Record", "display: Text", "hover?: Markdown") -> "the kind", "A record a note sees as a kind of its own, named by the module: a capitalized name of letters, digits and underscores that no built-in kind has. It reads its fields, names the kind in type, hovers and errors, shows the display text wherever it is shown, adds the hover to a symbol's hover, and is the plain record in queries and JSON. A record whose origin field is null learns the definition whose whole expression is the call that built it: {document, name, line, text, range, function, arguments}.", "\"Reading\", {celsius: 21}, \"21°C\"";
+        Clocked("value: Value", "ticking: Function") -> "Value", "The value, which keeps depending on the clock it read only while ticking(value) is true: once ticking says no, the value no longer moves with the clock it read, so nothing refreshes it.", "state, fn(s) => s.running";
         Sum("items: List or Table", "expression?: row calculation") -> "Number, Money, Ratio, or Duration", "Add compatible quantities from a list, skipping nulls, or a row expression over each table row, keeping units.", "groceries, quantity * price";
-        Countdown("duration: Duration", "elapsed?: Duration", "started?: DateTime") -> Countdown, "An idle countdown. Use Start timer to capture a timestamp; elapsed and started are persisted by timer controls.", "25m";
-        Stopwatch("elapsed?: Duration", "started?: DateTime") -> Stopwatch, "An idle stopwatch. Use Start, Pause, Resume, or Reset timer. Elapsed time includes time while the editor is closed.", "";
         Maximize("objective: linear expression") -> Plan, "Declare a linear plan over the | constraint | expression | table below; undefined names become decisions.", "3 * bagels + 1.25 * doughnuts";
         Solve("constraint: expression with <=, >=, or ==") -> "Number, Money, or Duration", "Goal seek: the definition's own name is the unknown, set to the boundary value that makes the constraint hold.", "total >= $500";
         Minimize("objective: linear expression") -> Plan, "Like maximize, but finds the smallest objective that satisfies every constraint in the table below.", "cost";
         Today() -> Date, "The current local calendar date. Updates at midnight.", "";
         Now() -> DateTime, "The current timestamp. Sampled once per evaluation; live hints refresh every second.", "";
-        Rate("from: currency code", "to: currency code") -> Number, "The cached exchange rate between two currencies, e.g. rate(EUR, USD). Refresh with xmd refresh or the ⟳ lookups lens; hovers show the age.", "EUR, USD";
-        To("amount: Money", "currency: code") -> Money, "Convert money with the cached rate, e.g. to(hotel, USD); without one the note warns until xmd refresh.", "hotel, USD";
-        Forecast("place: Text", "date: Date", "unit?: F or C") -> Forecast, "The cached forecast for a place and day, with .high, .low, .summary and .rain. Beyond 16 days, returns a seasonal outlook for up to about 7 months, labeled as an estimate. Seasonal .rain is the fraction of available ensemble runs with more than 0.1 mm of daily precipitation (including snow); it is unavailable with fewer than two valid runs. Itinerary days with a place get one automatically.", "\"Oaxaca\", 2026-11-20";
-        ForecastRange("place: Text", "start: Date", "end: Date", "unit?: F or C") -> List, "Cached daily forecasts in chronological order, including both dates. Project .high, .low, or .rain and pass the list to sparkline. One refresh requests the entire interval. Dates beyond 16 days use seasonal estimates; missing days remain lookup warnings until available. Limited to 4096 days.", "\"Oaxaca\", 2026-11-20, 2026-11-26, F";
-        Quote("symbol: ticker code") -> Money, "The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need a provider in .xmd/providers.json.", "NVDA";
         Date("value: Text, Date, or DateTime") -> "Date or DateTime", "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone.", "\"next Friday\"";
-        Effort("checklist: Checklist") -> Duration, "Sum estimates of unfinished leaf tasks beneath a named heading.", "checklist";
-        Total("checklist: Checklist") -> Count, "Count all leaf tasks beneath a named heading.", "checklist";
-        Completed("checklist: Checklist") -> Count, "Count completed leaf tasks beneath a named heading.", "checklist";
-        Remaining("checklist: Checklist") -> Count, "Count unfinished leaf tasks beneath a named heading.", "checklist";
     }
 }
 
-/// Task and appointment attributes, which are written like calls but name no
-/// built-in function. Everything about them comes from the one attribute table
-/// in `syntax`.
-const fn attribute(key: AttributeKey) -> Signature {
-    Signature {
-        name: key.spelling(),
-        params: key.params(),
-        result: Outcome::Words(key.applies_to()),
-        documentation: key.documentation(),
-        example: key.example(),
-        tier: Tier::Note,
-    }
-}
-
-const COUNT: usize = Builtin::ALL.len() + AttributeKey::ALL.len();
-/// The built-ins first, in `Builtin::ALL` order, then the attributes; both
-/// signature help and completion read the table in this order.
-const fn table() -> [Signature; COUNT] {
-    let mut table = [describe(Builtin::Import); COUNT];
+/// Every built-in, in `Builtin::ALL` order: what signature help and
+/// completion read.
+const fn table() -> [Signature; Builtin::ALL.len()] {
+    let mut table = [describe(Builtin::Import); Builtin::ALL.len()];
     let mut i = 0;
     while i < Builtin::ALL.len() {
         table[i] = describe(Builtin::ALL[i]);
         i += 1;
     }
-    while i < COUNT {
-        table[i] = attribute(AttributeKey::ALL[i - Builtin::ALL.len()]);
-        i += 1;
-    }
     table
 }
-const TABLE: [Signature; COUNT] = table();
+const TABLE: [Signature; Builtin::ALL.len()] = table();
 pub static BUILTINS: &[Signature] = &TABLE;
 
 pub fn signature(
-    doc: &Document,
+    ws: &Workspace,
     path: &std::path::Path,
     position: Position,
 ) -> Option<SignatureHelp> {
+    let doc = ws.documents().get(path)?;
     if inert(doc, position) {
         return None;
     }
     let line = doc.line(position.line as usize);
     let byte = byte_at(line, position.character)?;
     let (name, argument) = call_context(&line[..byte])?;
-    let function = BUILTINS.iter().find(|f| f.name == name)?;
-    // A note has no module-tier built-ins, so it is told nothing about them.
-    if function.tier == Tier::Module && !lang::eval::modules::is_module_path(path) {
-        return None;
-    }
-    Some(SignatureHelp {
-        signatures: vec![SignatureInformation {
-            label: format!(
+    let (label, params, documentation) = match BUILTINS.iter().find(|f| f.name == name) {
+        // A note has no module-tier built-ins, so it is told nothing about them.
+        Some(function)
+            if function.tier == Tier::Module && !lang::eval::modules::is_module_path(path) =>
+        {
+            return None;
+        }
+        Some(function) => (
+            format!(
                 "{}({}) → {}",
                 function.name,
                 function.params.join(", "),
                 function.result.as_str()
             ),
-            documentation: Some(Documentation::MarkupContent(markup(
-                function.documentation.into(),
-            ))),
+            function.params.iter().map(|p| p.to_string()).collect(),
+            function.documentation.to_string(),
+        ),
+        None if ws.prelude_name(path, name) => {
+            let function = ws
+                .prelude_functions()
+                .into_iter()
+                .find(|f| f.name == name)?;
+            (
+                format!("{}({})", function.name, function.params.join(", ")),
+                function.params,
+                function.documentation,
+            )
+        }
+        // An attribute a module declares describes itself.
+        None => {
+            let declared = doc.declared_attribute(name.strip_prefix('@')?)?;
+            (
+                format!(
+                    "{name}({}) → {}",
+                    declared.params.join(", "),
+                    declared.applies
+                ),
+                declared.params.clone(),
+                declared.documentation.clone(),
+            )
+        }
+    };
+    Some(SignatureHelp {
+        signatures: vec![SignatureInformation {
+            label,
+            documentation: Some(Documentation::MarkupContent(markup(documentation))),
             parameters: Some(
-                function
-                    .params
+                params
                     .iter()
                     .map(|p| ParameterInformation {
-                        label: ParameterLabel::Simple((*p).into()),
+                        label: ParameterLabel::Simple(p.clone()),
                         documentation: None,
                     })
                     .collect(),
@@ -225,8 +235,8 @@ pub fn signature(
             active_parameter: None,
         }],
         active_signature: Some(0),
-        active_parameter: (!function.params.is_empty())
-            .then_some(argument.min(function.params.len().saturating_sub(1) as u32)),
+        active_parameter: (!params.is_empty())
+            .then_some(argument.min(params.len().saturating_sub(1) as u32)),
     })
 }
 

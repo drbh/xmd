@@ -1,23 +1,41 @@
 //! On-type formatting: realign a table when a pipe is typed and continue a
 //! checklist when Enter is pressed. Shared by the native server and browser.
+//! How a table is laid out is the feature modules' formatting (the bundled
+//! `tables` module's); typing only decides which of its edits to keep.
 use lang::common::Span;
 use lang::eval::tables;
 use lang::model::{Document, byte_at, utf16};
 use lsp_types::{Position, Range, TextEdit};
+use std::path::Path;
 
 /// Characters that trigger `textDocument/onTypeFormatting`.
 pub const TRIGGERS: [&str; 2] = ["\n", "|"];
 
 /// `position` is the cursor after `ch` was inserted, as the protocol defines it.
-pub fn on_type(doc: &Document, position: Position, ch: &str) -> Vec<TextEdit> {
+pub(crate) fn on_type(
+    request: &crate::Request<'_>,
+    path: &Path,
+    position: Position,
+    ch: &str,
+) -> Vec<TextEdit> {
+    let Some(doc) = request.workspace().documents().get(path) else {
+        return vec![];
+    };
     match ch {
-        "|" => pipe(doc, position),
+        "|" => pipe(request, path, doc, position),
         "\n" => newline(doc, position),
         _ => vec![],
     }
 }
 
-fn pipe(doc: &Document, position: Position) -> Vec<TextEdit> {
+/// Formatting's edits to the table being typed, with the row under the
+/// caret left alone until it is complete.
+fn pipe(
+    request: &crate::Request<'_>,
+    path: &Path,
+    doc: &Document,
+    position: Position,
+) -> Vec<TextEdit> {
     let row = position.line as usize;
     let grids = tables::grids(doc);
     let Some(table) = grids.iter().find(|t| t.header <= row && row < t.end_line) else {
@@ -32,14 +50,23 @@ fn pipe(doc: &Document, position: Position) -> Vec<TextEdit> {
     // while more cells are still coming.
     let complete = line[byte..].trim().is_empty()
         && tables::cells(line, row).is_some_and(|parts| parts.len() == table.columns.len());
-    tables::aligned(doc, table)
+    let Ok(edits) = crate::providers::edits(request, path, Some(position)) else {
+        return vec![];
+    };
+    edits
         .into_iter()
-        .filter(|(l, _)| *l != row || complete)
-        .flat_map(|(l, text)| {
-            if l == row {
-                padding_edits(doc, l, &text)
+        .filter(|e| {
+            let line = e.range.start.line as usize;
+            line == e.range.end.line as usize
+                && (table.header..table.end_line).contains(&line)
+                && (line != row || complete)
+        })
+        .flat_map(|e| {
+            let whole = e.range.start.character == 0 && e.range.end == doc.line_end(row);
+            if e.range.start.line as usize == row && whole {
+                padding_edits(doc, row, &e.new_text)
             } else {
-                vec![tables::line_edit(doc, l, text)]
+                vec![e]
             }
         })
         .collect()
@@ -58,7 +85,10 @@ fn padding_edits(doc: &Document, row: usize, formatted: &str) -> Vec<TextEdit> {
             .zip(&new)
             .all(|(a, b)| a.2 == b.2 && (a.2 || line[a.0..a.1] == formatted[b.0..b.1]));
     if !same_shape {
-        return vec![tables::line_edit(doc, row, formatted.into())];
+        return vec![TextEdit::new(
+            Range::new(Position::new(row as u32, 0), doc.line_end(row)),
+            formatted.into(),
+        )];
     }
     old.iter()
         .zip(&new)

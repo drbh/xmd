@@ -1,7 +1,7 @@
 //! How the evaluator runs the modules the `modules` crate describes: a module's
 //! environment is a `Workspace` over its own note, and compiling or calling
 //! one evaluates that note with a module engine.
-use crate::{context::Memo, engine::Engine, workspace::Workspace};
+use crate::{engine::Engine, memo::Memo, workspace::Workspace};
 use chrono::{DateTime, FixedOffset};
 use model::Document;
 use modules::{Evaluator, Module, ModuleEnvironment, ModuleRegistry};
@@ -39,14 +39,33 @@ impl ModuleEnvironment for Workspace {
         args: Vec<Value>,
         now: DateTime<FixedOffset>,
     ) -> EvalResult<Value> {
-        let mut engine = Engine::for_module(&self, now)
-            .with_memo(self.calls.at(now))
+        let mut engine = Engine::for_module_sharing(&self, now, self.calls.at(now))
             .with_environment(self.clone())
             .with_expressions(module.expressions().clone());
-        let function = engine.named(&module.path, name)?;
-        engine
-            .call(function, args)
-            .map_err(|e| e.in_module(&module.id, name))
+        // What the call is handed sets how much it may do with it. Measured
+        // once, its parts are known when the values built of them are.
+        let cap = values::Size {
+            items: usize::MAX,
+            bytes: usize::MAX,
+        };
+        let input = args
+            .iter()
+            .fold(values::Size { items: 0, bytes: 0 }, |total, arg| {
+                let size = values::Size::of(arg, cap);
+                values::Size {
+                    items: total.items.saturating_add(size.items),
+                    bytes: total.bytes.saturating_add(size.bytes),
+                }
+            });
+        engine.budget = crate::engine::Budget::scaled(input);
+        let result = engine
+            .named(&module.path, name)
+            .and_then(|function| engine.call(function, args))
+            .map_err(|e| e.in_module(&module.id, name));
+        if engine.time_dependent() {
+            crate::memo::clock_read();
+        }
+        result
     }
 }
 

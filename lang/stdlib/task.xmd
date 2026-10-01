@@ -1,10 +1,11 @@
-// Task presentation the editor asks for by name. A hover reads the task's
-// `tasks` record, as queries and feature modules see it; this decides the words.
+// Task presentation: the words the `tasks` module shows for a task, read
+// from its `tasks` record, and the progress a named heading's hover shows,
+// which the editor asks for by name.
 module := {api: 1, id: "task", kind: "library", imports: ["format", "timer"], inputs: [], exports: []}
 fmt := import("format")
 tm := import("timer")
 
-// Engine contract: the editor calls toggle, hover and checklist by name.
+// Engine contract: the editor calls checklist by name.
 
 // Label the control that completes, reopens or advances a task.
 toggle := fn(recurring, done) => (

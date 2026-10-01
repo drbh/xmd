@@ -2,7 +2,6 @@
 use crate::arithmetic::binary;
 use crate::error::{EvalError, EvalResult, Limit, Overflow};
 use crate::value::{Value, duration, value_json};
-use common::ValueType;
 use std::collections::BTreeMap;
 use syntax::{BinaryOp, Builtin};
 
@@ -57,8 +56,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
             "Value cannot be written as an expression".into(),
         ))?),
         (B::Debug, [value]) => Text(value_json(value).to_string()),
-        (B::Sparkline, [List(values)]) => Text(sparkline(values, None)?),
-        (B::Sparkline, [List(values), min, max]) => Text(sparkline(values, Some((min, max)))?),
+        (B::Quantize, [List(values), levels, low, high]) => quantize(values, levels, low, high)?,
         (B::ParseDate, [Text(value), Text(format)]) => {
             chrono::NaiveDate::parse_from_str(value, format)
                 .ok()
@@ -72,6 +70,41 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                 .and_then(|d| reference.offset().from_local_datetime(&d).single())
                 .map(DateTime)
                 .unwrap_or(Null)
+        }
+        (B::NextOccurrence, [Text(rule), Date(anchor), Date(after)]) => {
+            let (date, error) = match crate::value::next_occurrence(rule, *anchor, *after) {
+                Ok(date) => (Date(date), Null),
+                Err(error) => (Null, Text(error.to_string())),
+            };
+            Value::record([("date".into(), date), ("error".into(), error)].into())
+        }
+        (B::ToJson, [value]) => Text(
+            crate::value::json(value)
+                .map_err(|_| {
+                    EvalError::Message(
+                        "to_json takes text, numbers, Booleans, null, lists and records".into(),
+                    )
+                })?
+                .to_string(),
+        ),
+        (B::EndPosition, [Text(text)]) => {
+            // As an editor counts: lines, and UTF-16 units on the last one.
+            let (line, character) = if text.ends_with('\n') {
+                (text.lines().count(), 0)
+            } else {
+                let last = text.lines().last().unwrap_or("");
+                (
+                    text.lines().count().saturating_sub(1),
+                    last.encode_utf16().count(),
+                )
+            };
+            Value::record(
+                [
+                    ("line".into(), Number(line as f64)),
+                    ("character".into(), Number(character as f64)),
+                ]
+                .into(),
+            )
         }
         (B::ParseDuration, [Text(value)]) => duration(value).map(Duration).unwrap_or(Null),
         (B::ParseTime, [Text(value), Text(format)]) => {
@@ -99,6 +132,21 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
                     .map(Date)
                     .unwrap_or(Null)
             }
+        }
+        // Money in any currency, or null when the code is not one: what
+        // the prelude's conversions and quotes build their answers with.
+        (B::MakeMoney, [amount, Text(code)]) => {
+            let amount = number(amount)?;
+            common::Currency::parse(code)
+                .map(|currency| Money(amount, currency))
+                .unwrap_or(Null)
+        }
+        (B::MakeRatio, [fraction]) => Ratio(number(fraction)?),
+        (B::Tagged, [Text(kind), fields, display]) => {
+            crate::tagged::Tagged::value(kind, fields, display, None)?
+        }
+        (B::Tagged, [Text(kind), fields, display, hover]) => {
+            crate::tagged::Tagged::value(kind, fields, display, Some(hover))?
         }
         (B::Merge3, [Text(base), Text(ours), Text(theirs)]) => {
             // A line-based three-way merge. Conflicting regions come back
@@ -187,6 +235,7 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         }
         (B::Type, [value]) => Text(value.type_name().into()),
         (B::Error, [Text(message)]) => return Err(EvalError::Custom(message.clone())),
+        (B::Pending, [Text(message)]) => return Err(EvalError::Pending(message.clone())),
         (B::Trim, [Text(text)]) => Text(text.trim().into()),
         (B::Floor | B::Round, [value]) => {
             let number = value
@@ -266,6 +315,9 @@ pub fn builtin(name: Builtin, args: &[Value]) -> EvalResult<Value> {
         (B::Length, [List(items)]) => Count(items.len()),
         (B::Length, [Record(fields)]) => Count(fields.len()),
         (B::Length, [Text(text)]) => Count(text.chars().count()),
+        (B::DisplayWidth, [Text(text)]) => {
+            Count(unicode_width::UnicodeWidthStr::width(text.as_str()))
+        }
         (B::Text, [Null]) => Null,
         (B::Text, [value]) => Text(value.display()),
         (B::Contains, [Text(text), Text(part)]) => Bool(text.contains(part)),
@@ -357,26 +409,135 @@ fn match_pattern(text: &str, pattern: &str) -> EvalResult<Value> {
     Ok(Value::record(fields))
 }
 
-pub fn check_size(value: &Value) -> EvalResult<()> {
-    let mut pending = vec![value];
-    let mut count = 0usize;
-    let mut bytes = 0usize;
-    while let Some(value) = pending.pop() {
-        count += 1;
-        match value {
-            Value::List(items) => pending.extend(items.iter()),
-            Value::Record(fields) => {
-                pending.extend(fields.values());
-                bytes += fields.keys().map(String::len).sum::<usize>();
-            }
-            Value::Text(text) => bytes += text.len(),
-            _ => (),
-        }
-        if count + pending.len() > MAX_ITEMS || bytes > MAX_BYTES {
-            return Err(EvalError::LimitExceeded(Limit::Value));
-        }
+/// How big a value may grow: how many values it holds, nested ones
+/// included, and how many bytes of text and field names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Size {
+    pub items: usize,
+    pub bytes: usize,
+}
+impl Size {
+    /// What any value may hold, wherever it is built.
+    pub const LIMIT: Self = Self {
+        items: MAX_ITEMS,
+        bytes: MAX_BYTES,
+    };
+    /// How big `value` is, counting no further than `cap`: the first size
+    /// past it is as far as the count goes. A list or record measured in
+    /// full keeps its size, so a value built from measured parts is measured
+    /// in the time it takes to visit its own fields, and a shared value is
+    /// never walked twice.
+    pub fn of(value: &Value, cap: Self) -> Self {
+        Self::measure(value, cap, 0)
     }
-    Ok(())
+    fn measure(value: &Value, cap: Self, depth: usize) -> Self {
+        let known = match value {
+            Value::List(items) => items.size(),
+            Value::Record(fields) => fields.size(),
+            Value::Text(text) => {
+                return Self {
+                    items: 1,
+                    bytes: text.len(),
+                };
+            }
+            _ => return Self { items: 1, bytes: 0 },
+        };
+        if let Some(size) = known {
+            return size;
+        }
+        // Deep values are walked as they are, without recursion.
+        if depth > 64 {
+            return Self::walked(value, cap);
+        }
+        let mut size = Self {
+            items: 1,
+            bytes: match value {
+                Value::Record(fields) => fields.keys().map(String::len).sum(),
+                _ => 0,
+            },
+        };
+        let mut add = |child: &Value| {
+            let child = Self::measure(child, cap, depth + 1);
+            size.items = size.items.saturating_add(child.items);
+            size.bytes = size.bytes.saturating_add(child.bytes);
+            size.within(cap)
+        };
+        let complete = match value {
+            Value::List(items) => items.iter().all(&mut add),
+            Value::Record(fields) => fields.values().all(&mut add),
+            _ => true,
+        };
+        if complete && size.within(cap) {
+            remember(value, size);
+        }
+        size
+    }
+    /// [`Self::of`] without recursion, reading the sizes already known.
+    fn walked(value: &Value, cap: Self) -> Self {
+        let mut pending = vec![value];
+        let mut size = Self { items: 0, bytes: 0 };
+        while let Some(value) = pending.pop() {
+            let known = match value {
+                Value::List(items) => items.size(),
+                Value::Record(fields) => fields.size(),
+                _ => None,
+            };
+            match (value, known) {
+                (_, Some(known)) => {
+                    size.items = size.items.saturating_add(known.items);
+                    size.bytes = size.bytes.saturating_add(known.bytes);
+                }
+                (Value::List(items), None) => {
+                    size.items += 1;
+                    pending.extend(items.iter());
+                }
+                (Value::Record(fields), None) => {
+                    size.items += 1;
+                    pending.extend(fields.values());
+                    size.bytes += fields.keys().map(String::len).sum::<usize>();
+                }
+                (Value::Text(text), None) => {
+                    size.items += 1;
+                    size.bytes += text.len();
+                }
+                _ => size.items += 1,
+            }
+            if size.items.saturating_add(pending.len()) > cap.items || size.bytes > cap.bytes {
+                size.items = size.items.saturating_add(pending.len());
+                return size;
+            }
+        }
+        if size.within(cap) {
+            remember(value, size);
+        }
+        size
+    }
+    /// Whether it is within `limit`.
+    pub fn within(self, limit: Self) -> bool {
+        self.items <= limit.items && self.bytes <= limit.bytes
+    }
+}
+
+/// Keep the size of a list or record measured in full.
+fn remember(value: &Value, size: Size) {
+    match value {
+        Value::List(items) => items.measured(size),
+        Value::Record(fields) => fields.measured(size),
+        _ => (),
+    }
+}
+
+/// Whether `value` is within the size any value may have.
+pub fn check_size(value: &Value) -> EvalResult<()> {
+    check_size_within(value, Size::LIMIT)
+}
+/// Whether `value` is within `limit`.
+pub fn check_size_within(value: &Value, limit: Size) -> EvalResult<()> {
+    if Size::of(value, limit).within(limit) {
+        Ok(())
+    } else {
+        Err(EvalError::LimitExceeded(Limit::Value))
+    }
 }
 
 /// A nonnegative whole number; a number past `usize` saturates.
@@ -450,80 +611,60 @@ pub fn sum(values: impl IntoIterator<Item = Value>) -> EvalResult<Value> {
     Ok(total.unwrap_or(Null))
 }
 
-// The `sparkline` built-in: one block per value, scaled between a minimum and
-// maximum, so every editor renders the chart as text. Hover charts are built
-// on it by `format.series` in the stdlib.
-const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-
-fn spark_block(value: f64, min: f64, max: f64) -> char {
-    if min == max {
-        return BLOCKS[BLOCKS.len() / 2];
-    }
-    let value = value.clamp(min, max);
-    let span = max - min;
-    let fraction = if span.is_finite() {
-        (value - min) / span
-    } else {
-        // Opposite finite extremes may have an infinite difference.
-        (value / 2.0 - min / 2.0) / (max / 2.0 - min / 2.0)
-    };
-    BLOCKS[((fraction * (BLOCKS.len() - 1) as f64).round() as usize).min(BLOCKS.len() - 1)]
-}
-
-/// An explicit inline chart validates its units and retains missing samples,
-/// so each position still corresponds to the same day or table row.
-fn sparkline(values: &[Value], bounds: Option<(&Value, &Value)>) -> EvalResult<String> {
-    let mut unit = None;
-    let mut numeric = |value: &Value| {
-        let number = magnitude(value).filter(|v| v.is_finite()).ok_or_else(|| {
-            EvalError::Message("sparkline expects finite numeric values or null gaps".into())
-        })?;
-        let kind = match value {
-            Value::Count(_) => (ValueType::Number, None),
-            Value::Money(_, currency) => (value.kind(), Some(*currency)),
-            _ => (value.kind(), None),
-        };
-        if unit.is_some_and(|unit| unit != kind) {
-            return Err(EvalError::Message(
-                "sparkline values and bounds must use matching units".into(),
-            ));
-        }
-        unit = Some(kind);
-        Ok(number)
-    };
-    let bounds = bounds
-        .map(|(min, max)| Ok::<_, EvalError>((numeric(min)?, numeric(max)?)))
-        .transpose()?;
-    if bounds.is_some_and(|(min, max)| min >= max) {
-        return Err(EvalError::Message(
-            "sparkline minimum must be less than its maximum".into(),
-        ));
-    }
-    let samples: Vec<_> = values
+/// `quantize(values, levels, low, high)`: each value's level, from `0` to
+/// `levels - 1`, in equal steps between `low` and `high` (the values' own
+/// extremes when both are null), clipped to them. A null stays null, and
+/// when `low` and `high` are equal every value is the middle level. Units are
+/// the caller's to check: this reads magnitudes, as `number` does.
+fn quantize(values: &[Value], levels: &Value, low: &Value, high: &Value) -> EvalResult<Value> {
+    let invalid = || EvalError::Message("Invalid arguments for quantize".into());
+    let levels = whole(levels).filter(|n| *n > 0).ok_or_else(invalid)?;
+    let magnitudes = values
         .iter()
-        .map(|value| {
-            if matches!(value, Value::Null) {
-                Ok(None)
-            } else {
-                numeric(value).map(Some)
-            }
+        .map(|value| match value {
+            Value::Null => Ok(None),
+            value => magnitude(value)
+                .filter(|n| n.is_finite())
+                .map(Some)
+                .ok_or(EvalError::Expected("a numeric value")),
         })
-        .collect::<EvalResult<_>>()?;
-    let (min, max) = bounds.unwrap_or_else(|| {
-        samples
+        .collect::<EvalResult<Vec<_>>>()?;
+    let (low, high) = match (low, high) {
+        (Value::Null, Value::Null) => magnitudes
             .iter()
             .flatten()
-            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), value| {
-                (min.min(*value), max.max(*value))
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), n| {
+                (low.min(*n), high.max(*n))
+            }),
+        (low, high) => (
+            magnitude(low).ok_or_else(invalid)?,
+            magnitude(high).ok_or_else(invalid)?,
+        ),
+    };
+    let top = (levels - 1) as f64;
+    Ok(Value::list(
+        magnitudes
+            .into_iter()
+            .map(|n| match n {
+                None => Value::Null,
+                Some(_) if low == high => Value::Count(levels / 2),
+                Some(n) => {
+                    let n = n.clamp(low.min(high), high.max(low));
+                    let span = high - low;
+                    let fraction = if span.is_finite() {
+                        (n - low) / span
+                    } else {
+                        // Opposite finite extremes may have an infinite difference.
+                        (n / 2.0 - low / 2.0) / (high / 2.0 - low / 2.0)
+                    };
+                    Value::Count(((fraction * top).round() as usize).min(levels - 1))
+                }
             })
-    });
-    Ok(samples
-        .into_iter()
-        .map(|value| value.map_or('·', |value| spark_block(value, min, max)))
-        .collect())
+            .collect(),
+    ))
 }
 
-/// A numeric magnitude for charting; text, dates and timers have none.
+/// A numeric magnitude: text, dates and host objects have none.
 fn magnitude(value: &Value) -> Option<f64> {
     match value {
         Value::Duration(s) => Some(*s as f64),
@@ -564,5 +705,51 @@ mod tests {
         assert_eq!(builtin(Builtin::MatchPattern, &none).unwrap(), Value::Null);
         let bad = [text("abc"), text("(")];
         assert!(builtin(Builtin::MatchPattern, &bad).is_err());
+    }
+
+    /// Levels span the data or the bounds, clipped; gaps stay gaps and a flat
+    /// series sits on the middle level.
+    #[test]
+    fn quantize_scales_clips_and_keeps_gaps() {
+        let levels = |values: Vec<Value>, low: Value, high: Value| {
+            let Value::List(levels) = builtin(
+                Builtin::Quantize,
+                &[Value::list(values), Value::Count(8), low, high],
+            )
+            .unwrap() else {
+                panic!("not a list")
+            };
+            levels
+                .iter()
+                .map(|v| match v {
+                    Value::Count(n) => Some(*n),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        };
+        let n = Value::Number;
+        assert_eq!(
+            levels(
+                vec![n(12.0), n(18.0), n(9.0), n(24.0)],
+                Value::Null,
+                Value::Null
+            ),
+            [Some(1), Some(4), Some(0), Some(7)]
+        );
+        assert_eq!(
+            levels(vec![n(-10.0), Value::Null, n(120.0)], n(0.0), n(100.0)),
+            [Some(0), None, Some(7)]
+        );
+        assert_eq!(
+            levels(vec![n(5.0), n(5.0)], Value::Null, Value::Null),
+            [Some(4), Some(4)]
+        );
+        let text = [
+            Value::list(vec![Value::Text("x".into())]),
+            Value::Count(8),
+            Value::Null,
+            Value::Null,
+        ];
+        assert!(builtin(Builtin::Quantize, &text).is_err());
     }
 }

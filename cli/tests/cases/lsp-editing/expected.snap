@@ -66,7 +66,7 @@
 1:21+3 xmdDuration "25m"
 1:24+1 xmdPunctuation ")"
 2:0+1 xmdPunctuation "-"
-2:2+3 xmdCheckbox "[ ]"
+2:2+3 xmdToggle "[ ]"
 2:16+10 xmdDate "09/17/2026"
 2:30+3 xmdTime "7AM"
 -- change links.x.md (version 2)
@@ -104,8 +104,8 @@
 1:8+2 operator ":="
 1:11+5 xmdMoney "$3.30"
 2:0+1 xmdPunctuation "-"
-2:2+3 xmdCheckboxChecked "[x]"
-2:5+28 xmdTaskDone " Interview 09/17/2026 at 7AM"
+2:2+3 xmdToggleOn "[x]"
+2:5+28 xmdFinished " Interview 09/17/2026 at 7AM"
 -- open symbols.x.md
 -- await textDocument/publishDiagnostics symbols.x.md
 {
@@ -760,14 +760,14 @@ exit 0
 2:13+1 xmdPunctuation ":"
 2:14+6 variable [declaration] "launch"
 4:0+1 xmdPunctuation "-"
-4:2+3 xmdCheckbox "[ ]"
+4:2+3 xmdToggle "[ ]"
 4:12+9 decorator "@estimate"
 4:21+1 xmdPunctuation "("
 4:22+3 xmdDuration "20m"
 4:25+1 xmdPunctuation ")"
 5:0+1 xmdPunctuation "-"
-5:2+3 xmdCheckboxChecked "[X]"
-5:5+9 xmdTaskDone " Finished"
+5:2+3 xmdToggleOn "[X]"
+5:5+9 xmdFinished " Finished"
 7:0+4 variable [declaration] "done"
 7:4+3 operator " :="
 7:8+9 function [defaultLibrary] "completed"

@@ -1,6 +1,6 @@
 //! The registry: the compiled set of modules, linked and ready to call.
 use crate::link_features::LinkFeatures;
-use crate::module::{Module, ModuleKind, NewEnvironment};
+use crate::module::{Declared, Module, ModuleKind, NewEnvironment};
 use chrono::{DateTime, FixedOffset};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -10,6 +10,12 @@ use values::{EvalError, EvalResult, Value};
 
 /// Where the bundled modules live: no file on disk is under this root.
 const BUNDLED_ROOT: &str = "/__xmd_stdlib__";
+
+/// The id of the prelude: the library whose exports are names in every note
+/// and every other module without an `import`, below the names they define
+/// themselves. A workspace module with this id replaces it, as with any
+/// bundled id.
+pub const PRELUDE: &str = "prelude";
 
 #[derive(Clone, Debug, Default)]
 pub struct ModuleRegistry {
@@ -40,12 +46,34 @@ impl ModuleRegistry {
     pub fn get(&self, id: &str) -> Option<&Module> {
         self.active().find(|m| m.id == id)
     }
-    /// The recognizers the active modules declare, in manifest order: what a
-    /// note is recognized with as it is parsed.
-    pub fn recognizers(&self) -> Vec<std::sync::Arc<model::recognized::Rule>> {
+    /// The active prelude library, whose exports every note and module sees.
+    pub fn prelude(&self) -> Option<&Module> {
+        self.get(PRELUDE).filter(|m| m.kind == ModuleKind::Library)
+    }
+    /// The recognizers and attributes the active modules declare, in
+    /// manifest order: what a note is read with as it is parsed.
+    pub fn recognizers(&self) -> model::recognized::Recognizers {
+        model::recognized::Recognizers {
+            rules: self
+                .active()
+                .flat_map(|m| m.recognizes.iter().cloned())
+                .collect(),
+            attributes: self
+                .active()
+                .flat_map(|m| m.attributes.iter().cloned())
+                .collect(),
+        }
+    }
+    /// The active module that declares the collection `name`, with its
+    /// declaration.
+    pub fn declaring(&self, name: &str) -> Option<(&Module, &Declared)> {
         self.active()
-            .flat_map(|m| m.recognizes.iter().cloned())
-            .collect()
+            .find_map(|m| Some((m, m.collections.iter().find(|c| *c.name == *name)?)))
+    }
+    /// Every collection the active modules declare, in manifest order.
+    pub fn declared(&self) -> impl Iterator<Item = (&Module, &Declared)> {
+        self.active()
+            .flat_map(|m| m.collections.iter().map(move |c| (m, c)))
     }
     /// The active modules of one kind, in manifest order.
     pub fn of_kind(&self, kind: ModuleKind) -> impl Iterator<Item = &Module> {
@@ -140,9 +168,11 @@ fn bundled(environment: NewEnvironment) -> &'static [Module] {
         // The standard library, then bundled plugins: the integrations with
         // outside services, kept apart from the language's own library.
         let modules = bundle!["stdlib":
+            prelude,
             agenda,
             definitions,
             tasks,
+            appointments,
             references,
             links,
             itinerary_core,
@@ -157,6 +187,7 @@ fn bundled(environment: NewEnvironment) -> &'static [Module] {
             today,
             units,
             table_cells,
+            tables,
             checklists,
             calculations,
         ]
@@ -196,24 +227,84 @@ fn link(modules: Vec<Module>) -> Result<Vec<Module>, String> {
             None => return Err(format!("Unknown module import '{id}'")),
         };
         stack.push(id.into());
-        let dependencies = module
+        let mut dependencies = module
             .imports
             .iter()
             .map(|id| resolve(id, sources, ready, stack))
             .collect::<Result<Vec<_>, _>>()?;
-        stack.pop();
+        // A module reads the clock through what it imports; the prelude every
+        // module sees only lends it its functions (one reads the clock
+        // only when a note calls it), so it makes no module live.
         module.live = module.own_live || dependencies.iter().any(|m| m.live);
-        module.environment = module.environment.with_modules(ModuleRegistry {
+        // Every module sees the prelude, but for the prelude itself and the
+        // modules it is built from, which `link` resolves before any other.
+        if !module.imports.iter().any(|i| i == PRELUDE)
+            && let Some(prelude) = ready.get(PRELUDE)
+        {
+            dependencies.push(prelude.clone());
+        }
+        stack.pop();
+        let environment = module.environment().with_modules(ModuleRegistry {
             modules: dependencies,
         });
+        module.set_environment(environment);
         ready.insert(id.into(), module.clone());
         Ok(module)
     }
+    collections(&modules)?;
     let order: Vec<_> = modules.iter().map(|m| m.id.clone()).collect();
-    let sources = modules.into_iter().map(|m| (m.id.clone(), m)).collect();
+    let sources: BTreeMap<String, Module> =
+        modules.into_iter().map(|m| (m.id.clone(), m)).collect();
     let mut ready = BTreeMap::new();
+    if sources.contains_key(PRELUDE) {
+        resolve(PRELUDE, &sources, &mut ready, &mut vec![])?;
+    }
     order
         .into_iter()
         .map(|id| resolve(&id, &sources, &mut ready, &mut vec![]))
         .collect()
+}
+
+/// A collection or an attribute is declared by one active module, and every
+/// collection an active module's `inputs` names is native or declared by one.
+fn collections(modules: &[Module]) -> Result<(), String> {
+    let active = || modules.iter().filter(|m| m.enabled);
+    let mut attributes: BTreeMap<&str, &str> = BTreeMap::new();
+    for module in active() {
+        for attribute in &module.attributes {
+            if let Some(first) = attributes.insert(&attribute.key, &module.id) {
+                return Err(format!(
+                    "{} and {first} both declare the attribute @{}",
+                    module.id, attribute.key
+                ));
+            }
+        }
+    }
+    let mut declared: BTreeMap<&str, &str> = BTreeMap::new();
+    for module in active() {
+        for collection in &module.collections {
+            if let Some(first) = declared.insert(&collection.name, &module.id) {
+                return Err(format!(
+                    "{} and {first} both declare the collection '{}'",
+                    module.id, collection.name
+                ));
+            }
+        }
+    }
+    for module in active() {
+        // The default inputs read the tasks collection only when it is there.
+        let inputs = (module.inputs != crate::module::default_inputs())
+            .then_some(module.inputs.iter())
+            .into_iter()
+            .flatten();
+        for input in inputs.chain(module.sources.keys()) {
+            if input.is_declared() && !declared.contains_key(input.as_str()) {
+                return Err(format!(
+                    "{}: Unknown input collection: {input}",
+                    module.path.display()
+                ));
+            }
+        }
+    }
+    Ok(())
 }

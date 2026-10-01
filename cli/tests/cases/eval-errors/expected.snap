@@ -201,7 +201,7 @@ exit 1
 [evaluated_ok] := import("probe").evaluate("1 + 2") = 3
 --- stderr
 <root>/calls.x.md:3:17: error: total expects one argument
-<root>/calls.x.md:4:18: error: today expects one argument
+<root>/calls.x.md:4:18: error: today takes no arguments
 <root>/calls.x.md:5:15: error: if expects conditions and results in pairs, then an else
 <root>/calls.x.md:6:18: error: import expects a module ID or a literal note path
 <root>/calls.x.md:7:20: error: import expects text
@@ -339,12 +339,12 @@ exit 0
 
 ### 7 lsp
 -- open recur.x.md
--- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","expected":"- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","event":{"line":0},"expected":"- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Recurrence date overflow"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","expected":"- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)","kind":"toggle_task","row":1}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:recur.x.md}","event":{"line":1},"expected":"- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)","kind":"row","module":"tasks","row":1}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Recurrence exceeded its search limit"

@@ -6,7 +6,7 @@ exit 0
   {
     "code": "module",
     "line": 2,
-    "message": "itinerary_core.dates: ITINERARY DATES FAILURE",
+    "message": "Module itinerary.records: ITINERARY DATES FAILURE",
     "severity": "error"
   }
 ]
@@ -15,35 +15,13 @@ exit 0
 $ xmd query trip.x.md map(stops, fn(r) => {line: r.line, at_date: r.at_date, errors: r.errors}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[
-  {
-    "at_date": null,
-    "errors": [
-      "ITINERARY DATES FAILURE"
-    ],
-    "line": 4
-  },
-  {
-    "at_date": null,
-    "errors": [
-      "ITINERARY DATES FAILURE"
-    ],
-    "line": 5
-  }
-]
+[]
 
 ### 2 cli query trip.x.md map(days, fn(r) => {line: r.line, errors: r.errors}) --json
 $ xmd query trip.x.md map(days, fn(r) => {line: r.line, errors: r.errors}) --json --root <root> --now 2026-09-16T14:00:00-04:00
 exit 0
 --- stdout
-[
-  {
-    "errors": [
-      "ITINERARY DATES FAILURE"
-    ],
-    "line": 2
-  }
-]
+[]
 
 ### 3 lsp
 -- open trip.x.md
@@ -52,14 +30,14 @@ exit 0
   "diagnostics": [
     {
       "code": "module",
-      "message": "itinerary_core.dates: ITINERARY DATES FAILURE",
+      "message": "Module itinerary.records: ITINERARY DATES FAILURE",
       "range": {
         "end": {
           "character": 25,
           "line": 2
         },
         "start": {
-          "character": 8,
+          "character": 0,
           "line": 2
         }
       },
@@ -81,7 +59,7 @@ exit 1
 watch := stopwatch()
 Elapsed [watch.elapsed].
 --- stderr
-<root>/watch.x.md:1:10: error: Module timer.state: TIMER STATE FAILURE
+<root>/watch.x.md:1:10: error: TIMER STATE FAILURE
 xmd: 1 error(s) while rendering
 
 ### 6 cli query watch.x.md map(diagnostics, fn(r) => {line: r.line, code: r.code, message: r.message}) --json
@@ -92,7 +70,7 @@ exit 0
   {
     "code": "evaluation",
     "line": 0,
-    "message": "Module timer.state: TIMER STATE FAILURE"
+    "message": "TIMER STATE FAILURE"
   }
 ]
 

@@ -130,7 +130,7 @@ exit 0
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:release.x.md}","expected":"- [ ] Parent","kind":"toggle_task","row":1}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:release.x.md}","event":{"line":1},"expected":"- [ ] Parent","kind":"row","module":"tasks","row":1}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -236,7 +236,7 @@ null
     "title": "✓ done"
   }
 ]
--- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","expected":"- [ ] Publish @after(review)","kind":"toggle_task","row":1}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:blocked.x.md}","event":{"line":1},"expected":"- [ ] Publish @after(review)","kind":"row","module":"tasks","row":1}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Blocked by review"
@@ -334,7 +334,7 @@ error: {
 0:0+1 xmdPunctuation "#"
 0:1+8 heading " café 🌴"
 1:0+1 xmdPunctuation "-"
-1:2+3 xmdCheckbox "[ ]"
+1:2+3 xmdToggle "[ ]"
 1:13+1 xmdPunctuation "["
 1:14+3 xmdMoney "$30"
 1:17+2 xmdPunctuation "]:"
@@ -425,7 +425,7 @@ error: {
   }
 ]
 -- open walk.x.md
--- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.x.md}","expected":"- [ ] Walk @every(day)","kind":"toggle_task","row":1}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:walk.x.md}","event":{"line":1},"expected":"- [ ] Walk @every(day)","kind":"row","module":"tasks","row":1}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {

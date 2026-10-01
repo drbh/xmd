@@ -1,74 +1,44 @@
-//! Cached lookups on disk, and fetching them: exchange rates, weather forecasts
-//! and stock quotes, from provider modules (the bundled ones live in
-//! `lang/plugins`) or commands named in `.xmd/providers.json`. Values live in `.xmd/lookups.json` with the time they
-//! were fetched, so notes keep working offline. Fetching happens only on
-//! `xmd refresh` or the Refresh lens.
+//! Cached lookups on disk, and fetching them: whatever `cached(kind, key)`
+//! asked for (exchange rates, weather forecasts and stock quotes, from the
+//! prelude), from provider modules (the bundled ones live in `lang/plugins`)
+//! or commands named in `.xmd/providers.json`. Values live in
+//! `.xmd/lookups.json` with the time they were fetched, so notes keep working
+//! offline. Fetching happens only on `xmd refresh` or the Refresh lens.
 use crate::command::Step;
 use crate::io::{output, read_json_or_default, write_json_atomic};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use lang::eval::Workspace;
 use lang::eval::engine::Value;
-use lang::eval::lookups::{Lookup, LookupKey, Store, day_place};
+use lang::eval::lookups::{Lookup, LookupKey, Store};
 use lang::eval::modules::{Module, ModuleKind, ModuleRegistry, from_json, json, record};
-use lang::syntax::AttributeKey;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-/// Every lookup the notes ask for, found by evaluating them. Itinerary days
-/// with a place want a forecast even without a `forecast(...)` call.
+/// Every lookup the notes read, found by evaluating them, and every one a
+/// record a module built asks for (a day's forecast, say) without any call
+/// that reads it.
 fn wanted(
     ws: &Workspace,
     now: DateTime<chrono::FixedOffset>,
     only: Option<&std::path::Path>,
 ) -> std::collections::BTreeSet<LookupKey> {
     let mut engine = lang::eval::engine::Engine::at(ws, now);
-    let mut keys = std::collections::BTreeSet::new();
-    let today = engine.today();
-    let symbols = ws.symbols();
-    for (path, doc) in ws
-        .documents()
-        .iter()
-        .filter(|(path, _)| only.is_none_or(|only| *path == only))
-    {
-        for symbol in symbols.iter().filter(|s| s.path == *path) {
-            let _ = engine.symbol(symbol);
-        }
-        for calculation in &doc.calculations {
-            let _ = engine.eval_at(path, &calculation.source, calculation.span);
-        }
-        for task in &doc.tasks {
-            // Only an expression can ask for a lookup.
-            for (key, attr) in &task.attributes {
-                if key
-                    .parse::<AttributeKey>()
-                    .is_ok_and(|k| k.value().is_expression())
-                {
-                    let _ = engine.eval(path, &attr.value);
-                }
-            }
-        }
-        // Like the evaluations above, a failure is the note's diagnostic to
-        // report; days without dates want no forecast.
-        let dates =
-            lang::eval::itinerary::dates(ws.modules(), &doc.days, today).unwrap_or_default();
-        for (day, date) in doc.days.iter().zip(&dates) {
-            if let (Some((places, _)), Some(date)) = (&day.places, date)
-                && let Some(place) = day_place(places)
-            {
-                keys.insert(LookupKey::forecast(&place, *date));
-            }
-        }
-    }
-    keys.extend(engine.wanted().iter().cloned());
-    keys
+    let records = catalog::Records::default();
+    ws.documents()
+        .keys()
+        .filter(|path| only.is_none_or(|only| *path == only))
+        .flat_map(|path| catalog::lookups(&records, &mut engine, path))
+        .map(|(_, key)| key)
+        .collect()
 }
 
 fn save(root: &Path, store: &Store) -> Result<(), String> {
     write_json_atomic(&root.join(".xmd/lookups.json"), store)
 }
-/// `.xmd/providers.json` maps a lookup kind to a command printing JSON,
-/// with `{from}`, `{to}`, `{symbol}`, `{place}`, `{date}` placeholders.
+/// `.xmd/providers.json` maps a lookup kind to a command printing JSON, with
+/// a placeholder for each part of the key: `{from}`, `{to}`, `{symbol}`,
+/// `{place}`, `{date}`.
 fn providers(root: &Path) -> BTreeMap<String, String> {
     read_json_or_default(&root.join(".xmd/providers.json"))
 }
@@ -103,7 +73,8 @@ async fn get(url: &str) -> Result<String, String> {
 /// first; otherwise the first active provider module for this kind of lookup
 /// does, so a workspace's own provider replaces a bundled one. Unavailable
 /// data becomes a value with an `error` field; request failures are returned
-/// to the refresh caller.
+/// to the refresh caller. What a value means is the prelude's, so it is kept
+/// as the provider printed it.
 async fn fetch(
     modules: &ModuleRegistry,
     root: &Path,
@@ -111,30 +82,24 @@ async fn fetch(
     today: NaiveDate,
     now: DateTime<FixedOffset>,
 ) -> Result<(serde_json::Value, String), String> {
-    let (kind, fields) = (key.kind(), key.fields());
-    if let Some(command) = providers(root).get(kind.as_ref()) {
-        let value = run(command, &fields).await?;
-        let value = match key {
-            LookupKey::Rate { .. } => serde_json::json!({"rate": value["rate"]}),
-            LookupKey::Quote(_) => {
-                serde_json::json!({"price": value["price"], "currency": value["currency"].as_str().unwrap_or("USD")})
-            }
-            LookupKey::Forecast { .. } => value,
-        };
+    let kind = key.kind();
+    if let Some(command) = providers(root).get(kind) {
+        let fills: Vec<(&str, String)> = key
+            .parts()
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.display()))
+            .collect();
+        let value = run(command, &fills).await?;
         let source = command.split_whitespace().next().unwrap_or("provider");
         return Ok((value, source.into()));
     }
     let module = modules
         .of_kind(ModuleKind::Provider)
-        .find(|m| m.provides.contains(&kind))
+        .find(|m| m.provides.iter().any(|provides| provides == kind))
         .ok_or_else(|| format!("No provider module answers {kind} lookups"))?;
-    let key_record =
-        [("kind", Value::Text(kind.to_string()))]
-            .into_iter()
-            .chain(fields.into_iter().map(|(name, value)| match (key, name) {
-                (LookupKey::Forecast { date, .. }, "date") => (name, Value::Date(*date)),
-                _ => (name, Value::Text(value)),
-            }));
+    let key_record = [("kind".to_owned(), Value::Text(kind.to_owned()))]
+        .into_iter()
+        .chain(key.parts().iter().cloned());
     run_provider(module, record(key_record), today, now).await
 }
 
@@ -185,7 +150,7 @@ async fn run_provider(
         }
         state = step.state();
         let requests = match step.take("requests") {
-            Some(Value::List(requests)) => Arc::unwrap_or_clone(requests),
+            Some(Value::List(requests)) => Arc::unwrap_or_clone(requests).into_inner(),
             _ => vec![],
         };
         results = Vec::new();
@@ -230,7 +195,7 @@ pub(crate) async fn refresh(
             Ok((value, source)) => {
                 ws.store_lookup(key.to_string(), Lookup::new(value, now.to_utc(), source));
             }
-            Err(e) => errors.push(format!("{}: {e}", key.describe())),
+            Err(e) => errors.push(format!("{}: {e}", key.label())),
         }
     }
     if let Err(e) = save(&root, ws.lookups()) {

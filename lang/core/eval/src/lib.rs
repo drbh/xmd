@@ -1,20 +1,23 @@
 //! What a note computes: the evaluator and the objects only it builds
-//! (timers, resources, plans, tables). The value kinds, the failure
+//! (resources, plans, tables). The value kinds, the failure
 //! vocabulary and cached lookups it answers with live one layer down in
 //! `values`. The text charts and the glyph vocabulary every label draws from
 //! live in the stdlib's `format` module.
 //!
 //! The engine (`engine`, `calls`, `linear`) evaluates expressions and the
 //! core special forms, and reaches every feature through `features`, the
-//! registry of feature evaluators: `plans`, `tables`, `timers`, `lookups` and
-//! `checklists` each register the definitions and built-ins they answer, and
-//! depend on the engine rather than the engine on them.
+//! registry of feature evaluators: `plans`, `tables` and `lookups` each
+//! register the definitions and built-ins they answer, and depend on the
+//! engine rather than the engine on them.
+//! `checklists` is a checklist's tasks as records, which the prelude's counts
+//! read, and `prelude` is how a name nothing else defines reaches the prelude
+//! library.
 //!
 //! `context` holds the one workspace snapshot, clock and memo a request
-//! evaluates against. The .xmd modules, their registry and the link-module
+//! evaluates against; `memo` is that memo, and what of it an owner may keep
+//! for later requests. The .xmd modules, their registry and the link-module
 //! contract are described in `modules`; `module_runtime` is how the
-//! evaluator compiles and calls them. `itinerary` resolves the days and
-//! stops `model::itinerary` parsed by calling the `itinerary_core` module.
+//! evaluator compiles and calls them.
 //!
 //! Exposes its interface from the root, as one flat list of the names only
 //! `eval` owns. What it reads from `values`, `modules`, `syntax`, `model` and
@@ -28,28 +31,34 @@ mod engine;
 mod features;
 mod host;
 mod imports;
-#[path = "itinerary.rs"]
-mod itinerary_impl;
 mod linear;
 mod lookups;
+mod memo;
 mod module_runtime;
 mod plans;
+mod prelude;
 mod resources;
 #[path = "tables.rs"]
 mod tables_impl;
-mod timers;
 mod workspace;
 
 // The request context every feature evaluates against, and its clock.
 pub use context::{Clock, RequestContext};
+// What an owner keeps of evaluation across requests, and how a caller learns
+// that module code read the clock.
+pub use memo::{Evaluations, reads_clock};
 // The note graph: parsed documents, resolved by path and name.
 pub use workspace::{Symbol, SymbolKind, Workspace};
 // An import's target member, resolved against the note that defines it.
 pub use imports::member_symbol;
+// The functions the prelude library gives every note by name.
+pub use prelude::PreludeFunction;
 
 // The evaluator and the values it produces.
 pub use engine::{Bindings, Engine};
+// A lookup evaluation read, and the note text it was read for.
 pub use host::HostPresenting;
+pub use lookups::LookupRead;
 // The objects only the evaluator builds, as a `Value::Host` holds them.
 pub use plans::PlanValue;
 pub use tables_impl::TableValue;
@@ -57,15 +66,10 @@ pub use tables_impl::TableValue;
 pub use module_runtime::CompileModules;
 // A resource value and how a hover presents it.
 pub use resources::{Resource, ResourcePresenting};
-// Timer edits a command line or editor action can apply.
-pub use timers::{Timer, TimerAction, edit_timer};
 
-// Table and itinerary names that read as generic on their own (`origin`,
-// `table`, `dates`, `label`) stay under a namespace. A namespace cannot share
-// its name with a file module, so those two files sit under `_impl`.
-pub mod itinerary {
-    pub use crate::itinerary_impl::{dates, day_record, display_time, label};
-}
+// Table names that read as generic on their own (`origin`, `table`) stay
+// under a namespace. A namespace cannot share its name with a file module, so
+// that file sits under `_impl`.
 pub mod tables {
     pub use crate::tables_impl::{
         literal_value, origin, resolve_reference, table, validate_rename,
@@ -76,7 +80,7 @@ pub mod tables {
 /// in each module's namespace.
 pub mod stdlib {
     pub use crate::contract::{
-        CONTRACT, Caller, Contract, Presented, Role, Snapshot, format, modules, plan, resource,
-        shown, task, today,
+        CONTRACT, Caller, Contract, Presented, Role, Snapshot, format, modules, plan, prelude,
+        resource, shown, task, today,
     };
 }

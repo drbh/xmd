@@ -1,0 +1,1106 @@
+### 0 cli query plan.x.md get(attributed, 0) --json
+$ xmd query plan.x.md get(attributed, 0) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "anchor": {
+      "character": 23,
+      "line": 1
+    },
+    "attributes": {
+      "at": {
+        "date": {
+          "type": "date",
+          "value": "2026-09-17"
+        },
+        "error": null,
+        "range": {
+          "end": {
+            "character": 23,
+            "line": 1
+          },
+          "start": {
+            "character": 10,
+            "line": 1
+          }
+        },
+        "text": "tomorrow",
+        "value": {
+          "type": "date",
+          "value": "2026-09-17"
+        },
+        "value_range": {
+          "end": {
+            "character": 22,
+            "line": 1
+          },
+          "start": {
+            "character": 14,
+            "line": 1
+          }
+        }
+      }
+    },
+    "block": "item",
+    "errors": [],
+    "kind": "attributed",
+    "line": 1,
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "source": {
+      "line": 2,
+      "path": "<root>/plan.x.md",
+      "range": {
+        "end": {
+          "character": 23,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "uri": "file://<root>/plan.x.md#L2"
+    },
+    "task": false,
+    "title": "Standup"
+  }
+]
+
+### 1 cli query plan.x.md attributed | map(fn(a) => [a.line, a.title, a.block, a.task, map(entries(a.attributes), fn(e) => [e.key, e.value.text, text(e.value.value), text(e.value.date), e.value.error])]) --json
+$ xmd query plan.x.md attributed | map(fn(a) => [a.line, a.title, a.block, a.task, map(entries(a.attributes), fn(e) => [e.key, e.value.text, text(e.value.value), text(e.value.date), e.value.error])]) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  [
+    1,
+    "Standup",
+    "item",
+    false,
+    [
+      [
+        "at",
+        "tomorrow",
+        "2026-09-17",
+        "2026-09-17",
+        null
+      ]
+    ]
+  ],
+  [
+    2,
+    "Launch party",
+    "item",
+    false,
+    [
+      [
+        "at",
+        "launch",
+        "2026-09-20 10:00:00 -04:00",
+        "2026-09-20",
+        null
+      ]
+    ]
+  ],
+  [
+    3,
+    "Dentist",
+    "item",
+    false,
+    [
+      [
+        "at",
+        "2026-09-17T09:00:00-04:00",
+        "2026-09-17 09:00:00 -04:00",
+        "2026-09-17",
+        null
+      ]
+    ]
+  ],
+  [
+    4,
+    "Broken",
+    "prose",
+    false,
+    [
+      [
+        "at",
+        "nope",
+        null,
+        null,
+        "Unknown name 'nope'"
+      ]
+    ]
+  ],
+  [
+    5,
+    "Pack",
+    "item",
+    true,
+    [
+      [
+        "at",
+        "2026-09-18",
+        "2026-09-18",
+        "2026-09-18",
+        null
+      ],
+      [
+        "due",
+        "2026-09-17",
+        "2026-09-17",
+        "2026-09-17",
+        null
+      ]
+    ]
+  ],
+  [
+    6,
+    "Pairing",
+    "item",
+    false,
+    [
+      [
+        "at",
+        "tomorrow",
+        "2026-09-17",
+        "2026-09-17",
+        null
+      ],
+      [
+        "left",
+        "2h",
+        "2h",
+        null,
+        null
+      ]
+    ]
+  ],
+  [
+    7,
+    "Review",
+    "item",
+    false,
+    [
+      [
+        "left",
+        "-1h",
+        null,
+        null,
+        "Expected a nonnegative duration"
+      ]
+    ]
+  ]
+]
+
+### 2 cli query plan.x.md events | map(.{title, at, at_date, errors}) --json
+$ xmd query plan.x.md events | map(.{title, at, at_date, errors}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "at": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "at_date": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "errors": [],
+    "title": "Standup"
+  },
+  {
+    "at": {
+      "type": "datetime",
+      "value": "2026-09-20T10:00:00-04:00"
+    },
+    "at_date": {
+      "type": "date",
+      "value": "2026-09-20"
+    },
+    "errors": [],
+    "title": "Launch party"
+  },
+  {
+    "at": {
+      "type": "datetime",
+      "value": "2026-09-17T09:00:00-04:00"
+    },
+    "at_date": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "errors": [],
+    "title": "Dentist"
+  },
+  {
+    "at": null,
+    "at_date": null,
+    "errors": [
+      "Unknown name 'nope'"
+    ],
+    "title": "Broken"
+  },
+  {
+    "at": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "at_date": {
+      "type": "date",
+      "value": "2026-09-17"
+    },
+    "errors": [],
+    "title": "Pairing"
+  }
+]
+
+### 3 cli query plan.x.md entries | map(.{kind, title}) --json
+$ xmd query plan.x.md entries | map(.{kind, title}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "kind": "task",
+    "title": "Pack"
+  },
+  {
+    "kind": "event",
+    "title": "Standup"
+  },
+  {
+    "kind": "event",
+    "title": "Launch party"
+  },
+  {
+    "kind": "event",
+    "title": "Dentist"
+  },
+  {
+    "kind": "event",
+    "title": "Broken"
+  },
+  {
+    "kind": "event",
+    "title": "Pairing"
+  }
+]
+
+### 4 cli query plan.x.md diagnostics | map(.{line, code, message}) --json
+$ xmd query plan.x.md diagnostics | map(.{line, code, message}) --json --root <root> --now 2026-09-16T14:00:00-04:00
+exit 0
+--- stdout
+[
+  {
+    "code": "unknown-name",
+    "line": 4,
+    "message": "Unknown name 'nope'"
+  },
+  {
+    "code": "attribute",
+    "line": 7,
+    "message": "@left requires a nonnegative duration, e.g. 20m or 2h"
+  }
+]
+
+### 5 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stdout
+launch := 2026-09-20T10:00:00-04:00 = 2026-09-20 10:00:00 -04:00
+- Standup @at(tomorrow)
+- Launch party @at(launch)
+* Dentist @at(2026-09-17T09:00:00-04:00)
+Broken @at(nope)
+- [ ] Pack @at(2026-09-18) @due(2026-09-17) → due tomorrow · → at 2026-09-18
+- Pairing @at(tomorrow) @left(2h) 2h left
+- Review @left(-1h) ?
+Plain @due(tomorrow) is prose.
+- Call @
+--- stderr
+<root>/plan.x.md:5:12: error: Unknown name 'nope'
+<root>/plan.x.md:8:16: error: @left requires a nonnegative duration, e.g. 20m or 2h
+xmd: 2 error(s) while rendering
+
+### 6 lsp
+-- open plan.x.md
+-- await textDocument/publishDiagnostics plan.x.md
+{
+  "diagnostics": [
+    {
+      "code": "unknown-name",
+      "message": "Unknown name 'nope'",
+      "range": {
+        "end": {
+          "character": 15,
+          "line": 4
+        },
+        "start": {
+          "character": 11,
+          "line": 4
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    },
+    {
+      "code": "attribute",
+      "message": "@left requires a nonnegative duration, e.g. 20m or 2h",
+      "range": {
+        "end": {
+          "character": 18,
+          "line": 7
+        },
+        "start": {
+          "character": 15,
+          "line": 7
+        }
+      },
+      "severity": 1,
+      "source": "xmd"
+    }
+  ],
+  "uri": "file://<root>/plan.x.md",
+  "version": 1
+}
+-- request textDocument/signatureHelp plan.x.md 1:14
+{
+  "activeParameter": 0,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "Appointment time; a line with @at and no checkbox is an appointment. Include an explicit UTC offset for ambiguous local times."
+      },
+      "label": "@at(time: Date or DateTime) → task or appointment attribute",
+      "parameters": [
+        {
+          "label": "time: Date or DateTime"
+        }
+      ]
+    }
+  ]
+}
+-- request textDocument/signatureHelp plan.x.md 6:30
+{
+  "activeParameter": 0,
+  "activeSignature": 0,
+  "signatures": [
+    {
+      "documentation": {
+        "kind": "markdown",
+        "value": "The work a line has left."
+      },
+      "label": "@left(effort: Duration) → effort attribute",
+      "parameters": [
+        {
+          "label": "effort: Duration"
+        }
+      ]
+    }
+  ]
+}
+-- request textDocument/completion plan.x.md 1:14
+[
+  {
+    "detail": "DateTime · 2026-09-20 10:00:00 -04:00",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Defined in <root>/plan.x.md\n\n[launch](<file://<root>/plan.x.md#L1>)"
+    },
+    "kind": 6,
+    "label": "launch",
+    "sortText": "0_launch",
+    "textEdit": {
+      "newText": "launch",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current local calendar date. Updates at midnight."
+    },
+    "filterText": "today",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "today()",
+    "textEdit": {
+      "newText": "today()",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "detail": "DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The current timestamp. Sampled once per evaluation; live hints refresh every second."
+    },
+    "filterText": "now",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "now()",
+    "textEdit": {
+      "newText": "now()",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "detail": "Date or DateTime",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Parse ISO or relative date text, or take a timestamp's calendar date in the request timezone."
+    },
+    "filterText": "date",
+    "insertTextFormat": 2,
+    "kind": 3,
+    "label": "date(\"next Friday\")",
+    "textEdit": {
+      "newText": "date(${1:\"next Friday\"})$0",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "today",
+    "textEdit": {
+      "newText": "today",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "tomorrow",
+    "textEdit": {
+      "newText": "tomorrow",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  },
+  {
+    "kind": 12,
+    "label": "next Friday",
+    "textEdit": {
+      "newText": "next Friday",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 14,
+          "line": 1
+        }
+      }
+    }
+  }
+]
+-- request textDocument/completion plan.x.md 9:8
+[
+  {
+    "detail": "effort attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The work a line has left."
+    },
+    "filterText": "left",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "left(1h)",
+    "textEdit": {
+      "newText": "left(${1:1h})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Block this task until all dependencies are satisfied. Cycles are reported with source locations."
+    },
+    "filterText": "after",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "after(task_name)",
+    "textEdit": {
+      "newText": "after(${1:task_name})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The day the task was checked off, as YYYY-MM-DD. Checking a task stamps today's date on it and its subtasks; unchecking removes the stamp. The checkbox, not the stamp, decides whether the task is done."
+    },
+    "filterText": "completed",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "completed(2026-09-18)",
+    "textEdit": {
+      "newText": "completed(${1:2026-09-18})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Deadline. Accepts a named date, an expression, or relative input such as tomorrow. Use Freeze relative date to capture it."
+    },
+    "filterText": "due",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "due(tomorrow)",
+    "textEdit": {
+      "newText": "due(${1:tomorrow})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "A nonnegative estimate. Examples: 30s, 20m, 2h."
+    },
+    "filterText": "estimate",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "estimate(20m)",
+    "textEdit": {
+      "newText": "estimate(${1:20m})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Repeat a leaf task: day, week, month, year, or a positive whole-day duration such as 2w."
+    },
+    "filterText": "every",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "every(week)",
+    "textEdit": {
+      "newText": "every(${1:week})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "The date a recurring task's @every counts from, as YYYY-MM-DD. Completing the task writes it once, from @due or today, so each later @due stays on the same cycle (a monthly bill anchored on the 31st comes back on the last day of every month) however early or late it is checked off."
+    },
+    "filterText": "repeat_from",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "repeat_from(2026-01-31)",
+    "textEdit": {
+      "newText": "repeat_from(${1:2026-01-31})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Planned work date; separate from the deadline."
+    },
+    "filterText": "scheduled",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "scheduled(tomorrow)",
+    "textEdit": {
+      "newText": "scheduled(${1:tomorrow})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Tag a task for filtering. Multiple tags may be comma-separated."
+    },
+    "filterText": "tag",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "tag(errands)",
+    "textEdit": {
+      "newText": "tag(${1:errands})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Associate a named timer with this task. Completion does not stop the timer."
+    },
+    "filterText": "timer",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "timer(focus)",
+    "textEdit": {
+      "newText": "timer(${1:focus})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  },
+  {
+    "detail": "task or appointment attribute",
+    "documentation": {
+      "kind": "markdown",
+      "value": "Appointment time; a line with @at and no checkbox is an appointment. Include an explicit UTC offset for ambiguous local times."
+    },
+    "filterText": "at",
+    "insertTextFormat": 2,
+    "kind": 14,
+    "label": "at(2026-09-18T14:00-04:00)",
+    "textEdit": {
+      "newText": "at(${1:2026-09-18T14:00-04:00})$0",
+      "range": {
+        "end": {
+          "character": 8,
+          "line": 9
+        },
+        "start": {
+          "character": 8,
+          "line": 9
+        }
+      }
+    }
+  }
+]
+-- request textDocument/documentSymbol plan.x.md
+[
+  {
+    "detail": "DateTime · 2026-09-20 10:00:00 -04:00",
+    "kind": 13,
+    "name": "launch",
+    "range": {
+      "end": {
+        "character": 35,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  },
+  {
+    "detail": "@at(tomorrow)",
+    "kind": 24,
+    "name": "Standup",
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 23,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "detail": "@at(launch)",
+    "kind": 24,
+    "name": "Launch party",
+    "range": {
+      "end": {
+        "character": 26,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 26,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "detail": "@at(2026-09-17T09:00:00-04:00)",
+    "kind": 24,
+    "name": "Dentist",
+    "range": {
+      "end": {
+        "character": 40,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 40,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  },
+  {
+    "detail": "@at(nope)",
+    "kind": 24,
+    "name": "Broken",
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 16,
+        "line": 4
+      },
+      "start": {
+        "character": 0,
+        "line": 4
+      }
+    }
+  },
+  {
+    "detail": "task · incomplete",
+    "kind": 17,
+    "name": "Pack",
+    "range": {
+      "end": {
+        "character": 43,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 43,
+        "line": 5
+      },
+      "start": {
+        "character": 0,
+        "line": 5
+      }
+    }
+  },
+  {
+    "detail": "@at(tomorrow)",
+    "kind": 24,
+    "name": "Pairing",
+    "range": {
+      "end": {
+        "character": 33,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 33,
+        "line": 6
+      },
+      "start": {
+        "character": 0,
+        "line": 6
+      }
+    }
+  }
+]
+-- request textDocument/semanticTokens/full plan.x.md
+0:0+6 variable [declaration] "launch"
+0:6+3 operator " :="
+0:10+25 xmdDate "2026-09-20T10:00:00-04:00"
+1:10+3 decorator "@at"
+1:13+1 xmdPunctuation "("
+1:14+8 xmdDate "tomorrow"
+1:22+1 xmdPunctuation ")"
+2:15+3 decorator "@at"
+2:18+1 xmdPunctuation "("
+2:19+6 variable "launch"
+2:25+1 xmdPunctuation ")"
+3:10+3 decorator "@at"
+3:13+1 xmdPunctuation "("
+3:14+25 xmdDate "2026-09-17T09:00:00-04:00"
+3:39+1 xmdPunctuation ")"
+4:7+3 decorator "@at"
+4:10+1 xmdPunctuation "("
+4:11+4 variable "nope"
+4:15+1 xmdPunctuation ")"
+5:0+1 xmdPunctuation "-"
+5:2+3 xmdToggle "[ ]"
+5:11+3 decorator "@at"
+5:14+1 xmdPunctuation "("
+5:15+10 xmdDate "2026-09-18"
+5:25+1 xmdPunctuation ")"
+5:27+4 decorator "@due"
+5:31+1 xmdPunctuation "("
+5:32+10 xmdDate "2026-09-17"
+5:42+1 xmdPunctuation ")"
+6:10+3 decorator "@at"
+6:13+1 xmdPunctuation "("
+6:14+8 xmdDate "tomorrow"
+6:22+1 xmdPunctuation ")"
+6:24+5 decorator "@left"
+6:29+1 xmdPunctuation "("
+6:30+2 xmdDuration "2h"
+6:32+1 xmdPunctuation ")"
+7:9+5 decorator "@left"
+7:14+1 xmdPunctuation "("
+7:15+1 operator "-"
+7:16+2 xmdDuration "1h"
+7:18+1 xmdPunctuation ")"
+8:6+5 keyword "@due("
+8:11+8 number "tomorrow"
+8:19+1 operator ")"
+-- request textDocument/references plan.x.md 0:2
+[
+  {
+    "range": {
+      "end": {
+        "character": 25,
+        "line": 2
+      },
+      "start": {
+        "character": 19,
+        "line": 2
+      }
+    },
+    "uri": "file://<root>/plan.x.md"
+  }
+]
+
+### 7 write
+-- write .xmd/modules/effort.x.md (111 bytes)
+
+### 8 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: tasks and effort both declare the attribute @due
+
+### 9 write
+-- write .xmd/modules/effort.x.md (110 bytes)
+
+### 10 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: appointments and effort both declare the attribute @at
+
+### 11 write
+-- write .xmd/modules/effort.x.md (113 bytes)
+
+### 12 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/effort.x.md: attributes.left.value must be one of when, date, duration, dependencies, expression, text, or {tagged: [kinds]} naming the kinds of tagged record it takes
+
+### 13 write
+-- write .xmd/modules/effort.x.md (87 bytes)
+
+### 14 cli render plan.x.md --format text
+$ xmd render plan.x.md --format text --root <root> --now 2026-09-16T14:00:00-04:00
+exit 1
+--- stderr
+xmd: <root>/.xmd/modules/effort.x.md: Only feature modules declare attributes
+

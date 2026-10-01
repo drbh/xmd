@@ -47,9 +47,9 @@ exit 0
 $ xmd total
 --- stdin
 
-exit 1
---- stderr
-xmd: Unknown name 'total'
+exit 0
+--- stdout
+<function>
 
 ### 6 cli 
 $ xmd 

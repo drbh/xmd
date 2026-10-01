@@ -1,10 +1,9 @@
 //! Every problem a note can report, and the one vocabulary hosts describe them with.
 use lang::common::Span;
 use lang::eval::EvalError;
-use lang::eval::engine::{Engine, Value};
-use lang::eval::timers::Timer;
+use lang::eval::engine::Value;
 use lang::eval::{Symbol, SymbolKind, Workspace};
-use lang::syntax::{AttributeKey, AttributeValue};
+use lang::syntax::AttributeValue;
 use lsp_types::*;
 use std::path::Path;
 
@@ -205,8 +204,6 @@ pub fn collect_native(
     editing: bool,
 ) -> Vec<Diagnostic> {
     let ws = request.workspace();
-    let today = request.today();
-
     let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
@@ -326,6 +323,10 @@ pub fn collect_native(
             continue;
         }
         if let Err(message) = lang::eval::tables::resolve_reference(ws, path, reference) {
+            // A prelude function is a name without being a symbol.
+            if ws.prelude_name(path, &reference.name) {
+                continue;
+            }
             let candidates: Vec<_> = symbols
                 .iter()
                 .filter(|s| s.path == path && ws.named(s).name == reference.name)
@@ -349,52 +350,42 @@ pub fn collect_native(
             }
         }
     }
-    // Keep existing task/date validation, but evaluate attributes at their source spans.
+    // The attributes modules declare, wherever they are live: each
+    // evaluated as what it holds, at its source span, a failure being its
+    // value's problem. Dependencies that fail (a cycle, a condition that is
+    // no Boolean) are a dependency problem, with the items they walk.
     let mut engine = request.engine();
-    for (index, task) in doc.tasks.iter().enumerate() {
-        engine.clear_failure();
-        if let Err(message) = engine.blocked(path, index) {
-            let span = task
-                .attributes
-                .get(AttributeKey::After.as_str())
-                .map(|a| a.value_span)
-                .unwrap_or(task.checkbox);
-            let related = engine
-                .failure()
-                .map(|f| f.related.clone())
-                .unwrap_or_default();
-            issues.push(Issue::failed(span, DiagnosticCode::Dependency, &message).related(related));
-        }
-        for (key, attr) in &task.attributes {
-            if let Some(message) = attribute_error(&mut engine, doc, path, today, index, key, attr)
-            {
-                issues.push(Issue::failed(
+    for line in doc.claimed() {
+        let item = line
+            .checkbox
+            .then(|| doc.tasks.binary_search_by_key(&line.line, |t| t.line).ok())
+            .flatten();
+        for (declared, attr) in doc.live_attributes(line) {
+            engine.clear_failure();
+            let Err(message) = engine.attribute(path, declared, item, attr) else {
+                continue;
+            };
+            let key = &declared.key;
+            let issue = match declared.value {
+                AttributeValue::Dependencies => {
+                    let related = engine
+                        .failure()
+                        .map(|f| f.related.clone())
+                        .unwrap_or_default();
+                    Issue::failed(attr.value_span, DiagnosticCode::Dependency, &message)
+                        .related(related)
+                }
+                AttributeValue::Duration => Issue::failed(
                     attr.value_span,
                     DiagnosticCode::Attribute,
-                    &message,
-                ));
-            }
+                    &EvalError::Message(format!(
+                        "@{key} requires a nonnegative duration, e.g. 20m or 2h"
+                    )),
+                ),
+                _ => Issue::failed(attr.value_span, DiagnosticCode::Attribute, &message),
+            };
+            issues.push(issue);
         }
-    }
-    for event in &doc.events {
-        let attr = &event.attributes[AttributeKey::At.as_str()];
-        if let Err(message) = engine.when(path, &attr.value) {
-            issues.push(Issue::failed(
-                attr.value_span,
-                DiagnosticCode::Attribute,
-                &message,
-            ));
-        }
-    }
-    // The stdlib decides every day's date; when it cannot, every day, stop
-    // and agenda entry goes undated, so the itinerary says why on its first day.
-    if let Some(first) = doc.days.first()
-        && let Err(message) = lang::eval::itinerary::dates(ws.modules(), &doc.days, today)
-    {
-        issues.push(Issue {
-            message: format!("itinerary_core.dates: {message}"),
-            ..Issue::failed(first.date_span, DiagnosticCode::Module, &message)
-        });
     }
     let mut issues: Vec<Diagnostic> = issues
         .into_iter()
@@ -424,58 +415,4 @@ pub fn collect_native(
             })
     });
     issues
-}
-
-/// What is wrong with one task attribute, if anything. What the value holds
-/// (`AttributeValue`) decides how it is checked; an unknown key is the
-/// parser's problem, not this one's.
-fn attribute_error(
-    engine: &mut Engine<'_>,
-    doc: &lang::model::Document,
-    path: &Path,
-    today: chrono::NaiveDate,
-    task: usize,
-    key: &str,
-    attr: &lang::model::Attribute,
-) -> Option<EvalError> {
-    let requires = |satisfied: bool, message: &str| (!satisfied).then(|| message.into());
-    let key = key.parse::<AttributeKey>().ok()?;
-    match key.value() {
-        AttributeValue::When => engine.when(path, &attr.value).err(),
-        AttributeValue::Stamp => requires(
-            lang::syntax::stamp(&attr.value).is_some(),
-            &format!(
-                "@{key} requires a calendar date, e.g. @{key}({})",
-                key.example()
-            ),
-        ),
-        AttributeValue::Duration => {
-            let value = engine.eval_at(path, &attr.value, attr.value_span);
-            requires(
-                matches!(value, Ok(Value::Duration(s)) if s >= 0),
-                &format!("@{key} requires a nonnegative duration, e.g. 20m or 2h"),
-            )
-        }
-        AttributeValue::Timer => {
-            let value = engine.eval_at(path, &attr.value, attr.value_span);
-            requires(
-                matches!(&value, Ok(v) if v.downcast::<Timer>().is_some_and(|t| t.origin.is_some()))
-                    && lang::model::identifier(&attr.value),
-                &format!("@{key} requires a named stopwatch or countdown, e.g. @{key}(focus)"),
-            )
-        }
-        AttributeValue::Recurrence => {
-            lang::eval::engine::next_occurrence(&attr.value, today, today)
-                .err()
-                .or_else(|| {
-                    doc.tasks
-                        .iter()
-                        .any(|t| t.parent == Some(task))
-                        .then(|| "Put recurrence on individual tasks, not parent checklists".into())
-                })
-        }
-        // `engine.blocked` checks a task's dependencies as a whole, above;
-        // tags are free text.
-        AttributeValue::Dependencies | AttributeValue::Tags => None,
-    }
 }

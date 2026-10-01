@@ -15,7 +15,7 @@ pub mod services {
     };
     pub use ::catalog::{Query, display};
     pub use ::editor::{
-        RefreshReport, Request, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession,
+        RefreshReport, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession,
         fragment, line_classes, semantic_tokens, today_markdown,
     };
     pub mod commands {
@@ -25,7 +25,7 @@ pub mod services {
         pub use ::analysis::hierarchy::{decode, dependencies, dependents, prepare, ranges};
     }
     pub mod typing {
-        pub use ::editor::{TRIGGERS, on_type};
+        pub use ::editor::TRIGGERS;
     }
 }
 

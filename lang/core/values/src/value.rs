@@ -1,9 +1,8 @@
 //! Values: the kinds a note computes, closures among them, and their display
 //! and JSON forms. The scalar literals a note's own syntax can spell are
-//! `syntax::Literal`; this adds the host objects (timers, tables, plans,
-//! forecasts...) a literal can never be.
+//! `syntax::Literal`; this adds the host objects (tables, plans, tagged
+//! records...) a literal can never be.
 use crate::error::{EvalError, EvalResult, Overflow};
-use crate::lookups::Forecast;
 use chrono::{DateTime, FixedOffset, Months, NaiveDate};
 use common::{Code, Currency, Resource, ValueType};
 use serde_json::json;
@@ -24,15 +23,14 @@ pub type TaskKey = (PathBuf, usize);
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Null,
-    List(Arc<Vec<Value>>),
-    Record(Arc<BTreeMap<String, Value>>),
+    List(Arc<Measured<Vec<Value>>>),
+    Record(Arc<Measured<BTreeMap<String, Value>>>),
     Function(Arc<Function>),
     /// An explicit note import. Members are evaluated only when read.
     Namespace(Namespace),
     Number(f64),
     Count(usize),
     Money(f64, Currency),
-    Forecast(Forecast),
     Ratio(f64),
     /// Whole seconds, including for estimates and date arithmetic.
     Duration(i64),
@@ -44,8 +42,9 @@ pub enum Value {
     Code(Code),
     Resource(Resource),
     Tasks(Vec<TaskKey>),
-    /// An object the evaluator builds and a note only reads: a timer, a table
-    /// or a plan. Its kind, display and fields are the object's own.
+    /// An object the evaluator builds and a note only reads: a tagged
+    /// record, a table or a plan. Its kind, display and fields are the
+    /// object's own.
     Host(Arc<dyn HostObject>),
 }
 // Values cross threads (the language server evaluates off its I/O thread), so
@@ -54,6 +53,111 @@ const _: () = {
     const fn shared<T: Send + Sync>() {}
     shared::<Value>()
 };
+/// A list's items or a record's fields, with how big they are once someone
+/// has measured them: the size cap is checked wherever a value is built, and
+/// a shared value is measured once rather than by every value built from it.
+/// Reading it is reading what it holds; changing it in place forgets the size.
+pub struct Measured<T> {
+    inner: T,
+    /// Its size once measured: how many values it holds plus one (zero
+    /// while unknown), and its bytes, written first.
+    items: std::sync::atomic::AtomicUsize,
+    bytes: std::sync::atomic::AtomicUsize,
+}
+impl<T: Default> Default for Measured<T> {
+    fn default() -> Self {
+        Self::new(T::default())
+    }
+}
+impl<T> Measured<T> {
+    pub fn new(inner: T) -> Self {
+        Self {
+            inner,
+            items: std::sync::atomic::AtomicUsize::new(0),
+            bytes: std::sync::atomic::AtomicUsize::new(0),
+        }
+    }
+    /// What it holds.
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+    /// Its size, when it has been measured in full.
+    pub(crate) fn size(&self) -> Option<crate::functional::Size> {
+        use std::sync::atomic::Ordering;
+        match self.items.load(Ordering::Acquire) {
+            0 => None,
+            items => Some(crate::functional::Size {
+                items: items - 1,
+                bytes: self.bytes.load(Ordering::Relaxed),
+            }),
+        }
+    }
+    /// Keep its size, measured in full. Whoever measures it finds the same
+    /// size, so racing to keep it is harmless.
+    pub(crate) fn measured(&self, size: crate::functional::Size) {
+        use std::sync::atomic::Ordering;
+        if let Some(items) = size.items.checked_add(1) {
+            self.bytes.store(size.bytes, Ordering::Relaxed);
+            self.items.store(items, Ordering::Release);
+        }
+    }
+}
+impl<T: Clone> Clone for Measured<T> {
+    fn clone(&self) -> Self {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let items = self.items.load(Ordering::Acquire);
+        Self {
+            inner: self.inner.clone(),
+            bytes: AtomicUsize::new(self.bytes.load(Ordering::Relaxed)),
+            items: AtomicUsize::new(items),
+        }
+    }
+}
+impl<T> std::ops::Deref for Measured<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.inner
+    }
+}
+impl<T> std::ops::DerefMut for Measured<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        *self.items.get_mut() = 0;
+        &mut self.inner
+    }
+}
+/// One shared list or record is equal to itself without comparing what it
+/// holds, which may be a whole note's records: no value a note computes is
+/// unequal to itself, since arithmetic never makes a NaN.
+impl<T: PartialEq> PartialEq for Measured<T> {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other) || self.inner == other.inner
+    }
+}
+impl<T: std::fmt::Debug> std::fmt::Debug for Measured<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+impl<'a, T> IntoIterator for &'a Measured<T>
+where
+    &'a T: IntoIterator,
+{
+    type Item = <&'a T as IntoIterator>::Item;
+    type IntoIter = <&'a T as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.inner).into_iter()
+    }
+}
+impl<'a, T> IntoIterator for &'a mut Measured<T>
+where
+    &'a mut T: IntoIterator,
+{
+    type Item = <&'a mut T as IntoIterator>::Item;
+    type IntoIter = <&'a mut T as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&mut **self).into_iter()
+    }
+}
 /// A parsed literal is always one of these values: money, dates, a resource
 /// and the rest all become the value kind of the same name.
 impl From<Literal> for Value {
@@ -84,18 +188,24 @@ impl Namespace {
 /// Host objects: the half of [`Value`] the language does not compute.
 ///
 /// A note computes with language values — numbers, money, durations, dates,
-/// text, codes, lists and records. It cannot build a forecast, a checklist, a
-/// timer, a table, a plan, an imported note or a link target; those are
-/// objects some host owns (the lookup store, the document, the timer module,
-/// the solver, the filesystem) and the language only reads from. Every kind of
+/// text, codes, lists and records. It cannot build a checklist, a table, a
+/// plan, a module's tagged record, an imported note or a link target; those
+/// are objects some host owns (the document, a module, the solver, the
+/// filesystem) and the language only reads from. Every kind of
 /// reading is one method here, so the generic sites — `Value::kind`,
 /// `Value::display`, `Value::property`, `QueryValue::from_value`, completion's
 /// property list and the symbol hover — dispatch once instead of carrying an
 /// arm per object. What needs the engine or the link registry to answer (a
 /// resource's link fields, a checklist's progress) the evaluator adds on top.
 pub trait HostObject: HostEq + std::fmt::Debug + Send + Sync {
-    /// The kind a note sees. A timer names itself by what it was built with.
+    /// The kind a note sees.
     fn kind(&self) -> ValueType;
+    /// The kind's name, as `type` answers and hovers and errors show it: the
+    /// kind's own unless the object names itself, as a tagged record names
+    /// the kind its module chose.
+    fn type_name(&self) -> &str {
+        self.kind().as_str()
+    }
     /// The human-readable label a hover, inlay or query result shows.
     fn display(&self) -> String;
     /// Fields the object answers on its own. A namespace's members, a
@@ -148,11 +258,11 @@ impl dyn HostObject {
 impl Value {
     /// A list value holding these items.
     pub fn list(items: Vec<Value>) -> Self {
-        Self::List(Arc::new(items))
+        Self::List(Arc::new(Measured::new(items)))
     }
     /// A record value holding these fields.
     pub fn record(fields: BTreeMap<String, Value>) -> Self {
-        Self::Record(Arc::new(fields))
+        Self::Record(Arc::new(Measured::new(fields)))
     }
     /// The object behind a host value, or `None` for a value the language
     /// computes. This is the one place every variant is sorted into the two
@@ -161,7 +271,6 @@ impl Value {
     /// treat anything left over as impossible.
     pub fn host(&self) -> Option<&dyn HostObject> {
         match self {
-            Self::Forecast(forecast) => Some(forecast),
             Self::Tasks(tasks) => Some(tasks),
             Self::Namespace(note) => Some(note),
             Self::Resource(resource) => Some(resource),
@@ -183,7 +292,7 @@ impl Value {
         }
     }
     /// The object behind a [`Value::Host`], as the concrete type it was built
-    /// with: a timer, a table or a plan.
+    /// with: a tagged record, a table or a plan.
     pub fn downcast<T: HostObject>(&self) -> Option<&T> {
         match self {
             Self::Host(object) => object.downcast_ref(),
@@ -200,17 +309,23 @@ impl Value {
         }
     }
 }
+/// The property a checklist lists its tasks under.
+pub const CHECKLIST_TASKS: &str = "tasks";
 pub fn optional(value: Option<Value>) -> Value {
     value.unwrap_or(Value::Null)
 }
-/// A checklist: the tasks under one heading, which only the counting built-ins
-/// and `@after` read, and which the engine resolves against the document.
+/// A checklist: the leaf tasks under one heading, which `@after` reads and
+/// whose `tasks` property the engine answers with a record per task, since
+/// only it can tell whether a task is done.
 impl HostObject for Vec<TaskKey> {
     fn kind(&self) -> ValueType {
         ValueType::Checklist
     }
     fn display(&self) -> String {
         format!("{} tasks", self.len())
+    }
+    fn fields(&self) -> Vec<String> {
+        vec![CHECKLIST_TASKS.to_owned()]
     }
     fn query(&self) -> Option<Value> {
         Some(Value::list(
@@ -267,15 +382,88 @@ pub struct Function {
     /// evaluator reads it, so to values it is opaque.
     pub environment: Option<Arc<dyn Any + Send + Sync>>,
     pub params: Vec<String>,
-    pub body: Expr,
-    pub path: PathBuf,
-    pub source: Option<(PathBuf, common::Span)>,
-    pub captured: BTreeMap<String, Value>,
+    /// The defaults of the trailing parameters that have one, in order: a
+    /// call may leave those out.
+    pub defaults: Vec<Expr>,
+    pub body: Arc<Expr>,
+    /// The note it was written in, shared by every closure made there.
+    pub path: Arc<std::path::Path>,
+    pub source: Option<(Arc<std::path::Path>, common::Span)>,
+    pub captured: Captured,
+}
+
+/// The names a closure captured where it was made, innermost scope first.
+/// A closure made inside another shares what that one captured and adds
+/// only its own scope's names, so making one costs the names it adds, not
+/// everything in scope.
+#[derive(Clone, Debug, Default)]
+pub struct Captured(Option<Arc<Scope>>);
+#[derive(Debug)]
+struct Scope {
+    names: Vec<(String, Value)>,
+    outer: Captured,
+}
+impl Captured {
+    /// Exactly these names.
+    pub fn of(names: BTreeMap<String, Value>) -> Self {
+        Self::default().with(names.into_iter().collect())
+    }
+    /// `names` in a scope inside this one.
+    pub fn with(&self, names: Vec<(String, Value)>) -> Self {
+        if names.is_empty() {
+            return self.clone();
+        }
+        Self(Some(Arc::new(Scope {
+            names,
+            outer: self.clone(),
+        })))
+    }
+    /// What `name` was bound to, the innermost binding winning.
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        let mut scope = self.0.as_deref();
+        while let Some(found) = scope {
+            if let Some((_, value)) = found.names.iter().find(|(n, _)| n == name) {
+                return Some(value);
+            }
+            scope = found.outer.0.as_deref();
+        }
+        None
+    }
+    /// Every name, the innermost binding of each.
+    pub fn names(&self) -> BTreeMap<String, Value> {
+        let mut scopes = Vec::new();
+        let mut scope = self.0.as_deref();
+        while let Some(found) = scope {
+            scopes.push(found);
+            scope = found.outer.0.as_deref();
+        }
+        let mut names = BTreeMap::new();
+        for found in scopes.into_iter().rev() {
+            names.extend(found.names.iter().cloned());
+        }
+        names
+    }
+}
+impl PartialEq for Captured {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Some(a), Some(b)) if Arc::ptr_eq(a, b) => true,
+            _ => self.names() == other.names(),
+        }
+    }
+}
+
+impl Function {
+    /// How many arguments a call must pass: every parameter without a default.
+    pub fn required(&self) -> usize {
+        self.params.len() - self.defaults.len()
+    }
 }
 
 impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
         self.params == other.params
+            && self.defaults == other.defaults
             && self.body == other.body
             && self.path == other.path
             && self.source == other.source
@@ -353,8 +541,11 @@ impl Value {
         }
     }
     /// The language-level name of this kind, as notes and queries compare it.
-    pub fn type_name(&self) -> &'static str {
-        self.kind().as_str()
+    pub fn type_name(&self) -> &str {
+        match self.host() {
+            Some(object) => object.type_name(),
+            None => self.kind().as_str(),
+        }
     }
     /// A round-trippable expression, unlike the human-readable display label.
     /// Only the language's own kinds have one: no note can write down a host
@@ -471,6 +662,11 @@ impl Value {
     }
 }
 pub(crate) fn decimal(n: f64) -> String {
+    // A whole number (not -0) prints as the integer it is, without the
+    // exact-precision formatting the fraction needs.
+    if n.fract() == 0.0 && n.abs() < 1e15 && !(n == 0.0 && n.is_sign_negative()) {
+        return (n as i64).to_string();
+    }
     let s = format!("{n:.4}");
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
@@ -579,7 +775,7 @@ pub fn value_json(value: &Value) -> serde_json::Value {
         Value::Date(d) => json!({"type":"date","value":d.to_string()}),
         Value::DateTime(d) => json!({"type":"datetime","value":d.to_rfc3339()}),
         Value::Ratio(n) => json!({"type":"ratio","value":number(*n, 10)}),
-        // Every other kind (Resource, Timer, Table, Plan, Forecast, task
+        // Every other kind (Resource, Table, Plan, tagged record, task
         // lists, ...) implements `HostObject::query` and is handled above.
         _ => serde_json::Value::Null,
     }

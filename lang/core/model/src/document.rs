@@ -4,7 +4,6 @@
 //! lives with the recognizer registry that drives it.
 use crate::blocks::{Calculation, Definition, Highlight, Link, Problem, Reference, Tree};
 use crate::edits::utf16;
-use crate::events::Event;
 use crate::sections::Section;
 use crate::tasks::Task;
 use common::{LineIndex, Lines, Span};
@@ -34,10 +33,15 @@ pub struct Document {
     pub members: Vec<crate::imports::Member>,
     pub tasks: Vec<Task>,
     pub sections: Vec<Section>,
-    pub events: Vec<Event>,
+    /// Every line that writes `@key(value)` attributes, in note order.
+    pub attributed: Vec<crate::attributes::Attributed>,
+    /// The attributes modules declare that the note was parsed with.
+    pub(crate) declarations: Vec<std::sync::Arc<crate::attributes::Declaration>>,
+    /// Whether it writes any attribute, so what the modules declare can
+    /// change how it reads.
+    pub(crate) foreign: bool,
     pub tables: Vec<crate::tables::Table>,
     pub plans: Vec<crate::plans::Plan>,
-    pub days: Vec<crate::itinerary::Day>,
     pub links: Vec<Link>,
     pub calculations: Vec<Calculation>,
     pub highlights: Vec<Highlight>,
@@ -45,9 +49,15 @@ pub struct Document {
     /// What the recognizers modules declare found, in note order: filled by
     /// [`Document::recognize`], empty until then.
     pub recognized: Vec<crate::declared::Match>,
-    /// Each row's generic block, when a declared recognizer may read it, and
-    /// the byte its text starts at.
-    pub(crate) blocks: Vec<Option<(crate::declared::On, usize)>>,
+    /// The rules it was recognized with.
+    pub rules: Vec<std::sync::Arc<crate::declared::Rule>>,
+    /// How many of `links` the note's own text wrote: the rest are what
+    /// declared recognizers link.
+    pub(crate) native_links: usize,
+    /// Each row's generic block, when a declared recognizer may read it, the
+    /// byte its text starts at, and the byte its title ends at: its first
+    /// attribute, or a heading's or checklist item's trailing `:name`.
+    pub(crate) blocks: Vec<Option<(crate::declared::On, usize, usize)>>,
     /// Where each line of `text` starts, so spans find their line at once.
     lines: LineIndex,
     /// The expression regions that call `sum`: the only ones a sum row scope
@@ -89,6 +99,7 @@ impl Document {
         self.references = references;
         self.imports = imports;
         self.members = members;
+        self.native_links = links.len();
         self.links = links;
         self.calculations = calculations;
         self.highlights = highlights;
@@ -104,6 +115,10 @@ impl Document {
     }
     pub fn line(&self, row: usize) -> &str {
         self.lines.line(&self.text, row)
+    }
+    /// How many lines it has, as `str::lines` counts them.
+    pub fn line_count(&self) -> usize {
+        self.lines.count()
     }
     /// Just past a bracketed reference's closing `]`.
     pub fn reference_close(&self, reference: &Reference) -> usize {
@@ -169,8 +184,9 @@ impl Document {
 }
 
 /// Every byte range in a note that holds an expression: named definitions, an
-/// in-place calculation, a plan's constraints, and the task attributes whose
-/// value is an expression (`AttributeValue::is_expression`). Shared by
+/// in-place calculation, a plan's constraints, and the attributes of tasks
+/// and of lines with a declared attribute whose value is an expression
+/// (`AttributeValue::is_expression`). Shared by
 /// rename/refactor scans and by a table's `sum` scope lookup, so both agree on
 /// what counts as an expression.
 pub fn expression_regions(doc: &Document) -> Vec<Span> {
@@ -184,14 +200,10 @@ pub fn expression_regions(doc: &Document) -> Vec<Span> {
                 .iter()
                 .flat_map(|p| p.constraints.iter().map(|c| c.span)),
         )
-        .chain(doc.tasks.iter().flat_map(|t| {
-            t.attributes
-                .iter()
-                .filter(|(k, _)| {
-                    k.parse::<syntax::AttributeKey>()
-                        .is_ok_and(|k| k.value().is_expression())
-                })
-                .map(|(_, a)| a.value_span)
-        }))
+        .chain(
+            doc.claimed_attributes()
+                .filter(|(k, _)| doc.attribute_value(k).is_some_and(|v| v.is_expression()))
+                .map(|(_, a)| a.value_span),
+        )
         .collect()
 }

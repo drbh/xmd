@@ -1,0 +1,21 @@
+{
+  "steps": [
+    { "cli": ["render", "main.x.md", "--format", "text"] },
+    { "cli": ["render", "shadow.x.md", "--format", "text"] },
+    { "cli": ["query", "main.x.md", "trip.tasks", "--json"] },
+    {
+      "lsp": [
+        { "open": "main.x.md" },
+        { "request": "textDocument/hover", "file": "main.x.md", "line": 13, "character": 11 },
+        { "request": "textDocument/signatureHelp", "file": "main.x.md", "line": 17, "character": 30 }
+      ]
+    },
+    {
+      "write": {
+        ".xmd/modules.json": "[\"./modules/prelude.x.md\"]\n",
+        ".xmd/modules/prelude.x.md": "module := {api: 1, id: \"prelude\", kind: \"library\", exports: [\"total\"]}\n\n// Every task, counted twice.\ntotal := fn(checklist) => length(checklist.tasks) * 2\n"
+      }
+    },
+    { "cli": ["render", "main.x.md", "--format", "text"] }
+  ]
+}

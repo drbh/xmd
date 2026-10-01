@@ -45,15 +45,8 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:timers.x.md}",
-                "name": "watch",
-                "action": "start"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timers.x.md}", "row": 0, "expected": "[watch] := stopwatch()", "module": "timers", "event": {"name": "watch", "action": "start"}}]
           }
         },
         {
@@ -86,29 +79,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:timers.x.md}",
-                "name": "watch",
-                "action": "start"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timers.x.md}", "row": 0, "expected": "[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)", "module": "timers", "event": {"name": "watch", "action": "start"}}]
           }
         },
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:timers.x.md}",
-                "name": "watch",
-                "action": "pause"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timers.x.md}", "row": 0, "expected": "[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)", "module": "timers", "event": {"name": "watch", "action": "pause"}}]
           }
         },
         {
@@ -141,15 +120,8 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.timer",
-            "arguments": [
-              {
-                "kind": "timer",
-                "document": "${uri:timers.x.md}",
-                "name": "watch",
-                "action": "reset"
-              }
-            ]
+            "command": "xmd.row",
+            "arguments": [{"kind": "row", "document": "${uri:timers.x.md}", "row": 0, "expected": "[watch] := stopwatch(0s)", "module": "timers", "event": {"name": "watch", "action": "reset"}}]
           }
         },
         {

@@ -18,10 +18,12 @@ pub(crate) enum Target {
     },
     /// A declared name, a reference that resolves to one, or a table column.
     Symbol(Symbol, Span),
+    /// A reference to a function the prelude gives every note.
+    Prelude(String, Span),
     /// A bracketed calculation in prose, by index into the note's calculations.
     Calculation(usize),
-    /// Nothing more specific than the task on this row.
-    Task(usize),
+    /// Nothing more specific than the row itself.
+    Row,
 }
 
 /// Whether `byte` on `row` is on `span`, counting the position just past its
@@ -58,6 +60,13 @@ pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<
     if let Some((symbol, span)) = symbol_at(ws, path, position) {
         return Some(Target::Symbol(symbol, span));
     }
+    if let Some(reference) = doc
+        .references
+        .iter()
+        .find(|r| touches(r.span, row, byte) && ws.prelude_name(path, &r.name))
+    {
+        return Some(Target::Prelude(reference.name.clone(), reference.span));
+    }
     // A bracketed calculation also answers on its opening bracket.
     if let Some(calculation) = doc.calculations.iter().position(|c| {
         let opening = c.span.start.saturating_sub(usize::from(c.bracketed));
@@ -65,10 +74,7 @@ pub(crate) fn target(ws: &Workspace, path: &Path, position: Position) -> Option<
     }) {
         return Some(Target::Calculation(calculation));
     }
-    doc.tasks
-        .iter()
-        .position(|t| t.line == row)
-        .map(Target::Task)
+    Some(Target::Row)
 }
 
 pub fn symbol_at(workspace: &Workspace, path: &Path, position: Position) -> Option<(Symbol, Span)> {
@@ -142,11 +148,8 @@ pub fn inert(doc: &Document, position: Position) -> bool {
             && (h.kind == lang::model::HighlightKind::Comment
                 || h.kind == lang::model::HighlightKind::String
                     && !doc
-                        .tasks
-                        .iter()
-                        .flat_map(|t| t.attributes.values())
-                        .chain(doc.events.iter().flat_map(|e| e.attributes.values()))
-                        .any(|a| touches(a.span, row, byte))
+                        .claimed_attributes()
+                        .any(|(_, a)| touches(a.span, row, byte))
                     && !doc.definitions.iter().any(|d| {
                         d.expression && d.value_span.contains(doc, Span::new(row, byte, byte))
                     }))

@@ -1,7 +1,7 @@
 // Typeahead for the query console. Static names come from the engine's query
 // language; record fields are learned from the workspace and from results.
 import { noteFile } from "@xmd/web";
-export const COLLECTIONS = ["ast", "days", "timers", "links", "tasks", "events", "stops", "entries", "values", "plans", "decisions", "tables", "rows", "resources", "diagnostics", "notes", "sections", "calculations", "references", "cells", "recognized", "graph"];
+export const COLLECTIONS = ["ast", "days", "timers", "mentions", "links", "tasks", "checkboxes", "events", "stops", "entries", "values", "plans", "decisions", "tables", "rows", "resources", "diagnostics", "notes", "sections", "calculations", "references", "cells", "recognized", "attributed", "graph"];
 export const FUNCTIONS = {
   map: "map(list, fn(x) => …)", filter: "filter(list, fn(x) => bool)", sort_by: "sort_by(list, key | desc(key) | [keys])", desc: "desc(fn(x) => key)", group_by: "group_by(list, fn(x) => key)",
   fold: "fold(list, initial, fn(acc, x) => …)", get: "get(record | list, key | index)", length: "length(list | text)", slice: "slice(list, start, end)",

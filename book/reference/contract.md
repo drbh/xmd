@@ -12,8 +12,6 @@ the functions the engine, the language services and the editors call in a bundle
 
 **presents** is words or markup for a person, so a failure costs only a label: the person sees the neutral stand-in under *if it fails* where the words go, and when the workspace brings its own modules the note carries a `module` warning naming the function and the error on the first thing it failed for. **decides** is behavior the engine or an editor acts on, so a failure reaches the person as a diagnostic, an error or a disabled control that says why, never as a quiet default
 
-a call marked **no clock** runs without the request's clock: every date it needs is an argument, and `now()` or `today()` inside it is an error rather than a date in 1970
-
 ### format
 
 | function | returns | role | if it fails | what it is |
@@ -33,8 +31,6 @@ a call marked **no clock** runs without the request's clock: every date it needs
 | function | returns | role | if it fails | what it is |
 | --- | --- | --- | --- | --- |
 | `task.checklist(done: Count, total: Count)` | Text | presents | shows `done/total` | The progress words a named heading's hover shows for its tasks. |
-| `task.hover(task: tasks record)` | Markdown | presents | shows the task's title | A task's hover: its state, blockers, estimate, timer and subtasks, from its `tasks` record as queries and feature modules see it. |
-| `task.toggle(recurring: Boolean, done: Boolean)` | Text | presents | shows `toggle` | The title of the control that completes, reopens or advances a task. |
 
 ### resource
 
@@ -43,26 +39,6 @@ a call marked **no clock** runs without the request's clock: every date it needs
 | `resource.label(resource: resource record)` | Text | presents | shows the resource's target | A resource's inline label when no link module recognizes it. |
 | `resource.hover(resource: resource record)` | Markdown | presents | shows the resource's target | A resource's hover; a link module that recognizes the resource adds its details after it. |
 | `resource.control(resource: resource record)` | Text | presents | shows the resource's target | The title of the control that opens a resource. |
-
-### itinerary_core
-
-| function | returns | role | if it fails | what it is |
-| --- | --- | --- | --- | --- |
-| `itinerary_core.dates(days: List, today: Date)` | List of Date or Null | decides, no clock | reported | The calendar date of each itinerary day, inferring years and steps. |
-| `itinerary_core.time_text(stop: stop record)` | Text | presents, no clock | shows the time as `HH:MM` | A stop's time as written in its label. |
-| `itinerary_core.label(stop: stop record)` | Text | presents, no clock | shows the stop's title | A stop's inline label. |
-
-### timer
-
-| function | returns | role | if it fails | what it is |
-| --- | --- | --- | --- | --- |
-| `timer.create(name: Text, args: List)` | timer record | decides | reported | A new timer from `countdown(...)` or `stopwatch(...)` and its arguments. |
-| `timer.time_dependent(timer: timer record)` | Boolean | decides, optional | reported | Whether the timer's display changes with the clock; without it, the module's `live` flag. |
-| `timer.state(timer: timer record)` | Text | decides | reported | The timer's state: idle, running, paused or done. |
-| `timer.display(timer: timer record)` | Text | presents | shows nothing | The timer's inline display. |
-| `timer.hover(timer: timer record)` | Markdown | presents | shows nothing | The timer's hover. |
-| `timer.property(timer: timer record, name: Text)` | Value | decides | reported | A property a note reads from the timer, such as `.remaining`. |
-| `timer.transition(timer: timer record, action: Text, original: Text)` | Text | decides | reported | The timer's new source expression after a start, pause, resume or reset. |
 
 ### plan
 
@@ -74,6 +50,12 @@ a call marked **no clock** runs without the request's clock: every date it needs
 | `plan.seek_summary(op: Text, positive: Boolean)` | Text | presents | shows the constraint's operator | The words a goal seek's hover uses for its direction. |
 | `plan.write_edits(plan: plan record, document: Text)` | List of text edits | decides | reported | The edits that write a plan's solved decisions into its note. |
 | `plan.write_title()` | Text | presents | shows `write decisions` | The title of the code action that writes a plan's decisions. |
+
+### prelude
+
+| function | returns | role | if it fails | what it is |
+| --- | --- | --- | --- | --- |
+| `prelude.lookup_display(kind: Text, key: List of one-field records, value: Value)` | Text | presents, optional | shows the cached value | How the cached value of a lookup a module's record asked for reads, or why it cannot be read. |
 
 ## hooks
 
@@ -110,25 +92,57 @@ What a feature module sees of the note a request is about. `range` and `capabili
 | field | what it is |
 | --- | --- |
 | `today` | Date: the request's day |
-| `document` | Record: `path`, `uri` and `text` as text, `lines` as a list of text, and one list per collection the module's `inputs` names, under the collection's name. `inputs` defaults to sections, tasks, values and links; `inputs: {tasks: ["text", "line"]}` keeps only those fields. With `values`, the same list is also `definitions`, each record with its first error as `error`. A module that declares `recognizes` also has `recognized`: its own recognizers' matches |
+| `midnight` | DateTime: the start of `today` at the request's offset, the reference `at_time` places a day's times with |
+| `document` | Record: `path`, `uri` and `text` as text, `lines` as a list of text, and one list per collection the module's `inputs` names, under the collection's name. `inputs` defaults to sections, tasks, values and links (tasks, the bundled `tasks` module's, is empty while no active module declares it); `inputs: {tasks: ["text", "line"]}` keeps only those fields. With `values`, the same list is also `definitions`, each record with its first error as `error`. `recognized` holds only the module's own recognizers' matches, and like any collection is there when `inputs` names it. A collection a module declares in `collections` is named like any other, by any module |
 | `module` | Record: `id` and `revision` of the module being called |
 | `range?` | the LSP range being drawn, `{start, end}` of `{line, character}` |
 | `capabilities?` | Record: `refresh` and `views`, booleans for whether the host can refresh data and show views |
+| `position?` | the LSP position being completed or hovered, or where a `\|` was just typed when formatting, `{line, character}` |
+
+#### collection
+
+One entry of a feature module's `collections` record, under the collection's name: a collection the module builds in its `records` hook, which queries bind and any module's `inputs` may name like the language's own. The name is an identifier no native collection and no other active module has. A module declares at most 16.
+
+| field | what it is |
+| --- | --- |
+| `entries?` | Boolean: whether its records join `entries`, the collection a query lays on a timeline, beside tasks, events and stops; or Text, the name of a Boolean field, so only the records where it is true join (the `tasks` module's leaf tasks). False when absent |
+| `from?` | the collections only the `records` hook reads to build it, named like `inputs` (a list, or a record of the fields each keeps): the module's other hooks are not handed them, so a hook that runs on every edit reads the small built collection instead. Where `inputs` names one too, `records` reads it as `from` does. The `timers` module builds its timers from `values` and `mentions` |
+
+#### built record
+
+One record `records` returns. The host keeps it as it is and fills what it leaves out, and a query or module reads it like a native record. A collection holds at most 4096.
+
+| field | what it is |
+| --- | --- |
+| `line` | Number: the zero-based line it is about. Required |
+| `kind?` | Text: the collection's name when absent |
+| `title?` | Text: the line's text when absent |
+| `source?` | Record: `path`, `uri`, `line` (one-based) and `range`, the whole line's when absent |
+| `anchor?` | the LSP position at the line's end when absent |
+| `errors?` | List of Text: empty when absent |
+| `…` | anything else. A record anywhere inside with a `lookup` field, `{kind, key, label?}` as `cached(kind, key, label)` takes them (the prelude's `forecast_lookup(place, date)` builds a day's forecast), asks for a cached lookup: the host puts in its place its other fields with `display` (the value as the prelude's `lookup_display` words it, or why it cannot be read), `source` and `fetched_at`, or null when nothing is cached. A refresh fetches every lookup asked for, and the record's line offers one |
 
 #### recognizer
 
-One entry of a feature module's `recognizes` list: a pattern the host runs over every line of one kind of block whenever a note is parsed, with no module code evaluated. Each non-empty match becomes a `recognized` record. The pattern is checked when the module compiles: a bad one is a module error. A module declares at most 16.
+One entry of a feature module's `recognizes` list: a pattern the host runs over every line of one kind of block whenever a note is parsed, with no module code evaluated. Each non-empty match becomes a `recognized` record, unless the rule only paints. Patterns, groups and paints are checked when the module compiles: a bad one is a module error. A module declares at most 16. The bundled `itinerary` module declares the itinerary this way, and `tasks` how a task's checkbox is painted.
 
 | field | what it is |
 | --- | --- |
 | `name` | Text: an identifier, once per module; each match's `recognizer` |
-| `on` | `prose`, `item`, `heading` or `row`: which lines it reads, from where their text starts (past a heading's `#`s, past a list marker and any checkbox, at a row's first `\|`, past prose's indentation). `^` anchors there. Fences and comments are never read |
-| `pattern` | Text: a regular expression, at most 1024 bytes, with named groups `(?<name>...)`. Matching is linear in the line |
-| `tokens?` | Record: a named group's paint, one of `keyword`, `number`, `string`, `variable`, `heading`, `function`, `property`, `decorator`, `operator`, `comment`, `punctuation`, `money`, `date`, `time`, `duration`, `boolean`, `link`, `code` or `place`. The note's own structure (links, names, attributes, comments) paints over it |
+| `on` | `prose`, `item`, `heading`, `row` or `line`: which lines it reads, from where their text starts (past a heading's `#`s, past a list marker and any checkbox, at a row's first `\|`, past prose's indentation; a `line` rule reads any of those lines whole). `^` anchors there. Fences and comments are never read. A `prose`, `item`, `heading` or `row` rule finds every match on a line; of one module's `line` rules, the first that matches claims the line, once |
+| `pattern` | Text: a regular expression, at most 4096 bytes, with named groups `(?<name>...)`. Matching is linear in the line |
+| `unless?` | Text: a pattern; a line it matches is not this rule's. It says what a lookahead would, which patterns do not have |
+| `under?` | Text, `line` rules only: the name of another `line` rule with `until`. A line is this rule's only while a match of that rule is open, and its match belongs to the nearest one: its record's `parent` |
+| `until?` | `heading` or `break`, `line` rules only: how long a match stays open to the matches under it. `heading`: until the next heading. `break`: until the first line that is blank or that none of them claims. A match also closes when another match claims a line under the same parent, or above |
+| `terms?` | Record: a named group's terms, `[[text, term], ...]` in order (or a record of text to term), all text. A group whose captured text is one of them, ignoring case, has that `term` |
+| `tokens?` | Record: a named group's paint, one of `keyword`, `number`, `string`, `variable`, `heading`, `function`, `property`, `decorator`, `operator`, `comment`, `punctuation`, `money`, `date`, `time`, `duration`, `boolean`, `link`, `code`, `key` (the key of a `Key: value` line), `toggle`, `toggle_on` and `toggle_mixed` (the state of a control a line carries, off, on and mixed, as a tri-state checkbox shows it: a host may make it clickable, running the line's row action), `finished` (the text of something done, struck through) or `category1` to `category10` (a categorical palette: a module that needs distinguishable hues picks categories, and the theme colors them); or `{paint?, terms?, paints?, declaration?}`: the paint of the term of the first of `terms` (group names) that has one, else `paint`, marked as a declaration when `declaration` is true. `paints` gives terms their paints, `[[term, paint], ...]` (or a record of term to paint); a term it does not list paints as the paint it names, ignoring case. The note's own structure (links, names, attributes, comments) paints over it |
+| `links?` | Record: a named group's link, a URL whose `{}` is the captured text, form-encoded. Each becomes one of the note's links |
+| `title?` | Boolean: whether it reads a line only up to where its title ends, at its first attribute or a heading's or checklist item's trailing `:name`, so those paint as themselves. False when absent |
+| `record?` | Boolean: false when its matches only paint, and are no `recognized` records (a rule that only paints has no `under` or `until`). True when absent |
 
 #### recognized
 
-One match of a recognizer: a record of the `recognized` collection, which queries read for every module and a feature module reads as `ctx.document.recognized` for its own. Built when the note is parsed and kept with its other records. A note keeps at most 4096 matches.
+One match of a recognizer: a record of the `recognized` collection, which queries read for every module and a feature module that names it in `inputs` reads as `ctx.document.recognized`, for its own. Built when the note is parsed and kept with its other records. A note keeps at most 4096 matches.
 
 | field | what it is |
 | --- | --- |
@@ -140,20 +154,75 @@ One match of a recognizer: a record of the `recognized` collection, which querie
 | `line` | Number: the zero-based line |
 | `range` | the match's LSP range |
 | `anchor` | the LSP position just past the match, where an inlay goes |
-| `groups` | Record: each named group that took part, as `{text, range}` |
+| `groups` | Record: each named group that took part, as `{text, range}`, with `term` (Text or Null) when the recognizer declares terms for it |
+| `parent` | Number or Null: the line of the match it is `under` |
+| `end_line` | Number: one past the last line it holds, the lines under it included |
+| `source` | Record: `path`, `uri`, `line` (one-based) and `range` |
+| `errors` | List: empty |
+
+#### attribute
+
+One entry of a feature module's `attributes` record, under the key a note writes after `@`: an attribute the module owns, which no other active module has. The language owns none. Notes are parsed knowing it, so its value is painted, checked and completed as what it holds, and the host evaluates it in the note's scope, wherever it is live, into the `attributed` collection: the module reads values, never note code. A value that fails is an `attribute` error on it (a `dependency` error for dependencies, with the items a cycle walks). A module declares at most 16. The bundled `tasks` module declares a task's attributes this way, and `appointments` an appointment's `@at`.
+
+| field | what it is |
+| --- | --- |
+| `value` | `when` (a date or time: relative text such as `tomorrow`, or an expression that evaluates to one), `date` (a calendar date written `YYYY-MM-DD`, never evaluated, as an editor action stamps it), `duration` (an expression that evaluates to a nonnegative duration), `dependencies` (comma-separated conditions, each a Boolean or a checklist: the value is the ones not met yet, as `{text, name, source}`; a condition that names a checklist item brings that item's own dependencies in, and a cycle is an error), `expression` (any value), `text` (never evaluated), or `{tagged: [kinds]}` (the bare name of a definition whose own call makes a tagged record of one of those kinds, which claims it as its `origin`; the value is the record) |
+| `params?` | List of Text: its parameters, as signature help shows them |
+| `applies?` | Text: which lines take it, as signature help words it |
+| `doc?` | Text: what it means, for signature help, completion and the reference |
+| `example?` | Text: the value signature help and completion fill in |
+| `values?` | List of Text: the values completion offers inside it |
+| `on?` | `checkbox` or `any`: `checkbox` makes it live only on a checklist item (a list item with a checkbox), and prose anywhere else. `any` when absent |
+
+#### checkbox
+
+A list item with a checkbox, a checklist item, as the language reads it: a record of the `checkboxes` collection, which queries read and a feature module that names it in `inputs` reads as `ctx.document.checkboxes`. A named item is a Boolean, whether it is done, and a named heading the checklist of the items under it; what else an item is, a task, the bundled `tasks` module builds from these and `attributed`.
+
+| field | what it is |
+| --- | --- |
+| `kind` | `checkbox` |
+| `line` | Number: the zero-based line |
+| `title` | Text: its text past the checkbox, up to its first attribute or trailing `:name`, trimmed |
+| `name` | Text or Null: its trailing `:name` |
+| `name_range` | the LSP range of its name, or null |
+| `mark` | `open`, `in_progress` or `done`: what its checkbox says |
+| `done` | Boolean: what its name evaluates to: checked, or every subitem done when it has some |
+| `parent` | Number or Null: the line of the item it nests under, the nearest open one indented less, until a heading |
+| `children` | List of Number: the lines of the items nested under it |
+| `indent` | Number: its indentation in bytes |
+| `checkbox` | the LSP range of its `[ ]` |
+| `range` | the LSP range of the line's text, the blanks around it aside |
+| `attributes` | Record: each attribute it writes, as written, by key |
+| `anchor` | the LSP position at the line's end |
+| `source` | Record: `path`, `uri`, `line` (one-based) and `range` |
+| `errors` | List: empty |
+
+#### attributed
+
+A line that writes an attribute a module declares live there, tasks included: a record of the `attributed` collection, which queries read and a feature module that names it in `inputs` reads as `ctx.document.attributed`. Built with the note's other records, for the request's day.
+
+| field | what it is |
+| --- | --- |
+| `kind` | `attributed` |
+| `line` | Number: the zero-based line |
+| `title` | Text: the line's text from where it starts (past a list marker and any checkbox) up to its first attribute, trimmed |
+| `block` | `item`, `prose` or `row` |
+| `task` | Boolean: whether the line is a task |
+| `range` | the LSP range of the line's text, the blanks around it aside |
+| `attributes` | Record: each declared attribute the line writes, live there, by key (the last of a repeated key), as `{text, value, date, error, range, value_range}`: `text` as written, `value` evaluated as the declaration says (null when it fails), `date` its calendar day at the request's offset when it is a date or time, `error` why it failed or null, and the LSP ranges of the whole `@key(value)` and of the value |
+| `anchor` | the LSP position at the line's end |
 | `source` | Record: `path`, `uri`, `line` (one-based) and `range` |
 | `errors` | List: empty |
 
 #### action
 
-What a control does, a record with a `kind`. A `document` is a note's URI, and `expected` is its whole text when the action was offered: the action is refused if the note changed since.
+What a control does, a record with a `kind`. A `document` is a note's URI, and `expected` is its whole text when the action was offered, or for a `row`, that row's: the action is refused if it changed since.
 
 | field | what it is |
 | --- | --- |
 | `invoke` | `{document, expected, module, revision, event}`: call this module's `reduce` with `event` when the person runs it |
 | `edit` | `{document, expected, edits}`: apply LSP text edits |
-| `toggle_task` | `{document, row, expected}`: check or uncheck a task |
-| `timer` | `{document, name, action}`: `start`, `pause`, `resume` or `reset` a timer |
+| `row` | `{document, row, expected, module, event}`: the row's own control, what clicking its checkbox does: call this module's `reduce` with `event` when the person runs it, against the note and clock of that moment. Refused only when the row no longer reads as `expected`, so an edit elsewhere leaves it standing. It leads its row's controls, and a host that prefers edits resolves it into one up front |
 | `open_resource` | `{target: {document, row, expected}, url}`: open a link |
 | `refresh_resource` | `{target: {document, row, expected}, url}`: refresh a link's data; needs the `refresh` capability |
 | `refresh` | `{document?}`: refresh lookups; needs the `refresh` capability |
@@ -215,7 +284,7 @@ Whether the output depends on the clock, so it is redrawn as time passes. A feat
 
 returns List of inlays: `{at: position, label: Text, tooltip?: Text}` or `{line: Number, label, tooltip?}`
 
-The inline labels for the note, with `ctx.range` set. `at` is an LSP position; `line` puts the label at that line's end. Every position is checked against the text. A failure shows one `module error` label on the first line. Required unless the module defines `actions`, `hovers`, `diagnostics` or `format`.
+The inline labels for the note, with `ctx.range` set. `at` is an LSP position; `line` puts the label at that line's end. Every position is checked against the text. A failure shows one `module error` label on the first line. Required unless the module defines another feature hook: `actions`, `hovers`, `diagnostics`, `format`, `records`, `symbols` or `completions`.
 
 #### `time_dependent(ctx: link context or feature context)`
 
@@ -225,21 +294,21 @@ Whether the output depends on the clock, so it is redrawn as time passes. A feat
 
 #### `actions(ctx: feature context)`
 
-returns List of `{line: Number, title: Text, action: action}`
+returns List of `{line: Number, title: Text, action: action, disabled?: Text}`
 
-The controls the note's lines offer, called once for the whole note with `ctx.capabilities` set; `line` is the zero-based line a control shows on. An action the host cannot perform is dropped, and the rest are checked before they show: one that fails hides the other controls on its line. A failure, or a line outside the note, shows none.
+The controls the note's lines offer, called once for the whole note with `ctx.capabilities` set; `line` is the zero-based line a control shows on. An action the host cannot perform is dropped, and the rest are checked before they show: one that fails hides the other controls on its line. A control with `disabled` says why it cannot run now: it is no lens or command, and a host that resolves row actions into edits shows it disabled with that reason. A failure, or a line outside the note, shows none.
 
 #### `reduce(ctx: feature context, event: any value)`
 
-returns action, not `invoke`
+returns action, not `invoke` or `row`
 
-The action an `invoke` control performs, decided when the person runs it, from the `event` the control carried. `ctx.capabilities` is set. The note and the module must still be at the text and revision the control was offered with.
+The action an `invoke` or `row` control performs, decided when the person runs it, from the `event` the control carried. `ctx.capabilities` is set. For an `invoke`, the note and the module must still be at the text and revision the control was offered with; for a `row`, only its row must read as it did. A reducer that refuses with `error(reason)` has the person read the reason as written.
 
 #### `hovers(ctx: feature context)`
 
-returns List of `{range, contents: Text}`
+returns List of `{range, contents: Text, fallback?: Boolean}`
 
-Markdown hovers over LSP ranges of the note. The first module with one covering the cursor wins over the editor's own hover. A failure shows none.
+Markdown hovers over LSP ranges of the note, with `ctx.position` the position hovered. The first module with one covering the cursor wins over the editor's own hover; one with `fallback` is shown only where the editor's own finds nothing more specific than the row. A failure shows none.
 
 #### `diagnostics(ctx: feature context)`
 
@@ -251,7 +320,25 @@ Problems shown with the editor's own. `source` defaults to `xmd`. A failure beco
 
 returns List of LSP text edits: `{range, newText}`
 
-Edits made when the note is formatted, after table formatting. All of them have to apply together, or formatting fails.
+Edits made when the note is formatted, every feature module's together: the bundled `tables` module's lay tables out. All of them have to apply together, or formatting fails. Typing a `|` in a table formats it too, with `ctx.position` just after the pipe: the editor keeps only the edits on that table's lines, and leaves the row being typed alone until it has its closing pipe and a cell for every column.
+
+#### `records(ctx: feature context)`
+
+returns Record: a list of built records under each collection the module declares in `collections`
+
+Builds the module's collections for one note, once per revision of the note and its workspace and per day: queries, every module's `ctx.document` and the host read what it returned. It runs without the clock, so `ctx.today` and `ctx.midnight` are its dates and `now()` or `today()` fails. `ctx.document` holds the module's `inputs` but the collections modules build, `entries` included, and what its collections are built `from`. A failure leaves the collections empty and becomes one error diagnostic naming the module, on the first line it recognized. Required when the module declares `collections`.
+
+#### `symbols(ctx: feature context)`
+
+returns List of `{name: Text, detail?: Text, kind?: Text, line: Number, end_line?: Number, selection: range}`
+
+Entries for the note's outline. One spans from `line` to its last filled line before `end_line` (one past `line` when absent) and nests by that span with the editor's own; `kind` is an LSP symbol kind in snake case, `namespace` when absent. One on a heading's line gives that heading's entry its detail and span instead. A failure adds none.
+
+#### `completions(ctx: feature context)`
+
+returns Null, or a list of `{label: Text, insert?: Text, detail?: Text, kind?: Text}`
+
+What to offer at `ctx.position`, replacing the word being typed with `insert` (the label when absent); `kind` is an LSP completion kind in snake case. The first module with a list answers, even an empty one; null leaves the position to the editor. A failure is null.
 
 ### command and provider modules
 
@@ -315,7 +402,7 @@ a lookup that has not finished in 16 steps fails
 
 | field | what it is |
 | --- | --- |
-| `key` | Record: `kind` (`rate`, `quote` or `forecast`) and the lookup's fields as text: `from` and `to`, `symbol`, or `place` and `date` (a Date) |
+| `key` | Record: the lookup's `kind` and the parts of its key by name, as `cached(kind, key)` asked for it: `from` and `to` for a rate, `symbol` for a quote, `place` and `date` (a Date) for a forecast |
 | `today` | Date: the refresh's day |
 | `state` | what the previous step returned as `state`; null at first |
 | `results` | List: `results[i]` answers the previous step's `requests[i]`; empty at first |

@@ -13,12 +13,11 @@ pub mod common {
     };
 }
 
-/// The lexer's tokens and literal values, and the one table of task and
-/// appointment attributes.
+/// The lexer's tokens and literal values, and what a declared attribute's
+/// value can hold.
 pub mod syntax {
     pub use ::syntax::{
-        AttributeKey, AttributeValue, Lexeme, Literal, is_relative_date, literal, stamp,
-        valid_expression,
+        AttributeValue, Lexeme, Literal, is_relative_date, literal, stamp, valid_expression,
     };
 }
 
@@ -32,11 +31,14 @@ pub mod stdlib {
     pub mod format {
         pub use ::eval::stdlib::format::{age, glyph, series};
     }
+    pub mod prelude {
+        pub use ::eval::stdlib::prelude::lookup_display;
+    }
     pub mod today {
         pub use ::eval::stdlib::today::page;
     }
     pub mod task {
-        pub use ::eval::stdlib::task::{checklist, hover, toggle};
+        pub use ::eval::stdlib::task::checklist;
     }
     pub mod resource {
         pub use ::eval::stdlib::resource::{control, hover, label};
@@ -65,7 +67,10 @@ pub mod model {
 /// that live in `values`, `modules`, `syntax`, `model` or `common`, since
 /// those crates are private too.
 pub mod eval {
-    pub use ::eval::{Clock, RequestContext, Symbol, SymbolKind, Workspace, member_symbol};
+    pub use ::eval::{
+        Clock, Evaluations, PreludeFunction, RequestContext, Symbol, SymbolKind, Workspace,
+        member_symbol, reads_clock,
+    };
     pub use ::values::{EvalError, EvalResult, RecordFields, ToValue, record};
     pub mod engine {
         pub use ::common::ValueType;
@@ -74,23 +79,21 @@ pub mod eval {
             Builtin, Expr, Lexeme, Literal, Operator, Parser, Tier, is_builtin_function, lex,
             lex_with_comments, relative_date, sum_scope_at,
         };
-        pub use ::values::{HostObject, Value, literal, next_occurrence, value_json};
-    }
-    pub mod itinerary {
-        pub use ::eval::itinerary::{dates, day_record, display_time, label};
-        pub use ::model::itinerary::{Day, KEYS, KINDS, Kind, clock, month_name};
+        pub use ::values::{
+            HostObject, Measured, Value, claimed, literal, next_occurrence, value_json,
+        };
     }
     pub mod link_features {
         pub use ::modules::{LinkFeatures, RefreshFormat, RefreshRequest};
     }
     pub mod lookups {
-        pub use ::values::{Lookup, LookupKey, Store, day_place, forecast_from};
+        pub use ::values::{Lookup, LookupKey, Store};
     }
     pub mod modules {
         pub use ::eval::CompileModules;
         pub use ::modules::{
-            Effect, HOOK_RECORDS, HOOKS, Hook, HookContract, HookRecord, Module, ModuleKind,
-            ModuleRegistry, STEPS, StepProtocol, is_module_path,
+            Declared, Effect, HOOK_RECORDS, HOOKS, Hook, HookContract, HookRecord, Joins, Module,
+            ModuleKind, ModuleRegistry, STEPS, StepProtocol, is_module_path, no_clock,
         };
         pub use ::values::{Collection, from_json, json, record};
     }
@@ -107,9 +110,6 @@ pub mod eval {
         pub use ::eval::tables::{
             literal_value, origin, resolve_reference, table, validate_rename,
         };
-        pub use ::model::tables::{Domain, aligned, cells, formatting, grids, line_edit, scope_at};
-    }
-    pub mod timers {
-        pub use ::eval::{Timer, TimerAction, edit_timer as edit_in};
+        pub use ::model::tables::{Domain, cells, grids, scope_at};
     }
 }

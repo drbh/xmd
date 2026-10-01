@@ -4,8 +4,8 @@ use crate::prose;
 use lang::common::Span;
 use lang::eval::engine;
 use lang::model::recognized::Paint;
-use lang::model::{Attribute, Document, HighlightKind, Named, TaskState};
-use lang::syntax::{AttributeKey, AttributeValue, Lexeme, Literal};
+use lang::model::{Attribute, Document, HighlightKind, Named};
+use lang::syntax::{AttributeValue, Lexeme, Literal};
 use lsp_types::SemanticToken;
 
 /// A semantic token type. Declaration order is the legend's order, so a
@@ -31,32 +31,30 @@ pub(crate) enum Token {
     XmdPunctuation,
     XmdCode,
     XmdLink,
-    XmdCheckbox,
-    XmdTaskDone,
-    XmdCheckboxChecked,
-    XmdCheckboxInProgress,
+    /// A control's state, as a tri-state checkbox shows it: off, on and
+    /// mixed. A host may make a span painted so clickable.
+    XmdToggle,
+    /// The text of something finished, struck through.
+    XmdFinished,
+    XmdToggleOn,
+    XmdToggleMixed,
     XmdTime,
-    // Itineraries: one hue per stop kind, so a day reads at a glance. Each
-    // kind's token is `xmd` and its name in `KINDS`.
-    XmdDay,
-    XmdPlace,
-    XmdDetailKey,
-    XmdDepart,
-    XmdArrive,
-    XmdTransit,
-    XmdStay,
-    XmdMeal,
-    XmdVisit,
-    XmdExplore,
+    /// The key of a `Key: value` line.
+    XmdKey,
+    // A categorical palette: a module that needs distinguishable hues picks
+    // categories through its recognizers' paints, and the theme colors them.
+    XmdCategory1,
+    XmdCategory2,
+    XmdCategory3,
+    XmdCategory4,
+    XmdCategory5,
+    XmdCategory6,
+    XmdCategory7,
+    XmdCategory8,
+    XmdCategory9,
+    XmdCategory10,
 }
 pub const TOKEN_TYPES: &[&str] = <Token as strum::VariantNames>::VARIANTS;
-/// The semantic token type for a stop kind, named after it: `xmdDepart` for
-/// Depart. A kind without a token of its own reads as a heading.
-fn kind_token(kind: &lang::eval::itinerary::Kind) -> Token {
-    format!("xmd{}", kind.name)
-        .parse()
-        .unwrap_or(Token::Heading)
-}
 /// The token a recognizer's paint is drawn with: one the legend already has.
 fn paint_token(paint: Paint) -> Token {
     match paint {
@@ -78,7 +76,21 @@ fn paint_token(paint: Paint) -> Token {
         Paint::Boolean => Token::XmdBoolean,
         Paint::Link => Token::XmdLink,
         Paint::Code => Token::XmdCode,
-        Paint::Place => Token::XmdPlace,
+        Paint::Key => Token::XmdKey,
+        Paint::Toggle => Token::XmdToggle,
+        Paint::ToggleOn => Token::XmdToggleOn,
+        Paint::ToggleMixed => Token::XmdToggleMixed,
+        Paint::Finished => Token::XmdFinished,
+        Paint::Category1 => Token::XmdCategory1,
+        Paint::Category2 => Token::XmdCategory2,
+        Paint::Category3 => Token::XmdCategory3,
+        Paint::Category4 => Token::XmdCategory4,
+        Paint::Category5 => Token::XmdCategory5,
+        Paint::Category6 => Token::XmdCategory6,
+        Paint::Category7 => Token::XmdCategory7,
+        Paint::Category8 => Token::XmdCategory8,
+        Paint::Category9 => Token::XmdCategory9,
+        Paint::Category10 => Token::XmdCategory10,
     }
 }
 pub const TOKEN_MODIFIERS: &[&str] = &["declaration", "defaultLibrary"];
@@ -111,12 +123,15 @@ fn value_kind(value: &Literal) -> Token {
 }
 struct Painter<'a> {
     doc: &'a Document,
+    /// The prelude functions the note calls by name, which paint like
+    /// built-ins.
+    library: &'a [String],
     text: &'a str,
     lines: Vec<&'a str>,
     colors: Vec<Vec<Style>>,
 }
 impl<'a> Painter<'a> {
-    fn new(doc: &'a Document) -> Self {
+    fn new(doc: &'a Document, library: &'a [String]) -> Self {
         let lines: Vec<_> = doc.text.lines().collect();
         let colors = lines
             .iter()
@@ -124,6 +139,7 @@ impl<'a> Painter<'a> {
             .collect();
         Self {
             doc,
+            library,
             text: &doc.text,
             lines,
             colors,
@@ -185,7 +201,9 @@ impl<'a> Painter<'a> {
                 Lexeme::Value(value) => value_kind(value),
                 Lexeme::Name(name) => {
                     if matches!(tokens.get(i + 1).map(|t| &t.kind), Some(Lexeme::Left)) {
-                        if lang::eval::engine::is_builtin_function(name) {
+                        if lang::eval::engine::is_builtin_function(name)
+                            || self.library.contains(name)
+                        {
                             modifiers = DEFAULT_LIBRARY;
                         }
                         Token::Function
@@ -217,11 +235,11 @@ impl<'a> Painter<'a> {
         );
         // What the value holds decides its paint, as in the parser: a date
         // that reads as one without evaluating, an expression, or plain text.
-        match name.parse::<AttributeKey>().ok().map(AttributeKey::value) {
+        match self.doc.attribute_value(name) {
             Some(AttributeValue::When) if lang::syntax::is_relative_date(&attr.value) => {
                 self.mark(attr.value_span, Token::XmdDate);
             }
-            Some(AttributeValue::Stamp) if lang::syntax::stamp(&attr.value).is_some() => {
+            Some(AttributeValue::Date) if lang::syntax::stamp(&attr.value).is_some() => {
                 self.mark(attr.value_span, Token::XmdDate);
             }
             Some(value) if value.is_expression() => self.expression(attr.value_span),
@@ -280,7 +298,8 @@ impl<'a> Painter<'a> {
     fn recognized(&mut self) {
         for group in self.doc.recognized.iter().flat_map(|m| &m.groups) {
             if let Some(paint) = group.paint {
-                self.mark(group.span, paint_token(paint));
+                let modifiers = if group.declaration { DECLARATION } else { 0 };
+                self.paint(group.span, style(paint_token(paint), modifiers));
             }
         }
     }
@@ -297,36 +316,11 @@ impl<'a> Painter<'a> {
             }
         }
     }
-    fn tasks(&mut self) {
-        for task in &self.doc.tasks {
-            self.mark(
-                Span::new(task.line, task.indent, task.indent + 1),
-                Token::XmdPunctuation,
-            );
-            self.mark(
-                task.checkbox,
-                match task.state {
-                    TaskState::Open => Token::XmdCheckbox,
-                    TaskState::InProgress => Token::XmdCheckboxInProgress,
-                    TaskState::Done => Token::XmdCheckboxChecked,
-                },
-            );
-            if task.state == TaskState::Done {
-                let end = task
-                    .attributes
-                    .values()
-                    .map(|a| a.span.start)
-                    .chain(task.named.iter().map(|n| n.span.start - 1))
-                    .min()
-                    .unwrap_or(self.lines[task.line].len());
-                self.mark(
-                    Span::new(task.line, task.checkbox.end, end),
-                    Token::XmdTaskDone,
-                );
-            }
-            if let Some(named) = &task.named {
-                self.declaration(named);
-            }
+    /// A checklist item's name declares it; how its checkbox and title look
+    /// is what a module's recognizers paint.
+    fn checklist(&mut self) {
+        for named in self.doc.tasks.iter().filter_map(|t| t.named.as_ref()) {
+            self.declaration(named);
         }
     }
     fn definitions(&mut self) {
@@ -362,12 +356,7 @@ impl<'a> Painter<'a> {
     }
     fn attributes(&mut self) {
         let doc = self.doc;
-        for (name, attr) in doc
-            .tasks
-            .iter()
-            .flat_map(|t| &t.attributes)
-            .chain(doc.events.iter().flat_map(|e| &e.attributes))
-        {
+        for (name, attr) in doc.claimed_attributes() {
             self.attribute(name, attr);
         }
     }
@@ -414,50 +403,6 @@ impl<'a> Painter<'a> {
                     self.mark(
                         cell.span,
                         cell.value.as_ref().map(value_kind).unwrap_or(Token::String),
-                    );
-                }
-            }
-        }
-    }
-    fn days(&mut self) {
-        for day in &self.doc.days {
-            if let Some((_, span)) = &day.weekday {
-                self.paint(*span, style(Token::XmdDay, DECLARATION));
-                self.paint(
-                    Span::new(span.line, span.end, day.date_span.start),
-                    style(Token::XmdDay, 0),
-                );
-            }
-            self.paint(day.date_span, style(Token::XmdDay, DECLARATION));
-            if let Some((_, span)) = &day.places {
-                self.mark(*span, Token::XmdPlace);
-            }
-            for stop in &day.stops {
-                self.mark(stop.time_span, Token::XmdTime);
-                let token = stop.kind.map(kind_token).unwrap_or(Token::Heading);
-                if let Some(marker) = stop.marker_span {
-                    self.paint(marker, style(token, DECLARATION));
-                }
-                self.mark(stop.title_span, token);
-                for detail in &stop.details {
-                    self.mark(detail.key_span, Token::XmdDetailKey);
-                    let key = detail.key.to_ascii_lowercase();
-                    if key.ends_with("number")
-                        || key == "seats"
-                        || key == "confirmation"
-                        || key == "pnr"
-                    {
-                        self.mark(detail.value_span, Token::XmdCode);
-                    } else if key == "cancel by" {
-                        self.mark(detail.value_span, Token::XmdDate);
-                    }
-                    self.mark(
-                        Span::new(
-                            detail.key_span.line,
-                            detail.key_span.end,
-                            detail.value_span.start,
-                        ),
-                        Token::XmdPunctuation,
                     );
                 }
             }
@@ -535,21 +480,22 @@ impl<'a> Painter<'a> {
 }
 
 /// Parser highlights first, then prose values where nothing else claimed the
-/// text, then each structure in turn; later paints win.
-pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
-    let mut p = Painter::new(doc);
+/// text, then each structure in turn; later paints win. `library` names the
+/// prelude functions the note reaches (`Workspace::prelude_names`), which
+/// paint as built-ins do.
+pub fn semantic_tokens(doc: &Document, library: &[String]) -> Vec<SemanticToken> {
+    let mut p = Painter::new(doc, library);
     p.highlights();
     p.prose_values();
     p.recognized();
     p.sections();
-    p.tasks();
+    p.checklist();
     p.definitions();
     p.attributes();
     p.calculations();
     p.references();
     p.plans();
     p.tables();
-    p.days();
     p.links();
     p.comments();
     p.finish()
@@ -559,19 +505,39 @@ pub fn semantic_tokens(doc: &Document) -> Vec<SemanticToken> {
 mod tests {
     use super::*;
 
-    /// Every stop kind has a hue of its own, so a kind added to `KINDS`
-    /// needs its token in the legend too.
+    /// Every kind of stop the itinerary module declares has a category of
+    /// its own, on its marker and its title alike, so a kind added there
+    /// needs a category too.
     #[test]
-    fn every_stop_kind_has_its_own_token() {
-        let tokens: Vec<Token> = lang::eval::itinerary::KINDS
+    fn every_stop_kind_has_its_own_category() {
+        let mut doc = Document::parse(String::new());
+        doc.recognize(&lang::eval::Workspace::new(vec![]).modules().recognizers());
+        let stop = doc
+            .rules
             .iter()
-            .map(kind_token)
-            .collect();
-        for (kind, token) in lang::eval::itinerary::KINDS.iter().zip(&tokens) {
-            assert_ne!(*token, Token::Heading, "{} has no token", kind.name);
+            .find(|r| r.module == "itinerary" && r.name == "stop")
+            .expect("the itinerary's stop rule");
+        // Each kind once, as the terms of its markers name it.
+        let mut kinds: Vec<&str> = Vec::new();
+        for term in stop.terms("marker") {
+            if !kinds.contains(&&*term.term) {
+                kinds.push(&term.term);
+            }
         }
-        for (i, token) in tokens.iter().enumerate() {
-            assert!(!tokens[..i].contains(token), "{token:?} is shared");
+        assert!(kinds.len() > 1);
+        for group in ["marker", "title"] {
+            let (_, brush) = stop.tokens.iter().find(|(g, _)| g == group).unwrap();
+            let tokens: Vec<Token> = kinds
+                .iter()
+                .map(|kind| brush.term_paint(kind).map_or(Token::Heading, paint_token))
+                .collect();
+            for (kind, token) in kinds.iter().zip(&tokens) {
+                let name = TOKEN_TYPES[*token as usize];
+                assert!(name.starts_with("xmdCategory"), "{kind} has no category");
+            }
+            for (i, token) in tokens.iter().enumerate() {
+                assert!(!tokens[..i].contains(token), "{token:?} is shared");
+            }
         }
     }
 }

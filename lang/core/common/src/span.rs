@@ -145,6 +145,12 @@ impl LineIndex {
             .unwrap_or(self.len)
             .min(self.len)
     }
+    /// How many lines `str::lines` gives the text: one per line break, and
+    /// the last line's when it has no break.
+    pub fn count(&self) -> usize {
+        let last = *self.starts.last().unwrap_or(&0);
+        self.starts.len() - usize::from(last == self.len)
+    }
     /// Line `line` of `text` without its line ending, as `str::lines` gives it.
     pub fn line<'a>(&self, text: &'a str, line: usize) -> &'a str {
         let body = &text[self.start(line)..self.start(line + 1)];
@@ -172,6 +178,7 @@ mod tests {
             "a\rb\n",
         ] {
             let index = LineIndex::new(text);
+            assert_eq!(index.count(), text.lines().count(), "{text:?}");
             for line in 0..6 {
                 assert_eq!(index.start(line), text.line_start(line), "{text:?} {line}");
                 assert_eq!(

@@ -50,7 +50,8 @@ Resource cache updated (0 resources)
   },
   "forecast:oaxaca:2026-12-05": {
     "value": {
-      "error": "no forecast yet; seasonal outlooks cover about 7 months"
+      "error": "no forecast yet; seasonal outlooks cover about 7 months",
+      "pending": true
     },
     "fetched_at": "2026-09-17T14:00:00Z",
     "source": "open-meteo.com (seasonal ensemble)"

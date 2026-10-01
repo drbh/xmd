@@ -84,12 +84,16 @@ exit 0
       "arguments": [
         {
           "document": "file://<root>/main.x.md",
+          "event": {
+            "line": 2
+          },
           "expected": "- [ ] Sweep the porch",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 2
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -108,12 +112,16 @@ exit 0
       "arguments": [
         {
           "document": "file://<root>/main.x.md",
+          "event": {
+            "line": 3
+          },
           "expected": "- [ ] Water the plants",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 3
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {

@@ -1,10 +1,12 @@
-// stdlib/timer.x.md with four exports replaced, as a workspace copy.
-// Timer state and transitions. Rust carries the typed value and applies edits.
-module := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: []}
+// stdlib/timer.xmd with three functions replaced, as a workspace copy.
+// Timers: what `countdown(...)` and `stopwatch(...)` make, their state, their
+// words and their transitions. A timer is a Countdown or Stopwatch tagged
+// record built here; the prelude's `countdown` and `stopwatch` call `make`.
+module := {api: 1, id: "timer", kind: "library", imports: ["format"], inputs: [], exports: []}
 fmt := import("format")
 
 // Require a nonnegative duration measured in whole seconds.
-duration := fn(v) => (
+_duration := fn(v) => (
   if(
     type(v) == "Duration" && v >= 0s,
     v,
@@ -13,11 +15,11 @@ duration := fn(v) => (
 )
 
 // Validate a countdown's positive limit; stopwatches have no limit.
-limit := fn(kind, args) => (
+_limit := fn(kind, args) => (
   if(
     kind == "countdown",
     if(
-      duration(get(args, 0)) == 0s,
+      _duration(get(args, 0)) == 0s,
       error("Countdown duration must be greater than zero"),
       get(args, 0)
     ),
@@ -26,7 +28,7 @@ limit := fn(kind, args) => (
 )
 
 // Require an explicit timestamp for a running timer segment.
-started := fn(value) => (
+_started := fn(value) => (
   if(
     type(value) == "DateTime",
     value,
@@ -34,35 +36,34 @@ started := fn(value) => (
   )
 )
 
-// Add elapsed segments and clamp countdowns at their limit.
-assemble := fn(bound, accumulated, since, idle) => (
-  {
-    limit: bound,
-    elapsed: if(
-      bound == null,
-      accumulated + since,
-      if(accumulated + since > bound, bound, accumulated + since)
-    ),
-    idle: idle
-  }
+// How long the current segment has run: nothing for a timer that is not
+// running, and nothing when the clock reads before its start. Only a running
+// segment reads the clock.
+_since := fn(start) => (
+  if(start == null, 0s, let({clock: now()}, if(clock < start, 0s, clock - start)))
 )
 
-// Ignore backwards clock movement when measuring the current segment.
-create_at := fn(bound, accumulated, start, idle, clock) => (
+// Add elapsed segments and clamp countdowns at their limit.
+_elapsed := fn(bound, accumulated, since) => (
+  if(
+    bound == null,
+    accumulated + since,
+    if(accumulated + since > bound, bound, accumulated + since)
+  )
+)
+
+// The timer's state record at the request clock.
+_create_at := fn(bound, accumulated, start, idle) => (
   {
     limit: bound,
-    elapsed: assemble(
-      bound,
-      accumulated,
-      if(start == null || clock < start, 0s, clock - start),
-      idle
-    ).elapsed,
+    elapsed: _elapsed(bound, accumulated, _since(start)),
     started: start,
     idle: idle
   }
 )
 
-// Validate constructor arguments and evaluate state at the request clock.
+// Validate constructor arguments and evaluate state at the request clock:
+// `kind` is countdown or stopwatch, `args` what the call was given.
 _create := fn(kind, args) => (
   if(
     length(args) < if(kind == "countdown", 1, 0) || length(args) > if(kind == "countdown", 3, 2),
@@ -73,9 +74,9 @@ _create := fn(kind, args) => (
         "stopwatch accepts optional elapsed and a start timestamp"
       )
     ),
-    create_at(
-      limit(kind, args),
-      duration(
+    _create_at(
+      _limit(kind, args),
+      _duration(
         if(
           length(args) > if(kind == "countdown", 1, 0),
           get(args, if(kind == "countdown", 1, 0)),
@@ -84,11 +85,10 @@ _create := fn(kind, args) => (
       ),
       if(
         length(args) > if(kind == "countdown", 2, 1),
-        started(get(args, if(kind == "countdown", 2, 1))),
+        _started(get(args, if(kind == "countdown", 2, 1))),
         null
       ),
-      length(args) == if(kind == "countdown", 1, 0),
-      now()
+      length(args) == if(kind == "countdown", 1, 0)
     )
   )
 )
@@ -103,79 +103,45 @@ running := fn(t) => (
   t.started != null && done(t) == false
 )
 
-// Only a running state needs future clock refreshes.
-time_dependent := fn(t) => (
-  running(t)
-)
-
 // Distinguish completed, untouched, running, and paused timers.
 state := fn(t) => (
-  if(done(t), "done", if(t.idle, "idle", if(running(t), "running", "paused")))
+  if(done(t), "done", t.idle, "idle", running(t), "running", "paused")
 )
 
 // Choose the visual marker for the timer's current state.
-state_icon := fn(t) => (
+_state_icon := fn(t) => (
   get({running: "▸", paused: "‖", done: "✓", idle: "○"}, state(t))
 )
 
 // Display elapsed time for stopwatches and remaining time for countdowns.
-clock := fn(t) => (
+_clock := fn(t) => (
   fmt.clock(if(t.limit == null, t.elapsed, t.limit - t.elapsed))
 )
 
 // Combine the clock, its meaning, and the current state.
-suffix := fn(t) => (
-  clock(t)
+_suffix := fn(t) => (
+  _clock(t)
   + if(t.limit == null, " elapsed", " remaining")
   + " · "
-  + state_icon(t)
+  + _state_icon(t)
   + " "
   + state(t)
 )
 
 // Prefix the timer summary with its timer-kind icon.
 _display := fn(t) => (
-  if(t.limit == null, "◴ ", "◷ ") + suffix(t)
+  if(t.limit == null, "◴ ", "◷ ") + _suffix(t)
 )
 
 // Add countdown progress to the compact timer summary.
 inlay := fn(t) => (
-  if(t.limit == null, "◴ ", "◷ " + fmt.gauge(t.elapsed / t.limit, 8) + " ") + suffix(t)
-)
-
-// Expose timer properties and reject countdown-only stopwatch reads.
-_property := fn(t, name) => (
-  if(
-    name == "elapsed",
-    t.elapsed,
-    if(
-      name == "remaining",
-      if(t.limit == null, error("Only countdowns have .remaining"), t.limit - t.elapsed),
-      if(
-        name == "duration",
-        if(t.limit == null, error("Only countdowns have .duration"), t.limit),
-        if(
-          name == "running",
-          running(t),
-          if(
-            name == "done",
-            done(t),
-            if(name == "state", state(t), error("Unknown timer property '" + name + "'"))
-          )
-        )
-      )
-    )
-  )
+  if(t.limit == null, "◴ ", "◷ " + fmt.gauge(t.elapsed / t.limit, 8) + " ") + _suffix(t)
 )
 
 // Offer transitions that are valid for the current timer state.
 actions := fn(t) => (
   concat(
-    if(
-      state(t) == "idle",
-      ["start"],
-      if(state(t) == "running", ["pause"], if(state(t) == "paused", ["resume"], []))
-    ),
+    match(state(t), "idle", ["start"], "running", ["pause"], "paused", ["resume"], []),
     if(t.idle, [], ["reset"])
   )
 )
@@ -211,9 +177,38 @@ hover := fn(t) => (
   + "\n\nUse Start / Pause / Resume / Reset timer. Controls save state in the note; ticking never edits it."
 )
 
-create := fn(kind, args) => {limit: null, elapsed: 41s, started: null, idle: false}
+// What a note reads from a timer besides its state: whether it runs, has
+// finished, and where it stands, and for a countdown its limit and what is
+// left of it.
+_properties := fn(t) => concat(
+  [
+    {key: "running", value: running(t)},
+    {key: "done", value: done(t)},
+    {key: "state", value: state(t)}
+  ],
+  if(
+    t.limit == null,
+    [],
+    [{key: "remaining", value: t.limit - t.elapsed}, {key: "duration", value: t.limit}]
+  )
+)
 
-property := fn(t, name) => 42s
+// A state record as the value a note holds: a Countdown or a Stopwatch that
+// shows its display and hovers with its hover. `origin` is null until the
+// definition that calls `countdown` or `stopwatch` claims it, which is what
+// lets a control rewrite that definition.
+_value := fn(t) => tagged(
+  if(t.limit == null, "Stopwatch", "Countdown"),
+  object(concat(entries(t), _properties(t), [{key: "origin", value: null}])),
+  display(t),
+  hover(t)
+)
+
+// A new timer from `countdown(...)` or `stopwatch(...)` and its arguments.
+// Its value moves with the clock only while it runs.
+make := fn(kind, args) => clocked(_value(create(kind, args)), fn(t) => running(t))
+
+create := fn(kind, args) => {limit: null, elapsed: 41s, started: null, idle: false}
 
 display := fn(t) => "CUSTOM TIMER"
 

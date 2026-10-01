@@ -1,13 +1,137 @@
-// Tasks are decorated entirely from the catalog: dates, blockers, children, timers.
+// Tasks: a checklist item, a list item with a checkbox, is a task. The
+// language reads the items (`checkboxes`: each one's title, name, checkbox
+// and nesting, and whether it is done, which is what its name evaluates to);
+// everything else a task is, this module says. It declares the attributes a
+// task writes, which the host evaluates in the note's scope into
+// `attributed`; `records` builds the `tasks` collection from the two (leaf
+// tasks join `entries`, beside events and stops); a task's checkbox toggles
+// through a row action decided here; and its hover, outline entry,
+// recurrence problems, labels and checkbox paint are this module's too.
 module := {
   api: 1,
   id: "tasks",
   kind: "feature",
-  imports: ["format", "timer"],
-  inputs: {tasks: ["anchor", "done", "attributes", "schedule", "blocked_by", "blocked_error", "children", "timer"]}
+  imports: ["format", "timer", "task"],
+  recognizes: [_checkbox],
+  inputs: {
+    checkboxes: ["line", "title", "name", "name_range", "mark", "done", "parent", "children", "checkbox", "range", "attributes", "source"],
+    attributed: ["line", "task", "attributes"],
+    tasks: [
+      "anchor",
+      "line",
+      "title",
+      "name",
+      "done",
+      "checked",
+      "in_progress",
+      "attributes",
+      "schedule",
+      "blocked_by",
+      "blocked_error",
+      "blockers",
+      "children",
+      "estimate",
+      "timer",
+      "source"
+    ]
+  },
+  attributes: {
+    timer: {
+      value: {tagged: ["Stopwatch", "Countdown"]},
+      on: "checkbox",
+      params: ["timer: Timer"],
+      applies: "task attribute",
+      doc: "Associate a named timer with this task. Completion does not stop the timer.",
+      example: "focus"
+    },
+    due: {
+      value: "when",
+      on: "checkbox",
+      params: ["date: Date or DateTime"],
+      applies: "task attribute",
+      doc: "Deadline. Accepts a named date, an expression, or relative input such as tomorrow. Use Freeze relative date to capture it.",
+      example: "tomorrow"
+    },
+    scheduled: {
+      value: "when",
+      on: "checkbox",
+      params: ["date: Date or DateTime"],
+      applies: "task attribute",
+      doc: "Planned work date; separate from the deadline.",
+      example: "tomorrow"
+    },
+    estimate: {
+      value: "duration",
+      on: "checkbox",
+      params: ["effort: Duration"],
+      applies: "task attribute",
+      doc: "A nonnegative estimate. Examples: 30s, 20m, 2h.",
+      example: "20m"
+    },
+    after: {
+      value: "dependencies",
+      on: "checkbox",
+      params: ["dependency: Boolean or Checklist", "more dependencies..."],
+      applies: "task attribute",
+      doc: "Block this task until all dependencies are satisfied. Cycles are reported with source locations.",
+      example: "task_name"
+    },
+    every: {
+      value: "text",
+      on: "checkbox",
+      params: ["interval: recurrence"],
+      applies: "task attribute",
+      doc: "Repeat a leaf task: day, week, month, year, or a positive whole-day duration such as 2w.",
+      example: "week",
+      values: ["day", "week", "month", "year", "2w"]
+    },
+    tag: {
+      value: "text",
+      on: "checkbox",
+      params: ["tag: name"],
+      applies: "task attribute",
+      doc: "Tag a task for filtering. Multiple tags may be comma-separated.",
+      example: "errands"
+    },
+    repeat_from: {
+      value: "date",
+      on: "checkbox",
+      params: ["anchor: Date"],
+      applies: "task attribute",
+      doc: "The date a recurring task's @every counts from, as YYYY-MM-DD. Completing the task writes it once, from @due or today, so each later @due stays on the same cycle (a monthly bill anchored on the 31st comes back on the last day of every month) however early or late it is checked off.",
+      example: "2026-01-31"
+    },
+    completed: {
+      value: "date",
+      on: "checkbox",
+      params: ["date: Date"],
+      applies: "task attribute",
+      doc: "The day the task was checked off, as YYYY-MM-DD. Checking a task stamps today's date on it and its subtasks; unchecking removes the stamp. The checkbox, not the stamp, decides whether the task is done.",
+      example: "2026-09-18"
+    }
+  },
+  collections: {tasks: {entries: "leaf"}}
+}
+
+// A task's line as it is painted: its list marker, its checkbox in the state
+// the mark says, and its title struck through once it is checked. Read only
+// up to the title's end, so its attributes and name paint as themselves.
+_checkbox := {
+  name: "checkbox",
+  on: "line",
+  title: true,
+  record: false,
+  pattern: "^\\s*(?<marker>[-*+]) (?<box>\\[(?<mark>[ xX-])\\])(?<title>(?:[ \\t\\r\\x0C].*)?)$",
+  terms: {mark: [[" ", "open"], ["-", "partial"], ["x", "done"]]},
+  tokens: {
+    marker: "punctuation",
+    box: {terms: ["mark"], paints: [["open", "toggle"], ["partial", "toggle_mixed"], ["done", "toggle_on"]]},
+    title: {terms: ["mark"], paints: [["done", "finished"]]}
+  }
 }
 fmt := import("format")
 timer := import("timer")
+words := import("task")
 
 // Describe a date relative to the request day, emphasizing missed due dates.
 relative := fn(key, day, today) => (
@@ -27,7 +151,7 @@ blocked := fn(t) => (
 )
 
 // Hide scheduling and recurrence details once the task is complete.
-pending := fn(t, today) => (
+unfinished := fn(t, today) => (
   if(t.done, [], concat(
     blocked(t),
     map(t.schedule, fn(s) => schedule_label(s, today)),
@@ -49,7 +173,7 @@ child_summary := fn(t) => (
 labels := fn(t, today) => (
   concat(
     if(t.timer == null, [], [timer.inlay(t.timer)]),
-    pending(t, today),
+    unfinished(t, today),
     if(length(t.children) == 0, [], [fmt.gauge(child_count(t) / length(t.children), 8) + " " + child_summary(t)])
   )
 )
@@ -60,14 +184,15 @@ tooltip := fn(t) => (
   + "Use code actions to complete/reopen tasks or start/pause/reset their timer. Completing a task does not stop its timer."
 )
 
-// Omit tasks that have no additional information to display.
-hints := fn(t, parts) => (
-  if(length(parts) == 0, [], [{at: t.anchor, label: join(parts, " · "), tooltip: tooltip(t)}])
-)
-
-// Render every task from the shared semantic catalog.
+// Render every task with something to show, from the shared semantic catalog.
 collect := fn(ctx) => (
-  fold(ctx.document.tasks, [], fn(out, t) => concat(out, hints(t, labels(t, ctx.today))))
+  map(
+    filter(
+      map(ctx.document.tasks, fn(t) => {task: t, parts: labels(t, ctx.today)}),
+      fn(h) => length(h.parts) > 0
+    ),
+    fn(h) => {at: h.task.anchor, label: join(h.parts, " · "), tooltip: tooltip(h.task)}
+  )
 )
 
 // Refresh relative schedules and running timers without editing the note.
@@ -75,4 +200,430 @@ time_dependent := fn(ctx) => (
   length(filter(ctx.document.tasks, fn(t) =>
     (t.done == false && length(t.schedule) > 0) || (t.timer != null && timer.running(t.timer))
   )) > 0
+)
+
+// Records by line, for looking one up by another's `parent` or `children`.
+_by_line := fn(items) => object(map(items, fn(i) => {key: text(i.line), value: i}))
+
+// What the host evaluated of each task's attributes, by line.
+_evaluated := fn(ctx) => object(
+  map(filter(ctx.document.attributed, fn(a) => a.task), fn(a) => {key: text(a.line), value: a.attributes})
+)
+
+// Some subtask, at any depth, done or marked `[-]`.
+_started := fn(c, by) => (
+  length(filter(c.children, fn(l) => let(
+    {s: get(by, text(l))},
+    s.done || s.mark == "in_progress" || (length(s.children) > 0 && _started(s, by))
+  ))) > 0
+)
+
+// The tags a task carries: each `#name` word on its line, then each name in
+// its @tag, comma-separated.
+_tags := fn(line, tag) => concat(
+  if(
+    contains(line, "#"),
+    map(
+      filter(
+        split(replace(line, "\t", " "), " "),
+        fn(w) => starts_with(w, "#") && match_pattern(w, "^#[A-Za-z_][A-Za-z0-9_]*$") != null
+      ),
+      fn(w) => slice(w, 1, length(w))
+    ),
+    []
+  ),
+  if(tag == null, [], map(split(tag, ","), fn(t) => trim(t)))
+)
+
+// What one of a task's attributes failed with, as its record words it.
+_failure := fn(key, a) => if(a == null || a.error == null, [], ["@" + key + ": " + a.error])
+
+// One entry of a task's schedule, when it writes the attribute.
+_entry := fn(key, a) => if(a == null, [], [{key: key, value: a.date, error: a.error}])
+
+// The conditions a task's @after waits on, none when it failed.
+_waiting := fn(after) => if(after == null || after.error != null, [], after.value)
+
+// One task's record, from its item, the text of its line, and what each of
+// its attributes evaluated to.
+_task := fn(c, by, line, today, every, due, scheduled, at, estimate, after, clock) => {
+  kind: "task",
+  line: c.line,
+  title: c.title,
+  due: if(due == null || due.date == null, if(every == null, null, today), due.date),
+  scheduled: if(scheduled == null, null, scheduled.date),
+  at: if(at == null, null, at.value),
+  at_date: if(at == null, null, at.date),
+  estimate: if(estimate == null, null, estimate.value),
+  parent: if(
+    c.parent == null,
+    null,
+    let(
+      {p: get(by, text(c.parent))},
+      {path: p.source.path, uri: p.source.uri, line: p.source.line, range: p.checkbox}
+    )
+  ),
+  tags: if(
+    !contains(line, "#") && get(c.attributes, "tag") == null,
+    [],
+    _tags(line, get(c.attributes, "tag"))
+  ),
+  blocked_by: if(after == null, [], map(_waiting(after), fn(d) => d.text)),
+  done: c.done,
+  leaf: length(c.children) == 0,
+  checked: c.mark == "done",
+  in_progress: !c.done && (c.mark == "in_progress" || (length(c.children) > 0 && _started(c, by))),
+  name: c.name,
+  attributes: c.attributes,
+  blocked_error: if(after == null, null, after.error),
+  blockers: if(after == null, [], map(_waiting(after), fn(d) => {name: d.name, source: d.source})),
+  schedule: if(
+    due == null && scheduled == null && at == null,
+    [],
+    concat(_entry("due", due), _entry("scheduled", scheduled), _entry("at", at))
+  ),
+  children: if(
+    length(c.children) == 0,
+    [],
+    map(c.children, fn(l) => {line: l, done: get(by, text(l)).done})
+  ),
+  timer: if(clock == null || clock.error != null, null, clock.value),
+  errors: if(
+    (due == null || due.error == null)
+      && (scheduled == null || scheduled.error == null)
+      && (at == null || at.error == null)
+      && (estimate == null || estimate.error == null)
+      && (after == null || after.error == null),
+    [],
+    concat(
+      _failure("due", due),
+      _failure("scheduled", scheduled),
+      _failure("at", at),
+      _failure("estimate", estimate),
+      if(after == null || after.error == null, [], [after.error])
+    )
+  )
+}
+
+// The record of item `c`, with what its attributes evaluated to, `e`.
+_record := fn(c, by, e, lines, today) => _task(
+  c,
+  by,
+  get(lines, c.line),
+  today,
+  get(c.attributes, "every"),
+  get(e, "due"),
+  get(e, "scheduled"),
+  get(e, "at"),
+  get(e, "estimate"),
+  get(e, "after"),
+  get(e, "timer")
+)
+
+// Build every task record from the note's checklist items.
+records := fn(ctx) => let(
+  {
+    items: ctx.document.checkboxes,
+    by: _by_line(items),
+    evaluated: _evaluated(ctx),
+    none: {}
+  },
+  {tasks: map(items, fn(c) => _record(c, by, coalesce(get(evaluated, text(c.line)), none), ctx.document.lines, ctx.today))}
+)
+
+// The control titles, worded once: a recurring task advances, any other
+// completes or reopens.
+_titles := fn() => {
+  next: words.toggle(true, false),
+  done: words.toggle(false, false),
+  reopen: words.toggle(false, true)
+}
+
+// A task and every subtask under it, in note order.
+_subtree := fn(t, tasks) => concat(
+  [t],
+  fold(t.children, [], fn(out, c) => concat(out, _subtree(get(tasks, text(c.line)), tasks)))
+)
+
+// The first of `problems` that is not null, or null.
+_first := fn(problems) => get(filter(problems, fn(p) => p != null), 0)
+
+// Why a task's own subtree cannot be completed now: a task in it that is
+// blocked, or a dependency that could not be resolved.
+_blocked := fn(run) => _first(
+  map(run, fn(u) => if(
+    u.blocked_error != null,
+    u.blocked_error,
+    if(length(u.blocked_by) == 0, null, "Blocked by " + join(u.blocked_by, ", "))
+  ))
+)
+
+// The `due` entry of a task's schedule, when it writes one.
+_due := fn(t) => get(filter(t.schedule, fn(s) => s.key == "due"), 0)
+
+// The date a recurring task's cycle counts from, or null when its
+// @repeat_from is no calendar date.
+_anchor := fn(t, due) => (
+  if(
+    get(t.attributes, "repeat_from") == null,
+    due,
+    parse_date(trim(get(t.attributes, "repeat_from")), "%Y-%m-%d")
+  )
+)
+
+// Why a recurring task cannot advance, or null.
+_recurrence := fn(t, today) => let(
+  {
+    entry: _due(t),
+    due: if(entry == null, today, entry.value),
+    anchor: if(entry != null && entry.error != null, null, _anchor(t, due))
+  },
+  if(
+    t.checked,
+    "A recurring task should remain unchecked; remove [x] to resume it",
+    if(
+      entry != null && entry.error != null,
+      entry.error,
+      if(
+        anchor == null,
+        "@repeat_from requires a calendar date, e.g. @repeat_from(2026-01-31)",
+        next_occurrence(get(t.attributes, "every"), anchor, if(today > due, today, due)).error
+      )
+    )
+  )
+)
+
+// Why toggling a task cannot run now, or null: something in its subtree is
+// blocked (only when completing it), a recurring task has subtasks, or a
+// recurring task cannot advance.
+_problem := fn(t, tasks, today) => (
+  if(
+    length(t.children) == 0 && length(t.blocked_by) == 0 && t.blocked_error == null
+      && get(t.attributes, "every") == null,
+    null,
+    let(
+      {
+        run: _subtree(t, tasks),
+        recurring: get(t.attributes, "every") != null
+      },
+      _first([
+        if(t.done, null, _blocked(run)),
+        if(
+          length(run) > 1 && length(filter(run, fn(u) => get(u.attributes, "every") != null)) > 0,
+          "Complete recurring tasks individually; recurring parent tasks are unsupported",
+          null
+        ),
+        if(recurring, _recurrence(t, today), null)
+      ])
+    )
+  )
+)
+
+// The toggle on every task's row: complete, reopen, or advance a recurring
+// task. It acts on its row alone, so an edit elsewhere leaves it standing,
+// and says why when it cannot run.
+actions := fn(ctx) => let(
+  {
+    tasks: if(
+      length(filter(ctx.document.tasks, fn(t) => length(t.children) > 0)) == 0,
+      {},
+      _by_line(ctx.document.tasks)
+    ),
+    titles: if(length(ctx.document.tasks) == 0, null, _titles())
+  },
+  map(
+    ctx.document.tasks,
+    fn(t) => {
+      line: t.line,
+      title: if(get(t.attributes, "every") != null, titles.next, if(t.done, titles.reopen, titles.done)),
+      action: {
+        kind: "row",
+        document: ctx.document.uri,
+        row: t.line,
+        expected: get(ctx.document.lines, t.line),
+        module: ctx.module.id,
+        event: {line: t.line}
+      },
+      disabled: _problem(t, tasks, ctx.today)
+    }
+  )
+)
+
+// An LSP range that starts and ends at `position`.
+_at := fn(position) => {start: position, end: position}
+
+// Checking or unchecking a task and its subtasks, stamping or clearing the
+// day each was completed.
+_check := fn(ctx, t, tasks) => let(
+  {
+    items: _by_line(ctx.document.checkboxes),
+    evaluated: _evaluated(ctx),
+    day: format_date(ctx.today, "%F")
+  },
+  fold(
+    _subtree(t, tasks),
+    [],
+    fn(out, u) => let(
+      {
+        box: get(items, text(u.line)).checkbox,
+        stamp: get(coalesce(get(evaluated, text(u.line)), {}), "completed")
+      },
+      concat(
+        out,
+        [
+          {
+            range: {
+              start: {line: box.start.line, character: box.start.character + 1},
+              end: {line: box.start.line, character: box.start.character + 2}
+            },
+            newText: if(t.done, " ", "x")
+          }
+        ],
+        if(
+          stamp != null,
+          [{range: stamp.range, newText: if(t.done, "", "@completed(" + day + ")")}],
+          if(t.done, [], [{range: _at(u.anchor), newText: " @completed(" + day + ")"}])
+        )
+      )
+    )
+  )
+)
+
+// Moving a recurring task to its next occurrence, leaving its checkbox
+// alone, and recording the completion as history at the end of the note.
+_advance := fn(ctx, t) => let(
+  {
+    text: ctx.document.text,
+    entry: _due(t),
+    due: if(entry == null, ctx.today, entry.value),
+    anchor: _anchor(t, due),
+    next: next_occurrence(get(t.attributes, "every"), anchor, if(ctx.today > due, ctx.today, due)).date,
+    suffix: if(entry == null, " @due(" + format_date(next, "%F") + ")", "")
+    + if(get(t.attributes, "repeat_from") == null, " @repeat_from(" + format_date(anchor, "%F") + ")", ""),
+    history: to_json({
+      task: t.name,
+      title: t.title,
+      completed: format_date(ctx.today, "%F"),
+      due: format_date(due, "%F"),
+      next: format_date(next, "%F")
+    }),
+    newline: if(contains(text, "\r\n"), "\r\n", "\n"),
+    end: end_position(text)
+  },
+  concat(
+    if(
+      entry == null,
+      [],
+      [{range: get(_evaluated(ctx), text(t.line)).due.value_range, newText: format_date(next, "%F")}]
+    ),
+    if(suffix == "", [], [{range: _at(t.anchor), newText: suffix}]),
+    [
+      {
+        range: _at(end),
+        newText: if(ends_with(text, "\n"), "", newline)
+        + "<!-- xmd-history "
+        + replace(history, "-->", "--\\u003e")
+        + " -->"
+        + newline
+      }
+    ]
+  )
+)
+
+// Toggle the task on the event's line, as of now: the edits that complete,
+// reopen or advance it, or why it cannot.
+reduce := fn(ctx, event) => let(
+  {
+    tasks: _by_line(ctx.document.tasks),
+    t: get(tasks, text(event.line)),
+    problem: if(t == null, "No task at this line", _problem(t, tasks, ctx.today))
+  },
+  if(
+    problem != null,
+    error(problem),
+    {
+      kind: "edit",
+      document: ctx.document.uri,
+      expected: ctx.document.text,
+      edits: if(get(t.attributes, "every") != null, _advance(ctx, t), _check(ctx, t, tasks))
+    }
+  )
+)
+
+// The task's hover, where the cursor is on its row and on nothing more
+// specific there.
+hovers := fn(ctx) => (
+  if(
+    get(ctx, "position") == null,
+    [],
+    map(
+      filter(ctx.document.tasks, fn(t) => t.line == ctx.position.line),
+      fn(t) => {range: t.source.range, contents: words.hover(t), fallback: true}
+    )
+  )
+)
+
+// How a task's outline entry describes it.
+_detail := fn(t) => (
+  if(
+    t.done,
+    "task · complete",
+    if(
+      t.blocked_error != null,
+      "task · " + t.blocked_error,
+      if(length(t.blocked_by) > 0, "task · blocked by " + join(t.blocked_by, ", "), "task · incomplete")
+    )
+  )
+)
+
+// The last line a task's subtasks reach, its own when it has none.
+_last := fn(t, tasks) => fold(
+  t.children,
+  t.line,
+  fn(last, c) => let({end: _last(get(tasks, text(c.line)), tasks)}, if(end > last, end, last))
+)
+
+// One outline entry per task, spanning its subtasks, selected by its name
+// when it has one.
+symbols := fn(ctx) => let(
+  {
+    items: _by_line(ctx.document.checkboxes),
+    tasks: _by_line(ctx.document.tasks)
+  },
+  map(
+    ctx.document.tasks,
+    fn(t) => {
+      name: if(t.title == "", "Untitled task", t.title),
+      detail: _detail(t),
+      kind: "boolean",
+      line: t.line,
+      end_line: _last(t, tasks) + 1,
+      selection: coalesce(get(items, text(t.line)).name_range, get(items, text(t.line)).range)
+    }
+  )
+)
+
+// A recurrence that names no interval, or sits on a task with subtasks.
+diagnostics := fn(ctx) => let(
+  {
+    wrong: filter(
+      ctx.document.tasks,
+      fn(t) => get(t.attributes, "every") != null
+        && (next_occurrence(get(t.attributes, "every"), ctx.today, ctx.today).error != null
+          || length(t.children) > 0)
+    ),
+    evaluated: if(length(wrong) == 0, {}, _evaluated(ctx))
+  },
+  map(
+    wrong,
+    fn(t) => {
+      range: get(evaluated, text(t.line)).every.value_range,
+      message: coalesce(
+        next_occurrence(get(t.attributes, "every"), ctx.today, ctx.today).error,
+        "Put recurrence on individual tasks, not parent checklists"
+      ),
+      severity: 1,
+      code: "attribute"
+    }
+  )
 )

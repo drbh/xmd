@@ -1,0 +1,462 @@
+// The prelude: every name it exports is a function every note and every other
+// module can call without an `import`. A note's own names come first, so one
+// that defines `total` reads its own. A workspace module with the id `prelude`
+// replaces this one.
+module := {
+  api: 1,
+  id: "prelude",
+  kind: "library",
+  inputs: [],
+  imports: ["timer"],
+  exports: ["countdown", "stopwatch", "sparkline", "total", "completed", "remaining", "effort", "rate", "to", "quote", "forecast", "forecast_range"],
+  // The kind each argument takes, which completion offers inside a call.
+  accepts: {
+    countdown: ["Duration", "Duration", "DateTime"],
+    stopwatch: ["Duration", "DateTime"],
+    total: ["Checklist"],
+    completed: ["Checklist"],
+    remaining: ["Checklist"],
+    effort: ["Checklist"]
+  }
+}
+
+_timer := import("timer")
+
+// What an optional timer argument holds when a call leaves it out: a value
+// no note can write, so an explicit null is still an argument.
+_absent := fn() => null
+
+// The arguments a call gave, without the optional ones it left out.
+_given := fn(args) => filter(args, fn(a) => a != _absent)
+
+// An idle countdown. Use Start timer to capture a timestamp; elapsed and
+// started are persisted by timer controls.
+countdown := fn(duration, elapsed = _absent, started = _absent) => (
+  _timer.make("countdown", _given([duration, elapsed, started]))
+)
+
+// An idle stopwatch. Use Start, Pause, Resume, or Reset timer. Elapsed time
+// includes time while the editor is closed.
+stopwatch := fn(elapsed = _absent, started = _absent) => (
+  _timer.make("stopwatch", _given([elapsed, started]))
+)
+
+// The bars a sparkline draws, lowest first.
+_bars := ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+// The unit each kind of value charts in; a kind not listed cannot be charted.
+_units := {Number: "Number", Count: "Number", Ratio: "Ratio", Duration: "Duration", Boolean: "Boolean", Money: "Money"}
+
+// What a value is measured in, or null when no chart can place it.
+_unit := fn(v) => get(_units, type(v))
+
+// The same with money's currency, for a series that starts with money.
+_money := fn(v) => if(type(v) == "Money", "Money " + v.currency, _unit(v))
+
+// What a check found: the unit every value shares, or an error for the first
+// value no chart can place or that is measured in another unit.
+_verdict := fn(unit, odd) => (
+  if(
+    unit == null || length(odd) > 0 && get(odd, 0) == null,
+    error("sparkline expects finite numeric values or null gaps"),
+    if(length(odd) > 0, error("sparkline values and bounds must use matching units"), unit)
+  )
+)
+
+// Check `values` against the unit `measure` gives `first`.
+_agree_by := fn(measure, unit, values) => (
+  _verdict(unit, filter(map(values, measure), fn(u) => u != unit))
+)
+
+// The unit `first` is measured in, which every one of `values` must share.
+_agree := fn(first, values) => (
+  if(
+    type(first) == "Money",
+    _agree_by(_money, _money(first), values),
+    _agree_by(_unit, _unit(first), values)
+  )
+)
+
+// Fixed bounds in one unit, the smaller first.
+_bounds := fn(min, max) => (
+  _agree(min, [max]) != null
+  && if(number(min) >= number(max), error("sparkline minimum must be less than its maximum"), true)
+)
+
+// The values charted against the bounds' unit, or the first value's.
+_values := fn(first, present) => (
+  if(length(present) == 0, null, _agree(coalesce(first, get(present, 0)), present))
+)
+
+// Each level as its bar, and a gap for a null. `checked` is the checks above,
+// made first.
+_draw := fn(checked, levels) => (
+  join(map(levels, fn(i) => if(i == null, "·", get(_bars, i))), "")
+)
+
+// Draw one Unicode bar per numeric value, in list order, as Text. Null leaves
+// a gap (·). The scale uses the data's minimum and maximum unless both bounds are
+// supplied; values outside fixed bounds are clipped. Values and bounds must
+// use matching units. `sparkline([12, 18, 9, 24])` is ▂▅▁█.
+sparkline := fn(values, min = null, max = null) => (
+  if(
+    type(values) != "List" || (min == null) != (max == null),
+    error("Invalid arguments for sparkline"),
+    _draw(
+      [min == null || _bounds(min, max), _values(min, filter(values, fn(v) => v != null))],
+      quantize(values, 8, if(min == null, null, number(min)), if(max == null, null, number(max)))
+    )
+  )
+)
+
+// A named checklist heading's leaf tasks, as records: `title`, `line`,
+// `done`, and `attributes`, each one's `value` with the `error` it failed
+// with, if it did.
+_tasks := fn(name, checklist) => (
+  if(
+    type(checklist) == "Checklist",
+    checklist.tasks,
+    error(name + " expects a named checklist heading")
+  )
+)
+
+// Count all leaf tasks beneath a named heading, as a Count: `total(trip)`.
+total := fn(checklist) => (
+  length(_tasks("total", checklist))
+)
+
+// Count completed leaf tasks beneath a named heading, as a Count:
+// `completed(trip)`.
+completed := fn(checklist) => (
+  length(filter(_tasks("completed", checklist), fn(t) => t.done))
+)
+
+// Count unfinished leaf tasks beneath a named heading, as a Count:
+// `remaining(trip)`.
+remaining := fn(checklist) => (
+  length(filter(_tasks("remaining", checklist), fn(t) => !t.done))
+)
+
+// An unfinished task's @estimate as a duration, zero without one.
+_estimate := fn(t) => let(
+  {e: get(t.attributes, "estimate")},
+  if(
+    e == null,
+    0s,
+    if(
+      e.error != null,
+      error(e.error),
+      if(
+        type(e.value) != "Duration",
+        error("@estimate requires a duration"),
+        if(e.value < 0s, error("Estimate cannot be negative"), e.value)
+      )
+    )
+  )
+)
+
+// Sum estimates of unfinished leaf tasks beneath a named heading, as a
+// Duration: `effort(trip)`.
+effort := fn(checklist) => (
+  fold(
+    filter(_tasks("effort", checklist), fn(t) => !t.done),
+    0s,
+    fn(sum, t) => sum + _estimate(t)
+  )
+)
+
+// Cached lookups: exchange rates, conversions, quotes and forecasts, read
+// from the workspace's cache with `cached(kind, key, label)`, which records
+// every key it reads so xmd refresh and the ⟳ lookups lens fetch it through
+// the provider for its kind, and hovers name it by its label. Nothing here
+// fetches.
+
+// What every lookup that has not been fetched yet ends with. It fails with
+// `pending`, so the note warns rather than errs until the data arrives.
+_refresh := "; run xmd refresh or use the ⟳ lookups lens"
+
+// A code argument, such as USD or NVDA, as text.
+_code := fn(value, what) => (
+  if(type(value) == "Text", value, error(what + " must be a code such as USD, found " + type(value)))
+)
+
+// A currency code argument: three uppercase letters.
+_currency := fn(value, what) => let(
+  {code: _code(value, what)},
+  if(make_money(0, code) == null, error("'" + code + "' is not a currency code such as USD"), code)
+)
+
+// A field of a cached value, or null when the value is not a record.
+_field := fn(value, name) => if(type(value) == "Record", get(value, name), null)
+
+// Why a cached value cannot be read: the problem it answered with,
+// attributed with `prefix`, or that nothing in it is readable, naming the
+// lookup with `phrase`.
+_reported := fn(value, prefix, phrase) => (
+  if(
+    type(_field(value, "error")) == "Text",
+    prefix + ": " + value.error,
+    "Cached " + phrase + " is unreadable"
+  )
+)
+
+// Fail with `message` about a cached value: as pending when the provider
+// answered that the data does not exist yet (`{error, pending: true}`, such
+// as a forecast for a date too far ahead), so a later refresh may find it.
+_unreadable := fn(value, message) => (
+  if(_field(value, "pending") == true, pending(message), error(message))
+)
+
+// The rate in a cached value, or null when it has none.
+_rate_in := fn(value) => let({rate: _field(value, "rate")}, if(type(rate) == "Number" && rate > 0, rate, null))
+
+// Why a cached rate cannot be read, or null when it can.
+_rate_problem := fn(from, to, value) => (
+  if(_rate_in(value) == null, _reported(value, "Rate " + from + "→" + to, "rate " + from + "→" + to), null)
+)
+
+// The failure for a rate the cache does not hold, or holds unreadably.
+_rate_failed := fn(from, to, hit) => (
+  if(
+    hit == null,
+    pending("No cached rate " + from + "→" + to + _refresh),
+    _unreadable(hit.value, _rate_problem(from, to, hit.value))
+  )
+)
+
+// The cached rate from one currency code to another; a currency is 1 to
+// itself, without a lookup.
+_rate := fn(from, to) => (
+  if(
+    from == to,
+    1,
+    let(
+      {hit: cached("rate", [{from: from}, {to: to}], "rate " + from + "→" + to)},
+      coalesce(if(hit == null, null, _rate_in(hit.value)), _rate_failed(from, to, hit))
+    )
+  )
+)
+
+// The cached exchange rate between two currencies, e.g. rate(EUR, USD).
+// Refresh with xmd refresh or the ⟳ lookups lens; hovers show the age.
+rate := fn(from, to) => (
+  _rate(_currency(from, "The first currency"), _currency(to, "The second currency"))
+)
+
+// Convert money with the cached rate, e.g. to(hotel, USD); without one the
+// note warns until xmd refresh.
+to := fn(amount, currency) => (
+  if(
+    type(amount) != "Money",
+    error("to converts money; the first argument is not money"),
+    let(
+      {code: _currency(currency, "The currency")},
+      make_money(amount.amount * _rate(amount.currency, code), code)
+    )
+  )
+)
+
+// The price in a cached quote, or null when it has none.
+_price_in := fn(value) => let({price: _field(value, "price")}, if(type(price) == "Number", price, null))
+
+// The currency a cached quote is priced in: USD unless it names another.
+_priced_in := fn(value) => let(
+  {currency: _field(value, "currency")},
+  if(type(currency) == "Text" && make_money(0, currency) != null, currency, "USD")
+)
+
+// The cached quote in a cached value, or null when it has no price.
+_quote_in := fn(value) => let(
+  {price: _price_in(value)},
+  if(price == null, null, make_money(price, _priced_in(value)))
+)
+
+// The failure for a quote the cache does not hold, or holds unreadably.
+// Messages name the ticker as written.
+_quote_failed := fn(symbol, hit) => (
+  if(
+    hit == null,
+    pending("No cached quote for " + symbol + _refresh),
+    _unreadable(hit.value, _reported(hit.value, "Quote " + symbol, "quote for " + symbol))
+  )
+)
+
+// The cached last price for a ticker, e.g. quote(NVDA); non-US tickers need
+// a provider in .xmd/providers.json.
+quote := fn(symbol) => let(
+  {
+    ticker: _code(symbol, "The ticker"),
+    key: upper(ticker),
+    hit: cached("quote", [{symbol: key}], "quote " + key)
+  },
+  coalesce(if(hit == null, null, _quote_in(hit.value)), _quote_failed(ticker, hit))
+)
+
+// The lookup for a day's forecast at a place already compared as the cache
+// compares places.
+_forecast_lookup := fn(key, date) => (
+  {kind: "forecast", key: [{place: key}, {date: date}], label: "forecast " + key + " " + text(date)}
+)
+
+// The lookup a day's forecast is, as `cached` takes it and as a module's
+// record asks for one with `{lookup: forecast_lookup(place, date)}`. Places
+// are compared trimmed and in lower case, so "Oaxaca" and "oaxaca " share
+// one entry.
+forecast_lookup := fn(place, date) => _forecast_lookup(lower(trim(place)), date)
+
+// Why a cached forecast cannot be read, or null when it can.
+_forecast_problem := fn(value) => (
+  if(
+    type(value) != "Record",
+    "missing high temperature",
+    if(
+      type(get(value, "error")) == "Text",
+      value.error,
+      if(
+        type(get(value, "high")) != "Number",
+        "missing high temperature",
+        if(type(get(value, "low")) != "Number", "missing low temperature", null)
+      )
+    )
+  )
+)
+
+// A readable cached forecast's fields: .high and .low in whole degrees,
+// .summary, .rain and .unit.
+_forecast_fields := fn(value, fahrenheit) => {
+  high: round(if(fahrenheit, value.high * 9 / 5 + 32, value.high)),
+  low: round(if(fahrenheit, value.low * 9 / 5 + 32, value.low)),
+  summary: if(type(get(value, "summary")) == "Text", value.summary, ""),
+  rain: if(type(get(value, "precipitation")) == "Number", make_ratio(value.precipitation), null),
+  unit: if(fahrenheit, "F", "C")
+}
+
+// How a forecast reads: high / low · summary, and the rain chance from 20%.
+_forecast_text := fn(f) => (
+  text(f.high) + "°" + f.unit + " / " + text(f.low) + "°" + f.unit + " · " + f.summary
+  + if(f.rain != null && number(f.rain) >= 0.2, " · " + text(round(number(f.rain) * 100)) + "% rain", "")
+)
+
+// A readable cached forecast as a Forecast, shown as its text.
+_forecast_value := fn(value, fahrenheit) => let(
+  {fields: _forecast_fields(value, fahrenheit)},
+  tagged("Forecast", fields, _forecast_text(fields))
+)
+
+// The forecast a day's cache hit holds, or why there is none. Messages name
+// the place as written.
+_forecast_read := fn(request, day) => let(
+  {problem: if(day.hit == null, null, _forecast_problem(day.hit.value))},
+  if(
+    day.hit == null,
+    pending("No cached forecast for " + request.place + " on " + text(day.date) + _refresh),
+    if(
+      problem == null,
+      _forecast_value(day.hit.value, request.fahrenheit),
+      _unreadable(day.hit.value, "Forecast for " + request.place + " on " + text(day.date) + ": " + problem)
+    )
+  )
+)
+
+// A date argument: a date, or an appointment's calendar day.
+_day := fn(value) => (
+  if(
+    type(value) == "Date",
+    value,
+    if(type(value) == "DateTime", date(value), error("Expected a date or appointment time"))
+  )
+)
+
+// Whether a temperature unit names Fahrenheit rather than Celsius.
+_unit_named := fn(unit) => (
+  if(
+    unit == "F" || unit == "FAHRENHEIT",
+    true,
+    if(unit == "C" || unit == "CELSIUS", false, error("Unknown temperature unit '" + unit + "'; use F or C"))
+  )
+)
+
+// Whether a unit argument asks for Fahrenheit; Celsius without one.
+_fahrenheit := fn(unit) => if(unit == null, false, _unit_named(_code(unit, "The unit")))
+
+// Twelve doublings reach the longest range, 4096 days.
+_doublings := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+// `count` consecutive days from `start`.
+_days := fn(start, count) => (
+  if(
+    count == 1,
+    [start],
+    slice(
+      fold(
+        _doublings,
+        [start],
+        fn(days, n) => if(length(days) >= count, days, concat(days, map(days, fn(d) => d + length(days) * 1d)))
+      ),
+      0,
+      count
+    )
+  )
+)
+
+// The checked arguments of a forecast from `start` to `end`: the place as
+// written and as the cache compares it, the days, and whether in
+// Fahrenheit, each checked in the order written.
+_forecast_request := fn(place, start, end, unit) => let(
+  {
+    named: if(type(place) == "Text", place, error("The place must be text, e.g. forecast(\"Oaxaca\", 2026-11-20)")),
+    first: _day(start),
+    last: _day(end),
+    span: floor((last - first) / 1d),
+    checked: if(
+      span < 0,
+      error("forecast_range end date must be on or after the start date"),
+      if(span >= 4096, error("List exceeds 4096 items"), span)
+    ),
+    fahrenheit: _fahrenheit(unit)
+  },
+  {place: named, key: lower(trim(named)), days: _days(first, checked + 1), fahrenheit: fahrenheit}
+)
+
+// The forecasts for a checked request, in order. Every day is asked for
+// before a missing one fails, so one refresh fetches the whole interval.
+_forecasts := fn(request) => map(
+  map(
+    request.days,
+    fn(d) => let({ask: _forecast_lookup(request.key, d)}, {date: d, hit: cached(ask.kind, ask.key, ask.label)})
+  ),
+  fn(day) => _forecast_read(request, day)
+)
+
+// The cached forecast for a place and day, with .high, .low, .summary and
+// .rain. Beyond 16 days, returns a seasonal outlook for up to about 7 months,
+// labeled as an estimate. Seasonal .rain is the fraction of available ensemble
+// runs with more than 0.1 mm of daily precipitation (including snow); it is
+// null with fewer than two valid runs. Itinerary days with a place get one
+// automatically.
+forecast := fn(place, date, unit = null) => (
+  get(_forecasts(_forecast_request(place, date, date, unit)), 0)
+)
+
+// Cached daily forecasts in chronological order, including both dates.
+// Project .high, .low, or .rain and pass the list to sparkline. One refresh
+// requests the entire interval. Dates beyond 16 days use seasonal estimates;
+// missing days remain lookup warnings until available. Limited to 4096 days.
+forecast_range := fn(place, start, end, unit = null) => (
+  _forecasts(_forecast_request(place, start, end, unit))
+)
+
+// How the cached value of a lookup a module's record asked for reads, in
+// Celsius for a forecast, or why it cannot be read.
+lookup_display := fn(kind, key, value) => (
+  match(
+    kind,
+    "forecast", coalesce(_forecast_problem(value), _forecast_text(_forecast_fields(value, false))),
+    "rate", coalesce(_rate_problem(get(key, 0).from, get(key, 1).to, value), text(_rate_in(value))),
+    "quote", let(
+      {quote: _quote_in(value), symbol: get(key, 0).symbol},
+      if(quote == null, _reported(value, "Quote " + symbol, "quote for " + symbol), text(quote))
+    ),
+    text(value)
+  )
+)

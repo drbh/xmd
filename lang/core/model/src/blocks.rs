@@ -32,7 +32,7 @@ pub struct Definition {
 impl Definition {
     /// The value span without the blanks it starts with: where the
     /// expression text begins after its `=` or `:=`.
-    pub fn expression_span(&self, text: &str) -> Span {
+    pub fn expression_span(&self, text: &(impl Lines + ?Sized)) -> Span {
         let raw = self.value_span.source(text);
         Span::new(
             self.value_span.line,
@@ -246,6 +246,10 @@ pub(crate) struct Line<'a> {
     /// Where the inline forms begin: past a checkbox, otherwise at the
     /// indentation (a plain list marker is read as prose).
     pub(crate) body: usize,
+    /// Which block it is, and where its text starts: past a list marker and
+    /// any checkbox, at a row's `|`, past prose's indentation.
+    pub(crate) on: crate::declared::On,
+    pub(crate) from: usize,
     pub(crate) attributes: Attributes<'a>,
 }
 

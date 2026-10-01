@@ -10,7 +10,7 @@ use lang::model::identifier;
 use runtime::host::WorkspaceFiles;
 use runtime::services::commands::{Action, Capabilities, PreparedAction};
 use runtime::services::{
-    Query, RefreshReport, Request, TOKEN_MODIFIERS, TOKEN_TYPES, TaskToggle, WorkspaceSession,
+    Query, RefreshReport, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession,
     flat_symbols, folding_ranges, hierarchy, occurrences, signature, symbol_at, today_markdown,
     typing,
 };
@@ -435,10 +435,11 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         let path = file(&params.text_document.uri)?;
         let state = self.state.read().await;
+        let library = state.session.workspace().prelude_names(&path);
         Ok(state.session.document_for_highlighting(&path).map(|doc| {
             SemanticTokensResult::Tokens(SemanticTokens {
                 result_id: None,
-                data: semantic_tokens(doc),
+                data: semantic_tokens(doc, &library),
             })
         }))
     }
@@ -540,12 +541,7 @@ impl LanguageServer for Backend {
         let at = params.text_document_position_params;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state
-            .session
-            .workspace()
-            .documents()
-            .get(&path)
-            .and_then(|doc| signature(doc, &path, at.position)))
+        Ok(signature(state.session.workspace(), &path, at.position))
     }
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let path = file(&params.text_document.uri)?;
@@ -612,12 +608,7 @@ impl LanguageServer for Backend {
         }
         let request = state.session.request(now());
         let mut result: Vec<_> = request
-            .code_actions(
-                &path,
-                params.range,
-                Capabilities::NATIVE,
-                TaskToggle::Action,
-            )
+            .code_actions(&path, params.range, Capabilities::NATIVE, RowActions::Edit)
             .into_iter()
             .map(|item| match item.command {
                 Some(command) => CodeActionOrCommand::Command(command),
@@ -847,12 +838,11 @@ impl LanguageServer for Backend {
         let at = params.text_document_position;
         let path = file(&at.text_document.uri)?;
         let state = self.state.read().await;
-        Ok(state
-            .session
-            .workspace()
-            .documents()
-            .get(&path)
-            .map(|doc| typing::on_type(doc, at.position, &params.ch)))
+        if !state.session.workspace().documents().contains_key(&path) {
+            return Ok(None);
+        }
+        let request = state.session.request(now());
+        Ok(Some(request.on_type(&path, at.position, &params.ch)))
     }
     async fn prepare_call_hierarchy(
         &self,

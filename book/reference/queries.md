@@ -13,16 +13,15 @@ generated from the collections a query binds by name. the fields are every field
 | `children` | list |
 | `column` | number |
 | `computed` | boolean |
-| `day` | number |
 | `domain` | text |
 | `goal` | text |
+| `groups` | record |
 | `hover` | text |
 | `id` | text |
 | `index` | number |
 | `kind` | text |
 | `level` | number |
-| `marker` | text |
-| `month` | number |
+| `module` | text |
 | `name` | text |
 | `operator` | text |
 | `parameters` | list |
@@ -32,14 +31,26 @@ generated from the collections a query binds by name. the fields are every field
 | `schemaVersion` | number |
 | `source` | record |
 | `state` | text |
-| `tags` | list |
 | `target` | text |
 | `text` | text |
-| `time` | text |
 | `title` | text |
 | `type` | text |
 | `value` | date or datetime or number or ratio or record or text |
-| `year` | number |
+
+## attributed
+
+| field | value |
+| --- | --- |
+| `anchor` | record |
+| `attributes` | record |
+| `block` | text |
+| `errors` | list |
+| `kind` | text |
+| `line` | number |
+| `range` | record |
+| `source` | record |
+| `task` | boolean |
+| `title` | text |
 
 ## calculations
 
@@ -75,6 +86,28 @@ generated from the collections a query binds by name. the fields are every field
 | `title` | text |
 | `type` | text |
 | `value` | number or record or text |
+
+## checkboxes
+
+| field | value |
+| --- | --- |
+| `anchor` | record |
+| `attributes` | record |
+| `checkbox` | record |
+| `children` | list |
+| `done` | boolean |
+| `errors` | list |
+| `hover` | text |
+| `indent` | number |
+| `kind` | text |
+| `line` | number |
+| `mark` | text |
+| `name` | text |
+| `name_range` | record |
+| `parent` | number |
+| `range` | record |
+| `source` | record |
+| `title` | text |
 
 ## days
 
@@ -187,6 +220,21 @@ generated from the collections a query binds by name. the fields are every field
 | `title` | text |
 | `url` | text |
 
+## mentions
+
+| field | value |
+| --- | --- |
+| `anchor` | record |
+| `bracket` | boolean |
+| `errors` | list |
+| `hover` | text |
+| `kind` | text |
+| `line` | number |
+| `name` | text |
+| `property` | text |
+| `source` | record |
+| `title` | text |
+
 ## notes
 
 | field | value |
@@ -206,12 +254,16 @@ generated from the collections a query binds by name. the fields are every field
 | `anchor` | record |
 | `computed` | boolean |
 | `display` | text |
+| `end_line` | number |
 | `errors` | list |
 | `expression` | text |
+| `grid` | list |
+| `header` | number |
 | `hover` | text |
 | `kind` | text |
 | `line` | number |
 | `name` | text |
+| `problems` | list |
 | `solution` | record |
 | `source` | record |
 | `title` | text |
@@ -220,7 +272,21 @@ generated from the collections a query binds by name. the fields are every field
 
 ## recognized
 
-no example has one yet
+| field | value |
+| --- | --- |
+| `anchor` | record |
+| `end_line` | number |
+| `errors` | list |
+| `groups` | record |
+| `kind` | text |
+| `line` | number |
+| `module` | text |
+| `parent` | number |
+| `range` | record |
+| `recognizer` | text |
+| `source` | record |
+| `text` | text |
+| `title` | text |
 
 ## references
 
@@ -307,12 +373,16 @@ no example has one yet
 | `anchor` | record |
 | `computed` | boolean |
 | `display` | text |
+| `end_line` | number |
 | `errors` | list |
 | `expression` | text |
+| `grid` | list |
+| `header` | number |
 | `hover` | text |
 | `kind` | text |
 | `line` | number |
 | `name` | text |
+| `problems` | list |
 | `source` | record |
 | `title` | text |
 | `type` | text |
@@ -373,12 +443,16 @@ no example has one yet
 | `anchor` | record |
 | `computed` | boolean |
 | `display` | text |
+| `end_line` | number |
 | `errors` | list |
 | `expression` | text |
+| `grid` | list |
+| `header` | number |
 | `hover` | text |
 | `kind` | text |
 | `line` | number |
 | `name` | text |
+| `problems` | list |
 | `solution` | record |
 | `source` | record |
 | `title` | text |

@@ -57,12 +57,14 @@ pub(crate) fn query_value(value: Value) -> Value {
     match value {
         Value::List(values) if values.iter().any(holds_host) => Value::list(
             Arc::unwrap_or_clone(values)
+                .into_inner()
                 .into_iter()
                 .map(query_value)
                 .collect(),
         ),
         Value::Record(fields) if fields.values().any(holds_host) => Value::record(
             Arc::unwrap_or_clone(fields)
+                .into_inner()
                 .into_iter()
                 .map(|(k, v)| (k, query_value(v)))
                 .collect(),

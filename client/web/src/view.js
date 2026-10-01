@@ -94,7 +94,7 @@ export async function mount(element, options = {}) {
   });
   listen("mousedown", event => {
     if (options.interactive === false) return;
-    const box = event.target.closest?.(".t-xmdCheckbox, .t-xmdCheckboxChecked, .t-xmdCheckboxInProgress");
+    const box = event.target.closest?.(".t-xmdToggle, .t-xmdToggleOn, .t-xmdToggleMixed");
     if (!box || !view.contains(box)) return;
     event.preventDefault();
     const source = workspace.getDocument(uri)?.source;
@@ -102,8 +102,9 @@ export async function mount(element, options = {}) {
     const point = lineChar(source, offsetOfPoint(view, box.firstChild || box, 0));
     workspace.query(uri, "actions", { range: { start: point, end: point } }).then(async result => {
       if (dead || !result) return;
-      // Task controls are chosen by the engine; never rewrite checkbox syntax here.
-      const action = result.actions.find(a => a.command?.command === "xmd.task");
+      // A row's own control (a task's toggle) is chosen by the engine; never
+      // rewrite checkbox syntax here.
+      const action = result.actions.find(a => a.command?.command === "xmd.row");
       if (action) await execute(action.command, result.versions);
     }).catch(error);
   });

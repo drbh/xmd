@@ -391,7 +391,7 @@ Options:
       --fail-on-match  Return exit status 1 if the query returns any rows (useful for diagnostics)
   -h, --help           Print help
 
-Bindings: ast, graph, days, timers, links, tasks, events, stops, entries, values, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells, recognized
+Bindings: ast, graph, days, timers, mentions, links, tasks, checkboxes, events, stops, entries, values, plans, decisions, tables, rows, resources, diagnostics, notes, sections, calculations, references, cells, recognized, attributed
 Functions: map, filter, fold, get, sort_by, desc, group_by, slice, concat, sum, length
 xs | f(a) is f(xs, a); .due is fn(x) => x.due; .{title, due} picks fields.
 Use - as QUERY to read an expression from stdin; the note then has to be a file.

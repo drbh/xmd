@@ -6,7 +6,7 @@ use std::{
     sync::Arc,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SymbolKind {
     Definition(usize),
     Task(usize),
@@ -19,6 +19,15 @@ pub enum SymbolKind {
 pub struct Symbol {
     pub path: PathBuf,
     pub kind: SymbolKind,
+}
+/// Hashed by the note's file name rather than its whole path: equal paths
+/// have equal file names, and every name a note or module reads is a memo
+/// lookup by symbol.
+impl std::hash::Hash for Symbol {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.path.file_name().hash(state);
+        self.kind.hash(state);
+    }
 }
 impl Symbol {
     pub fn new(path: impl Into<PathBuf>, kind: SymbolKind) -> Self {
@@ -43,11 +52,12 @@ pub struct Workspace {
     /// name is a lookup rather than a scan of the note.
     names: BTreeMap<PathBuf, Arc<Names>>,
     pub(crate) cache: Cache,
-    pub(crate) lookups: values::Store,
+    /// Shared, so every engine of a request holds it without a copy.
+    pub(crate) lookups: Arc<values::Store>,
     pub(crate) modules: Arc<modules::ModuleRegistry>,
-    /// The recognizers the active modules declare, run over every note as it
-    /// is added.
-    recognizers: Vec<Arc<model::recognized::Rule>>,
+    /// The recognizers and attributes the active modules declare, which
+    /// every note is read with as it is added.
+    recognizers: model::recognized::Recognizers,
     /// What calls into a module with this as its environment share.
     pub(crate) calls: crate::module_runtime::CallMemo,
 }
@@ -66,7 +76,7 @@ impl Workspace {
     ) -> Self {
         let names = documents
             .iter()
-            .map(|(path, doc)| (path.clone(), Arc::new(names_in(doc))))
+            .map(|(path, doc)| (path.clone(), Arc::new(names_in(path, doc))))
             .collect();
         let recognizers = modules.recognizers();
         let mut workspace = Self {
@@ -74,9 +84,9 @@ impl Workspace {
             documents,
             names,
             cache: BTreeMap::new(),
-            lookups: BTreeMap::new(),
+            lookups: Default::default(),
             modules: Arc::new(modules),
-            recognizers: Vec::new(),
+            recognizers: Default::default(),
             calls: Default::default(),
         };
         workspace.recognize_with(recognizers);
@@ -102,11 +112,16 @@ impl Workspace {
     pub fn modules(&self) -> &Arc<modules::ModuleRegistry> {
         &self.modules
     }
+    /// Parse a note's text knowing the attributes the active modules
+    /// declare, as [`insert_document`](Self::insert_document) would read it.
+    pub fn parse(&self, text: String) -> Document {
+        Document::parse_with(text, &self.recognizers.attributes)
+    }
     /// Add or replace a note, returning the one it replaces.
     pub fn insert_document(&mut self, path: PathBuf, mut document: Document) -> Option<Document> {
         document.recognize(&self.recognizers);
         self.names
-            .insert(path.clone(), Arc::new(names_in(&document)));
+            .insert(path.clone(), Arc::new(names_in(&path, &document)));
         self.documents.insert(path, document)
     }
     /// Drop a note, returning it.
@@ -126,7 +141,7 @@ impl Workspace {
     }
     /// Record a lookup's freshly fetched value.
     pub fn store_lookup(&mut self, key: String, lookup: values::Lookup) {
-        self.lookups.insert(key, lookup);
+        Arc::make_mut(&mut self.lookups).insert(key, lookup);
     }
     /// Take the cached link statuses and lookups another snapshot of this
     /// workspace refreshed, such as one refreshed off the editor's lock.
@@ -137,7 +152,7 @@ impl Workspace {
     /// Add cached link statuses and lookups read from disk.
     pub fn extend_caches(&mut self, cache: Cache, lookups: values::Store) {
         self.cache.extend(cache);
-        self.lookups.extend(lookups);
+        Arc::make_mut(&mut self.lookups).extend(lookups);
     }
     /// Activate a freshly compiled module registry.
     pub fn replace_modules(&mut self, modules: Arc<modules::ModuleRegistry>) {
@@ -147,7 +162,7 @@ impl Workspace {
     }
     /// Recognize every note with `recognizers`, unless they are the ones it
     /// was recognized with already.
-    fn recognize_with(&mut self, recognizers: Vec<Arc<model::recognized::Rule>>) {
+    fn recognize_with(&mut self, recognizers: model::recognized::Recognizers) {
         if recognizers == self.recognizers {
             return;
         }
@@ -160,16 +175,26 @@ impl Workspace {
         self.modules.link_features()
     }
     pub fn resolve(&self, path: &Path, name: &str) -> values::EvalResult<Symbol> {
-        let options = self
-            .names
-            .get(path)
-            .and_then(|names| names.get(name))
-            .map_or(&[][..], Vec::as_slice);
-        match options {
+        self.resolve_shared(path, name).map(Arc::unwrap_or_clone)
+    }
+    /// [`Self::resolve`], sharing the workspace's own copy of the symbol.
+    pub(crate) fn resolve_shared(
+        &self,
+        path: &Path,
+        name: &str,
+    ) -> values::EvalResult<Arc<Symbol>> {
+        match self.candidates(path, name) {
             [] => Err(values::EvalError::UnknownName { name: name.into() }),
-            [kind] => Ok(Symbol::new(path, kind.clone())),
+            [symbol] => Ok(symbol.clone()),
             _ => Err(values::EvalError::AmbiguousName { name: name.into() }),
         }
+    }
+    /// Every symbol `name` may mean in the note at `path`.
+    pub(crate) fn candidates(&self, path: &Path, name: &str) -> &[Arc<Symbol>] {
+        self.names
+            .get(path)
+            .and_then(|names| names.get(name))
+            .map_or(&[][..], Vec::as_slice)
     }
     pub fn symbols(&self) -> Vec<Symbol> {
         let mut symbols: Vec<_> = self
@@ -181,6 +206,16 @@ impl Workspace {
             symbols.extend(self.variables_in(path, doc));
         }
         symbols
+    }
+    /// The symbols of the note at `path`, in the order [`Self::symbols`]
+    /// lists them.
+    pub fn symbols_in(&self, path: &Path) -> Vec<Symbol> {
+        let Some(doc) = self.documents.get(path) else {
+            return vec![];
+        };
+        Self::declared_in(path, doc)
+            .chain(self.variables_in(path, doc))
+            .collect()
     }
     fn variables_in<'a>(
         &'a self,
@@ -216,15 +251,15 @@ impl Workspace {
 }
 
 /// A note's symbols by name, in the order [`Workspace::symbols`] lists them.
-type Names = BTreeMap<String, Vec<SymbolKind>>;
+type Names = BTreeMap<String, Vec<Arc<Symbol>>>;
 
-fn names_in(doc: &Document) -> Names {
+fn names_in(path: &Path, doc: &Document) -> Names {
     let mut names = Names::new();
     for kind in declared_in(doc).chain(variables_in(doc)) {
         names
             .entry(named(doc, &kind).name.clone())
             .or_default()
-            .push(kind);
+            .push(Arc::new(Symbol::new(path, kind)));
     }
     names
 }

@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use url::Url;
-use values::{EvalError, EvalResult, PropertyOwner};
+use values::{EvalError, EvalResult};
 use values::{Fields, FromValue, ToValue, Value, from_json, json, record};
 
 /// What a link module's hooks see of a recognized URL: the URL, the status
@@ -141,7 +141,7 @@ impl<'a> LinkFeatures<'a> {
         let (module, context) =
             self.context(target, cache, now)
                 .ok_or_else(|| EvalError::UnknownProperty {
-                    owner: PropertyOwner::Resource,
+                    owner: common::ValueType::Resource,
                     name: name.into(),
                 })?;
         module.property(&context, name)
@@ -246,7 +246,7 @@ impl Module {
     fn property(&self, ctx: &LinkContext<'_>, name: &str) -> EvalResult<Value> {
         if !self.property_names(&ctx.url).iter().any(|p| p == name) {
             return Err(EvalError::UnknownProperty {
-                owner: PropertyOwner::Resource,
+                owner: common::ValueType::Resource,
                 name: name.into(),
             });
         }

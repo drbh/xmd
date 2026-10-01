@@ -52,13 +52,9 @@
           "file": "oversized.x.md"
         },
         {
-          "request": "textDocument/formatting",
-          "file": "oversized.x.md",
-          "extra": {
-            "options": {
-              "tabSize": 2,
-              "insertSpaces": true
-            }
+          "query": {
+            "uri": "oversized.x.md",
+            "query": "[length(stops), length(days)]"
           }
         },
         {

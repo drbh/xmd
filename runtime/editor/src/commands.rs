@@ -7,12 +7,11 @@
 //! the one place that asks every provider and routes each kind to its owner.
 //!
 //! The kinds whose argument already carries everything they need (edits,
-//! a timer control, showing today) are prepared here, by [`Direct`].
+//! showing today) are prepared here, by [`Direct`].
 use crate::Request;
 use lang::common::file_path;
 use lang::eval::engine::Engine;
 use lang::eval::resources::Resource;
-use lang::eval::timers::TimerAction;
 use lang::model::Document;
 use lang::stdlib;
 use lsp_types::{Command, TextEdit};
@@ -41,7 +40,7 @@ impl RowTarget {
         request: &Request<'a>,
     ) -> Result<(PathBuf, &'a Document), String> {
         let (path, doc) = document(request, &self.document)?;
-        if self.row >= doc.text.lines().count() || doc.line(self.row) != self.expected {
+        if self.row >= doc.line_count() || doc.line(self.row) != self.expected {
             return Err(SOURCE_CHANGED.into());
         }
         Ok((path, doc))
@@ -77,13 +76,17 @@ pub enum Action {
         expected: String,
         edits: Vec<TextEdit>,
     },
-    #[strum_discriminants(strum(serialize = "xmd.task", message = "a task action"))]
-    ToggleTask(RowTarget),
-    #[strum_discriminants(strum(serialize = "xmd.timer", message = "a timer action"))]
-    Timer {
+    /// A module's control on one row: like an invocation, but it is refused
+    /// only when that row no longer reads as `expected`, so an edit
+    /// elsewhere in the note leaves it standing. The module's reducer
+    /// decides at execution, against the note and the clock of that moment.
+    #[strum_discriminants(strum(serialize = "xmd.row", message = "a row action"))]
+    Row {
         document: Url,
-        name: String,
-        action: TimerAction,
+        row: usize,
+        expected: String,
+        module: String,
+        event: Value,
     },
     #[strum_discriminants(strum(
         serialize = "xmd.openResource",
@@ -147,12 +150,12 @@ impl Action {
     }
     pub fn document(&self) -> Option<&Url> {
         match self {
-            Self::ToggleTask(target)
-            | Self::OpenResource { target, .. }
-            | Self::RefreshResource { target, .. } => Some(&target.document),
-            Self::Timer { document, .. }
-            | Self::Edit { document, .. }
-            | Self::Invoke { document, .. } => Some(document),
+            Self::OpenResource { target, .. } | Self::RefreshResource { target, .. } => {
+                Some(&target.document)
+            }
+            Self::Edit { document, .. }
+            | Self::Invoke { document, .. }
+            | Self::Row { document, .. } => Some(document),
             Self::Refresh { document } => document.as_ref(),
             Self::ShowToday => None,
         }
@@ -198,13 +201,16 @@ impl Action {
     }
 }
 
-/// How a host prefers to offer completing or reopening a task.
+/// How a host prefers a row action ([`Action::Row`]) among a range's code
+/// actions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TaskToggle {
-    /// A command the host executes, listed with the row's other controls.
+pub enum RowActions {
+    /// A command the host executes, listed with the row's other controls;
+    /// a disabled one is left out.
     Command,
-    /// An edit the host applies itself, shown disabled when it is blocked.
-    Action,
+    /// Resolved up front into the edit the host applies itself, after the
+    /// row's commands, or shown disabled with the reason it cannot run.
+    Edit,
 }
 
 /// Which rows of a note a caller wants controls for.
@@ -228,7 +234,6 @@ impl Rows {
 #[derive(Clone, Copy)]
 pub(crate) struct Ask {
     pub rows: Rows,
-    pub toggle: TaskToggle,
     pub capabilities: Capabilities,
 }
 
@@ -238,6 +243,15 @@ pub(crate) struct Proposal {
     pub line: usize,
     pub title: String,
     pub action: Action,
+}
+
+/// A control as a note offers it: a proposal, and why it cannot run now,
+/// when a feature module says it cannot. A disabled control is never a lens
+/// or a command; a host that resolves row actions into edits shows it
+/// disabled, with the reason.
+pub(crate) struct Control {
+    pub proposal: Proposal,
+    pub disabled: Option<String>,
 }
 
 /// What preparing an action came to: an effect for the host, or another
@@ -285,13 +299,13 @@ pub(crate) trait ActionProvider: Sync {
     }
 }
 
-/// The kinds whose argument carries everything they need: a module's edits,
-/// a timer control and showing today. None of them is proposed natively
-/// outside a code action; feature modules propose the first two.
+/// The kinds whose argument carries everything they need: a module's edits
+/// and showing today. Neither is proposed natively outside a code action;
+/// feature modules propose edits.
 pub(crate) struct Direct;
 impl ActionProvider for Direct {
     fn kinds(&self) -> &'static [CommandId] {
-        &[CommandId::Edit, CommandId::Timer, CommandId::ShowToday]
+        &[CommandId::Edit, CommandId::ShowToday]
     }
     fn prepare(
         &self,
@@ -313,20 +327,6 @@ impl ActionProvider for Direct {
                 Ok(PreparedAction::Edit {
                     path,
                     edits: edits.clone(),
-                }
-                .into())
-            }
-            Action::Timer {
-                document,
-                name,
-                action,
-            } => {
-                let (origin, span, text) =
-                    lang::eval::timers::edit_in(request, &document_path(document)?, name, *action)?;
-                let range = span.range(&request.workspace().documents()[&origin.path]);
-                Ok(PreparedAction::Edit {
-                    path: origin.path,
-                    edits: vec![TextEdit::new(range, text)],
                 }
                 .into())
             }

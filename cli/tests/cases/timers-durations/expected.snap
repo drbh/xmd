@@ -104,7 +104,7 @@ exit 0
   "uri": "file://<root>/durations.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:durations.x.md}","expected":"- [ ] Water plants @every(2w) @due(2026-09-16)","kind":"toggle_task","row":3}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:durations.x.md}","event":{"line":3},"expected":"- [ ] Water plants @every(2w) @due(2026-09-16)","kind":"row","module":"tasks","row":3}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {

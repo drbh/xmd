@@ -11,7 +11,7 @@
 //!   and `typing` (the on-type formatting that keeps tables aligned);
 //! - what a person can do: `commands` (the actions a host executes, and the
 //!   shape every control provider has), the built-in control providers
-//!   `tasks`, `resources` and `lookups`, and `code_actions` (offered over
+//!   `resources` and `lookups`, and `code_actions` (offered over
 //!   a range).
 //!
 //! `providers` is the one extension point through which the editor's own
@@ -33,7 +33,7 @@ mod render;
 mod request;
 mod resources;
 mod session;
-mod tasks;
+
 mod typing;
 
 // Every feature is a method on a request; the session is what a host keeps
@@ -46,7 +46,7 @@ pub use session::{RefreshReport, WorkspaceSession};
 pub use agenda::today_markdown;
 pub use highlighting::{TOKEN_MODIFIERS, TOKEN_TYPES, semantic_tokens};
 pub use render::{fragment, line_classes};
-pub use typing::{TRIGGERS, on_type};
+pub use typing::TRIGGERS;
 
 // The actions a host executes, and what it can show for them.
-pub use commands::{Action, Capabilities, PreparedAction, TaskToggle};
+pub use commands::{Action, Capabilities, PreparedAction, RowActions};

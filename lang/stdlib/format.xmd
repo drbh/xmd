@@ -32,12 +32,20 @@ _extreme := fn(values, better) => (
   fold(values, get(values, 0), fn(best, v) => if(better(number(v), number(best)), v, best))
 )
 
+// The bars a series draws, lowest first, as the prelude's sparkline draws
+// them. The prelude is built from this module (its timers word themselves
+// here), so this module cannot call the prelude.
+_bars := ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+// One bar per value, scaled between the values' own extremes.
+_sparkline := fn(numbers) => join(map(quantize(numbers, 8, null, null), fn(i) => get(_bars, i)), "")
+
 // Describe a chartable series as a sparkline and its smallest and largest values.
 _series := fn(values) => (
   if(
     length(values) < 2,
     null,
-    "`" + sparkline(map(values, fn(v) => number(v))) + "` "
+    "`" + _sparkline(map(values, fn(v) => number(v))) + "` "
     + text(_extreme(values, fn(a, b) => a < b)) + " → "
     + text(_extreme(values, fn(a, b) => a > b))
   )

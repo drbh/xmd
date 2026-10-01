@@ -211,28 +211,6 @@ xmd: Cannot compare EUR with USD; convert with to(value, USD) (Money > Money)
     "range": {
       "end": {
         "character": 0,
-        "line": 2
-      },
-      "start": {
-        "character": 0,
-        "line": 2
-      }
-    }
-  },
-  {
-    "command": {
-      "arguments": [
-        {
-          "document": "file://<root>/money.x.md",
-          "kind": "refresh"
-        }
-      ],
-      "command": "xmd.refresh",
-      "title": "⟳ lookups"
-    },
-    "range": {
-      "end": {
-        "character": 0,
         "line": 3
       },
       "start": {

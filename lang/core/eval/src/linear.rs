@@ -273,11 +273,7 @@ impl Engine<'_> {
         {
             return None;
         }
-        Some((
-            symbol.clone(),
-            def.source.clone(),
-            def.expression_span(&doc.text),
-        ))
+        Some((symbol.clone(), def.source.clone(), def.expression_span(doc)))
     }
     fn linear_expr(
         &mut self,
@@ -329,6 +325,7 @@ impl Engine<'_> {
             {
                 let (symbol, source, span) = self.definition_source(path, n).unwrap();
                 if self.trace.linear.contains(&symbol) {
+                    self.contextual();
                     return Err(EvalError::CycleThrough { name: n.clone() });
                 }
                 self.trace.linear.push(symbol.clone());

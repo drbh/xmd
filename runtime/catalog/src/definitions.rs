@@ -6,8 +6,8 @@ use super::{
 };
 use lang::eval::engine::{Engine, Value};
 use lang::eval::plans::PlanValue;
-use lang::eval::record;
 use lang::eval::tables::TableValue;
+use lang::eval::{RecordFields, record};
 use lang::eval::{Symbol, SymbolKind, Workspace};
 use lang::model::Document;
 use std::{collections::BTreeMap, path::Path};
@@ -24,6 +24,30 @@ record! {
         type_name: Value => "type",
         display: Value,
         computed: bool,
+    }
+}
+
+record! {
+    /// Where a table or a plan's constraint table lies, how its lines split
+    /// into cells and what parsing found wrong with how it is written: what
+    /// a module that lays one out reads.
+    #[derive(Clone, Debug)]
+    struct Grid {
+        header: usize,
+        end_line: usize,
+        grid: Vec<GridLine>,
+        problems: Vec<String>,
+    }
+}
+
+record! {
+    /// One line of a table from its header on: its text, and the cells it
+    /// splits into, trimmed, or none when it is no closed row.
+    #[derive(Clone, Debug)]
+    struct GridLine {
+        line: usize,
+        text: String,
+        cells: Option<Vec<String>>,
     }
 }
 
@@ -98,20 +122,20 @@ pub(super) fn definitions(
     ws: &Workspace,
     path: &Path,
     doc: &Document,
-    collection: Collection,
+    collection: &Collection,
     engine: &mut Engine<'_>,
     records: &mut Vec<Record>,
 ) -> Result<(), String> {
     for (i, def) in doc.definitions.iter().enumerate() {
         let plan = doc.plan_of(i).is_some();
         let table = doc.table_of(i);
-        if (collection == Collection::Plans && !plan)
+        if (*collection == Collection::Plans && !plan)
             || (matches!(collection, Collection::Tables | Collection::Rows) && table.is_none())
         {
             continue;
         }
         let symbol = Symbol::new(path, SymbolKind::Definition(i));
-        if collection == Collection::Rows {
+        if *collection == Collection::Rows {
             match engine.symbol(&symbol) {
                 Ok(ref value) if let Some(t) = value.downcast::<TableValue>() => {
                     for (row, values) in t.rows.iter().enumerate() {
@@ -176,6 +200,29 @@ pub(super) fn definitions(
         if plan {
             r.fields
                 .insert(LazyField::Solution.as_str().into(), Value::Null);
+        }
+        let grid = match (doc.plan_of(i), table) {
+            (Some(p), _) => Some((p.header, p.end_line, &p.problems)),
+            (None, Some(t)) => Some((t.header, t.end_line, &t.problems)),
+            (None, None) => None,
+        };
+        if let Some((header, end_line, problems)) = grid {
+            r.fields.extend(
+                Grid {
+                    header,
+                    end_line,
+                    grid: (header..end_line)
+                        .map(|line| GridLine {
+                            line,
+                            text: doc.line(line).into(),
+                            cells: lang::eval::tables::cells(doc.line(line), line)
+                                .map(|cells| cells.into_iter().map(|(cell, _)| cell).collect()),
+                        })
+                        .collect(),
+                    problems: problems.iter().map(|p| p.message.clone()).collect(),
+                }
+                .fields(),
+            );
         }
         r.deferred = Some(symbol);
         records.push(r);

@@ -6,60 +6,60 @@
   "uri": "file://<root>/note.x.md",
   "version": 1
 }
--- request workspace/executeCommand {"arguments":[],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "xmd.task expects a single action argument"
+  "message": "xmd.row expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":0},"extra"],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":0},"expected":"- [ ] Task","kind":"row","module":"tasks","row":0},"extra"],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "xmd.task expects a single action argument"
+  "message": "xmd.row expects a single action argument"
 }
--- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"kind":"show_today"}],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "Expected a task action"
+  "message": "Expected a row action"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"explode"}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"explode"}],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "unknown variant `explode`, expected one of `invoke`, `edit`, `toggle_task`, `timer`, `open_resource`, `refresh_resource`, `refresh`, `show_today`"
+  "message": "unknown variant `explode`, expected one of `invoke`, `edit`, `row`, `open_resource`, `refresh_resource`, `refresh`, `show_today`"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":0},"kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "missing field `expected`"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":-1}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":-1},"expected":"- [ ] Task","kind":"row","module":"tasks","row":-1}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "invalid value: integer `-1`, expected usize"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":"0"}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":"0"},"expected":"- [ ] Task","kind":"row","module":"tasks","row":"0"}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "invalid type: string \"0\", expected usize"
 }
--- request workspace/executeCommand {"arguments":[{"document":"https://example.com","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"https://example.com","event":{"line":0},"expected":"- [ ] Task","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Expected a local file URI"
 }
--- request workspace/executeCommand {"arguments":[{"document":"file:///workspace/note.x.md#L1","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"xmd.task"}
+-- request workspace/executeCommand {"arguments":[{"document":"file:///workspace/note.x.md#L1","event":{"line":0},"expected":"- [ ] Task","kind":"row","module":"tasks","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Document URIs cannot contain queries or fragments"
 }
--- request workspace/executeCommand {"arguments":[{"action":"explode","document":"${uri:note.x.md}","kind":"timer","name":"focus"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"action":"explode","name":"focus"},"expected":"- [ ] Task","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "unknown variant `explode`, expected one of `start`, `pause`, `resume`, `reset`"
+  "message": "Unknown name 'focus'"
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:note.x.md}","kind":"timer","name":12}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"action":"start","name":12},"expected":"- [ ] Task","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
-  "message": "invalid type: integer `12`, expected a string"
+  "message": "Unknown name '12'"
 }
 -- request workspace/executeCommand {"arguments":[{"kind":"open_resource","target":{"document":"${uri:note.x.md}","expected":"- [ ] Task","row":0},"url":"not a URL"}],"command":"xmd.openResource"}
 error: {
@@ -81,7 +81,7 @@ error: {
   "code": -32602,
   "message": "invalid type: string \"file://<root>/note.x.md\", expected internally tagged enum Action"
 }
--- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","expected":"- [ ] Task","kind":"toggle_task","row":0}],"command":"xmd.applyEdits"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:note.x.md}","event":{"line":0},"expected":"- [ ] Task","kind":"row","module":"tasks","row":0}],"command":"xmd.applyEdits"}
 error: {
   "code": -32602,
   "message": "Expected an edit action"

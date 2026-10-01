@@ -42,7 +42,8 @@ Resource cache updated (0 resources)
   },
   "forecast:oaxaca:2027-05-20": {
     "value": {
-      "error": "no forecast yet; seasonal outlooks cover about 7 months"
+      "error": "no forecast yet; seasonal outlooks cover about 7 months",
+      "pending": true
     },
     "fetched_at": "2026-09-17T14:00:00Z",
     "source": "open-meteo.com (seasonal ensemble)"
@@ -120,23 +121,20 @@ forecast oaxaca 2026-11-22: expected value at line 1 column 1
 
 ### 9 cli render trip.x.md --format text
 $ xmd render trip.x.md --format text --root <root> --now 2026-09-17T14:00:00+00:00
-exit 1
+exit 0
 --- stdout
 network := forecast("Oaxaca", 2026-11-21)
 malformed := forecast("Oaxaca", 2026-11-22)
 missing := forecast("Oaxaca", 2026-11-23)
 wrong_day := forecast("Oaxaca", 2026-11-24)
-missing_rain := forecast("Oaxaca", 2026-11-25).rain
-single_member := forecast("Oaxaca", 2026-11-26).rain
+missing_rain := forecast("Oaxaca", 2026-11-25).rain = null
+single_member := forecast("Oaxaca", 2026-11-26).rain = null
 wet := forecast("Oaxaca", 2026-11-27).rain = 100%
 --- stderr
 <root>/trip.x.md:1:12: warning: No cached forecast for Oaxaca on 2026-11-21; run xmd refresh or use the ⟳ lookups lens
 <root>/trip.x.md:2:14: warning: No cached forecast for Oaxaca on 2026-11-22; run xmd refresh or use the ⟳ lookups lens
 <root>/trip.x.md:3:12: warning: Forecast for Oaxaca on 2026-11-23: no forecast yet; seasonal outlooks cover about 7 months
 <root>/trip.x.md:4:14: warning: Forecast for Oaxaca on 2026-11-24: no forecast yet; seasonal outlooks cover about 7 months
-<root>/trip.x.md:5:17: error: This forecast has no precipitation chance
-<root>/trip.x.md:6:18: error: This forecast has no precipitation chance
-xmd: 2 error(s) while rendering
 
 ### 10 write
 -- write .xmd/providers.json (34 bytes)

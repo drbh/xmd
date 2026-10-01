@@ -4,6 +4,7 @@ use super::operators::{PIPE_PRECEDENCE, UNARY_PRECEDENCE};
 use super::{BinaryOp, Builtin, Literal, Operator, UnaryOp, date_value, literal};
 use common::{Code, Currency, is_code};
 use std::collections::BTreeSet;
+use std::sync::Arc;
 #[derive(Clone, Debug)]
 pub enum Lexeme {
     Comment,
@@ -190,7 +191,10 @@ pub enum Expr {
     Property(Box<Expr>, String),
     List(Vec<Expr>),
     Record(Vec<(String, Expr)>),
-    Lambda(Vec<String>, Box<Expr>),
+    /// `fn(a, b = default) => body`: the parameters, the defaults of the
+    /// trailing ones that have one (in order), and the body, shared with
+    /// every closure made from it.
+    Lambda(Vec<String>, Vec<Expr>, Arc<Expr>),
     Apply(Box<Expr>, Vec<Expr>),
 }
 impl Expr {
@@ -198,7 +202,11 @@ impl Expr {
     pub fn walk(&self, visit: &mut impl FnMut(&Expr)) {
         visit(self);
         match self.bare() {
-            Self::Unary(_, e) | Self::Property(e, _) | Self::Lambda(_, e) => e.walk(visit),
+            Self::Unary(_, e) | Self::Property(e, _) => e.walk(visit),
+            Self::Lambda(_, defaults, body) => {
+                defaults.iter().for_each(|e| e.walk(visit));
+                body.walk(visit);
+            }
             Self::Binary(_, a, b) => {
                 a.walk(visit);
                 b.walk(visit);
@@ -229,7 +237,14 @@ impl Expr {
                 Expr::Name(name) if !bound.contains(name) => out.push((name.clone(), start)),
                 // A parameter is bound by construction.
                 Expr::Param { .. } => (),
-                Expr::Lambda(params, body) => {
+                Expr::Lambda(params, defaults, body) => {
+                    // A default sees the parameters before its own.
+                    let first = params.len() - defaults.len();
+                    for (i, e) in defaults.iter().enumerate() {
+                        let mut bound = bound.to_vec();
+                        bound.extend(params[..first + i].iter().cloned());
+                        visit(e, &bound, start, out);
+                    }
                     let mut bound = bound.to_vec();
                     bound.extend(params.clone());
                     visit(body, &bound, start, out);
@@ -379,8 +394,10 @@ impl Parser {
             }
             match node {
                 Expr::Spanned(_, _, e) => pending.push((e, depth)),
-                Expr::Unary(_, e) | Expr::Property(e, _) | Expr::Lambda(_, e) => {
-                    pending.push((e, depth + 1))
+                Expr::Unary(_, e) | Expr::Property(e, _) => pending.push((e, depth + 1)),
+                Expr::Lambda(_, defaults, e) => {
+                    pending.push((e, depth + 1));
+                    pending.extend(defaults.iter().map(|e| (e, depth + 1)));
                 }
                 Expr::Binary(_, a, b) => {
                     pending.push((a, depth + 1));
@@ -470,6 +487,7 @@ impl Parser {
                 }
                 self.at += 1;
                 let mut params = Vec::new();
+                let mut defaults = Vec::new();
                 while !matches!(
                     self.tokens.get(self.at).map(|t| &t.kind),
                     Some(Lexeme::Right)
@@ -489,6 +507,24 @@ impl Parser {
                     }
                     params.push(name.clone());
                     self.at += 1;
+                    // `name = default`: this and every later parameter may be
+                    // left out of a call, which then evaluates the default
+                    // with the parameters before it bound.
+                    if matches!(
+                        self.tokens.get(self.at).map(|t| &t.kind),
+                        Some(Lexeme::Op(Operator::Unsupported("=")))
+                    ) {
+                        self.at += 1;
+                        let before = params[..params.len() - 1].to_vec();
+                        let enclosing = std::mem::replace(&mut self.parameters, before);
+                        let default = self.expression(0);
+                        self.parameters = enclosing;
+                        defaults.push(default?);
+                    } else if !defaults.is_empty() {
+                        return Err(format!(
+                            "Parameter '{name}' needs a default: it follows one that has one"
+                        ));
+                    }
                     if !matches!(
                         self.tokens.get(self.at).map(|t| &t.kind),
                         Some(Lexeme::Comma)
@@ -508,7 +544,7 @@ impl Parser {
                 let enclosing = std::mem::replace(&mut self.parameters, params.clone());
                 let body = self.expression(0);
                 self.parameters = enclosing;
-                Expr::Lambda(params, Box::new(body?))
+                Expr::Lambda(params, defaults, Arc::new(body?))
             }
             Lexeme::Name(n)
                 if n == "let"
@@ -659,23 +695,16 @@ impl Parser {
             }
         }
         let callee = self.expression(PIPE_PRECEDENCE + 1)?;
-        let call = |builtin: Builtin, args: Vec<Expr>| match builtin {
-            Builtin::Stopwatch | Builtin::Countdown => Err(format!(
-                "{builtin} takes its arguments in parentheses, not from '|'",
-                builtin = builtin.as_str()
-            )),
-            _ => Ok(Expr::Builtin(builtin, args)),
-        };
         let piped = match callee.bare().clone() {
             Expr::Builtin(builtin, args) => {
-                call(builtin, [input].into_iter().chain(args).collect())?
+                Expr::Builtin(builtin, [input].into_iter().chain(args).collect())
             }
             Expr::Call(name, args) => Expr::Call(name, [input].into_iter().chain(args).collect()),
             Expr::Apply(function, args) => {
                 Expr::Apply(function, [input].into_iter().chain(args).collect())
             }
             Expr::Name(name) => match name.parse::<Builtin>() {
-                Ok(builtin) => call(builtin, vec![input])?,
+                Ok(builtin) => Expr::Builtin(builtin, vec![input]),
                 Err(()) => Expr::Call(name, vec![input]),
             },
             Expr::Param { .. } | Expr::Property(..) | Expr::Lambda(..) => {
@@ -692,7 +721,7 @@ impl Parser {
         let enclosing = std::mem::replace(&mut self.parameters, vec![ROW.into()]);
         let body = self.row_body();
         self.parameters = enclosing;
-        Ok(Expr::Lambda(vec![ROW.into()], Box::new(body?)))
+        Ok(Expr::Lambda(vec![ROW.into()], vec![], Arc::new(body?)))
     }
     fn row_body(&mut self) -> Result<Expr, String> {
         let row = || Expr::Param {
@@ -749,7 +778,7 @@ impl Parser {
                         // A function of the row, `.c` or `fn(r) => …`, is applied
                         // to it; anything else is the field's value as written.
                         let value = self.expression(0)?;
-                        if matches!(value.bare(), Expr::Lambda(params, _) if params.len() == 1) {
+                        if matches!(value.bare(), Expr::Lambda(params, _, _) if params.len() == 1) {
                             let (s, e) = value.bounds();
                             Expr::Spanned(s, e, Box::new(Expr::Apply(Box::new(value), vec![row()])))
                         } else {
@@ -842,7 +871,7 @@ impl Parser {
                     start,
                     end,
                     Box::new(Expr::Apply(
-                        Box::new(Expr::Lambda(vec![name], Box::new(body))),
+                        Box::new(Expr::Lambda(vec![name], vec![], Arc::new(body))),
                         vec![value],
                     )),
                 )
@@ -940,7 +969,7 @@ const ROW_OPERAND: &str = "`.field` is a function of a row, not a value: write f
 
 /// Whether `expr` is `.a` or `.{…}`, which an operator cannot take.
 fn is_row_function(expr: &Expr) -> bool {
-    matches!(expr.bare(), Expr::Lambda(params, _) if params.len() == 1 && params[0] == ROW)
+    matches!(expr.bare(), Expr::Lambda(params, _, _) if params.len() == 1 && params[0] == ROW)
 }
 
 /// The function that replaced a stage of the retired query pipeline.
@@ -969,45 +998,6 @@ fn begins_expression(kind: &Lexeme) -> bool {
     )
 }
 
-/// Arguments of a direct timer declaration, retaining the original duration expression.
-pub fn timer_arguments(source: &str) -> Option<Vec<&str>> {
-    let parsed = Parser::parse(source).ok()?;
-    let Expr::Builtin(builtin, _) = parsed.bare() else {
-        return None;
-    };
-    if !matches!(builtin, Builtin::Stopwatch | Builtin::Countdown) {
-        return None;
-    }
-    let name = builtin.as_str();
-    let tokens = lex(source).ok()?;
-    let call = tokens
-        .iter()
-        .position(|t| matches!(&t.kind, Lexeme::Name(n) if n == name))?;
-    if !matches!(tokens.get(call + 1)?.kind, Lexeme::Left) {
-        return None;
-    }
-    let mut start = tokens[call + 1].end;
-    let mut depth = 0;
-    let mut args = Vec::new();
-    for token in &tokens[call + 2..] {
-        match token.kind {
-            Lexeme::Left => depth += 1,
-            Lexeme::Right if depth > 0 => depth -= 1,
-            Lexeme::Comma | Lexeme::Right if depth == 0 => {
-                let arg = source[start..token.start].trim();
-                if !arg.is_empty() {
-                    args.push(arg);
-                }
-                start = token.end;
-                if matches!(token.kind, Lexeme::Right) {
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-    Some(args)
-}
 /// Names reserved by the evaluator, also used by references and editor highlighting.
 pub fn is_builtin_function(name: &str) -> bool {
     name.parse::<super::Builtin>().is_ok()

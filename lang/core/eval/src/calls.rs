@@ -1,16 +1,16 @@
 //! Calling: the built-in dispatch, the core special forms (`import`, `if`,
-//! `match`, `coalesce`, `eval`, `date`, the clock), note functions and
-//! modules. A special built-in a feature owns — a row `sum`, a timer, a
-//! lookup, a checklist count — is answered by what `features` registers
-//! for it.
+//! `match`, `coalesce`, `eval`, `date`, the clock), the lookup cache
+//! (`cached`), note functions and modules, the prelude's among them. A
+//! special built-in a feature owns, such as a row `sum`, is answered by
+//! what `features` registers for it.
 use crate::engine::{
-    BinaryOp, Builtin, Engine, Expr, Tier, Value, binary, date_value, relative_date, sized,
+    BinaryOp, Builtin, Engine, Expr, Function, Tier, Value, binary, date_value, relative_date,
 };
-use crate::{features, workspace::Workspace};
+use crate::{features, memo::Walk, workspace::Workspace};
 use modules::Module;
 use std::{collections::BTreeMap, path::Path};
 use syntax::Literal;
-use values::{Depth, EvalError, EvalResult, Limit};
+use values::{EvalError, EvalResult, Limit};
 
 impl Engine<'_> {
     /// Dispatch a built-in by variant. A special form decides for itself
@@ -68,7 +68,7 @@ impl Engine<'_> {
             }
             Builtin::Today if args.is_empty() => Ok(Value::Date(self.request.clock.today())),
             Builtin::Date => self.call_date(path, args),
-            // A row `sum`, the timers, the lookups and the checklist counts,
+            // A row `sum`
             // and whatever the registry says answers a special form no
             // feature claims.
             builtin => features::call(builtin)(self, path, builtin, args),
@@ -86,21 +86,48 @@ impl Engine<'_> {
             .local(name)
             .map(Ok)
             .or_else(|| self.binding(name))
-            .unwrap_or_else(|| self.named(path, name))?;
+            .unwrap_or_else(|| self.resolved(path, name))?;
+        // Called by name, a function is named when the call does not fit it,
+        // before any argument is evaluated.
+        if let Value::Function(f) = &function
+            && !(f.required()..=f.params.len()).contains(&args.len())
+        {
+            return Err(EvalError::CallArity {
+                name: name.into(),
+                required: f.required(),
+                params: f.params.len(),
+                found: args.len(),
+            });
+        }
         let values = self.values(path, args)?;
         self.call(function, values)
     }
-    fn module_engine<'b>(&self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
-        let mut engine = Engine::for_module(workspace, self.request.clock.now)
-            .with_environment(workspace.clone());
+    /// An engine over a module's own workspace, carrying this one's budget,
+    /// memo and the definition being evaluated, all of which
+    /// [`Self::absorb_module`] takes back.
+    fn module_engine<'b>(&mut self, workspace: &'b std::sync::Arc<Workspace>) -> Engine<'b> {
+        let mut engine = Engine::for_module_sharing(
+            workspace,
+            self.request.clock.now,
+            self.request.memo.clone(),
+        )
+        .with_environment(workspace.clone());
         engine.budget.steps = self.budget.steps;
         engine.budget.calls = self.budget.calls;
-        engine.request.memo = self.request.memo.clone();
+        engine.budget.step_limit = self.budget.step_limit;
+        engine.budget.size_limit = self.budget.size_limit;
+        engine.walk = self.walk.take().map(Walk::lend);
+        // The prelude's lookups read the note's cache, not the module's.
+        engine.lookups = self.lookups.clone();
+        // What the module reads, it reads for the note text calling it.
+        engine.reader = self.reading_for();
         engine
     }
-    fn absorb_module(&mut self, other: &Engine<'_>) {
+    fn absorb_module(&mut self, other: &mut Engine<'_>) {
         self.budget.steps = other.budget.steps;
         self.time_dependent |= other.time_dependent;
+        self.wanted.append(&mut other.wanted);
+        self.walk = other.walk.take().map(Walk::take_back);
         if self.failure.is_none() {
             // A module has its own source workspace. Let the caller attach an
             // error there to its call site instead of carrying an unusable span.
@@ -112,7 +139,7 @@ impl Engine<'_> {
     }
     /// Run `f` on an engine over `module`'s own workspace and parsed
     /// expressions, then take back the budget and failure it leaves.
-    fn in_module<T>(
+    pub(crate) fn in_module<T>(
         &mut self,
         module: &Module,
         f: impl FnOnce(&mut Engine<'_>) -> EvalResult<T>,
@@ -122,7 +149,7 @@ impl Engine<'_> {
             .module_engine(&workspace)
             .with_expressions(module.expressions().clone());
         let result = f(&mut engine);
-        self.absorb_module(&engine);
+        self.absorb_module(&mut engine);
         result
     }
     /// Typed adapters use the same module snapshot, clock and execution budget as imports.
@@ -194,34 +221,46 @@ impl Engine<'_> {
             .and_then(|e| e.downcast::<Workspace>().ok())
             && !std::ptr::eq(self.request.workspace, workspace.as_ref())
         {
+            let args = args.into_iter().map(|arg| self.export(arg)).collect();
             let mut engine = self.module_engine(&workspace);
             engine.expressions = function.expressions.clone();
             let result = engine.call(Value::Function(function.clone()), args);
-            self.absorb_module(&engine);
+            self.absorb_module(&mut engine);
             return result;
         }
-        if args.len() != function.params.len() {
+        if args.len() < function.required() || args.len() > function.params.len() {
             return Err(EvalError::FunctionArity {
                 expected: function.params.len(),
                 found: args.len(),
             });
         }
-        if self.budget.calls >= 32 {
-            return Err(EvalError::DepthExceeded(Depth::Call));
-        }
+        self.call_check()?;
         let height = self.barrier(false);
+        let passed = args.len();
         self.push_call(function.clone(), args);
         self.budget.calls += 1;
         if let Some(source) = &function.source {
             self.trace.contexts.push(source.clone());
         }
-        let result = self.expr(&function.path, &function.body);
+        let result = self
+            .fill_defaults(&function, passed)
+            .and_then(|()| self.expr(&function.path, &function.body));
         if function.source.is_some() {
             self.trace.contexts.pop();
         }
         self.budget.calls -= 1;
         self.unwind(height);
-        sized(result?)
+        self.sized(result?)
+    }
+    /// Bind each parameter a call left out to its default, in order, so a
+    /// default sees the parameters before it.
+    fn fill_defaults(&mut self, function: &Function, passed: usize) -> EvalResult<()> {
+        let first = function.required();
+        for default in &function.defaults[passed.max(first) - first..] {
+            let value = self.expr(&function.path, default)?.plain();
+            self.push_argument(value);
+        }
+        Ok(())
     }
     /// `import(id)`: a module ID, or a literal path to another note.
     fn call_import(&mut self, path: &Path, args: &[Expr]) -> EvalResult<Value> {
@@ -302,9 +341,7 @@ impl Engine<'_> {
     }
     /// `eval(text)`: parse and run expression text in the current document.
     fn call_eval(&mut self, path: &Path, arg: &Expr) -> EvalResult<Value> {
-        if self.budget.calls >= 32 {
-            return Err(EvalError::DepthExceeded(Depth::Call));
-        }
+        self.call_check()?;
         let Value::Text(source) = self.expr(path, arg)? else {
             return Err(EvalError::Message("eval expects expression text".into()));
         };
@@ -344,6 +381,10 @@ impl Engine<'_> {
                     }
                     Err(e) => return Err(e),
                 }
+            }
+            (Builtin::Cached, [Text(kind), key]) => self.cached(kind, key, None)?,
+            (Builtin::Cached, [Text(kind), key, Text(label)]) => {
+                self.cached(kind, key, Some(label))?
             }
             (Builtin::Desc, [function @ Function(_)]) => {
                 Value::record([(DESCENDING.into(), function.clone())].into())
@@ -451,7 +492,7 @@ impl Engine<'_> {
             }
             _ => values::builtin(name, &args)?,
         };
-        sized(value)
+        self.sized(value)
     }
 }
 

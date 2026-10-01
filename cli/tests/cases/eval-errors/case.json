@@ -13,13 +13,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:recur.x.md}",
                 "row": 0,
-                "expected": "- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)"
+                "expected": "- [ ] Far future :far @every(year) @repeat_from(+262142-06-01)",
+                "module": "tasks",
+                "event": {"line": 0}
               }
             ]
           }
@@ -27,13 +29,15 @@
         {
           "request": "workspace/executeCommand",
           "params": {
-            "command": "xmd.task",
+            "command": "xmd.row",
             "arguments": [
               {
-                "kind": "toggle_task",
+                "kind": "row",
                 "document": "${uri:recur.x.md}",
                 "row": 1,
-                "expected": "- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)"
+                "expected": "- [ ] Long ago :ago @every(day) @repeat_from(1900-01-01)",
+                "module": "tasks",
+                "event": {"line": 1}
               }
             ]
           }

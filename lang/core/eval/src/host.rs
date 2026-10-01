@@ -1,4 +1,4 @@
-//! The host objects the evaluator builds — timers, tables and plans — and
+//! The host objects the evaluator builds — tables and plans — and
 //! what every host value shows once the engine and the link registry can
 //! answer too.
 //!
@@ -9,12 +9,10 @@
 //! one file answers "what can a note see of an evaluator-built object?".
 //! Each forwards to the object's own inherent methods.
 use crate::engine::{Engine, Value, ValueType};
-use crate::{
-    plans::PlanValue, resources::ResourcePresenting, stdlib, tables_impl::TableValue, timers::Timer,
-};
+use crate::{plans::PlanValue, resources::ResourcePresenting, stdlib, tables_impl::TableValue};
 use modules::LinkFeatures;
 use std::path::Path;
-use values::{EvalResult, HostObject, ToValue, optional, record};
+use values::{EvalResult, HostObject, ToValue, record};
 
 /// What a host value shows that needs more than the object itself: a
 /// resource's link fields and presentation, a checklist's progress. Every
@@ -43,7 +41,10 @@ impl HostPresenting for Value {
     fn host_hover(&self, engine: &mut Engine<'_>, path: &Path) -> Option<String> {
         match self {
             Value::Resource(resource) => {
-                Some(format!("\n\n{}", resource.presentation(engine, path).hover))
+                let presentation = resource.presentation(engine, path);
+                // A link module's details can age with its cache.
+                engine.mark_time_dependent(presentation.time_dependent);
+                Some(format!("\n\n{}", presentation.hover))
             }
             Value::Tasks(tasks) => {
                 let done = tasks
@@ -55,38 +56,6 @@ impl HostPresenting for Value {
             }
             other => other.host()?.hover(),
         }
-    }
-}
-impl HostObject for Timer {
-    fn kind(&self) -> ValueType {
-        match self.state.limit {
-            Some(_) => ValueType::Countdown,
-            None => ValueType::Stopwatch,
-        }
-    }
-    fn display(&self) -> String {
-        Timer::display(self)
-    }
-    fn property(&self, key: &str) -> EvalResult<Value> {
-        Timer::property(self, key)
-    }
-    fn fields(&self) -> Vec<String> {
-        let mut names = vec!["elapsed", "running", "done", "state"];
-        if self.state.limit.is_some() {
-            names.extend(["remaining", "duration"]);
-        }
-        names.into_iter().map(str::to_owned).collect()
-    }
-    fn query(&self) -> Option<Value> {
-        Some(record([
-            ("state", Value::Text(<&str>::from(self.state()).into())),
-            ("elapsed", Value::Duration(self.state.elapsed)),
-            ("limit", optional(self.state.limit.map(Value::Duration))),
-            ("started", optional(self.state.started.map(Value::DateTime))),
-        ]))
-    }
-    fn hover(&self) -> Option<String> {
-        Some(Timer::hover(self))
     }
 }
 impl HostObject for TableValue {

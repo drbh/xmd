@@ -1,10 +1,13 @@
 //! Code actions: what a host offers over a range. The row's controls come
-//! from every provider; the task toggle as an edit, refactors, freezing
-//! relative dates and showing today are offered here.
-use crate::commands::{Action, Capabilities, TaskToggle, titled};
-use crate::{providers, tasks};
+//! from every provider, its row actions resolved into edits up front when
+//! the host prefers; refactors, freezing relative dates and showing today
+//! are offered here.
+use crate::commands::{
+    Action, Capabilities, Control, PreparedAction, Proposal, RowActions, titled,
+};
+use crate::providers;
 use analysis::{CodeActionItem, refactors};
-use lang::syntax::{AttributeKey, AttributeValue};
+use lang::syntax::AttributeValue;
 use lsp_types::{CodeActionKind, Range, TextEdit};
 use std::path::Path;
 
@@ -14,28 +17,25 @@ pub(crate) fn code_actions(
     path: &Path,
     range: Range,
     capabilities: Capabilities,
-    toggle: TaskToggle,
+    row_actions: RowActions,
 ) -> Vec<CodeActionItem> {
     let ws = request.workspace();
     let Some(doc) = ws.documents().get(path) else {
         return vec![];
     };
     let row = range.start.line as usize;
-    let mut result: Vec<_> = providers::row_controls(request, path, row, toggle, capabilities)
-        .into_iter()
-        .map(CodeActionItem::command)
-        .collect();
-    if toggle == TaskToggle::Action
-        && let Some(i) = doc.tasks.iter().position(|t| t.line == row)
-    {
-        let title = tasks::title(&mut request.engine(), path, i);
-        let mut item = CodeActionItem::edit(title, CodeActionKind::REFACTOR_REWRITE, vec![]);
-        match tasks::toggle(request, path, i) {
-            Ok(edits) => item.edits = edits,
-            Err(reason) => item.disabled = Some(reason),
+    let mut result = Vec::new();
+    let mut resolved = Vec::new();
+    for control in providers::row_controls(request, path, row, capabilities) {
+        let is_row = matches!(control.proposal.action, Action::Row { .. });
+        if is_row && row_actions == RowActions::Edit {
+            resolved.push(resolve(request, control, capabilities));
+        } else if control.disabled.is_none() {
+            let Proposal { title, action, .. } = control.proposal;
+            result.push(CodeActionItem::command(action.command(title)));
         }
-        result.push(item);
     }
+    result.extend(resolved);
     result.extend(refactors(request, path, range));
     let dates: Vec<_> = freeze_dates(request, path)
         .into_iter()
@@ -61,20 +61,36 @@ pub(crate) fn code_actions(
     result
 }
 
+/// A row action as the edit it comes to now, or disabled with the reason it
+/// cannot run. One whose reducer answers with something other than an edit
+/// stays a command.
+fn resolve(
+    request: &crate::Request<'_>,
+    control: Control,
+    capabilities: Capabilities,
+) -> CodeActionItem {
+    let Proposal { title, action, .. } = control.proposal;
+    let mut item = CodeActionItem::edit(title.clone(), CodeActionKind::REFACTOR_REWRITE, vec![]);
+    if let Some(reason) = control.disabled {
+        item.disabled = Some(reason);
+        return item;
+    }
+    match providers::prepare(request, &action, capabilities) {
+        Ok(PreparedAction::Edit { edits, .. }) => item.edits = edits,
+        Ok(_) => return CodeActionItem::command(action.command(title)),
+        Err(reason) => item.disabled = Some(reason),
+    }
+    item
+}
+
 pub(crate) fn freeze_dates(request: &crate::Request<'_>, path: &Path) -> Vec<TextEdit> {
     let today = request.today();
     let workspace = request.workspace();
 
     let doc = &workspace.documents()[path];
     let mut engine = request.engine();
-    doc.tasks
-        .iter()
-        .flat_map(|t| t.attributes.iter())
-        .chain(doc.events.iter().flat_map(|e| e.attributes.iter()))
-        .filter(|(key, _)| {
-            key.parse::<AttributeKey>()
-                .is_ok_and(|k| k.value() == AttributeValue::When)
-        })
+    doc.claimed_attributes()
+        .filter(|(key, _)| doc.attribute_value(key) == Some(AttributeValue::When))
         .filter_map(|(_, a)| {
             lang::eval::engine::relative_date(&a.value, today)
                 .and_then(|_| engine.when(path, &a.value).ok())

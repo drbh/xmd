@@ -4,7 +4,7 @@ module := {
   api: 1,
   id: "contacts",
   kind: "feature",
-  inputs: [],
+  inputs: ["recognized"],
   recognizes: [
     {
       name: "contact",

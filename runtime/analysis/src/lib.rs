@@ -22,12 +22,12 @@ mod signature;
 mod symbols;
 
 pub use diagnostics::{collect_native, severity_name};
-pub use hover::{TaskHover, hover_at, markup, seek_summary, source_link, symbol_hover};
+pub use hover::{RowHover, SymbolHover, hover_at, markup, seek_summary, source_link, symbol_hover};
 pub use locate::{inert, symbol_at};
 pub use navigation::occurrences;
 pub use refactor::{CodeActionItem, refactors};
 pub use signature::{BUILTINS, Outcome, Signature, call_context, signature};
-pub use symbols::{document_symbols, flat_symbols, folding_ranges};
+pub use symbols::{Outlined, document_symbols, flat_symbols, folding_ranges};
 
 // Names too generic to stand alone keep a namespace.
 pub mod describe {

@@ -525,11 +525,83 @@ Use [work.
 -- request textDocument/completion base.x.md 10:10
 [
   {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "done",
+    "textEdit": {
+      "newText": "done",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
     "detail": "Duration · 0s",
     "kind": 10,
     "label": "elapsed",
     "textEdit": {
       "newText": "elapsed",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · true",
+    "kind": 10,
+    "label": "idle",
+    "textEdit": {
+      "newText": "idle",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Null · null",
+    "kind": 10,
+    "label": "limit",
+    "textEdit": {
+      "newText": "limit",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 10
+        },
+        "start": {
+          "character": 10,
+          "line": 10
+        }
+      }
+    }
+  },
+  {
+    "detail": "Record · <collection>",
+    "kind": 10,
+    "label": "origin",
+    "textEdit": {
+      "newText": "origin",
       "range": {
         "end": {
           "character": 10,
@@ -561,11 +633,11 @@ Use [work.
     }
   },
   {
-    "detail": "Boolean · false",
+    "detail": "Null · null",
     "kind": 10,
-    "label": "done",
+    "label": "started",
     "textEdit": {
-      "newText": "done",
+      "newText": "started",
       "range": {
         "end": {
           "character": 10,

@@ -8,13 +8,15 @@
 //! neither: every write must carry a strictly newer version, and a `.x.md` file
 //! under the virtual workspace is always an ordinary note.
 //!
-//! A session also keeps the catalog's derived [`Records`] for its workspace,
-//! so the requests between two changes share one build of each collection.
-//! The workspace is reached only through [`WorkspaceSession::workspace`] and
-//! [`WorkspaceSession::workspace_mut`], and every change starts the records
-//! over.
-use crate::{Request, commands::Capabilities};
-use catalog::{NoteFiles, Records};
+//! A session also keeps what requests derive from its workspace ([`Shared`]):
+//! the catalog's records, the evaluator's results and feature modules'
+//! answers, so the requests between two changes share one build of each
+//! collection and one evaluation of each definition and hook, for as long as
+//! the clock they read allows. The workspace is reached only through
+//! [`WorkspaceSession::workspace`] and [`WorkspaceSession::workspace_mut`], and
+//! every change starts all of it over.
+use crate::{Request, commands::Capabilities, request::Shared};
+use catalog::NoteFiles;
 use chrono::{DateTime, FixedOffset};
 use lang::eval::Workspace;
 use lang::model::Document;
@@ -37,7 +39,7 @@ enum Driver {
 pub struct WorkspaceSession {
     workspace: Workspace,
     /// Derived from `workspace` as it is now; replaced whenever it changes.
-    records: Arc<Records>,
+    shared: Shared,
     driver: Driver,
     open: BTreeMap<PathBuf, i32>,
     module_buffers: BTreeMap<PathBuf, Document>,
@@ -59,7 +61,7 @@ impl WorkspaceSession {
     fn driven_by(workspace: Workspace, driver: Driver) -> Self {
         Self {
             workspace,
-            records: Arc::default(),
+            shared: Shared::default(),
             driver,
             open: BTreeMap::new(),
             module_buffers: BTreeMap::new(),
@@ -75,13 +77,13 @@ impl WorkspaceSession {
     }
     /// The workspace to change. Whatever was derived from it is dropped.
     pub fn workspace_mut(&mut self) -> &mut Workspace {
-        self.records = Arc::default();
+        std::mem::take(&mut self.shared).retire();
         &mut self.workspace
     }
     /// A request over the workspace at `now`, sharing what earlier requests
     /// derived from this revision of it.
     pub fn request(&self, now: DateTime<FixedOffset>) -> Request<'_> {
-        Request::sharing(&self.workspace, now, self.records.clone())
+        Request::sharing(&self.workspace, now, &self.shared)
     }
 
     /// Take a buffer for `path`. Module sources are parsed into a buffer of
@@ -99,9 +101,9 @@ impl WorkspaceSession {
             self.module_buffers
                 .insert(path.to_path_buf(), Document::parse(text));
         } else {
-            self.records = Arc::default();
-            self.workspace
-                .insert_document(path.to_path_buf(), Document::parse(text));
+            std::mem::take(&mut self.shared).retire();
+            let document = self.workspace.parse(text);
+            self.workspace.insert_document(path.to_path_buf(), document);
             if let Driver::Editor(files) = &self.driver {
                 files.load_imports(&mut self.workspace);
             }
@@ -142,7 +144,7 @@ impl WorkspaceSession {
         let modules = fresh.modules().clone();
         fresh.retain_documents(|path| !modules.iter().any(|m| m.path == path));
         self.workspace = fresh;
-        self.records = Arc::default();
+        std::mem::take(&mut self.shared).retire();
     }
 
     /// Whether this path is a module source rather than a note.
@@ -209,7 +211,7 @@ impl WorkspaceSession {
     /// ones — and report each diagnostic set and lens list that differs from
     /// the last one sent. After [`Self::refresh`] clears them, that is all.
     fn reevaluate(&mut self, now: DateTime<FixedOffset>, all: bool) -> RefreshReport {
-        let request = Request::sharing(&self.workspace, now, self.records.clone());
+        let request = Request::sharing(&self.workspace, now, &self.shared);
         let paths: Vec<_> = self
             .open
             .iter()
@@ -249,6 +251,7 @@ impl WorkspaceSession {
 mod tests {
     use super::*;
     use catalog::Query;
+    use lsp_types::{Position, Range};
 
     fn at(now: &str) -> DateTime<FixedOffset> {
         DateTime::parse_from_rfc3339(now).unwrap()
@@ -285,5 +288,140 @@ mod tests {
         assert_eq!(rows(&session, morning, titles), json!(["Feed"]));
         session.workspace_mut().remove_document(path);
         assert_eq!(rows(&session, morning, titles), json!([]));
+    }
+
+    const NOTE: &str = "/workspace/note.x.md";
+    const MORNING: &str = "2026-09-16T09:00:00-04:00";
+    const NOON: &str = "2026-09-16T12:00:00-04:00";
+    const TOMORROW: &str = "2026-09-17T09:00:00-04:00";
+
+    fn open(text: &str) -> WorkspaceSession {
+        let mut session = WorkspaceSession::browser(Workspace::new(vec!["/workspace".into()]));
+        session.open(Path::new(NOTE), 1, text.into()).unwrap();
+        session
+    }
+    /// The list `name` evaluates to in a request at `now`: the very value an
+    /// earlier request evaluated, when the session reuses it.
+    fn list(
+        session: &WorkspaceSession,
+        now: &str,
+        name: &str,
+    ) -> Arc<lang::eval::engine::Measured<Vec<lang::eval::engine::Value>>> {
+        let request = session.request(at(now));
+        match request.engine().named(Path::new(NOTE), name) {
+            Ok(lang::eval::engine::Value::List(items)) => items,
+            other => panic!("expected a list, found {other:?}"),
+        }
+    }
+    fn quote(session: &mut WorkspaceSession, price: f64) {
+        let key = "quote:NVDA".to_string();
+        let fetched = at(MORNING).to_utc();
+        let lookup = lang::eval::lookups::Lookup::new(
+            json!({"price": price, "currency": "USD"}),
+            fetched,
+            "test".into(),
+        );
+        session.workspace_mut().store_lookup(key, lookup);
+    }
+
+    /// Requests share evaluated values while the workspace stands and the
+    /// clock reads the same to them; an edit, a clock tick a value reads, a
+    /// lookup refresh or a module change starts them over.
+    #[test]
+    fn evaluations_are_shared_until_the_workspace_or_their_clock_moves() {
+        let text = "steady := [1, 2]\nstamp := [now()]\nprice := [quote(NVDA)]\n";
+        let mut session = open(text);
+        quote(&mut session, 1.0);
+        let same = Arc::ptr_eq;
+        let steady = list(&session, MORNING, "steady");
+        assert!(same(&steady, &list(&session, MORNING, "steady")));
+        assert!(same(&steady, &list(&session, NOON, "steady")));
+        assert!(!same(&steady, &list(&session, TOMORROW, "steady")));
+        // A tick: what reads `now()` is evaluated again, at the new instant.
+        let stamp = list(&session, MORNING, "stamp");
+        assert!(same(&stamp, &list(&session, MORNING, "stamp")));
+        assert_ne!(stamp, list(&session, NOON, "stamp"));
+
+        let steady = list(&session, MORNING, "steady");
+        session.open(Path::new(NOTE), 2, text.into()).unwrap();
+        assert!(!same(&steady, &list(&session, MORNING, "steady")));
+
+        let price = list(&session, MORNING, "price");
+        assert!(same(&price, &list(&session, MORNING, "price")));
+        quote(&mut session, 2.0);
+        assert_ne!(price, list(&session, MORNING, "price"));
+
+        let steady = list(&session, MORNING, "steady");
+        let modules = session.workspace().modules().clone();
+        session.workspace_mut().replace_modules(modules);
+        assert!(!same(&steady, &list(&session, MORNING, "steady")));
+    }
+
+    /// The records' hovers, as a feature module reading them sees them.
+    fn hovers(
+        session: &WorkspaceSession,
+        now: &str,
+    ) -> Arc<lang::eval::engine::Measured<Vec<lang::eval::engine::Value>>> {
+        let request = session.request(at(now));
+        let fields = ["hover".to_owned()];
+        let view = catalog::View::Fields(&fields);
+        let collection = lang::eval::modules::Collection::Values;
+        let path = Some(Path::new(NOTE));
+        let read = request
+            .records
+            .view(&mut request.engine(), path, collection, view, |_, _| {
+                Vec::new()
+            });
+        match read {
+            Ok(lang::eval::engine::Value::List(items)) => items,
+            other => panic!("expected a list, found {other:?}"),
+        }
+    }
+
+    /// A hover that reads the clock only through the date is kept all day,
+    /// like the rest of its records; one that reads it more finely — a value
+    /// from `now()`, a lookup's age — only at that instant.
+    #[test]
+    fn hovers_are_kept_for_as_long_as_the_clock_they_read() {
+        let session = open("total := 2 + 3\ndue := today()\n");
+        let morning = hovers(&session, MORNING);
+        assert!(Arc::ptr_eq(&morning, &hovers(&session, NOON)));
+        assert!(!Arc::ptr_eq(&morning, &hovers(&session, TOMORROW)));
+
+        let stamped = open("stamp := now()\n");
+        assert_ne!(hovers(&stamped, MORNING), hovers(&stamped, NOON));
+        let mut aged = open("price := quote(NVDA)\n");
+        quote(&mut aged, 1.0);
+        let morning = hovers(&aged, MORNING);
+        assert!(Arc::ptr_eq(&morning, &hovers(&aged, MORNING)));
+        assert_ne!(morning, hovers(&aged, NOON));
+    }
+
+    /// A feature module's hook answers again only when its input or the
+    /// clock it read has moved: a request later in the day reuses every
+    /// answer, and an edit starts them over.
+    #[test]
+    fn hook_answers_are_kept_while_their_input_and_clock_hold() {
+        let text = "total := 2 + 3\n\nWe have [total].\n\n- [ ] Water @due(2026-09-20)\n";
+        let mut session = open(text);
+        let range = Range::new(Position::new(0, 0), Position::new(5, 0));
+        let hints = |session: &WorkspaceSession, now: &str| {
+            let request = session.request(at(now));
+            let hints = request.hints(Path::new(NOTE), range);
+            (json!(hints.hints), request.answers.clocks())
+        };
+        let (morning, clocks) = hints(&session, MORNING);
+        assert!(!clocks.is_empty());
+        assert!(clocks.iter().all(|clock| *clock == at(MORNING)));
+        let (noon, clocks) = hints(&session, NOON);
+        assert_eq!(noon, morning);
+        assert!(clocks.iter().all(|clock| *clock == at(MORNING)));
+        let (_, clocks) = hints(&session, TOMORROW);
+        assert!(clocks.iter().all(|clock| *clock == at(TOMORROW)));
+
+        session.open(Path::new(NOTE), 2, text.into()).unwrap();
+        let (again, clocks) = hints(&session, NOON);
+        assert_eq!(again, morning);
+        assert!(clocks.iter().all(|clock| *clock == at(NOON)));
     }
 }

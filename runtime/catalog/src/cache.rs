@@ -16,15 +16,21 @@
 //! - **Clock.** An entry remembers the clock it was built at. Records that
 //!   read the clock only through the date and offset (a repeating task due
 //!   today, a stop's time) are reused all day; once anything in the entry
-//!   reads the clock more finely, the entry holds only for that instant.
+//!   reads the clock more finely — a hover included, though a hover never
+//!   marks its reader — the entry holds only for that instant.
+//!
+//! A module's `records` build ([`crate::built`]) is kept the same way, per
+//! note and module, so the collections one call built share it.
 //!
 //! Lazy fields stay lazy: a reader that narrows a collection to a few fields
 //! evaluates only those, and what they produce is kept on the cached record
 //! for the next reader.
+use crate::built::Build;
 use crate::{Collection, DiagnosticSource, Record};
 use chrono::{DateTime, FixedOffset};
 use lang::eval::Workspace;
 use lang::eval::engine::{Engine, Value};
+use lang::eval::modules::Module;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -56,6 +62,26 @@ struct State {
     /// the owner is what keeps it unchanged.
     workspace: usize,
     entries: BTreeMap<Key, Arc<Mutex<Option<Entry>>>>,
+    /// Each module's `records` build, by note and module id.
+    builds: BTreeMap<(PathBuf, String), Arc<Mutex<Option<BuildEntry>>>>,
+    /// Each note's text as every hook is handed it: its URI, its text and
+    /// its lines.
+    notes: BTreeMap<PathBuf, Arc<NoteValues>>,
+}
+
+/// A note as a hook is handed it, made once per revision.
+pub(crate) struct NoteValues {
+    pub(crate) uri: String,
+    pub(crate) text: Value,
+    pub(crate) lines: Value,
+}
+
+/// One `records` build and the clock it answers for: all day, unless reading
+/// the module's inputs read the clock more finely.
+struct BuildEntry {
+    now: DateTime<FixedOffset>,
+    exact: bool,
+    build: Arc<Build>,
 }
 
 struct Entry {
@@ -65,8 +91,8 @@ struct Entry {
     /// reader's engine, as building them again would mark it.
     built_time_dependent: bool,
     /// Whether anything in the entry reads the clock more finely than the
-    /// date, so the entry holds only at `now`. Hovers count, though they
-    /// never mark a reader's engine: they word lookup ages and host state.
+    /// date, so the entry holds only at `now`. A hover that does counts,
+    /// though it never marks a reader's engine.
     exact: bool,
     records: Vec<Record>,
     /// Each view already read, and whether reading it marked the reader:
@@ -148,36 +174,15 @@ impl Records {
             let value = Value::list(values);
             let marks = engine.time_dependent();
             entry.views.push((ViewKey::of(view), value.clone(), marks));
-            Ok((value, reads_hover(&entry.records, view)))
+            let hover = reads_hover(&entry.records, view)
+                && entry.records.iter().any(Record::hover_reads_clock);
+            Ok((value, hover))
         })
-    }
-
-    /// The `index`th record of `collection` in the note at `path`, every
-    /// field read: one task's record for its hover, say.
-    pub(crate) fn nth(
-        &self,
-        engine: &mut Engine<'_>,
-        path: &Path,
-        collection: Collection,
-        index: usize,
-    ) -> Option<Value> {
-        self.reading(
-            engine,
-            Some(path),
-            collection,
-            no_diagnostics,
-            |entry, engine| {
-                let record = entry.records.get_mut(index).map(|r| r.full(engine));
-                Ok((record, false))
-            },
-        )
-        .ok()
-        .flatten()
     }
 
     /// Run `read` over the entry for `(only, collection)`, built first when
     /// it does not hold at the engine's clock. `read` says whether it read a
-    /// hover.
+    /// hover that read the clock.
     fn reading<T>(
         &self,
         engine: &mut Engine<'_>,
@@ -189,19 +194,17 @@ impl Records {
         // Which diagnostics a collection holds is the caller's choice, so
         // that one collection is never shared.
         if collection == Collection::Diagnostics {
-            let ws = engine.workspace();
-            let records = crate::collect(ws, collection, engine, only, diagnostics)?;
+            let records = crate::collect(self, collection, engine, only, diagnostics)?;
             let mut entry = Entry::new(engine.now(), false, records);
             return read(&mut entry, engine).map(|(value, _)| value);
         }
-        let key = (only.map(Path::to_path_buf), collection);
+        let key = (only.map(Path::to_path_buf), collection.clone());
         let slot = self.slot(engine.workspace(), key);
         let mut entry = lock(&slot);
         let now = engine.now();
         if !entry.as_ref().is_some_and(|e| e.holds_at(now)) {
             let mut own = engine.request().engine();
-            let records =
-                crate::collect(engine.workspace(), collection, &mut own, only, diagnostics)?;
+            let records = crate::collect(self, collection, &mut own, only, diagnostics)?;
             let built_time_dependent = own.time_dependent();
             *entry = Some(Entry::new(now, built_time_dependent, records));
         }
@@ -219,24 +222,91 @@ impl Records {
         Ok(value)
     }
 
-    fn slot(&self, workspace: &Workspace, key: Key) -> Arc<Mutex<Option<Entry>>> {
+    /// What `module`'s `records` hook built for the note at `path`, built
+    /// first when no build holds at the engine's clock. `engine` is marked
+    /// when reading the module's inputs read the clock.
+    pub(crate) fn built(
+        &self,
+        engine: &mut Engine<'_>,
+        module: &Module,
+        path: &Path,
+    ) -> Arc<Build> {
+        let slot = {
+            let mut state = self.state(engine.workspace());
+            state
+                .builds
+                .entry((path.to_path_buf(), module.id.clone()))
+                .or_default()
+                .clone()
+        };
+        let mut entry = lock(&slot);
+        let now = engine.now();
+        let holds = |e: &BuildEntry| {
+            e.now.offset() == now.offset()
+                && if e.exact {
+                    e.now == now
+                } else {
+                    e.now.date_naive() == now.date_naive()
+                }
+        };
+        if !entry.as_ref().is_some_and(holds) {
+            let mut own = engine.request().engine();
+            let build = crate::built::build(self, &mut own, module, path);
+            *entry = Some(BuildEntry {
+                now,
+                exact: own.time_dependent(),
+                build: Arc::new(build),
+            });
+        }
+        let entry = entry.as_ref().expect("filled above");
+        engine.mark_time_dependent(entry.exact);
+        entry.build.clone()
+    }
+
+    /// The note at `path` as a hook is handed it.
+    pub(crate) fn note(
+        &self,
+        workspace: &Workspace,
+        path: &Path,
+    ) -> Result<Arc<NoteValues>, String> {
+        if let Some(note) = self.state(workspace).notes.get(path) {
+            return Ok(note.clone());
+        }
+        let text = &workspace.documents()[path].text;
+        let note = Arc::new(NoteValues {
+            uri: lang::common::file_url(path)?.into(),
+            text: Value::Text(text.clone()),
+            lines: Value::list(text.lines().map(|l| Value::Text(l.into())).collect()),
+        });
+        self.state(workspace)
+            .notes
+            .insert(path.to_path_buf(), note.clone());
+        Ok(note)
+    }
+    /// The state, emptied first when it was filled from another workspace.
+    fn state(&self, workspace: &Workspace) -> MutexGuard<'_, State> {
         let mut state = lock(&self.state);
         let address = std::ptr::from_ref(workspace).addr();
         if state.workspace != address {
             state.workspace = address;
             state.entries.clear();
+            state.builds.clear();
+            state.notes.clear();
         }
-        state.entries.entry(key).or_default().clone()
+        state
+    }
+
+    fn slot(&self, workspace: &Workspace, key: Key) -> Arc<Mutex<Option<Entry>>> {
+        self.state(workspace)
+            .entries
+            .entry(key)
+            .or_default()
+            .clone()
     }
 }
 
-/// For a read that never asks for the diagnostics collection.
-fn no_diagnostics(_: &lang::eval::RequestContext<'_>, _: &Path) -> Vec<lsp_types::Diagnostic> {
-    Vec::new()
-}
-
-/// Whether `view` reads the hover of any record, which words the clock
-/// without marking it.
+/// Whether `view` reads the hover of any record, which may read the clock
+/// without marking the reader.
 fn reads_hover(records: &[Record], view: View<'_>) -> bool {
     let hover = crate::record::LazyField::Hover.as_str();
     let named = || {

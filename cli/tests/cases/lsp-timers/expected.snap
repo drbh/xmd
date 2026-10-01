@@ -63,13 +63,18 @@
     "command": {
       "arguments": [
         {
-          "action": "start",
           "document": "file://<root>/timers.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "start",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ start watch"
     },
     "range": {
@@ -87,13 +92,18 @@
     "command": {
       "arguments": [
         {
-          "action": "start",
           "document": "file://<root>/timers.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "start",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2s)",
+          "kind": "row",
+          "module": "timers",
+          "row": 1
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ start focus"
     },
     "range": {
@@ -112,12 +122,16 @@
       "arguments": [
         {
           "document": "file://<root>/timers.x.md",
+          "event": {
+            "line": 2
+          },
           "expected": "- [ ] Work @timer(watch)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 2
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -135,13 +149,18 @@
     "command": {
       "arguments": [
         {
-          "action": "start",
           "document": "file://<root>/timers.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "start",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ start watch"
     },
     "range": {
@@ -159,13 +178,18 @@
     "command": {
       "arguments": [
         {
-          "action": "start",
           "document": "file://<root>/timers.x.md",
-          "kind": "timer",
-          "name": "watch"
+          "event": {
+            "action": "start",
+            "name": "watch"
+          },
+          "expected": "[watch] := stopwatch()",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "▸ start watch"
     },
     "range": {
@@ -183,11 +207,83 @@
 -- request textDocument/completion timers.x.md 3:13
 [
   {
+    "detail": "Boolean · false",
+    "kind": 10,
+    "label": "done",
+    "textEdit": {
+      "newText": "done",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
     "detail": "Duration · 0s",
     "kind": 10,
     "label": "elapsed",
     "textEdit": {
       "newText": "elapsed",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Boolean · true",
+    "kind": 10,
+    "label": "idle",
+    "textEdit": {
+      "newText": "idle",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Null · null",
+    "kind": 10,
+    "label": "limit",
+    "textEdit": {
+      "newText": "limit",
+      "range": {
+        "end": {
+          "character": 20,
+          "line": 3
+        },
+        "start": {
+          "character": 13,
+          "line": 3
+        }
+      }
+    }
+  },
+  {
+    "detail": "Record · <collection>",
+    "kind": 10,
+    "label": "origin",
+    "textEdit": {
+      "newText": "origin",
       "range": {
         "end": {
           "character": 20,
@@ -219,11 +315,11 @@
     }
   },
   {
-    "detail": "Boolean · false",
+    "detail": "Null · null",
     "kind": 10,
-    "label": "done",
+    "label": "started",
     "textEdit": {
-      "newText": "done",
+      "newText": "started",
       "range": {
         "end": {
           "character": 20,
@@ -307,7 +403,7 @@
     }
   ]
 }
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timers.x.md}","event":{"action":"start","name":"watch"},"expected":"[watch] := stopwatch()","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -316,14 +412,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(0s, 2026-09-16T14:00:00-04:00)",
+            "newText": "stopwatch(0s, 2026-09-16T14:00:00-04:00)",
             "range": {
               "end": {
                 "character": 22,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -399,12 +495,12 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"start","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timers.x.md}","event":{"action":"start","name":"watch"},"expected":"[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 error: {
   "code": -32602,
   "message": "Cannot start a running timer"
 }
--- request workspace/executeCommand {"arguments":[{"action":"pause","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timers.x.md}","event":{"action":"pause","name":"watch"},"expected":"[watch] := stopwatch(0s, 2026-09-16T14:00:00-04:00)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -413,14 +509,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch(0s)",
+            "newText": "stopwatch(0s)",
             "range": {
               "end": {
                 "character": 51,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -496,7 +592,7 @@ Spent [watch.elapsed].
     }
   }
 ]
--- request workspace/executeCommand {"arguments":[{"action":"reset","document":"${uri:timers.x.md}","kind":"timer","name":"watch"}],"command":"xmd.timer"}
+-- request workspace/executeCommand {"arguments":[{"document":"${uri:timers.x.md}","event":{"action":"reset","name":"watch"},"expected":"[watch] := stopwatch(0s)","kind":"row","module":"timers","row":0}],"command":"xmd.row"}
 null
 -- await workspace/applyEdit
 {
@@ -505,14 +601,14 @@ null
       {
         "edits": [
           {
-            "newText": " stopwatch()",
+            "newText": "stopwatch()",
             "range": {
               "end": {
                 "character": 24,
                 "line": 0
               },
               "start": {
-                "character": 10,
+                "character": 11,
                 "line": 0
               }
             }
@@ -578,13 +674,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/expired.x.md",
-          "kind": "timer",
-          "name": "tea"
+          "event": {
+            "action": "reset",
+            "name": "tea"
+          },
+          "expected": "[tea] := countdown(1s, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset tea"
     },
     "range": {
@@ -603,12 +704,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/expired.x.md",
+          "event": {
+            "line": 1
+          },
           "expected": "- [ ] Work @timer(tea)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 1
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -626,13 +731,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/expired.x.md",
-          "kind": "timer",
-          "name": "tea"
+          "event": {
+            "action": "reset",
+            "name": "tea"
+          },
+          "expected": "[tea] := countdown(1s, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset tea"
     },
     "range": {

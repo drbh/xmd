@@ -140,7 +140,10 @@ quote REQUEST: Cached module data must contain JSON values
   },
   "rate:GBP:USD": {
     "value": {
-      "rate": 1.25
+      "from": "GBP",
+      "note": "unread",
+      "rate": 1.25,
+      "to": "USD"
     },
     "fetched_at": "2026-09-18T12:00:00Z",
     "source": "fake-rate"

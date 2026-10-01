@@ -114,7 +114,7 @@ impl PlanValue {
             return Ok(c.slack.clone());
         }
         Err(values::EvalError::UnknownProperty {
-            owner: values::PropertyOwner::Plan,
+            owner: common::ValueType::Plan,
             name: name.into(),
         })
     }

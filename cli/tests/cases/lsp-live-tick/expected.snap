@@ -55,13 +55,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "pause",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "pause",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "‖ pause focus"
     },
     "range": {
@@ -79,13 +84,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "reset",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset focus"
     },
     "range": {
@@ -103,13 +113,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "pause",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "pause",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "‖ pause focus"
     },
     "range": {
@@ -127,13 +142,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "reset",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset focus"
     },
     "range": {
@@ -152,12 +172,16 @@ null
       "arguments": [
         {
           "document": "file://<root>/live.x.md",
+          "event": {
+            "line": 2
+          },
           "expected": "- [ ] Deep work @timer(focus)",
-          "kind": "toggle_task",
+          "kind": "row",
+          "module": "tasks",
           "row": 2
         }
       ],
-      "command": "xmd.task",
+      "command": "xmd.row",
       "title": "✓ done"
     },
     "range": {
@@ -175,13 +199,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "pause",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "pause",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "‖ pause focus"
     },
     "range": {
@@ -199,13 +228,18 @@ null
     "command": {
       "arguments": [
         {
-          "action": "reset",
           "document": "file://<root>/live.x.md",
-          "kind": "timer",
-          "name": "focus"
+          "event": {
+            "action": "reset",
+            "name": "focus"
+          },
+          "expected": "[focus] := countdown(2m, 0s, 2026-09-16T13:59:00-04:00)",
+          "kind": "row",
+          "module": "timers",
+          "row": 0
         }
       ],
-      "command": "xmd.timer",
+      "command": "xmd.row",
       "title": "↺ reset focus"
     },
     "range": {

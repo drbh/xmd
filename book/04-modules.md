@@ -16,8 +16,14 @@ list it in a `modules.json`, paths relative to that file
 
 `kind` is `feature` (annotates notes), `link` (urls on some `hosts`),
 `library` (functions a note gets with `import(id)`), `command` (`xmd run`)
-or `provider` (rates, quotes, forecasts). a module with a stdlib id
-replaces it
+or `provider` (fetches what `cached(kind, key)` asks for: rates, quotes,
+forecasts, or a kind of your own). a module with a stdlib id replaces it
+
+one library needs no `import`: the exports of `prelude`
+([lang/stdlib/prelude.xmd](../lang/stdlib/prelude.xmd)) are names in every
+note and module, which is where `sparkline`, `total`, `effort`, `rate`,
+`to`, `quote` and `forecast` come from. a note's own names come first, so a note that defines `total` reads
+its own
 
 try one: `cp -r lang/examples/personal/xmd ~/.config/` puts a word count
 after every note's title, then restart the language server. more in

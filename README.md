@@ -13,10 +13,10 @@ mkdir -p ~/.local/bin && \
   tar -xzC ~/.local/bin xmd
 ```
 
-from a checkout, `cargo install --path cli` builds the same binary; with
+from a checkout, `cargo install --path hosts/cli` builds the same binary; with
 nix, `nix run github:drbh/xmd` or `nix build`.
-editors: [vs code](client/ide/vscode), [zed](client/ide/zed),
-[neovim](client/ide/neovim), [helix](client/ide/helix)
+editors: [vs code](clients/ide/vscode), [zed](clients/ide/zed),
+[neovim](clients/ide/neovim), [helix](clients/ide/helix)
 
 rename a `.md` file to `.x.md` and xmd picks it up; editors without xmd
 still show it as markdown

@@ -1,0 +1,18 @@
+[package]
+name = "lang"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# The language's one public interface. The crates beside this manifest are private to
+# it: everything outside core/ depends on this facade, never on them.
+[dependencies]
+common = { path = "common" }
+eval = { path = "eval" }
+document = { path = "document" }
+modules = { path = "modules" }
+syntax = { path = "syntax" }
+values = { path = "values" }
+
+[lints]
+workspace = true

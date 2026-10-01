@@ -58,10 +58,10 @@ jobs:
             echo "::error::tag '$tag' does not start with v" >&2
             exit 1
           fi
-          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' cli/Cargo.toml | head -n1)
-          vscode=$(node -p 'require("./client/ide/vscode/package.json").version')
-          zed=$(sed -n 's/^version = "\(.*\)"/\1/p' client/ide/zed/extension.toml | head -n1)
-          echo "tag $tag; cli/Cargo.toml $crate; vscode $vscode; zed $zed"
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' hosts/cli/Cargo.toml | head -n1)
+          vscode=$(node -p 'require("./clients/ide/vscode/package.json").version')
+          zed=$(sed -n 's/^version = "\(.*\)"/\1/p' clients/ide/zed/extension.toml | head -n1)
+          echo "tag $tag; hosts/cli/Cargo.toml $crate; vscode $vscode; zed $zed"
           for found in "$crate" "$vscode" "$zed"; do
             if [ "$found" != "$version" ]; then
               echo "::error::tag $tag does not match version $found; bump the manifests first" >&2
@@ -110,10 +110,10 @@ jobs:
           exe=xmd
           "target/$TARGET/release/$exe" --version
           rm -rf dist stage && mkdir -p dist stage
-          # The binary sits at the archive root, next to the README and docs/ (and
+          # The binary sits at the archive root, next to the README and book/ (and
           # the LICENSE once the repository has one).
-          cp "target/$TARGET/release/$exe" README.md stage/ && cp -r docs stage/
-          files="$exe README.md docs"
+          cp "target/$TARGET/release/$exe" README.md stage/ && cp -r book stage/
+          files="$exe README.md book"
           if [ -f LICENSE ]; then cp LICENSE stage/; files="$files LICENSE"; fi
           name="xmd-$VERSION-$TARGET.tar.gz"
           stable="xmd-$TARGET.tar.gz"
@@ -146,20 +146,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/ide/vscode/package-lock.json
+          cache-dependency-path: clients/ide/vscode/package-lock.json
       - name: Install extension dependencies
-        run: npm --prefix client/ide/vscode ci
+        run: npm --prefix clients/ide/vscode ci
       - name: Check extension sources
-        run: npm --prefix client/ide/vscode run check
+        run: npm --prefix clients/ide/vscode run check
       - name: Package
         shell: bash
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          npm --prefix client/ide/vscode run package
+          npm --prefix clients/ide/vscode run package
           mkdir -p dist
-          mv "client/ide/vscode/xmd-$VERSION.vsix" dist/
+          mv "clients/ide/vscode/xmd-$VERSION.vsix" dist/
           cp "dist/xmd-$VERSION.vsix" dist/xmd.vsix
           cd dist
           for f in *.vsix; do sha256sum "$f" > "$f.sha256"; done
@@ -186,9 +186,9 @@ jobs:
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: client/ide/zed
+          workspaces: clients/ide/zed
       - name: Build the extension
-        working-directory: client/ide/zed
+        working-directory: clients/ide/zed
         run: cargo build --release --target wasm32-wasip2
       - name: Package
         shell: bash
@@ -196,7 +196,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          cd client/ide/zed
+          cd clients/ide/zed
           cp target/wasm32-wasip2/release/xmd_zed_extension.wasm extension.wasm
           mkdir -p dist
           tar -czf "dist/xmd-zed-$VERSION.tar.gz" extension.toml extension.wasm languages
@@ -207,7 +207,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: xmd-zed
-          path: client/ide/zed/dist/*
+          path: clients/ide/zed/dist/*
           if-no-files-found: error
           retention-days: 3
 

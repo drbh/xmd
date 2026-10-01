@@ -37,7 +37,7 @@ is this page's notes with every inline value, as the tests see them
 the same ideas go further: more task attributes (`@estimate`, `@after`,
 `@every`, `@tag`), appointments with `@at`, tables with calculated cells,
 plans and goal seek, itineraries, links and files, and values from other
-notes. [the examples](../lang/examples) are one short note per feature,
+notes. [the examples](../examples) are one short note per feature,
 each one opens in the browser with nothing to install, and
 [the reference](README.md#reference) lists every function and attribute,
 generated from the code. completion and signature help describe each one

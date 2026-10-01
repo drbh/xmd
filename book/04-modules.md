@@ -20,13 +20,13 @@ or `provider` (fetches what `cached(kind, key)` asks for: rates, quotes,
 forecasts, or a kind of your own). a module with a stdlib id replaces it
 
 one library needs no `import`: the exports of `prelude`
-([lang/stdlib/prelude.xmd](../lang/stdlib/prelude.xmd)) are names in every
+([stdlib/prelude.xmd](../stdlib/prelude.xmd)) are names in every
 note and module, which is where `sparkline`, `total`, `effort`, `rate`,
 `to`, `quote` and `forecast` come from. a note's own names come first, so a note that defines `total` reads
 its own
 
-try one: `cp -r lang/examples/personal/xmd ~/.config/` puts a word count
+try one: `cp -r examples/personal/xmd ~/.config/` puts a word count
 after every note's title, then restart the language server. more in
-`lang/examples/modules` and `lang/stdlib`
+`examples/modules` and `stdlib`
 
 next: [5. put a note on your own page](05-embed.md)

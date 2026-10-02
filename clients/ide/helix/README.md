@@ -4,11 +4,12 @@ xmd for helix. needs `xmd` on your PATH, see the
 [install](../../../README.md) in the main readme
 
 ```bash
-mkdir -p ~/.config/helix/runtime/queries/xmd && \
-  curl -fsSL https://raw.githubusercontent.com/drbh/xmd/main/clients/ide/helix/languages.toml \
-    >> ~/.config/helix/languages.toml && \
-  for f in highlights injections; do \
-    curl -fsSL https://raw.githubusercontent.com/drbh/xmd/main/clients/ide/helix/runtime/queries/xmd/$f.scm \
-      -o ~/.config/helix/runtime/queries/xmd/$f.scm; \
-  done
+mkdir -p xmd-helix && \
+  curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-helix.tar.gz | \
+  tar -xz -C xmd-helix && \
+  mkdir -p ~/.config/helix && \
+  cp -R xmd-helix/runtime ~/.config/helix/ && \
+  cat xmd-helix/languages.toml >> ~/.config/helix/languages.toml
 ```
+
+to update, copy `runtime` again; `languages.toml` only needs appending once

@@ -103,7 +103,7 @@ jobs:
           retention-days: 7
 
   ide:
-    name: VS Code extension
+    name: VS Code extension and installer
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -119,6 +119,9 @@ jobs:
       # a display; it is not run here. `check` syntax-checks the extension only.
       - name: Check extension sources
         run: npm --prefix clients/ide/vscode run check
+      # The runner image ships shellcheck; install.sh must stay plain POSIX sh.
+      - name: Check install.sh
+        run: shellcheck --shell=sh install.sh
 
   deploy:
     # The hosted docs app at xmd.dholtz.com is rebuilt from every

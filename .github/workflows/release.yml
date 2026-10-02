@@ -1,8 +1,8 @@
 name: Release
 
 # Pushing a tag `vX.Y.Z` builds `xmd` for every supported platform, packages
-# the VS Code and Zed extensions, and publishes all of it as a GitHub Release
-# together with the editor configs. `workflow_dispatch` re-runs the same
+# the VS Code and Zed extensions and the Neovim and Helix configs, and
+# publishes all of it as a GitHub Release together with install.sh. `workflow_dispatch` re-runs the same
 # pipeline for an existing tag, so a release can be repaired or the pipeline
 # exercised without cutting a new version.
 #
@@ -11,7 +11,8 @@ name: Release
 # `releases/latest/download/<name>` can serve, which is what the editor
 # extensions fetch. The binary archive gets a third name spelled the way
 # `uname -s` and `uname -m` print the platform, so the one-line install in
-# the README can build its URL without an install script.
+# install.sh (and the manual one-liner in the README) can build its URL from
+# `uname` alone.
 
 on:
   push:
@@ -227,6 +228,22 @@ jobs:
           pattern: xmd-*
           path: assets
           merge-multiple: true
+      # The editor configs and the installer are plain files; they ship from
+      # the tagged checkout so they always match the binary they go with.
+      - name: Package the editor configs and the installer
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          tar -C clients/ide/neovim -czf "assets/xmd-neovim-$VERSION.tar.gz" xmd.lua
+          tar -C clients/ide/helix -czf "assets/xmd-helix-$VERSION.tar.gz" languages.toml runtime
+          cd assets
+          for editor in neovim helix; do
+            cp "xmd-$editor-$VERSION.tar.gz" "xmd-$editor.tar.gz"
+          done
+          cp ../install.sh install.sh
+          for f in xmd-neovim*.tar.gz xmd-helix*.tar.gz install.sh; do sha256sum "$f" > "$f.sha256"; done
       - name: Assemble the assets
         shell: bash
         run: |

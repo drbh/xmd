@@ -7,7 +7,7 @@ const { promisify } = require("node:util");
 const path = require("node:path");
 
 const REPO = "drbh/xmd";
-const INSTALL_HINT = "mkdir -p ~/.local/bin && curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | tar -xzC ~/.local/bin xmd";
+const INSTALL_HINT = "curl -fsSL https://github.com/drbh/xmd/releases/latest/download/install.sh | sh";
 const CONSENT_KEY = "xmd.downloadConsent";
 
 let client;

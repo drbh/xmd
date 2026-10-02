@@ -8,6 +8,16 @@
 cli and language server (mac and linux):
 
 ```bash
+curl -fsSL https://github.com/drbh/xmd/releases/latest/download/install.sh | sh
+```
+
+[install.sh](install.sh) downloads the release archive for your machine,
+checks its sha256 and copies `xmd` into `~/.local/bin`. it uses no sudo and
+edits no shell profile; if `~/.local/bin` is not on your PATH it prints the
+line to add. run it again to update; `rm ~/.local/bin/xmd` uninstalls. the
+same thing by hand:
+
+```bash
 mkdir -p ~/.local/bin && \
   curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-$(uname -s)-$(uname -m).tar.gz | \
   tar -xzC ~/.local/bin xmd

@@ -153,7 +153,7 @@ export function uriOf(doc, folders = []) {
 }
 
 // Appearance preferences are per browser and never block editing when unavailable.
-const DEFAULT_PREFS = { theme: "light", zoom: 100, outline: false, pageless: false, wordCount: false, console: false, consoleHeight: 260 };
+const DEFAULT_PREFS = { theme: "system", zoom: 100, outline: false, pageless: false, wordCount: false, console: false, consoleHeight: 260 };
 export function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS) || "{}") }; } catch { return { ...DEFAULT_PREFS }; }
 }

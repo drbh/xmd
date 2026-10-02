@@ -151,6 +151,14 @@ test("the contents open from the top bar: beside the text on wide screens, over 
   await expect(sidebar).toBeHidden();
 });
 
+test("the app follows the system's theme until one is chosen", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/docs/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
 test("the book and the app share one theme, and each links to the other", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/book/reference/functions.html");

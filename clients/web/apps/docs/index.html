@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#232528" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="XMD Docs">
@@ -12,6 +13,14 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
+  <!-- The saved theme, or else the system's, before the first paint (App.svelte keeps it after). -->
+  <script>{
+    let theme;
+    try { theme = JSON.parse(localStorage.getItem("xmd.docs.prefs.v1") || "{}").theme; } catch {}
+    if (theme !== "light" && theme !== "dark") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle("xmd-light", theme === "light");
+  }</script>
   <script type="importmap">{"imports":{"@xmd/web":"../lib/src/index.js","@xmd/web/contenteditable":"../lib/adapters/contenteditable.js"}}</script>
 </head>
 <body>

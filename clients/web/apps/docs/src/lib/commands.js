@@ -53,6 +53,7 @@ export function createCommands(ctx) {
     { id: "zoomIn", menu: "View", label: "Zoom in", run: () => ctx.zoom(10) },
     { id: "zoomOut", menu: "View", label: "Zoom out", run: () => ctx.zoom(-10) },
     { id: "zoomReset", menu: "View", label: "Actual size", run: () => ctx.zoom(0), separator: true },
+    { id: "themeSystem", menu: "View", label: "System theme", checked: () => ctx.prefs().theme === "system", run: () => ctx.theme("system") },
     { id: "themeLight", menu: "View", label: "Light theme", checked: () => ctx.prefs().theme === "light", run: () => ctx.theme("light") },
     { id: "themeDark", menu: "View", label: "Dark theme", checked: () => ctx.prefs().theme === "dark", run: () => ctx.theme("dark"), separator: true },
     { id: "fullscreen", menu: "View", label: "Full screen", run: ctx.fullscreen },

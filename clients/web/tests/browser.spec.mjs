@@ -141,6 +141,13 @@ test("the document app writes like a document editor: typing, formatting, find, 
   await page.locator(".menubar > .menu > button", { hasText: "View" }).click();
   await page.locator(".dropdown [role=menuitemcheckbox]", { hasText: "Light theme" }).click();
   await expect(page.locator("html")).toHaveClass(/xmd-light/);
+  // Back to the system's, which follows it as it changes.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.locator(".menubar > .menu > button", { hasText: "View" }).click();
+  await page.locator(".dropdown [role=menuitemcheckbox]", { hasText: "System theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   expect(errors).toEqual([]);
 });
 

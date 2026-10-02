@@ -27,7 +27,7 @@ test("every chapter's notes are live and render what the native tests recorded",
   for (const chapter of (await readBook(book)).filter(p => p.chapter)) {
     const blocks = blocksOf(chapter);
     if (!blocks.length) continue;
-    await page.goto(`/book/${chapter.page}?now=${encodeURIComponent(NOW)}`);
+    await page.goto(`/${chapter.page}?now=${encodeURIComponent(NOW)}`);
     await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
     await expect(page.locator(".xmd-block .xmd-live")).toHaveCount(blocks.length);
     const expected = notes(await readFile(new URL(`snapshots/${chapter.path.replace(/\.md$/, ".txt")}`, book), "utf8"));
@@ -49,7 +49,7 @@ test("every chapter's notes are live and render what the native tests recorded",
 });
 
 test("a book example is a real editor, and Reset puts it back", async ({ page }) => {
-  await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+  await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
   const weekend = page.locator('.xmd-block[data-file="weekend.x.md"]');
   await expect(weekend).toContainText("= $1,324");
@@ -76,7 +76,7 @@ test("the reference pages load without the engine", async ({ page }) => {
 test("code lens chips sit at the end of their lines, on a phone too", async ({ page }) => {
   for (const width of [1100, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+    await page.goto(`/?now=${encodeURIComponent(NOW)}`);
     await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
     // The editor-features block offers a lens on each of its tasks, and its
     // lines are short enough for every chip to sit after its line.
@@ -92,7 +92,7 @@ test("code lens chips sit at the end of their lines, on a phone too", async ({ p
 });
 
 test("a block's off= turns highlight, results and controls off on the page", async ({ page }) => {
-  await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+  await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
   const [plain, colored, full] = ["01-blog-1.x.md", "01-blog-2.x.md", "01-blog-3.x.md"].map(file => page.locator(`.xmd-block[data-file="${file}"]`));
   const money = block => block.locator(".t-xmdMoney").evaluate(span => [getComputedStyle(span).color, getComputedStyle(span.closest("pre")).color]);
@@ -109,7 +109,7 @@ test("a block's off= turns highlight, results and controls off on the page", asy
 });
 
 test("a module block marked active=chapter works on every note on its page", async ({ page }) => {
-  await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+  await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
   const spotted = page.locator('.xmd-block[data-file="spotted.x.md"]');
   await expect(spotted.locator(".inlay")).toHaveText([/Ardea herodias/, /Falco sparverius/, /Troglodytes aedon/]);
@@ -119,12 +119,18 @@ test("a module block marked active=chapter works on every note on its page", asy
   await expect(spotted.locator(".inlay").first()).toHaveText(/great blue heron/);
 });
 
-test("the sidebar sits beside the text on wide screens, and gives way to a top bar on phones", async ({ page }) => {
+test("the contents open from the top bar: beside the text on wide screens, over it on phones", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/book/reference/collections.html");
-  const sidebar = page.locator(".sidebar");
+  const sidebar = page.locator(".sidebar"), toggle = page.locator(".topbar .toggle");
+  await expect(page.locator(".topbar")).toBeVisible();
+  await expect(page.locator('.topbar a[href="../../docs/"]')).toBeVisible();
+  await expect(page.locator('.topbar a[href="https://github.com/drbh/xmd"]')).toBeVisible();
+  // Closed until asked for, then beside the text.
+  await expect(sidebar).toBeHidden();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(sidebar).toBeVisible();
-  await expect(page.locator(".topbar")).toBeHidden();
   const edge = await sidebar.evaluate(el => el.getBoundingClientRect().right);
   const text = await page.locator("main h1").evaluate(el => el.getBoundingClientRect().left);
   expect(text).toBeGreaterThan(edge);
@@ -132,14 +138,21 @@ test("the sidebar sits beside the text on wide screens, and gives way to a top b
   // Scrolling to a section marks it in the contents.
   await page.evaluate(() => document.querySelector("#tasks-and-time").scrollIntoView());
   await expect(sidebar.locator("a.here")).toHaveText("tasks and time");
+  // The choice holds on the next page.
+  await page.goto("/book/reference/functions.html");
+  await expect(sidebar).toBeVisible();
 
+  // A phone starts closed, and following a link puts the contents away.
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(sidebar).toBeHidden();
-  await expect(page.locator(".topbar")).toBeVisible();
+  await toggle.click();
+  await expect(sidebar).toBeVisible();
+  await sidebar.locator("ol ol a").first().click();
+  await expect(sidebar).toBeHidden();
 });
 
 test("a terminal prints what xmd printed, and runs what a reader types", async ({ page }) => {
-  await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+  await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
   // Each command's output, as the native book test recorded it.
   const snapshot = await readFile(new URL("snapshots/01-blog.txt", book), "utf8");
@@ -175,7 +188,7 @@ test("the app's service worker pins only the app to its build, never the book", 
     }
   });
   // The book takes the deployed engine, so its terminal still runs.
-  await page.goto(`/book/blog.html?now=${encodeURIComponent(NOW)}`);
+  await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });
   const terminal = page.locator('.xmd-terminal[data-file="weekend.x.md"]');
   await terminal.locator("input").fill("each");

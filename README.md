@@ -9,7 +9,7 @@ markdown notes that know what they say: money, dates, durations, tasks and
 tables become live values in the editor you already use. a note stays a
 plain `.x.md` file that reads fine anywhere without xmd
 
-**start with [why xmd exists](https://xmd.dholtz.com/book/blog)**
+**start with [why xmd exists](https://xmd.dholtz.com)**
 ([on github](book/01-blog.md)). it walks through the whole tool one live
 note at a time and links to everything else; this readme only covers
 installing

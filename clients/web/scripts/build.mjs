@@ -19,17 +19,19 @@ await writeFile(new URL("_headers", dist), [
   "/docs/assets/*\n  Cache-Control: public, max-age=31536000, immutable",
   "/docs/live-*\n  Cache-Control: public, max-age=31536000, immutable",
 ].join("\n") + "\n");
-// The site root opens the book's walk through xmd; the document app is at docs/.
-await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=book/blog.html"><title>xmd</title><a href="book/blog.html">Why xmd exists</a>\n');
+// The walk through xmd used to live at book/blog; links made then still work.
+await writeFile(new URL("_redirects", dist), "/book/blog / 301\n/book/blog.html / 301\n");
 // The embedding example: a plain page that loads the library like any other site would.
 await mkdir(new URL("embed/", dist), { recursive: true });
 await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));
 // The examples, fetched one at a time when a #/example/<name> link opens them.
 const { writeExamples } = await import("./lib/examples.mjs");
 await writeExamples(new URL("../../examples/", root), new URL("examples/", dist));
-// The book: static pages from /book, each ```xmd block a live editor.
+// The book: static pages from /book, each ```xmd block a live editor. Its
+// walk through xmd is the site root; the rest is under book/, and the
+// document app is at docs/.
 const { writeBook } = await import("./lib/book.mjs");
-await writeBook(new URL("../../book/", root), new URL("book/", dist), new URL("book/", root), new URL("../../", root));
+await writeBook(new URL("../../book/", root), dist, new URL("book/", root), new URL("../../", root));
 execFileSync("npm", ["run", "build", "--workspace", "xmd-docs"], { cwd: fileURLToPath(root), stdio: "inherit" });
 const docsIndex = new URL("docs/index.html", dist);
 await writeFile(docsIndex, (await readFile(docsIndex, "utf8")).replace("<head>", '<head><link rel="stylesheet" href="../lib/theme/style.css"><link rel="stylesheet" href="../lib/theme/fonts.css">'));

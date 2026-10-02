@@ -12,20 +12,32 @@
 // its page, as hosts/cli/tests/book.rs does for its chapter. A word with `=` is
 // an option, never the file.
 //
-// A relative link to another page becomes that page's .html; a link to
-// anything else in the repository goes to GitHub. A link to nothing fails
-// the build.
+// The book is the site's front page: why xmd exists (HOME) is built as the
+// site root, and every other page under book/. A relative link to another
+// page becomes that page's address; a link to anything else in the
+// repository goes to GitHub. A link to nothing fails the build.
 import { cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const GITHUB = "https://github.com/drbh/xmd/blob/main/";
+/** The page built as the site root. */
+export const HOME = "01-blog.md";
 
-/** A page's address inside dist/book: `01-language.md` is `language.html`. */
+/** A page's address from the site root: HOME is `index.html`, and
+ * `02-language.md` is `book/language.html`. */
 export const pageOf = path => {
+  if (path === HOME) return "index.html";
   const dir = posix.dirname(path), name = posix.basename(path);
   const stem = name === "README.md" ? "index" : name.replace(/^\d+-/, "").replace(/\.md$/, "");
-  return dir === "." ? `${stem}.html` : `${dir}/${stem}.html`;
+  return dir === "." ? `book/${stem}.html` : `book/${dir}/${stem}.html`;
+};
+
+/** The relative href from page `from` to the site address `to`; an index is
+ * its directory, so the root is `./` or `../`. */
+const hrefTo = (from, to) => {
+  const href = posix.relative(posix.dirname(from), to);
+  return to.endsWith("index.html") && posix.basename(href) === "index.html" ? (posix.dirname(href) === "." ? "./" : `${posix.dirname(href)}/`) : href;
 };
 
 /** The book's pages, in reading order: the index, the chapters, the reference. */
@@ -163,8 +175,7 @@ async function resolveLink(href, path, pages, repo) {
   const inRepo = posix.normalize(posix.join("book", posix.dirname(path), target));
   const page = pages.find(p => posix.join("book", p.path) === inRepo);
   if (page) {
-    const from = posix.dirname(pageOf(path));
-    return posix.relative(from, page.page) + (hash ? `#${hash}` : "");
+    return hrefTo(pageOf(path), page.page) + (hash ? `#${hash}` : "");
   }
   const exists = await stat(join(fileURLToPath(repo), inRepo)).catch(() => null);
   if (!exists) throw new Error(`book/${path} links to ${href}, which does not exist`);
@@ -173,13 +184,13 @@ async function resolveLink(href, path, pages, repo) {
 
 /** The contents in the margin: the book's index, its chapters, then the
  * reference, with the sections of the page being read under it. */
-function contents(page, pages, html, up) {
+function contents(page, pages, html) {
   const sections = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)]
     .map(([, id, text]) => `<li><a href="#${id}">${text.replace(/<[^>]+>/g, "")}</a></li>`);
   const item = p => {
     const title = escape(p.path === "README.md" ? "the book" : p.title.replace(/^\d+\.\s*/, ""));
     const here = p === page;
-    return `<li><a href="${up}${p.page}"${here ? ' aria-current="page"' : ""}>${title}</a>${
+    return `<li><a href="${hrefTo(page.page, p.page)}"${here ? ' aria-current="page"' : ""}>${title}</a>${
       here && sections.length && p.path !== "README.md" ? `<ol>${sections.join("")}</ol>` : ""}</li>`;
   };
   const reference = pages.filter(p => p.path.startsWith("reference/"));
@@ -188,10 +199,35 @@ function contents(page, pages, html, up) {
     reference.map(item).join("")}</ol></nav>`;
 }
 
-/** Marks the section being read in the contents and gives each heading a
- * link to itself. Small enough to inline; pages without notes load no script
- * otherwise. */
+/** Opens and closes the contents, marks the section being read in them and
+ * gives each heading a link to itself. Small enough to inline; pages without
+ * notes load no script otherwise. On a wide screen the contents sit beside
+ * the text and the choice is remembered (the head script restores it before
+ * the first paint); on a phone they cover the page, so following a link,
+ * tapping outside or Escape puts them away. */
 const pageScript = `
+const root = document.documentElement, toggle = document.querySelector(".topbar .toggle");
+const sidebar = document.querySelector(".sidebar"), wide = matchMedia("(min-width: 1024px)");
+const isOpen = () => root.classList.contains("contents-open");
+const setOpen = (open, remember) => {
+  root.classList.toggle("contents-open", open);
+  toggle.setAttribute("aria-expanded", String(open));
+  if (remember && wide.matches) try { localStorage.setItem("xmd-book-contents", open ? "open" : "closed"); } catch {}
+};
+setOpen(isOpen(), false);
+toggle.addEventListener("click", () => setOpen(!isOpen(), true));
+wide.addEventListener("change", () => {
+  let saved = null;
+  try { saved = localStorage.getItem("xmd-book-contents"); } catch {}
+  setOpen(wide.matches && saved === "open", false);
+});
+document.addEventListener("click", event => {
+  if (wide.matches || !isOpen() || event.target.closest(".toggle")) return;
+  if (!sidebar.contains(event.target) || event.target.closest("a")) setOpen(false, false);
+});
+addEventListener("keydown", event => {
+  if (event.key === "Escape" && !wide.matches && isOpen()) { setOpen(false, false); toggle.focus(); }
+});
 for (const h of document.querySelectorAll("main :is(h2, h3)[id]")) {
   const a = document.createElement("a");
   a.className = "anchor"; a.href = "#" + h.id; a.textContent = "#";
@@ -219,7 +255,14 @@ function describe(html) {
   return text.length > 160 ? text.slice(0, 157).replace(/\s+\S*$/, "") + "…" : text;
 }
 
+const MENU = '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+// The app's own icon, a page with its corner folded, drawn in one color.
+const APP_MARK = '<svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M9.5 1.5v3h3"/><path d="M6 8.5h4M6 11h4"/></g></svg>';
+// GitHub's mark (Octicons, MIT).
+const GITHUB_MARK = '<svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>';
+
 function template(page, pages, html, hasBlocks) {
+  // The way back to the site root, where lib/, docs/ and book/ sit.
   const up = "../".repeat(page.page.split("/").length - 1);
   const title = page.path === "README.md" ? "the xmd book" : `${page.title.replace(/^\d+\.\s*/, "")} · xmd`;
   return `<!doctype html>
@@ -229,25 +272,30 @@ function template(page, pages, html, hasBlocks) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)}</title>
 <meta name="description" content="${escape(describe(html))}">
-<link rel="icon" href="${up}../docs/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="${up}../lib/theme/style.css">
-<link rel="stylesheet" href="${up}../lib/theme/fonts.css">
-<link rel="stylesheet" href="${up}book.css">
-<script>try { if (matchMedia("(prefers-color-scheme: light)").matches) document.documentElement.classList.add("xmd-light"); } catch {}</script>
+<link rel="icon" href="${up}docs/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="${up}lib/theme/style.css">
+<link rel="stylesheet" href="${up}lib/theme/fonts.css">
+<link rel="stylesheet" href="${up}book/book.css">
+<script>try {
+  if (matchMedia("(prefers-color-scheme: light)").matches) document.documentElement.classList.add("xmd-light");
+  if (matchMedia("(min-width: 1024px)").matches && localStorage.getItem("xmd-book-contents") === "open") document.documentElement.classList.add("contents-open");
+} catch {}</script>
 </head>
 <body>
-<aside class="sidebar">
-<a class="brand" href="${up}index.html">xmd <span>book</span></a>
-${contents(page, pages, html, up)}
-<a class="app" href="${up}../docs/">open the app →</a>
+<header class="topbar">
+<button class="toggle" type="button" aria-label="contents" aria-controls="contents" aria-expanded="false">${MENU}</button>
+<a class="brand" href="${up || "./"}">xmd</a>
+<nav class="links" aria-label="site"><a href="${up}docs/" aria-label="open the app" title="open the app">${APP_MARK}</a><a href="https://github.com/drbh/xmd" aria-label="xmd on GitHub" title="xmd on GitHub">${GITHUB_MARK}</a></nav>
+</header>
+<aside class="sidebar" id="contents">
+${contents(page, pages, html)}
 </aside>
-<header class="topbar"><a class="brand" href="${up}index.html">xmd <span>book</span></a><a href="${up}../docs/">open the app</a></header>
 <main>
 ${html}
 </main>
 <footer><a href="https://github.com/drbh/xmd">github</a><span>MIT license</span></footer>
 <script type="module">${pageScript}</script>
-${hasBlocks ? `<script type="module" src="${up}book.js"></script>\n` : ""}</body>
+${hasBlocks ? `<script type="module" src="${up}book/book.js"></script>\n` : ""}</body>
 </html>
 `;
 }
@@ -271,8 +319,10 @@ async function highlighted(page) {
   return out;
 }
 
-/** Build every page, files.json, and the page script and style into `target`. */
-export async function writeBook(source, target, shell, repo) {
+/** Build every page into the site at `site`, and files.json, the page script
+ * and the style into its book/. */
+export async function writeBook(source, site, shell, repo) {
+  const target = new URL("book/", site);
   const pages = await readBook(source);
   const files = {};
   for (const page of pages) {
@@ -289,7 +339,7 @@ export async function writeBook(source, target, shell, repo) {
     }
     const still = page.chapter ? new Map() : await highlighted(page);
     const html = toHtml(page.markdown, { link: href => links.get(href) ?? href, file: n => byFence.get(n), rendered: n => still.get(n) });
-    const out = new URL(page.page, target);
+    const out = new URL(page.page, site);
     await mkdir(new URL(".", out), { recursive: true });
     await writeFile(out, template(page, pages, html, blocks.length > 0));
   }

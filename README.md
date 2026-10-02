@@ -30,10 +30,10 @@ still show it as markdown
 
 ## book
 
-six short chapters, then a reference generated from the code. read it at
+a walk through the whole tool, then a reference. read it at
 [xmd.dholtz.com/book](https://xmd.dholtz.com/book/), where every example is
 a live note you can edit, or [here on github](book/README.md). start with
-[the language](book/01-language.md)
+[why xmd exists](book/01-blog.md)
 
 ## license
 

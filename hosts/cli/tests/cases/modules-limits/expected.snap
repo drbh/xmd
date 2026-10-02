@@ -96,6 +96,10 @@ exit 0
 }
 -- query [length(stops), length(days)]
 {
+  "lines": [
+    "1",
+    "1"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     1,

@@ -345,6 +345,10 @@ exit 0
 -- open bad.x.md
 -- query map(tasks, fn(r) => {title: r.title, errors: r.errors})
 {
+  "lines": [
+    "errors=[\"@due: Unknown name 'missing'\"]\ttitle=Broken",
+    "errors=[]\ttitle=Undated"
+  ],
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
     {
@@ -368,6 +372,9 @@ good := 41 + 1
 - [ ] Fixed @due(2026-09-17)
 -- query map(values, fn(r) => {name: r.name, display: r.display})
 {
+  "lines": [
+    "display=42\tname=good"
+  ],
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
     {
@@ -382,6 +389,9 @@ good := 41 + 1
 }
 -- query length(tasks)
 {
+  "lines": [
+    "2"
+  ],
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
     2

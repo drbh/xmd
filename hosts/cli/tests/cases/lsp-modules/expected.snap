@@ -200,6 +200,7 @@ extra := fn(value) => value + 1
 ]
 -- query values
 {
+  "lines": [],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [],
   "schemaVersion": 1,

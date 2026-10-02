@@ -15,7 +15,7 @@ pub use ::features::{
     RefreshReport, Request, RowActions, TOKEN_MODIFIERS, TOKEN_TYPES, WorkspaceSession, fragment,
     line_classes, semantic_tokens, today_markdown,
 };
-pub use ::records::{NoteFiles, Query, Records, display, lookups};
+pub use ::records::{NoteFiles, Query, Records, display, display_row, lookups};
 pub mod commands {
     pub use ::features::{Action, Capabilities, PreparedAction};
 }

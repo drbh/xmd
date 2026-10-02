@@ -1,6 +1,9 @@
 The hooks, records and `step` loops a module meets: what the host hands each
 hook and each step and what must come back. `core/modules/src/hooks.rs` reads
-this file and `book/reference/contract.md` is generated from it.
+this file, and `hosts/cli/tests/reference.rs` lays it out in
+`book/reference/writing-modules.md` as `kinds.md` says. The records a query
+also reads, like `recognized`, are described with the collections in
+`core/values/data/collections.md`.
 
 Each `#` part holds `##` entries. An entry is its heading, one line of prose
 and `- ` lines, one per field or parameter, each `name: shape and meaning`; a
@@ -76,24 +79,6 @@ One entry of a feature module's `recognizes` list: a pattern the host runs over 
 - title?: Boolean: whether it reads a line only up to where its title ends, at its first attribute or a heading's or checklist item's trailing `:name`, so those paint as themselves. False when absent
 - record?: Boolean: false when its matches only paint, and are no `recognized` records (a rule that only paints has no `under` or `until`). True when absent
 
-## recognized
-
-One match of a recognizer: a record of the `recognized` collection, which queries read for every module and a feature module that names it in `inputs` reads as `ctx.document.recognized`, for its own. Built when the note is parsed and kept with its other records. A note keeps at most 4096 matches.
-
-- kind: `recognized`
-- recognizer: Text: the recognizer's `name`
-- module: Text: the id of the module that declared it
-- title: Text: the matched text
-- text: Text: the matched text
-- line: Number: the zero-based line
-- range: the match's LSP range
-- anchor: the LSP position just past the match, where an inlay goes
-- groups: Record: each named group that took part, as `{text, range}`, with `term` (Text or Null) when the recognizer declares terms for it
-- parent: Number or Null: the line of the match it is `under`
-- end_line: Number: one past the last line it holds, the lines under it included
-- source: Record: `path`, `uri`, `line` (one-based) and `range`
-- errors: List: empty
-
 ## attribute
 
 One entry of a feature module's `attributes` record, under the key a note writes after `@`: an attribute the module owns, which no other active module has. The language owns none. Notes are parsed knowing it, so its value is painted, checked and completed as what it holds, and the host evaluates it in the note's scope, wherever it is live, into the `attributed` collection: the module reads values, never note code. A value that fails is an `attribute` error on it (a `dependency` error for dependencies, with the items a cycle walks). A module declares at most 16. The bundled `tasks` module declares a task's attributes this way, and `appointments` an appointment's `@at`.
@@ -132,42 +117,6 @@ A definition that calls a form, as its module's `define` hook is handed it: ever
 - rows: List of `{line, cells}`: each row of the table that has a cell for every column, with `cells` read as the form says, in column order. Empty for a form without a table
 - unknowns: List of Text: the names it solves for, first read first: the free names its note leaves undefined, or its own name
 - decisions: List: the decision cells (of a `name?` or `name#` column) the sums its expressions read walk over, each an unknown of its own, `{name, domain, table, column, row, label, document, source, line, range, anchor, width}`: `name` the unknown's (`gear.take[1]`), `domain` `choice` (yes or no) or `count` (a whole number), the table's and column's names, the row's index from 0, `label` the row's first cell, the cell's note's URI, its text as written, its line, its LSP range out to the pipes, the position past its text and how wide it is between the pipes' padding
-
-## checkbox
-
-A list item with a checkbox, a checklist item, as the language reads it: a record of the `checkboxes` collection, which queries read and a feature module that names it in `inputs` reads as `ctx.document.checkboxes`. A named item is a Boolean, whether it is done, and a named heading the checklist of the items under it; what else an item is, a task, the bundled `tasks` module builds from these and `attributed`.
-
-- kind: `checkbox`
-- line: Number: the zero-based line
-- title: Text: its text past the checkbox, up to its first attribute or trailing `:name`, trimmed
-- name: Text or Null: its trailing `:name`
-- name_range: the LSP range of its name, or null
-- mark: `open`, `in_progress` or `done`: what its checkbox says
-- done: Boolean: what its name evaluates to: checked, or every subitem done when it has some
-- parent: Number or Null: the line of the item it nests under, the nearest open one indented less, until a heading
-- children: List of Number: the lines of the items nested under it
-- indent: Number: its indentation in bytes
-- checkbox: the LSP range of its `[ ]`
-- range: the LSP range of the line's text, the blanks around it aside
-- attributes: Record: each attribute it writes, as written, by key
-- anchor: the LSP position at the line's end
-- source: Record: `path`, `uri`, `line` (one-based) and `range`
-- errors: List: empty
-
-## attributed
-
-A line that writes an attribute a module declares live there, tasks included: a record of the `attributed` collection, which queries read and a feature module that names it in `inputs` reads as `ctx.document.attributed`. Built with the note's other records, for the request's day.
-
-- kind: `attributed`
-- line: Number: the zero-based line
-- title: Text: the line's text from where it starts (past a list marker and any checkbox) up to its first attribute, trimmed
-- block: `item`, `prose` or `row`
-- task: Boolean: whether the line is a task
-- range: the LSP range of the line's text, the blanks around it aside
-- attributes: Record: each declared attribute the line writes, live there, by key (the last of a repeated key), as `{text, value, date, error, range, value_range}`: `text` as written, `value` evaluated as the declaration says (null when it fails), `date` its calendar day at the request's offset when it is a date or time, `error` why it failed or null, and the LSP ranges of the whole `@key(value)` and of the value
-- anchor: the LSP position at the line's end
-- source: Record: `path`, `uri`, `line` (one-based) and `range`
-- errors: List: empty
 
 ## action
 

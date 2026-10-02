@@ -5,7 +5,8 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pageOf, readBook, blocksOf, toHtml, writeBook } from "../scripts/lib/book.mjs";
+import { pageOf, readBook, blocksOf, infoOf, toHtml, writeBook } from "../scripts/lib/book.mjs";
+import { words } from "../book/terminal.js";
 
 const repo = new URL("../../../", import.meta.url);
 
@@ -21,6 +22,25 @@ test("a block's file is the one hosts/cli/tests/book.rs writes", () => {
     { fence: 1, file: "budget.x.md", source: "a := 1\n" },
     { fence: 3, file: "03-files-3.x.md", source: "b := 2\n" },
   ]);
+});
+
+test("a block can turn features off, and off= is never its file", () => {
+  assert.deepEqual(infoOf("xmd off=highlight,results"), { lang: "xmd", file: undefined, off: ["highlight", "results"], active: false });
+  assert.deepEqual(infoOf("xmd a.x.md off=controls"), { lang: "xmd", file: "a.x.md", off: ["controls"], active: false });
+  assert.throws(() => infoOf("xmd off=color"), /off=color/);
+  assert.equal(infoOf("xmd birds.xmd active=chapter").active, true);
+  assert.throws(() => infoOf("xmd a.xmd active=page"), /active=page/);
+  const page = { path: "07-x.md", markdown: "```xmd off=results\na := 1\n```\n" };
+  assert.equal(blocksOf(page)[0].file, "07-x-1.x.md");
+  assert.match(toHtml(page.markdown, { file: () => "f.x.md" }), /<div class="xmd-block" data-file="f\.x\.md" data-off="results">/);
+});
+
+test("an xmd fence with no live note is highlighted at build time, or plain code", () => {
+  const markdown = "```xmd\na := 1\n```\n\n```xmd\nb := 2\n```\n";
+  const html = toHtml(markdown, { rendered: n => n === 1 ? '<pre class="xmd">a</pre>' : undefined });
+  assert.match(html, /<div class="xmd-static"><pre class="xmd">a<\/pre><\/div>/);
+  assert.match(html, /<pre class="code"><code>b := 2<\/code><\/pre>/);
+  assert.doesNotMatch(html, /xmd-block/);
 });
 
 test("the markdown subset the book uses", () => {
@@ -85,4 +105,12 @@ test("every relative link in the repository's markdown leads somewhere", async (
     }
   }
   assert.deepEqual(broken, []);
+});
+
+test("a terminal splits a command as a shell does", () => {
+  assert.deepEqual(words("xmd weekend.x.md 'tasks | map(.title)' --json"), ["xmd", "weekend.x.md", "tasks | map(.title)", "--json"]);
+  assert.deepEqual(words(`xmd weekend.x.md 'each'   #=> $441.33`), ["xmd", "weekend.x.md", "each"]);
+  assert.deepEqual(words(`xmd a.x.md "say 'hi'"`), ["xmd", "a.x.md", "say 'hi'"]);
+  assert.deepEqual(words("xmd a.x.md 'tags | contains(\"#x\")'"), ["xmd", "a.x.md", 'tags | contains("#x")']);
+  assert.throws(() => words("xmd 'open"), /unclosed quote/);
 });

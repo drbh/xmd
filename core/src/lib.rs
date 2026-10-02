@@ -25,7 +25,7 @@ pub mod syntax {
 
 /// The contract with the standard library: every function native code calls
 /// in a bundled .xmd module, declared once and called through typed functions.
-/// `book/reference/contract.md` is generated from it.
+/// `book/reference/writing-modules.md` is generated from it.
 pub mod stdlib {
     pub use ::eval::stdlib::{CONTRACT, Presented, Role, modules, shown};
     pub mod format {

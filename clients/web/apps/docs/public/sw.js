@@ -63,5 +63,23 @@ self.addEventListener("fetch", event => {
     return;
   }
   // The build's files, cache first. Anything else (shared links, the sync API) is not part of a build.
-  if (precached.has(url.pathname)) event.respondWith((async () => (await caches.match(request, { cacheName: CACHE, ignoreVary: true })) || fetch(request))());
+  if (!precached.has(url.pathname)) return;
+  const cached = () => caches.match(request, { cacheName: CACHE, ignoreVary: true });
+  event.respondWith((async () => {
+    // Only the app is pinned to this worker's build. A page outside it, like
+    // the book, loads lib/ beside files of its own that no build holds, so it
+    // takes the network's, as does the engine worker it starts (`?fresh`);
+    // this build's copy is only for when the network is gone.
+    if (!(await forApp(event.clientId))) return fetch(request).catch(async () => (await cached()) || Response.error());
+    return (await cached()) || fetch(request);
+  })());
 });
+
+/** Whether a request comes from the app: one of its pages, or a worker none
+ * of the other pages marked `?fresh`. */
+async function forApp(id) {
+  const client = id && await self.clients.get(id);
+  if (!client) return true;
+  const at = new URL(client.url);
+  return client.type === "window" ? at.pathname.startsWith(shell.pathname) : !at.searchParams.has("fresh");
+}

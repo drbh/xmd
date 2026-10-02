@@ -1,9 +1,9 @@
 use chrono::{DateTime, FixedOffset, Local, NaiveDate, TimeZone};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lang::eval::Workspace;
-use lang::eval::engine::{Value, value_json};
+use lang::eval::engine::value_json;
 use native::WorkspaceFiles;
-use services::{Query, Request, display, severity_name};
+use services::{Query, Request, display_row, severity_name};
 use std::{
     ffi::OsString,
     io::{self, IsTerminal, Read, Write},
@@ -267,7 +267,7 @@ fn run_query(source: String, note: Option<Note>, options: QueryOutput) -> Result
                     serde_json::to_writer(&mut output, &value_json(row))?;
                     writeln!(output)?;
                 } else {
-                    writeln!(output, "{}", render(row))?;
+                    writeln!(output, "{}", display_row(row))?;
                 }
             }
         }
@@ -348,25 +348,4 @@ fn render_command(options: RenderOptions) -> Result<(), String> {
         return Err(format!("{errors} error(s) while rendering"));
     }
     Ok(())
-}
-fn render(value: &Value) -> String {
-    let Value::Record(fields) = value else {
-        return display(value);
-    };
-    fields
-        .iter()
-        .map(|(name, value)| {
-            let text = if name == "source"
-                && let Value::Record(source) = value
-                && let Some(Value::Text(path)) = source.get("path")
-                && let Some(line) = source.get("line")
-            {
-                format!("{path}:{}", display(line))
-            } else {
-                display(value)
-            };
-            format!("{name}={text}")
-        })
-        .collect::<Vec<_>>()
-        .join("\t")
 }

@@ -1,0 +1,9 @@
+// `xmd run ./notes.xmd` lists the notes in the folder it runs in.
+module := {api: 1, id: "notes", kind: "command"}
+
+// Ask for the folder's files first, then report the notes among them.
+step := fn(ctx) => if(
+  ctx.state == null,
+  {state: "listing", requests: [{kind: "list", path: "."}]},
+  {report: filter(get(ctx.results, 0).files, fn(f) => ends_with(f, ".x.md")), done: true}
+)

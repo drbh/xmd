@@ -11,6 +11,12 @@ $9:price
 }
 -- query map(values, fn(r) => {name: r.name, value: r.value, day:today(), clock:now()})
 {
+  "lines": [
+    "clock=2026-09-16 14:00:00 -04:00\tday=2026-09-16\tname=answer\tvalue=null",
+    "clock=2026-09-16 14:00:00 -04:00\tday=2026-09-16\tname=price\tvalue=$9",
+    "clock=2026-09-16 14:00:00 -04:00\tday=2026-09-16\tname=saved\tvalue=1",
+    "clock=2026-09-16 14:00:00 -04:00\tday=2026-09-16\tname=rate\tvalue=3"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     {
@@ -73,6 +79,10 @@ $9:price
 }
 -- query map(sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path), fn(r) => r.title)
 {
+  "lines": [
+    "Unsaved",
+    "Other"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     "Unsaved",
@@ -94,6 +104,9 @@ $12:price
 }
 -- query sort_by(sort_by(filter(tasks, fn(r) => r.leaf && !r.done), fn(r) => r.source.line), fn(r) => r.source.path)
 {
+  "lines": [
+    "anchor={\"character\":11,\"line\":1}\tat=null\tat_date=null\tattributes={}\tblocked_by=[]\tblocked_error=null\tblockers=[]\tchecked=false\tchildren=[]\tdone=false\tdue=null\terrors=[]\testimate=null\tin_progress=false\tkind=task\tleaf=true\tline=1\tname=null\tparent=null\tschedule=[]\tscheduled=null\tsource=<root>/two.x.md:2\ttags=[]\ttimer=null\ttitle=Other"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     {
@@ -170,6 +183,9 @@ answer := import("./two.x.md").rate * 2
 }
 -- query map(filter(ast, fn(n) => n.kind == "definition"), fn(n) => n.name)
 {
+  "lines": [
+    "answer"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     "answer"
@@ -181,6 +197,9 @@ answer := import("./two.x.md").rate * 2
 }
 -- query map(tasks, fn(r) => r.title)
 {
+  "lines": [
+    "Local"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     "Local"
@@ -192,6 +211,9 @@ answer := import("./two.x.md").rate * 2
 }
 -- query length(tasks)
 {
+  "lines": [
+    "3"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     3
@@ -203,6 +225,9 @@ answer := import("./two.x.md").rate * 2
 }
 -- query map(filter(graph.nodes, fn(r) => r.external), fn(r) => r.name)
 {
+  "lines": [
+    "rate"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     "rate"
@@ -259,6 +284,9 @@ answer := src.amount
 }
 -- query answer
 {
+  "lines": [
+    "42"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     42
@@ -279,6 +307,9 @@ amount := 77
 }
 -- query answer
 {
+  "lines": [
+    "77"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     77
@@ -292,6 +323,9 @@ amount := 77
 -- close .hidden/values.x.md
 -- query answer
 {
+  "lines": [
+    "42"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     42

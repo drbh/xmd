@@ -19,8 +19,8 @@ await writeFile(new URL("_headers", dist), [
   "/docs/assets/*\n  Cache-Control: public, max-age=31536000, immutable",
   "/docs/live-*\n  Cache-Control: public, max-age=31536000, immutable",
 ].join("\n") + "\n");
-// The site root opens the document app.
-await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><title>XMD Docs</title><a href="docs/">Open XMD Docs</a>\n');
+// The site root opens the book's walk through xmd; the document app is at docs/.
+await writeFile(new URL("index.html", dist), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=book/blog.html"><title>xmd</title><a href="book/blog.html">Why xmd exists</a>\n');
 // The embedding example: a plain page that loads the library like any other site would.
 await mkdir(new URL("embed/", dist), { recursive: true });
 await cp(new URL("embed/index.html", root), new URL("embed/index.html", dist));

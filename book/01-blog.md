@@ -407,8 +407,8 @@ and more than fits here:
   places included
 - lookups for weather forecasts, currency rates and rss feeds, each a
   [provider](../stdlib/providers)
-- a hosted app at [xmd.dholtz.com](https://xmd.dholtz.com) for when you
-  are away from your editor
+- a hosted app at [xmd.dholtz.com/docs](https://xmd.dholtz.com/docs/) for
+  when you are away from your editor
 
 [the examples](../examples) have one short note for each
 
@@ -429,6 +429,7 @@ that compute, then a language you can query and extend from inside your
 own notes. the file is still markdown the whole way. from here,
 [the reference](README.md#reference) has every function, library,
 collection and kind of module, and [the examples](../examples) have a
-note for each feature
+note for each feature. to try it in your own editor,
+[install xmd](https://github.com/drbh/xmd#install)
 
 back to [the book](README.md)

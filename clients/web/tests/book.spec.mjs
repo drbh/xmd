@@ -177,6 +177,13 @@ test("the book and the app share one theme, and each links to the other", async 
   await expect(root).toHaveAttribute("data-theme", "light");
 });
 
+test("a link to an example opens it, live, in the app", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('main a[href="docs/#/example/charts"]').first().click();
+  await expect(page).toHaveURL(/\/docs\/#\/example\/charts$/);
+  await expect(page.locator(".xmd").first()).toContainText("Chart");
+});
+
 test("a terminal prints what xmd printed, and runs what a reader types", async ({ page }) => {
   await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });

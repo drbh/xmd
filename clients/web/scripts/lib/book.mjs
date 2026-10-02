@@ -14,13 +14,15 @@
 //
 // The book is the site's front page: why xmd exists (HOME) is built as the
 // site root, and every other page under book/. A relative link to another
-// page becomes that page's address; a link to anything else in the
-// repository goes to GitHub. A link to nothing fails the build.
+// page becomes that page's address, and one to an example opens it, live, in
+// the docs app; a link to anything else in the repository goes to GitHub. A
+// link to nothing fails the build.
 import { cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
+import { nameOf } from "./examples.mjs";
 
-const GITHUB = "https://github.com/drbh/xmd/blob/main/";
+const GITHUB = "https://github.com/drbh/xmd/";
 // The docs app's saved preferences (apps/docs/src/lib/store.js). The book
 // shares their theme, so a choice made in either is the other's too.
 const PREFS = "xmd.docs.prefs.v1";
@@ -182,7 +184,10 @@ async function resolveLink(href, path, pages, repo) {
   }
   const exists = await stat(join(fileURLToPath(repo), inRepo)).catch(() => null);
   if (!exists) throw new Error(`book/${path} links to ${href}, which does not exist`);
-  return GITHUB + inRepo + (hash ? `#${hash}` : "");
+  if (/^examples\/[^/]+\.x\.md$/.test(inRepo)) {
+    return `${posix.relative(posix.dirname(pageOf(path)), "docs") || "."}/#/example/${nameOf(posix.basename(inRepo))}`;
+  }
+  return `${GITHUB}${exists.isDirectory() ? "tree" : "blob"}/main/${inRepo}` + (hash ? `#${hash}` : "");
 }
 
 /** The contents in the margin: the book's index, its chapters, then the

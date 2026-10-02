@@ -681,6 +681,9 @@
 {
   "ok": true,
   "result": {
+    "lines": [
+      "name=total\tsource=/workspace/trip.x.md:5\tvalue=$10"
+    ],
     "now": "2026-09-16T14:00:00-04:00",
     "rows": [
       {
@@ -719,6 +722,9 @@
 {
   "ok": true,
   "result": {
+    "lines": [
+      "2"
+    ],
     "now": "2026-09-16T14:00:00-04:00",
     "rows": [
       2
@@ -735,6 +741,12 @@
 {
   "ok": true,
   "result": {
+    "lines": [
+      "[cash] := src.budget - src.spent",
+      "src := import(\"./values.x.md\")",
+      "$5:price",
+      "total := price * 2"
+    ],
     "now": "2026-09-16T14:00:00-04:00",
     "rows": [
       "[cash] := src.budget - src.spent",
@@ -754,6 +766,9 @@
 {
   "ok": true,
   "result": {
+    "lines": [
+      "Open"
+    ],
     "now": "2026-09-16T14:00:00-04:00",
     "rows": [
       "Open"
@@ -775,6 +790,9 @@
 {
   "ok": true,
   "result": {
+    "lines": [
+      "name=total\tsource=/workspace/trip.x.md:5\tvalue=$18"
+    ],
     "now": "2026-09-16T14:00:00-04:00",
     "rows": [
       {

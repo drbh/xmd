@@ -90,3 +90,27 @@ pub fn display(value: &Value) -> String {
         scalar => scalar.display(),
     }
 }
+/// A query's row as one line of `xmd`'s text output: a record as tab-separated
+/// `field=value` pairs, its `source` as `path:line`, and anything else as
+/// [`display`] shows it. The browser's terminal prints the same lines.
+pub fn display_row(value: &Value) -> String {
+    let Value::Record(fields) = value else {
+        return display(value);
+    };
+    fields
+        .iter()
+        .map(|(name, value)| {
+            let text = if name == "source"
+                && let Value::Record(source) = value
+                && let Some(Value::Text(path)) = source.get("path")
+                && let Some(line) = source.get("line")
+            {
+                format!("{path}:{}", display(line))
+            } else {
+                display(value)
+            };
+            format!("{name}={text}")
+        })
+        .collect::<Vec<_>>()
+        .join("\t")
+}

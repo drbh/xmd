@@ -1,4 +1,4 @@
-# Documentation links
+// Label and explain links to docs.example.
 
 module := {api: 1, id: "documentation", kind: "link", hosts: ["docs.example"]}
 inlay := fn(ctx) => "docs · " + ctx.url.path

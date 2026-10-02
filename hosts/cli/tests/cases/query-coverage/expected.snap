@@ -932,6 +932,12 @@ exit 0
 }
 -- query map(sections, fn(r) => {title: r.title, level: r.level})
 {
+  "lines": [
+    "level=1\ttitle=Trip",
+    "level=2\ttitle=Friday",
+    "level=3\ttitle=Notes",
+    "level=2\ttitle=Saturday"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     {
@@ -958,6 +964,10 @@ exit 0
 }
 -- query sort_by(map(group_by(concat(sections, days), fn(r) => r.kind), fn(r) => {key: r.key, count: length(r.rows)}), fn(r) => r.key)
 {
+  "lines": [
+    "count=2\tkey=day",
+    "count=4\tkey=section"
+  ],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [
     {
@@ -976,6 +986,7 @@ exit 0
 }
 -- query map(stops, fn(r) => r.title)
 {
+  "lines": [],
   "now": "2026-09-16T14:00:00-04:00",
   "rows": [],
   "schemaVersion": 1,

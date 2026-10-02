@@ -1,37 +1,117 @@
 /* The book's pages. The notes use lib/theme/style.css; this is the prose
-   around them. Dark by default like the theme; .xmd-light on <html> when the
-   system prefers light. */
+   around them and the sidebar. Dark by default like the theme; .xmd-light on
+   <html> when the system prefers light. */
 :root {
-  --ink: #e6e6e6; --muted: #a0a6ad; --paper: #1b1d21; --rule: #33373e;
-  --code: #24272c; --link: #8ab4f8;
+  --ink: #e6e6e6; --muted: #9aa0a8; --faint: #6f757d; --paper: #1b1d21; --side: #17191c;
+  --rule: #2f3339; --code: #222429; --link: #8ab4f8; --accent: #8ab4f8;
+  --sidebar: 264px; --measure: 740px;
   color-scheme: dark;
 }
 :root.xmd-light {
-  --ink: #1f1f1f; --muted: #5f6368; --paper: #ffffff; --rule: #e3e6ea;
-  --code: #f6f8fa; --link: #185abc;
+  --ink: #1f2328; --muted: #59636e; --faint: #8c959f; --paper: #ffffff; --side: #f7f8fa;
+  --rule: #e3e6ea; --code: #f6f8fa; --link: #1a5fc4; --accent: #1a5fc4;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.65 system-ui, -apple-system, sans-serif; }
-header, main, .pager { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-header { display: flex; justify-content: space-between; padding-top: 20px; padding-bottom: 20px; font-size: 15px; }
-header a:first-child { font-weight: 600; color: var(--ink); }
-a { color: var(--link); }
-h1 { font-size: 2em; line-height: 1.2; margin: 0.6em 0 0.5em; }
-h2 { margin-top: 1.8em; border-bottom: 1px solid var(--rule); padding-bottom: 0.2em; }
-h3 { margin-top: 1.6em; font-size: 1.05em; }
-h3 code { font-size: 1em; }
-code { font: 0.88em/1.5 "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 0.1em 0.3em; border-radius: 4px; }
-pre.code { background: var(--code); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow-x: auto; }
-pre.code code { background: none; padding: 0; }
-.xmd-block { display: flex; flex-direction: column; margin: 1.2em 0; }
-.xmd-block .xmd-live { border: 1px solid var(--rule); border-radius: 8px; }
+html { scroll-padding-top: 24px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* The sidebar: the book's name, its contents, and the app, behind a hard
+   rule. Only where there is room for it beside the text (the wide-screen
+   rules at the end); narrow screens get the top bar instead. */
+.sidebar { display: none; }
+.brand { font-weight: 700; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+.brand span { font-weight: 400; color: var(--muted); }
+.contents { flex: 1; overflow-y: auto; padding: 18px 16px 24px; font-size: 13.5px; line-height: 1.45; }
+.contents ol { list-style: none; margin: 0; padding: 0; }
+.contents a { display: block; padding: 4px 8px; border-radius: 5px; color: var(--muted); text-decoration: none; }
+.contents a:hover { color: var(--ink); background: var(--code); }
+.contents a[aria-current] { color: var(--ink); font-weight: 600; }
+.contents ol ol { margin: 2px 0 8px 12px; padding-left: 4px; border-left: 1px solid var(--rule); font-size: 13px; }
+.contents ol ol a { padding: 3px 8px; }
+.contents ol ol a.here { color: var(--ink); box-shadow: inset 2px 0 0 var(--accent); border-radius: 0 5px 5px 0; }
+.contents p { margin: 20px 8px 6px; color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Narrow screens keep a plain bar on top instead. */
+.topbar { display: flex; justify-content: space-between; align-items: baseline; max-width: var(--measure); margin: 0 auto; padding: 18px 20px; font-size: 14px; border-bottom: 1px solid var(--rule); }
+.topbar a:not(.brand) { color: var(--muted); }
+
+main { max-width: var(--measure); margin: 0 auto; padding: 8px 20px 24px; }
+
+h1, h2, h3 { position: relative; letter-spacing: -0.015em; scroll-margin-top: 24px; }
+h1 { font-size: 2.1em; line-height: 1.15; margin: 0.9em 0 0.45em; }
+h2 { font-size: 1.45em; line-height: 1.25; margin: 2.2em 0 0.6em; padding-bottom: 0.3em; border-bottom: 1px solid var(--rule); }
+h3 { font-size: 1.08em; margin: 1.8em 0 0.4em; }
+h3 code { font-size: 0.95em; }
+.anchor { margin-left: 0.35em; color: var(--faint); text-decoration: none; font-weight: 400; opacity: 0; transition: opacity 0.12s; }
+:is(h2, h3):hover .anchor, .anchor:focus-visible { opacity: 1; }
+p, ul, ol { margin: 0 0 1em; }
+main li { margin: 0.25em 0; }
+main ul, main ol { padding-left: 1.3em; }
+
+code { font: 0.86em/1.5 "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border: 1px solid var(--rule); padding: 0.08em 0.32em; border-radius: 4px; }
+pre.code { background: var(--code); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 1.2em 0; line-height: 1.55; }
+pre.code code { background: none; border: 0; padding: 0; font-size: 13.5px; }
+
+/* The notes: live editors and build-time highlighted modules share the code
+   blocks' surface. */
+.xmd-block, .xmd-static { --xmd-background: var(--code); }
+.xmd-block { display: flex; flex-direction: column; margin: 1.4em 0; }
+.xmd-block .xmd-live { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
 .xmd-block .xmd-live .xmd { margin: 0; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .xmd-block .xmd-live .xmd .inlay { white-space: pre-wrap; }
-.xmd-block .reset { align-self: flex-end; margin-top: 6px; height: 26px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 13px; background: var(--paper); color: var(--muted); font: 500 12px system-ui, sans-serif; cursor: pointer; }
-.xmd-block .reset:hover { color: var(--ink); }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
-img { max-width: 100%; height: auto; }
-.pager { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 20px; padding-bottom: 48px; border-top: 1px solid var(--rule); }
-.pager a[rel="next"] { margin-left: auto; text-align: right; }
+.xmd-block .xmd-live:focus-within { border-color: var(--faint); }
+/* Features a block turned off (data-off): the text stays, only the overlay goes. */
+.xmd-block[data-off~="highlight"] .xmd [class^="t-"] { all: unset; }
+.xmd-block[data-off~="results"] .xmd .inlay { display: none; }
+.xmd-static .xmd { margin: 1.2em 0; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 8px; overflow-x: auto; font-size: 13.5px; line-height: 1.6; }
+.xmd-block .reset { align-self: flex-end; margin-top: 6px; height: 24px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 12px; background: transparent; color: var(--faint); font: 500 11.5px system-ui, sans-serif; cursor: pointer; }
+.xmd-block .reset:hover { color: var(--ink); border-color: var(--faint); }
+
+/* A terminal: the note in its tab, and a shell beneath that queries it. The
+   shell is dark in both themes, as terminals are. */
+.xmd-terminal { --xmd-background: var(--code); margin: 1.4em 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.xmd-terminal > pre.code { margin: 0; border: 0; border-radius: 0; }
+.term-tab { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 0; background: var(--side); border-bottom: 1px solid var(--rule); font: 500 12px system-ui, sans-serif; }
+.term-file { padding: 9px 14px; color: var(--ink); border-right: 1px solid var(--rule); background: var(--code); box-shadow: inset 0 2px 0 var(--accent); }
+.term-reset { height: 22px; padding: 0 9px; border: 1px solid var(--rule); border-radius: 11px; background: transparent; color: var(--faint); font: 500 11px system-ui, sans-serif; cursor: pointer; }
+.term-reset:hover { color: var(--ink); border-color: var(--faint); }
+.xmd-terminal .xmd-live { max-height: 340px; overflow: auto; }
+.xmd-terminal .xmd-live .xmd { margin: 0; padding: 12px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; }
+.term-screen { background: #0f1114; color: #d7dade; font: 13px/1.55 "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, monospace; border-top: 1px solid var(--rule); cursor: text; }
+.term-log { max-height: 360px; overflow: auto; padding: 12px 16px 2px; }
+.term-entry + .term-entry { margin-top: 10px; }
+.term-cmd { color: #f1f3f5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.term-prompt { color: #7ee2a8; margin-right: 0.15em; user-select: none; }
+.term-out, .term-err { margin: 2px 0 0; padding: 0; background: none; border: 0; font: inherit; white-space: pre; overflow-x: auto; tab-size: 12; }
+.term-out { color: #b9c0c8; }
+.term-err { color: #f59f9f; }
+.term-line { display: flex; align-items: center; gap: 0.5em; padding: 6px 16px 12px; }
+.term-line input { flex: 1; min-width: 0; padding: 4px 0; border: 0; outline: 0; background: transparent; color: #f1f3f5; font: inherit; caret-color: #7ee2a8; }
+.term-line input::placeholder { color: #5d646c; }
+.term-screen:focus-within { box-shadow: inset 0 0 0 1px #3a4048; }
+
+.table { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; line-height: 1.5; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--rule); }
+td:first-child { white-space: nowrap; }
+img { max-width: 100%; height: auto; border-radius: 8px; }
+
+footer { display: flex; gap: 16px; max-width: var(--measure); margin: 0 auto; padding: 24px 20px 48px; color: var(--faint); font-size: 13px; }
+footer a { color: var(--faint); }
+
+/* Wide screens: the sidebar takes the left edge, and the text keeps its
+   measure, centered in what is left. Last, so it wins over the rules above. */
+@media (min-width: 1024px) {
+  .sidebar { display: flex; flex-direction: column; position: fixed; inset: 0 auto 0 0; width: var(--sidebar); background: var(--side); border-right: 1px solid var(--rule); }
+  .sidebar .brand { display: block; padding: 22px 24px 18px; font-size: 17px; border-bottom: 1px solid var(--rule); }
+  .sidebar .app { margin-top: auto; padding: 14px 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); text-decoration: none; }
+  .sidebar .app:hover { color: var(--ink); }
+  .topbar { display: none; }
+  main, footer { --gutter: max(48px, calc((100vw - var(--sidebar) - var(--measure)) / 2)); max-width: none; margin: 0 0 0 var(--sidebar); padding-left: var(--gutter); padding-right: var(--gutter); }
+  main { padding-top: 40px; padding-bottom: 32px; }
+}

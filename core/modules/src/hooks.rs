@@ -1,7 +1,8 @@
 //! The hooks, records and `step` loops a module meets, declared as data in
 //! `data/hooks.md`: what the host hands each hook and each step and what must
 //! come back. That file, read once on first use, generates
-//! `book/reference/contract.md`; its opening paragraphs give its format.
+//! `book/reference/writing-modules.md`, laid out as `data/kinds.md` says; its
+//! opening paragraphs give its format.
 use crate::module::{Hook, ModuleKind};
 use std::sync::LazyLock;
 use strum::VariantArray;

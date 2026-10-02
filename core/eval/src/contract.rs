@@ -5,7 +5,7 @@
 //!
 //! Native code never names a stdlib function by string anywhere else. A
 //! module that replaces a bundled id is checked against this table when the
-//! registry links, and `book/reference/contract.md` is generated from it.
+//! registry links, and the end of `book/reference/writing-modules.md` is generated from it.
 //! The table itself is data, `data/contract.md`.
 //!
 //! A call runs inside an evaluation: the [`Engine`] it is handed, sharing

@@ -183,17 +183,23 @@ impl WorkspaceSession {
         }
     }
     /// `query` over the workspace at `now`, optionally scoped to one note, as
-    /// a host answers it: the rows, with the open versions they were read at.
+    /// a host answers it: the rows, each also as the line `xmd` prints for it,
+    /// with the open versions they were read at.
     pub fn query(
         &self,
         query: &Query,
         only: Option<&Path>,
         now: DateTime<FixedOffset>,
     ) -> Result<Value, String> {
-        let rows = self.request(now).query(query, only)?.json();
-        Ok(
-            json!({"schemaVersion":1,"now":now.to_rfc3339(),"rows":rows,"versions":self.versions_json()}),
-        )
+        let result = self.request(now).query(query, only)?;
+        let lines: Vec<String> = result.rows.iter().map(records::display_row).collect();
+        Ok(json!({
+            "schemaVersion": 1,
+            "now": now.to_rfc3339(),
+            "rows": result.json(),
+            "lines": lines,
+            "versions": self.versions_json(),
+        }))
     }
     /// The open versions as a client sees them, keyed by file URI.
     pub fn versions_json(&self) -> Value {

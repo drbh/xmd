@@ -47,7 +47,7 @@ pub use presentations::presentations;
 pub use query::{NoteFiles, Query, QueryResult, execute};
 use record::Record;
 use record::SourceRef;
-pub use value::display;
+pub use value::{display, display_row};
 
 /// Where the `diagnostics` collection comes from, chosen by the caller.
 /// Queries see what an editor shows, feature modules' own diagnostics

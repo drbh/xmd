@@ -1,0 +1,213 @@
+=== 01-blog-1.x.md
+# Weekend
+
+Renting a car for $1,234 and driving up the coast.
+Leaving 2026-11-20 at 09:30, about 4h on the road.
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== 01-blog-2.x.md
+# Weekend
+
+Renting a car for $1,234 and driving up the coast.
+Leaving 2026-11-20 at 09:30, about 4h on the road.
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== 01-blog-3.x.md
+# Weekend
+
+Renting a car for $1,234 and driving up the coast.
+Leaving 2026-11-20 at 09:30, about 4h on the road.
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== 01-blog-5.x.md
+# Weekend
+
+Renting a car for $1,234:car and driving up the coast.
+Leaving 2026-11-20:departure at 09:30, about 4h on the road.
+
+total := car + $90 = $1,324
+each := total / 3 = $441.33
+book_by := departure - 14d = 2026-11-06
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== 01-blog-6.x.md
+# Weekend
+
+Renting a car for $1,234:car and driving up the coast.
+Leaving 2026-11-20:departure at 09:30, about 4h on the road.
+
+total := car + $90 = $1,324
+each := total / 3 = $441.33
+book_by := departure - 14d = 2026-11-06
+
+We each owe [each] $441.33, and have to book by [book_by] 2026-11-06.
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== weekend.x.md
+# Weekend
+
+Renting a car for $1,234:car and driving up the coast.
+Leaving 2026-11-20:departure at 09:30, about 4h on the road.
+
+total := car + $90 = $1,324
+each := total / 3 = $441.33
+book_by := departure - 14d = 2026-11-06
+
+We each owe [each] $441.33, and have to book by [book_by] 2026-11-06.
+
+$100:saved
+weekly := solve(weekly * 6 + saved >= each) = $56.89
+
+units := import("units") = <collection>
+drive := units.show(310, "km", "mi") = 192.63 mi
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== birds.xmd
+module := {
+  api: 1,
+  id: "birds",
+  kind: "feature",
+  inputs: ["recognized"],
+  recognizes: [bird]
+}
+
+// Find bird names in list items, and paint them.
+bird := {
+  name: "bird",
+  on: "item",
+  pattern: "\\b(?<bird>(?i:heron|kestrel|wren))s?\\b",
+  tokens: {bird: "category3"}
+}
+
+latin := {
+  heron: "Ardea herodias",
+  kestrel: "Falco sparverius",
+  wren: "Troglodytes aedon"
+}
+
+// Put each bird's latin name beside it.
+collect := fn(ctx) => map(ctx.document.recognized, fn(found) => {
+  at: found.anchor,
+  label: get(latin, lower(found.groups.bird.text))
+})
+=== spotted.x.md
+# Weekend
+
+## Spotted
+
+- a heron Ardea herodias at the harbor
+- two kestrels Falco sparverius over the coast road
+- a wren Troglodytes aedon in the hedge, i think
+=== $ xmd weekend.x.md 'each'                                         #=> $441.33
+$441.33
+=== $ xmd weekend.x.md 'each * 3 == total'                            #=> true
+true
+=== $ xmd weekend.x.md 'tasks | filter(fn(t) => !t.done) | map(.title)'
+Pack
+Charge the camera
+=== $ xmd --workspace 'tasks | filter(fn(t) => t.due != null) | map(.{title, due})' --json
+[
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-11-10"
+    },
+    "title": "Book the ferry"
+  },
+  {
+    "due": {
+      "type": "date",
+      "value": "2026-11-19"
+    },
+    "title": "Water the plants"
+  }
+]
+=== $ xmd render weekend.x.md --format text
+# Weekend
+
+Renting a car for $1,234:car and driving up the coast.
+Leaving 2026-11-20:departure at 09:30, about 4h on the road.
+
+total := car + $90 = $1,324
+each := total / 3 = $441.33
+book_by := departure - 14d = 2026-11-06
+
+We each owe [each] $441.33, and have to book by [book_by] 2026-11-06.
+
+$100:saved
+weekly := solve(weekly * 6 + saved >= each) = $56.89
+
+units := import("units") = <collection>
+drive := units.show(310, "km", "mi") = 192.63 mi
+
+## Packing ███░░░░░ 1/3 complete
+
+- [x] Book the car
+- [ ] Pack
+- [ ] Charge the camera
+=== $ xmd --workspace 'diagnostics' --fail-on-match
+=== 01-blog-11.x.md
+prices := [$3, $6, $9] = [$3, $6, $9]
+pricey := prices | filter(fn(p) => p > $5) | length = 2
+stops := [{city: "Lisbon", day: 2}, {city: "Porto", day: 5}] = [{"city": "Lisbon", "day": 2}, {"city": "Porto", "day": 5}]
+order := stops
+  | sort_by(desc(.day))
+  | map(.city) = ["Porto", "Lisbon"]
+=== 01-blog-12.x.md
+# Weekend
+
+coffee := countdown(4m) = ◷ ░░░░░░░░ 04:00 remaining · ○ idle
+drive := stopwatch() = ◴ 00:00 elapsed · ○ idle
+
+- [ ] Coffee before we leave @timer(coffee) ◷ ░░░░░░░░ 04:00 remaining · ○ idle
+=== 01-blog-13.x.md
+# Weekend
+
+$0.14:per_km
+
+legs := table = 3 rows · 2 columns
+| leg          | km  |
+| ------------ | --- |
+| to the coast | 180 |
+| coast road   | 60  |
+| home         | 220 |
+
+Fuel for [sum(legs, km)] 460 km is about [sum(legs, km) * per_km] $64.40.
+Chance of rain, fri to sun: [sparkline([20%, 70%, 10%], 0%, 100%)] ▂▆▂
+=== 01-blog-14.x.md
+# Weekend
+
+- [ ] Book the ferry :ferry @due(2026-11-10) @estimate(20m) → due 2026-11-10
+- [ ] Print the tickets @after(ferry) ⊘ blocked by ferry
+- [ ] Water the plants @every(week) @due(2026-11-19) → due 2026-11-19 · ↻ every week
+=== fees.xmd
+card := fn(amount) => amount * 3% = <function>
+=== 01-blog-16.x.md
+weekend := import("./weekend.x.md") = import("<root>/weekend.x.md")
+fees := import("./fees.xmd") = import("<root>/fees.xmd")
+
+Paying by card, each of us owes [weekend.each + fees.card(weekend.each)] $454.57.

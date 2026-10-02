@@ -139,6 +139,9 @@ exit 0
 ]
 -- query map(filter(values, fn(r) => r.name == "price"), fn(r) => {name: r.name, display: r.display})
 {
+  "lines": [
+    "display=$10\tname=price"
+  ],
   "now": "2026-09-16T12:00:00-04:00",
   "rows": [
     {

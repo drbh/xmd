@@ -1,6 +1,6 @@
 Every stdlib function native code calls, by module: what
 `core/eval/src/contract.rs` reads as its `CONTRACT` and
-`book/reference/contract.md` is generated from.
+the end of `book/reference/writing-modules.md` is generated from.
 
 An entry's heading says whether the module must define the function
 (`required` or `optional`) and names it as `module.function`. Then come its

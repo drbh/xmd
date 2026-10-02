@@ -93,6 +93,8 @@ export function createCommands(ctx) {
     // Help
     { id: "syntax", menu: "Help", label: "Writing guide", run: () => ctx.dialog("syntax") },
     { id: "shortcuts", menu: "Help", label: "Keyboard shortcuts", shortcut: "mod+/", run: () => ctx.dialog("shortcuts") },
+    // The book is the site's front page, one level above the app.
+    { id: "book", menu: "Help", label: "Read the book", run: () => window.open(new URL("../", location.href), "_blank", "noopener") },
   ];
   const byId = Object.fromEntries(list.map(c => [c.id, c]));
   const menus = ["File", "Edit", "View", "Insert", "Format", "Tools", "Help"].map(name => ({ name, get items() { return list.filter(c => c.menu === name && (!c.when || c.when())); } }));

@@ -21,6 +21,9 @@ import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const GITHUB = "https://github.com/drbh/xmd/blob/main/";
+// The docs app's saved preferences (apps/docs/src/lib/store.js). The book
+// shares their theme, so a choice made in either is the other's too.
+const PREFS = "xmd.docs.prefs.v1";
 /** The page built as the site root. */
 export const HOME = "01-blog.md";
 
@@ -228,6 +231,18 @@ document.addEventListener("click", event => {
 addEventListener("keydown", event => {
   if (event.key === "Escape" && !wide.matches && isOpen()) { setOpen(false, false); toggle.focus(); }
 });
+// The theme: the button saves it into the docs app's preferences; without a
+// saved one the page follows the system.
+const setTheme = theme => { root.dataset.theme = theme; root.classList.toggle("xmd-light", theme === "light"); };
+const saved = () => { try { return JSON.parse(localStorage.getItem("${PREFS}") || "{}"); } catch { return {}; } };
+document.querySelector(".topbar .theme").addEventListener("click", () => {
+  const theme = root.classList.contains("xmd-light") ? "dark" : "light";
+  setTheme(theme);
+  try { localStorage.setItem("${PREFS}", JSON.stringify({ ...saved(), theme })); } catch {}
+});
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", event => {
+  if (!["light", "dark"].includes(saved().theme)) setTheme(event.matches ? "light" : "dark");
+});
 for (const h of document.querySelectorAll("main :is(h2, h3)[id]")) {
   const a = document.createElement("a");
   a.className = "anchor"; a.href = "#" + h.id; a.textContent = "#";
@@ -255,6 +270,10 @@ function describe(html) {
   return text.length > 160 ? text.slice(0, 157).replace(/\s+\S*$/, "") + "…" : text;
 }
 
+// The docs app's sun and moon (apps/docs/src/lib/Icon.svelte).
+const icon = (name, d) => `<svg class="${name}" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SUN = icon("sun", "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z");
+const MOON = icon("moon", "M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z");
 const MENU = '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 // The app's own icon, a page with its corner folded, drawn in one color.
 const APP_MARK = '<svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M9.5 1.5v3h3"/><path d="M6 8.5h4M6 11h4"/></g></svg>';
@@ -276,16 +295,21 @@ function template(page, pages, html, hasBlocks) {
 <link rel="stylesheet" href="${up}lib/theme/style.css">
 <link rel="stylesheet" href="${up}lib/theme/fonts.css">
 <link rel="stylesheet" href="${up}book/book.css">
-<script>try {
-  if (matchMedia("(prefers-color-scheme: light)").matches) document.documentElement.classList.add("xmd-light");
-  if (matchMedia("(min-width: 1024px)").matches && localStorage.getItem("xmd-book-contents") === "open") document.documentElement.classList.add("contents-open");
-} catch {}</script>
+<script>{
+  const root = document.documentElement;
+  let theme;
+  try { theme = JSON.parse(localStorage.getItem("${PREFS}") || "{}").theme; } catch {}
+  if (theme !== "light" && theme !== "dark") theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  root.dataset.theme = theme;
+  root.classList.toggle("xmd-light", theme === "light");
+  try { if (matchMedia("(min-width: 1024px)").matches && localStorage.getItem("xmd-book-contents") === "open") root.classList.add("contents-open"); } catch {}
+}</script>
 </head>
 <body>
 <header class="topbar">
 <button class="toggle" type="button" aria-label="contents" aria-controls="contents" aria-expanded="false">${MENU}</button>
 <a class="brand" href="${up || "./"}">xmd</a>
-<nav class="links" aria-label="site"><a href="${up}docs/" aria-label="open the app" title="open the app">${APP_MARK}</a><a href="https://github.com/drbh/xmd" aria-label="xmd on GitHub" title="xmd on GitHub">${GITHUB_MARK}</a></nav>
+<nav class="links" aria-label="site"><button class="theme" type="button" aria-label="switch theme" title="switch theme">${SUN}${MOON}</button><a href="${up}docs/" aria-label="open the app" title="open the app">${APP_MARK}</a><a href="https://github.com/drbh/xmd" aria-label="xmd on GitHub" title="xmd on GitHub">${GITHUB_MARK}</a></nav>
 </header>
 <aside class="sidebar" id="contents">
 ${contents(page, pages, html)}

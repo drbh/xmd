@@ -88,6 +88,7 @@
     <div class="brand"><span class="logo"><Icon name="doc" size={22} /></span> XMD Docs</div>
     <label class="search"><Icon name="search" /><input type="search" placeholder="Search documents" aria-label="Search documents" bind:value={query}></label>
     <label class="button primary" title="Import"><Icon name="upload" /><span class="text">Import</span><input type="file" accept=".{EXTENSION.split(".").pop()},text/markdown,text/plain" multiple hidden onchange={onImport}></label>
+    <a class="tool book-link" href="../" title="Read the book" aria-label="Read the book"><Icon name="book" /></a>
     <button type="button" class="tool theme-toggle" title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme" onclick={onToggleTheme}><Icon name={theme === "dark" ? "sun" : "moon"} /></button>
     {#if account}
       <div class="account-menu">

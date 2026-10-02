@@ -10,10 +10,11 @@ import { words } from "../book/terminal.js";
 
 const repo = new URL("../../../", import.meta.url);
 
-test("a page's address drops the number that orders the chapters", () => {
-  assert.equal(pageOf("README.md"), "index.html");
-  assert.equal(pageOf("01-language.md"), "language.html");
-  assert.equal(pageOf("reference/functions.md"), "reference/functions.html");
+test("a page's address drops the number that orders the chapters, and why xmd exists is the site root", () => {
+  assert.equal(pageOf("01-blog.md"), "index.html");
+  assert.equal(pageOf("README.md"), "book/index.html");
+  assert.equal(pageOf("02-language.md"), "book/language.html");
+  assert.equal(pageOf("reference/functions.md"), "book/reference/functions.html");
 });
 
 test("a block's file is the one hosts/cli/tests/book.rs writes", () => {
@@ -74,7 +75,7 @@ test("the markdown subset the book uses", () => {
 
 test("the book builds, and every chapter is in reading order", async () => {
   const pages = await readBook(new URL("book/", repo));
-  assert.equal(pages[0].page, "index.html");
+  assert.equal(pages[0].page, "book/index.html");
   const chapters = pages.filter(p => p.chapter).map(p => p.path);
   assert.deepEqual(chapters, [...chapters].sort());
   assert.ok(chapters.length > 0);

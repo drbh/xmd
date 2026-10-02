@@ -1,15 +1,18 @@
 /* The book's pages. The notes use lib/theme/style.css; this is the prose
-   around them and the sidebar. Dark by default like the theme; .xmd-light on
-   <html> when the system prefers light. */
+   around them, the bar and the contents. The colors are the docs app's
+   (apps/docs/src/app.css): dark here, .xmd-light on <html> for light, which
+   the head script picks from the app's saved theme or else the system's. */
 :root {
-  --ink: #e6e6e6; --muted: #9aa0a8; --faint: #6f757d; --paper: #1b1d21; --side: #17191c;
-  --rule: #2f3339; --code: #222429; --link: #8ab4f8; --accent: #8ab4f8;
+  --ink: #e3e3e3; --muted: #9aa0a6; --faint: #6f7378; --paper: #202124; --side: #232528;
+  --rule: #3c4043; --code: #1b1c1e; --hover: rgba(232, 234, 237, .1); --link: #8ab4f8; --accent: #8ab4f8;
+  --xmd-foreground: #e3e3e3; --xmd-inlay-background: #2d3138; --xmd-inlay-foreground: #c3cad6;
   --sidebar: 264px; --measure: 740px; --bar: 52px;
   color-scheme: dark;
 }
 :root.xmd-light {
-  --ink: #1f2328; --muted: #59636e; --faint: #8c959f; --paper: #ffffff; --side: #f7f8fa;
-  --rule: #e3e6ea; --code: #f6f8fa; --link: #1a5fc4; --accent: #1a5fc4;
+  --ink: #1f1f1f; --muted: #5f6368; --faint: #9aa0a6; --paper: #ffffff; --side: #f8f9fa;
+  --rule: #dadce0; --code: #f8f9fa; --hover: rgba(60, 64, 67, .08); --link: #185abc; --accent: #1a73e8;
+  --xmd-foreground: #1f1f1f; --xmd-inlay-background: #eef0f3; --xmd-inlay-foreground: #3c4653;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -23,11 +26,14 @@ a:hover { text-decoration-thickness: 2px; }
    and GitHub. It stays on top while the page scrolls. */
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; height: var(--bar); padding: 0 16px; background: var(--paper); border-bottom: 1px solid var(--rule); font-size: 14px; }
 .toggle { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
-.toggle:hover, .toggle[aria-expanded="true"] { color: var(--ink); background: var(--code); }
+.toggle:hover, .toggle[aria-expanded="true"] { color: var(--ink); background: var(--hover); }
 .brand { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
 .links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.links a { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; color: var(--muted); }
-.links a:hover { color: var(--ink); background: var(--code); }
+.links :is(a, button) { display: grid; padding: 0; border: 0; background: transparent; cursor: pointer; place-items: center; width: 32px; height: 32px; border-radius: 6px; color: var(--muted); }
+.links :is(a, button):hover { color: var(--ink); background: var(--hover); }
+/* The theme button shows where it goes: the sun in the dark, the moon in the light. */
+.theme .moon, .xmd-light .theme .sun { display: none; }
+.xmd-light .theme .moon { display: block; }
 .links svg { display: block; }
 
 /* The contents: closed until the button opens them, under the bar along the
@@ -39,7 +45,7 @@ a:hover { text-decoration-thickness: 2px; }
 .contents { flex: 1; overflow-y: auto; padding: 18px 16px 24px; font-size: 13.5px; line-height: 1.45; }
 .contents ol { list-style: none; margin: 0; padding: 0; }
 .contents a { display: block; padding: 4px 8px; border-radius: 5px; color: var(--muted); text-decoration: none; }
-.contents a:hover { color: var(--ink); background: var(--code); }
+.contents a:hover { color: var(--ink); background: var(--hover); }
 .contents a[aria-current] { color: var(--ink); font-weight: 600; }
 .contents ol ol { margin: 2px 0 8px 12px; padding-left: 4px; border-left: 1px solid var(--rule); font-size: 13px; }
 .contents ol ol a { padding: 3px 8px; }

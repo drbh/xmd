@@ -151,6 +151,24 @@ test("the contents open from the top bar: beside the text on wide screens, over 
   await expect(sidebar).toBeHidden();
 });
 
+test("the book and the app share one theme, and each links to the other", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/book/reference/functions.html");
+  const root = page.locator("html");
+  // No saved theme: the system's.
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await page.locator(".topbar .theme").click();
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await expect(root).toHaveClass(/xmd-light/);
+  // The app opens in the theme chosen in the book, and links back to it.
+  await page.locator('.topbar a[href="../../docs/"]').click();
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await page.locator('a.book-link').click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("main h1")).toHaveText("why xmd exists");
+  await expect(root).toHaveAttribute("data-theme", "light");
+});
+
 test("a terminal prints what xmd printed, and runs what a reader types", async ({ page }) => {
   await page.goto(`/?now=${encodeURIComponent(NOW)}`);
   await page.waitForFunction(() => window.xmdBook?.ready, null, { timeout: 45_000 });

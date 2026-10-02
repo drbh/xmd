@@ -9,4 +9,6 @@ mkdir -p xmd-zed && \
   tar -xz -C xmd-zed
 ```
 
-then Extensions > Install Dev Extension > `xmd-zed`
+then Extensions > Install Dev Extension > `xmd-zed`. keep the folder: zed
+loads the extension from it. to update, extract a newer release over it and
+reinstall

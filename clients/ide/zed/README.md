@@ -1,14 +1,7 @@
 # zed
 
-the zed extension: runs the xmd language server for `.x.md` notes and `.xmd` libraries,
-downloading it if `xmd` is not on your PATH
+from a [source checkout](../../../README.md#develop), run `make zed` at the repository root. then choose **Extensions > Install Dev Extension** and select `clients/ide/zed`
 
-```bash
-mkdir -p xmd-zed && \
-  curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-zed.tar.gz | \
-  tar -xz -C xmd-zed
-```
+for a prebuilt binary and extension, use the [installer](../../../installer) with `--editor zed`. it configures the server path and highlighting, preserving existing preferences
 
-then Extensions > Install Dev Extension > `xmd-zed`. keep the folder: zed
-loads the extension from it. to update, extract a newer release over it and
-reinstall
+for a dev extension, enable `"semantic_tokens": "full"` under `languages.XMD` in Zed settings. rebuild with `make zed` and reinstall the dev extension after changes

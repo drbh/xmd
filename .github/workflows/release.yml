@@ -63,7 +63,8 @@ jobs:
           vscode=$(node -p 'require("./clients/ide/vscode/package.json").version')
           zed=$(sed -n 's/^version = "\(.*\)"/\1/p' clients/ide/zed/extension.toml | head -n1)
           echo "tag $tag; hosts/cli/Cargo.toml $crate; vscode $vscode; zed $zed"
-          for found in "$crate" "$vscode" "$zed"; do
+          installer=$(sed -n 's/^version = "\(.*\)"/\1/p' installer/Cargo.toml | head -n1)
+          for found in "$crate" "$vscode" "$zed" "$installer"; do
             if [ "$found" != "$version" ]; then
               echo "::error::tag $tag does not match version $found; bump the manifests first" >&2
               exit 1
@@ -99,7 +100,7 @@ jobs:
         with:
           key: ${{ matrix.target }}
       - name: Build
-        run: cargo build --release -p xmd --target ${{ matrix.target }}
+        run: make xmd installer TARGET=${{ matrix.target }}
       - name: Package
         shell: bash
         env:
@@ -122,8 +123,10 @@ jobs:
           tar -C stage -czf "dist/$name" $files
           cp "dist/$name" "dist/$stable"
           cp "dist/$name" "dist/$native"
+          helper="xmd-installer-$UNAME"
+          cp "target/$TARGET/release/xmd-installer" "dist/$helper"
           cd dist
-          for f in "$name" "$stable" "$native"; do
+          for f in "$name" "$stable" "$native" "$helper"; do
             if command -v sha256sum > /dev/null; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
           done
           cat ./*.sha256
@@ -158,10 +161,8 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          npm --prefix clients/ide/vscode run package
-          mkdir -p dist
-          mv "clients/ide/vscode/xmd-$VERSION.vsix" dist/
-          cp "dist/xmd-$VERSION.vsix" dist/xmd.vsix
+          make vscode
+          cp dist/xmd.vsix "dist/xmd-$VERSION.vsix"
           cd dist
           for f in *.vsix; do sha256sum "$f" > "$f.sha256"; done
           cat ./*.sha256
@@ -189,26 +190,21 @@ jobs:
         with:
           workspaces: clients/ide/zed
       - name: Build the extension
-        working-directory: clients/ide/zed
-        run: cargo build --release --target wasm32-wasip2
+        run: make zed
       - name: Package
         shell: bash
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          cd clients/ide/zed
-          cp target/wasm32-wasip2/release/xmd_zed_extension.wasm extension.wasm
-          mkdir -p dist
-          tar -czf "dist/xmd-zed-$VERSION.tar.gz" extension.toml extension.wasm languages
-          cp "dist/xmd-zed-$VERSION.tar.gz" dist/xmd-zed.tar.gz
+          cp dist/xmd-zed.tar.gz "dist/xmd-zed-$VERSION.tar.gz"
           cd dist
           for f in *.tar.gz; do sha256sum "$f" > "$f.sha256"; done
           cat ./*.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: xmd-zed
-          path: clients/ide/zed/dist/*
+          path: dist/*
           if-no-files-found: error
           retention-days: 3
 
@@ -236,8 +232,9 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          tar -C clients/ide/neovim -czf "assets/xmd-neovim-$VERSION.tar.gz" xmd.lua
-          tar -C clients/ide/helix -czf "assets/xmd-helix-$VERSION.tar.gz" languages.toml runtime
+          make neovim helix
+          cp dist/xmd-neovim.tar.gz "assets/xmd-neovim-$VERSION.tar.gz"
+          cp dist/xmd-helix.tar.gz "assets/xmd-helix-$VERSION.tar.gz"
           cd assets
           for editor in neovim helix; do
             cp "xmd-$editor-$VERSION.tar.gz" "xmd-$editor.tar.gz"

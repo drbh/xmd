@@ -29,8 +29,8 @@
     "pkg/xmd_bg.wasm.d.ts"
   ],
   "scripts": {
-    "build": "bash build.sh && npm run build:site",
-    "build:site": "node scripts/build.mjs",
+    "build": "make -C ../.. web",
+    "build:site": "make -C ../.. web-site WASM_PREBUILT=1",
     "start": "node serve.mjs",
     "screenshot": "node scripts/screenshot.mjs",
     "gif": "npm run gif:typing && npm run gif:terminal",
@@ -38,7 +38,7 @@
     "gif:terminal": "node scripts/terminal-gif.mjs --theme light && node scripts/terminal-gif.mjs --theme dark",
     "test": "npm run test:unit && npm run test:types && playwright test",
     "test:unit": "node --test tests/*.test.mjs",
-    "prepack": "bash build.sh && node scripts/theme.mjs",
+    "prepack": "make -C ../.. wasm && node scripts/theme.mjs",
     "test:types": "tsc --project tests/types/tsconfig.json"
   },
   "devDependencies": {

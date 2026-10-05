@@ -1,9 +1,10 @@
 # vs code
 
-the vs code extension: runs the xmd language server for `.x.md` notes and `.xmd` libraries,
-downloading it if `xmd` is not on your PATH
+from a [source checkout](../../../README.md#develop), run at the repository root:
 
 ```bash
-curl -fsSLO https://github.com/drbh/xmd/releases/latest/download/xmd.vsix && \
-  code --install-extension xmd.vsix
+make vscode
+code --install-extension dist/xmd.vsix
 ```
+
+for a prebuilt binary and extension, use the [installer](../../../installer) with `--editor vscode`. it configures the server path and highlighting, preserving existing preferences

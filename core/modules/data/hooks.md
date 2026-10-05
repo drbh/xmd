@@ -1,16 +1,6 @@
-The hooks, records and `step` loops a module meets: what the host hands each
-hook and each step and what must come back. `core/modules/src/hooks.rs` reads
-this file, and `hosts/cli/tests/reference.rs` lays it out in
-`book/reference/writing-modules.md` as `kinds.md` says. The records a query
-also reads, like `recognized`, are described with the collections in
-`core/values/data/collections.md`.
+The hooks, records and `step` loops a module meets: what the host hands each hook and each step and what must come back. `core/modules/src/hooks.rs` reads this file, and `hosts/cli/tests/reference.rs` lays it out in `book/reference/writing-modules.md` as `kinds.md` says. The records a query also reads, like `recognized`, are described with the collections in `core/values/data/collections.md`.
 
-Each `#` part holds `##` entries. An entry is its heading, one line of prose
-and `- ` lines, one per field or parameter, each `name: shape and meaning`; a
-`?` after a name marks one that may be absent. A hook's heading names it and
-the kinds of module it is called on, and its `returns` line what comes back. A
-step protocol lists its `input`, `output` and `effects` (`kind request ->
-answer: what it does`) under `###` headings. Prose is never wrapped.
+Each `#` part holds `##` entries. An entry is its heading, one line of prose and `- ` lines, one per field or parameter, each `name: shape and meaning`; a `?` after a name marks one that may be absent. A hook's heading names it and the kinds of module it is called on, and its `returns` line what comes back. A step protocol lists its `input`, `output` and `effects` (`kind request -> answer: what it does`) under `###` headings. Prose is never wrapped.
 
 # records
 

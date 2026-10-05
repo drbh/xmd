@@ -1,0 +1,15 @@
+[package]
+name = "xmd-installer"
+version = "0.2.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+jsonc-parser = { version = "0.34", features = ["cst"] }
+sha2 = "0.10"
+tempfile = "3"
+
+[lints]
+workspace = true

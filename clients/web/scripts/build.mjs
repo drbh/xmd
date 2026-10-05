@@ -7,6 +7,7 @@ const root = new URL("../", import.meta.url);
 const dist = new URL("dist/", root);
 await rm(dist, { recursive: true, force: true });
 await mkdir(new URL("lib/", dist), { recursive: true });
+await cp(new URL("../../install.sh", root), new URL("install.sh", dist));
 for (const name of ["src", "adapters", "theme", "pkg"]) {
   await cp(new URL(name, root), new URL(`lib/${name}`, dist), { recursive: true });
 }
@@ -16,6 +17,7 @@ for (const name of ["src", "adapters", "theme", "pkg"]) {
 await writeFile(new URL("_headers", dist), [
   "/lib/*\n  Access-Control-Allow-Origin: *\n  Cache-Control: public, max-age=86400",
   "/sw.js\n  Cache-Control: no-cache",
+  "/install.sh\n  Content-Type: text/plain; charset=utf-8\n  Cache-Control: no-cache",
   "/docs/assets/*\n  Cache-Control: public, max-age=31536000, immutable",
   "/docs/live-*\n  Cache-Control: public, max-age=31536000, immutable",
 ].join("\n") + "\n");

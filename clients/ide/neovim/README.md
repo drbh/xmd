@@ -1,13 +1,13 @@
 # neovim
 
-xmd for neovim 0.11+. needs `xmd` on your PATH, see the
-[install](../../../README.md) in the main readme
+requires Neovim 0.11+ and [`xmd` on your PATH](../../../README.md). from a source checkout, run at the repository root:
 
 ```bash
-curl -fsSL https://github.com/drbh/xmd/releases/latest/download/xmd-neovim.tar.gz | \
-    tar -xzC ~/.config/nvim xmd.lua && \
-  echo "dofile(vim.fn.stdpath('config') .. '/xmd.lua')" \
-    >> ~/.config/nvim/init.lua
+make neovim
+mkdir -p ~/.config/nvim
+tar -xzf dist/xmd-neovim.tar.gz -C ~/.config/nvim
 ```
 
-to update, run the `curl` line again; the `dofile` line only needs adding once
+add `dofile(vim.fn.stdpath('config') .. '/xmd.lua')` to `~/.config/nvim/init.lua` once
+
+or [download xmd-neovim.tar.gz](https://github.com/drbh/xmd/releases/latest/download/xmd-neovim.tar.gz) and extract it into `~/.config/nvim`, then add the same line

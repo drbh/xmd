@@ -1,13 +1,6 @@
-Every built-in call as signature help and completion show it, what
-`services/analysis/src/signature.rs` reads as its `BUILTINS` and the functions
-reference is generated from. A built-in's name and tier come from `Builtin`
-itself; every `Builtin` has exactly one entry here, which a test checks.
+Every built-in call as signature help and completion show it, what `services/analysis/src/signature.rs` reads as its `BUILTINS` and the functions reference is generated from. A built-in's name and tier come from `Builtin` itself; every `Builtin` has exactly one entry here, which a test checks.
 
-An entry's heading is the built-in's name. Then come its parameters as
-`- name: kind` lines, a `returns` line (a value type's name, or prose for a
-union), one line of documentation, and an `example` line with what signature
-help fills in, left out when there is nothing to fill in. Prose is never
-wrapped.
+An entry's heading is the built-in's name. Then come its parameters as `- name: kind` lines, a `returns` line (a value type's name, or prose for a union), one line of documentation, and an `example` line with what signature help fills in, left out when there is nothing to fill in. Prose is never wrapped.
 
 ## import
 

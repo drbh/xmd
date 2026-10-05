@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
-    "dev": "node build.mjs --site-only && wrangler dev --var DEV_AUTH:1 --port 8788",
+    "build": "make -C ../../.. cloud",
+    "dev": "make -C ../../.. cloud WASM_PREBUILT=1 && wrangler dev --var DEV_AUTH:1 --port 8788",
     "migrate": "wrangler d1 migrations apply xmd-docs --remote",
     "migrate:local": "wrangler d1 migrations apply xmd-docs --local",
-    "deploy": "node build.mjs && wrangler d1 migrations apply xmd-docs --remote && wrangler deploy",
+    "deploy": "make -C ../../.. cloud && wrangler d1 migrations apply xmd-docs --remote && wrangler deploy",
     "test": "node --test --test-concurrency=1 test/*.test.mjs && npx playwright test"
   },
   "devDependencies": {

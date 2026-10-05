@@ -1,10 +1,7 @@
-// Build the static site, then bundle the cloud backend module beside the app.
+// Bundle the cloud backend beside the static site built by make.
 // Yjs lands in a separate chunk that only loads when a document goes live.
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
-const web = fileURLToPath(new URL("../", import.meta.url));
-if (!process.argv.includes("--site-only")) execFileSync("npm", ["run", process.argv.includes("--wasm") ? "build" : "build:site"], { cwd: web, stdio: "inherit" });
 await build({
   entryPoints: [fileURLToPath(new URL("client/backend.js", import.meta.url))],
   outdir: fileURLToPath(new URL("../dist/docs/", import.meta.url)),

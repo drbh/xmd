@@ -1,16 +1,6 @@
-The collections a query or a feature module's `inputs` can name, and what each
-field of their records means. `hosts/cli/tests/reference.rs` reads this file
-into `book/reference/collections.md` and checks it against the records the
-examples hold: every collection has an entry, every field a record has is
-described, and nothing is described that no record has.
+The collections a query or a feature module's `inputs` can name, and what each field of their records means. `hosts/cli/tests/reference.rs` reads this file into `book/reference/collections.md` and checks it against the records the examples hold: every collection has an entry, every field a record has is described, and nothing is described that no record has.
 
-`# every record` holds the fields most records share, and `# fields` the ones
-that mean the same in every collection that has them. Every other `#` part is a
-group of collections, its first line the group's intro. Each `##` entry is a
-collection: its name, one line of prose, an `example:` line (a shell command,
-run in `examples/` with `xmd` on the path), and `- name: meaning` lines for the
-fields it has that the two shared parts do not describe, or describe
-differently. Prose is never wrapped.
+`# every record` holds the fields most records share, and `# fields` the ones that mean the same in every collection that has them. Every other `#` part is a group of collections, its first line the group's intro. Each `##` entry is a collection: its name, one line of prose, an `example:` line (a shell command, run in `examples/` with `xmd` on the path), and `- name: meaning` lines for the fields it has that the two shared parts do not describe, or describe differently. Prose is never wrapped.
 
 # every record
 

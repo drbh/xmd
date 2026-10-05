@@ -1,16 +1,6 @@
-How to write each kind of module. `hosts/cli/tests/reference.rs` reads this
-file, with `hooks.md` for the hooks, records and steps, into
-`book/reference/writing-modules.md`, and compiles every example.
+How to write each kind of module. `hosts/cli/tests/reference.rs` reads this file, with `hooks.md` for the hooks, records and steps, into `book/reference/writing-modules.md`, and compiles every example.
 
-`# modules` is the page's opening: prose lines, then `- name: meaning` lines
-for the fields of the `module` record, in the order the page lists them. Each
-`##` entry under `# kinds` is a kind of module: its name, prose lines, an
-`example:` line (a module file, from the repository root, shown whole), an
-optional `run:` line (a shell command run in the example's directory, its
-output shown), and a `records:` line naming the `hooks.md` records its hooks
-and declarations use, in the order they are shown. `# replacing a bundled
-module` is the prose above the table of the functions xmd calls on a bundled
-module, from `core/eval/data/contract.md`. Prose is never wrapped.
+`# modules` is the page's opening: prose lines, then `- name: meaning` lines for the fields of the `module` record, in the order the page lists them. Each `##` entry under `# kinds` is a kind of module: its name, prose lines, an `example:` line (a module file, from the repository root, shown whole), an optional `run:` line (a shell command run in the example's directory, its output shown), and a `records:` line naming the `hooks.md` records its hooks and declarations use, in the order they are shown. `# replacing a bundled module` is the prose above the table of the functions xmd calls on a bundled module, from `core/eval/data/contract.md`. Prose is never wrapped.
 
 # modules
 

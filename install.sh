@@ -1,56 +1,69 @@
 #!/bin/sh
-# Installs the xmd binary for this machine from a GitHub release.
-#
-#   curl -fsSL https://github.com/drbh/xmd/releases/latest/download/install.sh | sh
-#
-# It downloads the release archive named for `uname -s` and `uname -m`,
-# checks it against the release's sha256, and copies the one `xmd` binary
-# into ~/.local/bin. Nothing else changes: no sudo, no shell profile edits.
-# Run it again to update; `rm ~/.local/bin/xmd` uninstalls.
-#
-#   XMD_VERSION=0.2.0   install that release instead of the latest
-#   XMD_BIN_DIR=dir     install into dir instead of ~/.local/bin
+# Download the native installer. No checkout, Rust, Python, or Node is required.
 set -eu
-
 version=${XMD_VERSION:-latest}
-bin=${XMD_BIN_DIR:-$HOME/.local/bin}
-
-case "$(uname -s)-$(uname -m)" in
-  Darwin-arm64 | Darwin-x86_64 | Linux-x86_64 | Linux-aarch64) ;;
-  *) echo "xmd: no prebuilt binary for $(uname -s) $(uname -m)" >&2; exit 1 ;;
+github_auth=false
+next_release=false
+for arg in "$@"; do
+  if [ "$next_release" = true ]; then version=$arg; next_release=false; continue; fi
+  case "$arg" in
+    --github-auth) github_auth=true ;;
+    --release) next_release=true ;;
+    --release=*) version=${arg#--release=} ;;
+    --help|-h) echo 'usage: install.sh [--editor zed|vscode] [--github-auth] [--release VERSION] [--bin-dir DIR]'; exit 0 ;;
+  esac
+done
+[ "$next_release" = false ] || { echo 'missing release version' >&2; exit 1; }
+platform="$(uname -s)-$(uname -m)"
+case "$platform" in
+  Darwin-arm64|Darwin-x86_64|Linux-x86_64|Linux-aarch64) ;;
+  *) echo "xmd: no prebuilt installer for $platform" >&2; exit 1 ;;
 esac
-name="xmd-$(uname -s)-$(uname -m).tar.gz"
 if [ "$version" = latest ]; then
-  url="https://github.com/drbh/xmd/releases/latest/download/$name"
-else
-  url="https://github.com/drbh/xmd/releases/download/v${version#v}/$name"
+  if [ "$github_auth" = true ]; then
+    version=$(gh api repos/drbh/xmd/releases/latest --jq .tag_name)
+  else
+    url=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/drbh/xmd/releases/latest)
+    version=${url##*/}
+  fi
 fi
-
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-echo "downloading $url"
-curl -fsSL "$url" -o "$tmp/$name"
-curl -fsSL "$url.sha256" -o "$tmp/$name.sha256"
-
-expected=$(cut -d ' ' -f 1 < "$tmp/$name.sha256")
-if command -v sha256sum > /dev/null; then
-  actual=$(sha256sum "$tmp/$name" | cut -d ' ' -f 1)
-else
-  actual=$(shasum -a 256 "$tmp/$name" | cut -d ' ' -f 1)
-fi
-if [ "$expected" != "$actual" ]; then
-  echo "xmd: checksum mismatch for $name (expected $expected, got $actual)" >&2
-  exit 1
-fi
-
-tar -xzf "$tmp/$name" -C "$tmp" xmd
-mkdir -p "$bin"
-cp "$tmp/xmd" "$bin/xmd"
-chmod 755 "$bin/xmd"
-echo "installed $("$bin/xmd" --version) to $bin/xmd"
-
-case ":$PATH:" in
-  *":$bin:"*) ;;
-  *) echo "$bin is not on your PATH; add this line to your shell profile:"
-     echo "  export PATH=\"$bin:\$PATH\"" ;;
+version=${version#v}
+case "$version" in
+  ''|*[!0-9A-Za-z.+-]*) echo 'invalid release version' >&2; exit 1 ;;
 esac
+cache=${XMD_INSTALLER_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/xmd/installer}
+mkdir -p "$cache/v$version/$platform"
+tmp=$(mktemp -d "$cache/v$version/$platform/.download.XXXXXXXX")
+trap 'rm -rf "$tmp"' EXIT
+name="xmd-installer-$platform"
+download() {
+  asset=$1
+  if [ "$github_auth" = true ]; then
+    gh release download "v$version" --repo drbh/xmd --pattern "$asset" --dir "$tmp"
+  else
+    curl -fsSL "https://github.com/drbh/xmd/releases/download/v$version/$asset" -o "$tmp/$asset"
+  fi
+}
+checksum() {
+  if command -v sha256sum >/dev/null; then
+    sha256sum "$1" | cut -d ' ' -f 1
+  else
+    shasum -a 256 "$1" | cut -d ' ' -f 1
+  fi
+}
+# Refresh the small checksum so replaced release assets invalidate the cache.
+download "$name.sha256"
+expected=$(cut -d ' ' -f 1 < "$tmp/$name.sha256")
+case "$expected" in
+  ''|*[!0-9a-f]*) echo 'xmd: installer checksum mismatch (invalid checksum)' >&2; exit 1 ;;
+esac
+[ "${#expected}" -eq 64 ] || { echo 'xmd: installer checksum mismatch (invalid checksum)' >&2; exit 1; }
+installer="$cache/v$version/$platform/$expected"
+if [ ! -f "$installer" ] || [ "$(checksum "$installer")" != "$expected" ]; then
+  download "$name"
+  [ "$(checksum "$tmp/$name")" = "$expected" ] || { echo 'xmd: installer checksum mismatch' >&2; exit 1; }
+  chmod 755 "$tmp/$name"
+  # Staging on the same filesystem makes concurrent runs and interruptions safe.
+  mv -f "$tmp/$name" "$installer"
+fi
+XMD_VERSION="$version" "$installer" "$@"

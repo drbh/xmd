@@ -1,7 +1,6 @@
 # examples
 
-one short note per feature. open one in the browser to edit it, nothing to
-install
+one short note per feature. open one in the browser to edit it, nothing to install
 
 - [Values](01-values.x.md) · [open](https://xmd.dholtz.com/docs/#/example/values)
 - [Calculations](02-calculations.x.md) · [open](https://xmd.dholtz.com/docs/#/example/calculations)

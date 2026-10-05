@@ -44,6 +44,10 @@ jobs:
       # member (hosts/cli) alone would skip.
       - name: Test
         run: cargo test --workspace --features xmd/browser
+      - name: Test installer and shell entry point
+        run: |
+          make installer PROFILE=dev
+          python3 installer/tests/integration.py
 
   wasm:
     name: WASM and web
@@ -59,7 +63,7 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
           # Pinned: the action's "latest" lookup sometimes resolves to an old
-          # release (v0.9.1) that lacks the --locked flag build.sh passes.
+          # release (v0.9.1) that lacks the --locked flag the Makefile passes.
           version: v0.15.0
       - uses: actions/setup-node@v4
         with:
@@ -68,10 +72,8 @@ jobs:
           cache-dependency-path: clients/web/package-lock.json
       - name: Install web dependencies
         run: npm --prefix clients/web ci
-      - name: Build WASM
-        run: bash clients/web/build.sh
-      - name: Build site
-        run: npm --prefix clients/web run build
+      - name: Build WASM and site
+        run: make web
       - name: Keep the WASM package for the deploy job
         uses: actions/upload-artifact@v4
         with:
@@ -84,7 +86,7 @@ jobs:
         run: npm --prefix clients/web run test:types
       - name: Build native binary
         # clients/web/tests/render.spec.mjs spawns target/debug/xmd for native parity.
-        run: cargo build
+        run: make xmd PROFILE=dev
       - name: Install Playwright browser
         # playwright.config.mjs pins channel "chrome", so install Google Chrome.
         run: npx --prefix clients/web playwright install --with-deps chrome
@@ -154,7 +156,7 @@ jobs:
           npm --prefix clients/web/cloud ci
       - name: Build the site and the backend module
         # The WASM package comes from the wasm job above; only the site is built here.
-        run: npm --prefix clients/web/cloud run build
+        run: make cloud WASM_PREBUILT=1
       - name: Apply database migrations
         working-directory: clients/web/cloud
         # D1's query API sometimes answers with a transient "internal error"

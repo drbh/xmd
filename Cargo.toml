@@ -14,7 +14,7 @@
 # `clients/ide/zed` is a crate too, but it targets wasm32-wasip2 and keeps its
 # own lockfile, so it stays out of this workspace.
 [workspace]
-members = ["core", "core/common", "core/syntax", "core/document", "core/values", "core/modules", "core/eval", "services", "services/analysis", "services/records", "services/features", "hosts/native", "hosts/lsp", "hosts/wasm", "hosts/cli"]
+members = ["installer", "core", "core/common", "core/syntax", "core/document", "core/values", "core/modules", "core/eval", "services", "services/analysis", "services/records", "services/features", "hosts/native", "hosts/lsp", "hosts/wasm", "hosts/cli"]
 default-members = ["hosts/cli"]
 exclude = ["clients/ide/zed"]
 resolver = "3"
@@ -62,3 +62,6 @@ native = ["lang", "services"]
 lsp = ["lang", "services", "native"]
 wasm = ["lang", "services"]
 xmd = ["lang", "services", "native", "lsp", "wasm"]
+
+# Release installation is independent of the language and its hosts.
+xmd-installer = []

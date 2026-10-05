@@ -1,12 +1,6 @@
-Every stdlib function native code calls, by module: what
-`core/eval/src/contract.rs` reads as its `CONTRACT` and
-the end of `book/reference/writing-modules.md` is generated from.
+Every stdlib function native code calls, by module: what `core/eval/src/contract.rs` reads as its `CONTRACT` and the end of `book/reference/writing-modules.md` is generated from.
 
-An entry's heading says whether the module must define the function
-(`required` or `optional`) and names it as `module.function`. Then come its
-parameters as `- name: kind` lines, a `returns` line, its role (`presents`
-followed by the stand-in shown when it fails, or `decides`), and one line of
-prose. Prose is never wrapped.
+An entry's heading says whether the module must define the function (`required` or `optional`) and names it as `module.function`. Then come its parameters as `- name: kind` lines, a `returns` line, its role (`presents` followed by the stand-in shown when it fails, or `decides`), and one line of prose. Prose is never wrapped.
 
 ## required format.series
 

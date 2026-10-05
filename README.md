@@ -5,38 +5,41 @@
   <img alt="a finished trip note: one number changes and the total follows, the departure date changes and the countdown and due date follow, then tables, checklists and timers are typed in" src="https://github.com/drbh/xmd/releases/download/media/typing-light.gif" width="720">
 </picture>
 
-markdown notes that know what they say: money, dates, durations, tasks and
-tables become live values in the editor you already use. a note stays a
-plain `.x.md` file that reads fine anywhere without xmd
+extended markdown is an opinionated tool for better notes.
 
-**start with [why xmd exists](https://xmd.dholtz.com)**
-([on github](book/01-blog.md)). it walks through the whole tool one live
-note at a time and links to everything else; this readme only covers
-installing
+[why xmd](https://xmd.dholtz.com).
 
 ## install
 
-the cli and language server, for mac and linux:
+the prebuilt cli and language server, for mac and linux.
 
 ```bash
-curl -fsSL https://github.com/drbh/xmd/releases/latest/download/install.sh | sh
+curl -fsSL https://xmd.dholtz.com/install.sh | sh
 ```
 
-[install.sh](install.sh) is short; read it first if you like. it checks the
-download's sha256, copies `xmd` into `~/.local/bin` and changes nothing
-else. run it again to update; `rm ~/.local/bin/xmd` uninstalls. or build
-with cargo, `cargo install --git https://github.com/drbh/xmd xmd`, or with nix,
-`nix run github:drbh/xmd`
+| editor                        | setup                                              |
+| ----------------------------- | -------------------------------------------------- |
+| [vs code](clients/ide/vscode) | replace `sh` above with `sh -s -- --editor vscode` |
+| [zed](clients/ide/zed)        | replace `sh` above with `sh -s -- --editor zed`    |
+| neovim                        | [setup guide](clients/ide/neovim)                  |
+| helix                         | [setup guide](clients/ide/helix)                   |
+| web                           | [open editor](https://xmd.dholtz.com/docs/)        |
 
-then your editor: [vs code](clients/ide/vscode), [zed](clients/ide/zed),
-[neovim](clients/ide/neovim), [helix](clients/ide/helix). or skip installing
-and use the [web editor](https://xmd.dholtz.com/docs/)
+the [installer](installer) is cached for repeat runs
 
-## reference
+## develop
 
-[the book](book/README.md) has the reference: functions, libraries,
-collections and writing modules
+with git, make, and Rust installed through rustup:
 
-## license
+```bash
+git clone https://github.com/drbh/xmd.git
+cd xmd
+make
+export PATH="$PWD/target/release:$PATH"
+```
 
-MIT, see [LICENSE](LICENSE).
+this builds `xmd`, including `xmd lsp`. launch your editor from this shell to use it
+
+build your client with `make zed`, `make vscode`, `make neovim`, `make helix`, or [`make web`](clients/web). VS Code and web need Node.js/npm; web also needs wasm-pack
+
+`make all` builds everything; `make help` lists the options

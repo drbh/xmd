@@ -1,9 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { readFile, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { readBook, blocksOf, writeBook } from "../scripts/lib/book.mjs";
+import { readFile } from "node:fs/promises";
+import { readBook, blocksOf } from "../scripts/lib/book.mjs";
+import { readExamples } from "../scripts/lib/examples.mjs";
 
 // The clock hosts/cli/tests/book.rs freezes, so the browser and the native
 // snapshots describe the same moment.
@@ -180,24 +178,20 @@ test("the book and the app share one theme, and each links to the other", async 
   await expect(root).toHaveAttribute("data-theme", "light");
 });
 
-test("a link to an example opens it, live, in the app", async ({ page }) => {
-  // Exercise the real book builder without requiring a particular link in the blog.
-  const dir = await mkdtemp(join(tmpdir(), "xmd-book-link-"));
-  const fixture = pathToFileURL(dir + "/");
-  try {
-    await mkdir(new URL("book/", fixture));
-    await writeFile(new URL("book/README.md", fixture), "# book\n");
-    await writeFile(new URL("book/01-blog.md", fixture), "# examples\n\n[charts](../examples/13-charts.x.md)\n");
-    await writeBook(new URL("book/", fixture), new URL("dist/", fixture), new URL("../book/", import.meta.url), new URL("../../../", import.meta.url));
-    const html = await readFile(new URL("dist/index.html", fixture), "utf8");
-    await page.route("http://127.0.0.1:4173/", route => route.fulfill({ contentType: "text/html", body: html }));
-    await page.goto("/");
-    await page.getByRole("link", { name: "charts", exact: true }).click();
-    await expect(page).toHaveURL(/\/docs\/#\/example\/charts$/);
-    await expect(page.locator(".xmd").first()).toContainText("Chart");
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
+test("the blog links to every example through the book, and examples open live", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('main a[href="book/examples.html"]').click();
+  await expect(page).toHaveURL(/\/book\/examples\.html$/);
+  await expect(page.locator("main h1")).toHaveText("examples");
+  const examples = await readExamples(new URL("../../../examples/", import.meta.url));
+  const links = page.locator('main a[href*="#/example/"]');
+  await expect(links).toHaveCount(examples.length);
+  expect(await links.evaluateAll(nodes => nodes.map(a => a.getAttribute("href")))).toEqual(
+    examples.map(example => `../docs/#/example/${example.name}`),
+  );
+  await page.getByRole("link", { name: "charts", exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/#\/example\/charts$/);
+  await expect(page.locator(".xmd").first()).toContainText("Chart");
 });
 
 test("a terminal prints what xmd printed, and runs what a reader types", async ({ page }) => {

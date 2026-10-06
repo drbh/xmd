@@ -2,6 +2,8 @@
 
 start with [why xmd exists](01-blog.md): it walks through the whole tool, one live note at a time, and links to everything else. on [xmd.dholtz.com/book](https://xmd.dholtz.com/book/) every example is a live note you can edit
 
+[try the examples](02-examples.md): one editable note per feature, directly in the web editor
+
 ## reference
 
 - [functions](reference/functions.md): every built-in and task attribute

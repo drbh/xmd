@@ -6,7 +6,7 @@ since `xmd` is a bit of a unique approach on note taking; we'll walk through the
 
 once we understand the "why" and "what", we'll look at "how" which is what makes `xmd` special.
 
-### a tool for me
+## a tool for me
 
 `xmd` is a tool made specifically for how I take notes. over the years I've tried many different note taking tools/approaches and always end up coming back to a simple markdown file.
 
@@ -27,10 +27,10 @@ Leaving 2026-11-20 at 09:30, about 4h on the road.
 
 you might ask, why markdown? why not an app that is built specifically for this purpose? 
 
-### no moats
+## no moats
 
 well, a few key reasons
-- IDE agnostic
+- [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment) (integrated development environment) agnostic
 - file as source of truth
 - file as the core user interface
 
@@ -44,11 +44,11 @@ this might seem strange at first - but multi part extensions are a well establis
 
 the benefit of this approach is that as far as all existing tools know, this is a normal markdown file. 
 
-you can open it up in your favorite editor and get all of the expected markdown niceties, and if you have `xmd` installed, it will seamlessly "upgrade" the file to use `xmd` features.
+you can open it up in your favorite editor and get all of the expected markdown niceties, and if you have `xmd` installed, it will seamlessly enhance the file to use all of `xmd`'s features without any changes to the file.
 
 now let's look at what those features are.
 
-### color good
+## color good
 
 okay, so what's the problem? markdown fixes everything right?
 
@@ -77,13 +77,13 @@ Leaving 2026-11-20 at 09:30, about 4h on the road.
 
 already a lot better.
 
-### not enough
+## not enough
 
-syntax highlighting is a good start - but once added it was glaringly clear that we were missing some of the other IDE goodies. 
+syntax highlighting is a good start - but once added it was glaringly obvious that we were missing some of the other ide goodies. 
 
-we want info on hover, autocomplete and code lens, clicks should do things and checklist should inlay progress information. 
+we want info on hover, autocomplete and code lenses (small clickable actions beside or above a line). clicks should do things, and checklists should show progress through inlays (extra information displayed beside the text). 
 
-still the same note - just with a little lsp sprinkled on top.
+still the same note - just with a little [language server protocol (LSP)](https://en.wikipedia.org/wiki/Language_Server_Protocol) sprinkled on top.
 
 ```xmd
 # Weekend
@@ -102,13 +102,13 @@ Leaving 2026-11-20 at 09:30, about 4h on the road.
 
 now we're starting to feel something - but it doesn't end here.
 
-### reactivity
+## reactivity
 
 while using our awesome colorful new notes we still found ourselves leaving our ide for a calculator or occasionally doing mental math between dates. "how many days between June 17th and Dec 27th again?", "what's the total for all of the items we have in the notes?"
 
 these kind of questions kept popping up and in some extreme cases we'd reach for a spreadsheet. spreadsheets operate on the same types of values we're using in our notes - costs, dates, durations and counts. 
 
-spreadsheets also have the powerful ability to express relationships between variables and dynamically/reactively update downstream numbers when a upstream value changes. they essentially let you build computational graphs with values and operations.
+spreadsheets also have the powerful ability to express relationships between variables and dynamically/reactively update downstream numbers when a upstream value changes. they essentially let you build [computational graphs](https://en.wikipedia.org/wiki/Directed_acyclic_graph#Data_processing_networks) with values and operations.
 
 we want reactivity too - and we already have most of the primitives. we can identify different types of values and can inlay information.
 
@@ -139,7 +139,7 @@ in other words; we now have spreadsheets with no cells.
 
 **ps try changing the price of `car` and watch all of the related variables react instantly. 
 
-### more than math
+## more than math
 
 we won't get too deep into this now - but we can do much more than simple math. `xmd` has the ability to solve for missing variables, convert units and fetch external information (like the status of a github pr, or weather forecast...)
 
@@ -167,7 +167,7 @@ weekly := solve(weekly * 6 + saved >= each)
 - [ ] Charge the camera
 ```
 
-### am I the problem
+## am I the problem
 
 at this point a thoughtful reader might ask; wait... didn't you just reinvent the exact thing you were trying to avoid (locked to a specific app)
 
@@ -181,7 +181,7 @@ and equally important - `.x.md` files always gracefully fallback to markdown so 
 
 we are not the problem!
 
-### `xmd` in `xmd`
+## `xmd` in `xmd`
 
 its clear that we've given our markdown some magical powers - but what if you are not me, and you want your notes to have different superpowers?
 
@@ -189,7 +189,7 @@ first let's take a step back and look at the architecture of `xmd` and we'll get
 
 I like to call `xmd` an "overlay language", simply because in order to support the features above we needed to define simple language constructs. we needed variables, operations and a interpreter that executes the graph. 
 
-its an overlay since it's "overlaying" these concepts into markdown. this is starkly different that most languages that require the full file to be either source code. 
+its an overlay since it's "overlaying" these concepts into markdown. this is starkly different that most languages that require the full file to be source code. 
 
 this language lives inside of our lsp, so it can access the inputs (the note text) and write output (colors, inlays, autocomplete and etc) using the lsp primitives that ides support.
 
@@ -199,7 +199,7 @@ yes! it is.
 
 underneath the hood - majority of `xmd`'s features are written in `xmd` - we limit the native code to only bridge the language with ide's apis.
 
-`xmd`'s core features are in it's `stdlib` which can be seen here https://github.com/drbh/xmd/tree/main/stdlib
+`xmd`'s core features are in it's `stdlib` which can be seen [here](https://github.com/drbh/xmd/tree/main/stdlib)
 
 your first thought may be "hmmmm interesting choice..."
 
@@ -209,7 +209,7 @@ since it's written in itself, you can write your own extensions that make use of
 
 let's look at an example to make this more concrete.
 
-### latin bird names
+## latin bird names
 
 let's say you keep a lot of notes with mentions of birds, and you don't always remember the latin names but it would be nice to inlay them automatically next to any common names.
 
@@ -261,9 +261,9 @@ now let's see what it looks like with this module applied
 - a wren in the hedge, i think
 ```
 
-`xmd` is extensible and easy to customize, if you are interested in more details on module writing check out https://xmd.dholtz.com/book/reference/writing-modules
+`xmd` is extensible and easy to customize, if you are interested in more details on module writing check out [writing modules](reference/writing-modules.md)
 
-### machines like structure
+## machines like structure
 
 we've covered why, what and how, and should have a solid understanding of `xmd` from the perspective of a note taker and a module writer.
 
@@ -287,13 +287,13 @@ xmd weekend.x.md 'tasks | filter(fn(t) => !t.done) | map(.title)'
 
 this essentially make our notes double as scripts, they can be programmatically queried, checked in ci and generally useful outside of an editor.
 
-### getting started
+## getting started
 
 we've now covered all of the core concepts that make `xmd`, thank you for reading this far! now you can make a serious assessment on if `xmd` is/could be useful to you.
 
-if you are still hesitant to add it to your ide you can take it for a spin in the document web application https://xmd.dholtz.com/docs/#/ which is powered by a wasm build of the lsp so its almost 1:1 with the experience in your editor.
+if you are still hesitant to add it to your ide you can take it for a spin in the [document web application](https://xmd.dholtz.com/docs/#/) which is powered by a [WebAssembly (Wasm)](https://en.wikipedia.org/wiki/WebAssembly) build of the lsp so its almost 1:1 with the experience in your editor.
 
-### advance stuff
+## advance stuff
 
-there are many features that have not been covered in this article, including nice support for tables, inline barcharts, timers, check list dependencies, custom functions and importable libraries. you can learn about all of these features in the documentation and/or dive into the examples via the web app https://github.com/drbh/xmd/tree/main/examples#examples
+there are many features that have not been covered in this article, including nice support for tables, inline barcharts, timers, check list dependencies, custom functions and importable libraries. you can learn about all of these features in the documentation and/or dive into the [examples](02-examples.md) via the web app
 ​

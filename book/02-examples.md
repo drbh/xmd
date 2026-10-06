@@ -1,0 +1,26 @@
+# examples
+
+one short note per feature. choose an example to open it in the web editor, edit it, and see the results. nothing to install; use **Save a copy** to keep your changes in this browser
+
+- [values](../examples/01-values.x.md)
+- [calculations](../examples/02-calculations.x.md)
+- [types](../examples/03-types.x.md)
+- [dates](../examples/04-dates.x.md)
+- [checklists](../examples/05-checklists.x.md)
+- [task attributes](../examples/06-task-attributes.x.md)
+- [dependencies](../examples/07-dependencies.x.md)
+- [recurring tasks](../examples/08-recurring.x.md)
+- [appointments](../examples/09-appointments.x.md)
+- [timers](../examples/10-timers.x.md)
+- [tables](../examples/11-tables.x.md)
+- [calculated cells](../examples/12-calculated-cells.x.md)
+- [charts](../examples/13-charts.x.md)
+- [plans](../examples/14-plans.x.md)
+- [decision columns](../examples/15-decision-columns.x.md)
+- [goal seek](../examples/16-goal-seek.x.md)
+- [itinerary](../examples/17-itinerary.x.md)
+- [links and files](../examples/18-links-and-files.x.md)
+- [values from other notes](../examples/19-cross-note-values.x.md)
+- [shared values](../examples/20-cross-note-source.x.md)
+- [unit conversions](../examples/21-unit-conversions.x.md)
+- [debug](../examples/22-debug.x.md)

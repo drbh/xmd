@@ -1,5 +1,5 @@
 name = "XMD"
-grammar = "markdown"
+grammar = "xmd"
 path_suffixes = ["x.md", "xmd"]
 block_comment = ["<!-- ", " -->"]
 tab_size = 2

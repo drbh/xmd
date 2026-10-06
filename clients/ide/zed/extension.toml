@@ -9,3 +9,8 @@ repository = "https://github.com/drbh/xmd"
 [language_servers.xmd]
 name = "XMD Language Server"
 languages = ["XMD"]
+
+[grammars.xmd]
+repository = "https://github.com/drbh/xmd"
+rev = "c09af46371d615735b1850d880baf9776d949bac"
+path = "clients/ide/zed/grammar"

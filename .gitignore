@@ -1,6 +1,7 @@
 /target
 /clients/ide/zed/target
 /clients/ide/zed/extension.wasm
+/clients/ide/zed/grammars/
 /.xmd/
 /clients/web/pkg/
 /clients/web/node_modules/

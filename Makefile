@@ -26,7 +26,8 @@ zed: | dist
 	rustup target add wasm32-wasip2
 	$(CARGO) build --locked --manifest-path clients/ide/zed/Cargo.toml --release --target wasm32-wasip2 --target-dir clients/ide/zed/target
 	cp clients/ide/zed/target/wasm32-wasip2/release/xmd_zed_extension.wasm clients/ide/zed/extension.wasm
-	tar -C clients/ide/zed -czf dist/xmd-zed.tar.gz extension.toml extension.wasm languages
+	python3 clients/ide/zed/grammar/build.py
+	tar -h -C clients/ide/zed -czf dist/xmd-zed.tar.gz extension.toml extension.wasm languages grammars/xmd.wasm LICENSE grammar/LICENSE
 
 vscode: clients/ide/vscode/node_modules/.package-lock.json | dist
 	$(NPM) --prefix clients/ide/vscode run check

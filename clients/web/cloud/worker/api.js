@@ -36,6 +36,19 @@ export async function roleOf(db, user, id) {
   const viaFolder = doc.folder_id ? await db.prepare("SELECT a.role FROM folder_acl a JOIN folders f ON f.id = a.folder_id WHERE a.folder_id = ?1 AND a.user_id = ?2 AND f.deleted_at IS NULL").bind(doc.folder_id, user.id).first() : null;
   return { doc, role: best(acl?.role, viaFolder?.role) };
 }
+// Internal room requests are not exposed by the Worker's WebSocket-only route.
+async function refreshRoomAccess(env, id) {
+  const room = await getServerByName(env.Room, id);
+  const response = await room.fetch(new Request(`https://room/${id}/access`, { method: "POST" }));
+  if (!response.ok) throw new HttpError(502, "Live access could not be updated");
+}
+async function folderDocuments(db, id) {
+  const rows = await db.prepare("SELECT id FROM documents WHERE folder_id = ?1 AND deleted_at IS NULL").bind(id).all();
+  return rows.results;
+}
+async function refreshFolderAccess(env, id) {
+  for (const doc of await folderDocuments(env.DB, id)) await refreshRoomAccess(env, doc.id);
+}
 async function folderRoleOf(db, user, id) {
   const folder = await db.prepare("SELECT id, owner_id, name, created_at, updated_at, deleted_at FROM folders WHERE id = ?1").bind(id).first();
   if (!folder || folder.deleted_at) return { folder: null, role: null };
@@ -104,7 +117,7 @@ export async function handle(request, env, user) {
     return json(rows.results.map(r => present(r, r.role)));
   }
 
-  const folderResponse = await folders(db, user, path, method, request);
+  const folderResponse = await folders(env, user, path, method, request);
   if (folderResponse) return folderResponse;
 
   // Trash: the owner's soft-deleted documents, restorable or purged for good.
@@ -191,6 +204,7 @@ export async function handle(request, env, user) {
         requireOwner(access);
         if (!filing && !renaming) throw new HttpError(400, "Nothing to change");
         await db.prepare("UPDATE documents SET folder_id = ?1, file = ?2, name = COALESCE(?3, name), named = COALESCE(?4, named), updated_at = ?5 WHERE id = ?6").bind(folderAfter, file, renaming && typeof input.name === "string" ? input.name : null, named, now, id).run();
+        if (folderAfter !== access.doc.folder_id) await refreshRoomAccess(env, id);
         return json({ id, version: access.doc.version, updated: now, role: "owner", folder: folderAfter, file, named: !!(named ?? access.doc.named) });
       }
       validateDocument(input);
@@ -203,6 +217,10 @@ export async function handle(request, env, user) {
       }
       const doc = requireWrite(access);
       if (input.version !== undefined && input.version !== doc.version) throw new HttpError(409, "The document changed elsewhere", { current: present(doc, access.role) });
+      if (folderAfter !== doc.folder_id) {
+        await db.prepare("UPDATE documents SET folder_id = ?1 WHERE id = ?2").bind(folderAfter, id).run();
+        await refreshRoomAccess(env, id);
+      }
       // The document's room is the single writer: it merges this text into the live state and mirrors it to D1.
       const room = await getServerByName(env.Room, id);
       const response = await room.fetch(new Request(`https://room/${id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: input.text, name: input.name }) }));
@@ -214,6 +232,7 @@ export async function handle(request, env, user) {
     if (method === "DELETE") {
       requireOwner(access);
       await db.prepare("UPDATE documents SET deleted_at = ?1 WHERE id = ?2").bind(Date.now(), id).run();
+      await refreshRoomAccess(env, id);
       return json({ ok: true });
     }
     throw new HttpError(405, "Method not allowed");
@@ -221,7 +240,7 @@ export async function handle(request, env, user) {
 
   // Sharing: owners manage an ACL of users, plus invites for emails not yet seen.
   return acl(db, user, request, method, { id, ownerId: access.doc?.owner_id, role: access.role, exists: !!(access.doc && access.role),
-    aclTable: "document_acl", aclKey: "document_id", inviteTable: "invites", label: "document" });
+    aclTable: "document_acl", aclKey: "document_id", inviteTable: "invites", label: "document", refresh: () => refreshRoomAccess(env, id) });
 }
 
 // One ACL implementation for documents and folders.
@@ -245,6 +264,7 @@ async function acl(db, user, request, method, target) {
     const now = Date.now();
     if (person) await db.prepare(`INSERT OR REPLACE INTO ${aclTable} (${aclKey}, user_id, role, created_at) VALUES (?1, ?2, ?3, ?4)`).bind(id, person.id, input.role, now).run();
     else await db.prepare(`INSERT OR REPLACE INTO ${inviteTable} (${aclKey}, email, role, invited_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5)`).bind(id, email, input.role, user.id, now).run();
+    await target.refresh();
     return json({ email, role: input.role, invited: !person });
   }
   if (method === "DELETE") {
@@ -252,13 +272,15 @@ async function acl(db, user, request, method, target) {
       db.prepare(`DELETE FROM ${aclTable} WHERE ${aclKey} = ?1 AND user_id IN (SELECT id FROM users WHERE email = ?2)`).bind(id, email),
       db.prepare(`DELETE FROM ${inviteTable} WHERE ${aclKey} = ?1 AND email = ?2`).bind(id, email),
     ]);
+    await target.refresh();
     return json({ ok: true });
   }
   throw new HttpError(405, "Method not allowed");
 }
 
 // Folders: owned or shared; only the owner renames, deletes, or shares one.
-async function folders(db, user, path, method, request) {
+async function folders(env, user, path, method, request) {
+  const db = env.DB;
   if (path === "/api/folders" && method === "GET") {
     const rows = await db.prepare(`
       SELECT f.id, f.name, f.updated_at, u.email AS owner_email, CASE WHEN f.owner_id = ?1 THEN 'owner' ELSE a.role END AS role
@@ -271,7 +293,7 @@ async function folders(db, user, path, method, request) {
   const id = m[1];
   if (!ID.test(id)) throw new HttpError(400, "Invalid folder id");
   const access = await folderRoleOf(db, user, id);
-  if (m[2]) return acl(db, user, request, method, { id, ownerId: access.folder?.owner_id, role: access.role, exists: !!(access.folder && access.role), aclTable: "folder_acl", aclKey: "folder_id", inviteTable: "folder_invites", label: "folder" });
+  if (m[2]) return acl(db, user, request, method, { id, ownerId: access.folder?.owner_id, role: access.role, exists: !!(access.folder && access.role), aclTable: "folder_acl", aclKey: "folder_id", inviteTable: "folder_invites", label: "folder", refresh: () => refreshFolderAccess(env, id) });
   if (method === "PUT") {
     const input = await body(request);
     const name = String(input.name ?? "").trim().slice(0, MAX_NAME);
@@ -292,10 +314,12 @@ async function folders(db, user, path, method, request) {
     if (!access.folder || !access.role) throw new HttpError(404, "Folder not found");
     if (access.role !== "owner") throw new HttpError(403, "Only the owner can delete a folder");
     // Documents stay; they just leave the folder.
+    const documents = await folderDocuments(db, id);
     await db.batch([
       db.prepare("UPDATE documents SET folder_id = NULL WHERE folder_id = ?1").bind(id),
       db.prepare("UPDATE folders SET deleted_at = ?1 WHERE id = ?2").bind(Date.now(), id),
     ]);
+    for (const doc of documents) await refreshRoomAccess(env, doc.id);
     return json({ ok: true });
   }
   throw new HttpError(405, "Method not allowed");

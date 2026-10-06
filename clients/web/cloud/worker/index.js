@@ -50,7 +50,7 @@ export default {
           await ensureUser(env.DB, user);
           const { doc, role } = await roleOf(env.DB, user, lobby.name);
           if (!doc || !role) return json({ error: "Document not found" }, 404);
-          req.headers.set("x-xmd-role", role);
+          req.headers.set("x-xmd-user-id", user.id);
           req.headers.set("x-xmd-email", user.email);
         },
         onBeforeRequest: () => json({ error: "Rooms accept WebSocket connections only" }, 400),

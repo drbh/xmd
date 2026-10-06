@@ -210,3 +210,112 @@ test("the site and the backend module are served beside the API", async () => {
   assert.equal((await fetch(`${BASE}/docs/`)).status, 200);
   assert.equal((await fetch(`${BASE}/lib/pkg/xmd_bg.wasm`)).headers.get("content-type"), "application/wasm");
 });
+
+// Real sync frames verify server enforcement even when clients ignore the UI.
+// WebSockets use wrangler's default development identity.
+const guest = "dev@example.com";
+async function liveClient(t, id, { rejected = false } = {}) {
+  const Y = await import("yjs"), encoding = await import("lib0/encoding"), decoding = await import("lib0/decoding"), sync = await import("y-protocols/sync");
+  const doc = new Y.Doc(), ws = new WebSocket(`${BASE.replace("http:", "ws:")}/api/rooms/room/${id}`);
+  let synced;
+  const ready = new Promise(resolve => { synced = resolve; });
+  const closed = new Promise(resolve => ws.addEventListener("close", resolve, { once: true }));
+  ws.addEventListener("error", () => {});
+  ws.binaryType = "arraybuffer";
+  const send = write => {
+    const out = encoding.createEncoder();
+    encoding.writeVarUint(out, 0);
+    write(out);
+    ws.send(encoding.toUint8Array(out));
+  };
+  ws.addEventListener("message", event => {
+    const input = decoding.createDecoder(new Uint8Array(event.data));
+    if (decoding.readVarUint(input) !== 0) return;
+    const out = encoding.createEncoder();
+    encoding.writeVarUint(out, 0);
+    const type = sync.readSyncMessage(input, out, doc, ws);
+    if (encoding.length(out) > 1) ws.send(encoding.toUint8Array(out));
+    if (type === sync.messageYjsSyncStep2) synced();
+  });
+  doc.on("update", (update, origin) => { if (origin !== ws && ws.readyState === WebSocket.OPEN) send(out => sync.writeUpdate(out, update)); });
+  ws.addEventListener("open", () => send(out => sync.writeSyncStep1(out, doc)), { once: true });
+  t.after(() => { ws.close(); doc.destroy(); });
+  if (rejected) { await closed; assert.equal(doc.getText("text").length, 0); return; }
+  await ready;
+  return {
+    doc, closed,
+    // A fresh state request is an ordering barrier after attempted writes.
+    snapshot: () => new Promise(resolve => {
+      const receive = event => {
+        const input = decoding.createDecoder(new Uint8Array(event.data));
+        if (decoding.readVarUint(input) !== 0 || decoding.readVarUint(input) !== sync.messageYjsSyncStep2) return;
+        const snapshot = new Y.Doc();
+        Y.applyUpdate(snapshot, decoding.readVarUint8Array(input));
+        const text = snapshot.getText("text").toString();
+        snapshot.destroy();
+        ws.removeEventListener("message", receive);
+        resolve(text);
+      };
+      ws.addEventListener("message", receive);
+      const empty = new Y.Doc();
+      send(out => sync.writeSyncStep1(out, empty));
+      empty.destroy();
+    }),
+  };
+}
+
+for (const scope of ["documents", "folders"]) {
+  test(`${scope} access changes revoke live sessions and enforce the new role on reconnect`, { timeout: 20_000 }, async t => {
+    const doc = id(), folder = scope === "folders" ? id() : null;
+    await call("/api/me", { user: guest });
+    if (folder) await call(`/api/folders/${folder}`, { method: "PUT", body: { name: folder } });
+    await call(`/api/documents/${doc}`, { method: "PUT", body: { name: doc, text: "initial", folder } });
+    const acl = `/api/${scope}/${folder || doc}/acl`;
+    const setRole = role => call(acl, { method: "PUT", body: { email: guest, role } });
+    assert.equal((await setRole("editor")).status, 200);
+    const editor = await liveClient(t, doc);
+    editor.doc.getText("text").insert(0, "allowed ");
+    assert.equal(await editor.snapshot(), "allowed initial");
+    assert.equal((await setRole("viewer")).status, 200);
+    assert.equal((await editor.closed).code, 4003);
+    const viewer = await liveClient(t, doc);
+    viewer.doc.getText("text").insert(0, "forbidden ");
+    assert.equal(await viewer.snapshot(), "allowed initial");
+    assert.equal((await call(acl, { method: "DELETE", body: { email: guest } })).status, 200);
+    assert.equal((await viewer.closed).code, 4003);
+    await liveClient(t, doc, { rejected: true });
+    await call(`/api/documents/${doc}`, { method: "PUT", body: { name: doc, text: "private update" } });
+    assert.ok(!viewer.doc.getText("text").toString().includes("private update"));
+  });
+}
+
+for (const change of ["move", "move with text", "delete folder", "delete document"]) {
+  test(`${change} revokes inherited live access`, { timeout: 20_000 }, async t => {
+    const doc = id(), folder = id();
+    await call("/api/me", { user: guest });
+    await call(`/api/folders/${folder}`, { method: "PUT", body: { name: folder } });
+    await call(`/api/folders/${folder}/acl`, { method: "PUT", body: { email: guest, role: "editor" } });
+    await call(`/api/documents/${doc}`, { method: "PUT", body: { name: doc, text: "initial", folder } });
+    const client = await liveClient(t, doc);
+    const response = change.startsWith("move")
+      ? await call(`/api/documents/${doc}`, { method: "PUT", body: { folder: null, ...(change === "move with text" ? { name: doc, text: "private update" } : {}) } })
+      : await call(`/api/${change === "delete folder" ? `folders/${folder}` : `documents/${doc}`}`, { method: "DELETE" });
+    assert.equal(response.status, 200);
+    assert.equal((await client.closed).code, 4003);
+    assert.equal(client.doc.getText("text").toString(), "initial");
+    await liveClient(t, doc, { rejected: true });
+  });
+}
+
+test("removing folder access preserves independent document access", { timeout: 20_000 }, async t => {
+  const doc = id(), folder = id();
+  await call("/api/me", { user: guest });
+  await call(`/api/folders/${folder}`, { method: "PUT", body: { name: folder } });
+  await call(`/api/folders/${folder}/acl`, { method: "PUT", body: { email: guest, role: "editor" } });
+  await call(`/api/documents/${doc}`, { method: "PUT", body: { name: doc, text: "initial", folder } });
+  await call(`/api/documents/${doc}/acl`, { method: "PUT", body: { email: guest, role: "editor" } });
+  const client = await liveClient(t, doc);
+  assert.equal((await call(`/api/folders/${folder}/acl`, { method: "DELETE", body: { email: guest } })).status, 200);
+  client.doc.getText("text").insert(0, "still allowed ");
+  assert.equal(await client.snapshot(), "still allowed initial");
+});

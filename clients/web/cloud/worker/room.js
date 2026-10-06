@@ -5,6 +5,7 @@
 // only writer for its document.
 import { YServer } from "y-partyserver";
 import { encodeStateAsUpdate, applyUpdate } from "yjs";
+import { roleOf } from "./api.js";
 
 const TEXT = "text"; // the Y.Text holding the note
 const STATE = "yjs-state"; // storage key prefix for the encoded document, chunked under the 2 MB value limit
@@ -48,19 +49,46 @@ export class Room extends YServer {
     await this.ctx.storage.put(entries);
   }
 
-  // The Worker resolved the caller's role before the upgrade; viewers may
-  // watch and show presence but their document updates are dropped.
-  onConnect(connection, context) {
-    connection.setState({ role: context.request.headers.get("x-xmd-role") || "viewer", email: context.request.headers.get("x-xmd-email") || "" });
-    // The base class starts the sync handshake, which is how edits made while
-    // disconnected reach the room.
-    return super.onConnect(connection, context);
+  // Check again inside the room: a permission change can race the upgrade.
+  async onConnect(connection, context) {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const userId = context.request.headers.get("x-xmd-user-id");
+      const { role } = userId ? await roleOf(this.env.DB, { id: userId }, this.name) : { role: null };
+      connection.setState({ userId, role, email: context.request.headers.get("x-xmd-email") || "" });
+      if (!role) { this.revoke(connection); return; }
+      return super.onConnect(connection, context);
+    });
   }
-  isReadOnly(connection) { return connection.state?.role === "viewer"; }
+  isReadOnly(connection) { return connection.state?.role !== "owner" && connection.state?.role !== "editor"; }
+  // A closing socket can still have queued frames. Exclude it from both
+  // incoming sync messages and the base class's outgoing broadcasts.
+  onMessage(connection, message) {
+    if (connection.state?.role) return super.onMessage(connection, message);
+  }
+  *getConnections(tag) {
+    for (const connection of super.getConnections(tag)) if (connection.state?.role) yield connection;
+  }
+  revoke(connection) {
+    connection.setState({ ...connection.state, role: null });
+    connection.close(4003, "Document access changed");
+  }
+  async refreshAccess() {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      for (const connection of super.getConnections()) {
+        const { userId, role: previous } = connection.state || {};
+        const { role } = userId ? await roleOf(this.env.DB, { id: userId }, this.name) : { role: null };
+        if (!role || role !== previous) this.revoke(connection);
+      }
+    });
+  }
 
   // Non-live writes (a REST PUT while a room exists) come through here so
   // there is one writer. The edit is applied as a replacement of the text.
   async onRequest(request) {
+    if (request.method === "POST" && new URL(request.url).pathname.endsWith("/access")) {
+      await this.refreshAccess();
+      return Response.json({ ok: true });
+    }
     if (request.method === "PUT") {
       const { text, name } = await request.json();
       this.document.transact(() => { const current = this.text.toString(); if (current !== text) { this.text.delete(0, current.length); this.text.insert(0, text); } }, "api");

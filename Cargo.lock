@@ -1740,7 +1740,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xmd"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "clap",
@@ -1758,7 +1758,7 @@ dependencies = [
 
 [[package]]
 name = "xmd-installer"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
